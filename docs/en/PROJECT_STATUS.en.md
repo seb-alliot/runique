@@ -181,11 +181,8 @@ Detail and “finished” criteria: [ROADMAP.md](https://github.com/seb-alliot/r
 
 ### Open — 4.0.x patch (security / maintenance, in this order)
 
-2. Staging files of a refused form: delete immediately
-3. Cap `RateLimiter` / `LoginGuard` in-memory counters
-4. Superuser sessions not deletable by staff
-5. Open-redirect test battery (PortSwigger)
-6. Clear admin message when FK blocks deletion
+1. Cap `RateLimiter` / `LoginGuard` in-memory counters
+2. Open-redirect test battery (PortSwigger)
 
 → Expected outcome: `4.0.1` (and later if needed). No minor feature in these patches.
 

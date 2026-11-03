@@ -55,7 +55,7 @@ pub async fn handle_blog_save(request: &mut Request, blog: BlogForm) -> AppResul
             Ok(Redirect::to("/blog/liste").into_response())
         }
         Err(err) => {
-            blog.get_form_mut().database_error(&err);
+            blog.forms_mut().database_error(&err);
             context_update!(request => { "title" => "Database error", "blog_form" => &blog });
             request.render(template)
         }

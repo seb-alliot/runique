@@ -1,0 +1,5 @@
+# Tests run from runique/: without it, every test that builds an app creates
+# runique/media/ (the builder makes MEDIA_ROOT, by default `{cwd}/media`).
+# A test that changes MEDIA_ROOT puts this value back (`restore_media_root`).
+[env]
+MEDIA_ROOT = { value = "../target/test-media", relative = true }

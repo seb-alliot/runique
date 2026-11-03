@@ -1,5 +1,10 @@
 #![doc = include_str!("../README.md")]
 
+// In the crate's own tests, `::runique::…` (what `model!{}` and `extend!{}`
+// generate) names the crate itself.
+#[cfg(test)]
+extern crate self as runique;
+
 // ---------------------------------------------------------------------------
 // Moteurs de base de données mutuellement exclusifs
 // ---------------------------------------------------------------------------

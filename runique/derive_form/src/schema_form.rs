@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use proc_macro2::Span;
-use quote::quote;
+use quote::{quote, quote_spanned};
 use syn::{
     DeriveInput, Ident, Path, Token, bracketed,
     parse::{Parse, ParseStream},
@@ -8,48 +8,70 @@ use syn::{
     punctuated::Punctuated,
 };
 
-// ─── Attributes parsed from #[form(schema = ..., fields = [...], exclude = [...])] ───
+// ─── Attributes parsed from #[form(schema = ..., fields = [...] | fields = All | exclude = [...])] ───
+
+/// Which columns the form takes: listed, all of them, or all but some. One of
+/// the three is required — a form taking every column unannounced would take
+/// any column added to the model later.
+enum Columns {
+    Only(Vec<Ident>),
+    All,
+    Except(Vec<Ident>),
+}
 
 struct FormAttrs {
     schema: Path,
-    fields: Option<Vec<Ident>>,
-    exclude: Option<Vec<Ident>>,
+    columns: Columns,
+}
+
+fn ident_list(input: ParseStream) -> syn::Result<Vec<Ident>> {
+    let content;
+    bracketed!(content in input);
+    let idents: Punctuated<Ident, Token![,]> = content.parse_terminated(Ident::parse, Token![,])?;
+    Ok(idents.into_iter().collect())
 }
 
 impl Parse for FormAttrs {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let mut schema: Option<Path> = None;
-        let mut fields: Option<Vec<Ident>> = None;
-        let mut exclude: Option<Vec<Ident>> = None;
+        let mut columns: Option<Columns> = None;
 
         while !input.is_empty() {
             let key: Ident = input.parse()?;
             input.parse::<Token![=]>()?;
 
-            match key.to_string().as_str() {
+            let declared = match key.to_string().as_str() {
                 "schema" => {
                     schema = Some(input.parse::<Path>()?);
+                    None
                 }
-                "fields" => {
-                    let content;
-                    bracketed!(content in input);
-                    let idents: Punctuated<Ident, Token![,]> =
-                        content.parse_terminated(Ident::parse, Token![,])?;
-                    fields = Some(idents.into_iter().collect());
+                "fields" if input.peek(Ident) => {
+                    let all: Ident = input.parse()?;
+                    if all != "All" {
+                        return Err(syn::Error::new(
+                            all.span(),
+                            "#[form]: `fields` takes a list `[a, b]` or `All`",
+                        ));
+                    }
+                    Some(Columns::All)
                 }
-                "exclude" => {
-                    let content;
-                    bracketed!(content in input);
-                    let idents: Punctuated<Ident, Token![,]> =
-                        content.parse_terminated(Ident::parse, Token![,])?;
-                    exclude = Some(idents.into_iter().collect());
-                }
+                "fields" => Some(Columns::Only(ident_list(input)?)),
+                "exclude" => Some(Columns::Except(ident_list(input)?)),
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
                         format!("#[form]: unknown attribute `{}`", other),
                     ));
                 }
+            };
+            if let Some(declared) = declared
+                && columns.replace(declared).is_some()
+            {
+                return Err(syn::Error::new(
+                    key.span(),
+                    "#[form]: `fields` and `exclude` can't be used together — list the fields, \
+                     or exclude some from all of them",
+                ));
             }
 
             if input.peek(Token![,]) {
@@ -59,12 +81,15 @@ impl Parse for FormAttrs {
 
         let schema = schema
             .ok_or_else(|| syn::Error::new(Span::call_site(), "#[form]: `schema` is required"))?;
+        let columns = columns.ok_or_else(|| {
+            syn::Error::new(
+                Span::call_site(),
+                "#[form]: incomplete declaration — say which fields the form takes: \
+                 `fields = [a, b]`, `exclude = [a, b]` or `fields = All`",
+            )
+        })?;
 
-        Ok(FormAttrs {
-            schema,
-            fields,
-            exclude,
-        })
+        Ok(FormAttrs { schema, columns })
     }
 }
 
@@ -77,8 +102,22 @@ pub(crate) fn model_schema(attr: TokenStream, item: TokenStream) -> TokenStream 
     let attrs = parse_macro_input!(attr as FormAttrs);
     let schema_path = attrs.schema;
 
-    let fields_expr = ident_list_to_expr(attrs.fields);
-    let exclude_expr = ident_list_to_expr(attrs.exclude);
+    let (fields, exclude) = match attrs.columns {
+        Columns::Only(list) => (Some(list), None),
+        Columns::All => (None, None),
+        Columns::Except(list) => (None, Some(list)),
+    };
+    // Each name a column of the entity, checked by the compiler: the error
+    // lands on the name, not on a panic the first time the form is used.
+    let checks = fields.iter().chain(exclude.iter()).flatten().map(|field| {
+        let mut variant = crate::model::utils::ident_pascal(field);
+        variant.set_span(field.span());
+        quote_spanned! { field.span()=> let _ = #schema_path::Column::#variant; }
+    });
+    let column_check = quote! { const _: () = { #(#checks)* }; };
+
+    let fields_expr = ident_list_to_expr(fields);
+    let exclude_expr = ident_list_to_expr(exclude);
 
     let model_impls = quote! {
         impl ::runique::forms::FormEntity for #name {
@@ -114,6 +153,8 @@ pub(crate) fn model_schema(attr: TokenStream, item: TokenStream) -> TokenStream 
         }
 
         #model_impls
+
+        #column_check
     };
 
     TokenStream::from(expanded)

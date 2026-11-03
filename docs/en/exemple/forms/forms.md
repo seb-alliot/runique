@@ -105,7 +105,7 @@ impl RuniqueForm for SignupForm {
 
 ### Saving an account
 
-For an ordinary model, `validated.save(&db)` saves the row. For an **account** it isn't enough: `password` is a secret column, which the generic save never writes. The generated project therefore writes its own `save`:
+`validated.save(&db)` saves the row, password included (its hash). But an account is born **inactive**: it can't sign in before being activated. The generated project therefore writes its own `save`, which creates the account then activates it at once:
 
 ```rust
 impl SignupForm {
@@ -168,7 +168,7 @@ pub async fn sign_up(mut request: Request) -> AppResult<Response> {
         }
         Err(err) => {
             // A username or email already taken shows on its field.
-            form.get_form_mut().database_error(&err);
+            form.forms_mut().database_error(&err);
             context_update!(request => {
                 "title" => "Sign up",
                 "signup_form" => &form,

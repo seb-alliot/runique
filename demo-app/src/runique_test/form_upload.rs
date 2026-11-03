@@ -122,11 +122,11 @@ async fn save_profile(
     let form =
         match ValidationForm::try_form(req.form::<user_profile::Form>(), &req, "profile").await {
             Ok(form) => form,
-            Err(form) => return Ok(Err(format!("invalid: {:?}", form.get_form().errors()))),
+            Err(form) => return Ok(Err(format!("invalid: {:?}", form.forms().errors()))),
         };
     Ok(match form.save(db).await {
         Ok(_) => Ok(()),
-        Err(form) => Err(format!("refused: {:?}", form.get_form().errors())),
+        Err(form) => Err(format!("refused: {:?}", form.forms().errors())),
     })
 }
 
@@ -246,7 +246,7 @@ async fn validated_profile(
     );
     ValidationForm::try_form(req.form::<user_profile::Form>(), &req, "profile")
         .await
-        .map_err(|form| fail(format!("invalid: {:?}", form.get_form().errors())))
+        .map_err(|form| fail(format!("invalid: {:?}", form.forms().errors())))
 }
 
 /// A custom handler removes the replaced file only after the row is written.
@@ -270,7 +270,7 @@ async fn the_developer_removes_the_replaced_file_after_the_save() -> Result<(), 
         let Ok(form) = form.save(db).await else {
             return Err(fail("the save should go through".into()));
         };
-        let new = form.get_form().fields["avatar"].value().to_string();
+        let new = form.forms().fields["avatar"].value().to_string();
         if let Some(old) = old.filter(|old| *old != new) {
             let old_file = Path::new(&resolve_media_root()).join(old);
             if old_file.exists() {
@@ -293,8 +293,44 @@ async fn the_developer_removes_the_replaced_file_after_the_save() -> Result<(), 
     .await
 }
 
-/// A refused database write removes the published file and retains no stale
-/// destination path in the returned form.
+/// Without the developer's own removal, the replaced file stays on disk:
+/// Runique never deletes a file a row has pointed at.
+#[tokio::test]
+async fn the_replaced_file_stays_after_the_save() -> Result<(), TestFailure> {
+    runique_test::<ADb>(super::ENV, async |db| {
+        let mut disk = OnDisk::default();
+        let old_name = format!("{}.png", unique("kept"));
+        let old_file = disk.stored(&format!("avatars/{old_name}"));
+        std::fs::create_dir_all(old_file.parent().unwrap()).unwrap();
+        std::fs::write(&old_file, PNG).unwrap();
+
+        let username = unique("keep");
+        let id = account(db, &username, Some(&format!("avatars/{old_name}"))).await?;
+        let name = format!("{}.png", unique("new"));
+        let staged = disk.staged(&unique("t"), &name, PNG);
+        let new_file = disk.stored(&format!("avatars/{name}"));
+
+        save_profile(db, &id.to_string(), &username, &staged)
+            .await?
+            .map_err(fail)?;
+
+        let avatar = avatar_of(db, id).await?;
+        if avatar.as_deref() != Some(format!("avatars/{name}").as_str()) {
+            return Err(fail(format!("avatar saved as {avatar:?}")));
+        }
+        if !new_file.is_file() {
+            return Err(fail("the new file should be in place".into()));
+        }
+        if !old_file.is_file() {
+            return Err(fail("the replaced file should still be there".into()));
+        }
+        Ok(())
+    })
+    .await
+}
+
+/// A refused database write never moves the file: it stays in staging, which
+/// the request's end removes, and the returned form keeps no destination path.
 #[tokio::test]
 async fn a_refused_save_rolls_back_the_new_upload() -> Result<(), TestFailure> {
     runique_test::<ADb>(super::ENV, async |db| {
@@ -309,16 +345,18 @@ async fn a_refused_save_rolls_back_the_new_upload() -> Result<(), TestFailure> {
         let Err(form) = form.save(db).await else {
             return Err(fail("a missing row should be refused".into()));
         };
-        let uploaded = form.get_form().fields["avatar"].value().to_string();
+        let uploaded = form.forms().fields["avatar"].value().to_string();
         if !uploaded.is_empty() {
             return Err(fail(format!("the refused form holds {uploaded:?}")));
         }
 
         if stored.exists() {
-            return Err(fail("the upload should be gone".into()));
+            return Err(fail("the upload should never reach its destination".into()));
         }
-        if Path::new(&staged).exists() {
-            return Err(fail("the staging copy should be gone".into()));
+        if !Path::new(&staged).is_file() {
+            return Err(fail(
+                "the staging copy should be left to the cleanup".into(),
+            ));
         }
         Ok(())
     })

@@ -24,6 +24,10 @@ pub struct MiddlewareConfig {
     /// When `true`, a new login invalidates the user's other active sessions
     /// (only one device connected at a time).
     pub exclusive_login: bool,
+    /// Refuses, before any handler, a form sent from another site without an
+    /// `X-CSRF-Token` header (`Sec-Fetch-Site: cross-site` or `same-site`).
+    /// Off by default; see `MiddlewareStaging::with_cross_site_form_guard`.
+    pub cross_site_form_guard: bool,
 }
 
 impl Default for MiddlewareConfig {
@@ -33,6 +37,7 @@ impl Default for MiddlewareConfig {
             enable_debug_errors: true,
             enable_cache: true,
             exclusive_login: false,
+            cross_site_form_guard: false,
         }
     }
 }
@@ -50,6 +55,7 @@ impl MiddlewareConfig {
                 std::env::var("DEBUG").ok().as_deref(),
             ),
             exclusive_login: false,
+            cross_site_form_guard: false,
         }
     }
 
@@ -60,6 +66,7 @@ impl MiddlewareConfig {
             enable_debug_errors: true,
             enable_cache: true,
             exclusive_login: false,
+            cross_site_form_guard: false,
         }
     }
 
@@ -70,6 +77,7 @@ impl MiddlewareConfig {
             enable_debug_errors: true,
             enable_cache: false,
             exclusive_login: false,
+            cross_site_form_guard: false,
         }
     }
 
@@ -80,6 +88,7 @@ impl MiddlewareConfig {
             enable_debug_errors: true,
             enable_cache: true,
             exclusive_login: false,
+            cross_site_form_guard: false,
         }
     }
 

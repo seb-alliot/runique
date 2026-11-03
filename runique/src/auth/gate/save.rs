@@ -3,7 +3,7 @@
 //! columns the rights allow, written in one transaction with its history row.
 #[cfg(feature = "admin")]
 use super::PkOf;
-use super::change::{FieldErrors, WriteKind, changes};
+use super::change::{FieldErrors, Secrets, WriteKind, changes};
 use super::check::{GateCtx, authorize_create, authorize_row};
 use super::operation::{Delete, Update};
 use super::refusal::{Refusal, RefusalReason};
@@ -153,7 +153,7 @@ where
     match (action, target) {
         (SaveAction::Save, None) => {
             let proof = authorize_create::<E>(&gate).map_err(refused)?;
-            let mut model = changes::<E>(form, &rights.columns, WriteKind::Create)
+            let mut model = changes::<E>(form, &rights.columns, WriteKind::Create, Secrets::Skip)
                 .map_err(|e| on_fields(form, e))?;
             // Whoever creates the row owns it, whatever the form sent.
             if let Some(owner) = E::OWNER {
@@ -175,7 +175,7 @@ where
                     .await
                     .map_err(refused)?;
                 trace::<E, _>(&txn, &user, &row, "create", None, None).await?;
-                txn.commit().await
+                Ok(txn)
             })
             .await
         }
@@ -183,7 +183,7 @@ where
             let proof = authorize_row::<Update, E>(&gate, id.clone())
                 .await
                 .map_err(refused)?;
-            let mut model = changes::<E>(form, &rights.columns, WriteKind::Update)
+            let mut model = changes::<E>(form, &rights.columns, WriteKind::Update, Secrets::Skip)
                 .map_err(|e| on_fields(form, e))?;
             // Through `_own` alone, the owner column is what grants the
             // right: writing it would hand the row over, or take another's.
@@ -206,7 +206,7 @@ where
                 let summary = summary::<E>(&old, &model);
                 write::update(proof, model, &txn).await.map_err(refused)?;
                 trace::<E, _>(&txn, &user, &old, "update", summary, None).await?;
-                txn.commit().await
+                Ok(txn)
             })
             .await
         }

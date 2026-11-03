@@ -840,7 +840,7 @@ fn unmigrated_type_changes(changes: &[Changes]) -> Vec<String> {
 /// Says so loudly, in yellow on a terminal (crossterm: ANSI, or the Windows
 /// console API on a terminal without it), plain when piped or with `NO_COLOR`.
 fn warn_unmigrated_type_changes(changes: &[Changes]) {
-    use crossterm::style::{Color, Print, ResetColor, SetAttribute, Attribute, SetForegroundColor};
+    use crossterm::style::{Attribute, Color, Print, ResetColor, SetAttribute, SetForegroundColor};
     use std::io::IsTerminal;
 
     let lines = unmigrated_type_changes(changes);

@@ -82,7 +82,9 @@ Each item needs its regression test before it is checked off.
    form that was not submitted, and an accepted upload the end of the request does not remove.
 3. [ ] **In-memory counters capped** — `RateLimiter` and `LoginGuard` bound their number of keys
    between two sweeps.
-4. [ ] **A superuser's sessions** — protected like their account: a staff member can't delete them.
+4. [x] **A superuser's sessions** — not needed: the superuser is a bootstrap account, removed once a dirigeant
+   is named; its sessions close once a password reset is completed (new password saved, all devices) or with the account's deletion
+   (`ON DELETE CASCADE`).
 5. [ ] **Open redirect tests** — run the payloads of PortSwigger's *URL validation bypass* cheat
    sheet.
 6. [x] **Deletion refused by a foreign key** — the admin shows "Cannot delete: other records still

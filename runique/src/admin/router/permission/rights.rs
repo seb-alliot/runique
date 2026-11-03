@@ -225,7 +225,7 @@ pub(crate) async fn rights_view(
     let back = admin.paths.detail_of(&site, key, &id);
 
     let mut form = req.form::<ConfirmForm<user::Entity>>();
-    form.get_form_mut().set_name(admin_form::RIGHTS);
+    form.forms_mut().set_name(admin_form::RIGHTS);
     if !req.method.is_safe() {
         let message = match ValidationForm::try_form(form, &req, admin_form::RIGHTS).await {
             Err(_) => Err(t("csrf.invalid_or_missing").into_owned()),
@@ -257,7 +257,7 @@ pub(crate) async fn rights_view(
         Ok(rows) => rows,
         Err(e) => return failure(AdminError::Db(e), &req, &admin).await,
     };
-    let form_fields = serde_json::to_value(form.get_form()).unwrap_or_default();
+    let form_fields = serde_json::to_value(form.forms()).unwrap_or_default();
     chrome(
         &mut req,
         &admin,
@@ -361,7 +361,7 @@ async fn group_rights(
     let back = admin.paths.detail_of(&site, key, &id);
 
     let mut form = req.form::<ConfirmForm<groupe::Entity>>();
-    form.get_form_mut().set_name(admin_form::RIGHTS);
+    form.forms_mut().set_name(admin_form::RIGHTS);
     if !req.method.is_safe() {
         let message = match ValidationForm::try_form(form, &req, admin_form::RIGHTS).await {
             Err(_) => Err(t("csrf.invalid_or_missing").into_owned()),
@@ -407,7 +407,7 @@ async fn group_rights(
             .collect(),
         Err(e) => return failure(AdminError::Db(e), &req, &admin).await,
     };
-    let form_fields = serde_json::to_value(form.get_form()).unwrap_or_default();
+    let form_fields = serde_json::to_value(form.forms()).unwrap_or_default();
     chrome(
         &mut req,
         &admin,

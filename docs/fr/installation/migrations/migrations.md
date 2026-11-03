@@ -16,6 +16,39 @@ migration/
 
 **Vous n'avez pas à le créer** : `runique new` l'écrit avec le projet, et `runique makemigrations` le crée s'il manque (projet non créé par `runique new`), avec le moteur de `DB_ENGINE`. Il n'y a rien à écrire à la main dans `lib.rs`.
 
+### Le `Cargo.toml` attendu
+
+Runique l'écrit une seule fois, à la création ; ensuite il est à vous et Runique n'y touche plus. Voici le fichier tel qu'il est généré (exemple Postgres) :
+
+```toml
+[package]
+name = "migration"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+name = "migration"
+path = "src/lib.rs"
+
+[dependencies]
+runique = { version = "4.0.0", features = ["postgres"] }
+sea-orm-migration = { version = "=2.0.4", features = [
+    "runtime-tokio-rustls",
+    "sqlx-postgres",
+] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+async-trait = "0.1"
+```
+
+Ce qui est obligatoire :
+
+- **`runique`** avec la même feature de moteur que l'application (`sqlite`, `postgres`, `mysql` ou `mariadb`) : il fournit les tables du framework.
+- **`sea-orm-migration`** à la **même version exacte** que celle de Runique, avec `runtime-tokio-rustls` et le pilote du moteur : `sqlx-sqlite`, `sqlx-postgres`, ou `sqlx-mysql` (MySQL comme MariaDB).
+- **Les features par défaut de `sea-orm-migration`** : elles apportent `cli::run_cli`, appelé par `src/main.rs`. Avec `default-features = false`, ajoutez `"cli"` à la liste, sinon le crate ne compile plus.
+- **`tokio`** avec `macros` et `rt-multi-thread` (`#[tokio::main]` de `main.rs`), et **`async-trait`** (les migrations générées).
+- **`[lib] name = "migration"`** : `main.rs` appelle `migration::Migrator`.
+
 ---
 
 ## Workflow en deux étapes
@@ -136,6 +169,7 @@ Les changements des modèles et des blocs `extend!{}` sont d'abord planifiés en
 - **La génération n'est pas encore protégée contre un arrêt brutal** (coupure, `kill -9`) en plein milieu de l'écriture : une erreur ordinaire est annulée, une interruption peut laisser des fichiers partiellement mis à jour. Le dossier `migration/` étant versionné, `git` permet de le restaurer.
 - **Ne copiez pas les snapshots d'un autre projet sans ses migrations** : un snapshot signifie « déjà migré ». `makemigrations` ne génère alors rien pour ces modèles, alors qu'aucune migration ne crée leurs tables.
 - **Les identifiants SQL sont limités à 64 caractères sous MySQL / MariaDB** (noms d'index et de clés étrangères générés à partir des noms de tables et de colonnes) : `makemigrations` refuse un identifiant trop long plutôt que de le tronquer ; raccourcissez les noms en cause.
+- **`runique migration up` n'applique une migration de façon atomique que sous Postgres.** sea-orm-migration n'enveloppe chaque migration (et son inscription dans `seaql_migrations`) dans une transaction que sur ce moteur. Sous SQLite et MySQL / MariaDB, une migration qui échoue en cours de route peut rester à moitié appliquée ; sous MySQL / MariaDB, aucune transaction n'y changerait rien (chaque instruction DDL valide d'elle-même). En développement sous SQLite, supprimez le fichier de base et relancez `runique migration up` ; ailleurs, corrigez la base à la main avant de relancer.
 
 ---
 

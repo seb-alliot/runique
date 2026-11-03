@@ -314,7 +314,7 @@ let difficultes: Vec<String> = search!(cour::Entity => Lang eq "fr")
 Si le form est lié à l'entité de son module de modèle via `#[form(schema = ...)]`, utiliser `@Form` comme raccourci :
 
 ```rust
-#[form(schema = users)]
+#[form(schema = users, fields = All)]
 pub struct UserForm;
 
 // Identique à search!(users::Entity => ...)

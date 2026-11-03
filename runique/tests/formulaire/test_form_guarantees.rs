@@ -45,10 +45,10 @@ impl FormAccess for NoteForm {
     fn from_form(form: Forms) -> Self {
         Self { form }
     }
-    fn get_form(&self) -> &Forms {
+    fn forms(&self) -> &Forms {
         &self.form
     }
-    fn get_form_mut(&mut self) -> &mut Forms {
+    fn forms_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
 }
@@ -65,7 +65,7 @@ fn note_form() -> NoteForm {
 async fn a_database_error_reaches_the_form() {
     let mut form = note_form();
     form.database_error(&runique::sea_orm::DbErr::Custom("boom".into()));
-    assert!(form.get_form().errors.iter().any(|e| e.contains("boom")));
+    assert!(form.forms().errors.iter().any(|e| e.contains("boom")));
 }
 
 // ── fill / add_value ────────────────────────────────────────────────────────
@@ -73,32 +73,32 @@ async fn a_database_error_reaches_the_form() {
 #[test]
 fn fill_takes_every_field_but_a_password_on_get() {
     let mut form = note_form();
-    form.get_form_mut()
+    form.forms_mut()
         .fill(&data(&[("title", "hi"), ("secret", "pw")]), Method::GET);
-    assert_eq!(form.get_form().fields["title"].value(), "hi");
+    assert_eq!(form.forms().fields["title"].value(), "hi");
     assert_eq!(
-        form.get_form().fields["secret"].value(),
+        form.forms().fields["secret"].value(),
         "",
         "a password never comes from a GET"
     );
 
     let mut form = note_form();
-    form.get_form_mut()
+    form.forms_mut()
         .fill(&data(&[("title", "hi"), ("secret", "pw")]), Method::POST);
-    assert_eq!(form.get_form().fields["secret"].value(), "pw");
+    assert_eq!(form.forms().fields["secret"].value(), "pw");
 }
 
 #[test]
 fn only_a_real_value_marks_the_form_submitted() {
     let mut form = note_form();
-    form.get_form_mut().add_value("csrf_token", "tok");
+    form.forms_mut().add_value("csrf_token", "tok");
     assert!(
         !form.is_submitted(),
         "the CSRF token alone isn't a submission"
     );
-    form.get_form_mut().add_value("title", "  ");
+    form.forms_mut().add_value("title", "  ");
     assert!(!form.is_submitted(), "blank isn't either");
-    form.get_form_mut().add_value("title", "hi");
+    form.forms_mut().add_value("title", "hi");
     assert!(form.is_submitted());
 }
 
@@ -202,10 +202,10 @@ impl FormAccess for PlainForm {
     fn from_form(form: Forms) -> Self {
         Self { form }
     }
-    fn get_form(&self) -> &Forms {
+    fn forms(&self) -> &Forms {
         &self.form
     }
-    fn get_form_mut(&mut self) -> &mut Forms {
+    fn forms_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
 }
@@ -243,7 +243,7 @@ async fn validation_form_records_a_database_error() {
     assert!(
         validated
             .into_form()
-            .get_form()
+            .forms()
             .errors
             .iter()
             .any(|e| e.contains("boom"))

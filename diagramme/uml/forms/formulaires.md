@@ -66,7 +66,7 @@ classDiagram
         <<trait, async_trait>>
         +register_fields(form)*
         +from_form(form) Self*
-        +get_form() / get_form_mut()*
+        +forms() / forms_mut()*
         +customize(form) [défaut no-op, statique]
         +register_dynamic_fields(request) [async, défaut no-op]
         +allow_get(request) bool [défaut false — sécurité, opt-in]

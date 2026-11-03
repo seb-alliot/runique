@@ -33,11 +33,11 @@ impl FormAccess for UsernameForm {
 impl RuniqueForm for UsernameForm {}
 ```
 
-> **💡 Split:** `FormAccess` owns `register_fields` + accessors; `RuniqueForm` owns validation hooks. `impl_form_access!()` generates `from_form()`, `get_form()` and `get_form_mut()` inside `impl FormAccess`. It's meant for a struct whose field is named `form`. A form taken from a model (`#[form(schema = …)]`) needs neither block: the macro writes them.
+> **💡 Split:** `FormAccess` owns `register_fields` + accessors; `RuniqueForm` owns validation hooks. `impl_form_access!()` generates `from_form()`, `forms()` and `forms_mut()` inside `impl FormAccess`. It's meant for a struct whose field is named `form`. A form taken from a model (`#[form(schema = …)]`) needs neither block: the macro writes them.
 >
 > With `#[form(schema = …)]`, the macro generates `impl FormAccess` for you — user code only writes `impl RuniqueForm` (`clean`, `customize`…).
 >
-> **Security note:** `get_form()` provides access to the internal structure. For extracting cleaned data, always use the `cleaned_*` methods of the trait (see below). Direct extraction methods on `Forms` are reserved for internal framework use.
+> **Security note:** `forms()` provides access to the internal structure. For extracting cleaned data, always use the `cleaned_*` methods of the trait (see below). Direct extraction methods on `Forms` are reserved for internal framework use.
 
 <details>
 <summary>Equivalent without the macro (for reference)</summary>
@@ -46,10 +46,10 @@ impl RuniqueForm for UsernameForm {}
 fn from_form(form: Forms) -> Self {
     Self { form }
 }
-fn get_form(&self) -> &Forms {
+fn forms(&self) -> &Forms {
     &self.form
 }
-fn get_form_mut(&mut self) -> &mut Forms {
+fn forms_mut(&mut self) -> &mut Forms {
     &mut self.form
 }
 ```
@@ -86,7 +86,7 @@ clear()                      → [optional] empty the form after processing
 
 **`from_form(form)`** (`FormAccess`) — Build the instance from a `Forms`.
 
-**`get_form()` / `get_form_mut()`** (`FormAccess`) — Low-level accessors for the internal `Forms` (useful for rendering or dynamic field configuration). Do not use for data extraction.
+**`forms()` / `forms_mut()`** (`FormAccess`) — Low-level accessors for the internal `Forms` (useful for rendering or dynamic field configuration). Do not use for data extraction.
 
 **`clean_field(name)`** *(optional)* — Per-field business validation. Returns `bool`. Called after `validate()` for each field.
 
@@ -233,7 +233,7 @@ impl RuniqueForm for UsernameForm {
         if name == "username" {
             let val = self.cleaned::<String>("username").unwrap_or_default();
             if val.to_lowercase().contains("admin") {
-                if let Some(f) = self.get_form_mut().fields.get_mut("username") {
+                if let Some(f) = self.forms_mut().fields.get_mut("username") {
                     f.set_error("The name 'admin' is reserved".to_string());
                 }
                 return false;
@@ -323,8 +323,8 @@ With a key, `save` updates that row; `delete` needs one. A key that doesn't read
 
 ### What is written
 
-- **Outside the admin**: SeaORM writes (`insert` on a create, `ActiveModel::save()` on an update); the model's behavior (`ActiveModelBehavior::before_save` / `after_save`, `auto_now`) runs. Locked fields (`readonly`, `disabled`) and secret columns (password) are never written. Checking that the user may touch the row is the handler's job, as with `search!`.
-- **Inside the admin** (panel and routes declared `admin`): the gate writes, as the checked account — rights, owner, history, in one transaction.
+- **Outside the admin**: SeaORM writes (`insert` on a create, `ActiveModel::save()` on an update); the model's behavior (`ActiveModelBehavior::before_save` / `after_save`, `auto_now`) runs. Every field the form declares is written, secret columns included: a password field only as its hash (never the text typed in, never a `.no_hash()` field), and left empty on an update, it keeps the old value. Locked fields (`readonly`, `disabled`) are never written. Checking that the user may touch the row is the handler's job, as with `search!`.
+- **Inside the admin** (panel and routes declared `admin`): the gate writes, as the checked account — rights, owner, history, in one transaction. Secret columns are never written there.
 
 ### Where business logic goes
 

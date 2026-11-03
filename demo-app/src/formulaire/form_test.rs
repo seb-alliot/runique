@@ -147,10 +147,10 @@ impl FormAccess for TestAllFieldsForm {
     fn from_form(form: Forms) -> Self {
         Self { form }
     }
-    fn get_form(&self) -> &Forms {
+    fn forms(&self) -> &Forms {
         &self.form
     }
-    fn get_form_mut(&mut self) -> &mut Forms {
+    fn forms_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
 }

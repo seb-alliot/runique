@@ -43,7 +43,7 @@ mod groups {
     }
 }
 
-#[runique::prelude::form(schema = blog)]
+#[runique::prelude::form(schema = blog, fields = All)]
 pub struct SchemaForm;
 impl runique::forms::RuniqueForm for SchemaForm {}
 

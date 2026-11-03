@@ -61,11 +61,11 @@ pub(crate) async fn rank_view(
         return failure(not_found, &req, &admin).await;
     }
     let mut form = req.form::<BulkForm<user::Entity>>();
-    form.get_form_mut().set_name(admin_form::RANK);
+    form.forms_mut().set_name(admin_form::RANK);
     let form = ValidationForm::try_form(form, &req, admin_form::RANK).await;
     let value = |name: &str| match &form {
         Ok(form) => form
-            .get_form()
+            .forms()
             .fields
             .get(name)
             .map(|f| f.value().to_string())

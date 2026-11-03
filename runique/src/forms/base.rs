@@ -395,14 +395,14 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
         Ok(())
     }
 
-    /// Publishes external resources prepared by `finalize`, immediately before
-    /// the form's database write.
+    /// Publishes external resources prepared by `finalize`, between the form's
+    /// database write and its commit.
     async fn publish_uploads(&mut self) -> Result<(), String> {
         Ok(())
     }
 
-    /// Removes any resources published by `publish_uploads` after a failed
-    /// database write.
+    /// Removes any resources published by `publish_uploads` when the write
+    /// doesn't commit.
     async fn rollback_uploads(&mut self) {}
 
     /// Performs post-write cleanup after the database write succeeds.

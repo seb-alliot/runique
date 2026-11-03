@@ -1,4 +1,5 @@
 use runique::prelude::*;
+use runique::sea_orm::TransactionTrait;
 
 /// The sign-up form, built from the account model: checks the username and
 /// the password strength, then saves a new account, activated at once.
@@ -68,15 +69,21 @@ impl SignupForm {
             updated_at: Set(Some(chrono::Utc::now().naive_utc())),
             ..Default::default()
         };
+        // Created and activated in one transaction: an activation that fails
+        // takes the new row back with it, so no inactive account is left
+        // holding the username and the email.
+        let txn = db.begin().await?;
         // A UUID key, if the project uses them, is set by the account model itself.
-        let user = user.insert(db).await?;
+        let user = user.insert(&txn).await?;
 
         // An account is created inactive and can't sign in until it's
         // activated: deciding when is business logic. Here, at once. To
         // confirm the email first, send a link instead and call
         // `activate_account` when it's opened.
-        BuiltinUserEntity::activate_account(db, user.id)
+        let user = BuiltinUserEntity::activate_account(&txn, user.id)
             .await?
-            .ok_or_else(|| DbErr::Custom("the new account was already activated".into()))
+            .ok_or_else(|| DbErr::Custom("the new account was already activated".into()))?;
+        txn.commit().await?;
+        Ok(user)
     }
 }

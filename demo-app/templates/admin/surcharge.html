@@ -17,7 +17,7 @@
 
         <div class="demo-code">
             <div class="demo-code-title">Override in main.rs</div>
-            <pre><code>builder::<span class="fn_">new</span>(config)
+            <pre><code><span class="ty">RuniqueApp</span>::<span class="fn_">builder</span>(config)
     .<span class="fn_">with_admin</span>(|a| {
         a.<span class="fn_">site_title</span>(<span class="st">"Administration"</span>)
             .<span class="fn_">path</span>(<span class="st">"/admin/"</span>)
@@ -28,7 +28,7 @@
     })</code></pre>
 
             <div class="demo-code-title">Example used in this demo</div>
-            <pre><code>builder::<span class="fn_">new</span>(config)
+            <pre><code><span class="ty">RuniqueApp</span>::<span class="fn_">builder</span>(config)
     .<span class="fn_">with_admin</span>(admin::<span class="fn_">config</span>)
 <span class="cm">// src/admin.rs — ModelAdmin + .templates(|t| t.with_dashboard(...))</span></code></pre>
         </div>
@@ -45,7 +45,7 @@ t.<span class="fn_">with_delete</span>(<span class="st">"admin/my_delete.html"</
 
 <span class="cm">// Global interface views</span>
 t.<span class="fn_">with_login</span>(<span class="st">"admin/my_login.html"</span>)
-t.<span class="fn_">with_base</span>(<span class="st">"admin/my_base.html"</span>)</code></pre>
+t.<span class="fn_">with_history</span>(<span class="st">"admin/my_history.html"</span>)</code></pre>
 
             <div class="demo-code-title">Keys injected by Runique (required)</div>
             <pre><code><span class="cm">// For the dashboard:</span>

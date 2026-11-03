@@ -11,10 +11,10 @@ macro_rules! impl_form_access {
         fn from_form(form: $crate::forms::Forms) -> Self {
             Self { form }
         }
-        fn get_form(&self) -> &$crate::forms::Forms {
+        fn forms(&self) -> &$crate::forms::Forms {
             &self.form
         }
-        fn get_form_mut(&mut self) -> &mut $crate::forms::Forms {
+        fn forms_mut(&mut self) -> &mut $crate::forms::Forms {
             &mut self.form
         }
     };
@@ -22,10 +22,10 @@ macro_rules! impl_form_access {
         fn from_form(form: $crate::forms::Forms) -> Self {
             Self { form }
         }
-        fn get_form(&self) -> &$crate::forms::Forms {
+        fn forms(&self) -> &$crate::forms::Forms {
             &self.form
         }
-        fn get_form_mut(&mut self) -> &mut $crate::forms::Forms {
+        fn forms_mut(&mut self) -> &mut $crate::forms::Forms {
             &mut self.form
         }
     };

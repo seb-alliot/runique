@@ -18,7 +18,6 @@ Le dépôt contient deux choses distinctes :
 | Rust 1.94+ | Les tests, demo-app sur la machine | [rustup](https://rustup.rs) |
 | Docker | Postgres et MariaDB (facultatif pour les tests), ou demo-app en entier | [docs.docker.com](https://docs.docker.com/get-docker/) |
 | `psql` | demo-app sur la machine : le seed charge `seed.sql` (pages, exemples de code) par cet outil | paquet `postgresql-client` (`apt install postgresql-client`) |
-| `sea-orm-cli` | demo-app sur la machine : `runique migration up` délègue à cet outil | `cargo install sea-orm-cli` |
 | CLI `runique` | demo-app sur la machine : migrations et compte administrateur | `cargo install --path runique --features postgres` |
 | Node 22+ | Les tests JavaScript (facultatif) | [nodejs.org](https://nodejs.org) |
 

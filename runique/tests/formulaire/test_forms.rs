@@ -316,10 +316,10 @@ mod tests {
         fn from_form(form: Forms) -> Self {
             Self { form }
         }
-        fn get_form(&self) -> &Forms {
+        fn forms(&self) -> &Forms {
             &self.form
         }
-        fn get_form_mut(&mut self) -> &mut Forms {
+        fn forms_mut(&mut self) -> &mut Forms {
             &mut self.form
         }
     }
@@ -332,8 +332,8 @@ mod tests {
             form: Forms::new("csrf"),
         };
         LoginForm::register_fields(&mut form.form);
-        form.get_form_mut().add_value("username", "alice");
-        form.get_form_mut().add_value("password", "secret");
+        form.forms_mut().add_value("username", "alice");
+        form.forms_mut().add_value("password", "secret");
         assert!(form.is_valid().await);
         // `is_valid()` seul ne prouve pas que la valeur soumise a été réellement
         // conservée telle quelle — un bug de mapping/troncature passerait cette
@@ -354,7 +354,7 @@ mod tests {
             form: Forms::new("csrf"),
         };
         LoginForm::register_fields(&mut form.form);
-        form.get_form_mut().add_value("password", "secret");
+        form.forms_mut().add_value("password", "secret");
         assert!(!form.is_valid().await);
     }
 
@@ -364,7 +364,7 @@ mod tests {
             form: Forms::new("csrf"),
         };
         LoginForm::register_fields(&mut form.form);
-        form.get_form_mut().add_value("username", "alice");
+        form.forms_mut().add_value("username", "alice");
         assert!(!form.is_valid().await);
     }
 
@@ -382,10 +382,10 @@ mod tests {
         fn from_form(form: Forms) -> Self {
             Self { form }
         }
-        fn get_form(&self) -> &Forms {
+        fn forms(&self) -> &Forms {
             &self.form
         }
-        fn get_form_mut(&mut self) -> &mut Forms {
+        fn forms_mut(&mut self) -> &mut Forms {
             &mut self.form
         }
     }
@@ -413,8 +413,8 @@ mod tests {
             form: Forms::new("csrf"),
         };
         PasswordChangeForm::register_fields(&mut form.form);
-        form.get_form_mut().add_value("password", "secret123");
-        form.get_form_mut().add_value("confirm", "secret123");
+        form.forms_mut().add_value("password", "secret123");
+        form.forms_mut().add_value("confirm", "secret123");
         assert!(form.is_valid().await);
         // Vérifie la valeur réellement retenue, pas seulement que la comparaison
         // interne à clean() a réussi.
@@ -430,11 +430,11 @@ mod tests {
             form: Forms::new("csrf"),
         };
         PasswordChangeForm::register_fields(&mut form.form);
-        form.get_form_mut().add_value("password", "secret123");
-        form.get_form_mut().add_value("confirm", "different");
+        form.forms_mut().add_value("password", "secret123");
+        form.forms_mut().add_value("confirm", "different");
         assert!(!form.is_valid().await);
 
-        let errors = form.get_form().errors();
+        let errors = form.forms().errors();
         assert!(errors.contains_key("confirm"));
     }
 
@@ -446,7 +446,7 @@ mod tests {
         };
         PasswordChangeForm::register_fields(&mut form.form);
         // password vide → required échoue avant clean()
-        form.get_form_mut().add_value("confirm", "something");
+        form.forms_mut().add_value("confirm", "something");
         assert!(!form.is_valid().await);
     }
 
@@ -463,10 +463,10 @@ mod tests {
         fn from_form(form: Forms) -> Self {
             Self { form }
         }
-        fn get_form(&self) -> &Forms {
+        fn forms(&self) -> &Forms {
             &self.form
         }
-        fn get_form_mut(&mut self) -> &mut Forms {
+        fn forms_mut(&mut self) -> &mut Forms {
             &mut self.form
         }
     }
@@ -479,7 +479,7 @@ mod tests {
                 if let Some(val) = self.cleaned::<String>("username")
                     && val.to_lowercase().contains("admin")
                 {
-                    if let Some(f) = self.get_form_mut().fields.get_mut("username") {
+                    if let Some(f) = self.forms_mut().fields.get_mut("username") {
                         f.set_error("Le nom 'admin' est réservé".to_string());
                     }
                     return false;
@@ -496,10 +496,10 @@ mod tests {
             form: Forms::new("csrf"),
         };
         UsernameForm::register_fields(&mut form.form);
-        form.get_form_mut().add_value("username", "admin_user");
+        form.forms_mut().add_value("username", "admin_user");
         assert!(!form.is_valid().await);
 
-        let errors = form.get_form().errors();
+        let errors = form.forms().errors();
         assert!(errors.contains_key("username"));
         assert_eq!(
             errors.get("username").map(String::as_str),
@@ -513,7 +513,7 @@ mod tests {
             form: Forms::new("csrf"),
         };
         UsernameForm::register_fields(&mut form.form);
-        form.get_form_mut().add_value("username", "alice");
+        form.forms_mut().add_value("username", "alice");
         assert!(form.is_valid().await);
         assert_eq!(
             form.cleaned::<String>("username"),

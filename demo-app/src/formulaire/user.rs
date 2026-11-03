@@ -1,7 +1,7 @@
 use runique::prelude::*;
 
 // admin
-#[form(schema = runique_users, fields = [username, email, is_active, is_superuser, roles])]
+#[form(schema = runique_users, fields = [username, email, is_active, is_superuser])]
 pub struct UserEditForm;
 impl RuniqueForm for UserEditForm {}
 

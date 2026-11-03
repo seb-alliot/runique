@@ -224,10 +224,10 @@ impl FormAccess for StockForm {
     fn from_form(form: Forms) -> Self {
         Self { form }
     }
-    fn get_form(&self) -> &Forms {
+    fn forms(&self) -> &Forms {
         &self.form
     }
-    fn get_form_mut(&mut self) -> &mut Forms {
+    fn forms_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
 }
@@ -260,7 +260,7 @@ async fn a_value_the_column_cant_store_is_a_field_error() {
     let mut form = stock_form("douze");
     assert!(!form.is_valid().await);
     assert!(
-        form.get_form().fields["qty"].error().is_some(),
+        form.forms().fields["qty"].error().is_some(),
         "the error is on the field, shown under it"
     );
 }

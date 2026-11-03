@@ -36,11 +36,11 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
                 Self { form }
             }
 
-            fn get_form(&self) -> &::runique::forms::Forms {
+            fn forms(&self) -> &::runique::forms::Forms {
                 &self.form
             }
 
-            fn get_form_mut(&mut self) -> &mut ::runique::forms::Forms {
+            fn forms_mut(&mut self) -> &mut ::runique::forms::Forms {
                 &mut self.form
             }
         }

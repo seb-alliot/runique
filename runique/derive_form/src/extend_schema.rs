@@ -327,10 +327,10 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
             fn from_form(form: ::runique::forms::Forms) -> Self {
                 Self { form }
             }
-            fn get_form(&self) -> &::runique::forms::Forms {
+            fn forms(&self) -> &::runique::forms::Forms {
                 &self.form
             }
-            fn get_form_mut(&mut self) -> &mut ::runique::forms::Forms {
+            fn forms_mut(&mut self) -> &mut ::runique::forms::Forms {
                 &mut self.form
             }
         }

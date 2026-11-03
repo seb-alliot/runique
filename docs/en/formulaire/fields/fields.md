@@ -311,9 +311,29 @@ form.field(
 | `.upload_to_env()` | `{MEDIA_ROOT}/{field_name}/` |
 | *(none)* | `MEDIA_ROOT` directly (no subdirectory) |
 
-`finalize()` prepares the relative path but keeps the file in its temporary staging directory. With `ValidationForm::save`, Runique publishes the file immediately before the database write, removes it if that write fails, and only removes the previous file after success. For a custom save, call `form.get_form_mut().publish_uploads().await` before writing, then `complete_uploads().await` after success or `rollback_uploads().await` after failure. The destination must be relative to `MEDIA_ROOT` and cannot contain `.` or `..` components, Windows separators, or a volume prefix. The directory is created automatically if it does not already exist.
+`finalize()` prepares the relative path but keeps the file in its temporary staging directory, under `MEDIA_ROOT`, named `{uuid}.extension`. With `ValidationForm::save`, Runique writes the row, moves the file to its destination, then commits the transaction. Until the row is committed no one else sees it: no reader meets a path whose file isn't in place yet. A refused write (value already taken, foreign key…) leaves the file in staging, removed at the end of the request; only a failing commit itself takes back the file already moved. The destination must be relative to `MEDIA_ROOT` and cannot contain `.` or `..` components, Windows separators, or a volume prefix. The directory is created automatically if it does not already exist.
 
-> **Current limit**: the file and the row aren't written in one transaction. An ordinary error is undone (the published file is removed), but a hard stop of the process between publishing the file and the database commit can leave an orphan file under `MEDIA_ROOT`.
+**The replaced file.** Runique never deletes the file a new upload replaces: you may still need it (history, archive). To delete it, read the old path before the `save`, then remove it once the write is done:
+
+```rust
+let old = profile::Entity::find_by_id(id).one(&request.engine.db).await?.and_then(|p| p.avatar);
+match form.save(&request.engine.db).await {
+    Ok(form) => {
+        let new = form.forms().fields["avatar"].value().to_string();
+        if let Some(old) = old.filter(|o| *o != new) {
+            let _ = tokio::fs::remove_file(std::path::Path::new(&runique::config::static_files::resolve_media_root()).join(old)).await;
+        }
+        Ok(Redirect::to("/profile").into_response())
+    }
+    Err(form) => { /* the form with its errors */ }
+}
+```
+
+**Without `save`.** A form without a model (a plain file upload) or a hand-written save handles the file itself: `form.forms_mut().publish_uploads().await` inside your transaction, after the write and before the `commit()`, then `complete_uploads().await` once committed, or `rollback_uploads().await` if the commit fails. With no database write, `publish_uploads()` then `complete_uploads()` is enough.
+
+**Inside the handler's transaction** ([`request.db_atomic()`](/docs/en/orm/advanced)), the file is moved at the `save`. If the handler leaves without `commit()`, the row is rolled back but the file stays on disk, orphaned.
+
+> **Current limit**: the disk takes no part in the transaction. A hard stop of the process between moving the file and the database commit, or a commit failure that can't be caught, can leave an orphan file under `MEDIA_ROOT` — never a row pointing at a missing file.
 
 > **Security**: `.svg` files are **always rejected** (XSS risk). `FileField::any` accepts every other extension and does not read the content: the security of that field is the application's responsibility. For an image, validation checks the real format by reading its magic bytes (not just the extension). With `max_dimensions`, the `image` crate measures the file: if the measurement fails, the file is refused, for every format. Without that measurement, the width and height limits would not apply. Empty submissions (no file selected) are handled correctly — the `required` constraint works as expected.
 

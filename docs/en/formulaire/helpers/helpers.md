@@ -93,7 +93,7 @@ Example — pre-fill a field from the URL (`GET /edit?title=My+Article`):
 ```rust
 if request.method.is_safe() {
     if let Some(t) = form.cleaned::<String>("title") {
-        form.get_form_mut().add_value("title", &t);
+        form.forms_mut().add_value("title", &t);
     }
 }
 ```

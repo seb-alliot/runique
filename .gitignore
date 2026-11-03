@@ -33,6 +33,8 @@ architecture_current.txt
 difference-django-runique.md
 faille.md
 incoherence_doc.md
+scip
+index.json
 
 # cargo-mutants reports
 mutants.out/

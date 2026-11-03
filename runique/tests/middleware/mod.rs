@@ -5,6 +5,7 @@ pub mod test_cleaning_store;
 pub mod test_config;
 pub mod test_csp;
 pub mod test_csrf;
+pub mod test_csrf_cross_site;
 pub mod test_csrf_crypto;
 pub mod test_csrf_exempt;
 pub mod test_csrf_integration;

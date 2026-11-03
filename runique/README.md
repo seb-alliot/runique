@@ -159,7 +159,7 @@ Workspace version (source of truth): **4.0.0**.
 - `runique create-superuser`
 - `runique test [file] [test]`
 - `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
-- `runique migration up --migrations migration/src` (rollback and status: `sea-orm-cli migrate down` / `status`)
+- `runique migration up | down [-n N] | status` (runs the project's `migration/` crate with `cargo run`, no `sea-orm-cli` needed)
 
 There is no `runique start`: the app is a normal Rust binary (`cargo run`). Admin is plain Rust (`ModelAdmin` + `.with_admin(...)`), with no generation step.
 
@@ -173,7 +173,7 @@ Admin is a typed builder — no macro, no generated files under `src/admins/`.
 2. register them on `AdminSite` via `.with_admin(admin::config)` in `main`
 3. run with plain `cargo run`
 
-Columns are SeaORM enums (`article::Column::Title`), so a typo or a secret field fails at compile time. Permissions, list filters, search and forms are configured on the same builder.
+Columns are SeaORM enums (`article::Column::Title`), so a typo fails at compile time; a secret column (a password) put in a list or a form is refused at startup. Permissions, list filters, search and forms are configured on the same builder.
 
 Admin docs: [Admin](https://runique.io/docs/en/admin)
 
@@ -198,10 +198,10 @@ Full reference: [Sessions](https://runique.io/docs/en/session)
 ## Tests and coverage
 
 - Tests reported: **3092 passing** (3 ignored)
-- Coverage snapshot (`2026-10-08`, package `runique`, admin module included): functions **88.72%**, lines **88.81%**, regions **87.25%**
+- Coverage snapshot (`2026-10-29`, package `runique`, admin module included): functions **92.51%**, lines **92.21%**, regions **91.19%**
 
 ```bash
-cargo llvm-cov --package runique --features all-databases --summary-only
+cargo llvm-cov --package runique --features all-databases,admin,test-utils --summary-only
 ```
 
 Full per-file breakdown: [docs/couverture_test.md](docs/couverture_test.md)

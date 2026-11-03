@@ -83,6 +83,8 @@ cargo run
 ```
    Runique is operational
       └──>  Server launched on http://127.0.0.1:3000
+          └──>  Connected to database Postgres -> runique
+              └──> ctrl + c to stop
 ```
 
 The home page comes with sign up, sign in and sign out.
@@ -135,7 +137,7 @@ The other variables (templates, static and media folders, logging…) have defau
 rustup component add rust-analyzer clippy rustfmt
 ```
 
-`sea-orm-cli` is **not** needed: `runique migration up | down | status` runs the `migration` crate directly.
+`sea-orm-cli` is **not** needed: `runique migration up | down | status` runs `cargo run` on the project's `migration` crate, whose `main` calls the CLI of the `sea-orm-migration` library. See [The expected `Cargo.toml`](/docs/en/installation/migrations).
 
 ---
 

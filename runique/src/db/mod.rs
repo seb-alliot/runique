@@ -6,6 +6,7 @@ pub mod engine;
 #[cfg(feature = "test-utils")]
 pub mod runique_db;
 pub mod sql_dialect;
+pub mod write;
 
 pub use adb::ADb;
 pub use builder::DatabaseConfigBuilder;
@@ -13,3 +14,4 @@ pub use config::DatabaseConfig;
 pub use engine::DatabaseEngine;
 #[cfg(feature = "test-utils")]
 pub use runique_db::RuniqueDb;
+pub use write::DbWrite;

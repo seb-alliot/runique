@@ -559,7 +559,7 @@ pub async fn handle_password_reset(
             Ok(validated) => validated.into_form(),
             Err(mut form) => {
                 if request.method.is_safe() {
-                    form.get_form_mut().add_value("token", &token);
+                    form.forms_mut().add_value("token", &token);
                 }
                 apply_extra_context(request, &config.extra_context).await;
                 context_update!(request => {
@@ -573,7 +573,7 @@ pub async fn handle_password_reset(
 
     let email_clean = form.cleaned::<String>("email").unwrap_or_default();
     if user.email().to_lowercase() != email_clean.trim().to_lowercase() {
-        if let Some(field) = form.get_form_mut().fields.get_mut("email") {
+        if let Some(field) = form.forms_mut().fields.get_mut("email") {
             field.set_error(t("reset.email_mismatch").to_string());
         }
         apply_extra_context(request, &config.extra_context).await;
@@ -590,7 +590,7 @@ pub async fn handle_password_reset(
         match PasswordService::new(request.engine.config.password.clone()).hash(&new_password) {
             Ok(hash) => hash,
             Err(_) => {
-                if let Some(field) = form.get_form_mut().fields.get_mut("password") {
+                if let Some(field) = form.forms_mut().fields.get_mut("password") {
                     field.set_error(t("reset.invalid_or_expired").to_string());
                 }
                 apply_extra_context(request, &config.extra_context).await;
@@ -616,7 +616,7 @@ pub async fn handle_password_reset(
     let txn = match db.begin().await {
         Ok(txn) => txn,
         Err(error) => {
-            form.get_form_mut().database_error(&error);
+            form.forms_mut().database_error(&error);
             apply_extra_context(request, &config.extra_context).await;
             context_update!(request => {
                 "title"      => t("reset.reset_title").as_ref(),
@@ -643,7 +643,7 @@ pub async fn handle_password_reset(
                 if let Err(rollback_error) = txn.rollback().await {
                     tracing::error!(error = %rollback_error, "password reset rollback failed");
                 }
-                form.get_form_mut().database_error(&error);
+                form.forms_mut().database_error(&error);
                 apply_extra_context(request, &config.extra_context).await;
                 context_update!(request => {
                     "title"      => t("reset.reset_title").as_ref(),
@@ -705,7 +705,7 @@ pub async fn handle_password_reset(
                 return request.render(template);
             }
             Err(error) => {
-                form.get_form_mut().database_error(&error);
+                form.forms_mut().database_error(&error);
             }
         },
         Err(e) => {
@@ -719,7 +719,7 @@ pub async fn handle_password_reset(
             {
                 crate::runique_log!(level, email = %email_clean, error = %e, "password reset db error");
             }
-            form.get_form_mut().database_error(&e);
+            form.forms_mut().database_error(&e);
         }
     }
 

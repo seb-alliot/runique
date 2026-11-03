@@ -169,11 +169,8 @@ Source de vérité détaillée : [ROADMAP.fr.md](https://github.com/seb-alliot/r
 Détail et critères de « fini » : [ROADMAP.fr.md](https://github.com/seb-alliot/runique/blob/main/ROADMAP.fr.md).
 
 ### Ouvert — patch 4.0.x (sécu / entretien, dans cet ordre)
-2. Fichiers staging d'un formulaire refusé : suppression immédiate
-3. Plafond des compteurs `RateLimiter` / `LoginGuard`
-4. Sessions superutilisateur non supprimables par un staff
-5. Batterie de tests open-redirect (PortSwigger)
-6. Message admin clair sur suppression bloquée par FK
+1. Plafond des compteurs `RateLimiter` / `LoginGuard`
+2. Batterie de tests open-redirect (PortSwigger)
 
 → Sortie attendue : `4.0.1` (et suivants si besoin). Pas de feature mineure dans ces patchs.
 

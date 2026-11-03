@@ -1,7 +1,7 @@
 //! What `model!{}` makes of a field's attributes: the admin form's limits,
 //! rows, label and upload settings, the schema's column types and meta, and
 //! the enums it declares.
-use crate::utils::env::{del_env, set_env};
+use crate::utils::env::{restore_media_root, set_env};
 use runique::forms::Forms;
 use runique::forms::field::FormAccess;
 use runique::migration::OrderDir;
@@ -92,7 +92,7 @@ async fn a_file_field_commits_under_its_upload_to() {
     let finalized = field.finalize().await;
     let value = field.value().to_string();
 
-    del_env("MEDIA_ROOT");
+    restore_media_root();
     let _ = std::fs::remove_dir_all(&media);
     finalized.expect("finalize");
     assert!(value.starts_with("scans/"), "{value}");

@@ -97,7 +97,7 @@ pub use validator::*;
 /// ```compile_fail
 /// use runique::prelude::*;
 ///
-/// #[form(schema = runique_users, model = runique_users::Entity)]
+/// #[form(schema = runique_users, fields = All, model = runique_users::Entity)]
 /// pub struct AccountForm;
 /// impl RuniqueForm for AccountForm {}
 /// ```
@@ -108,12 +108,61 @@ pub use validator::*;
 /// use runique::forms::FormEntity;
 /// use runique::prelude::*;
 ///
-/// #[form(schema = runique_users)]
+/// #[form(schema = runique_users, fields = All)]
 /// pub struct AccountForm;
 /// impl RuniqueForm for AccountForm {}
 ///
 /// fn entity_of<F: FormEntity<Entity = E>, E>() {}
 /// entity_of::<AccountForm, runique::auth::user::Entity>();
+/// ```
+///
+/// The declaration says which fields the form takes. Without it, it doesn't
+/// compile:
+///
+/// ```compile_fail
+/// use runique::prelude::*;
+///
+/// #[form(schema = runique_users)]
+/// pub struct AccountForm;
+/// impl RuniqueForm for AccountForm {}
+/// ```
+///
+/// Nor with `fields` and `exclude` together:
+///
+/// ```compile_fail
+/// use runique::prelude::*;
+///
+/// #[form(schema = runique_users, fields = [username], exclude = [email])]
+/// pub struct AccountForm;
+/// impl RuniqueForm for AccountForm {}
+/// ```
+///
+/// Nor with a name that isn't a column of the model:
+///
+/// ```compile_fail
+/// use runique::prelude::*;
+///
+/// #[form(schema = runique_users, fields = [username, roles])]
+/// pub struct AccountForm;
+/// impl RuniqueForm for AccountForm {}
+/// ```
+///
+/// The three declarations that do:
+///
+/// ```
+/// use runique::prelude::*;
+///
+/// #[form(schema = runique_users, fields = [username, email])]
+/// pub struct Listed;
+/// impl RuniqueForm for Listed {}
+///
+/// #[form(schema = runique_users, exclude = [password])]
+/// pub struct AllBut;
+/// impl RuniqueForm for AllBut {}
+///
+/// #[form(schema = runique_users, fields = All)]
+/// pub struct Every;
+/// impl RuniqueForm for Every {}
 /// ```
 pub trait FormEntity {
     type Entity: crate::auth::meta::ModelMeta;

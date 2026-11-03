@@ -110,7 +110,7 @@ pub async fn logout_view(request: Request) -> AppResult<Response> {
 }
 ```
 
-A native Axum extractor (`Form<T>`, `Json<T>` without the header, `Multipart`) doesn't go through that check: a route using one to write must check the token itself.
+A native Axum extractor (`Form<T>`, `Json<T>` without the header, `Multipart`) doesn't go through that check: a route using one to write must check the token itself, or rely on refusing forms from another site (“Forms sent from another site”, below).
 
 Matching is **exact** — `/webhook/stripe` does not exempt `/webhook/stripe/sub`.
 
@@ -118,6 +118,31 @@ Matching is **exact** — `/webhook/stripe` does not exempt `/webhook/stripe/sub
 > (e.g. `Stripe-Signature` HMAC-SHA256 for Stripe webhooks).
 
 `csrf_exempt()` only skips *validation* — the CSRF token is still generated and available, so a handler on an exempt path can still use `Request`/`RuniqueContext` normally (session, template context, …) alongside its own verification logic.
+
+---
+
+## Forms sent from another site
+
+Off by default. Turn it on if you write handlers that read their form with an Axum extractor (`Form<T>`, `Multipart`) instead of `request.form()`: nobody checks their token then.
+
+```rust
+.middleware(|m| m.with_cross_site_form_guard())
+```
+
+The middleware refuses (403) a form sent from a page of **another site** or of a **subdomain**, before the handler. It knows from the `Sec-Fetch-Site` header, set by the browser: a page can neither write nor remove it.
+
+| Request | Effect |
+| --- | --- |
+| Form sent from your site (`same-origin`) | goes through, the token is checked as before |
+| Form sent from another site (`cross-site`) or a subdomain (`same-site`) | **403** |
+| No `Sec-Fetch-Site` header (old browser, curl, tests) | goes through, left to the token |
+| With the `X-CSRF-Token` header | decided by that header, as before |
+| GET, HEAD | never checked |
+| Path in `csrf_exempt()` | not checked |
+
+Runique's forms and the admin are sent from your site: they don't change. A Runique form posted from another site was already refused by its token (page shown again with the error); it now gets a 403 earlier, nothing written either way.
+
+It doesn't replace the token: a client without the header is stopped by the token alone. A third party posting a form to you (a payment provider's return) goes in `csrf_exempt()`.
 
 ---
 

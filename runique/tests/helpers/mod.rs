@@ -11,6 +11,7 @@
 //! | `db_mariadb`  | MariaDB Docker : `connect()`, `exec()`, `count()`, …        |
 //! | `tera`        | Appel direct de filtres/fonctions : `kwargs()`, `no_kwargs()` |
 //! | `user`        | `TestUser`/`test_user(...)` : `RuniqueUser` minimal pour `login()` |
+//! | `temp`        | `TempDir` : dossier temporaire supprimé au drop, même si le test échoue |
 
 pub mod assert;
 pub mod db;
@@ -23,5 +24,6 @@ pub mod handler_req;
 pub mod pk;
 pub mod request;
 pub mod server;
+pub mod temp;
 pub mod tera;
 pub mod user;

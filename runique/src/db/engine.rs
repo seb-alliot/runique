@@ -164,7 +164,10 @@ mod tests {
         );
         // The other way out: `.env` pointing at the engine this build has.
         assert!(msg.contains(&format!("'{}'", compiled_engines())), "{msg}");
-        assert!(msg.contains("DB_ENGINE") && msg.contains("DATABASE_URL"), "{msg}");
+        assert!(
+            msg.contains("DB_ENGINE") && msg.contains("DATABASE_URL"),
+            "{msg}"
+        );
     }
 
     #[cfg(feature = "sqlite")]

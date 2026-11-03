@@ -1,7 +1,7 @@
 //! Tests — middleware/auth/form/login.rs + forms/field.rs (méthodes par défaut)
 //!
 //! Couvre :
-//! - LoginAdmin::register_fields, from_form, get_form, get_form_mut
+//! - LoginAdmin::register_fields, from_form, forms, forms_mut
 //!   (et les méthodes générées par impl_form_access! dans macros/forms/impl_form.rs)
 //! - build_form_for_test, clean_field, clean, is_valid
 
@@ -45,13 +45,13 @@ fn test_from_form_conserve_les_champs() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// get_form / get_form_mut  (générés par impl_form_access!)
+// forms / forms_mut  (générés par impl_form_access!)
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
 fn test_get_form_retourne_reference_correcte() {
     let login = login_form();
-    let f = login.get_form();
+    let f = login.forms();
     assert!(f.fields.contains_key("username"));
     assert!(f.fields.contains_key("password"));
 }
@@ -64,15 +64,15 @@ fn test_get_form_retourne_reference_correcte() {
 fn test_build_cree_formulaire_avec_renderer() {
     let tera = make_tera();
     let form = build_form_for_test::<LoginAdmin>(tera, "token_csrf");
-    assert!(form.get_form().fields.contains_key("username"));
-    assert!(form.get_form().fields.contains_key("password"));
+    assert!(form.forms().fields.contains_key("username"));
+    assert!(form.forms().fields.contains_key("password"));
 }
 
 #[test]
 fn test_build_csrf_token_enregistre() {
     let tera = make_tera();
     let form = build_form_for_test::<LoginAdmin>(tera, "mon_token");
-    assert_eq!(form.get_form().session_csrf_token, "mon_token");
+    assert_eq!(form.forms().session_csrf_token, "mon_token");
 }
 
 // ═══════════════════════════════════════════════════════════════
