@@ -123,7 +123,6 @@ impl MiddlewareStaging {
             enable_debug_errors: true, // always mounted — config.debug manages the content
             enable_cache: defaults.enable_cache,
             exclusive_login: false, // propagated via `apply_to_router` from `self.exclusive_login`
-            cross_site_form_guard: false,
         };
 
         Self {
@@ -357,26 +356,6 @@ impl MiddlewareStaging {
     /// ```
     pub fn csrf_exempt(mut self, paths: Vec<impl Into<String>>) -> Self {
         self.csrf_exempt_paths = paths.into_iter().map(Into::into).collect();
-        self
-    }
-
-    /// Refuses a form sent from another site — another domain or a subdomain —
-    /// before it reaches the handler (403). For handlers that read their body
-    /// with an Axum extractor (`Form<T>`, `Multipart`) instead of
-    /// `Request::form()`, which nobody checks the token of. Runique's own forms
-    /// and the admin are sent from the site itself and go through unchanged.
-    ///
-    /// Decided on the `Sec-Fetch-Site` header the browser sets: a request
-    /// without it (an old browser, curl), with an `X-CSRF-Token` header, or to
-    /// a path of `csrf_exempt`, is left to the token as before. A third party
-    /// posting a form to you (a payment return) belongs in `csrf_exempt`.
-    ///
-    /// # Example
-    /// ```rust,ignore
-    /// .middleware(|m| m.with_cross_site_form_guard())
-    /// ```
-    pub fn with_cross_site_form_guard(mut self) -> Self {
-        self.features.cross_site_form_guard = true;
         self
     }
 

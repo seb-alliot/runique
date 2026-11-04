@@ -66,8 +66,8 @@ impl Function<TeraResult<Value>> for CsrfTokenFunction {
 /// distinguished from a right one by response timing. Requests without that
 /// header are only allowed through when they are form submissions
 /// (urlencoded/multipart) — Prisme then validates the `csrf_token` form field
-/// itself; a JSON request with no header is rejected outright. With
-/// `with_cross_site_form_guard`, a form sent from another site is refused too. The
+/// itself; a JSON request with no header is rejected outright, and so is a form
+/// sent from another site. The
 /// token exposed back to the client via the `X-CSRF-Token` response header
 /// is masked per response (`session_token.masked()`) as a BREACH mitigation,
 /// and a GET/HEAD request's own `csrf_token` query parameter is stripped via
@@ -163,7 +163,7 @@ pub async fn csrf_middleware(
             // A form posted from another site is refused here, before any
             // handler: one reading its body with an Axum extractor rather than
             // `Request::form()` would never check the token.
-            if engine.features.cross_site_form_guard && from_another_site(&req) {
+            if from_another_site(&req) {
                 return (StatusCode::FORBIDDEN, "Cross-site form submission").into_response();
             }
             // Otherwise, we let Prisme validate the form field

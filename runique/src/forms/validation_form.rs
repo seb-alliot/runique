@@ -76,7 +76,7 @@ impl<F: RuniqueForm> ValidationForm<F> {
 
 /// Writing a validated form of an entity. The row comes from the URL:
 /// `{<name>_<pk>}`, else `{<pk>}`, where `name` is the one given to
-/// [`ValidationForm::try_form`]; without one, `save` creates. On a route
+/// [`Request::form`](crate::context::Request::form); without one, `save` creates. On a route
 /// declared `admin` the gate writes, as the checked account, with its
 /// history; elsewhere SeaORM does, and checking that the user may touch that
 /// row is the handler's job.
@@ -92,7 +92,8 @@ impl<F: RuniqueForm> ValidationForm<F> {
 /// reads through the connection.
 ///
 /// ```rust,ignore
-/// match ValidationForm::try_form(form, &request, "article").await {
+/// let form = request.form::<ArticleForm>("article");
+/// match ValidationForm::try_form(form, &request).await {
 ///     Ok(form) => match form.save(&request.engine.db).await {
 ///         Ok(_) => Ok(Redirect::to("/articles").into_response()),
 ///         Err(form) => { context_update!(request => { "form" => &form }); request.render(template) }

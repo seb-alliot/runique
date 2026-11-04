@@ -35,7 +35,7 @@ pub async fn logout_view(request: Request) -> AppResult<Response> {
 }
 ```
 
-Un extracteur Axum natif (`Form<T>`, `Json<T>` sans en-tête, `Multipart`) ne passe pas par cette vérification : une route qui en utilise un pour écrire doit contrôler le jeton elle-même, ou s'appuyer sur le refus des formulaires d'un autre site (« Formulaires envoyés depuis un autre site », plus bas).
+Un extracteur Axum natif (`Form<T>`, `Json<T>` sans en-tête, `Multipart`) ne passe pas par cette vérification : une route qui en utilise un pour écrire doit contrôler le jeton elle-même ; le refus des formulaires d'un autre site (« Formulaires envoyés depuis un autre site », plus bas) ne le remplace pas.
 
 ---
 
@@ -123,11 +123,7 @@ La correspondance est **exacte** — `/webhook/stripe` n'exempte pas `/webhook/s
 
 ## Formulaires envoyés depuis un autre site
 
-Désactivé par défaut. À activer si vous écrivez des handlers qui lisent leur formulaire avec un extracteur Axum (`Form<T>`, `Multipart`) au lieu de `request.form("nom")` : personne ne vérifie alors leur jeton.
-
-```rust
-.middleware(|m| m.with_cross_site_form_guard())
-```
+Toujours actif, rien à configurer. Un handler qui lit son formulaire avec un extracteur Axum (`Form<T>`, `Multipart`) au lieu de `request.form("nom")` ne vérifie pas le jeton : ce contrôle le couvre aussi.
 
 Le middleware refuse (403) un formulaire envoyé depuis la page d'un **autre site** ou d'un **sous-domaine**, avant le handler. Il le sait par l'en-tête `Sec-Fetch-Site`, posé par le navigateur : une page ne peut ni l'écrire ni le retirer.
 
@@ -142,7 +138,12 @@ Le middleware refuse (403) un formulaire envoyé depuis la page d'un **autre sit
 
 Les formulaires Runique et l'admin sont envoyés depuis votre site : ils ne changent pas. Un formulaire Runique posté depuis un autre site était déjà refusé par son jeton (page réaffichée avec l'erreur) ; il reçoit maintenant un 403 plus tôt, sans rien écrire dans les deux cas.
 
-Ce n'est pas un remplacement du jeton : un client sans cet en-tête n'est arrêté que par lui. Un service tiers qui poste un formulaire chez vous (retour de paiement d'un prestataire) se met dans `csrf_exempt()`.
+Ce n'est pas un remplacement du jeton : les navigateurs n'envoient cet en-tête qu'en HTTPS et sur localhost, et un client sans cet en-tête n'est arrêté que par le jeton.
+
+Deux sorties, selon qui envoie la requête :
+
+- Un service tiers qui poste un formulaire chez vous (retour de paiement d'un prestataire) se met dans `csrf_exempt()`, avec sa propre vérification.
+- Une page d'un de vos sous-domaines qui écrit sur ce site envoie le jeton dans l'en-tête `X-CSRF-Token` (`fetch`). Un formulaire HTML classique ne peut pas poser d'en-tête : soit il passe par `fetch`, soit son chemin va dans `csrf_exempt()`.
 
 ---
 
