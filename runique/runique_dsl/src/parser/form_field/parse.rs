@@ -33,6 +33,8 @@ impl Parse for FormFieldDecl {
             "time" => FormFieldKind::Time,
             "datetime" => FormFieldKind::Datetime,
             "image" => FormFieldKind::Image,
+            "audio" => FormFieldKind::Audio,
+            "video" => FormFieldKind::Video,
             "document" => FormFieldKind::Document,
             "file" => FormFieldKind::File,
             "color" => FormFieldKind::Color,
@@ -282,6 +284,8 @@ fn has_empty_value(kind: &FormFieldKind) -> bool {
             | Phone
             | Char
             | Image
+            | Audio
+            | Video
             | Document
             | File
             | Binary

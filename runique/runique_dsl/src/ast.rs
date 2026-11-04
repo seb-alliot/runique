@@ -98,6 +98,8 @@ form_field_kinds! {
     Time,
     Datetime,
     Image,
+    Audio,
+    Video,
     Document,
     File,
     Color,
@@ -258,6 +260,8 @@ pub enum FieldOption {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FileKind {
     Image,
+    Audio,
+    Video,
     Document,
     Any,
 }

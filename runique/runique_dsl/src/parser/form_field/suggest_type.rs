@@ -18,6 +18,8 @@ pub(super) fn suggest_form_field_type(input: &str) -> String {
         "time",
         "datetime",
         "image",
+        "audio",
+        "video",
         "document",
         "file",
         "color",

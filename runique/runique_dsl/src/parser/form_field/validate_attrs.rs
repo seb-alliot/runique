@@ -69,13 +69,13 @@ pub(super) fn validate_form_field_attrs(
             (DecimalPlaces(_), _) => false,
 
             // default — all except files
-            (Default(_), Image | Document | File) => false,
+            (Default(_), Image | Audio | Video | Document | File) => false,
             (Default(_), _) => true,
 
             // upload_to / max_size - files only
-            (UploadTo(_), Image | Document | File) => true,
+            (UploadTo(_), Image | Audio | Video | Document | File) => true,
             (UploadTo(_), _) => false,
-            (MaxSize(_), Image | Document | File) => true,
+            (MaxSize(_), Image | Audio | Video | Document | File) => true,
             (MaxSize(_), _) => false,
 
             // rows — multiline types
@@ -89,7 +89,7 @@ pub(super) fn validate_form_field_attrs(
             (AutoNowUpdate, _) => false,
 
             // unique — all types except files/bool
-            (Unique, Image | Document | File | Bool) => false,
+            (Unique, Image | Audio | Video | Document | File | Bool) => false,
             (Unique, _) => true,
 
             // skip / renamed_from — all types
@@ -110,7 +110,9 @@ pub(super) fn validate_form_field_attrs(
     }
 
     // upload_to required for image / document / file
-    if matches!(kind, Image | Document | File) && !attrs.iter().any(|a| matches!(a, UploadTo(_))) {
+    if matches!(kind, Image | Audio | Video | Document | File)
+        && !attrs.iter().any(|a| matches!(a, UploadTo(_)))
+    {
         return Err(syn::Error::new(
             name.span(),
             format!(

@@ -25,6 +25,8 @@ mod shop {
             price: decimal [nullable, max_digits: 10, decimal_places: 2],
             status: choice [nullable, enum(Status)],
             photo: image [nullable, upload_to: "photos/"],
+            podcast: audio [nullable, upload_to: "podcasts/"],
+            trailer: video [nullable, upload_to: "trailers/"],
         }
     }
 }
@@ -132,6 +134,33 @@ fn both_forms_show_the_enum_labels_declared_in_the_dsl() {
         assert_eq!(
             rendered_choices(&form, "status"),
             "Draft=Brouillon;Published=Published;"
+        );
+    }
+}
+
+/// `audio` and `video` give media fields checked by their kind, in both forms:
+/// an `.mp4` is refused by an audio field for its extension, and by a video
+/// field only because no real video file is behind it.
+#[tokio::test]
+async fn audio_and_video_are_media_fields_checked_by_their_kind() {
+    for mut form in [schema_form(), admin_form()] {
+        let audio = form.fields.get_mut("podcast").expect("podcast");
+        assert_eq!(audio.field_type(), "file");
+        audio.set_value("clip.mp4");
+        assert!(!audio.validate().await);
+        let error = audio.error().cloned().unwrap_or_default();
+        assert!(error.contains("mp3") && error.contains("flac"), "{error}");
+
+        let video = form.fields.get_mut("trailer").expect("trailer");
+        assert_eq!(video.field_type(), "file");
+        video.set_value("clip.mp4");
+        assert!(!video.validate().await);
+        assert_eq!(
+            video.error().cloned(),
+            Some(runique::utils::trad::tf(
+                "forms.file_invalid_video",
+                &["clip.mp4"]
+            ))
         );
     }
 }

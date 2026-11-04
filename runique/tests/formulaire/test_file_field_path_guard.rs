@@ -7,7 +7,7 @@
 //! MEDIA_ROOT on success.
 use axum::http::Method;
 use runique::forms::Forms;
-use runique::forms::fields::FileField;
+use runique::forms::fields::MediaField;
 use runique::utils::aliases::StrMap;
 
 fn victim(name: &str) -> std::path::PathBuf {
@@ -22,7 +22,7 @@ fn victim(name: &str) -> std::path::PathBuf {
 async fn a_text_value_cannot_delete_a_server_file() {
     let target = victim("app.db");
     let mut form = Forms::new("csrf");
-    form.field(&FileField::image("avatar"));
+    form.field(&MediaField::image("avatar"));
     let mut data = StrMap::new();
     data.insert("avatar".into(), target.display().to_string());
     form.fill(&data, Method::POST);

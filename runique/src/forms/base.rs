@@ -450,7 +450,7 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::forms::fields::{FileField, TextField};
+    use crate::forms::fields::{MediaField, TextField};
     use crate::forms::generic::GenericField;
 
     #[test]
@@ -512,13 +512,13 @@ mod tests {
 
     #[test]
     fn a_file_keeps_its_column_when_empty() {
-        assert!(FileField::image("f").keeps_when_empty());
+        assert!(MediaField::image("f").keeps_when_empty());
     }
 
     // A form stores its fields wrapped in a `GenericField`.
     #[test]
     fn the_generic_wrapper_keeps_the_answer_of_the_field_it_wraps() {
-        let file: GenericField = FileField::image("f").into();
+        let file: GenericField = MediaField::image("f").into();
         assert!(file.keeps_when_empty());
         let password: GenericField = TextField::password("p").into();
         assert!(password.keeps_when_empty());

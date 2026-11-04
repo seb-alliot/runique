@@ -133,6 +133,7 @@ pub mod prelude {
             datetime::DateTimeField,
             file::{FileField, FileSize},
             hidden::HiddenField,
+            media::MediaField,
             number::NumericField,
             special::{ColorField, IPAddressField, JSONField, SlugField, UUIDField},
             text::TextField,

@@ -10,6 +10,8 @@ use sea_query::{ColumnType, IntoIden};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileKind {
     Image,
+    Audio,
+    Video,
     Document,
     Any,
 }
@@ -477,6 +479,7 @@ impl ColumnDef {
             choice::ChoiceField,
             datetime::{DateField, DateTimeField, TimeField},
             file::FileField,
+            media::MediaField,
             number::NumericField,
             special::{ColorField, IPAddressField, JSONField, SlugField, UUIDField},
             text::TextField,
@@ -507,15 +510,29 @@ impl ColumnDef {
         let mut field: GenericField = if let Some(kind) = self.kind {
             self.widget_field(kind.widget())
         } else if self.is_file {
-            let mut ff = match self.file_kind {
-                Some(FileKind::Image) => FileField::image(name),
-                Some(FileKind::Document) => FileField::document(name),
-                Some(FileKind::Any) | None => FileField::any(name),
-            };
-            if let Some(bytes) = self.max_size {
-                ff = ff.max_size(FileSize::bytes(bytes));
+            let size = self.max_size.map(FileSize::bytes);
+            match self.file_kind {
+                Some(FileKind::Image) => {
+                    let mf = MediaField::image(name);
+                    size.map_or(mf.clone(), |s| mf.max_size(s)).into()
+                }
+                Some(FileKind::Audio) => {
+                    let mf = MediaField::audio(name);
+                    size.map_or(mf.clone(), |s| mf.max_size(s)).into()
+                }
+                Some(FileKind::Video) => {
+                    let mf = MediaField::video(name);
+                    size.map_or(mf.clone(), |s| mf.max_size(s)).into()
+                }
+                Some(FileKind::Document) => {
+                    let ff = FileField::document(name);
+                    size.map_or(ff.clone(), |s| ff.max_size(s)).into()
+                }
+                Some(FileKind::Any) | None => {
+                    let ff = FileField::any(name);
+                    size.map_or(ff.clone(), |s| ff.max_size(s)).into()
+                }
             }
-            ff.into()
         } else {
             match &self.col_type {
                 ColumnType::String(_) => {
@@ -669,6 +686,7 @@ impl ColumnDef {
             choice::{CheckboxField, ChoiceField, RadioField},
             datetime::{DateField, DateTimeField, TimeField},
             file::FileField,
+            media::MediaField,
             number::NumericField,
             special::{ColorField, IPAddressField, JSONField, SlugField, UUIDField},
             text::TextField,
@@ -734,15 +752,29 @@ impl ColumnDef {
             Widget::Time => TimeField::new(name).into(),
             Widget::DateTime => DateTimeField::new(name).into(),
             Widget::File(kind) => {
-                let mut ff = match kind {
-                    runique_dsl::ast::FileKind::Image => FileField::image(name),
-                    runique_dsl::ast::FileKind::Document => FileField::document(name),
-                    runique_dsl::ast::FileKind::Any => FileField::any(name),
-                };
-                if let Some(bytes) = self.max_size {
-                    ff = ff.max_size(FileSize::bytes(bytes));
+                let size = self.max_size.map(FileSize::bytes);
+                match kind {
+                    runique_dsl::ast::FileKind::Image => {
+                        let mf = MediaField::image(name);
+                        size.map_or(mf.clone(), |s| mf.max_size(s)).into()
+                    }
+                    runique_dsl::ast::FileKind::Audio => {
+                        let mf = MediaField::audio(name);
+                        size.map_or(mf.clone(), |s| mf.max_size(s)).into()
+                    }
+                    runique_dsl::ast::FileKind::Video => {
+                        let mf = MediaField::video(name);
+                        size.map_or(mf.clone(), |s| mf.max_size(s)).into()
+                    }
+                    runique_dsl::ast::FileKind::Document => {
+                        let ff = FileField::document(name);
+                        size.map_or(ff.clone(), |s| ff.max_size(s)).into()
+                    }
+                    runique_dsl::ast::FileKind::Any => {
+                        let ff = FileField::any(name);
+                        size.map_or(ff.clone(), |s| ff.max_size(s)).into()
+                    }
                 }
-                ff.into()
             }
             Widget::Binary => {
                 let mut bf = crate::forms::fields::BinaryField::new(name);

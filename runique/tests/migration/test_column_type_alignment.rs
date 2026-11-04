@@ -78,6 +78,8 @@ aligned!(t_date, date, [required]);
 aligned!(t_time, time, [required]);
 aligned!(t_datetime, datetime, [required]);
 aligned!(t_image, image, [required, upload_to: "media"]);
+aligned!(t_audio, audio, [required, upload_to: "media"]);
+aligned!(t_video, video, [required, upload_to: "media"]);
 aligned!(t_document, document, [required, upload_to: "media"]);
 aligned!(t_file, file, [required, upload_to: "media"]);
 aligned!(t_color, color, [required]);
@@ -136,6 +138,8 @@ fn cases_of(kind: FormFieldKind) -> Vec<Case> {
         Time => of!(t_time),
         Datetime => of!(t_datetime),
         Image => of!(t_image),
+        Audio => of!(t_audio),
+        Video => of!(t_video),
         Document => of!(t_document),
         File => of!(t_file),
         Color => of!(t_color),
@@ -219,7 +223,7 @@ fn every_type_declares_the_column_the_migration_creates() {
             checked += 1;
         }
     }
-    assert_eq!(checked, 41, "every declared case was checked");
+    assert_eq!(checked, 43, "every declared case was checked");
 }
 
 #[test]
@@ -234,5 +238,5 @@ fn every_generated_form_field_holds_its_column() {
             checked += 1;
         }
     }
-    assert_eq!(checked, 41, "a case was dropped");
+    assert_eq!(checked, 43, "a case was dropped");
 }

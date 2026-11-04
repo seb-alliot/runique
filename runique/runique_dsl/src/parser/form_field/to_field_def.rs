@@ -55,6 +55,8 @@ pub fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
     if let Some(path) = upload_to {
         let file_kind = match &ff.kind {
             Image => FileKind::Image,
+            Audio => FileKind::Audio,
+            Video => FileKind::Video,
             Document => FileKind::Document,
             _ => FileKind::Any,
         };

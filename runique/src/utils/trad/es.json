@@ -76,6 +76,8 @@
     "file_too_large": "Archivo '{}' demasiado grande ({}MB > {}MB máx)",
     "file_unreadable": "No se pudo leer el archivo enviado, envíelo de nuevo",
     "file_invalid_image": "El archivo '{}' no es una imagen válida",
+    "file_invalid_audio": "El archivo '{}' no es un archivo de audio válido",
+    "file_invalid_video": "El archivo '{}' no es un vídeo válido",
     "image_too_wide": "La imagen '{}' es demasiado ancha ({}px > {}px)",
     "image_too_tall": "La imagen '{}' es demasiado alta ({}px > {}px)",
     "boolean_required": "Debes aceptar este campo",

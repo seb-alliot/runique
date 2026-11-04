@@ -76,6 +76,8 @@
     "file_too_large": "File '{}' too large ({}MB > {}MB max)",
     "file_unreadable": "The uploaded file could not be read, please send it again",
     "file_invalid_image": "File '{}' is not a valid image",
+    "file_invalid_audio": "File '{}' is not a valid audio file",
+    "file_invalid_video": "File '{}' is not a valid video",
     "image_too_wide": "Image '{}' too wide ({}px > {}px)",
     "image_too_tall": "Image '{}' too tall ({}px > {}px)",
     "boolean_required": "You must accept this field",

@@ -14,6 +14,8 @@ define_enum_field!(
     Numeric => NumericField,
     #[serde(skip)]
     File => FileField,
+    #[serde(skip)]
+    Media => MediaField,
     Binary => BinaryField,
     Boolean => BooleanField,
     Choice => ChoiceField,
@@ -240,7 +242,8 @@ pub fn accepts(field: &GeneratedField, column: &sea_orm::sea_query::ColumnType) 
         | GeneratedField::IPAddress(_)
         | GeneratedField::Duration(_)
         // A file is stored as its path.
-        | GeneratedField::File(_) => text,
+        | GeneratedField::File(_)
+        | GeneratedField::Media(_) => text,
         GeneratedField::Numeric(numeric) => match numeric.config {
             NumericConfig::Integer { .. } => integer,
             NumericConfig::Decimal { .. } => matches!(column, C::Decimal(_)),
