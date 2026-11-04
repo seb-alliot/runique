@@ -32,6 +32,7 @@ Ce que ce SQL retire :
 - `is_staff` des comptes, sans équivalent : nommez ensuite chaque compte à son rang (`UPDATE eihwaz_users SET is_dirigeant = TRUE WHERE id = …`). Un `is_admin` n'a aucun droit tant que le dirigeant ne lui en a pas donné.
 - les droits de groupe sur les tables du framework, désormais interdits.
 - les jetons de réinitialisation en cours : un lien déjà envoyé ne marche plus.
+- les sessions sauvegardées : leur contenu est désormais chiffré, une ligne en clair est refusée. Les utilisateurs se reconnectent une fois.
 
 <details>
 <summary>PostgreSQL</summary>
@@ -89,6 +90,8 @@ CREATE UNIQUE INDEX uq_eihwaz_groupes_droits_user
 ALTER TABLE eihwaz_history ADD COLUMN object_repr VARCHAR NOT NULL DEFAULT '';
 UPDATE eihwaz_history SET object_repr = object_pk;
 ALTER TABLE eihwaz_history ALTER COLUMN object_repr DROP DEFAULT;
+
+DELETE FROM eihwaz_sessions;
 
 DELETE FROM eihwaz_reset_tokens;
 ALTER TABLE eihwaz_reset_tokens ADD CONSTRAINT eihwaz_reset_tokens_user_id_key UNIQUE (user_id);
@@ -156,6 +159,8 @@ ALTER TABLE eihwaz_groupes_droits
 ALTER TABLE eihwaz_history ADD COLUMN object_repr VARCHAR(255) NOT NULL DEFAULT '' AFTER object_pk;
 UPDATE eihwaz_history SET object_repr = object_pk;
 ALTER TABLE eihwaz_history ALTER COLUMN object_repr DROP DEFAULT;
+
+DELETE FROM eihwaz_sessions;
 
 DELETE FROM eihwaz_reset_tokens;
 ALTER TABLE eihwaz_reset_tokens ADD UNIQUE KEY uq_eihwaz_reset_tokens_user_id (user_id);
@@ -253,6 +258,8 @@ CREATE UNIQUE INDEX uq_eihwaz_groupes_droits_user
 ALTER TABLE eihwaz_history ADD COLUMN object_repr VARCHAR NOT NULL DEFAULT '';
 UPDATE eihwaz_history SET object_repr = object_pk;
 
+DELETE FROM eihwaz_sessions;
+
 DELETE FROM eihwaz_reset_tokens;
 CREATE UNIQUE INDEX uq_eihwaz_reset_tokens_user_id ON eihwaz_reset_tokens (user_id);
 
@@ -345,6 +352,12 @@ Lancez ensuite `runique makemigrations` : un changement de précision est signal
 - une page d'un de vos sous-domaines : envoyez le jeton dans `X-CSRF-Token` avec `fetch`, ou ajoutez le chemin à `csrf_exempt()`.
 
 Voir [la doc CSRF](https://runique.io/docs/fr/middleware/csrf).
+
+---
+
+## Sessions
+
+**`RuniqueSessionStore::new` prend `SECRET_KEY`** : `RuniqueSessionStore::new(db, &secret_key)`, à adapter si vous l'appelez directement. `session_data` est chiffré : lisez-le avec `open_session_data(&model)`.
 
 ---
 

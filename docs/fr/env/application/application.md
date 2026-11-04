@@ -17,7 +17,7 @@
 |----------|--------|-------------|
 | `IP_SERVER` | `127.0.0.1` | Adresse IP d'écoute |
 | `PORT` | `3000` | Port d'écoute |
-| `SECRET_KEY` | `default_secret_key` | Clé secrète (CSRF, signatures). `runique new` en génère une aléatoire (64 caractères hexadécimaux) dans le `.env` du projet. Pour la remplacer : n'importe quelle chaîne aléatoire d'au moins 32 caractères (`openssl rand -hex 32`). En production (`DEBUG=false`), le **démarrage échoue** si elle est vide, égale au défaut, ou fait moins de 32 caractères ; en debug, un avertissement est affiché |
+| `SECRET_KEY` | `default_secret_key` | Clé secrète (CSRF, signatures, chiffrement des sessions en base : la changer déconnecte leurs utilisateurs au redémarrage). `runique new` en génère une aléatoire (64 caractères hexadécimaux) dans le `.env` du projet. Pour la remplacer : n'importe quelle chaîne aléatoire d'au moins 32 caractères (`openssl rand -hex 32`). En production (`DEBUG=false`), le **démarrage échoue** si elle est vide, égale au défaut, ou fait moins de 32 caractères ; en debug, un avertissement est affiché |
 
 ---
 

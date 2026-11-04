@@ -248,7 +248,10 @@ impl MiddlewareStaging {
                 #[cfg(feature = "orm")]
                 {
                     use crate::middleware::session::RuniqueSessionStore;
-                    let db_store = Arc::new(RuniqueSessionStore::new(engine.db.clone()));
+                    let db_store = Arc::new(RuniqueSessionStore::new(
+                        engine.db.clone(),
+                        &engine.config.server.secret_key,
+                    ));
                     builder = builder.with_db_fallback(db_store);
                 }
 

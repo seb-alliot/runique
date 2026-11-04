@@ -707,9 +707,10 @@ async fn test_db_fallback_restores_a_signed_in_session_after_restart() {
     use runique::middleware::session::RuniqueSessionStore;
     use std::sync::Arc;
     let conn = crate::helpers::db::fresh_db_with_schema(super::test_session_db::SESSIONS_DDL).await;
-    let db = Arc::new(RuniqueSessionStore::new(runique::db::ADb::from_connection(
-        conn,
-    )));
+    let db = Arc::new(RuniqueSessionStore::new(
+        runique::db::ADb::from_connection(conn),
+        crate::helpers::server::TEST_SECRET,
+    ));
 
     let before = CleaningMemoryStore::default().with_db_fallback(db.clone());
     let mut signed_in = heavy_record(3600, 10, Some(42));
@@ -737,6 +738,79 @@ async fn test_db_fallback_restores_a_signed_in_session_after_restart() {
     assert!(without.load(&signed_in.id).await.unwrap().is_none());
 }
 
+/// After a restart, an unreadable row signs the user out instead of failing or
+/// restoring anything: `SECRET_KEY` changed, or the payload dates from before 4.0.
+#[tokio::test]
+async fn test_db_fallback_restores_nothing_from_an_unreadable_row() {
+    use runique::middleware::session::RuniqueSessionStore;
+    use std::sync::Arc;
+    let conn = crate::helpers::db::fresh_db_with_schema(super::test_session_db::SESSIONS_DDL).await;
+    let db = Arc::new(RuniqueSessionStore::new(
+        runique::db::ADb::from_connection(conn.clone()),
+        crate::helpers::server::TEST_SECRET,
+    ));
+    let before = CleaningMemoryStore::default().with_db_fallback(db.clone());
+    let mut signed_in = heavy_record(3600, 10, Some(42));
+    before.create(&mut signed_in).await.unwrap();
+
+    let other_key = Arc::new(RuniqueSessionStore::new(
+        runique::db::ADb::from_connection(conn.clone()),
+        "another_secret_key_of_at_least_32_chars",
+    ));
+    let after_key_change = CleaningMemoryStore::default().with_db_fallback(other_key);
+    assert!(
+        after_key_change
+            .load(&signed_in.id)
+            .await
+            .unwrap()
+            .is_none(),
+        "another SECRET_KEY"
+    );
+    assert_eq!(
+        after_key_change.size_bytes(),
+        0,
+        "nothing warmed into memory"
+    );
+
+    let in_clear = serde_json::to_string(&signed_in.data)
+        .unwrap()
+        .replace('\'', "''");
+    crate::helpers::db::exec(
+        &conn,
+        &format!("UPDATE eihwaz_sessions SET session_data = '{in_clear}'"),
+    )
+    .await;
+    let after_upgrade = CleaningMemoryStore::default().with_db_fallback(db);
+    assert!(
+        after_upgrade.load(&signed_in.id).await.unwrap().is_none(),
+        "a payload in clear"
+    );
+}
+
+/// A session still in memory is only checked against its row, never decrypted:
+/// a row the key can't open doesn't sign it out.
+#[tokio::test]
+async fn test_a_session_in_memory_is_not_decrypted_on_each_load() {
+    use runique::middleware::session::RuniqueSessionStore;
+    use std::sync::Arc;
+    let conn = crate::helpers::db::fresh_db_with_schema(super::test_session_db::SESSIONS_DDL).await;
+    let db = Arc::new(RuniqueSessionStore::new(
+        runique::db::ADb::from_connection(conn.clone()),
+        crate::helpers::server::TEST_SECRET,
+    ));
+    let store = CleaningMemoryStore::default().with_db_fallback(db);
+    let mut signed_in = heavy_record(3600, 10, Some(42));
+    store.create(&mut signed_in).await.unwrap();
+
+    crate::helpers::db::exec(
+        &conn,
+        "UPDATE eihwaz_sessions SET session_data = 'unreadable'",
+    )
+    .await;
+
+    assert!(store.load(&signed_in.id).await.unwrap().is_some());
+}
+
 #[cfg(feature = "orm")]
 #[tokio::test]
 async fn test_db_fallback_propagates_database_errors() {
@@ -744,9 +818,10 @@ async fn test_db_fallback_propagates_database_errors() {
     use std::sync::Arc;
 
     let conn = crate::helpers::db::fresh_db_with_schema(super::test_session_db::SESSIONS_DDL).await;
-    let db = Arc::new(RuniqueSessionStore::new(runique::db::ADb::from_connection(
-        conn.clone(),
-    )));
+    let db = Arc::new(RuniqueSessionStore::new(
+        runique::db::ADb::from_connection(conn.clone()),
+        crate::helpers::server::TEST_SECRET,
+    ));
     crate::helpers::db::exec(&conn, "DROP TABLE eihwaz_sessions").await;
     let store = CleaningMemoryStore::default().with_db_fallback(db);
     let id = Id::default();
@@ -764,9 +839,10 @@ async fn test_delete_reports_database_revocation_failure() {
     use std::sync::Arc;
 
     let conn = crate::helpers::db::fresh_db_with_schema(super::test_session_db::SESSIONS_DDL).await;
-    let db = Arc::new(RuniqueSessionStore::new(runique::db::ADb::from_connection(
-        conn.clone(),
-    )));
+    let db = Arc::new(RuniqueSessionStore::new(
+        runique::db::ADb::from_connection(conn.clone()),
+        crate::helpers::server::TEST_SECRET,
+    ));
     let store = CleaningMemoryStore::default().with_db_fallback(db);
     let mut authenticated = heavy_record(3600, 10, Some(42));
     store.create(&mut authenticated).await.unwrap();
@@ -789,9 +865,10 @@ async fn test_stale_authenticated_save_after_logout_does_not_restore_old_cookie(
     use std::sync::Arc;
 
     let conn = crate::helpers::db::fresh_db_with_schema(super::test_session_db::SESSIONS_DDL).await;
-    let db = Arc::new(RuniqueSessionStore::new(runique::db::ADb::from_connection(
-        conn,
-    )));
+    let db = Arc::new(RuniqueSessionStore::new(
+        runique::db::ADb::from_connection(conn),
+        crate::helpers::server::TEST_SECRET,
+    ));
     let before_logout = CleaningMemoryStore::default().with_db_fallback(db.clone());
     let mut authenticated = heavy_record(3600, 10, Some(42));
     before_logout.create(&mut authenticated).await.unwrap();

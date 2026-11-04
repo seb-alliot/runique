@@ -6,6 +6,20 @@ Runique uses `CleaningMemoryStore` by default — memory-first, with automatic c
 
 ---
 
+## Session data in the database
+
+A signed-in session is saved in `eihwaz_sessions` to survive a restart. Its content is **encrypted** there (XChaCha20-Poly1305, key derived from `SECRET_KEY`), with nothing to configure:
+
+- reading the database (a backup, an SQL injection) doesn't give the content of the sessions, nor the CSRF token it holds;
+- content altered in the database, or copied onto another row, is refused;
+- `user_id` and `expires_at` stay in clear: the store needs them for its queries.
+
+Decryption only happens when restoring after a restart. A session still in memory is only checked against its row.
+
+**Changing `SECRET_KEY`** makes the saved sessions unreadable: at the next restart, their users sign in again. An attacker who also reads your `.env` has the key. A store given to `with_session_store(...)` isn't encrypted by Runique.
+
+---
+
 ## Session durations
 
 | Duration | Use case |

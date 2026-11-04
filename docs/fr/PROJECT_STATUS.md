@@ -9,11 +9,11 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ---
 
-## Snapshot (au 2 novembre 2026)
+## Snapshot (au 4 novembre 2026)
 
 - **Version workspace** : `4.0.0` (**non publiée** sur crates.io — code + doc dans l'arbre)
-- **derive_form** : `3.0.0`
-- **runique_dsl** : `0.1.0`
+- **derive_form** : `4.0.0`
+- **runique_dsl** : `0.2.0`
 - **Licence** : MIT
 - **Branche** : `fix-bug`
 - **Stack** : Axum 0.8.9 + SeaORM 2.0.4 + Tera 2.4 · Rust edition 2024 · Rust 1.94
@@ -63,6 +63,8 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ### Sécurité
 - CSRF masqué (protection BREACH), token lié à la session, comparaison `subtle::ct_eq`
+- Formulaire envoyé depuis un autre site ou un sous-domaine refusé avant le handler (`Sec-Fetch-Site`)
+- Contenu des sessions chiffré en base (XChaCha20-Poly1305, clé dérivée de `SECRET_KEY`)
 - `session.cycle_id()` au login — protection fixation de session
 - Droits par opération (create, read, read_own, update, update_own, delete, delete_own) et par colonne, tranchés par une seule porte (`auth/gate`)
 - Whitelist de colonnes SQL générée statiquement — protection injection SQL dans filtres/tri admin
@@ -130,6 +132,8 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 | 4.0.0 | `password` / `is_active` exposés dans les formulaires `extend!` | Élevée |
 | 4.0.0 | Page debug template : lecture hors `templates/` | Élevée |
 | 4.0.0 | Erreurs globales de formulaire non échappées (XSS) | Moyenne |
+| 4.0.0 | Contenu des sessions stocké en clair en base | Moyenne |
+| 4.0.0 | Formulaire d'un autre site atteignant un handler qui ne vérifie pas le jeton | Moyenne |
 | 4.0.0 | Une erreur de suppression en base pouvait laisser une session réutilisable ; révocation des sessions hors de la transaction du reset (faille.md #12) | Moyenne |
 | 4.0.0 | Remplacement non atomique du jeton de reset : deux jetons valides en concurrence (#13) | Moyenne |
 | 4.0.0 | Hash au préfixe non reconnu : vérification plus rapide, donc mesurable (#3) | Faible |

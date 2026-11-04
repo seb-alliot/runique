@@ -1,5 +1,6 @@
 {% if js_files %}
     {% for js_file in js_files %}
-        <script {% if csp_nonce is defined %}nonce="{{ csp_nonce }}"{% endif %} src="{{ js_file | static }}" defer></script>
+        {% set sri = js_file | static_integrity %}
+        <script {% if csp_nonce is defined %}nonce="{{ csp_nonce }}"{% endif %} src="{{ js_file | static }}"{% if sri %} integrity="{{ sri }}" crossorigin="anonymous"{% endif %} defer></script>
     {% endfor %}
 {% endif %}

@@ -466,6 +466,57 @@ fn test_render_js_vrai_template_interne_ordre_et_nonce() {
     );
 }
 
+fn real_js_template(hashes: &[(&str, &str)]) -> runique::forms::renderer::FormRenderer {
+    let mut tera = Tera::default();
+    tera.autoescape_on(vec!["html", "xml"]);
+    runique::context::register_asset_filters(
+        &mut tera,
+        "/static".to_string(),
+        "/media".to_string(),
+        "/runique/static".to_string(),
+        "/runique/media".to_string(),
+        runique::utils::aliases::new_registry(),
+    );
+    let hashes = hashes
+        .iter()
+        .map(|(file, hash)| (file.to_string(), hash.to_string()))
+        .collect();
+    runique::context::tera::static_tera::register_integrity_filter(&mut tera, hashes);
+    tera.add_raw_template(
+        "js_files.html",
+        include_str!("../../templates/asset/js.html"),
+    )
+    .unwrap();
+    runique::forms::renderer::FormRenderer::new(Arc::new(tera))
+}
+
+#[test]
+fn a_form_script_with_a_known_file_carries_its_integrity() {
+    let mut renderer = real_js_template(&[("js/a.js", "sha384-abc")]);
+    renderer.add_js(&["js/a.js"]);
+
+    let html = renderer.render(&indexmap::IndexMap::new(), &[]).unwrap();
+    assert!(
+        html.contains(r#"integrity="sha384-abc" crossorigin="anonymous""#),
+        "{html}"
+    );
+}
+
+/// Each file gets its own hash, and one with none gets no attribute at all: an
+/// empty `integrity` would mean nothing, another file's would block the script.
+#[test]
+fn a_form_script_only_gets_the_hash_of_its_own_file() {
+    let mut renderer = real_js_template(&[("js/a.js", "sha384-aaa"), ("js/b.js", "sha384-bbb")]);
+    renderer.add_js(&["js/b.js", "js/unknown.js"]);
+
+    let html = renderer.render(&indexmap::IndexMap::new(), &[]).unwrap();
+    assert!(html.contains("sha384-bbb"), "{html}");
+    assert!(!html.contains("sha384-aaa"), "{html}");
+    assert_eq!(html.matches("integrity=").count(), 1, "{html}");
+    assert_eq!(html.matches("crossorigin=").count(), 1, "{html}");
+    assert!(html.contains("js/unknown.js"), "{html}");
+}
+
 #[test]
 fn test_render_js_sans_nonce_pas_d_attribut() {
     use indexmap::IndexMap;

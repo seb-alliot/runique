@@ -2,7 +2,7 @@
 use crate::context::tera::form::FormFilter;
 use crate::context::tera::url::LinkFunction;
 use crate::middleware::CsrfTokenFunction;
-use crate::utils::aliases::ARlockmap;
+use crate::utils::aliases::{ARlockmap, StrMap};
 use chrono::NaiveDateTime;
 use pulldown_cmark::{Options, Parser, html};
 use tera::{Filter, Kwargs, State, Tera, TeraResult, Value, escape_html};
@@ -152,6 +152,17 @@ fn register_filter(base_url: String, version: String) -> impl Fn(&str, Kwargs, &
     move |file: &str, _: Kwargs, _: &State| asset_url(&base_url, file, &version)
 }
 
+fn integrity_filter(hashes: StrMap) -> impl Fn(&str, Kwargs, &State) -> String {
+    move |file: &str, _: Kwargs, _: &State| hashes.get(file).cloned().unwrap_or_default()
+}
+
+/// Registers `static_integrity`: the SRI hash of a project's static file, empty
+/// when it has none. For a path only known at render time, which `{% static %}`
+/// can't hash as it does a literal one. Registering again replaces the hashes.
+pub fn register_integrity_filter(tera: &mut Tera, hashes: StrMap) {
+    tera.register_filter("static_integrity", integrity_filter(hashes));
+}
+
 /// Registers Runique's built-in Tera filters and functions on `tera`: contrib
 /// builtins (urlencode, slug, date…), `static`/`media`/`runique_static`/`runique_media`
 /// URL filters (versioned via a CSS cache-busting token), `form`, `csrf_field`,
@@ -174,6 +185,9 @@ pub fn register_asset_filters(
 
     tera.register_filter("mask", mask_filter);
     tera.register_filter("static", register_filter(static_url, version.clone()));
+    // Tera refuses a template naming an unknown filter: `js.html` needs this one
+    // to load. The template loader replaces it once the files are hashed.
+    register_integrity_filter(tera, StrMap::new());
     tera.register_filter("media", register_filter(media_url, String::new()));
     tera.register_filter(
         "runique_static",

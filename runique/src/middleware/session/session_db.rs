@@ -1,5 +1,6 @@
 //! Persistent session store in the database (table `eihwaz_sessions`).
 use crate::utils::aliases::ADb;
+use crate::utils::crypto::session_cipher::SessionKey;
 use sea_orm::{ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter, entity::prelude::*};
 use sea_query::OnConflict;
 use sha2::{Digest, Sha256};
@@ -30,7 +31,8 @@ pub struct Model {
     /// Stable identifier per login/device
     pub session_id: String,
 
-    /// Serialized session data (JSON)
+    /// Serialized session data (JSON), encrypted: read it with
+    /// [`RuniqueSessionStore::open_session_data`].
     pub session_data: Option<String>,
 
     /// Expiration date
@@ -72,12 +74,46 @@ impl ActiveModelBehavior for ActiveModel {}
 #[derive(Clone, Debug)]
 pub struct RuniqueSessionStore {
     db: ADb,
+    key: SessionKey,
 }
 
 impl RuniqueSessionStore {
-    /// Creates a store bound to the given database connection.
-    pub fn new(db: ADb) -> Self {
-        Self { db }
+    /// Creates a store bound to the given database connection. `secret_key`
+    /// encrypts the session data: changing it makes the stored sessions
+    /// unreadable, and their users sign in again.
+    pub fn new(db: ADb, secret_key: &str) -> Self {
+        Self {
+            db,
+            key: SessionKey::derive(secret_key),
+        }
+    }
+
+    /// Refuses to write rather than store a payload in clear.
+    fn seal_data(&self, cookie_hash: &str, data: Option<String>) -> Result<Option<String>, DbErr> {
+        data.map(|plain| {
+            self.key
+                .seal(&plain, cookie_hash)
+                .ok_or_else(|| DbErr::Custom("session data could not be encrypted".to_string()))
+        })
+        .transpose()
+    }
+
+    /// The decrypted data of a row given by [`find_by_cookie_id`](Self::find_by_cookie_id).
+    /// `None` when it has none or can't be read (another `SECRET_KEY`, an altered
+    /// value, a value in clear from before 4.0, a payload from another row).
+    #[must_use]
+    pub fn open_session_data(&self, model: &Model) -> Option<String> {
+        let sealed = model.session_data.as_deref()?;
+        let opened = self.key.open(sealed, &hash_cookie_id(&model.cookie_id));
+        if opened.is_none()
+            && let Some(level) = crate::utils::runique_log::get_log()
+                .session
+                .as_ref()
+                .and_then(|s| s.store)
+        {
+            crate::runique_log!(level, "stored session data could not be decrypted");
+        }
+        opened
     }
 
     /// Creates a DB entry for an authenticated session.
@@ -204,8 +240,10 @@ impl RuniqueSessionStore {
                 "upsert session: empty cookie_id rejected".to_string(),
             ));
         }
+        let cookie_hash = hash_cookie_id(cookie_id);
+        let data = self.seal_data(&cookie_hash, data)?;
         let model = ActiveModel {
-            cookie_id: Set(hash_cookie_id(cookie_id)),
+            cookie_id: Set(cookie_hash),
             user_id: Set(user_id),
             session_id: Set(uuid::Uuid::new_v4().to_string()),
             session_data: Set(data),
@@ -238,13 +276,15 @@ impl RuniqueSessionStore {
         expires_at: chrono::NaiveDateTime,
         data: Option<String>,
     ) -> Result<bool, DbErr> {
+        let cookie_hash = hash_cookie_id(cookie_id);
+        let data = self.seal_data(&cookie_hash, data)?;
         let result = Entity::update_many()
             .col_expr(Column::SessionData, sea_orm::sea_query::Expr::value(data))
             .col_expr(
                 Column::ExpiresAt,
                 sea_orm::sea_query::Expr::value(expires_at),
             )
-            .filter(Column::CookieId.eq(hash_cookie_id(cookie_id)))
+            .filter(Column::CookieId.eq(cookie_hash))
             .filter(Column::UserId.eq(user_id))
             .exec(&*self.db)
             .await?;

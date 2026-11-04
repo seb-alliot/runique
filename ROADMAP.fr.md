@@ -38,16 +38,16 @@ encore eu lieu.
   « régénérez l'admin » là où c'était vrai à l'époque.
 - [x] **Correctifs sécu déjà dans le CHANGELOG 4.0** — timing forgot-password, message générique
   sur superuser, `csrf.js` same-origin only, `password`/`is_active` hors formulaires `extend!`,
-  page debug bornée à `templates/`, erreurs globales de formulaire échappées.
+  page debug bornée à `templates/`, erreurs globales de formulaire échappées,
+  `session_data` chiffré, formulaires d'un autre site refusés, `add_js` avec SRI et nonce.
+- [x] **Formulaires** — `request.form("nom")` (seul le formulaire envoyé est rempli et validé),
+  `cleaned::<T>` lu par la colonne, `save`/`delete` dans une transaction (`db_atomic`), fichier
+  déplacé entre l'écriture et le commit, `MediaField` (image, audio, vidéo).
 
-### Encore ouvert avant ou juste après la publication 4.0
-
-Ruptures restantes (si elles partent avec la 4.0 ; sinon report en 5.0 avec guide) :
+### Ruptures réglées pour la 4.0
 
 - [x] **Action de suppression obligatoire** — un `belongs_to` sans action `ON DELETE` ne compile
   plus, comme `on_delete` dans Django ; `[no_action]` reste permis s'il est écrit.
-- [ ] **Uploads typés** — fichiers à part (`StagedFile`), jamais parmi les valeurs texte ; aucun
-  chemin serveur dans les données de formulaire.
 
 Le détail du cycle de publication est dans [CONTRIBUTING](CONTRIBUTING.fr.md#versions-et-publication).
 
@@ -91,8 +91,8 @@ item a son test de non-régression avant d'être coché.
    (*URL validation bypass*).
 6. [x] **Suppression refusée par une clé étrangère** — l'admin affiche « Impossible de supprimer :
    d'autres enregistrements l'utilisent encore. » La phrase est la même quel que soit le droit de
-   lecture : aucun nom de table, aucun nombre. Le détail du moteur reste dans le journal. Par
-   défaut, un `belongs_to` sans action refuse (`NoAction`) : jamais de cascade implicite.
+   lecture : aucun nom de table, aucun nombre. Le détail du moteur reste dans le journal. Un
+   `belongs_to` déclare son action depuis la 4.0 : jamais de cascade implicite.
 
 Sortie typique : une ou plusieurs versions **patch** `4.0.x` (ex. `4.0.1`) tant que la ligne 4.0
 est supportée. Pas de feature mineure mélangée dans ces patchs.

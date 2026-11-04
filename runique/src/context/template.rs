@@ -474,6 +474,11 @@ impl Request {
         let forms = form.forms_mut();
         forms.set_name(name);
         forms.set_url_params(&self.path_params, &self.query_params);
+        if let Some(nonce) = self.context.get("csp_nonce").and_then(|v| v.as_str())
+            && !nonce.is_empty()
+        {
+            forms.set_csp_nonce(nonce);
+        }
 
         if let Some(user) = &self.admin_constraint {
             forms.save_comportement =

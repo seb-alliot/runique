@@ -29,17 +29,19 @@ La CI lance ces vérifications ; lancez-les d'abord en local :
 
 ```bash
 cargo fmt --all -- --check
-cargo clippy --all-targets --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme -- -D warnings
+cargo clippy --all-targets --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin -- -D warnings
 
 cd runique
 DB_ENGINE=postgres cargo clippy --all-targets --features big-pk -- -D warnings
 DB_ENGINE=postgres cargo clippy --all-targets --features pk-uuid -- -D warnings
-cargo test --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme
-cargo test --features big-pk,all-databases
-cargo test --features pk-uuid,all-databases
+cargo test --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin
+cargo test --features big-pk,all-databases,admin
+cargo test --features pk-uuid,all-databases,admin
+cargo test --features all-databases
+cargo test --features all-databases,admin,test-utils
 ```
 
-Les avertissements sont des erreurs (`-D warnings`). Les trois passes de tests couvrent les
+Les avertissements sont des erreurs (`-D warnings`). Les trois premières passes de tests couvrent les
 trois types de clé primaire (`i32`, `i64`, `Uuid`) : un test qui écrit des id à la main doit
 utiliser les helpers `pk` de `runique/tests/helpers/pk.rs`, pas des entiers en dur.
 
@@ -93,14 +95,14 @@ Runique suit le versionnage sémantique, avec un cycle fixe :
 
 1. **Contrôles de sécurité réguliers** sur l'existant. Les correctifs s'accumulent dans la
    section « Non publié » du CHANGELOG et sortent ensemble dans une **version corrective**
-   (3.0.**x**).
+   (4.0.**x**).
 2. **Une seule fonctionnalité à la fois**, développée jusqu'au « fini » (voir la
-   [feuille de route](ROADMAP.fr.md)), publiée en **version mineure** (3.**x**.0).
+   [feuille de route](ROADMAP.fr.md)), publiée en **version mineure** (4.**x**.0).
 3. **Un contrôle de sécurité ciblé sur cette fonctionnalité**, et ses correctifs en version
-   corrective (3.x.**y**).
+   corrective (4.x.**y**).
 4. La fonctionnalité suivante ne commence qu'ensuite.
-5. Une **rupture** d'API ne sort jamais dans une 3.x : elle attend la version majeure suivante
-   (4.0), avec son guide de migration.
+5. Une **rupture** d'API ne sort jamais dans une 4.x : elle attend la version majeure suivante
+   (5.0), avec son guide de migration.
 
 Une faille grave n'attend pas le regroupement : elle est corrigée et publiée tout de suite.
 

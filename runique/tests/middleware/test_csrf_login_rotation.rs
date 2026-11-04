@@ -311,9 +311,10 @@ fn request_with_cookie(method: &str, uri: &str, cookie: &str) -> Request<Body> {
 #[tokio::test]
 async fn concurrent_stale_response_cannot_restore_old_authenticated_cookie_after_logout() {
     let conn = crate::helpers::db::fresh_db_with_schema(super::test_session_db::SESSIONS_DDL).await;
-    let db_store = Arc::new(RuniqueSessionStore::new(runique::db::ADb::from_connection(
-        conn,
-    )));
+    let db_store = Arc::new(RuniqueSessionStore::new(
+        runique::db::ADb::from_connection(conn),
+        crate::helpers::server::TEST_SECRET,
+    ));
     let request_entered = Arc::new(tokio::sync::Notify::new());
     let release_request = Arc::new(tokio::sync::Notify::new());
     let state = LogoutRaceState {

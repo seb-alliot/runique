@@ -118,7 +118,7 @@ Rend l'intégralité du formulaire : tous les champs HTML, les erreurs de valida
 
 ## {% form.xxx.js %} — Scripts JS du formulaire
 
-Émet le bloc `<script>` du formulaire : un par fichier déclaré via `add_js`, avec le nonce CSP correct et l'URL statique résolue. À utiliser **uniquement en rendu champ par champ**, là où tu veux les scripts (typiquement juste avant `</form>`).
+Émet le bloc `<script>` du formulaire : un par fichier déclaré via `add_js`, avec le nonce CSP de la requête, le hash SRI du fichier et l'URL statique résolue. À utiliser **uniquement en rendu champ par champ**, là où tu veux les scripts (typiquement juste avant `</form>`).
 
 ```html
 <form method="post" action="/inscription">

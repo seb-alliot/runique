@@ -37,16 +37,16 @@ Workspace is `4.0.0`. Breaking code is in the tree; the crates.io release has no
   "regenerate the admin" where that was true at the time.
 - [x] **Security fixes already in the 4.0 CHANGELOG** — forgot-password timing, generic
   superuser refusal message, same-origin-only `csrf.js`, `password`/`is_active` out of
-  `extend!` forms, debug page confined to `templates/`, form global errors escaped.
+  `extend!` forms, debug page confined to `templates/`, form global errors escaped,
+  `session_data` encrypted, forms from another site refused, `add_js` with SRI and nonce.
+- [x] **Forms** — `request.form("name")` (only the form sent is filled and validated),
+  `cleaned::<T>` read through the column, `save`/`delete` in a transaction (`db_atomic`), file
+  moved between the write and the commit, `MediaField` (image, audio, video).
 
-### Still open before or right after the 4.0 release
-
-Remaining breaking items (ship with 4.0 if ready; otherwise defer to 5.0 with a guide):
+### Breaking items settled for 4.0
 
 - [x] **Mandatory delete action** — a `belongs_to` without an `ON DELETE` action no longer
   compiles, like Django's `on_delete`; `[no_action]` stays allowed when written.
-- [ ] **Typed uploads** — files kept apart (`StagedFile`), never among text field values; no
-  server path in form data.
 
 The release cycle is detailed in [CONTRIBUTING](CONTRIBUTING.md#versions-and-releases).
 
@@ -89,8 +89,8 @@ Each item needs its regression test before it is checked off.
    sheet.
 6. [x] **Deletion refused by a foreign key** — the admin shows "Cannot delete: other records still
    use it." The sentence is the same whatever the read right: no table name, no count. The engine's
-   text stays in the log. By default a `belongs_to` without an action refuses (`NoAction`): never
-   an implicit cascade.
+   text stays in the log. A `belongs_to` declares its action since 4.0: never an implicit
+   cascade.
 
 Typical outcome: one or more **patch** releases `4.0.x` (e.g. `4.0.1`) while the 4.0 line is
 supported. No minor feature mixed into these patches.

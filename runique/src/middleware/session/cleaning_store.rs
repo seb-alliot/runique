@@ -655,10 +655,10 @@ impl SessionStore for CleaningMemoryStore {
             // it silently kills the fallback and surfaces only as "record not found".
             match db.find_by_cookie_id(&cookie_id).await {
                 Ok(Some(model)) => {
-                    if let Some(data_str) = &model.session_data
+                    if let Some(data_str) = db.open_session_data(&model)
                         && let Ok(data) = serde_json::from_str::<
                             std::collections::HashMap<String, serde_json::Value>,
-                        >(data_str)
+                        >(&data_str)
                         && let Some(data_user_id) = data
                             .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
                             .and_then(|value| {

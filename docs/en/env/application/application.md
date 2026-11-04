@@ -17,7 +17,7 @@
 |----------|---------|-------------|
 | `IP_SERVER` | `127.0.0.1` | Listening IP address |
 | `PORT` | `3000` | Listening port |
-| `SECRET_KEY` | `default_secret_key` | Secret key (CSRF, signatures). `runique new` writes a random one (64 hex characters) into the project's `.env`. To replace it: any random string of 32 characters or more (`openssl rand -hex 32`). In production (`DEBUG=false`), **startup fails** when it is empty, equal to the default, or shorter than 32 characters; in debug, a warning is shown |
+| `SECRET_KEY` | `default_secret_key` | Secret key (CSRF, signatures, encryption of the sessions in the database: changing it signs their users out at restart). `runique new` writes a random one (64 hex characters) into the project's `.env`. To replace it: any random string of 32 characters or more (`openssl rand -hex 32`). In production (`DEBUG=false`), **startup fails** when it is empty, equal to the default, or shorter than 32 characters; in debug, a warning is shown |
 
 ---
 

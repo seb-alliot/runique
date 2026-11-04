@@ -27,17 +27,19 @@ The CI runs these checks; run them locally first:
 
 ```bash
 cargo fmt --all -- --check
-cargo clippy --all-targets --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme -- -D warnings
+cargo clippy --all-targets --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin -- -D warnings
 
 cd runique
 DB_ENGINE=postgres cargo clippy --all-targets --features big-pk -- -D warnings
 DB_ENGINE=postgres cargo clippy --all-targets --features pk-uuid -- -D warnings
-cargo test --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme
-cargo test --features big-pk,all-databases
-cargo test --features pk-uuid,all-databases
+cargo test --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin
+cargo test --features big-pk,all-databases,admin
+cargo test --features pk-uuid,all-databases,admin
+cargo test --features all-databases
+cargo test --features all-databases,admin,test-utils
 ```
 
-Warnings are errors (`-D warnings`). The three test runs cover the three primary key types
+Warnings are errors (`-D warnings`). The first three test runs cover the three primary key types
 (`i32`, `i64`, `Uuid`): a test that writes ids by hand must use the `pk` helpers of
 `runique/tests/helpers/pk.rs`, not integer literals.
 
@@ -91,13 +93,13 @@ time and again by `AdminStaging::validate()` at boot.
 Runique follows semantic versioning, with a fixed cycle:
 
 1. **Regular security checks** on what already exists. Fixes pile up in the "Unreleased"
-   section of the CHANGELOG and ship together in a **patch release** (3.0.**x**).
+   section of the CHANGELOG and ship together in a **patch release** (4.0.**x**).
 2. **One feature at a time**, developed until it's "finished" (see the
-   [roadmap](ROADMAP.md)), released as a **minor version** (3.**x**.0).
+   [roadmap](ROADMAP.md)), released as a **minor version** (4.**x**.0).
 3. **A security check targeted at that feature**, and its fixes in a patch release
-   (3.x.**y**).
+   (4.x.**y**).
 4. Only then does the next feature start.
-5. A **breaking change** never ships in a 3.x: it waits for the next major version (4.0),
+5. A **breaking change** never ships in a 4.x: it waits for the next major version (5.0),
    with its migration guide.
 
 A serious vulnerability doesn't wait to be grouped: it's fixed and released right away.
