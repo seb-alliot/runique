@@ -4,6 +4,7 @@
 use crate::helpers::temp::TempDir;
 use runique::config::StaticConfig;
 use runique::forms::base::FormField;
+use runique::forms::fields::MediaField;
 use runique::forms::fields::file::{AllowedExtensions, FileField, FileSize, FileUploadConfig};
 
 // ═══════════════════════════════════════════════════════════════
@@ -108,8 +109,8 @@ fn test_file_upload_config_upload_to() {
 
 #[test]
 fn test_into_upload_path_str() {
-    let field = FileField::image("avatar").upload_to("media/photos");
-    let f = field.upload_config.upload_to.unwrap();
+    let field = MediaField::image("avatar").upload_to("media/photos");
+    let f = field.upload.upload_config.upload_to.unwrap();
     assert_eq!(f("avatar"), "media/photos");
 }
 
@@ -117,7 +118,7 @@ fn test_into_upload_path_str() {
 fn test_into_upload_path_string() {
     let path = "media/docs".to_string();
     let field = FileField::document("doc").upload_to(path);
-    let f = field.upload_config.upload_to.unwrap();
+    let f = field.upload.upload_config.upload_to.unwrap();
     assert_eq!(f("doc"), "media/docs");
 }
 
@@ -126,8 +127,8 @@ fn test_into_upload_path_string() {
 #[test]
 fn test_into_upload_path_static_config() {
     let config = StaticConfig::from_env();
-    let field = FileField::image("pic").upload_to(&config);
-    let f = field.upload_config.upload_to.unwrap();
+    let field = MediaField::image("pic").upload_to(&config);
+    let f = field.upload.upload_config.upload_to.unwrap();
     assert_eq!(f("pic"), "");
 }
 
@@ -137,35 +138,45 @@ fn test_into_upload_path_static_config() {
 
 #[test]
 fn test_file_field_image() {
-    let f = FileField::image("photo");
+    let f = MediaField::image("photo");
     assert_eq!(f.base.name, "photo");
-    assert!(f.allowed_extensions.extensions.contains(&"jpg".to_string()));
+    assert!(
+        f.upload
+            .allowed_extensions
+            .extensions
+            .contains(&"jpg".to_string())
+    );
 }
 
 #[test]
 fn test_file_field_document() {
     let f = FileField::document("cv");
     assert_eq!(f.base.name, "cv");
-    assert!(f.allowed_extensions.extensions.contains(&"pdf".to_string()));
+    assert!(
+        f.upload
+            .allowed_extensions
+            .extensions
+            .contains(&"pdf".to_string())
+    );
 }
 
 #[test]
 fn test_file_field_any() {
     let f = FileField::any("attachment");
     assert_eq!(f.base.name, "attachment");
-    assert!(f.allowed_extensions.extensions.is_empty());
+    assert!(f.upload.allowed_extensions.extensions.is_empty());
 }
 
 #[test]
 fn test_file_field_label() {
-    let f = FileField::image("pic").label("Profile photo");
+    let f = MediaField::image("pic").label("Profile photo");
     assert_eq!(f.base.label, "Profile photo");
 }
 
 #[test]
 fn test_file_field_max_size() {
-    let f = FileField::image("pic").max_size(FileSize::mb(2));
-    assert_eq!(f.upload_config.max_size, Some(2 * 1024 * 1024));
+    let f = MediaField::image("pic").max_size(FileSize::mb(2));
+    assert_eq!(f.upload.upload_config.max_size, Some(2 * 1024 * 1024));
 }
 
 // Every field of a form goes through `GenericField`: the size override has
@@ -173,7 +184,7 @@ fn test_file_field_max_size() {
 #[test]
 fn a_form_lowers_the_size_of_a_file_field_within_its_ceiling() {
     let mut form = runique::forms::Forms::new("csrf");
-    form.field(&FileField::image("pic").max_size(FileSize::mb(2)));
+    form.field(&MediaField::image("pic").max_size(FileSize::mb(2)));
     assert_eq!(form.fields["pic"].model_max_size(), Some(2 * 1024 * 1024));
 
     assert!(form.field_max_size("pic", FileSize::mb(1)).is_ok());
@@ -190,26 +201,26 @@ fn a_form_lowers_the_size_of_a_file_field_within_its_ceiling() {
 #[test]
 fn test_file_field_max_files() {
     let f = FileField::any("gallery").max_files(5);
-    assert_eq!(f.max_files, Some(5));
+    assert_eq!(f.upload.max_files, Some(5));
     assert!(f.base.html_attributes.contains_key("multiple"));
 }
 
 #[test]
 fn test_file_field_max_files_single_no_multiple_attr() {
     let f = FileField::any("file").max_files(1);
-    assert_eq!(f.max_files, Some(1));
+    assert_eq!(f.upload.max_files, Some(1));
     assert!(!f.base.html_attributes.contains_key("multiple"));
 }
 
 #[test]
 fn test_file_field_required() {
-    let f = FileField::image("photo").required();
+    let f = MediaField::image("photo").required();
     assert!(f.base.is_required.choice);
 }
 
 #[test]
 fn test_file_field_max_dimensions() {
-    let f = FileField::image("thumb").max_dimensions(800, 600);
+    let f = MediaField::image("thumb").max_dimensions(800, 600);
     assert_eq!(f.max_width, Some(800));
     assert_eq!(f.max_height, Some(600));
 }
@@ -217,14 +228,24 @@ fn test_file_field_max_dimensions() {
 #[test]
 fn test_file_field_allowed_extensions_override() {
     let f = FileField::any("file").allowed_extensions(vec!["zip", "tar"]);
-    assert!(f.allowed_extensions.extensions.contains(&"zip".to_string()));
-    assert!(f.allowed_extensions.extensions.contains(&"tar".to_string()));
+    assert!(
+        f.upload
+            .allowed_extensions
+            .extensions
+            .contains(&"zip".to_string())
+    );
+    assert!(
+        f.upload
+            .allowed_extensions
+            .extensions
+            .contains(&"tar".to_string())
+    );
 }
 
 #[test]
 fn test_file_field_upload_to_env() {
-    let f = FileField::image("avatar").upload_to_env();
-    let upload_to = f.upload_config.upload_to.unwrap();
+    let f = MediaField::image("avatar").upload_to_env();
+    let upload_to = f.upload.upload_config.upload_to.unwrap();
     assert_eq!(upload_to("avatar"), "avatar", "relative to MEDIA_ROOT");
 }
 
@@ -234,7 +255,7 @@ fn test_file_field_upload_to_env() {
 
 #[tokio::test]
 async fn test_file_field_validate_required_empty_fails() {
-    let mut f = FileField::image("photo").required();
+    let mut f = MediaField::image("photo").required();
     f.set_value("");
     assert!(!f.validate().await);
     assert!(f.error().is_some());
@@ -242,7 +263,7 @@ async fn test_file_field_validate_required_empty_fails() {
 
 #[tokio::test]
 async fn test_file_field_validate_not_required_empty_passes() {
-    let mut f = FileField::image("photo");
+    let mut f = MediaField::image("photo");
     f.set_value("");
     assert!(f.validate().await);
     assert!(f.error().is_none());
@@ -250,7 +271,7 @@ async fn test_file_field_validate_not_required_empty_passes() {
 
 #[tokio::test]
 async fn test_file_field_validate_extension_blocked() {
-    let mut f = FileField::image("photo");
+    let mut f = MediaField::image("photo");
     // .svg is always blocked
     f.set_value("photo.svg");
     assert!(!f.validate().await);
@@ -287,7 +308,7 @@ async fn test_file_field_validate_max_files_exact() {
 
 #[tokio::test]
 async fn test_file_field_validate_image_not_found_fails() {
-    let mut f = FileField::image("photo");
+    let mut f = MediaField::image("photo");
     // jpg extension passes, but file doesn't exist → is_valid_path returns false
     f.set_value("nonexistent_file_abc.jpg");
     assert!(!f.validate().await);
@@ -300,53 +321,53 @@ async fn test_file_field_validate_image_not_found_fails() {
 
 #[test]
 fn test_max_size_sets_model_ceiling() {
-    let f = FileField::image("avatar").max_size(FileSize::mb(5));
-    assert_eq!(f.model_max_size, Some(5 * 1024 * 1024));
-    assert_eq!(f.upload_config.max_size, Some(5 * 1024 * 1024));
+    let f = MediaField::image("avatar").max_size(FileSize::mb(5));
+    assert_eq!(f.upload.model_max_size, Some(5 * 1024 * 1024));
+    assert_eq!(f.upload.upload_config.max_size, Some(5 * 1024 * 1024));
 }
 
 #[test]
 fn test_override_within_limit_ok() {
-    let mut f = FileField::image("avatar").max_size(FileSize::mb(5));
+    let mut f = MediaField::image("avatar").max_size(FileSize::mb(5));
     assert!(f.set_max_size_bounded(FileSize::mb(3)).is_ok());
-    assert_eq!(f.upload_config.max_size, Some(3 * 1024 * 1024));
+    assert_eq!(f.upload.upload_config.max_size, Some(3 * 1024 * 1024));
 }
 
 #[test]
 fn test_override_equal_limit_ok() {
-    let mut f = FileField::image("avatar").max_size(FileSize::mb(5));
+    let mut f = MediaField::image("avatar").max_size(FileSize::mb(5));
     assert!(f.set_max_size_bounded(FileSize::mb(5)).is_ok());
-    assert_eq!(f.upload_config.max_size, Some(5 * 1024 * 1024));
+    assert_eq!(f.upload.upload_config.max_size, Some(5 * 1024 * 1024));
 }
 
 #[test]
 fn test_override_exceeds_limit_err() {
-    let mut f = FileField::image("avatar").max_size(FileSize::mb(5));
+    let mut f = MediaField::image("avatar").max_size(FileSize::mb(5));
     let result = f.set_max_size_bounded(FileSize::mb(6));
     assert!(result.is_err());
     let msg = result.unwrap_err();
     assert!(msg.contains("6.0MB"), "message attendu: {msg}");
     assert!(msg.contains("5.0MB"), "message attendu: {msg}");
     // plafond modèle inchangé
-    assert_eq!(f.model_max_size, Some(5 * 1024 * 1024));
+    assert_eq!(f.upload.model_max_size, Some(5 * 1024 * 1024));
     // valeur effective inchangée (rollback implicite)
-    assert_eq!(f.upload_config.max_size, Some(5 * 1024 * 1024));
+    assert_eq!(f.upload.upload_config.max_size, Some(5 * 1024 * 1024));
 }
 
 #[test]
 fn test_override_no_model_limit_always_ok() {
-    let mut f = FileField::image("avatar");
-    assert!(f.model_max_size.is_none());
+    let mut f = MediaField::image("avatar");
+    assert!(f.upload.model_max_size.is_none());
     assert!(f.set_max_size_bounded(FileSize::mb(100)).is_ok());
-    assert_eq!(f.upload_config.max_size, Some(100 * 1024 * 1024));
+    assert_eq!(f.upload.upload_config.max_size, Some(100 * 1024 * 1024));
 }
 
 #[test]
 fn test_model_ceiling_preserved_after_override() {
-    let mut f = FileField::image("avatar").max_size(FileSize::mb(5));
+    let mut f = MediaField::image("avatar").max_size(FileSize::mb(5));
     f.set_max_size_bounded(FileSize::mb(2)).unwrap();
-    assert_eq!(f.model_max_size, Some(5 * 1024 * 1024));
-    assert_eq!(f.upload_config.max_size, Some(2 * 1024 * 1024));
+    assert_eq!(f.upload.model_max_size, Some(5 * 1024 * 1024));
+    assert_eq!(f.upload.upload_config.max_size, Some(2 * 1024 * 1024));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -395,7 +416,7 @@ fn png(width: u32, height: u32) -> (TempDir, String) {
 }
 
 async fn image_accepted(path: &str) -> bool {
-    let mut f = FileField::image("photo").max_dimensions(100, 100);
+    let mut f = MediaField::image("photo").max_dimensions(100, 100);
     f.set_value(path);
     f.validate().await
 }

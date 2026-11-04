@@ -173,6 +173,8 @@ fn field_value(field: &FieldDef) -> Option<TokenStream2> {
         field.kind,
         FormFieldKind::Password
             | FormFieldKind::Image
+            | FormFieldKind::Audio
+            | FormFieldKind::Video
             | FormFieldKind::Document
             | FormFieldKind::File
     ) || matches!(

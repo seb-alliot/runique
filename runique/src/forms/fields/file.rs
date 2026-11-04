@@ -1,7 +1,8 @@
 //! File Field: `FileField` with type, size, and upload path validation.
+use super::media::{UploadCheck, UploadMedia};
 use crate::config::static_files::resolve_media_root;
 use crate::utils::aliases::ATera;
-use crate::utils::trad::{t, tf};
+use crate::utils::trad::tf;
 use crate::{
     config::StaticConfig,
     forms::base::{CommonFieldConfig, FieldConfig, FormField},
@@ -67,7 +68,7 @@ pub(crate) fn is_staged_upload(path: &str) -> bool {
             .is_some_and(|n| n.starts_with(".staging-"))
 }
 
-async fn cleanup_files(files: &[String]) {
+pub(crate) async fn cleanup_files(files: &[String]) {
     for path in files.iter().filter(|p| is_staged_upload(p)) {
         if let Err(e) = tokio::fs::remove_file(path).await
             && e.kind() != std::io::ErrorKind::NotFound
@@ -77,13 +78,7 @@ async fn cleanup_files(files: &[String]) {
     }
 }
 
-#[derive(Clone, Debug)]
-struct PendingUpload {
-    staged: PathBuf,
-    destination: PathBuf,
-}
-
-fn checked_upload_relative(raw: &str) -> Result<String, String> {
+pub(crate) fn checked_upload_relative(raw: &str) -> Result<String, String> {
     if raw.is_empty() {
         return Ok(String::new());
     }
@@ -110,7 +105,7 @@ fn checked_upload_relative(raw: &str) -> Result<String, String> {
     Ok(raw.trim_end_matches('/').to_string())
 }
 
-async fn ensure_safe_upload_dir(root: &Path, parent: &Path) -> Result<PathBuf, String> {
+pub(crate) async fn ensure_safe_upload_dir(root: &Path, parent: &Path) -> Result<PathBuf, String> {
     let relative = parent.strip_prefix(root).map_err(|_| {
         format!(
             "upload destination '{}' escapes MEDIA_ROOT",
@@ -212,7 +207,7 @@ async fn discard_binary_value(field: &mut dyn FormField) {
 
 /// Checks if the file is a valid image using magic bytes.
 /// Covers JPEG, PNG, GIF, WebP, and ISO BMFF containers (AVIF, HEIC, HEIF).
-async fn is_valid_image_content(path: &str) -> bool {
+pub(crate) async fn is_valid_image_content(path: &str) -> bool {
     if path.to_lowercase().ends_with(".svg") {
         return false;
     }
@@ -249,13 +244,13 @@ async fn is_valid_image_content(path: &str) -> bool {
 
 /// Width and height, or why the crate could not measure the file.
 /// The text stays in the log: the form shows `forms.file_invalid_image`.
-fn read_image_dimensions(path: &str) -> Result<(u32, u32), String> {
+pub(crate) fn read_image_dimensions(path: &str) -> Result<(u32, u32), String> {
     let reader = ImageReader::open(path).map_err(|e| e.to_string())?;
     reader.into_dimensions().map_err(|e| e.to_string())
 }
 
 /// Parses the field value into a list of file paths
-fn parse_file_list(val: &str) -> Vec<&str> {
+pub(crate) fn parse_file_list(val: &str) -> Vec<&str> {
     val.split(',')
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
@@ -266,7 +261,6 @@ fn parse_file_list(val: &str) -> Vec<&str> {
 #[derive(Debug, Clone, Serialize)]
 pub enum FileFieldType {
     None,
-    Image,
     Document,
     Any,
 }
@@ -289,6 +283,16 @@ impl AllowedExtensions {
     /// Preset for web images: jpg, jpeg, png, gif, webp, avif.
     pub fn images() -> Self {
         Self::new(vec!["jpg", "jpeg", "png", "gif", "webp", "avif"])
+    }
+
+    /// Preset for audio: mp3, ogg, oga, wav, m4a, flac, aac.
+    pub fn audio() -> Self {
+        Self::new(vec!["mp3", "ogg", "oga", "wav", "m4a", "flac", "aac"])
+    }
+
+    /// Preset for video: mp4, webm, mov, ogv.
+    pub fn video() -> Self {
+        Self::new(vec!["mp4", "webm", "mov", "ogv"])
     }
 
     /// Preset for documents: pdf, doc, docx, txt, odt.
@@ -413,21 +417,14 @@ impl FileUploadConfig {
     }
 }
 
-/// File upload field. Construct with [`FileField::image`], [`::document`](FileField::document),
-/// or [`::any`](FileField::any). Validates extension, size, and for images, magic bytes + dimensions.
+/// File upload field for documents and other files: [`::document`](FileField::document),
+/// [`::any`](FileField::any). Validates extension, size and count; the content
+/// is not inspected. Images, audio and video are [`MediaField`](super::MediaField)s.
 #[derive(Clone, Debug)]
 pub struct FileField {
     pub base: FieldConfig,
     pub field_type: FileFieldType,
-    pub allowed_extensions: AllowedExtensions,
-    pub upload_config: FileUploadConfig,
-    pub model_max_size: Option<u64>,
-    pub max_files: Option<usize>,
-    pub max_width: Option<u32>,
-    pub max_height: Option<u32>,
-    pub prev_value: Option<String>,
-    pending_uploads: Vec<PendingUpload>,
-    published_uploads: Vec<PathBuf>,
+    pub upload: UploadMedia,
 }
 
 impl CommonFieldConfig for FileField {
@@ -444,7 +441,6 @@ impl FileField {
     /// Low-level constructor. Prefer [`image`](FileField::image), [`document`](FileField::document), or [`any`](FileField::any).
     pub fn create(name: &str, type_field: &str, format: FileFieldType) -> Self {
         let extensions = match format {
-            FileFieldType::Image => AllowedExtensions::images(),
             FileFieldType::Document => AllowedExtensions::documents(),
             FileFieldType::Any => AllowedExtensions::any(),
             FileFieldType::None => AllowedExtensions::new(vec![]),
@@ -453,21 +449,8 @@ impl FileField {
         Self {
             base: FieldConfig::new(name, type_field, "base_file.html"),
             field_type: format,
-            allowed_extensions: extensions,
-            upload_config: FileUploadConfig::default(),
-            model_max_size: None,
-            max_files: None,
-            max_width: None,
-            max_height: None,
-            prev_value: None,
-            pending_uploads: Vec::new(),
-            published_uploads: Vec::new(),
+            upload: UploadMedia::new(extensions),
         }
-    }
-
-    /// Image upload field. Validates magic bytes (JPEG/PNG/GIF/WebP/AVIF). SVG rejected.
-    pub fn image(name: &str) -> Self {
-        Self::create(name, "file", FileFieldType::Image)
     }
 
     /// Document upload field. Accepts pdf, doc, docx, txt, odt.
@@ -494,7 +477,8 @@ impl FileField {
     /// `{MEDIA_ROOT}/avatars/`). Accepts `&str`, `String`, or `&StaticConfig`
     /// for the root of `MEDIA_ROOT`.
     pub fn upload_to(mut self, path: impl IntoUploadPath) -> Self {
-        self.upload_config = self.upload_config.upload_to(path.into_upload_path());
+        self.upload.upload_config =
+            std::mem::take(&mut self.upload.upload_config).upload_to(path.into_upload_path());
         self
     }
 
@@ -502,39 +486,19 @@ impl FileField {
     /// (`"avatar"` → `{MEDIA_ROOT}/avatar/`).
     pub fn upload_to_env(mut self) -> Self {
         let f = Arc::new(|field_name: &str| field_name.to_string());
-        self.upload_config.upload_to = Some(f);
+        self.upload.upload_config.upload_to = Some(f);
         self
     }
 
     /// Maximum upload size. Use `FileSize::mb(5)`, `::kb(512)`, etc. Default: 10 MB.
     pub fn max_size(mut self, size: FileSize) -> Self {
-        let bytes = size.as_bytes();
-        self.model_max_size = Some(bytes);
-        self.upload_config = self.upload_config.max_size(size);
+        self.upload.set_max_size(size);
         self
-    }
-
-    /// Overrides the effective max_size at the form level.
-    /// Returns Err if the requested size exceeds the model-defined ceiling.
-    fn apply_max_size_bounded(&mut self, size: FileSize) -> Result<(), String> {
-        let bytes = size.as_bytes();
-        if let Some(limit) = self.model_max_size
-            && bytes > limit
-        {
-            let req_mb = bytes as f64 / (1024.0 * 1024.0);
-            let lim_mb = limit as f64 / (1024.0 * 1024.0);
-            return Err(format!(
-                "max_size override ({:.1}MB) dépasse la limite du modèle ({:.1}MB)",
-                req_mb, lim_mb
-            ));
-        }
-        self.upload_config.max_size = Some(bytes);
-        Ok(())
     }
 
     /// Maximum number of files. Values > 1 automatically add the `multiple` HTML attribute.
     pub fn max_files(mut self, count: usize) -> Self {
-        self.max_files = Some(count);
+        self.upload.max_files = Some(count);
         if count > 1 {
             self.base
                 .html_attributes
@@ -549,18 +513,9 @@ impl FileField {
         self
     }
 
-    /// Maximum image dimensions in pixels. Only checked for `FileFieldType::Image`.
-    /// A file the `image` crate cannot measure is refused, for every format:
-    /// without a measurement the limit would not apply.
-    pub fn max_dimensions(mut self, width: u32, height: u32) -> Self {
-        self.max_width = Some(width);
-        self.max_height = Some(height);
-        self
-    }
-
     /// Overrides the extension whitelist. Pass lowercase extensions without dots: `vec!["jpg", "png"]`.
     pub fn allowed_extensions(mut self, exts: Vec<&str>) -> Self {
-        self.allowed_extensions = AllowedExtensions::new(exts);
+        self.upload.allowed_extensions = AllowedExtensions::new(exts);
         self
     }
 }
@@ -580,17 +535,15 @@ impl FormField for FileField {
     }
 
     fn cap_max_size(&mut self, bytes: u64) {
-        if self.upload_config.max_size.is_none_or(|s| s > bytes) {
-            self.upload_config.max_size = Some(bytes);
-        }
+        self.upload.cap_max_size(bytes);
     }
 
     fn model_max_size(&self) -> Option<u64> {
-        self.model_max_size
+        self.upload.model_max_size
     }
 
     fn set_max_size_bounded(&mut self, size: FileSize) -> Result<(), String> {
-        self.apply_max_size_bounded(size)
+        self.upload.apply_max_size_bounded(size)
     }
 
     fn set_submitted_value(&mut self, value: &str) {
@@ -604,168 +557,28 @@ impl FormField for FileField {
     }
 
     fn set_value(&mut self, value: &str) {
-        let current = self.base.value.trim().to_string();
-        // A staged path is not a file already stored. Remembering it would make
-        // a later `finalize` try to delete it as the previous media file.
-        let stored = parse_file_list(&current)
-            .iter()
-            .any(|p| !is_staged_upload(p));
-        if !current.is_empty() && current != value.trim() && stored {
-            self.prev_value = Some(current);
-        }
-        self.base.value = value.to_string();
+        self.upload.track_value(&mut self.base, value);
     }
 
     async fn validate(&mut self) -> bool {
-        let val = self.base.value.trim();
-
-        // 1. Presence validation
-        if self.base.is_required.choice && val.is_empty() {
-            let msg = self
-                .base
-                .is_required
-                .message
-                .clone()
-                .unwrap_or_else(|| t("forms.file_required").to_string());
-            self.set_error(msg);
-            return false;
-        }
-
-        if val.is_empty() {
-            self.clear_error();
-            return true;
-        }
-
-        let files: Vec<String> = parse_file_list(val)
-            .into_iter()
-            .map(|s| s.to_string())
-            .collect();
-
-        // 2. File count validation
-        if let Some(max) = self.max_files
-            && files.len() > max
-        {
-            cleanup_files(&files).await;
-            self.base.value.clear();
-            self.set_error(tf("forms.file_max_count", &[&max]));
-            return false;
-        }
-
-        // 3. Extensions + size validation
-        for filename in &files {
-            if !self.allowed_extensions.is_allowed(filename) {
-                let exts = self.allowed_extensions.extensions.join(", ");
-                cleanup_files(&files).await;
-                self.base.value.clear();
-                self.set_error(tf(
-                    "forms.file_extension_blocked",
-                    &[filename.as_str(), exts.as_str()],
-                ));
+        // A document or any file: extension, size and count only — the
+        // content is the application's to judge (see `MediaField` for one
+        // checked by its content).
+        match self.upload.check(&self.base).await {
+            UploadCheck::Required(msg) => {
+                self.set_error(msg);
                 return false;
             }
-            // A path already stored (`plats/x.png`, no file at that path, kept
-            // as is by `finalize`) has nothing to measure; a real file or an
-            // upload in staging always does.
-            let to_measure =
-                Path::new(filename.as_str()).exists() || filename.contains(".staging-");
-            if let Some(max_bytes) = self.upload_config.max_size
-                && to_measure
-            {
-                // Refused when in doubt: an unreadable size would skip the limit.
-                let file_size = match tokio::fs::metadata(filename).await {
-                    Ok(metadata) => metadata.len(),
-                    Err(e) => {
-                        tracing::warn!(field = %self.base.name, error = %e, "file field: upload size unreadable, refused");
-                        cleanup_files(&files).await;
-                        self.base.value.clear();
-                        self.set_error(t("forms.file_unreadable").to_string());
-                        return false;
-                    }
-                };
-                if file_size > max_bytes {
-                    let size_mb = file_size as f64 / (1024.0 * 1024.0);
-                    let max_mb = max_bytes as f64 / (1024.0 * 1024.0);
-                    let size_str = format!("{:.1}", size_mb);
-                    let max_mb_str = format!("{:.1}", max_mb);
-                    cleanup_files(&files).await;
-                    self.base.value.clear();
-                    self.set_error(tf(
-                        "forms.file_too_large",
-                        &[filename.as_str(), size_str.as_str(), max_mb_str.as_str()],
-                    ));
-                    return false;
-                }
+            UploadCheck::Empty => {
+                self.clear_error();
+                return true;
             }
-        }
-
-        // 4. Image validation: real format + dimensions
-        if let FileFieldType::Image = self.field_type {
-            for filename in &files {
-                if !is_valid_image_content(filename).await {
-                    cleanup_files(&files).await;
-                    self.base.value.clear();
-                    self.set_error(tf("forms.file_invalid_image", &[filename.as_str()]));
-                    return false;
-                }
-
-                // Refused when in doubt, for every format: an unreadable
-                // measurement would skip the width and height limits.
-                if self.max_width.is_some() || self.max_height.is_some() {
-                    let path = filename.clone();
-                    let read =
-                        tokio::task::spawn_blocking(move || read_image_dimensions(&path)).await;
-                    let dims = match read {
-                        Ok(Ok(dims)) => Some(dims),
-                        Ok(Err(error)) => {
-                            tracing::warn!(
-                                field = %self.base.name,
-                                file = %filename,
-                                error = %error,
-                                "image field: dimensions unreadable, refused"
-                            );
-                            None
-                        }
-                        Err(error) => {
-                            tracing::warn!(
-                                field = %self.base.name,
-                                error = %error,
-                                "image field: dimension read task failed, refused"
-                            );
-                            None
-                        }
-                    };
-                    let Some((w, h)) = dims else {
-                        cleanup_files(&files).await;
-                        self.base.value.clear();
-                        self.set_error(tf("forms.file_invalid_image", &[filename.as_str()]));
-                        return false;
-                    };
-                    if let Some(max_w) = self.max_width
-                        && w > max_w
-                    {
-                        let (w_s, mw_s) = (w.to_string(), max_w.to_string());
-                        cleanup_files(&files).await;
-                        self.base.value.clear();
-                        self.set_error(tf(
-                            "forms.image_too_wide",
-                            &[filename.as_str(), w_s.as_str(), mw_s.as_str()],
-                        ));
-                        return false;
-                    }
-                    if let Some(max_h) = self.max_height
-                        && h > max_h
-                    {
-                        let (h_s, mh_s) = (h.to_string(), max_h.to_string());
-                        cleanup_files(&files).await;
-                        self.base.value.clear();
-                        self.set_error(tf(
-                            "forms.image_too_tall",
-                            &[filename.as_str(), h_s.as_str(), mh_s.as_str()],
-                        ));
-                        return false;
-                    }
-                }
+            UploadCheck::Refused(msg) => {
+                self.base.value.clear();
+                self.set_error(msg);
+                return false;
             }
+            UploadCheck::Files(_) => {}
         }
 
         self.clear_error();
@@ -773,177 +586,35 @@ impl FormField for FileField {
     }
 
     async fn finalize(&mut self) -> Result<(), String> {
-        let val = self.base.value.trim().to_string();
-        if val.is_empty() {
-            return Ok(());
-        }
-
-        self.pending_uploads.clear();
-        let upload_rel_clean = match &self.upload_config.upload_to {
-            Some(f) => checked_upload_relative(&f(&self.base.name))?,
-            None => String::new(),
-        };
-        let media_root = PathBuf::from(resolve_media_root());
-        let dest_dir = media_root.join(&upload_rel_clean);
-
-        // Construit le chemin relatif stocké ("filename" en racine, sinon "rel/filename").
-        let to_rel = |filename: &str| -> String {
-            if upload_rel_clean.is_empty() {
-                filename.to_string()
-            } else {
-                format!("{}/{}", upload_rel_clean, filename)
-            }
-        };
-
-        let files: Vec<String> = val
-            .split(',')
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
-            .collect();
-        let mut new_paths = Vec::new();
-        for file_path in &files {
-            let src = Path::new(file_path.as_str());
-
-            if src.parent() == Some(dest_dir.as_path()) {
-                let filename = src
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .unwrap_or(file_path.as_str());
-                new_paths.push(to_rel(filename));
-                continue;
-            }
-
-            // Value is already a relative stored path (no physical file at that path) — keep as-is
-            if !src.exists() {
-                new_paths.push(file_path.clone());
-                continue;
-            }
-
-            // Only an upload is ever moved: any other existing file stays where it is.
-            if !is_staged_upload(file_path) {
-                return Err(format!("'{file_path}' is not an upload"));
-            }
-
-            let filename = src
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or(file_path.as_str());
-            let canonical_root = tokio::fs::canonicalize(&media_root)
-                .await
-                .map_err(|e| format!("media root '{}': {e}", media_root.display()))?;
-            self.pending_uploads.push(PendingUpload {
-                staged: src.to_path_buf(),
-                destination: canonical_root.join(&upload_rel_clean).join(filename),
-            });
-
-            new_paths.push(to_rel(filename));
-        }
-
-        self.base.value = new_paths.join(",");
-        Ok(())
+        self.upload.finalize(&mut self.base).await
     }
 
     async fn publish_uploads(&mut self) -> Result<(), String> {
-        if self.pending_uploads.is_empty() {
-            return Ok(());
-        }
-
-        let media_root = PathBuf::from(resolve_media_root());
-        let canonical_root = tokio::fs::canonicalize(&media_root)
-            .await
-            .map_err(|e| format!("media root '{}': {e}", media_root.display()))?;
-
-        for upload in &self.pending_uploads {
-            if !is_staged_upload(&upload.staged.to_string_lossy()) {
-                return Err(format!(
-                    "'{}' is no longer a staged upload",
-                    upload.staged.display()
-                ));
-            }
-            let metadata = tokio::fs::symlink_metadata(&upload.staged)
-                .await
-                .map_err(|e| format!("staged upload '{}': {e}", upload.staged.display()))?;
-            if !metadata.file_type().is_file() {
-                return Err(format!(
-                    "'{}' is not a regular staged file",
-                    upload.staged.display()
-                ));
-            }
-
-            let parent = upload.destination.parent().ok_or_else(|| {
-                format!(
-                    "invalid upload destination '{}'",
-                    upload.destination.display()
-                )
-            })?;
-            let safe_parent = ensure_safe_upload_dir(&canonical_root, parent).await?;
-            let filename = upload.destination.file_name().ok_or_else(|| {
-                format!(
-                    "invalid upload destination '{}'",
-                    upload.destination.display()
-                )
-            })?;
-            let destination = safe_parent.join(filename);
-
-            // Staging is under MEDIA_ROOT, so a hard link publishes the complete
-            // file atomically and fails rather than overwriting an existing file.
-            tokio::fs::hard_link(&upload.staged, &destination)
-                .await
-                .map_err(|e| format!("publish '{}': {e}", destination.display()))?;
-            self.published_uploads.push(destination);
-            if let Err(error) = tokio::fs::remove_file(&upload.staged).await {
-                return Err(format!(
-                    "remove staged upload '{}': {error}",
-                    upload.staged.display()
-                ));
-            }
-        }
-
-        Ok(())
+        self.upload.publish().await
     }
 
     async fn rollback_uploads(&mut self) {
-        for path in self.published_uploads.drain(..) {
-            if let Err(error) = tokio::fs::remove_file(&path).await
-                && error.kind() != std::io::ErrorKind::NotFound
-            {
-                tracing::error!(path = %path.display(), error = %error, "published upload rollback failed");
-            }
-        }
-        if !self.pending_uploads.is_empty() {
-            self.base.value = self.prev_value.clone().unwrap_or_default();
-            self.pending_uploads.clear();
-        }
+        self.upload.rollback(&mut self.base).await;
     }
 
     async fn complete_uploads(&mut self) {
-        self.published_uploads.clear();
-        self.pending_uploads.clear();
-        self.prev_value = None;
+        self.upload.complete();
     }
 
     fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
 
-        let is_image = matches!(self.field_type, FileFieldType::Image);
-
-        context.insert("allowed_extensions", &self.allowed_extensions);
-        context.insert("multiple", &(self.max_files.unwrap_or(1) > 1));
+        context.insert("allowed_extensions", &self.upload.allowed_extensions);
+        context.insert("multiple", &(self.upload.max_files.unwrap_or(1) > 1));
         context.insert("is_file", &true);
-        context.insert("is_image", &is_image);
+        context.insert("is_image", &false);
 
-        if let Some(size) = self.upload_config.max_size {
+        if let Some(size) = self.upload.upload_config.max_size {
             context.insert("max_size", &size);
             context.insert("max_size_mb", &(size as f64 / (1024.0 * 1024.0)));
         }
-        if let Some(count) = self.max_files {
+        if let Some(count) = self.upload.max_files {
             context.insert("max_files", &count);
-        }
-        if let Some(w) = self.max_width {
-            context.insert("max_width", &w);
-        }
-        if let Some(h) = self.max_height {
-            context.insert("max_height", &h);
         }
         tera.render(&self.base.template_name, &context)
             .map_err(|e| {
@@ -960,6 +631,7 @@ impl FormField for FileField {
 mod finalize_tests {
     use super::*;
     use crate::forms::base::FormField;
+    use crate::forms::fields::MediaField;
     use std::fs;
 
     fn unique_dir(tag: &str) -> std::path::PathBuf {
@@ -1093,12 +765,12 @@ mod finalize_tests {
         }
         let path = victim.to_string_lossy().to_string();
 
-        let mut submitted = FileField::image("avatar");
+        let mut submitted = MediaField::image("avatar");
         submitted.set_submitted_value(&path);
         assert_eq!(submitted.base.value, "", "ignored when submitted");
 
         // Set by code instead: rejected by validation, but not deleted.
-        let mut by_code = FileField::image("avatar");
+        let mut by_code = MediaField::image("avatar");
         by_code.set_value(&path);
         assert!(!by_code.validate().await);
         assert!(victim.exists(), "a failed validation must not delete it");
@@ -1191,7 +863,7 @@ mod finalize_tests {
         let mut field = FileField::any("doc");
         field.set_value("old.png");
         field.set_value(&staged);
-        assert_eq!(field.prev_value.as_deref(), Some("old.png"));
+        assert_eq!(field.upload.prev_value.as_deref(), Some("old.png"));
         field.finalize().await.unwrap();
 
         let mut forms = crate::forms::form::Forms::new("");
@@ -1286,7 +958,7 @@ mod finalize_tests {
         field.complete_uploads().await;
         assert!(media.root.join("old.png").exists());
         assert!(media.root.join("new.png").exists());
-        assert_eq!(field.prev_value, None);
+        assert_eq!(field.upload.prev_value, None);
     }
 
     #[tokio::test]
@@ -1403,6 +1075,7 @@ mod guarantees {
     use super::*;
     use crate::forms::base::FormField;
     use crate::forms::field::{FormAccess, RuniqueForm};
+    use crate::forms::fields::MediaField;
     use std::fs;
     use std::path::{Path, PathBuf};
 
@@ -1517,7 +1190,7 @@ mod guarantees {
         let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
         let media = Media::new();
         let staged = media.staged(name, bytes);
-        let mut field = FileField::image("photo").max_dimensions(max_w, max_h);
+        let mut field = MediaField::image("photo").max_dimensions(max_w, max_h);
         field.set_value(&staged);
         let ok = field.validate().await;
         if !ok {
@@ -1725,22 +1398,26 @@ mod guarantees {
         let err = field.set_max_size_bounded(FileSize::mb(3)).unwrap_err();
         assert!(err.contains("3.0MB") && err.contains("2.0MB"), "{err}");
         field.set_max_size_bounded(FileSize::mb(1)).unwrap();
-        assert_eq!(field.upload_config.max_size, Some(1024 * 1024));
+        assert_eq!(field.upload.upload_config.max_size, Some(1024 * 1024));
     }
 
     #[test]
     fn cap_max_size_only_ever_lowers_the_limit() {
         let mut field = FileField::any("doc").max_size(FileSize::bytes(100));
         field.cap_max_size(200);
-        assert_eq!(field.upload_config.max_size, Some(100), "never raised");
+        assert_eq!(
+            field.upload.upload_config.max_size,
+            Some(100),
+            "never raised"
+        );
         field.cap_max_size(100);
-        assert_eq!(field.upload_config.max_size, Some(100));
+        assert_eq!(field.upload.upload_config.max_size, Some(100));
         field.cap_max_size(50);
-        assert_eq!(field.upload_config.max_size, Some(50));
+        assert_eq!(field.upload.upload_config.max_size, Some(50));
         let mut unbounded = FileField::any("doc");
-        unbounded.upload_config.max_size = None;
+        unbounded.upload.upload_config.max_size = None;
         unbounded.cap_max_size(70);
-        assert_eq!(unbounded.upload_config.max_size, Some(70));
+        assert_eq!(unbounded.upload.upload_config.max_size, Some(70));
     }
 
     #[tokio::test]
@@ -1761,11 +1438,11 @@ mod guarantees {
     fn the_previous_value_is_kept_only_when_it_changes() {
         let mut field = FileField::any("doc");
         field.set_value("a.pdf");
-        assert_eq!(field.prev_value, None, "nothing before");
+        assert_eq!(field.upload.prev_value, None, "nothing before");
         field.set_value("a.pdf");
-        assert_eq!(field.prev_value, None, "same value");
+        assert_eq!(field.upload.prev_value, None, "same value");
         field.set_value("b.pdf");
-        assert_eq!(field.prev_value.as_deref(), Some("a.pdf"));
+        assert_eq!(field.upload.prev_value.as_deref(), Some("a.pdf"));
     }
 
     #[tokio::test]
@@ -1796,7 +1473,7 @@ mod guarantees {
         fs::write(media.root.join("same.pdf"), b"same").unwrap();
         let mut field = FileField::any("doc");
         field.set_value("same.pdf");
-        field.prev_value = Some("same.pdf".into());
+        field.upload.prev_value = Some("same.pdf".into());
         field.finalize().await.unwrap();
         field.publish_uploads().await.unwrap();
         field.complete_uploads().await;
@@ -1817,7 +1494,7 @@ mod guarantees {
         )
         .unwrap();
         let tera = std::sync::Arc::new(tera);
-        let one = FileField::image("pic").max_size(FileSize::bytes(1_572_864));
+        let one = MediaField::image("pic").max_size(FileSize::bytes(1_572_864));
         assert_eq!(one.render(&tera).unwrap(), "1.5|false|true|0");
         let several = FileField::document("docs").max_files(3);
         assert_eq!(
@@ -1870,12 +1547,12 @@ mod guarantees {
         field.set_value(&staged);
         field.set_value("");
         assert!(
-            field.prev_value.is_none(),
+            field.upload.prev_value.is_none(),
             "a staging path is not a stored file"
         );
         field.set_value("plats/old.txt");
         field.set_value("plats/new.txt");
-        assert_eq!(field.prev_value.as_deref(), Some("plats/old.txt"));
+        assert_eq!(field.upload.prev_value.as_deref(), Some("plats/old.txt"));
     }
 
     #[tokio::test]

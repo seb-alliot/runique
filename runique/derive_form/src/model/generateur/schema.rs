@@ -109,6 +109,8 @@ fn generate_option(opt: &FieldOption) -> TokenStream2 {
         FieldOption::File { kind, .. } => {
             let kind_tok = match kind {
                 FileKind::Image => quote! { ::runique::migration::FileKind::Image },
+                FileKind::Audio => quote! { ::runique::migration::FileKind::Audio },
+                FileKind::Video => quote! { ::runique::migration::FileKind::Video },
                 FileKind::Document => quote! { ::runique::migration::FileKind::Document },
                 FileKind::Any => quote! { ::runique::migration::FileKind::Any },
             };

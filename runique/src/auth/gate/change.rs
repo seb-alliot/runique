@@ -103,7 +103,7 @@ fn is_primary_key<E: EntityTrait>(name: &str) -> bool {
 mod tests {
     use super::*;
     use crate::auth::permissions::ColumnRight;
-    use crate::forms::fields::{FileField, NumericField, TextField};
+    use crate::forms::fields::{MediaField, NumericField, TextField};
     use chrono::NaiveDate;
     use sea_orm::{ActiveValue, Value};
 
@@ -176,7 +176,7 @@ mod tests {
         form.field(&TextField::text("born"));
         form.field(&TextField::text("title"));
         form.field(&TextField::password("pass"));
-        form.field(&FileField::image("avatar"));
+        form.field(&MediaField::image("avatar"));
         type_fields(&mut form);
         form
     }
@@ -474,7 +474,7 @@ mod tests {
         assert_eq!(set(&model, C::Pass), text("$argon2id$v=19$m=1,t=1,p=1$c$h"));
     }
 
-    // The form registers a `FileField` wrapped in a `GenericField`: it is that
+    // The form registers a `MediaField` wrapped in a `GenericField`: it is that
     // wrapper's answer that counts.
     #[test]
     fn an_empty_file_keeps_the_column_instead_of_clearing_it() {

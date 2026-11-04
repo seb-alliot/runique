@@ -76,6 +76,8 @@ impl FormFieldKind {
             Time => Widget::Time,
             Datetime | Timestamp | TimestampTz => Widget::DateTime,
             Image => Widget::File(FileKind::Image),
+            Audio => Widget::File(FileKind::Audio),
+            Video => Widget::File(FileKind::Video),
             Document => Widget::File(FileKind::Document),
             File => Widget::File(FileKind::Any),
             Choice => Widget::Choice,
@@ -152,7 +154,9 @@ impl FormFieldKind {
             Text => max_length.map_or(FieldType::String, FieldType::Varchar),
             Email => FieldType::Varchar(254),
             Phone => FieldType::Varchar(max_length.unwrap_or(20)),
-            Password | Url | Color | Slug | Image | Document | File => FieldType::String,
+            Password | Url | Color | Slug | Image | Audio | Video | Document | File => {
+                FieldType::String
+            }
             Richtext | Textarea => FieldType::Text,
             Char => FieldType::Char,
             Json => FieldType::Json,

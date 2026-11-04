@@ -203,7 +203,15 @@ pub(crate) fn generate_form_field_decl(ff: &FormFieldDecl, enums: &[EnumDef]) ->
         // ── Files ──────────────────────────────────────────────────
         FormFieldKind::Image => {
             let file_extras = file_attrs_tokens(&ff.attrs);
-            quote! { ::runique::forms::fields::FileField::image(#name_str).label(#label) #file_extras #required_suffix }
+            quote! { ::runique::forms::fields::MediaField::image(#name_str).label(#label) #file_extras #required_suffix }
+        }
+        FormFieldKind::Audio => {
+            let file_extras = file_attrs_tokens(&ff.attrs);
+            quote! { ::runique::forms::fields::MediaField::audio(#name_str).label(#label) #file_extras #required_suffix }
+        }
+        FormFieldKind::Video => {
+            let file_extras = file_attrs_tokens(&ff.attrs);
+            quote! { ::runique::forms::fields::MediaField::video(#name_str).label(#label) #file_extras #required_suffix }
         }
         FormFieldKind::Document => {
             let file_extras = file_attrs_tokens(&ff.attrs);
