@@ -65,7 +65,7 @@ async fn the_generic_save_writes_the_password_as_its_hash() -> Result<(), TestFa
                 ("password", TYPED),
             ],
         );
-        let validated = ValidationForm::try_form(req.form::<RegisterForm>(), &req, "register")
+        let validated = ValidationForm::try_form(req.form::<RegisterForm>("register"), &req)
             .await
             .map_err(|form| {
                 DbErr::Custom(format!(

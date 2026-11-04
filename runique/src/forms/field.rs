@@ -81,10 +81,13 @@ pub trait RuniqueForm: FormAccess {
 
     // ── Whitelisted access to values (POST > path param > query param) ──────────
 
-    /// The value of `name` as `T`, read the way `T`'s own column reads it —
-    /// the one reading the write makes too, so `i16` refuses `40000` and
-    /// `Decimal` keeps every digit. Whitelisted (POST > path > query): `None`
-    /// if the field is unknown, empty, or doesn't read as `T`.
+    /// The value of `name` as `T`, read the way the field's column reads it —
+    /// the one reading the write makes too, so `Decimal` keeps every digit.
+    /// `T` must be that column's Rust type: `cleaned::<i64>` on an `i32`
+    /// column is `None`, whatever the value, rather than right only while the
+    /// value happens to fit. A field with no column (a form without a model)
+    /// reads as `T`'s own column would. Whitelisted (POST > path > query):
+    /// `None` if the field is unknown, empty, or doesn't read as `T`.
     ///
     /// A password field reads as its stored value: once `is_valid()` ran, the
     /// hash in `Auto` mode (`finalize` replaced it); as typed only when marked
@@ -92,7 +95,13 @@ pub trait RuniqueForm: FormAccess {
     /// mode, where hashing it is the developer's job.
     fn cleaned<T: sea_orm::sea_query::ValueType>(&self, name: &str) -> Option<T> {
         let raw = cleaned_value(self.forms(), name)?;
-        let read = crate::forms::column_value::column_value(&T::column_type(), &raw)
+        let column = self
+            .forms()
+            .fields
+            .get(name)
+            .and_then(|field| field.column_type().cloned())
+            .unwrap_or_else(T::column_type);
+        let read = crate::forms::column_value::column_value(&column, &raw)
             .and_then(|value| T::try_from(value).map_err(|e| e.to_string()));
         log_convert_failure(name, &raw, read)
     }
@@ -325,8 +334,11 @@ pub(crate) fn build_form<T: RuniqueForm>(tera: ATera, csrf_token: &str) -> T {
     T::from_form(form)
 }
 
-/// [`build_form`] for tests, which have no request to build from.
+/// [`build_form`] for tests, which have no request to build from, named as
+/// `request.form(name)` names it.
 #[cfg(feature = "test-utils")]
-pub fn build_form_for_test<T: RuniqueForm>(tera: ATera, csrf_token: &str) -> T {
-    build_form(tera, csrf_token)
+pub fn build_form_for_test<T: RuniqueForm>(tera: ATera, csrf_token: &str, name: &'static str) -> T {
+    let mut form = build_form::<T>(tera, csrf_token);
+    form.forms_mut().set_name(name);
+    form
 }

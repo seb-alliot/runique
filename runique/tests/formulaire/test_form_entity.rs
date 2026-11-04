@@ -175,9 +175,12 @@ async fn a_schema_form_types_each_field_like_its_column() {
         axum::http::Method::GET,
     )
     .await;
-    let columns = [("title", typed::Column::Title), ("views", typed::Column::Views)];
+    let columns = [
+        ("title", typed::Column::Title),
+        ("views", typed::Column::Views),
+    ];
 
-    let form: TypedForm = request.form();
+    let form: TypedForm = request.form("typed");
     for (name, column) in &columns {
         assert_eq!(
             form.forms().fields[*name].column_type(),
@@ -186,7 +189,7 @@ async fn a_schema_form_types_each_field_like_its_column() {
         );
     }
 
-    let form = ValidationForm::try_form(form, &request, "typed")
+    let form = ValidationForm::try_form(form, &request)
         .await
         .err()
         .expect("a bare GET never validates");
@@ -197,4 +200,51 @@ async fn a_schema_form_types_each_field_like_its_column() {
             "after try_form: {name}"
         );
     }
+}
+
+/// `cleaned` reads through the field's column: `T` must be that column's Rust
+/// type, whatever the value — an `i64` or `i16` on an `i32` column is `None`
+/// even for a value both could hold. A text column of any length reads as
+/// `String`, and a value from the URL reads the same way as one posted.
+#[cfg(feature = "test-utils")]
+#[tokio::test]
+async fn cleaned_reads_through_the_field_column() {
+    use crate::helpers::{handler_req::build_handler_req, server::build_engine};
+    use runique::forms::{RuniqueForm, field::FormAccess};
+    use std::collections::HashMap;
+
+    let body = HashMap::from([
+        (
+            runique::utils::constante::session_key::session::FORM_NAME_KEY.to_string(),
+            "typed".to_string(),
+        ),
+        ("title".to_string(), "abc".to_string()),
+        ("views".to_string(), "42".to_string()),
+    ]);
+    let request =
+        build_handler_req(build_engine().await, None, body, axum::http::Method::POST).await;
+    let form: TypedForm = request.form("typed");
+
+    assert_eq!(form.cleaned::<i32>("views"), Some(42));
+    assert_eq!(form.cleaned::<i64>("views"), None, "an i32 column");
+    assert_eq!(form.cleaned::<i16>("views"), None, "an i32 column");
+    assert_eq!(form.cleaned::<String>("views"), None, "an i32 column");
+    assert_eq!(form.cleaned::<String>("title"), Some("abc".to_string()));
+    assert_eq!(form.cleaned::<i32>("title"), None, "a text column");
+
+    // Nothing posted: the URL's value, read through the same column.
+    let request = build_handler_req(
+        build_engine().await,
+        None,
+        HashMap::new(),
+        axum::http::Method::GET,
+    )
+    .await;
+    let mut form: TypedForm = request.form("typed");
+    form.forms_mut().set_url_params(
+        &HashMap::new(),
+        &HashMap::from([("views".to_string(), "7".to_string())]),
+    );
+    assert_eq!(form.cleaned::<i32>("views"), Some(7));
+    assert_eq!(form.cleaned::<i64>("views"), None);
 }

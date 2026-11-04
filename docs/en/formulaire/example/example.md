@@ -60,14 +60,14 @@ impl RegisterForm {
 
 ### GET/POST handler
 
-`ValidationForm::try_form(form, &request, "my_form")` replaces the `if request.is_get() {...} if request.is_post() {...}` boilerplate: it dispatches on the HTTP method itself (`allow_get`/`allow_post`), validates, and returns `Ok(ValidationForm<F>)` (a type-level proof the form has been validated) or `Err(F)` (the form with its field errors, ready to re-render).
+`ValidationForm::try_form(form, &request)` replaces the `if request.is_get() {...} if request.is_post() {...}` boilerplate: it dispatches on the HTTP method itself (`allow_get`/`allow_post`), validates, and returns `Ok(ValidationForm<F>)` (a type-level proof the form has been validated) or `Err(F)` (the form with its field errors, ready to re-render).
 
 ```rust
 pub async fn register(mut request: Request) -> AppResult<Response> {
-    let form: RegisterForm = request.form();
+    let form: RegisterForm = request.form("my_form");
     let template = "profile/register_form.html";
 
-    let mut validated = match ValidationForm::try_form(form, &request, "my_form").await {
+    let mut validated = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated,
         Err(form) => {
             // Not sent (first display): blank form, no flash.
@@ -119,11 +119,11 @@ In `PATCH` mode, `fill()` automatically relaxes the `required` constraint on `Pa
 
 ```rust
 pub async fn edit_profile(mut request: Request) -> AppResult<Response> {
-    let form: EditProfileForm = request.form();
+    let form: EditProfileForm = request.form("my_form");
     let template = "profile/edit.html";
     let user = get_current_user(&request).await?;
 
-    let validated = match ValidationForm::try_form(form, &request, "my_form").await {
+    let validated = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => {
@@ -177,12 +177,12 @@ context_update!(request => {
 ```rust
 // Avoid: is_valid() alone can't tell which form was submitted,
 // and a form never named fails to render with {% form.x %}.
-let mut form: MyForm = request.form();
+let mut form: MyForm = request.form("my");
 if form.is_valid().await { /* ... */ }
 
-// Correct: try_form names the form and only validates the one submitted
-let form: MyForm = request.form();
-match ValidationForm::try_form(form, &request, "my_form").await { /* ... */ }
+// Correct: request.form("name") names the form, try_form only validates the one submitted
+let form: MyForm = request.form("my_form");
+match ValidationForm::try_form(form, &request).await { /* ... */ }
 ```
 
 ### 3. Comparing passwords after `is_valid()`

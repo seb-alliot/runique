@@ -79,7 +79,7 @@ fn article(title: &str) -> Vec<(&str, &str)> {
 }
 
 async fn validated(req: &Request) -> Result<ValidationForm<BlogForm>, DbErr> {
-    ValidationForm::try_form(req.form::<BlogForm>(), req, "blog")
+    ValidationForm::try_form(req.form::<BlogForm>("blog"), req)
         .await
         .map_err(|form| {
             DbErr::Custom(format!(
@@ -253,7 +253,7 @@ async fn user_id_is_none_without_a_login() -> Result<(), TestFailure> {
 /// The form `"blog"` with an empty title: refused by `try_form`, with the
 /// error on `title`. `Ok` carries the form, never saved.
 async fn refused_on_title(req: &Request) -> Result<(), DbErr> {
-    match ValidationForm::try_form(req.form::<BlogForm>(), req, "blog").await {
+    match ValidationForm::try_form(req.form::<BlogForm>("blog"), req).await {
         Ok(_) => Err(fail("an empty title should not validate")),
         Err(form) if form.forms().errors().contains_key("title") => Ok(()),
         Err(form) => Err(DbErr::Custom(format!(

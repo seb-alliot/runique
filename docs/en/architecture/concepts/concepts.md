@@ -58,26 +58,26 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
 **Main methods:**
 
 - `request.render("template.html")` — renders with the current context
-- `request.form::<F>()` — builds form `F` with the submitted data (see below)
+- `request.form::<F>("name")` — builds form `F` with the submitted data (see below)
 
 ---
 
-## 3. Forms: `request.form()` then `ValidationForm::try_form`
+## 3. Forms: `request.form("name")` then `ValidationForm::try_form`
 
 A form is handled in two steps.
 
-**`request.form()` builds the form, without validating it.** The request body was already read when `Request` was extracted (Prisme), and the CSRF token's validity already computed. `request.form()`:
+**`request.form("name")` builds the form, without validating it.** The request body was already read when `Request` was extracted (Prisme), and the CSRF token's validity already computed. `request.form("name")`:
 
 1. creates an instance of the form with its fields;
 2. fills it with the submitted data;
 3. marks it invalid when the method needs a CSRF token (POST, PUT, PATCH, DELETE) and the token is missing or wrong.
 
-**`ValidationForm::try_form(form, &request, "name")` decides whether to validate, and validates.** It names the form (rendered as a hidden field), then validates it only if the request sends **that same name** back. That's what allows **several forms on one page**: only the one submitted is validated, the others stay blank, with no field error. It returns `Ok(validated)` or `Err(form)` with its errors, ready to be rendered again.
+**`ValidationForm::try_form(form, &request)` decides whether to validate, and validates.** The form got its name from `request.form("name")` (rendered as a hidden field); it is only filled, then validated, when the request sends **that same name** back. That's what allows **several forms on one page**: only the one submitted is filled and validated, the others stay blank, with no field error, even when they share a field name. It returns `Ok(validated)` or `Err(form)` with its errors, ready to be rendered again.
 
 ```rust
 pub async fn signup(mut request: Request) -> AppResult<Response> {
-    let form: SignupForm = request.form();
-    let form = match ValidationForm::try_form(form, &request, "signup").await {
+    let form: SignupForm = request.form("signup");
+    let form = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => match validated.save(&request.engine.db).await {
             Ok(_) => {
                 success!(request.notices => "Account created!");

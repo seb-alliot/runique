@@ -185,7 +185,7 @@ Ce que chaque partie du projet généré vous appartient de modifier :
 
 | Section | Contenu |
 | --- | --- |
-| [Concepts clés](/docs/fr/architecture/concepts) | `RuniqueEngine`, `Request`, `request.form()` |
+| [Concepts clés](/docs/fr/architecture/concepts) | `RuniqueEngine`, `Request`, `request.form("nom")` |
 | [Fonctionnement interne de Makemigrations](/docs/fr/architecture/makemigrations) | Pipeline en trois phases : extraction AST, diff, génération SeaQuery |
 | [Macros](/docs/fr/architecture/macros) | Macros de contexte, flash, routage, erreur |
 | [Tags & filtres Tera](/docs/fr/architecture/tera) | Tags Django-like, filtres, fonctions |

@@ -205,15 +205,16 @@ impl ModelSchema {
     /// may be tightened, never loosened. Breaking what the column needs is a
     /// programming error, refused the same way as an unknown field in
     /// `fill_form`: a `password` column must stay a password field (hashed,
-    /// never sent back), an integer column an integer field.
+    /// never sent back), an integer column an integer field. Every field of a
+    /// column also gets that column's type.
     pub fn enforce_limits(&self, form: &mut crate::forms::Forms) {
         use runique_dsl::types::Widget;
 
         for col in self.columns.iter().filter(|c| !c.ignored) {
-            let Some(kind) = col.kind else { continue };
             let Some(field) = form.fields.get_mut(&col.name) else {
                 continue;
             };
+            let Some(kind) = col.kind else { continue };
             match kind.widget() {
                 Widget::Password if field.field_type() != "password" || !field.is_password() => {
                     panic!(
@@ -321,6 +322,15 @@ impl ModelSchema {
                 .or(col.max_size);
             if let Some(bytes) = size {
                 field.cap_max_size(bytes);
+            }
+        }
+        // Last, once a loosened limit had its chance to be caught: typing a
+        // text field to its column also caps its length. The field then reads
+        // and writes as its column does — `is_valid` refuses a value the
+        // column can't store, `to_value` converts to it.
+        for col in self.columns.iter().filter(|c| !c.ignored) {
+            if let Some(field) = form.fields.get_mut(&col.name) {
+                field.apply_column_type(&col.col_type);
             }
         }
     }

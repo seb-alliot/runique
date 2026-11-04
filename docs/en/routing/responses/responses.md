@@ -97,9 +97,9 @@ pub async fn about(mut request: Request) -> AppResult<Response> {
 }
 
 pub async fn sign_up(mut request: Request) -> AppResult<Response> {
-    let form: SignupForm = request.form();
+    let form: SignupForm = request.form("signup");
 
-    let validated = match ValidationForm::try_form(form, &request, "signup").await {
+    let validated = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated,
         Err(form) => {
             // Not sent (first display): blank form, no flash.
@@ -144,7 +144,7 @@ pub async fn sign_up(mut request: Request) -> AppResult<Response> {
 | Section | Description |
 | --- | --- |
 | [Macros](/docs/en/routing/macros) | `urlpatterns!`, `view!`, `impl_objects!` |
-| [Extractors](/docs/en/routing/extractors) | Path, Query, req.form(), Json |
+| [Extractors](/docs/en/routing/extractors) | Path, Query, req.form("name"), Json |
 
 ## Back to summary
 

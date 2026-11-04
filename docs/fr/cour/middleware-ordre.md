@@ -156,14 +156,14 @@ def ma_vue(request):
 **Avantage :** simplicité totale.
 **Inconvénient :** tout le body est en RAM, même pour un fichier de 500 Mo. Le streaming devient impossible.
 
-### Solution Runique — le relais typé (`request.form()`)
+### Solution Runique — le relais typé (`request.form("nom")`)
 
-Runique ne bufferise pas. Le body n'est lu **qu'une seule fois**, directement dans le handler via `request.form()`. Les middlewares en amont ne touchent jamais au body.
+Runique ne bufferise pas. Le body n'est lu **qu'une seule fois**, directement dans le handler via `request.form("nom")`. Les middlewares en amont ne touchent jamais au body.
 
 ```rust
-// ✅ request.form() consomme le body une seule fois, au bon endroit
+// ✅ request.form("nom") consomme le body une seule fois, au bon endroit
 pub async fn login_user(mut request: Request) -> AppResult<Response> {
-    let form: LoginForm = request.form(); // lecture unique ici
+    let form: LoginForm = request.form("login"); // lecture unique ici
     // form contient les données parsées
     // Aucun middleware n'a touché au body avant
 }
@@ -173,7 +173,7 @@ Les données dont les middlewares auraient besoin sont transmises via le systèm
 
 ### Conséquence sur les champs password
 
-`Forms::fill()` ne peut pas remplir les champs `password` automatiquement — ils ne transitent pas par le système de relais (pour des raisons de sécurité). Ils s'utilisent via `add_value()` directement depuis les données extraites par `request.form()`.
+`Forms::fill()` ne peut pas remplir les champs `password` automatiquement — ils ne transitent pas par le système de relais (pour des raisons de sécurité). Ils s'utilisent via `add_value()` directement depuis les données extraites par `request.form("nom")`.
 
 ```rust
 // ✅ Champs normaux
@@ -194,7 +194,7 @@ En Runique, un formulaire HTML doit être **initialisé et rendu dans un handler
 ```rust
 // ❌ Tentant mais incorrect — pas de rendu initial
 pub async fn login_user(mut request: Request) -> AppResult<Response> {
-    let form: LoginForm = request.form();
+    let form: LoginForm = request.form("login");
     // Pas de GET handler → le formulaire n'a jamais été rendu
     // Les champs, erreurs et tokens CSRF n'existent pas côté client
 }
@@ -216,7 +216,7 @@ pub async fn login_page(mut request: Request) -> AppResult<Response> {
 }
 
 pub async fn login_user(mut request: Request) -> AppResult<Response> {
-    let form: LoginForm = request.form();
+    let form: LoginForm = request.form("login");
     // Traitement du POST
 }
 ```

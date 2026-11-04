@@ -58,26 +58,26 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
 **Méthodes principales :**
 
 - `request.render("template.html")` — rendu avec le contexte courant
-- `request.form::<F>()` — construit le formulaire `F` avec les données envoyées (voir ci-dessous)
+- `request.form::<F>("nom")` — construit le formulaire `F` avec les données envoyées (voir ci-dessous)
 
 ---
 
-## 3. Formulaires : `request.form()` puis `ValidationForm::try_form`
+## 3. Formulaires : `request.form("nom")` puis `ValidationForm::try_form`
 
 Le traitement d'un formulaire se fait en deux temps.
 
-**`request.form()` construit le formulaire, sans le valider.** Le corps de la requête a déjà été lu à l'extraction de `Request` (Prisme), et la validité du jeton CSRF déjà calculée. `request.form()` :
+**`request.form("nom")` construit le formulaire, sans le valider.** Le corps de la requête a déjà été lu à l'extraction de `Request` (Prisme), et la validité du jeton CSRF déjà calculée. `request.form("nom")` :
 
 1. crée une instance du formulaire avec ses champs ;
 2. la remplit avec les données envoyées ;
 3. la marque invalide si la méthode exige un jeton CSRF (POST, PUT, PATCH, DELETE) et que celui-ci manque ou est faux.
 
-**`ValidationForm::try_form(form, &request, "nom")` décide s'il faut valider, et valide.** Il donne un nom au formulaire (rendu en champ caché), puis ne le valide que si la requête renvoie **ce même nom**. C'est ce qui permet **plusieurs formulaires sur une même page** : seul celui qui a été envoyé est validé, les autres restent vierges, sans erreur de champ. Il renvoie `Ok(validé)` ou `Err(form)` avec ses erreurs, prêt à être réaffiché.
+**`ValidationForm::try_form(form, &request)` décide s'il faut valider, et valide.** Le formulaire a reçu son nom de `request.form("nom")` (rendu en champ caché) ; il n'est rempli, puis validé, que si la requête renvoie **ce même nom**. C'est ce qui permet **plusieurs formulaires sur une même page** : seul celui qui a été envoyé est rempli et validé, les autres restent vierges, sans erreur de champ, même s'ils ont un champ du même nom. Il renvoie `Ok(validé)` ou `Err(form)` avec ses erreurs, prêt à être réaffiché.
 
 ```rust
 pub async fn signup(mut request: Request) -> AppResult<Response> {
-    let form: SignupForm = request.form();
-    let form = match ValidationForm::try_form(form, &request, "signup").await {
+    let form: SignupForm = request.form("signup");
+    let form = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => match validated.save(&request.engine.db).await {
             Ok(_) => {
                 success!(request.notices => "Compte créé !");

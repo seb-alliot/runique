@@ -60,9 +60,8 @@ pub(crate) async fn rank_view(
         let not_found = AdminError::Refused(Refusal::new(RefusalReason::NotFound));
         return failure(not_found, &req, &admin).await;
     }
-    let mut form = req.form::<BulkForm<user::Entity>>();
-    form.forms_mut().set_name(admin_form::RANK);
-    let form = ValidationForm::try_form(form, &req, admin_form::RANK).await;
+    let form = req.form::<BulkForm<user::Entity>>(admin_form::RANK);
+    let form = ValidationForm::try_form(form, &req).await;
     let value = |name: &str| match &form {
         Ok(form) => form
             .forms()

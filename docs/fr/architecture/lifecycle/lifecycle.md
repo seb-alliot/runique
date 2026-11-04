@@ -9,7 +9,7 @@
 3. La session est chargée, puis le compte connecté relu en base (request.user)
 4. CSRF : un jeton envoyé en en-tête (X-CSRF-Token) est vérifié ici ; un jeton
    de formulaire (champ csrf_token) est vérifié par Prisme à l'étape suivante
-5. Le handler reçoit Request : le corps est lu (Prisme), request.form() construit
+5. Le handler reçoit Request : le corps est lu (Prisme), request.form("nom") construit
    le formulaire, ValidationForm::try_form le valide
 6. Le handler retourne AppResult<Response>
 7. Les middlewares sont traversés en sens inverse (la session est enregistrée)
@@ -29,7 +29,7 @@ let db = request.engine.db.clone();
 ### 2. Formulaires = copies par requête
 
 ```rust
-let mut form: MyForm = request.form();
+let mut form: MyForm = request.form("my");
 // Chaque requête = formulaire isolé, zéro concurrence
 ```
 
@@ -63,7 +63,7 @@ context_update!(request => {
 
 | Section | Description |
 | --- | --- |
-| [Concepts clés](/docs/fr/architecture/concepts) | `RuniqueEngine`, `Request`, `request.form()` |
+| [Concepts clés](/docs/fr/architecture/concepts) | `RuniqueEngine`, `Request`, `request.form("nom")` |
 | [Macros](/docs/fr/architecture/macros) | Macros de contexte, flash, routage, erreur |
 | [Tags & filtres Tera](/docs/fr/architecture/tera) | Tags Django-like, filtres, fonctions |
 | [Stack middleware](/docs/fr/architecture/middleware) | Ordre des slots, injection de dépendances |

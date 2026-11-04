@@ -125,14 +125,14 @@ async fn handler(mut request: Request) -> AppResult<Response> {
 
 ---
 
-## Formulaires — `req.form()`
+## Formulaires — `req.form("nom")`
 
 ```rust
 use runique::prelude::*;
 
 async fn signup(mut request: Request) -> AppResult<Response> {
-    let form: SignupForm = request.form();
-    let form = match ValidationForm::try_form(form, &request, "signup").await {
+    let form: SignupForm = request.form("signup");
+    let form = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => match validated.save(&request.engine.db).await {
             Ok(_) => return Ok(Redirect::to("/").into_response()),
             Err(form) => form,
@@ -144,7 +144,7 @@ async fn signup(mut request: Request) -> AppResult<Response> {
 }
 ```
 
-`request.form()` construit le formulaire avec les données envoyées ; `ValidationForm::try_form` le valide s'il a bien été envoyé. Voir [Concepts clés](/docs/fr/architecture/concepts).
+`request.form("nom")` construit le formulaire avec les données envoyées ; `ValidationForm::try_form` le valide s'il a bien été envoyé. Voir [Concepts clés](/docs/fr/architecture/concepts).
 
 ---
 

@@ -42,7 +42,7 @@ pub async fn handle_contribution_submit(
         return Ok(Redirect::to("/login").into_response());
     }
 
-    let mut form = match ValidationForm::try_form(form, request, "contribution").await {
+    let mut form = match ValidationForm::try_form(form, request).await {
         Ok(validated) => validated.into_form(),
         Err(form) => {
             if !form.is_submitted() {

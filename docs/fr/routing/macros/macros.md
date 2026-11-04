@@ -52,7 +52,7 @@ urlpatterns! {
 
 ## Macro view!
 
-Un même handler gère GET et POST ainsi que PUT et DELETE (pattern recommandé avec `ValidationForm::try_form(form, &request, "my_form")`, qui dispatche lui-même sur la méthode HTTP) :
+Un même handler gère GET et POST ainsi que PUT et DELETE (pattern recommandé avec `ValidationForm::try_form(form, &request)`, qui dispatche lui-même sur la méthode HTTP) :
 
 ```rust
 // Dans les routes
@@ -62,9 +62,9 @@ Un même handler gère GET et POST ainsi que PUT et DELETE (pattern recommandé 
 ```rust
 // Dans le handler
 pub async fn inscription(mut request: Request) -> AppResult<Response> {
-    let form: RegisterForm = request.form();
+    let form: RegisterForm = request.form("my_form");
 
-    let validated = match ValidationForm::try_form(form, &request, "my_form").await {
+    let validated = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => { "form" => &form });
@@ -81,7 +81,7 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
 
 ## Router une méthode précise (GET / POST / PUT…)
 
-`view!{ handler }` branche le **même** handler sur les cinq méthodes (GET, POST, PUT, DELETE, PATCH). C'est le pattern recommandé quand un seul handler gère le formulaire en GET et en POST via `ValidationForm::try_form(form, &request, "my_form")`.
+`view!{ handler }` branche le **même** handler sur les cinq méthodes (GET, POST, PUT, DELETE, PATCH). C'est le pattern recommandé quand un seul handler gère le formulaire en GET et en POST via `ValidationForm::try_form(form, &request)`.
 
 Quand tu veux **un handler distinct par méthode**, n'utilise pas `view!` : passe directement les combinateurs Axum (`get`, `post`, `put`, `delete`, `patch`), déjà ré-exportés par le prelude. `urlpatterns!` accepte n'importe quelle expression qui produit un `MethodRouter` comme handler :
 
@@ -119,7 +119,7 @@ pub async fn login_get(mut request: Request) -> AppResult<Response> {
 }
 
 pub async fn login_post(mut request: Request) -> AppResult<Response> {
-    let mut form: LoginForm = request.form();
+    let mut form: LoginForm = request.form("login");
     if form.is_valid().await {
         // ...
     }
@@ -158,14 +158,14 @@ Côté handlers, chaque méthode a sa propre fonction, sans test `is_get()` / `i
 ```rust
 // GET /contact — affiche le formulaire vide
 pub async fn contact_form(mut request: Request) -> AppResult<Response> {
-    let form: ContactForm = request.form();
+    let form: ContactForm = request.form("contact");
     context_update!(request => { "contact_form" => &form });
     request.render("contact.html")
 }
 
 // POST /contact — valide et traite l'envoi
 pub async fn contact_submit(mut request: Request) -> AppResult<Response> {
-    let mut form: ContactForm = request.form();
+    let mut form: ContactForm = request.form("contact");
     if form.is_valid().await {
         // envoi de l'email, flash de succès, redirection…
         return Ok(Redirect::to("/contact").into_response());
@@ -200,7 +200,7 @@ Voir le [guide ORM](/docs/fr/orm) pour plus de détails.
 
 | Section | Description |
 | --- | --- |
-| [Extracteurs](/docs/fr/routing/extracteurs) | Path, Query, req.form(), Json |
+| [Extracteurs](/docs/fr/routing/extracteurs) | Path, Query, req.form("nom"), Json |
 | [Réponses](/docs/fr/routing/reponses) | Types de réponses |
 
 ## Retour au sommaire

@@ -111,7 +111,7 @@ Un POST d'API sans formulaire Runique doit vérifier `request.prisme.csrf_valid`
 | `context_update!(request => {...})` | Injecter des variables dans le template |
 | `success!(request.notices => "...")` | Message flash avant redirect |
 | `flash_now!(error => "...")` | Message immédiat (pas de redirect) |
-| `ValidationForm::try_form(form, &request, "nom").await` | Valider un formulaire (seulement s'il a été envoyé) |
+| `ValidationForm::try_form(form, &request).await` | Valider un formulaire (seulement s'il a été envoyé) |
 | `validated.save(&db).await` | Sauvegarder en base (pas pour un compte : voir [Formulaires](/docs/fr/exemple/formulaires)) |
 | `form.forms_mut().database_error(&err)` | Afficher une erreur DB dans le formulaire |
 

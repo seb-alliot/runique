@@ -3,7 +3,7 @@
 ## Sommaire
 
 - [Vue d'ensemble](#vue-d-ensemble)
-- [Extraction de formulaire — `request.form()`](/docs/fr/formulaire/prisme)
+- [Extraction de formulaire — `request.form("nom")`](/docs/fr/formulaire/prisme)
 - [Trait RuniqueForm](/docs/fr/formulaire/trait)
   - Structure de base
   - Méthodes du trait
@@ -27,7 +27,7 @@ Runique fournit un système de formulaires puissant, inspiré de Django. Il exis
 1. **Manuelle** — Définir les champs via le trait `RuniqueForm`.
 2. **Automatique** — Dériver un formulaire depuis un schéma `model!` avec `#[form(...)]`.
 
-Les formulaires sont construits depuis la requête par `request.form()` (remplissage et contrôle CSRF). `ValidationForm::try_form` nomme le formulaire et le valide s'il a été envoyé (formats via le crate `validator`, hachage des mots de passe selon la `PasswordConfig`) ; un formulaire d'entité validé s'écrit ensuite avec `save` / `delete`.
+Les formulaires sont construits depuis la requête par `request.form("nom")`, qui les nomme et ne remplit (et ne contrôle le CSRF) que celui que la requête renvoie. `ValidationForm::try_form` le valide s'il a été envoyé (formats via le crate `validator`, hachage des mots de passe selon la `PasswordConfig`) ; un formulaire d'entité validé s'écrit ensuite avec `save` / `delete`.
 
 ---
 

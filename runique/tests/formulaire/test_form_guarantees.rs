@@ -218,9 +218,9 @@ async fn a_get_is_never_validated_unless_the_form_opts_in() {
     let mut query = HashMap::new();
     query.insert("q".to_string(), "rust".to_string());
     let request = build_handler_req(engine, None, query, Method::GET).await;
-    let form: PlainForm = request.form();
+    let form: PlainForm = request.form("f");
     assert!(
-        ValidationForm::try_form(form, &request, "f").await.is_err(),
+        ValidationForm::try_form(form, &request).await.is_err(),
         "a link must not trigger a form's side effects"
     );
 }
@@ -235,8 +235,8 @@ async fn validation_form_records_a_database_error() {
         "f".to_string(),
     );
     let request = build_handler_req(engine, None, body, Method::POST).await;
-    let form: PlainForm = request.form();
-    let Ok(mut validated) = ValidationForm::try_form(form, &request, "f").await else {
+    let form: PlainForm = request.form("f");
+    let Ok(mut validated) = ValidationForm::try_form(form, &request).await else {
         panic!("valid POST");
     };
     validated.database_error(&custom("boom"));

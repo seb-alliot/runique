@@ -11,7 +11,6 @@ use crate::auth::gate::membership::set_memberships;
 use crate::auth::gate::refusal::RefusalReason;
 use crate::auth::user;
 use crate::context::template::Request;
-use crate::forms::field::FormAccess;
 use crate::forms::validation_form::ValidationForm;
 use crate::utils::aliases::AppResult;
 use crate::utils::constante::admin_key::admin_form;
@@ -57,9 +56,8 @@ pub(crate) async fn memberships_view(
     }
     let back = admin.paths.detail_of(&site, model.key(), &id);
 
-    let mut form = req.form::<ConfirmForm<user::Entity>>();
-    form.forms_mut().set_name(admin_form::GROUPS);
-    let message = match ValidationForm::try_form(form, &req, admin_form::GROUPS).await {
+    let form = req.form::<ConfirmForm<user::Entity>>(admin_form::GROUPS);
+    let message = match ValidationForm::try_form(form, &req).await {
         Err(_) => Err(t("csrf.invalid_or_missing").into_owned()),
         Ok(_) => match ticked_groups(&req) {
             None => Err(Refusal::new(RefusalReason::NoRight).message()),

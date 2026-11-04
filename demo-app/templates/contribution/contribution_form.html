@@ -54,12 +54,12 @@
     <span class="kw">mut</span> request: <span class="ty">Request</span>,
 ) -&gt; <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
     <span class="kw">let</span> template = <span class="st">"contribution/contribution_form.html"</span>;
-    <span class="kw">let</span> form: <span class="ty">ContributionForm</span> = request.<span class="fn_">form</span>();
+    <span class="kw">let</span> form: <span class="ty">ContributionForm</span> = request.<span class="fn_">form</span>(<span class="st">"contribution"</span>);
     <span class="cm">// Protected route — redirects if not signed in</span>
     <span class="kw">let</span> <span class="ty">Some</span>(user_id) = request.user.<span class="fn_">as_ref</span>().<span class="fn_">map</span>(|user| user.id) <span class="kw">else</span> {
         <span class="kw">return</span> <span class="ty">Ok</span>(<span class="ty">Redirect</span>::<span class="fn_">to</span>(<span class="st">"/login"</span>).<span class="fn_">into_response</span>());
     };
-    <span class="kw">let</span> <span class="kw">mut</span> form = <span class="kw">match</span> <span class="ty">ValidationForm</span>::<span class="fn_">try_form</span>(form, &amp;request, <span class="st">"contribution"</span>).<span class="kw">await</span> {
+    <span class="kw">let</span> <span class="kw">mut</span> form = <span class="kw">match</span> <span class="ty">ValidationForm</span>::<span class="fn_">try_form</span>(form, &amp;request).<span class="kw">await</span> {
         <span class="ty">Ok</span>(validated) =&gt; validated.<span class="fn_">into_form</span>(),
         <span class="ty">Err</span>(form) =&gt; {
             <span class="mc">context_update!</span>(request =&gt; { <span class="st">"contribution_form"</span> =&gt; &amp;form });

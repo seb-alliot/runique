@@ -60,14 +60,14 @@ impl RegisterForm {
 
 ### Handler GET/POST
 
-`ValidationForm::try_form(form, &request, "my_form")` remplace le boilerplate `if request.is_get() {...} if request.is_post() {...}` : il dispatche lui-même sur la méthode HTTP (`allow_get`/`allow_post`), valide, et renvoie `Ok(ValidationForm<F>)` (prouve au niveau du type que le formulaire est validé) ou `Err(F)` (formulaire avec ses erreurs de champ, à ré-afficher).
+`ValidationForm::try_form(form, &request)` remplace le boilerplate `if request.is_get() {...} if request.is_post() {...}` : il dispatche lui-même sur la méthode HTTP (`allow_get`/`allow_post`), valide, et renvoie `Ok(ValidationForm<F>)` (prouve au niveau du type que le formulaire est validé) ou `Err(F)` (formulaire avec ses erreurs de champ, à ré-afficher).
 
 ```rust
 pub async fn inscription(mut request: Request) -> AppResult<Response> {
-    let form: RegisterForm = request.form();
+    let form: RegisterForm = request.form("my_form");
     let template = "profile/register_form.html";
 
-    let mut validated = match ValidationForm::try_form(form, &request, "my_form").await {
+    let mut validated = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated,
         Err(form) => {
             // Pas envoyé (premier affichage) : formulaire vierge, pas de flash.
@@ -119,11 +119,11 @@ En mode `PATCH`, `fill()` relâche automatiquement le `required` sur les champs 
 
 ```rust
 pub async fn modifier_profil(mut request: Request) -> AppResult<Response> {
-    let form: EditProfileForm = request.form();
+    let form: EditProfileForm = request.form("my_form");
     let template = "profile/edit.html";
     let user = get_current_user(&request).await?;
 
-    let validated = match ValidationForm::try_form(form, &request, "my_form").await {
+    let validated = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => {
@@ -177,12 +177,12 @@ context_update!(request => {
 ```rust
 // À éviter : is_valid() direct ne sait pas quel formulaire a été envoyé,
 // et un formulaire jamais nommé échoue au rendu de {% form.x %}.
-let mut form: MyForm = request.form();
+let mut form: MyForm = request.form("my");
 if form.is_valid().await { /* ... */ }
 
-// Correct : try_form nomme le formulaire et ne valide que celui envoyé
-let form: MyForm = request.form();
-match ValidationForm::try_form(form, &request, "my_form").await { /* ... */ }
+// Correct : request.form("nom") nomme le formulaire, try_form ne valide que celui envoyé
+let form: MyForm = request.form("my_form");
+match ValidationForm::try_form(form, &request).await { /* ... */ }
 ```
 
 ### 3. Comparer des mots de passe après `is_valid()`

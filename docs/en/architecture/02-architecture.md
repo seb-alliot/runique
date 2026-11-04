@@ -185,7 +185,7 @@ What each part of the generated project is yours to change:
 
 | Section | Content |
 | --- | --- |
-| [Core Concepts](/docs/en/architecture/concepts) | `RuniqueEngine`, `Request`, `request.form()` |
+| [Core Concepts](/docs/en/architecture/concepts) | `RuniqueEngine`, `Request`, `request.form("name")` |
 | [Makemigrations Internals](/docs/en/architecture/makemigrations) | Three-pass pipeline: AST extraction, diffing, SeaQuery generation |
 | [Macros](/docs/en/architecture/macros) | Context, flash, routing, and error macros |
 | [Tera Tags & Filters](/docs/en/architecture/tera) | Django-like tags, filters, functions |

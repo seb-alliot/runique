@@ -119,11 +119,11 @@ async fn save_profile(
             ("avatar", avatar),
         ],
     );
-    let form =
-        match ValidationForm::try_form(req.form::<user_profile::Form>(), &req, "profile").await {
-            Ok(form) => form,
-            Err(form) => return Ok(Err(format!("invalid: {:?}", form.forms().errors()))),
-        };
+    let form = match ValidationForm::try_form(req.form::<user_profile::Form>("profile"), &req).await
+    {
+        Ok(form) => form,
+        Err(form) => return Ok(Err(format!("invalid: {:?}", form.forms().errors()))),
+    };
     Ok(match form.save(db).await {
         Ok(_) => Ok(()),
         Err(form) => Err(format!("refused: {:?}", form.forms().errors())),
@@ -244,7 +244,7 @@ async fn validated_profile(
             ("avatar", avatar),
         ],
     );
-    ValidationForm::try_form(req.form::<user_profile::Form>(), &req, "profile")
+    ValidationForm::try_form(req.form::<user_profile::Form>("profile"), &req)
         .await
         .map_err(|form| fail(format!("invalid: {:?}", form.forms().errors())))
 }

@@ -55,8 +55,8 @@
 <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="fn_">create_post</span>(
     <span class="kw">mut</span> request: <span class="ty">Request</span>,
 ) -&gt; <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
-    <span class="kw">let</span> form: <span class="ty">BlogForm</span> = request.<span class="fn_">form</span>();
-    <span class="kw">let</span> form = <span class="kw">match</span> <span class="ty">ValidationForm</span>::<span class="fn_">try_form</span>(form, &amp;request, <span class="st">"blog"</span>).<span class="kw">await</span> {
+    <span class="kw">let</span> form: <span class="ty">BlogForm</span> = request.<span class="fn_">form</span>(<span class="st">"blog"</span>);
+    <span class="kw">let</span> form = <span class="kw">match</span> <span class="ty">ValidationForm</span>::<span class="fn_">try_form</span>(form, &amp;request).<span class="kw">await</span> {
         <span class="ty">Ok</span>(validated) =&gt; validated,
         <span class="ty">Err</span>(form) =&gt; {
             <span class="mc">context_update!</span>(request =&gt; { <span class="st">"blog_form"</span> =&gt; &amp;form });

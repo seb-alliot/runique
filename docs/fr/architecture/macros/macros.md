@@ -62,9 +62,9 @@ Les macros se combinent dans un handler typique :
 use runique::prelude::*;
 
 pub async fn contact(mut request: Request) -> AppResult<Response> {
-    let form: ContactForm = request.form();
+    let form: ContactForm = request.form("my_form");
 
-    let form = match ValidationForm::try_form(form, &request, "my_form").await {
+    let form = match ValidationForm::try_form(form, &request).await {
         Ok(_validated) => {
             // Flash en session + redirection (pattern Post/Redirect/Get)
             success!(request.notices => "Message envoyé !");
@@ -90,7 +90,7 @@ pub async fn contact(mut request: Request) -> AppResult<Response> {
 
 | Section | Description |
 | --- | --- |
-| [Concepts clés](/docs/fr/architecture/concepts) | `RuniqueEngine`, `Request`, `request.form()` |
+| [Concepts clés](/docs/fr/architecture/concepts) | `RuniqueEngine`, `Request`, `request.form("nom")` |
 | [Tags & filtres Tera](/docs/fr/architecture/tera) | Tags Django-like, filtres, fonctions |
 | [Stack middleware](/docs/fr/architecture/middleware) | Ordre des slots, injection de dépendances |
 | [Lifecycle d'une requête](/docs/fr/architecture/lifecycle) | Cycle de vie, bonnes pratiques |

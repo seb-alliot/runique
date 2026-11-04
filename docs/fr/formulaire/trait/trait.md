@@ -63,7 +63,7 @@ fn forms_mut(&mut self) -> &mut Forms {
 ```text
 register_fields()            → déclare les champs
         ↓
-req.form()                   → construit l'instance
+req.form("nom")                   → construit l'instance
         ↓
 is_valid()                   → pipeline de validation
     ↓  validate() par champ  (requis, format, longueur…)
@@ -152,22 +152,24 @@ form.max_size("photo", FileSize::mb(6))?;   // Err — dépasse le plafond du mo
 
 ## Nom du formulaire — plusieurs formulaires sur une page
 
-`try_form(form, &request, "nom")` donne un nom au formulaire. Ce nom est rendu dans un champ caché `runique_form` (en premier, avant le CSRF), et préfixe les `id` HTML des champs (`id_nom-champ`). Au POST, le formulaire n'est validé que si la requête renvoie **ce même nom** : sur une page qui affiche plusieurs formulaires, seul celui qui a été envoyé est validé, les autres reviennent en `Err` sans aucune erreur posée.
+`request.form("nom")` construit le formulaire et lui donne son nom. Ce nom est rendu dans un champ caché `runique_form` (en premier, avant le CSRF), et préfixe les `id` HTML des champs (`id_nom-champ`). Le formulaire n'est **rempli** avec les données de la requête que si celle-ci renvoie **ce même nom** ; `try_form` ne valide que ce formulaire-là. Sur une page qui affiche plusieurs formulaires :
 
-- Tout handler qui **affiche** le formulaire passe par `try_form`, GET compris : un formulaire jamais nommé échoue au rendu (erreur Tera sur le nom manquant), plutôt que d'afficher un formulaire dont l'envoi ne serait jamais validé.
-- Le nom n'est jamais rempli à partir de la requête : seul `try_form` le pose.
-- Un formulaire écrit à la main (sans `{% form.x %}`) doit porter lui-même le champ caché `runique_form` avec le bon nom.
+- seul le formulaire envoyé reçoit les valeurs tapées : un autre formulaire de la page ne les voit jamais, même avec un champ du même nom (`email` dans deux formulaires) ;
+- l'erreur CSRF éventuelle ne s'affiche que sur le formulaire envoyé ;
+- les autres reviennent de `try_form` en `Err`, sans aucune erreur posée, avec `is_submitted()` faux.
+
+Le nom n'est jamais lu dans la requête pour nommer le formulaire : seul `request.form(nom)` le pose. Un formulaire écrit à la main (sans `{% form.x %}`) doit porter lui-même le champ caché `runique_form` avec le bon nom.
 
 ```rust
-let username_form = ValidationForm::try_form(request.form::<UsernameForm>(), &request, "username").await;
-let email_form = ValidationForm::try_form(request.form::<EmailForm>(), &request, "email").await;
+let username_form = ValidationForm::try_form(request.form::<UsernameForm>("username"), &request).await;
+let email_form = ValidationForm::try_form(request.form::<EmailForm>("email"), &request).await;
 ```
 
 ---
 
 ## `is_valid()` — appel sur GET et POST
 
-`is_valid()` valide indifféremment sur GET et POST, mais **ne regarde jamais la méthode HTTP** — c'est `ValidationForm::try_form(form, &request, "my_form")` qui décide, via `allow_get`/`allow_post`, si la validation doit même être tentée. Par défaut `allow_get` est `false` (protection CSRF : GET est la seule méthode exemptée, un formulaire mutant ne doit jamais s'auto-valider dessus). Un formulaire de recherche en lecture seule est le cas qui doit **explicitement** lever cette garde :
+`is_valid()` valide indifféremment sur GET et POST, mais **ne regarde jamais la méthode HTTP** — c'est `ValidationForm::try_form(form, &request)` qui décide, via `allow_get`/`allow_post`, si la validation doit même être tentée. Par défaut `allow_get` est `false` (protection CSRF : GET est la seule méthode exemptée, un formulaire mutant ne doit jamais s'auto-valider dessus). Un formulaire de recherche en lecture seule est le cas qui doit **explicitement** lever cette garde :
 
 - **Premier GET (formulaire vide)** — `allow_get` retombe sur `is_submitted()` → `false`, `try_form` renvoie `Err` sans tenter la validation, aucune erreur posée. Le template affiche un formulaire propre.
 - **GET avec query params (formulaire de recherche)** — `is_submitted()` → `true`, `try_form` valide et renvoie `Ok`. Permet de faire des recherches via GET sans code supplémentaire.
@@ -183,8 +185,8 @@ impl RuniqueForm for SearchForm {
 
 // Handler GET+POST unifié — fonctionne sans if/else sur la méthode
 pub async fn search(mut request: Request) -> AppResult<Response> {
-    let form: SearchForm = request.form();
-    let form = match ValidationForm::try_form(form, &request, "my_form").await {
+    let form: SearchForm = request.form("my_form");
+    let form = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => {
             let query = validated.cleaned::<String>("q").unwrap_or_default();
             // lancer la recherche...
@@ -294,7 +296,7 @@ impl RuniqueForm for RegisterForm {
 Un formulaire relié à une entité (`model!{}`, `extend!{}`, `#[form(schema = …)]`) s'écrit depuis le formulaire validé que rend `ValidationForm::try_form`. Runique parcourt ses champs et écrit la ligne : aucune méthode d'écriture à implémenter. Un formulaire sans entité n'a ni `save` ni `delete` : son handler fait le travail après `try_form`.
 
 ```rust
-match ValidationForm::try_form(form, &request, "article").await {
+match ValidationForm::try_form(form, &request).await {
     Ok(form) => match form.save(&request.engine.db).await {
         Ok(_) => {
             success!(request.notices => "Article enregistré");

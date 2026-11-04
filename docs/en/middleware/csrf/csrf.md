@@ -17,17 +17,17 @@ A form built with `RuniqueForm` already carries the token. `{% form.xxx %}` plac
 
 `{% csrf %}` only places the token on the form, in a hidden `csrf_token` field. It checks nothing.
 
-The check happens in `request.form()`. Without a valid token, the form is invalid and `save()` does not run. That is the path of every `RuniqueForm`.
+The check happens in `request.form("name")`. Without a valid token, the form is invalid and `save()` does not run. That is the path of every `RuniqueForm`.
 
-The middleware reads the `X-CSRF-Token` header. A JSON body without that header is refused (403). For `application/x-www-form-urlencoded` and `multipart/form-data`, it lets the body through: the field is read by `request.form()`.
+The middleware reads the `X-CSRF-Token` header. A JSON body without that header is refused (403). For `application/x-www-form-urlencoded` and `multipart/form-data`, it lets the body through: the field is read by `request.form("name")`.
 
-A handler that reads the body and writes without `request.form()` does not get that check, even when `{% csrf %}` is on the page. The session cookie is `SameSite=Strict`.
+A handler that reads the body and writes without `request.form("name")` does not get that check, even when `{% csrf %}` is on the page. The session cookie is `SameSite=Strict`.
 
 ---
 
 ## In manual HTML forms
 
-The tag places the token. The handler has to call `request.form()` to check it.
+The tag places the token. The handler has to call `request.form("name")` to check it.
 
 ```html
 <form method="post" action="/submit">
@@ -122,7 +122,7 @@ Matching is **exact** — `/webhook/stripe` does not exempt `/webhook/stripe/sub
 
 ## Forms sent from another site
 
-Off by default. Turn it on if you write handlers that read their form with an Axum extractor (`Form<T>`, `Multipart`) instead of `request.form()`: nobody checks their token then.
+Off by default. Turn it on if you write handlers that read their form with an Axum extractor (`Form<T>`, `Multipart`) instead of `request.form("name")`: nobody checks their token then.
 
 ```rust
 .middleware(|m| m.with_cross_site_form_guard())

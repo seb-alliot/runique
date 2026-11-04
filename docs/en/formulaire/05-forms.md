@@ -3,7 +3,7 @@
 ## Table of Contents
 
 - [Overview](#overview)
-- [Form extraction — `request.form()`](/docs/en/formulaire/prisme)
+- [Form extraction — `request.form("name")`](/docs/en/formulaire/prisme)
 - [RuniqueForm trait](/docs/en/formulaire/trait)
   - Base structure
   - Trait methods
@@ -25,7 +25,7 @@ Runique provides a powerful form system inspired by Django. There are **two appr
 1. **Manual** — Define fields via the `RuniqueForm` trait.
 2. **Automatic** — Derive a form from a `model!` schema with `#[form(...)]`.
 
-Forms are built from the request by `request.form()` (filling and CSRF check). `ValidationForm::try_form` names the form and validates it when it was submitted (formats through the `validator` crate, password hashing per the `PasswordConfig`); a validated entity form is then written with `save` / `delete`.
+Forms are built from the request by `request.form("name")`, which names them and only fills (and CSRF-checks) the one the request sends back. `ValidationForm::try_form` validates it when it was submitted (formats through the `validator` crate, password hashing per the `PasswordConfig`); a validated entity form is then written with `save` / `delete`.
 
 ---
 
