@@ -1,4 +1,4 @@
-use crate::entities::{doc_block, doc_page, doc_section, site_config};
+use crate::entities::{doc_block, doc_page, doc_section};
 use runique::prelude::*;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -454,45 +454,8 @@ async fn seed_section_pages(
     }
 }
 
-async fn seed_site_config(db: &DatabaseConnection) {
-    let entries = [
-        ("runique_version", "2.1.13", "Version actuelle de Runique"),
-        ("release_date", "2026-06-03", "Date de la dernière release"),
-        (
-            "github_url",
-            "https://github.com/seb-alliot/runique",
-            "URL du dépôt GitHub",
-        ),
-        (
-            "crates_url",
-            "https://crates.io/crates/runique",
-            "URL sur crates.io",
-        ),
-    ];
-
-    for (key, value, description) in &entries {
-        let _ = site_config::Entity::delete_many()
-            .filter(site_config::Column::Key.eq(*key))
-            .exec(db)
-            .await;
-        let row = site_config::ActiveModel {
-            key: Set(ToString::to_string(key)),
-            value: Set(ToString::to_string(value)),
-            description: Set(Some(ToString::to_string(description))),
-            ..Default::default()
-        };
-        if let Err(e) = row.insert(db).await {
-            tracing::warn!("doc_seed: erreur site_config {key}: {e}");
-        }
-    }
-
-    tracing::info!("doc_seed: site_config mis à jour");
-}
-
 /// Point d'entrée principal. Vide et re-seede `doc_section/page/block` à chaque démarrage.
 pub async fn seed_docs(db: &DatabaseConnection) {
-    seed_site_config(db).await;
-
     let docs_root = match find_docs_root() {
         Some(p) => p,
         None => {

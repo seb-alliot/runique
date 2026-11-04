@@ -8,7 +8,7 @@
 use crate::entities::{
     blog, changelog_entry, chapitre, code_example, contribution, demo_category, demo_page,
     demo_section, doc_block, doc_page, doc_section, known_issue, page_doc_link, roadmap_entry,
-    runique_release, site_config, user_profile,
+    runique_release, user_profile,
 };
 use runique::admin::{AdminSite, ModelAdmin};
 use runique::app::staging::AdminStaging;
@@ -271,26 +271,6 @@ fn runique_release() -> ModelAdmin<runique_release::Entity> {
     })
 }
 
-fn site_config() -> ModelAdmin<site_config::Entity> {
-    use site_config::Column::*;
-    // `is_public` is a nullable boolean with a default.
-    ModelAdmin::new()
-        .list(|l| {
-            l.display([Key, Value, IsPublic])
-                .links([Key])
-                .sortable([Key])
-                .ordering([(SortOrder, Order::Asc)])
-                .search([Key, Description])
-                .filter([IsPublic])
-                .action(IsPublic, true, "Rendre public")
-                .action(IsPublic, false, "Rendre privé")
-        })
-        .form(|f| {
-            f.fields([Key, Value, Description, IsPublic, SortOrder])
-                .create_only([Key])
-        })
-}
-
 pub fn site(site: AdminSite) -> AdminSite {
     site.accounts_users(accounts())
         .register(blog())
@@ -308,7 +288,6 @@ pub fn site(site: AdminSite) -> AdminSite {
         .register(page_doc_link())
         .register(roadmap_entry())
         .register(runique_release())
-        .register(site_config())
 }
 
 #[cfg(test)]

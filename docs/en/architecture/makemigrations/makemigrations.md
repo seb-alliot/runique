@@ -20,7 +20,7 @@ The `runique makemigrations` command bridges your Rust entities (`model!{}`, `ex
 
 Runique keeps the last state of each table in `migration/src/snapshots/`, as a migration file read back on every run. The diff detects:
 
-- added or dropped tables and columns;
+- added tables, and added or dropped columns. A table whose model is gone isn't detected (see [the limits](/docs/en/installation/migrations));
 - **column renames** through `[renamed_from: "old"]`: a `RENAME COLUMN` instead of a `DROP` + `ADD` (without that hint, the non-interactive tool can't guess the intent);
 - changes of type, nullability, uniqueness, default value and **length** (`max_length`);
 - added, dropped or renamed enum values (a rename is **one** operation);
