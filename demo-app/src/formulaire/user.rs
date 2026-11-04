@@ -1,10 +1,5 @@
 use runique::prelude::*;
 
-// admin
-#[form(schema = runique_users, fields = [username, email, is_active, is_superuser])]
-pub struct UserEditForm;
-impl RuniqueForm for UserEditForm {}
-
 // inscription
 #[form(schema = runique_users, fields = [username, email, password])]
 pub struct RegisterForm;

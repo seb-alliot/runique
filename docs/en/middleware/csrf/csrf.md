@@ -109,7 +109,7 @@ pub async fn logout_view(request: Request) -> AppResult<Response> {
 }
 ```
 
-A native Axum extractor (`Form<T>`, `Json<T>` without the header, `Multipart`) doesn't go through that check: a route using one to write must check the token itself, or rely on refusing forms from another site (“Forms sent from another site”, below).
+A native Axum extractor (`Form<T>`, `Json<T>` without the header, `Multipart`) doesn't go through that check: a route using one to write must check the token itself; refusing forms from another site (“Forms sent from another site”, below) doesn't replace it.
 
 Matching is **exact** — `/webhook/stripe` does not exempt `/webhook/stripe/sub`.
 
@@ -122,11 +122,7 @@ Matching is **exact** — `/webhook/stripe` does not exempt `/webhook/stripe/sub
 
 ## Forms sent from another site
 
-Off by default. Turn it on if you write handlers that read their form with an Axum extractor (`Form<T>`, `Multipart`) instead of `request.form("name")`: nobody checks their token then.
-
-```rust
-.middleware(|m| m.with_cross_site_form_guard())
-```
+Always on, nothing to configure. A handler reading its form with an Axum extractor (`Form<T>`, `Multipart`) instead of `request.form("name")` doesn't check the token: this check covers it too.
 
 The middleware refuses (403) a form sent from a page of **another site** or of a **subdomain**, before the handler. It knows from the `Sec-Fetch-Site` header, set by the browser: a page can neither write nor remove it.
 
@@ -141,7 +137,12 @@ The middleware refuses (403) a form sent from a page of **another site** or of a
 
 Runique's forms and the admin are sent from your site: they don't change. A Runique form posted from another site was already refused by its token (page shown again with the error); it now gets a 403 earlier, nothing written either way.
 
-It doesn't replace the token: a client without the header is stopped by the token alone. A third party posting a form to you (a payment provider's return) goes in `csrf_exempt()`.
+It doesn't replace the token: browsers only send this header over HTTPS and on localhost, and a client without it is stopped by the token alone.
+
+Two ways out, depending on who sends the request:
+
+- A third party posting a form to you (a payment provider's return) goes in `csrf_exempt()`, with its own verification.
+- A page of one of your subdomains writing to this site sends the token in the `X-CSRF-Token` header (`fetch`). A plain HTML form can't set a header: either it goes through `fetch`, or its path goes in `csrf_exempt()`.
 
 ---
 

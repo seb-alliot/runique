@@ -120,19 +120,16 @@ model (`max_length`, `min`, `max`…); a form may tighten them in `customize`, n
 
 ```rust
 pub async fn create_post(mut request: Request) -> AppResult<Response> {
-    let form: PostForm = request.form();
-    match ValidationForm::try_new(form, &request).await {
-        Ok(validated) => {
-            // `save()` runs your `on_save` in a transaction
-            let mut form = validated.into_form();
-            form.save(&request.engine.db).await?;
-            Ok(Redirect::to("/posts").into_response())
-        }
-        Err(form) => {
-            context_update!(request => { "form" => &form });
-            request.render("posts/new.html")
-        }
-    }
+    let form: PostForm = request.form("post");
+    let form = match ValidationForm::try_form(form, &request).await {
+        Ok(validated) => match validated.save(&request.engine.db).await {
+            Ok(_) => return Ok(Redirect::to("/posts").into_response()),
+            Err(form) => form,
+        },
+        Err(form) => form,
+    };
+    context_update!(request => { "form" => &form });
+    request.render("posts/new.html")
 }
 ```
 
