@@ -13,6 +13,6 @@ model! {
         sort_order: int [required],
     },
     relations: {
-        belongs_to: doc_section via section_id [cascade],
+        belongs_to: doc_section via section_id [restrict],
     }
 }

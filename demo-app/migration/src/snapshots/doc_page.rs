@@ -29,7 +29,7 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .name("doc_page_section_id_doc_section_fkey")
                     .from(Alias::new("doc_page"), Alias::new("section_id"))
                     .to(Alias::new("doc_section"), Alias::new("id"))
-                    .on_delete(ForeignKeyAction::Cascade)
+                    .on_delete(ForeignKeyAction::Restrict)
                     .on_update(ForeignKeyAction::NoAction)
                     .to_owned(),
             )

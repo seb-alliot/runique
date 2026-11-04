@@ -43,8 +43,8 @@ Workspace is `4.0.0`. Breaking code is in the tree; the crates.io release has no
 
 Remaining breaking items (ship with 4.0 if ready; otherwise defer to 5.0 with a guide):
 
-- [ ] **Mandatory delete action** — a `belongs_to` without `[cascade]`, `[set_null]` or
-  `[restrict]` no longer compiles, like Django's `on_delete`.
+- [x] **Mandatory delete action** — a `belongs_to` without an `ON DELETE` action no longer
+  compiles, like Django's `on_delete`; `[no_action]` stays allowed when written.
 - [ ] **Typed uploads** — files kept apart (`StagedFile`), never among text field values; no
   server path in form data.
 

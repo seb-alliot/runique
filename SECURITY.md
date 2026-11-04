@@ -8,7 +8,7 @@
 | 3.0.x   | :white_check_mark: (use **3.0.3** or later) |
 | < 3.0   | :x:                |
 
-Runique 4.0 keeps the 3.0.x security fixes and adds more (listed below). Runique 3.0.2 fixed issues also present in 2.2.x: upgrade with the [3.0 migration guide](MIGRATION-3.0.md).
+Runique 4.0 keeps the 3.0.x security fixes and adds more (listed below). Runique 3.0.2 fixed issues also present in 2.2.x.
 
 ## Known Security Advisories
 

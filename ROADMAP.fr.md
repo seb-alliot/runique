@@ -44,8 +44,8 @@ encore eu lieu.
 
 Ruptures restantes (si elles partent avec la 4.0 ; sinon report en 5.0 avec guide) :
 
-- [ ] **Action de suppression obligatoire** — un `belongs_to` sans `[cascade]`, `[set_null]` ou
-  `[restrict]` ne compile plus, comme `on_delete` dans Django.
+- [x] **Action de suppression obligatoire** — un `belongs_to` sans action `ON DELETE` ne compile
+  plus, comme `on_delete` dans Django ; `[no_action]` reste permis s'il est écrit.
 - [ ] **Uploads typés** — fichiers à part (`StagedFile`), jamais parmi les valeurs texte ; aucun
   chemin serveur dans les données de formulaire.
 

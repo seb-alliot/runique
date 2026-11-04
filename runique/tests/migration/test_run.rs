@@ -800,8 +800,8 @@ async fn test_run_index_sur_chaque_fk() {
             },
             relations: {
                 belongs_to: shelf via shelf_id [cascade],
-                belongs_to: shelf via owner_id,
-                belongs_to: shelf via lender_id,
+                belongs_to: shelf via owner_id [no_action],
+                belongs_to: shelf via lender_id [no_action],
             },
             meta: { indexes: [(lender_id, shelf_id)] } }"#,
     )

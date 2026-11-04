@@ -362,7 +362,7 @@ fn test_scan_entities_belongs_to_cible_inconnue_est_une_erreur() {
     fs::write(
         dir.join("book.rs"),
         r#"model! { Book, table: "library_books", pk: id => i32, { shelf_code: int [required] },
-            relations: { belongs_to: shelf via shelf_code } }"#,
+            relations: { belongs_to: shelf via shelf_code [no_action] } }"#,
     )
     .unwrap();
     let err = scan_entities(dir.to_str().unwrap()).expect_err("cible introuvable");

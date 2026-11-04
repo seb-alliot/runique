@@ -88,7 +88,7 @@ model! {
         title:     text [required],
     },
     relations: {
-        belongs_to: Course via course_id,
+        belongs_to: Course via course_id [cascade],
     }
 }
 ```
@@ -436,7 +436,8 @@ key. It produces both the SQL constraint and the SeaORM relation:
   `makemigrations` error.
 - **`column`** must be a declared field of the model (preferably `Pk`, see above).
 - **Actions** in brackets: the first for `ON DELETE`, the second (optional) for `ON UPDATE` —
-  `cascade`, `set_null`, `restrict`, `set_default`, `no_action` (default). An unknown action is a
+  `cascade`, `set_null`, `restrict`, `set_default`, `no_action`. The `ON DELETE` action is
+  required: without it, a compile error. Without an `ON UPDATE` action, it is `no_action`. An unknown action is a
   compile error, and `set_null` requires a `nullable` column.
 - **Index**: `makemigrations` creates an index `idx_<table>_<column>` on every `belongs_to`
   column, as Django does — unless the column is already `unique` or leads an index declared in
