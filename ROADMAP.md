@@ -121,7 +121,10 @@ next one starts.
     constraint (today: refused, to be done by hand);
   - the identifier length limit must depend on the engine (63 for Postgres, 64 for
     MariaDB/MySQL) — today 63 everywhere, with a message announcing 64;
-  - a real `ALTER` when a column's type changes; the many-to-many junction table.
+  - a real `ALTER` when a column's type changes; the many-to-many junction table;
+  - **a dropped table** (planned for 4.1): a snapshot without a model generates nothing today.
+    Refused without `--force`, `DROP TABLE` in `up`, recreated in `down`, snapshot removed in the
+    same plan. A renamed model looks like a drop plus a create: the message must say so.
 - [ ] **Tracing** — finish the file output (rotation) and the request id; complete the "no
   swallowed error" sweep. Translation fallbacks become visible: a key missing from the current
   language (falling back to English) and a key missing everywhere are traced.

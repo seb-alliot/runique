@@ -20,7 +20,7 @@ Les cibles de `belongs_to` sont ensuite résolues comme le fait la macro : par l
 
 Runique conserve dans `migration/src/snapshots/` le dernier état de chaque table, sous forme d'un fichier de migration relu à chaque passage. Le diff détecte :
 
-- les tables et colonnes ajoutées ou supprimées ;
+- les tables ajoutées, et les colonnes ajoutées ou supprimées. Une table dont le modèle a disparu n'est pas détectée (voir [les limites](/docs/fr/installation/migrations)) ;
 - les **renommages de colonne** via `[renamed_from: "ancien"]` : un `RENAME COLUMN` au lieu d'un `DROP` + `ADD` (sans cet indice, l'outil non interactif ne peut pas deviner l'intention) ;
 - les changements de type, de nullabilité, d'unicité, de valeur par défaut et de **longueur** (`max_length`) ;
 - les valeurs d'enum ajoutées, supprimées ou renommées (un renommage est **une seule** opération) ;

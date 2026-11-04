@@ -123,7 +123,10 @@ suivante commence.
     existants remplis avant la contrainte (aujourd'hui : refus, à faire à la main) ;
   - la limite de longueur des identifiants doit dépendre du moteur (63 pour Postgres, 64 pour
     MariaDB/MySQL) — aujourd'hui 63 partout, avec un message qui annonce 64 ;
-  - vrai `ALTER` lors d'un changement de type ; table pivot du many-to-many.
+  - vrai `ALTER` lors d'un changement de type ; table pivot du many-to-many ;
+  - **une table supprimée** (prévu pour la 4.1) : un instantané sans modèle ne génère rien aujourd'hui.
+    Refus sans `--force`, `DROP TABLE` dans `up`, recréation dans `down`, instantané retiré dans le
+    même plan. Un modèle renommé ressemble à une suppression plus une création : le message doit le dire.
 - [ ] **Tracing** — finir la sortie fichier (rotation) et l'identifiant de requête ; terminer le
   balayage « zéro erreur avalée ». Les replis de traduction deviennent visibles : une clé absente
   de la langue courante (repli sur l'anglais) et une clé absente partout sont tracées.
