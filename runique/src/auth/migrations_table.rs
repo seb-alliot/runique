@@ -86,6 +86,12 @@ pub fn create_eihwaz_users_table() -> TableCreateStatement {
                 .date_time()
                 .null(),
         )
+        .col(
+            ColumnDef::new(Alias::new("session_version"))
+                .integer()
+                .not_null()
+                .default(0),
+        )
         // The database itself refuses an active account that was never
         // activated, whatever writes it — the ORM, raw SQL, a script.
         .check(Check::named(

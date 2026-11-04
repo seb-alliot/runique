@@ -344,12 +344,13 @@ where
     }
 
     fn grid_columns(&self) -> Vec<&'static str> {
-        const ACCOUNT_RULES: [&str; 5] = [
+        const ACCOUNT_RULES: [&str; 6] = [
             "is_superuser",
             "is_dirigeant",
             "is_admin",
             "is_active",
             "activated_at",
+            "session_version",
         ];
         E::Column::iter()
             .map(|c| c.as_str())

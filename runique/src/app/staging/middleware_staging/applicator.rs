@@ -455,15 +455,16 @@ async fn session_ttl_upgrade(
 /// Injects the signed-in user as the database knows them now.
 ///
 /// The session only holds who signed in: the account is read on every request
-/// of a signed-in user (one lookup by primary key), so deactivating it applies
-/// to the next request — its session is closed and `req.user` is `None`.
+/// of a signed-in user (one lookup by primary key), so deactivating it, or
+/// increasing its `session_version`, applies to the next request — its session
+/// is closed and `req.user` is `None`.
 /// Groups and rights are not loaded here (`Request::load_user_rights`).
 async fn auth_middleware(
     mut req: axum::http::Request<axum::body::Body>,
     next: axum::middleware::Next,
 ) -> axum::response::Response {
     use crate::auth::current_user::CurrentUser;
-    use crate::auth::session::{get_user_id, logout};
+    use crate::auth::session::{get_user_id, logout, session_is_current};
     use crate::auth::user::BuiltinUserEntity;
     use crate::utils::config::TraceResult;
 
@@ -475,10 +476,14 @@ async fn auth_middleware(
     if let (Some(session), Some(engine)) = (session, engine)
         && let Some(id) = get_user_id(&session).await
     {
-        match BuiltinUserEntity::find_by_id(&engine.db, id)
+        let account = BuiltinUserEntity::find_by_id(&engine.db, id)
             .await
-            .filter(crate::auth::user_trait::RuniqueUser::can_sign_in)
-        {
+            .filter(crate::auth::user_trait::RuniqueUser::can_sign_in);
+        let account = match account {
+            Some(user) if session_is_current(&session, &user).await => Some(user),
+            _ => None,
+        };
+        match account {
             Some(user) => {
                 let current_user = CurrentUser {
                     id,
@@ -504,7 +509,7 @@ async fn auth_middleware(
                         .session
                         .as_ref()
                         .and_then(|s| s.store),
-                    "close the session of a deleted or inactive account",
+                    "close the session of a deleted or inactive account, or an outdated one",
                 );
             }
         }

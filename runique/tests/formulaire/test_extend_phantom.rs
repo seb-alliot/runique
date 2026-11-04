@@ -79,6 +79,23 @@ fn an_extended_user_carries_activated_at_and_no_form_writes_it() {
     assert!(!form.fields.contains_key("activated_at"));
 }
 
+// The reset alone increases it: a form that could set it could revive a closed
+// session or close someone else's.
+#[test]
+fn an_extended_user_carries_session_version_and_no_form_writes_it() {
+    let mut data = StrMap::new();
+    data.insert("session_version".into(), "7".into());
+
+    let created = users::admin_from_form(&data, None).expect("converts");
+    assert_eq!(created.session_version, ActiveValue::NotSet);
+    let updated = users::admin_partial_update(&data, pk(1)).expect("converts");
+    assert_eq!(updated.session_version, ActiveValue::NotSet);
+
+    let mut form = Forms::new("csrf");
+    users::EihwazUsersModelForm::register_fields(&mut form);
+    assert!(!form.fields.contains_key("session_version"));
+}
+
 // A profile form never sets the account's password: a new account gets one
 // nobody knows (its owner picks theirs from the email link), an edit keeps the
 // stored hash — whatever the request carries.

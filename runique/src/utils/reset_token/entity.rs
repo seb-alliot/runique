@@ -45,3 +45,23 @@ impl Related<crate::auth::user::Entity> for Entity {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Deleting an account takes its pending reset link with it.
+    #[test]
+    fn the_relation_points_at_the_account_and_cascades() {
+        let relation = <Entity as Related<crate::auth::user::Entity>>::to();
+        assert!(matches!(
+            relation.on_delete,
+            Some(ForeignKeyAction::Cascade)
+        ));
+        assert_eq!(
+            relation.to_tbl,
+            sea_orm::EntityName::table_ref(&crate::auth::user::Entity),
+            "the accounts table"
+        );
+    }
+}

@@ -841,6 +841,7 @@ mod reset_link_tests {
             created_at: None,
             updated_at: None,
             activated_at: None,
+            session_version: 0,
         };
         assert!(super::may_receive_reset_link(&account), "never activated");
         account.activated_at = Some(chrono::Utc::now().naive_utc());

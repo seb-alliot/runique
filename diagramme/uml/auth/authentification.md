@@ -14,7 +14,9 @@ classDiagram
         <<trait>>
         +user_id() Pk
         +email() / username() &str
-        +password_hash() &str
+        +is_active() / is_superuser() bool
+        +can_sign_in() bool [défaut is_active()]
+        +session_version() i32 [défaut 0]
     }
     class UserModel {
         +Pk id
@@ -22,12 +24,14 @@ classDiagram
         +bool is_active
         +bool is_dirigeant / is_admin / is_superuser
         +Option created_at / updated_at / activated_at
+        +i32 session_version
     }
     class BuiltinUserEntity {
         <<unit helpers>>
         +find_by_id / email / username
         +update_password_by_id
-        +activate_pending / set_password_and_activate
+        +activate_account / set_password_and_activate
+        +increase_session_version
     }
     class authenticate_admin {
         <<fn>>
@@ -51,6 +55,7 @@ Changements 4.0 vs diagrammes 3.x :
 - **`is_staff` retiré du user** — le staff est un flag de **groupe**.
 - **`is_dirigeant` + `is_admin`** ajoutés ; CHECK DB `ONE_RANK_AT_MOST` (au plus un rang).
 - CHECK `ACTIVE_NEEDS_ACTIVATION` : `is_active` ⇒ `activated_at` non NULL.
+- **`session_version`** : jamais dans un formulaire ; sa hausse ferme les sessions du compte, dans tous les stores.
 - Migrations framework déplacées : `auth/migrations_table.rs` (plus `admin/table_admin/`).
 
 ## CurrentUser & Rang
@@ -115,6 +120,7 @@ classDiagram
         +login / logout
         +protect_session / unprotect_session
         +is_authenticated
+        -session_is_current(session, user) bool
     }
     class LoginGuard {
         -Store process-local
@@ -162,6 +168,10 @@ Token brut uniquement dans le mail ; DB = hash. `consume` single-use
 (`rows_affected == 1`). `user_id` vient du token, jamais de l'URL → IDOR-safe.
 Réponse forgot identique si email inconnu (anti-énumération).
 
+Un reset réussi écrit dans **une seule transaction** : mot de passe, activation éventuelle,
+`session_version + 1`, suppression des sessions du compte. Détail :
+[../../flux/auth-session-et-makemigrations.md](../../flux/auth-session-et-makemigrations.md).
+
 ## Permissions en base
 
 ```mermaid
@@ -189,10 +199,10 @@ classDiagram
         groupe_id FK
         PK composite
     }
-    eihwaz_groupes ||--o{ eihwaz_groupes_droits : groupe
-    eihwaz_users ||--o{ eihwaz_groupes_droits : admin grid
-    eihwaz_users ||--o{ eihwaz_users_groupes
-    eihwaz_groupes ||--o{ eihwaz_users_groupes
+    eihwaz_groupes "1" --> "*" eihwaz_groupes_droits : groupe
+    eihwaz_users "1" --> "*" eihwaz_groupes_droits : admin grid
+    eihwaz_users "1" --> "*" eihwaz_users_groupes
+    eihwaz_groupes "1" --> "*" eihwaz_users_groupes
 ```
 
 CHECK : exactement un holder (`groupe_id` XOR `user_id`) ; un groupe ne cible
@@ -207,4 +217,5 @@ jamais une table framework ; une ligne colonne n'a que read/create/update.
 | **S1/S2** | sessions anonymes / lock avant write | ouverts (DB) |
 | **AU1** | lockout process-local | multi-instance roadmap |
 | **SU1** | create-superuser pk-uuid | ✅ |
+| **S6** | reset sous store personnalisé | ✅ `session_version` |
 | Rank rule | codée en WHERE, pas en pre-read cible | design voulu |

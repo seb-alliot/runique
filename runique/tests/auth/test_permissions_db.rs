@@ -95,6 +95,7 @@ async fn seed_user(
         created_at: Set(None),
         updated_at: Set(None),
         activated_at: Set(Some(chrono::Utc::now().naive_utc())),
+        session_version: Set(0),
     };
     am.insert(db).await.expect("seed user");
 }

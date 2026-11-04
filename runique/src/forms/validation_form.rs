@@ -235,3 +235,78 @@ impl<F: RuniqueForm> std::ops::Deref for ValidationForm<F> {
         &self.form
     }
 }
+
+#[cfg(all(test, feature = "sqlite"))]
+mod tests {
+    use super::*;
+    use crate::auth::gate::test_support::fixtures::{NoteForm, db, note, pk, staff};
+    use crate::db::ADb;
+    use crate::forms::field::FormAccess;
+    use crate::forms::form::Forms;
+    use sea_orm::{EntityTrait, TransactionTrait};
+
+    /// A note's form on a route declared `admin`, for an account with every
+    /// right on notes; `target` is the row in the URL.
+    fn gated_note(target: Option<&str>) -> NoteForm {
+        let mut forms = Forms::new("");
+        NoteForm::register_fields(&mut forms);
+        forms.save_comportement = SaveComportement::Gated {
+            user: staff(pk(10), "notes", [true; 7]),
+        };
+        if let Some(id) = target {
+            forms.path_params.insert("id".to_string(), id.to_string());
+        }
+        NoteForm::from_form(forms)
+    }
+
+    async fn note_ids(db: &ADb) -> Vec<i32> {
+        let mut ids: Vec<i32> = note::Entity::find()
+            .all(&**db)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|n| n.id)
+            .collect();
+        ids.sort_unstable();
+        ids
+    }
+
+    /// The gate decides on what it reads through the connection: inside a
+    /// transaction it would judge what the handler hasn't committed yet.
+    #[tokio::test]
+    async fn a_gated_form_refuses_a_transaction_and_writes_nothing() {
+        let db = db().await;
+        let before = note_ids(&db).await;
+        let message = Refusal::new(RefusalReason::InTransaction).message();
+
+        for (action, target) in [
+            (SaveAction::Save, None),
+            (SaveAction::Save, Some("1")),
+            (SaveAction::Delete, Some("1")),
+        ] {
+            let txn = db.begin().await.unwrap();
+            let Err(refused) = gated_write(gated_note(target), action, &txn).await else {
+                panic!("refused in a transaction");
+            };
+            assert_eq!(refused.forms().errors, vec![message.clone()]);
+            txn.commit().await.unwrap();
+            assert_eq!(note_ids(&db).await, before);
+        }
+    }
+
+    /// The other side: the same form and account write through the connection,
+    /// so the refusal above comes from the transaction alone.
+    #[tokio::test]
+    async fn a_gated_form_writes_through_the_connection() {
+        let db = db().await;
+        let before = note_ids(&db).await;
+
+        let created = gated_write(gated_note(None), SaveAction::Save, &db).await;
+        assert!(created.is_ok(), "created through the gate");
+        assert_eq!(note_ids(&db).await.len(), before.len() + 1);
+
+        let deleted = gated_write(gated_note(Some("1")), SaveAction::Delete, &db).await;
+        assert!(deleted.is_ok(), "deleted through the gate");
+        assert!(!note_ids(&db).await.contains(&1));
+    }
+}

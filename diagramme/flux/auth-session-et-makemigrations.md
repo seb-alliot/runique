@@ -2,7 +2,7 @@
 
 ## Séquence : login authentifié
 
-[`auth/session.rs:291`](../../runique/src/auth/session.rs#L291)
+[`auth/session.rs:192`](../../runique/src/auth/session.rs#L192)
 
 ```mermaid
 sequenceDiagram
@@ -13,10 +13,11 @@ sequenceDiagram
 
     H->>S: existing? logout si user différent
     H->>S: cycle_id() si élévation de privilège (anti-fixation)
-    H->>S: insert(user_id, username, is_staff, is_superuser)
+    H->>S: insert(session_version, user_id)
+    Note over S: l'identité seule : le compte est relu à chaque requête
     H->>S: set_expiry(24h)
     H->>S: save() → persist_to_db → upsert_session
-    Note over M,DB: upsert INSERT (session_id=uuid_B)<br/>on_conflict update [SessionData, ExpiresAt]
+    Note over M,DB: upsert INSERT (session_id=uuid_B, session_data chiffré)<br/>on_conflict update [SessionData, ExpiresAt]
     H->>DB: create(cookie_id, user_id, session_id=uuid_A, expires)
     Note over DB: create arrive en CONFLIT (ligne déjà insérée)<br/>on_conflict update [UserId, ExpiresAt] — PAS session_id<br/>⇒ session_id final = uuid_B, déterministe (pas de divergence)
     alt exclusive_login
@@ -30,6 +31,35 @@ sequenceDiagram
 > `session_id` est cohérent — le seul coût réel est **2 aller-retours DB** (AM2 = perf, pas
 > divergence). C'est précisément le genre de faux positif qu'un flux complet (avec les
 > `update_columns`) élimine d'emblée.
+
+## Séquence : fermeture des sessions d'un compte
+
+[`auth/session.rs:380`](../../runique/src/auth/session.rs#L380),
+[`auth/password.rs`](../../runique/src/auth/password.rs)
+
+```mermaid
+sequenceDiagram
+    participant R as Reset réussi / close_user_sessions
+    participant U as eihwaz_users
+    participant S as eihwaz_sessions
+    participant V as Requête volée (cookie d'avant)
+    participant A as auth_middleware
+
+    R->>U: session_version + 1 (dans la transaction du reset)
+    R->>S: supprime les lignes du compte
+    Note over R: refus de la base : tout est annulé, sessions intactes
+    V->>A: requête
+    A->>U: relit le compte (déjà fait à chaque requête)
+    alt version de la session différente
+        A->>A: logout, request.user = None
+    else même version
+        A->>A: CurrentUser injecté
+    end
+```
+
+`update_password_by_id` n'augmente pas la version : le re-hachage à la connexion passe par lui et
+ne doit déconnecter personne. Une session sans version compte pour 0 et prend fin à la première
+hausse. `fresh_user` refait la comparaison : si `logout` a échoué, le `user_id` est encore là.
 
 ## Séquence : makemigrations (diff)
 

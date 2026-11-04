@@ -7,7 +7,8 @@ Source de vérité : le code (`runique/`, `derive_form/`, `runique_dsl/`). Diagr
 (rendu natif GitHub/markdown, versionnable, sans outil binaire).
 
 > Périmètre : framework uniquement. `demo-app/` n'est ni lu ni modifié.
-> Version cible des diagrammes admin/auth/merise : **4.0** (refonte gate + ModelAdmin).
+> Version cible : **4.0** (refonte gate + ModelAdmin, formulaires nommés, sessions chiffrées,
+> `session_version`). Dernière passe : 2026-11-04, sans lecture de `demo-app/`.
 
 ## Arborescence
 

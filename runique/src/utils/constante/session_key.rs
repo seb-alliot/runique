@@ -13,6 +13,9 @@ pub mod session {
     pub const FORM_NAME_KEY: &str = "runique_form";
     /// Session key storing the authenticated user's id.
     pub const SESSION_USER_ID_KEY: &str = "user_id";
+    /// Session key storing the account's `session_version` at sign-in: the
+    /// session ends once the account's has moved on.
+    pub const SESSION_VERSION_KEY: &str = "session_version";
     /// Session key storing the Unix timestamp until which an anonymous session
     /// is protected from cleanup. Set manually by the app for anonymous sessions
     /// carrying value (cart, multi-step form) — the session cleaner skips any

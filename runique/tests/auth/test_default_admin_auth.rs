@@ -21,7 +21,8 @@ const USERS_DDL: &str = "
         is_superuser INTEGER NOT NULL DEFAULT 0,
         created_at  TEXT,
         updated_at  TEXT,
-        activated_at TEXT
+        activated_at TEXT,
+        session_version INTEGER NOT NULL DEFAULT 0
     )
 ";
 
@@ -38,7 +39,8 @@ const USERS_DDL: &str = "
         is_superuser INTEGER NOT NULL DEFAULT 0,
         created_at  TEXT,
         updated_at  TEXT,
-        activated_at TEXT
+        activated_at TEXT,
+        session_version INTEGER NOT NULL DEFAULT 0
     )
 ";
 

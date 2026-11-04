@@ -22,6 +22,7 @@ classDiagram
         +HashMap~TypeId, Arc~Any~~ extensions
         +new(config, tera, db) Self
         +extension~T~() Option~Arc~T~~
+        +close_user_sessions(user_id) Result [tous les stores]
     }
     RuniqueEngine "1" o-- "1" CleaningMemoryStore : sessions anonymes + CSRF
     RuniqueEngine "1" o-- "1" RuniqueSessionStore : sessions authentifiées (DB)
@@ -49,6 +50,8 @@ classDiagram
         +Option~CurrentUser~ user
         +Prisme prisme
         +Option~String~ honeypot_field_name
+        +form~T~(nom) T
+        +db_atomic() Result~DatabaseTransaction~
     }
     class RuniqueContext {
         +AEngine engine

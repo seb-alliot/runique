@@ -89,7 +89,7 @@ request.engine.close_user_sessions(user_id).await?;
 
 It deletes the account's sessions from the database (`eihwaz_sessions`), then their copies in memory. The database is the authority: every request of a signed-in session checks its row again, so a session deleted from the database is refused everywhere, another instance included. When the database fails, nothing else is touched and the error is returned: the sessions are still alive, don't present the operation as done.
 
-> **Limit:** a store plugged in with `with_session_store()` (Redis…) can't be searched by user; its sessions are not closed.
+> **Custom store:** a store plugged in with `with_session_store()` (Redis…) can't be searched by user. Its sessions close anyway: `close_user_sessions` and a completed reset increase `session_version` on the account, and a session opened under an older version ends at its next request.
 
 To revoke only the **other** devices while keeping the current session, use `invalidate_other_sessions(user_id, &cookie_id)` on the DB store — this is exactly what [exclusive login](#login) does.
 

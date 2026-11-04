@@ -89,7 +89,7 @@ request.engine.close_user_sessions(user_id).await?;
 
 Elle supprime les sessions du compte en base (`eihwaz_sessions`), puis leurs copies en mémoire. La base fait autorité : chaque requête d'une session connectée revérifie sa ligne, donc une session supprimée en base est refusée partout, y compris sur une autre instance. Si la base échoue, rien d'autre n'est touché et l'erreur est renvoyée : les sessions sont encore actives, ne présentez pas l'opération comme réussie.
 
-> **Limite :** un store branché avec `with_session_store()` (Redis…) ne peut pas être parcouru par utilisateur ; ses sessions ne sont pas fermées.
+> **Store personnalisé :** un store branché avec `with_session_store()` (Redis…) ne peut pas être parcouru par utilisateur. Ses sessions se ferment quand même : `close_user_sessions` et un reset réussi augmentent `session_version` sur le compte, et une session ouverte avec une version plus ancienne prend fin à sa requête suivante.
 
 Pour ne révoquer que les **autres** appareils en gardant la session courante, utilisez `invalidate_other_sessions(user_id, &cookie_id)` côté DB — c'est exactement ce que fait la [connexion exclusive](#connexion).
 

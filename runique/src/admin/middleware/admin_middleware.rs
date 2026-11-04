@@ -106,7 +106,7 @@ pub(crate) async fn load_admin_user(
 
     // Staff access comes from the groups: the account alone can't decide, so
     // the user is built first and judged after.
-    match fresh_user(&engine, user_id).await {
+    match fresh_user(&engine, &session, user_id).await {
         Some(current_user) if current_user.can_access_admin() => {
             RequestExtensions::new()
                 .with_current_user(current_user)
@@ -155,11 +155,16 @@ pub(crate) async fn load_admin_user(
 }
 
 /// The account behind `user_id` as the database knows it now, with its
-/// rights; `None` once it is gone or may no longer sign in.
-async fn fresh_user(engine: &AEngine, user_id: Pk) -> Option<CurrentUser> {
+/// rights; `None` once it is gone, may no longer sign in, or `session` is
+/// outdated. Checked here too: if the auth middleware couldn't close the
+/// session, its `user_id` is still there.
+async fn fresh_user(engine: &AEngine, session: &Session, user_id: Pk) -> Option<CurrentUser> {
     let account = crate::auth::BuiltinUserEntity::find_by_id(&engine.db, user_id)
         .await
         .filter(RuniqueUser::can_sign_in)?;
+    if !crate::auth::session::session_is_current(session, &account).await {
+        return None;
+    }
     let mut user = CurrentUser {
         id: account.id,
         rang: Rang::from(&account),
@@ -189,7 +194,7 @@ pub(crate) async fn declared_route_access(
     request.extensions_mut().remove::<CurrentUser>();
     let engine = request.extensions().get::<AEngine>().cloned();
     let user = match (get_user_id(&session).await, engine) {
-        (Some(user_id), Some(engine)) => fresh_user(&engine, user_id).await,
+        (Some(user_id), Some(engine)) => fresh_user(&engine, &session, user_id).await,
         _ => None,
     };
     match user {
@@ -644,5 +649,23 @@ mod declared_route_constraint_tests {
             assert_eq!(status, StatusCode::SEE_OTHER, "{label}");
             assert_eq!(body, "", "{label}");
         }
+    }
+
+    /// Checked here too: a session the auth middleware couldn't close still
+    /// holds its `user_id`, and must not reach an admin route.
+    #[tokio::test]
+    async fn an_outdated_session_gets_no_constraint_and_no_handler() {
+        let engine = engine().await;
+        crate::auth::BuiltinUserEntity::increase_session_version(&engine.db, pk(1))
+            .await
+            .unwrap();
+
+        let (status, body) = call(engine.clone(), Some(pk(1))).await;
+        assert_eq!(status, StatusCode::SEE_OTHER);
+        assert_eq!(body, "");
+
+        let (status, body) = call(engine, Some(pk(2))).await;
+        assert_eq!(status, StatusCode::OK, "another account is left alone");
+        assert_eq!(body, format!("{}:bob", pk(2)));
     }
 }

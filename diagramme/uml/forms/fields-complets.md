@@ -24,9 +24,19 @@ classDiagram
     class TimeField
     class DateTimeField
     class DurationField
-    class FileField { +FileFieldType +AllowedExtensions +FileUploadConfig +model_max_size }
-    class FileFieldType { <<enum>> Image/Document/Any/None }
-    class AllowedExtensions
+    class FileField { +FileFieldType field_type +UploadMedia upload }
+    class FileFieldType { <<enum>> None/Document/Any }
+    class MediaField { +MediaKind kind +UploadMedia upload +max_width +max_height }
+    class MediaKind { <<enum>> Image/Audio/Video }
+    class UploadMedia {
+        +AllowedExtensions allowed_extensions
+        +FileUploadConfig upload_config
+        +model_max_size +max_files +prev_value
+        -pending_uploads / published_uploads
+        -check(base) UploadCheck
+        -finalize / publish / rollback / complete
+    }
+    class AllowedExtensions { images()/audio()/video()/documents()/any() }
     class FileSize { u64 }
     class FileUploadConfig { +upload_to +max_size }
     class HiddenField
@@ -48,6 +58,7 @@ classDiagram
     DateTimeField ..|> FormField
     DurationField ..|> FormField
     FileField ..|> FormField
+    MediaField ..|> FormField
     HiddenField ..|> FormField
     HoneypotField ..|> FormField
     ColorField ..|> FormField
@@ -58,9 +69,17 @@ classDiagram
     TextField *-- SpecialFormat
     ChoiceField *-- "*" ChoiceOption
     FileField *-- FileFieldType
-    FileField *-- FileUploadConfig
-    FileField *-- AllowedExtensions
+    FileField *-- UploadMedia
+    MediaField *-- UploadMedia
+    MediaField *-- MediaKind
+    UploadMedia *-- FileUploadConfig
+    UploadMedia *-- AllowedExtensions
 ```
+
+`FileField` et `MediaField` partagent `UploadMedia` : quota, extension, taille, déplacement et
+retour arrière. `MediaField` vérifie en plus le contenu : signature (`has_av_signature` pour
+l'audio et la vidéo, signature et `max_dimensions` pour l'image). `FileField::image()` n'existe
+plus. DSL : `image`, `audio`, `video` donnent `MediaField` ; `document`, `file` donnent `FileField`.
 
 ## Options & validation
 
@@ -80,7 +99,7 @@ classDiagram
     class LengthConstraint { +u32 value +String message }
     class BoolChoice { +bool choice }
     class TextConfig { +Option~LengthConstraint~ max_length / min_length }
-    class NumericConfig { <<enum>> Integer{min,max}/Float/Decimal/Percent/Range }
+    class NumericConfig { <<enum>> Integer(min,max)/Float/Decimal/Percent/Range }
     class ValidationError {
         <<enum>> Required / TooLong / TooShort / Invalid / OutOfRange …
     }

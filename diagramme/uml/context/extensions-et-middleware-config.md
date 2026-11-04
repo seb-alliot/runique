@@ -50,13 +50,22 @@ pipeline vivant (`applicator.rs`) — voir CX2 ci-dessous, et E2/E3 dans `anomal
 ```mermaid
 flowchart LR
     subgraph Tera helpers
-      F["{% form ... %}` / filtre form"]
-      S["{% static \"...\" %}`"]
-      M["{% media var %}`"]
-      U["{% url \"name\" %}` reverse"]
+      F["{% form ... %} / filtre form"]
+      S["{% static #quot;...#quot; %}"]
+      M["{% media var %}"]
+      U["{% url #quot;name#quot; %} reverse"]
+      I["filtre static_integrity<br/>(hash SRI d'un chemin connu au rendu)"]
     end
     DEV["dev_no_cache_middleware<br/>(Cache-Control: no-store en dev)"]
 ```
+
+`{% static "x" %}` reçoit son `integrity` au chargement du template, le chemin étant écrit en
+toutes lettres. `add_js` donne une liste connue au rendu : `js.html` passe par `| static` et
+`| static_integrity`. Ce filtre est enregistré à vide par `register_asset_filters`, puis remplacé
+par `TemplateLoader` une fois les fichiers hachés : Tera refuse un template nommant un filtre
+inconnu. Modifier un de ces fichiers demande un redémarrage.
+
+Le refus des formulaires d'un autre site n'a pas d'option : aucun drapeau dans `MiddlewareConfig`.
 
 ## Anomalies / flux suspects
 

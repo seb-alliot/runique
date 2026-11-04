@@ -20,7 +20,7 @@ erDiagram
     USER }o..o{ HISTORY : "trace (réf. faible)"
 
     USER {
-        pk id
+        cle_compte id
         string username UK
         string email UK
         string password
@@ -31,19 +31,20 @@ erDiagram
         datetime created_at
         datetime updated_at
         datetime activated_at
+        int session_version
     }
     GROUPE {
         int id PK
         string nom UK
         bool is_staff
         bool is_active
-        pk responsable_id FK
-        pk repris_par FK
+        cle_compte responsable_id FK
+        cle_compte repris_par FK
     }
     GROUPE_DROIT {
         int id PK
         int groupe_id FK
-        pk user_id FK
+        cle_compte user_id FK
         string resource_key
         string colonne
         bool can_create
@@ -55,15 +56,15 @@ erDiagram
         bool can_delete_own
     }
     USER_GROUPE {
-        pk user_id FK
+        cle_compte user_id FK
         int groupe_id FK
     }
     SESSION {
         int id PK
         string cookie_id UK
-        pk user_id FK
+        cle_compte user_id FK
         string session_id
-        text session_data
+        text session_data "chiffré"
         datetime expires_at
     }
     HISTORY {
@@ -72,7 +73,7 @@ erDiagram
         string object_pk
         string object_repr
         string action
-        pk user_id
+        cle_compte user_id
         string username
         datetime created_at
         text summary
@@ -81,7 +82,7 @@ erDiagram
     RESET_TOKEN {
         bigint id PK
         string token_hash UK
-        pk user_id FK
+        cle_compte user_id FK
         datetime expires_at
     }
 ```
@@ -90,13 +91,15 @@ erDiagram
 
 | Table | PK | Colonnes | FK | Contraintes |
 |-------|----|----------|----|-------------|
-| `eihwaz_users` | `id` (int/bigint/uuid¹) | username, email, password, is_active, **is_dirigeant**, **is_admin**, is_superuser, created_at?, updated_at?, activated_at? | — | username UNIQUE, email UNIQUE ; CHECK `ACTIVE_NEEDS_ACTIVATION` ; CHECK `ONE_RANK_AT_MOST` |
+| `eihwaz_users` | `id` (int/bigint/uuid¹) | username, email, password, is_active, **is_dirigeant**, **is_admin**, is_superuser, created_at?, updated_at?, activated_at?, **session_version** (défaut 0) | — | username UNIQUE, email UNIQUE ; CHECK `ACTIVE_NEEDS_ACTIVATION` ; CHECK `ONE_RANK_AT_MOST` |
 | `eihwaz_groupes` | `id` (int) | nom, **is_staff**, **is_active**, **responsable_id**, **repris_par** | responsable_id → users.id **RESTRICT** ; repris_par → users.id **SET NULL** | nom UNIQUE |
 | `eihwaz_groupes_droits` | `id` (int) | groupe_id?, user_id?, resource_key, **colonne** (défaut `""`), can_create/read/**read_own**/update/update_own/delete/delete_own | groupe_id → groupes.id **CASCADE** ; user_id → users.id **CASCADE** | CHECK un seul holder ; CHECK groupe ≠ framework keys ; CHECK ligne colonne = read/create/update only ; UNIQUE (groupe, resource, colonne) ; UNIQUE (user, resource, colonne) |
 | `eihwaz_users_groupes` | (`user_id`,`groupe_id`) | — | user_id → users.id **CASCADE**, groupe_id → groupes.id **CASCADE** | PK composite |
-| `eihwaz_sessions` | `id` (int) | cookie_id, user_id, session_id, session_data?, expires_at | user_id → users.id **CASCADE** | cookie_id UNIQUE |
+| `eihwaz_sessions` | `id` (int) | cookie_id (hash SHA-256), user_id, session_id, session_data? (**chiffré**, format `v1:`), expires_at | user_id → users.id **CASCADE** | cookie_id UNIQUE |
 | `eihwaz_history` | `id` (bigint) | resource_key, object_pk, **object_repr**, action, user_id, username, created_at, summary?, batch_id? | **aucune** | object_repr tronqué à 255 |
-| `eihwaz_reset_tokens` | `id` (bigint) | token_hash, user_id, expires_at | user_id → users.id **CASCADE** | token_hash UNIQUE |
+| `eihwaz_reset_tokens` | `id` (bigint) | token_hash, user_id, expires_at | user_id → users.id **CASCADE** | token_hash UNIQUE ; user_id UNIQUE |
+
+Dans le MCD, `cle_compte` désigne ce type.
 
 ¹ `id` / `user_id` = `uuid` si `pk-uuid`, sinon `bigint` si `big-pk`, sinon `integer`.
 `eihwaz_groupes.id` et `groupe_id` restent **toujours** `integer` (indépendants de `Pk`).
@@ -111,6 +114,12 @@ erDiagram
 | `groupes_droits` PK (`groupe_id`,`resource_key`) | PK `id` ; holder groupe **ou** compte ; granularité **colonne** ; `can_read_own` |
 | history sans `object_repr` | + `object_repr` (libellé figé) |
 | migrations dans `admin/table_admin/` | `auth/migrations_table.rs` |
+| `session_data` en clair | **chiffré** (XChaCha20-Poly1305, clé dérivée de `SECRET_KEY`) |
+| révocation par la ligne de session seule | + `users.session_version` (tous les stores) |
+| `reset_tokens.user_id` sans unicité | UNIQUE : un seul lien vivant par compte |
+
+Le passage de 3.0 à 4.0 ne modifie pas une table existante (`IF NOT EXISTS`) : SQL fourni dans
+[`MIGRATION-4.0`](../MIGRATION-4.0.fr.md).
 
 ## Anomalies / dette données
 

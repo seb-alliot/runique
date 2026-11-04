@@ -84,3 +84,17 @@ impl SessionKey {
         String::from_utf8(plain).ok()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::SessionKey;
+
+    #[test]
+    fn debug_never_shows_the_key() {
+        let key = SessionKey([0xAB; 32]);
+        let shown = format!("{key:?}");
+        assert_eq!(shown, "SessionKey(..)");
+        let raw = format!("{:?}", key.0);
+        assert!(!shown.contains(&raw));
+    }
+}

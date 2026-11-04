@@ -109,3 +109,15 @@ Bénins classés (pas des avalages) : `write!(String,…)` (generator/parsers), 
 3. **Ordre des opérations sécurité** (C1, C2, C3, F3) — la validation (CSRF/extension) doit
    précéder tout effet de bord persistant (écriture fichier, save).
 4. **`big-pk` non propagé** (D1) — auditer **tous** les `user_id`/PK pour la cohérence `cfg`.
+
+## Passe 4.0 — novembre 2026
+
+| ID | Anomalie | Statut |
+|----|----------|--------|
+| **C7** | Formulaire d'un autre site vers un handler à extracteur Axum | ✅ durci ; reste la requête sans `Sec-Fetch-Site`, à vérifier par ce handler |
+| **C8** | Fichier et ligne d'un même `save` désaccordés | ✅ corrigé ; reste un fichier orphelin possible, jamais un lien cassé |
+| **C9** | Valeurs et erreur CSRF recopiées entre formulaires d'une page | ✅ corrigé (`request.form(nom)`) |
+| **F9** | Type de colonne absent sur les vrais formulaires | ✅ corrigé (`enforce_limits`) |
+| **F10** | `add_js` sans SHA ni nonce | ✅ corrigé |
+| **S5** | Contenu des sessions lisible en base | ✅ corrigé (chiffrement) |
+| **S6** | Store personnalisé non révoqué après un reset | ✅ corrigé (`session_version`) |

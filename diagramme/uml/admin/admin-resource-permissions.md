@@ -66,7 +66,7 @@ classDiagram
     AdminStaging *-- AdminConfig
     AdminSite o-- "*" RegisteredModel
     ModelAdmin ..|> RegisteredModel : impl for E
-    ModelAdmin ..> ModelMeta : E:
+    ModelAdmin ..> ModelMeta : borne de E,
 ```
 
 `AdminSite::default()` pose déjà l'admin des comptes (`eihwaz_users`) et des groupes

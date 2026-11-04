@@ -133,6 +133,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 | 4.0.0 | Page debug template : lecture hors `templates/` | Élevée |
 | 4.0.0 | Erreurs globales de formulaire non échappées (XSS) | Moyenne |
 | 4.0.0 | Contenu des sessions stocké en clair en base | Moyenne |
+| 4.0.0 | Reset laissant valides les autres sessions d'un store personnalisé (#15) | Moyenne |
 | 4.0.0 | Formulaire d'un autre site atteignant un handler qui ne vérifie pas le jeton | Moyenne |
 | 4.0.0 | Une erreur de suppression en base pouvait laisser une session réutilisable ; révocation des sessions hors de la transaction du reset (faille.md #12) | Moyenne |
 | 4.0.0 | Remplacement non atomique du jeton de reset : deux jetons valides en concurrence (#13) | Moyenne |

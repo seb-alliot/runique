@@ -52,11 +52,28 @@ async fn whoami(req: Request) -> String {
     req.user.clone().map_or("anonymous".into(), |u| u.username)
 }
 
+async fn close_all(Path(id): Path<u32>, req: Request) -> &'static str {
+    req.engine
+        .close_user_sessions(pk(id))
+        .await
+        .expect("sessions closed");
+    "closed"
+}
+
+fn test_routes() -> Router {
+    Router::new()
+        .route("/sign-in/{id}", get(sign_in))
+        .route("/try-sign-in/{id}", get(try_sign_in))
+        .route("/sign-out", get(sign_out))
+        .route("/whoami", get(whoami))
+        .route("/close/{id}", get(close_all))
+}
+
 async fn spawn() -> (String, DatabaseConnection) {
     spawn_with_password_config(PasswordConfig::auto()).await
 }
 
-async fn spawn_with_password_config(password: PasswordConfig) -> (String, DatabaseConnection) {
+async fn seeded_db() -> DatabaseConnection {
     let dbc = db::fresh_db().await;
     for ddl in [USERS_DDL, RESET_TOKENS_DDL, SESSIONS_DDL] {
         db::exec(&dbc, ddl).await;
@@ -73,28 +90,55 @@ async fn spawn_with_password_config(password: PasswordConfig) -> (String, Databa
         )
         .await;
     }
+    dbc
+}
 
+async fn serve(router: Router) -> String {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    format!("http://{addr}")
+}
+
+async fn spawn_with_password_config(password: PasswordConfig) -> (String, DatabaseConnection) {
+    let dbc = seeded_db().await;
     let mut config = RuniqueConfig::from_env();
     config.debug = true;
     config.password = password;
     let app = RuniqueApp::builder(config)
         .with_database(dbc.clone())
-        .routes(
-            Router::new()
-                .route("/sign-in/{id}", get(sign_in))
-                .route("/try-sign-in/{id}", get(try_sign_in))
-                .route("/sign-out", get(sign_out))
-                .route("/whoami", get(whoami)),
-        )
+        .routes(test_routes())
         .with_password_reset(|pr| pr)
         .static_files(|s| s.enabled(false))
         .build()
         .await
         .expect("app");
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let addr = listener.local_addr().unwrap();
-    tokio::spawn(async move { axum::serve(listener, app.router).await.unwrap() });
-    (format!("http://{addr}"), dbc)
+    (serve(app.router).await, dbc)
+}
+
+/// The sessions live in a store Runique can't search by user, as with Redis.
+async fn spawn_with_custom_store() -> (String, DatabaseConnection) {
+    let dbc = seeded_db().await;
+    let mut config = RuniqueConfig::from_env();
+    config.debug = true;
+    let app = RuniqueApp::builder(config)
+        .with_database(dbc.clone())
+        .routes(test_routes())
+        .with_password_reset(|pr| pr)
+        .middleware(|m| m.with_session_store(tower_sessions::MemoryStore::default()))
+        .static_files(|s| s.enabled(false))
+        .build()
+        .await
+        .expect("app");
+    (serve(app.router).await, dbc)
+}
+
+async fn session_version_of(db: &DatabaseConnection, n: u32) -> i32 {
+    let adb = ADb::from_connection(db.clone());
+    BuiltinUserEntity::find_by_id(&adb, pk(n))
+        .await
+        .expect("seeded account")
+        .session_version
 }
 
 fn client() -> reqwest::Client {
@@ -383,6 +427,102 @@ async fn request_user_follows_a_rename_at_once() {
     .await;
     assert_eq!(text(&alice, format!("{base}/whoami")).await, "alicia");
     assert_eq!(text(&client(), format!("{base}/whoami")).await, "anonymous");
+}
+
+/// A store that can't be searched by user: the version alone closes its
+/// sessions, those of this account and no other.
+#[tokio::test]
+#[serial]
+async fn a_completed_reset_closes_the_sessions_of_a_custom_store() {
+    let (base, db) = spawn_with_custom_store().await;
+    let (laptop, phone, other) = (client(), client(), client());
+    for (c, id) in [(&laptop, 1), (&phone, 1), (&other, 2)] {
+        text(c, format!("{base}/sign-in/{id}")).await;
+    }
+    assert_eq!(text(&laptop, format!("{base}/whoami")).await, "alice");
+
+    complete_reset(&base, &db).await;
+
+    assert_eq!(text(&laptop, format!("{base}/whoami")).await, "anonymous");
+    assert_eq!(text(&phone, format!("{base}/whoami")).await, "anonymous");
+    assert_eq!(text(&other, format!("{base}/whoami")).await, "bob");
+
+    // Signing in again reads the new version: that session stays.
+    text(&phone, format!("{base}/sign-in/1")).await;
+    assert_eq!(text(&phone, format!("{base}/whoami")).await, "alice");
+    assert_eq!(text(&phone, format!("{base}/whoami")).await, "alice");
+}
+
+#[tokio::test]
+#[serial]
+async fn close_user_sessions_reaches_a_custom_store() {
+    let (base, db) = spawn_with_custom_store().await;
+    let (alice, bob) = (client(), client());
+    text(&alice, format!("{base}/sign-in/1")).await;
+    text(&bob, format!("{base}/sign-in/2")).await;
+
+    assert_eq!(text(&bob, format!("{base}/close/1")).await, "closed");
+
+    assert_eq!(session_version_of(&db, 1).await, 1);
+    assert_eq!(session_version_of(&db, 2).await, 0);
+    assert_eq!(text(&alice, format!("{base}/whoami")).await, "anonymous");
+    assert_eq!(text(&bob, format!("{base}/whoami")).await, "bob");
+}
+
+/// Signing in rehashes an outdated password through `update_password_by_id`:
+/// that must sign nobody out.
+#[tokio::test]
+#[serial]
+async fn updating_the_stored_hash_closes_no_session() {
+    let (base, db) = spawn().await;
+    let adb = ADb::from_connection(db.clone());
+    let alice = client();
+    text(&alice, format!("{base}/sign-in/1")).await;
+
+    let hash = runique::utils::password::hash("another password 456").unwrap();
+    BuiltinUserEntity::update_password_by_id(&adb, pk(1), &hash)
+        .await
+        .unwrap();
+
+    assert_eq!(session_version_of(&db, 1).await, 0);
+    assert_eq!(text(&alice, format!("{base}/whoami")).await, "alice");
+}
+
+/// The increase is part of the reset's transaction: refused, it leaves the
+/// version where it was.
+#[tokio::test]
+#[serial]
+async fn a_refused_reset_leaves_the_session_version() {
+    let (base, db) = spawn().await;
+    let adb = ADb::from_connection(db.clone());
+    // The trigger only fires on a row: without a session there is nothing to refuse.
+    text(&client(), format!("{base}/sign-in/1")).await;
+    let token = reset_token::generate(&adb, pk(1), Duration::from_secs(600))
+        .await
+        .unwrap();
+    db::exec(&db, REJECT_SESSION_DELETE).await;
+
+    post_reset(&base, &client(), &token).await;
+
+    assert!(
+        reset_token::peek(&adb, &token).await,
+        "the reset was really refused"
+    );
+    assert_eq!(session_version_of(&db, 1).await, 0);
+}
+
+#[tokio::test]
+#[serial]
+async fn each_increase_counts_and_touches_one_account() {
+    let (_, db) = spawn().await;
+    let adb = ADb::from_connection(db.clone());
+    for _ in 0..2 {
+        BuiltinUserEntity::increase_session_version(&adb, pk(1))
+            .await
+            .unwrap();
+    }
+    assert_eq!(session_version_of(&db, 1).await, 2);
+    assert_eq!(session_version_of(&db, 2).await, 0);
 }
 
 /// Opening the emailed link only shows the form: nobody is signed out by a

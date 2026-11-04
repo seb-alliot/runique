@@ -18,4 +18,11 @@ pub trait RuniqueUser: Send + Sync {
     fn can_sign_in(&self) -> bool {
         self.is_active()
     }
+
+    /// Increases to close every session of the account, whatever store holds
+    /// them. Default: `0`, which never closes anything; the built-in model
+    /// reads it from `eihwaz_users`.
+    fn session_version(&self) -> i32 {
+        0
+    }
 }

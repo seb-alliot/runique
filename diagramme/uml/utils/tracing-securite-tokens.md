@@ -24,7 +24,7 @@ classDiagram
         +init_subscriber() Vec~WorkerGuard~
     }
     class LogOutput {
-        <<enum>> Stdout / File{path,rotation} / Custom(LogSink)
+        <<enum>> Stdout / File(path,rotation) / Custom(LogSink)
     }
     class LogRotation { <<enum>> Daily / Hourly / Never }
     class LogSink { <<trait>> +emit(LogRecord) }
@@ -63,14 +63,21 @@ logge `file:line` + l'erreur puis renvoie `Option`, au lieu d'un `.ok()` muet.
 ```mermaid
 classDiagram
     class CsrfToken { +String +masked()/unmasked() HMAC }
-    class CsrfContext { <<enum>> Anonymous{session_id} / Authenticated{user_id} }
+    class CsrfContext { <<enum>> Anonymous(session_id) / Authenticated(user_id) }
     class CspNonce { -String +as_str()/as_attr() }
+    class SessionKey {
+        -cle 32 octets
+        +derive(secret)$
+        +seal(plain, bound_to)
+        +open(sealed, bound_to)
+    }
     CsrfToken ..> CsrfContext : generate_with_context()
 ```
 
 `CsrfToken` : masquage/démasquage HMAC (anti BREACH) ; lié au contexte (anonyme vs
 authentifié) pour invalider le token à l'élévation de privilège. `CspNonce` : nonce par
-requête injecté dans la CSP + les `<script nonce>`.
+requête injecté dans la CSP + les `<script nonce>`. `SessionKey` : chiffrement de `session_data`,
+clé jamais affichée par `Debug` (voir [../middleware/sessions.md](../middleware/sessions.md)).
 
 ## Reste utils (data/flux, pas de classe notable)
 
