@@ -671,8 +671,16 @@ impl Forms {
         self.submitted
     }
 
-    /// `fill` marks every form of a request; only the one whose name came back
-    /// (`sent`) keeps it. A GET search sent empty stays unsent, as `fill` left it.
+    /// Whether `request` is this form's own submission: its name, given by
+    /// `request.form(name)`, came back in the hidden `FORM_NAME_KEY` field.
+    pub(crate) fn sent_by(&self, request: &crate::context::Request) -> bool {
+        self.name.is_some_and(|name| {
+            request.prisme.data.get(FORM_NAME_KEY).map(String::as_str) == Some(name)
+        })
+    }
+
+    /// Only the form whose name came back (`sent`) is submitted, whatever
+    /// marked it so (`add_value` does). A GET search sent empty stays unsent.
     pub(crate) fn keep_submitted_if(&mut self, sent: bool) {
         self.submitted &= sent;
     }

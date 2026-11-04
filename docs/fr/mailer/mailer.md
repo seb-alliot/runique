@@ -132,7 +132,7 @@ Le template est un fichier Tera standard dans ton dossier `templates/` :
 use runique::prelude::dispatch_email;
 
 pub async fn register(mut request: Request) -> AppResult<Response> {
-    let mut form: RegisterForm = request.form();
+    let mut form: RegisterForm = request.form("register");
 
     if form.is_valid().await {
         let email = form.cleaned::<String>("email").unwrap_or_default();

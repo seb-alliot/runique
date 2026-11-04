@@ -70,7 +70,7 @@ Les tags se combinent dans un template réel :
 
 | Section | Description |
 | --- | --- |
-| [Concepts clés](/docs/fr/architecture/concepts) | `RuniqueEngine`, `Request`, `request.form()` |
+| [Concepts clés](/docs/fr/architecture/concepts) | `RuniqueEngine`, `Request`, `request.form("nom")` |
 | [Macros](/docs/fr/architecture/macros) | Macros de contexte, flash, routage, erreur |
 | [Stack middleware](/docs/fr/architecture/middleware) | Ordre des slots, injection de dépendances |
 | [Lifecycle d'une requête](/docs/fr/architecture/lifecycle) | Cycle de vie, bonnes pratiques |

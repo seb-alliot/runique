@@ -111,7 +111,7 @@ An API POST without a Runique form must check `request.prisme.csrf_valid` itself
 | `context_update!(request => {...})` | Inject variables into the template |
 | `success!(request.notices => "...")` | Flash message before redirect |
 | `flash_now!(error => "...")` | Immediate message (no redirect) |
-| `ValidationForm::try_form(form, &request, "name").await` | Validate a form (only when it was sent) |
+| `ValidationForm::try_form(form, &request).await` | Validate a form (only when it was sent) |
 | `validated.save(&db).await` | Persist to the database (not for an account: see [Forms](/docs/en/exemple/forms)) |
 | `form.forms_mut().database_error(&err)` | Display a DB error inside the form |
 

@@ -27,9 +27,9 @@ When using `{% form.signup_form %}`, validation errors are **automatically rende
 ```rust
 // Rust handler
 pub async fn signup(mut request: Request) -> AppResult<Response> {
-    let form: SignupForm = request.form();
+    let form: SignupForm = request.form("signup");
 
-    let validated = match ValidationForm::try_form(form, &request, "signup").await {
+    let validated = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated,
         Err(form) => {
             // Not sent (first display): blank form, no flash.
@@ -99,7 +99,7 @@ These variables are automatically available in all templates:
 
 ## Common pitfall: variable name collision
 
-When using `{% form.user %}`, the variable `user` **must be a form** (extracted via `request.form()`):
+When using `{% form.user %}`, the variable `user` **must be a form** (extracted via `request.form("name")`):
 
 ```rust
 // ❌ ERROR: "user" is a SeaORM Model, not a form

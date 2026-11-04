@@ -327,18 +327,16 @@ where
         let db = &req.engine.db;
         authorize_create::<E>(&GateCtx { db, user })?;
 
-        let mut form = req.form::<E::Form>();
+        let mut form = req.form::<E::Form>(admin_form::CREATE);
         let forms = form.forms_mut();
         self.shape_for_create(forms, &user.rights_on(E::KEY).columns);
-        // Named at once: the page renders it with its name, the POST sends it back.
-        forms.set_name(admin_form::CREATE);
         // A create points at no row: nothing in the URL may stand for a key.
         forms.path_params.clear();
 
         if req.method.is_safe() {
             return Ok(FormOutcome::Show(shown(forms)));
         }
-        save_through_gate::<E>(form, req, admin_form::CREATE).await
+        save_through_gate::<E>(form, req).await
     }
 
     fn is_account_table(&self) -> bool {
@@ -380,12 +378,8 @@ where
             key,
         )
         .await?;
-        let mut form = req.form::<ConfirmForm<E>>();
-        form.forms_mut().set_name(admin_form::RESET_PASSWORD);
-        if ValidationForm::try_form(form, req, admin_form::RESET_PASSWORD)
-            .await
-            .is_err()
-        {
+        let form = req.form::<ConfirmForm<E>>(admin_form::RESET_PASSWORD);
+        if ValidationForm::try_form(form, req).await.is_err() {
             return Ok(None);
         }
         // The accounts' table keys its rows by `Pk`: the same text reads as one.
@@ -401,9 +395,8 @@ where
         site_page_size: u64,
     ) -> Result<BulkOutcome, AdminError> {
         let refused = || BulkOutcome::Refused(Refusal::new(RefusalReason::NoRight).message());
-        let mut form = req.form::<BulkForm<E>>();
-        form.forms_mut().set_name(admin_form::BULK);
-        let Ok(form) = ValidationForm::try_form(form, req, admin_form::BULK).await else {
+        let form = req.form::<BulkForm<E>>(admin_form::BULK);
+        let Ok(form) = ValidationForm::try_form(form, req).await else {
             return Ok(refused());
         };
         let value = |name: &str| {
@@ -469,9 +462,8 @@ where
         // Without the delete right on this row, not even the confirmation.
         authorize_row::<Delete, E>(&gate, key.clone()).await?;
 
-        let mut form = req.form::<ConfirmForm<E>>();
+        let mut form = req.form::<ConfirmForm<E>>(admin_form::DELETE);
         let forms = form.forms_mut();
-        forms.set_name(admin_form::DELETE);
         forms
             .path_params
             .insert(self.pk_column().to_string(), id.to_string());
@@ -483,7 +475,7 @@ where
             self.fetch_detail(db, &view).await?.ok_or_else(not_found)?;
             return Ok(FormOutcome::Show(shown(forms)));
         }
-        match ValidationForm::try_form(form, req, admin_form::DELETE).await {
+        match ValidationForm::try_form(form, req).await {
             Ok(valid) => match valid.delete(db).await {
                 Ok(_) => Ok(FormOutcome::Saved(None)),
                 Err(form) => Ok(FormOutcome::Show(shown(form.forms()))),
@@ -508,10 +500,9 @@ where
         let view = authorize_view::<E>(&gate, key)?;
         let readable = view.readable().preserve::<E>(&self.form_columns());
 
-        let mut form = req.form::<E::Form>();
+        let mut form = req.form::<E::Form>(admin_form::UPDATE);
         let forms = form.forms_mut();
         self.shape_for_edit(forms, &readable, &user.rights_on(E::KEY).columns);
-        forms.set_name(admin_form::UPDATE);
         // `save_as` looks for the row under the key's own name; the route
         // calls it `{id}` whatever the model names it.
         forms
@@ -523,7 +514,7 @@ where
             prefill(forms, &row);
             return Ok(FormOutcome::Show(shown(forms)));
         }
-        save_through_gate::<E>(form, req, admin_form::UPDATE).await
+        save_through_gate::<E>(form, req).await
     }
 }
 
@@ -537,13 +528,12 @@ fn shown(form: &crate::forms::form::Forms) -> serde_json::Value {
 async fn save_through_gate<E: ModelMeta>(
     form: E::Form,
     req: &Request,
-    name: &'static str,
 ) -> Result<FormOutcome, AdminError>
 where
     E::ActiveModel: Send,
     E::Model: sea_orm::IntoActiveModel<E::ActiveModel>,
 {
-    match ValidationForm::try_form(form, req, name).await {
+    match ValidationForm::try_form(form, req).await {
         Ok(form) => match form.save(&req.engine.db).await {
             Ok(form) => Ok(FormOutcome::Saved(E::IS_ACCOUNT_TABLE.then(|| {
                 form.forms()

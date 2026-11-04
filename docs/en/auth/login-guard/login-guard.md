@@ -4,7 +4,7 @@
 
 Unlike IP rate limiting, there are no false positives from NAT or shared proxies: each account is tracked individually.
 
-`LoginGuard` is used **in the handler**, not as middleware — it is the only way to access the submitted username without consuming the request body before `request.form()`.
+`LoginGuard` is used **in the handler**, not as middleware — it is the only way to access the submitted username without consuming the request body before `request.form("name")`.
 
 ---
 
@@ -31,8 +31,8 @@ pub async fn sign_in(
     client_ip: Option<Extension<ClientIp>>,
     mut request: Request,
 ) -> AppResult<Response> {
-    let form: LoginForm = request.form();
-    let validated = match ValidationForm::try_form(form, &request, "login").await {
+    let form: LoginForm = request.form("login");
+    let validated = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => { "login_form" => &form });
@@ -73,7 +73,7 @@ pub async fn sign_in(
 ## Why in the handler and not middleware?
 
 A middleware runs before the handler and cannot read the body without consuming it.
-`request.form()` extracts the form exactly once — the username is only available after that extraction.
+`request.form("name")` extracts the form exactly once — the username is only available after that extraction.
 
 The session knows the authentication state, but at login time the user is not yet authenticated: `request.user` is `None` on this route, which does not protect the targeted account.
 
@@ -81,7 +81,7 @@ The session knows the authentication state, but at login time the user is not ye
 | --- | --- | --- |
 | IP address | ✅ | ✅ (used by `effective_key` for anon) |
 | Signed-in user (`request.user`) | ✅ | ❌ (`None` on `/login`, falls back to anon) |
-| Username (form body) | ❌ (consumes the body) | ✅ (via `request.form()` in the handler) |
+| Username (form body) | ❌ (consumes the body) | ✅ (via `request.form("name")` in the handler) |
 
 ---
 

@@ -11,18 +11,18 @@ struct Constat {
 }
 
 pub async fn deux_formulaires(mut request: Request) -> AppResult<Response> {
-    let login: LoginForm = request.form();
-    let email: EmailForm = request.form();
+    let login: LoginForm = request.form("login");
+    let email: EmailForm = request.form("email");
     let methode = request.method.to_string();
     let methode_sure = request.method.is_safe();
 
     let (login, constat_login) = constat(
-        ValidationForm::try_form(login, &request, "login").await,
+        ValidationForm::try_form(login, &request).await,
         "login",
         methode_sure,
     );
     let (email, constat_email) = constat(
-        ValidationForm::try_form(email, &request, "email").await,
+        ValidationForm::try_form(email, &request).await,
         "email",
         methode_sure,
     );

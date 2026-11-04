@@ -33,7 +33,7 @@ pub async fn handle_blog_save(request: &mut Request, blog: BlogForm) -> AppResul
     crate::backend::inject_globals(request).await;
     let template = "blog/blog.html";
 
-    let mut blog = match ValidationForm::try_form(blog, request, "blog").await {
+    let mut blog = match ValidationForm::try_form(blog, request).await {
         Ok(validated) => validated.into_form(),
         Err(blog) => {
             if !blog.is_submitted() {

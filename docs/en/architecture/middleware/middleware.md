@@ -57,7 +57,7 @@ pub async fn handler(request: Request) -> AppResult<Response> {
 
 | Section | Description |
 | --- | --- |
-| [Key concepts](/docs/en/architecture/concepts) | `RuniqueEngine`, `Request`, `request.form()` |
+| [Key concepts](/docs/en/architecture/concepts) | `RuniqueEngine`, `Request`, `request.form("name")` |
 | [Macros](/docs/en/architecture/macros) | Context, flash, routing, error macros |
 | [Tera tags & filters](/docs/en/architecture/tera) | Django-like tags, filters, functions |
 | [Request lifecycle](/docs/en/architecture/lifecycle) | Lifecycle, best practices |

@@ -543,8 +543,8 @@ impl RuniqueForm for ProbeForm {
 /// `delete`s it with `?delete`. The body tells what came of it.
 async fn probe_write(req: Request) -> String {
     let delete = req.query_params.contains_key("delete");
-    let form = req.form::<ProbeForm>();
-    let form = match ValidationForm::try_form(form, &req, "probe").await {
+    let form = req.form::<ProbeForm>("probe");
+    let form = match ValidationForm::try_form(form, &req).await {
         Ok(form) => form,
         Err(form) => return format!("invalid: {:?}", form.forms().errors()),
     };

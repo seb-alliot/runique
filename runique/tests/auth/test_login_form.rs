@@ -63,7 +63,7 @@ fn test_get_form_retourne_reference_correcte() {
 #[test]
 fn test_build_cree_formulaire_avec_renderer() {
     let tera = make_tera();
-    let form = build_form_for_test::<LoginAdmin>(tera, "token_csrf");
+    let form = build_form_for_test::<LoginAdmin>(tera, "token_csrf", "login");
     assert!(form.forms().fields.contains_key("username"));
     assert!(form.forms().fields.contains_key("password"));
 }
@@ -71,7 +71,7 @@ fn test_build_cree_formulaire_avec_renderer() {
 #[test]
 fn test_build_csrf_token_enregistre() {
     let tera = make_tera();
-    let form = build_form_for_test::<LoginAdmin>(tera, "mon_token");
+    let form = build_form_for_test::<LoginAdmin>(tera, "mon_token", "login");
     assert_eq!(form.forms().session_csrf_token, "mon_token");
 }
 

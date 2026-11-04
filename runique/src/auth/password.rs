@@ -423,8 +423,7 @@ pub async fn handle_forgot_password(
     let email_template = config.email_template.as_deref();
     request.context.insert("lang", &current_lang().code());
 
-    let form = match crate::forms::ValidationForm::try_form(form, request, "forgot_password").await
-    {
+    let form = match crate::forms::ValidationForm::try_form(form, request).await {
         Ok(validated) => validated.into_form(),
         Err(form) => {
             apply_extra_context(request, &config.extra_context).await;
@@ -554,22 +553,21 @@ pub async fn handle_password_reset(
         return Ok(Redirect::to("/").into_response());
     };
 
-    let mut form =
-        match crate::forms::ValidationForm::try_form(form, request, "reset_password").await {
-            Ok(validated) => validated.into_form(),
-            Err(mut form) => {
-                if request.method.is_safe() {
-                    form.forms_mut().add_value("token", &token);
-                }
-                apply_extra_context(request, &config.extra_context).await;
-                context_update!(request => {
-                    "title"      => t("reset.reset_title").as_ref(),
-                    "reset_form" => &form,
-                    "token"      => &token,
-                });
-                return request.render(template);
+    let mut form = match crate::forms::ValidationForm::try_form(form, request).await {
+        Ok(validated) => validated.into_form(),
+        Err(mut form) => {
+            if !form.is_submitted() {
+                form.forms_mut().add_value("token", &token);
             }
-        };
+            apply_extra_context(request, &config.extra_context).await;
+            context_update!(request => {
+                "title"      => t("reset.reset_title").as_ref(),
+                "reset_form" => &form,
+                "token"      => &token,
+            });
+            return request.render(template);
+        }
+    };
 
     let email_clean = form.cleaned::<String>("email").unwrap_or_default();
     if user.email().to_lowercase() != email_clean.trim().to_lowercase() {
@@ -748,7 +746,7 @@ async fn forgot_view(
     State(state): State<ForgotState>,
     mut request: Request,
 ) -> AppResult<Response> {
-    let form: ForgotPasswordForm = request.form();
+    let form: ForgotPasswordForm = request.form("forgot_password");
     handle_forgot_password(&mut request, form, &state.config).await
 }
 
@@ -757,7 +755,7 @@ async fn reset_view(
     Path(token): Path<String>,
     mut request: Request,
 ) -> AppResult<Response> {
-    let form: PasswordResetForm = request.form();
+    let form: PasswordResetForm = request.form("reset_password");
     handle_password_reset(&mut request, form, token, &state.config).await
 }
 

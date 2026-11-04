@@ -17,11 +17,11 @@ Un formulaire construit avec `RuniqueForm` contient déjà le jeton. `{% form.xx
 
 `{% csrf %}` ne fait que poser le jeton sur le formulaire, dans un champ caché `csrf_token`. Il ne vérifie rien.
 
-La vérification se fait dans `request.form()`. Sans jeton valide, le formulaire est invalide et `save()` ne part pas. C'est le chemin de tout `RuniqueForm`.
+La vérification se fait dans `request.form("nom")`. Sans jeton valide, le formulaire est invalide et `save()` ne part pas. C'est le chemin de tout `RuniqueForm`.
 
-Le middleware lit l'en-tête `X-CSRF-Token`. Un corps JSON sans cet en-tête est refusé (403). Pour `application/x-www-form-urlencoded` et `multipart/form-data`, il laisse passer le corps : le champ est lu par `request.form()`.
+Le middleware lit l'en-tête `X-CSRF-Token`. Un corps JSON sans cet en-tête est refusé (403). Pour `application/x-www-form-urlencoded` et `multipart/form-data`, il laisse passer le corps : le champ est lu par `request.form("nom")`.
 
-Un handler qui lit le corps et écrit sans `request.form()` ne reçoit pas cette vérification, même si `{% csrf %}` est dans la page. Le cookie de session est `SameSite=Strict`.
+Un handler qui lit le corps et écrit sans `request.form("nom")` ne reçoit pas cette vérification, même si `{% csrf %}` est dans la page. Le cookie de session est `SameSite=Strict`.
 
 **Une action POST sans formulaire** (déconnexion, bouton « supprimer ») vérifie le jeton elle-même, calculé à l'extraction de `Request` :
 
@@ -41,7 +41,7 @@ Un extracteur Axum natif (`Form<T>`, `Json<T>` sans en-tête, `Multipart`) ne pa
 
 ## Dans les formulaires HTML manuels
 
-Le tag pose le jeton. Le handler doit appeler `request.form()` pour le vérifier.
+Le tag pose le jeton. Le handler doit appeler `request.form("nom")` pour le vérifier.
 
 ```html
 <form method="post" action="/submit">
@@ -123,7 +123,7 @@ La correspondance est **exacte** — `/webhook/stripe` n'exempte pas `/webhook/s
 
 ## Formulaires envoyés depuis un autre site
 
-Désactivé par défaut. À activer si vous écrivez des handlers qui lisent leur formulaire avec un extracteur Axum (`Form<T>`, `Multipart`) au lieu de `request.form()` : personne ne vérifie alors leur jeton.
+Désactivé par défaut. À activer si vous écrivez des handlers qui lisent leur formulaire avec un extracteur Axum (`Form<T>`, `Multipart`) au lieu de `request.form("nom")` : personne ne vérifie alors leur jeton.
 
 ```rust
 .middleware(|m| m.with_cross_site_form_guard())

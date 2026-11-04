@@ -13,8 +13,8 @@ A transaction groups several writes: they all become real at `commit()`, or none
 ```rust
 pub async fn publish(mut request: Request) -> AppResult<Response> {
     let template = "article/new.html";
-    let form: ArticleForm = request.form();
-    let form = match ValidationForm::try_form(form, &request, "article").await {
+    let form: ArticleForm = request.form("article");
+    let form = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => { "article_form" => &form });

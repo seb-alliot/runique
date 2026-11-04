@@ -12,7 +12,6 @@ use crate::forms::FormEntity;
 use crate::forms::field::RuniqueForm;
 use crate::forms::form::{SaveComportement, write_with_uploads};
 use crate::forms::save::{SaveAction, not_found, on_fields, url_key};
-use crate::utils::constante::session_key::session::FORM_NAME_KEY;
 use sea_orm::sea_query::IntoValueTuple;
 use sea_orm::{
     ActiveModelTrait, DbErr, EntityTrait, IntoActiveModel, Iterable, PrimaryKeyToColumn,
@@ -27,17 +26,14 @@ pub struct ValidationForm<F: RuniqueForm> {
 }
 
 impl<F: RuniqueForm> ValidationForm<F> {
-    /// Names the form, registers dynamic fields, then validates it — only when
-    /// the request sends this same name back and the HTTP method allows it
-    /// (`allow_get`/`allow_post`).
-    ///
-    /// `name` is rendered as the form's hidden `FORM_NAME_KEY` field, and
-    /// prefixes its fields' HTML ids. Every handler that renders the form goes
-    /// through here, GET included: an unnamed form fails to render.
+    /// Registers dynamic fields, then validates the form — only when the
+    /// request sends back the name `request.form(name)` gave it, and the HTTP
+    /// method allows it (`allow_get`/`allow_post`).
     ///
     /// A submission carrying another name (another form on the same page), or
-    /// none, returns `Err(form)` without running `is_valid()`: no field error is
-    /// set on a form the user didn't send, and its `is_submitted()` is false. On
+    /// none, returns `Err(form)` without running `is_valid()`: that form was
+    /// never filled from the request, no field error is set on it, and its
+    /// `is_submitted()` is false. On
     /// a failed validation, `form` comes back with its field errors so the
     /// caller can re-render it — `is_submitted()` true, to show its message:
     ///
@@ -45,11 +41,12 @@ impl<F: RuniqueForm> ValidationForm<F> {
     /// Err(form) if form.is_submitted() => { /* sent and refused: errors + message */ }
     /// Err(form) => { /* not sent: plain display */ }
     /// ```
-    pub async fn try_form(mut form: F, request: &Request, name: &'static str) -> Result<Self, F> {
+    pub async fn try_form(mut form: F, request: &Request) -> Result<Self, F> {
         form.register_dynamic_fields(request).await;
-        form.forms_mut().set_name(name);
 
-        let sent = request.prisme.data.get(FORM_NAME_KEY).map(String::as_str) == Some(name);
+        let sent = form.forms().sent_by(request);
+        // A value the handler put in (`add_value`, a prefill) marks the form
+        // submitted too: only the form whose name came back is.
         form.forms_mut().keep_submitted_if(sent);
         let validate = match request.method.is_safe() {
             true => form.allow_get(request),

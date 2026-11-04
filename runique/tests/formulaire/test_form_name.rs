@@ -12,6 +12,7 @@ use runique::forms::{
     field::{FormAccess, RuniqueForm, build_form_for_test},
     fields::text::TextField,
     form::Forms,
+    renderer::FormRenderer,
 };
 use runique::prelude::ValidationForm;
 use runique::utils::aliases::new_registry;
@@ -69,19 +70,24 @@ fn tera() -> Arc<Tera> {
     Arc::new(tera)
 }
 
-/// Un formulaire nommé par `try_form` (GET nu : jamais validé, revient en `Err`).
+/// Un formulaire nommé comme `request.form(name)` le nomme, passé par
+/// `try_form` (GET nu : jamais validé, revient en `Err`).
 async fn named(name: &'static str) -> SearchForm {
     let engine = build_engine().await;
     let request = build_handler_req(engine, None, HashMap::new(), Method::GET).await;
-    let form = build_form_for_test::<SearchForm>(tera(), "tok");
-    ValidationForm::try_form(form, &request, name)
+    let form = build_form_for_test::<SearchForm>(tera(), "tok", name);
+    ValidationForm::try_form(form, &request)
         .await
         .err()
         .expect("a bare GET never validates")
 }
 
+/// A form built without a name, as nothing in Runique builds one anymore.
 fn unnamed() -> SearchForm {
-    build_form_for_test::<SearchForm>(tera(), "tok")
+    let mut forms = Forms::new("tok");
+    forms.set_renderer(FormRenderer::new(tera()));
+    SearchForm::register_fields(&mut forms);
+    SearchForm::from_form(forms)
 }
 
 fn json(form: &SearchForm) -> Value {

@@ -61,9 +61,9 @@ impl RuniqueForm for SearchForm {
 async fn get_without_data_is_err_and_has_no_field_errors() {
     let engine = build_engine().await;
     let request = build_handler_req(engine, None, named(HashMap::new()), Method::GET).await;
-    let form: SearchForm = request.form();
+    let form: SearchForm = request.form(NAME);
 
-    match ValidationForm::try_form(form, &request, NAME).await {
+    match ValidationForm::try_form(form, &request).await {
         Ok(_) => panic!("a bare GET with no data must not validate"),
         Err(form) => {
             // allow_get() returned false before is_valid() ever ran — no
@@ -82,9 +82,9 @@ async fn get_with_data_validates_and_returns_ok() {
     let mut data = HashMap::new();
     data.insert("q".to_string(), "rust".to_string());
     let request = build_handler_req(engine, None, named(data), Method::GET).await;
-    let form: SearchForm = request.form();
+    let form: SearchForm = request.form(NAME);
 
-    match ValidationForm::try_form(form, &request, NAME).await {
+    match ValidationForm::try_form(form, &request).await {
         Ok(validated) => {
             assert_eq!(validated.cleaned::<String>("q"), Some("rust".to_string()));
         }
@@ -96,9 +96,9 @@ async fn get_with_data_validates_and_returns_ok() {
 async fn post_missing_required_field_is_err_with_field_error() {
     let engine = build_engine().await;
     let request = build_handler_req(engine, None, named(HashMap::new()), Method::POST).await;
-    let form: SearchForm = request.form();
+    let form: SearchForm = request.form(NAME);
 
-    match ValidationForm::try_form(form, &request, NAME).await {
+    match ValidationForm::try_form(form, &request).await {
         Ok(_) => panic!("POST with a missing required field must not validate"),
         Err(form) => {
             let errors = form.forms().errors();
@@ -116,9 +116,9 @@ async fn post_with_data_validates_and_into_form_returns_the_form() {
     let mut data = HashMap::new();
     data.insert("q".to_string(), "runique".to_string());
     let request = build_handler_req(engine, None, named(data), Method::POST).await;
-    let form: SearchForm = request.form();
+    let form: SearchForm = request.form(NAME);
 
-    let validated = ValidationForm::try_form(form, &request, NAME)
+    let validated = ValidationForm::try_form(form, &request)
         .await
         .unwrap_or_else(|_| panic!("POST with valid data must validate"));
 
@@ -164,9 +164,9 @@ async fn register_dynamic_fields_runs_before_validation() {
     // required "late_field" — added and filled exclusively inside
     // `register_dynamic_fields` — was actually registered before validation ran.
     let request = build_handler_req(engine, None, named(HashMap::new()), Method::POST).await;
-    let form: DynamicForm = request.form();
+    let form: DynamicForm = request.form(NAME);
 
-    match ValidationForm::try_form(form, &request, NAME).await {
+    match ValidationForm::try_form(form, &request).await {
         Ok(validated) => {
             assert_eq!(
                 validated.cleaned::<String>("late_field"),
@@ -217,9 +217,9 @@ async fn explicit_allow_get_false_blocks_validation_even_with_data() {
     let mut data = HashMap::new();
     data.insert("name".to_string(), "alice".to_string());
     let request = build_handler_req(engine, None, named(data), Method::GET).await;
-    let form: AlwaysPostOnlyForm = request.form();
+    let form: AlwaysPostOnlyForm = request.form(NAME);
 
-    match ValidationForm::try_form(form, &request, NAME).await {
+    match ValidationForm::try_form(form, &request).await {
         Ok(_) => panic!("allow_get() override returning false must block validation"),
         Err(form) => {
             // Never attempted: no error should have been recorded either.
@@ -241,10 +241,10 @@ async fn honeypot_filled_on_post_forces_invalid() {
     let mut data = HashMap::new();
     data.insert("q".to_string(), "rust".to_string());
     data.insert("hp_trap".to_string(), "i_am_a_bot".to_string());
-    let mut request = build_handler_req(engine, None, data, Method::POST).await;
+    let mut request = build_handler_req(engine, None, named(data), Method::POST).await;
     request.honeypot_field_name = Some("hp_trap".to_string());
 
-    let mut form: SearchForm = request.form();
+    let mut form: SearchForm = request.form(NAME);
     assert!(
         !form.is_valid().await,
         "a filled honeypot field must force the form invalid on POST"
@@ -256,10 +256,10 @@ async fn honeypot_empty_on_post_does_not_force_invalid() {
     let engine = build_engine().await;
     let mut data = HashMap::new();
     data.insert("q".to_string(), "rust".to_string());
-    let mut request = build_handler_req(engine, None, data, Method::POST).await;
+    let mut request = build_handler_req(engine, None, named(data), Method::POST).await;
     request.honeypot_field_name = Some("hp_trap".to_string());
 
-    let mut form: SearchForm = request.form();
+    let mut form: SearchForm = request.form(NAME);
     assert!(
         form.is_valid().await,
         "an empty honeypot field must not force the form invalid"
@@ -275,10 +275,10 @@ async fn honeypot_filled_on_get_does_not_force_invalid() {
     let mut data = HashMap::new();
     data.insert("q".to_string(), "rust".to_string());
     data.insert("hp_trap".to_string(), "i_am_a_bot".to_string());
-    let mut request = build_handler_req(engine, None, data, Method::GET).await;
+    let mut request = build_handler_req(engine, None, named(data), Method::GET).await;
     request.honeypot_field_name = Some("hp_trap".to_string());
 
-    let mut form: SearchForm = request.form();
+    let mut form: SearchForm = request.form(NAME);
     assert!(
         form.is_valid().await,
         "honeypot check is POST-only — a filled trap on GET must not force invalid"
@@ -308,9 +308,9 @@ async fn try_form_validates_when_its_name_is_sent() {
     let engine = build_engine().await;
     let data = named_data(Some("search"), Some("rust"));
     let request = build_handler_req(engine, None, data, Method::POST).await;
-    let form: SearchForm = request.form();
+    let form: SearchForm = request.form("search");
 
-    let validated = ValidationForm::try_form(form, &request, "search")
+    let validated = ValidationForm::try_form(form, &request)
         .await
         .unwrap_or_else(|_| panic!("the form whose name was sent must validate"));
     assert_eq!(validated.cleaned::<String>("q"), Some("rust".to_string()));
@@ -321,9 +321,9 @@ async fn try_form_with_its_name_still_reports_field_errors() {
     let engine = build_engine().await;
     let data = named_data(Some("search"), None);
     let request = build_handler_req(engine, None, data, Method::POST).await;
-    let form: SearchForm = request.form();
+    let form: SearchForm = request.form("search");
 
-    match ValidationForm::try_form(form, &request, "search").await {
+    match ValidationForm::try_form(form, &request).await {
         Ok(_) => panic!("the sent form with a missing required field must not validate"),
         Err(form) => {
             assert!(
@@ -340,9 +340,9 @@ async fn try_form_with_another_name_is_err_without_field_errors() {
     let engine = build_engine().await;
     let data = named_data(Some("other"), None);
     let request = build_handler_req(engine, None, data, Method::POST).await;
-    let form: SearchForm = request.form();
+    let form: SearchForm = request.form("search");
 
-    match ValidationForm::try_form(form, &request, "search").await {
+    match ValidationForm::try_form(form, &request).await {
         Ok(_) => panic!("a POST sent by another form must not validate this one"),
         Err(form) => {
             assert!(
@@ -362,9 +362,9 @@ async fn try_form_without_any_name_is_err_without_field_errors() {
     let engine = build_engine().await;
     let data = named_data(None, Some("rust"));
     let request = build_handler_req(engine, None, data, Method::POST).await;
-    let form: SearchForm = request.form();
+    let form: SearchForm = request.form("search");
 
-    match ValidationForm::try_form(form, &request, "search").await {
+    match ValidationForm::try_form(form, &request).await {
         Ok(_) => panic!("a POST carrying no form name must bind no named form"),
         Err(form) => {
             assert!(!form.forms().has_errors());
@@ -380,13 +380,13 @@ async fn of_two_forms_only_the_one_sent_is_submitted() {
     let engine = build_engine().await;
     let data = named_data(Some("search"), None);
     let request = build_handler_req(engine, None, data, Method::POST).await;
-    let sent: SearchForm = request.form();
-    let other: SearchForm = request.form();
+    let sent: SearchForm = request.form("search");
+    let other: SearchForm = request.form("filter");
 
-    let Err(sent) = ValidationForm::try_form(sent, &request, "search").await else {
+    let Err(sent) = ValidationForm::try_form(sent, &request).await else {
         panic!("missing required field: refused");
     };
-    let Err(other) = ValidationForm::try_form(other, &request, "filter").await else {
+    let Err(other) = ValidationForm::try_form(other, &request).await else {
         panic!("not sent: not validated");
     };
     assert!(sent.is_submitted());
@@ -400,8 +400,8 @@ async fn a_get_search_sent_empty_stays_unsent() {
     let engine = build_engine().await;
     let empty = named_data(Some("search"), Some(""));
     let request = build_handler_req(engine.clone(), None, empty, Method::GET).await;
-    let form: SearchForm = request.form();
-    let Err(form) = ValidationForm::try_form(form, &request, "search").await else {
+    let form: SearchForm = request.form("search");
+    let Err(form) = ValidationForm::try_form(form, &request).await else {
         panic!("nothing to validate");
     };
     assert!(!form.is_submitted());
@@ -409,11 +409,9 @@ async fn a_get_search_sent_empty_stays_unsent() {
 
     let filled = named_data(Some("search"), Some("rust"));
     let request = build_handler_req(engine, None, filled, Method::GET).await;
-    let form: SearchForm = request.form();
+    let form: SearchForm = request.form("search");
     assert!(
-        ValidationForm::try_form(form, &request, "search")
-            .await
-            .is_ok(),
+        ValidationForm::try_form(form, &request).await.is_ok(),
         "with a value it is sent, and validates"
     );
 }
@@ -422,9 +420,9 @@ async fn a_get_search_sent_empty_stays_unsent() {
 async fn try_form_puts_its_name_in_the_form_name_field() {
     let engine = build_engine().await;
     let request = build_handler_req(engine, None, HashMap::new(), Method::GET).await;
-    let form: SearchForm = request.form();
+    let form: SearchForm = request.form("search");
 
-    let form = ValidationForm::try_form(form, &request, "search")
+    let form = ValidationForm::try_form(form, &request)
         .await
         .err()
         .expect("a bare GET never validates");
@@ -432,11 +430,11 @@ async fn try_form_puts_its_name_in_the_form_name_field() {
 }
 
 #[tokio::test]
-async fn a_form_never_given_to_try_form_has_an_empty_name() {
+async fn a_form_carries_the_name_request_form_gave_it() {
     let engine = build_engine().await;
     let request = build_handler_req(engine, None, HashMap::new(), Method::GET).await;
-    let form: SearchForm = request.form();
-    assert_eq!(form.forms().fields[FORM_NAME_KEY].value(), "");
+    let form: SearchForm = request.form("search");
+    assert_eq!(form.forms().fields[FORM_NAME_KEY].value(), "search");
 }
 
 #[tokio::test]
@@ -444,6 +442,65 @@ async fn the_form_name_is_never_filled_from_the_request() {
     let engine = build_engine().await;
     let data = named_data(Some("other"), Some("rust"));
     let request = build_handler_req(engine, None, data, Method::POST).await;
-    let form: SearchForm = request.form();
-    assert_eq!(form.forms().fields[FORM_NAME_KEY].value(), "");
+    let form: SearchForm = request.form("search");
+    assert_eq!(form.forms().fields[FORM_NAME_KEY].value(), "search");
+}
+
+// ═══════════════════════════════════════════════════════════════
+// The name given by `request.form(name)`: only the form sent back is filled
+// ═══════════════════════════════════════════════════════════════
+
+/// Two forms of a page sharing a field name: the one sent gets the value, the
+/// other stays as built — it never shows what was typed in the first.
+#[tokio::test]
+async fn only_the_form_sent_is_filled_even_with_a_shared_field_name() {
+    let engine = build_engine().await;
+    let data = named_data(Some("search"), Some("rust"));
+    let request = build_handler_req(engine, None, data, Method::POST).await;
+
+    let sent: SearchForm = request.form("search");
+    let other: SearchForm = request.form("filter");
+
+    assert_eq!(sent.forms().fields["q"].value(), "rust");
+    assert!(sent.is_submitted());
+    assert_eq!(other.forms().fields["q"].value(), "", "never filled");
+    assert!(!other.is_submitted());
+    assert_eq!(other.cleaned::<String>("q"), None);
+}
+
+/// A failed CSRF check marks the form that was sent, not the other forms of
+/// the page.
+#[tokio::test]
+async fn a_csrf_failure_shows_on_the_form_sent_only() {
+    let engine = build_engine().await;
+    let data = named_data(Some("search"), Some("rust"));
+    let mut request = build_handler_req(engine, None, data, Method::POST).await;
+    request.prisme.csrf_valid = false;
+
+    let sent: SearchForm = request.form("search");
+    let other: SearchForm = request.form("filter");
+
+    assert!(!sent.forms().errors.is_empty(), "the sent form says why");
+    assert!(
+        other.forms().errors.is_empty(),
+        "the other form says nothing"
+    );
+}
+
+/// A first display carries no name back: the form is built empty, and the
+/// handler's prefill stays on it.
+#[tokio::test]
+async fn a_first_display_is_not_filled_and_keeps_its_prefill() {
+    let engine = build_engine().await;
+    let data = HashMap::from([("q".to_string(), "from-the-url".to_string())]);
+    let request = build_handler_req(engine, None, data, Method::GET).await;
+
+    let mut form: SearchForm = request.form("search");
+    assert_eq!(form.forms().fields["q"].value(), "", "no name sent back");
+    form.add_value("q", "prefilled");
+    let Err(form) = ValidationForm::try_form(form, &request).await else {
+        panic!("a first display never validates");
+    };
+    assert_eq!(form.forms().fields["q"].value(), "prefilled");
+    assert!(!form.is_submitted(), "a prefill isn't a submission");
 }

@@ -14,7 +14,6 @@ use crate::auth::gate::refusal::RefusalReason;
 use crate::auth::gate::transfer::{Transfer, plan, transfer_group};
 use crate::auth::permissions::groupe;
 use crate::context::template::Request;
-use crate::forms::field::FormAccess;
 use crate::forms::validation_form::ValidationForm;
 use crate::utils::aliases::{AppResult, StrMap};
 use crate::utils::constante::admin_key::admin_form;
@@ -96,11 +95,10 @@ pub(crate) async fn transfer_view(
     let here = paths.transfer_of(model.key(), &id);
 
     if req.method == axum::http::Method::POST {
-        let mut form = req.form::<ConfirmForm<groupe::Entity>>();
-        form.forms_mut().set_name(admin_form::TRANSFER);
+        let form = req.form::<ConfirmForm<groupe::Entity>>(admin_form::TRANSFER);
         let field = |name: &str| req.prisme.data.get(name).cloned().unwrap_or_default();
         let (to, shown) = (field(TO), field(SHOWN));
-        let outcome = match ValidationForm::try_form(form, &req, admin_form::TRANSFER).await {
+        let outcome = match ValidationForm::try_form(form, &req).await {
             Err(_) => Err(t("csrf.invalid_or_missing").into_owned()),
             Ok(_) => match (to.parse::<Pk>(), ticked(&req)) {
                 (Err(_), _) => Err(t("admin.transfer.unsuitable").into_owned()),

@@ -4,9 +4,9 @@
 
 ```rust
 pub async fn submit_signup(mut request: Request) -> AppResult<Response> {
-    let form: SignupForm = request.form();
+    let form: SignupForm = request.form("signup");
 
-    let validated = match ValidationForm::try_form(form, &request, "signup").await {
+    let validated = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated,
         Err(form) => {
             // ❌ Validation failed → immediate message (no redirect)

@@ -65,7 +65,7 @@ fn forms_mut(&mut self) -> &mut Forms {
 ```text
 FormAccess::register_fields() → declare fields
         ↓
-req.form()                   → build the instance
+req.form("name")                   → build the instance
         ↓
 is_valid()                   → validation pipeline
     ↓  validate() per field  (required, format, length…)
@@ -154,22 +154,24 @@ form.max_size("photo", FileSize::mb(6))?;   // Err — exceeds model ceiling
 
 ## Form name — several forms on one page
 
-`try_form(form, &request, "name")` names the form. The name is rendered as a hidden `runique_form` field (first, before CSRF) and prefixes the fields' HTML ids (`id_name-field`). On POST, the form is only validated when the request sends **that same name** back: on a page showing several forms, only the one submitted is validated, the others come back as `Err` with no error set.
+`request.form("name")` builds the form and names it. The name is rendered as a hidden `runique_form` field (first, before CSRF) and prefixes the fields' HTML ids (`id_name-field`). The form is only **filled** with the request's data when the request sends **that same name** back; `try_form` only validates that form. On a page showing several forms:
 
-- Every handler that **renders** the form goes through `try_form`, GET included: a form never named fails to render (Tera error on the missing name), rather than showing a form whose submission would never validate.
-- The name is never filled from the request: only `try_form` sets it.
-- A hand-written form (without `{% form.x %}`) must carry the hidden `runique_form` field itself, with the right name.
+- only the form submitted gets what was typed: another form of the page never sees it, even with a field of the same name (`email` in two forms);
+- a CSRF error, if any, only shows on the form submitted;
+- the others come back from `try_form` as `Err`, with no error set and `is_submitted()` false.
+
+The name is never read from the request to name the form: only `request.form(name)` sets it. A hand-written form (without `{% form.x %}`) must carry the hidden `runique_form` field itself, with the right name.
 
 ```rust
-let username_form = ValidationForm::try_form(request.form::<UsernameForm>(), &request, "username").await;
-let email_form = ValidationForm::try_form(request.form::<EmailForm>(), &request, "email").await;
+let username_form = ValidationForm::try_form(request.form::<UsernameForm>("username"), &request).await;
+let email_form = ValidationForm::try_form(request.form::<EmailForm>("email"), &request).await;
 ```
 
 ---
 
 ## `is_valid()` — calling on GET and POST
 
-`is_valid()` validates regardless of the HTTP method, but it **never looks at the method itself** — that's `ValidationForm::try_form(form, &request, "my_form")`'s job, via `allow_get`/`allow_post`, deciding whether validation should even be attempted. `allow_get` defaults to `false` (CSRF protection: GET is the only method exempt from CSRF, and a mutating form must never auto-validate on it). A read-only search form is the case that must **explicitly** lift that guard:
+`is_valid()` validates regardless of the HTTP method, but it **never looks at the method itself** — that's `ValidationForm::try_form(form, &request)`'s job, via `allow_get`/`allow_post`, deciding whether validation should even be attempted. `allow_get` defaults to `false` (CSRF protection: GET is the only method exempt from CSRF, and a mutating form must never auto-validate on it). A read-only search form is the case that must **explicitly** lift that guard:
 
 - **First GET (empty form)** — `allow_get` falls back to `is_submitted()` → `false`, `try_form` returns `Err` without attempting validation, no errors set. The template renders a clean empty form.
 - **GET with query params (search form)** — `is_submitted()` → `true`, `try_form` validates and returns `Ok`. Enables GET-based searches without extra code.
@@ -185,8 +187,8 @@ impl RuniqueForm for SearchForm {
 
 // Unified GET+POST handler — no method branching needed
 pub async fn search(mut request: Request) -> AppResult<Response> {
-    let form: SearchForm = request.form();
-    let form = match ValidationForm::try_form(form, &request, "my_form").await {
+    let form: SearchForm = request.form("my_form");
+    let form = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => {
             let query = validated.cleaned::<String>("q").unwrap_or_default();
             // run the search...
@@ -296,7 +298,7 @@ impl RuniqueForm for RegisterForm {
 A form tied to an entity (`model!{}`, `extend!{}`, `#[form(schema = …)]`) is written from the validated form `ValidationForm::try_form` returns. Runique walks its fields and writes the row: there is no write method to implement. A form without an entity has neither `save` nor `delete`: its handler does the work after `try_form`.
 
 ```rust
-match ValidationForm::try_form(form, &request, "article").await {
+match ValidationForm::try_form(form, &request).await {
     Ok(form) => match form.save(&request.engine.db).await {
         Ok(_) => {
             success!(request.notices => "Article saved");

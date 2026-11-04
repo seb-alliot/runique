@@ -13,8 +13,8 @@ Une transaction regroupe plusieurs écritures : elles deviennent toutes réelles
 ```rust
 pub async fn publier(mut request: Request) -> AppResult<Response> {
     let template = "article/nouveau.html";
-    let form: ArticleForm = request.form();
-    let form = match ValidationForm::try_form(form, &request, "article").await {
+    let form: ArticleForm = request.form("article");
+    let form = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => { "article_form" => &form });

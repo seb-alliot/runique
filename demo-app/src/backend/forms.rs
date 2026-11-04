@@ -27,7 +27,7 @@ pub async fn handle_upload_image(request: &mut Request, form: ImageForm) -> AppR
     let db = request.engine.db.clone();
     let (code_examples, doc_links) = fetch_upload_data(&db).await;
 
-    match ValidationForm::try_form(form, request, "image").await {
+    match ValidationForm::try_form(form, request).await {
         Ok(validated) => {
             let mut form = validated.into_form();
             if let Err(error) = form.forms_mut().publish_uploads().await {

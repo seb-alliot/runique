@@ -4,7 +4,7 @@
 
 Contrairement au rate limiting IP, il n'y a pas de faux positifs liés au NAT ou aux proxies partagés : chaque compte est suivi individuellement.
 
-`LoginGuard` s'utilise **dans le handler**, pas comme middleware — c'est la seule façon d'accéder au username soumis dans le formulaire sans consommer le body avant l'extraction via `request.form()`.
+`LoginGuard` s'utilise **dans le handler**, pas comme middleware — c'est la seule façon d'accéder au username soumis dans le formulaire sans consommer le body avant l'extraction via `request.form("nom")`.
 
 ---
 
@@ -31,8 +31,8 @@ pub async fn sign_in(
     client_ip: Option<Extension<ClientIp>>,
     mut request: Request,
 ) -> AppResult<Response> {
-    let form: LoginForm = request.form();
-    let validated = match ValidationForm::try_form(form, &request, "login").await {
+    let form: LoginForm = request.form("login");
+    let validated = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => { "login_form" => &form });
@@ -73,7 +73,7 @@ pub async fn sign_in(
 ## Pourquoi dans le handler et pas en middleware ?
 
 Un middleware s'exécute avant le handler et ne peut pas lire le body sans le consommer.
-`request.form()` extrait le formulaire une seule fois — le username n'est disponible qu'après cette extraction.
+`request.form("nom")` extrait le formulaire une seule fois — le username n'est disponible qu'après cette extraction.
 
 La session connaît l'état d'authentification, mais au moment du login l'utilisateur n'est pas encore connecté : `request.user` vaut `None` sur cette route, ce qui ne protège pas le compte ciblé.
 
@@ -81,7 +81,7 @@ La session connaît l'état d'authentification, mais au moment du login l'utilis
 | --- | --- | --- |
 | Adresse IP | ✅ | ✅ (utilisée par `effective_key` pour anonym) |
 | Utilisateur connecté (`request.user`) | ✅ | ❌ (`None` sur `/login`, retombe sur anonym) |
-| Username (form body) | ❌ (consomme le body) | ✅ (via `request.form()` dans le handler) |
+| Username (form body) | ❌ (consomme le body) | ✅ (via `request.form("nom")` dans le handler) |
 
 ---
 

@@ -12,7 +12,7 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
 
 /// Sign up
 pub async fn sign_up(mut request: Request) -> AppResult<Response> {
-    let form: SignupForm = request.form();
+    let form: SignupForm = request.form("signup");
 
     if request.user.is_some() {
         return Ok(Redirect::to("/").into_response());
@@ -23,7 +23,7 @@ pub async fn sign_up(mut request: Request) -> AppResult<Response> {
     // Not sent (first display): blank form, no message. Sent but invalid:
     // the same page again, each field with its errors; `save()` is never
     // attempted.
-    let mut form = match ValidationForm::try_form(form, &request, "signup").await {
+    let mut form = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated.into_form(),
         Err(form) => {
             if !form.is_submitted() {
@@ -73,14 +73,14 @@ pub async fn sign_up(mut request: Request) -> AppResult<Response> {
 
 /// Sign in
 pub async fn sign_in(mut request: Request) -> AppResult<Response> {
-    let form: LoginForm = request.form();
+    let form: LoginForm = request.form("login");
 
     if request.user.is_some() {
         return Ok(Redirect::to("/").into_response());
     }
 
     let template = "login.html";
-    let validated = match ValidationForm::try_form(form, &request, "login").await {
+    let validated = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => {

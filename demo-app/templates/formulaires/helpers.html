@@ -113,7 +113,7 @@ form.<span class="fn_">cleaned</span>::&lt;<span class="ty">String</span>&gt;(<s
 <span class="kw">pub async fn</span> <span class="fn_">blog_list</span>(
     <span class="kw">mut</span> request: <span class="ty">Request</span>,
 ) -> <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
-    <span class="kw">let</span> form: <span class="ty">SearchDemoForm</span> = request.<span class="fn_">form</span>();
+    <span class="kw">let</span> form: <span class="ty">SearchDemoForm</span> = request.<span class="fn_">form</span>(<span class="st">"search"</span>);
     <span class="kw">let</span> search = form.<span class="fn_">cleaned</span>::&lt;<span class="ty">String</span>&gt;(<span class="st">"search"</span>);
 
     <span class="kw">let mut</span> query = <span class="ty">BlogEntity</span>::<span class="fn_">find</span>();

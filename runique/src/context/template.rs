@@ -454,31 +454,46 @@ impl Request {
         UrlParams::new(&self.path_params, &self.query_params)
     }
 
-    /// Constructs a form `T`, fills it with submitted data (POST body or query string on GET),
-    /// and injects the honeypot field if the anti-bot middleware is active.
-    /// Call `form.is_valid().await` before reading cleaned values or calling `save()`.
-    pub fn form<T: RuniqueForm>(&self) -> T {
+    /// Constructs the form `T` named `name`, and fills it from the request
+    /// only when that request is its own submission — `name` came back in its
+    /// hidden `FORM_NAME_KEY` field. Another form of the page, or a first
+    /// display, is left as built: it never shows what was typed in another
+    /// form, nor that form's CSRF error. `cleaned` still falls back on the
+    /// URL's path and query.
+    ///
+    /// `name` is rendered as that hidden field and prefixes the fields' HTML
+    /// ids. Then [`ValidationForm::try_form`](crate::forms::ValidationForm::try_form)
+    /// validates it, `save()` writes it.
+    pub fn form<T: RuniqueForm>(&self, name: &'static str) -> T {
         let masked = self
             .csrf_token
             .masked()
             .unwrap_or_else(|_| self.csrf_token.clone());
         let mut form =
             crate::forms::field::build_form::<T>(self.engine.tera.clone(), masked.as_str());
-        form.forms_mut()
-            .set_url_params(&self.path_params, &self.query_params);
+        let forms = form.forms_mut();
+        forms.set_name(name);
+        forms.set_url_params(&self.path_params, &self.query_params);
 
         if let Some(user) = &self.admin_constraint {
-            form.forms_mut().save_comportement =
+            forms.save_comportement =
                 crate::forms::form::SaveComportement::Gated { user: user.clone() };
         }
 
         if let Some(ref hp_name) = self.honeypot_field_name {
-            form.forms_mut().set_honeypot(hp_name);
-            if self.method == Method::POST
-                && self.prisme.data.get(hp_name).is_some_and(|v| !v.is_empty())
-            {
-                form.forms_mut().force_invalid = true;
-            }
+            forms.set_honeypot(hp_name);
+        }
+
+        if !forms.sent_by(self) {
+            return form;
+        }
+        let forms = form.forms_mut();
+
+        if let Some(ref hp_name) = self.honeypot_field_name
+            && self.method == Method::POST
+            && self.prisme.data.get(hp_name).is_some_and(|v| !v.is_empty())
+        {
+            forms.force_invalid = true;
         }
 
         // CSRF enforcement: Prisme computes `csrf_valid` but never rejects on its own.
@@ -492,13 +507,11 @@ impl Request {
         // failed submission isn't silently indistinguishable from an untouched form —
         // reuses the same key already shown by the admin CSRF check (`admin_router.rs`).
         if csrf_required(&self.method) && !self.prisme.csrf_valid {
-            let csrf = form.forms_mut();
-            csrf.force_invalid = true;
-            csrf.errors.push(t("csrf.invalid_or_missing").into_owned());
+            forms.force_invalid = true;
+            forms.errors.push(t("csrf.invalid_or_missing").into_owned());
         }
 
-        form.forms_mut()
-            .fill(&self.prisme.data, self.method.clone());
+        forms.fill(&self.prisme.data, self.method.clone());
         form
     }
 }
@@ -621,14 +634,14 @@ mod admin_constraint_tests {
     async fn a_constrained_request_builds_forms_gated_as_its_account() {
         let mut req = Request::new(engine().await, session(), csrf(), Method::GET);
         req.admin_constraint = Some(account(7));
-        let form = req.form::<ProbeForm>();
+        let form = req.form::<ProbeForm>("probe");
         assert_eq!(gated_as(&form.forms().save_comportement), Some(pk(7)));
     }
 
     #[tokio::test]
     async fn an_unconstrained_request_builds_open_forms() {
         let req = Request::new(engine().await, session(), csrf(), Method::GET);
-        let form = req.form::<ProbeForm>();
+        let form = req.form::<ProbeForm>("probe");
         assert_eq!(gated_as(&form.forms().save_comportement), None);
     }
 
@@ -638,7 +651,7 @@ mod admin_constraint_tests {
     async fn changing_req_user_does_not_change_the_gated_account() {
         let mut req = extracted(Method::GET, Some(account(7))).await;
         req.user = Some(account(9));
-        let form = req.form::<ProbeForm>();
+        let form = req.form::<ProbeForm>("probe");
         assert_eq!(gated_as(&form.forms().save_comportement), Some(pk(7)));
     }
 
@@ -647,7 +660,7 @@ mod admin_constraint_tests {
     async fn a_user_without_the_constraint_builds_open_forms() {
         let mut req = extracted(Method::GET, None).await;
         req.user = Some(account(9));
-        let form = req.form::<ProbeForm>();
+        let form = req.form::<ProbeForm>("probe");
         assert_eq!(gated_as(&form.forms().save_comportement), None);
     }
 
@@ -656,9 +669,11 @@ mod admin_constraint_tests {
     async fn the_policy_follows_the_extension_end_to_end() {
         let gated = extracted(Method::GET, Some(account(7)))
             .await
-            .form::<ProbeForm>();
+            .form::<ProbeForm>("probe");
         assert_eq!(gated_as(&gated.forms().save_comportement), Some(pk(7)));
-        let open = extracted(Method::GET, None).await.form::<ProbeForm>();
+        let open = extracted(Method::GET, None)
+            .await
+            .form::<ProbeForm>("probe");
         assert_eq!(gated_as(&open.forms().save_comportement), None);
     }
 }

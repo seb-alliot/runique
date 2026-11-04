@@ -224,10 +224,9 @@ pub(crate) async fn rights_view(
     let key = model.key();
     let back = admin.paths.detail_of(&site, key, &id);
 
-    let mut form = req.form::<ConfirmForm<user::Entity>>();
-    form.forms_mut().set_name(admin_form::RIGHTS);
+    let form = req.form::<ConfirmForm<user::Entity>>(admin_form::RIGHTS);
     if !req.method.is_safe() {
-        let message = match ValidationForm::try_form(form, &req, admin_form::RIGHTS).await {
+        let message = match ValidationForm::try_form(form, &req).await {
             Err(_) => Err(t("csrf.invalid_or_missing").into_owned()),
             Ok(_) => match sent_grid(&site, &req, false) {
                 None => Err(Refusal::new(RefusalReason::NoRight).message()),
@@ -360,10 +359,9 @@ async fn group_rights(
     let key = crate::utils::constante::resource_key::GROUPES;
     let back = admin.paths.detail_of(&site, key, &id);
 
-    let mut form = req.form::<ConfirmForm<groupe::Entity>>();
-    form.forms_mut().set_name(admin_form::RIGHTS);
+    let form = req.form::<ConfirmForm<groupe::Entity>>(admin_form::RIGHTS);
     if !req.method.is_safe() {
-        let message = match ValidationForm::try_form(form, &req, admin_form::RIGHTS).await {
+        let message = match ValidationForm::try_form(form, &req).await {
             Err(_) => Err(t("csrf.invalid_or_missing").into_owned()),
             Ok(_) => match sent_grid(&site, &req, true) {
                 None => Err(Refusal::new(RefusalReason::NoRight).message()),

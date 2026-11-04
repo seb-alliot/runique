@@ -433,7 +433,7 @@ form.field(
 );
 ```
 
-> Le champ CSRF est **émis naturellement** par tout `RuniqueForm` (`req.form()` / `form_fields.html` / `{% form.xxx %}`) — pas besoin de `HiddenField::new_csrf()` ni de `{% csrf %}` dans le template. `{% csrf %}` ne sert que pour un `<form>` HTML écrit à la main, hors `RuniqueForm`.
+> Le champ CSRF est **émis naturellement** par tout `RuniqueForm` (`req.form("nom")` / `form_fields.html` / `{% form.xxx %}`) — pas besoin de `HiddenField::new_csrf()` ni de `{% csrf %}` dans le template. `{% csrf %}` ne sert que pour un `<form>` HTML écrit à la main, hors `RuniqueForm`.
 
 ---
 

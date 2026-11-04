@@ -36,13 +36,13 @@ impl RuniqueForm for LoginForm {}
 
 ```rust
 pub async fn sign_in(mut request: Request) -> AppResult<Response> {
-    let form: LoginForm = request.form();
+    let form: LoginForm = request.form("login");
     if request.user.is_some() {
         return Ok(Redirect::to("/").into_response());
     }
 
     let template = "login.html";
-    let validated = match ValidationForm::try_form(form, &request, "login").await {
+    let validated = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => {
@@ -73,7 +73,7 @@ pub async fn sign_in(mut request: Request) -> AppResult<Response> {
 }
 ```
 
-`ValidationForm::try_form(form, &request, "login")` names the form and validates it only when the request sends that name back: a GET, or another form of the same page being sent, comes back as `Err(form)` with no field error. The CSRF token is checked when the form is read.
+`request.form("login")` names the form, and `ValidationForm::try_form(form, &request)` validates it only when the request sends that name back: a GET, or another form of the same page being sent, comes back as `Err(form)` with no field error. The CSRF token is checked when the form is read.
 
 ---
 
@@ -142,13 +142,13 @@ impl SignupForm {
 
 ```rust
 pub async fn sign_up(mut request: Request) -> AppResult<Response> {
-    let form: SignupForm = request.form();
+    let form: SignupForm = request.form("signup");
     if request.user.is_some() {
         return Ok(Redirect::to("/").into_response());
     }
 
     let template = "signup.html";
-    let mut form = match ValidationForm::try_form(form, &request, "signup").await {
+    let mut form = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated.into_form(),
         Err(form) => {
             context_update!(request => {
@@ -254,10 +254,10 @@ impl RuniqueForm for SearchForm {
 
 ```rust
 pub async fn search_user(mut request: Request) -> AppResult<Response> {
-    let form: SearchForm = request.form();
+    let form: SearchForm = request.form("search");
     let template = "search.html";
 
-    let form = match ValidationForm::try_form(form, &request, "search").await {
+    let form = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => {
             let username = validated.cleaned::<String>("username").unwrap_or_default();
             let found = runique_users::Entity::find()

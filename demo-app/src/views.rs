@@ -32,7 +32,7 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
 pub async fn soumission_inscription(mut request: Request) -> AppResult<Response> {
-    let form: RegisterForm = request.form();
+    let form: RegisterForm = request.form("inscription");
     handle_inscription(&mut request, form).await
 }
 
@@ -44,7 +44,7 @@ pub async fn activate_account(
 }
 
 pub async fn login_user(mut request: Request) -> AppResult<Response> {
-    let form: LoginForm = request.form();
+    let form: LoginForm = request.form("login");
     handle_login(&mut request, form).await
 }
 
@@ -79,8 +79,8 @@ pub async fn profil(mut request: Request) -> AppResult<Response> {
 }
 
 pub async fn info_user(mut request: Request) -> AppResult<Response> {
-    let username_form: UsernameForm = request.form();
-    let email_form: EmailForm = request.form();
+    let username_form: UsernameForm = request.form("username");
+    let email_form: EmailForm = request.form("email");
     inject_globals(&mut request).await;
     let Some(user) = request.user.as_ref() else {
         return Ok(StatusCode::NOT_FOUND.into_response());
@@ -104,21 +104,20 @@ pub async fn info_user(mut request: Request) -> AppResult<Response> {
         .collect::<Vec<_>>();
 
     let (username_form, searched_username) =
-        match ValidationForm::try_form(username_form, &request, "username").await {
+        match ValidationForm::try_form(username_form, &request).await {
             Ok(validated) => {
                 let searched = validated.cleaned::<String>("username");
                 (validated.into_form(), searched)
             }
             Err(form) => (form, None),
         };
-    let (email_form, searched_email) =
-        match ValidationForm::try_form(email_form, &request, "email").await {
-            Ok(validated) => {
-                let searched = validated.cleaned::<String>("email");
-                (validated.into_form(), searched)
-            }
-            Err(form) => (form, None),
-        };
+    let (email_form, searched_email) = match ValidationForm::try_form(email_form, &request).await {
+        Ok(validated) => {
+            let searched = validated.cleaned::<String>("email");
+            (validated.into_form(), searched)
+        }
+        Err(form) => (form, None),
+    };
     let searched_username =
         searched_username.filter(|_| proof.readable().allows(UserColumn::Username.as_str()));
     let searched_email =
@@ -165,9 +164,9 @@ pub async fn info_user(mut request: Request) -> AppResult<Response> {
 // ─── Blog ─────────────────────────────────────────────────────────────────────
 
 pub async fn blog_list(mut request: Request) -> AppResult<Response> {
-    let form: SearchDemoForm = request.form();
+    let form: SearchDemoForm = request.form("search");
     inject_globals(&mut request).await;
-    let form = match ValidationForm::try_form(form, &request, "search").await {
+    let form = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated.into_form(),
         Err(form) => form,
     };
@@ -183,7 +182,7 @@ pub async fn blog_list(mut request: Request) -> AppResult<Response> {
 }
 
 pub async fn blog_save(mut request: Request) -> AppResult<Response> {
-    let blog: BlogForm = request.form();
+    let blog: BlogForm = request.form("blog");
     if !is_authenticated(&request.session).await {
         warning!(request.notices => "Please log in to access your profile.");
         return Ok(Redirect::to("/login").into_response());
@@ -205,7 +204,7 @@ pub async fn blog_detail(Path(id): Path<Pk>, mut request: Request) -> AppResult<
 // ─── Forms ───────────────────────────────────────────────────────────────────
 
 pub async fn upload_image_submit(mut request: Request) -> AppResult<Response> {
-    let form: ImageForm = request.form();
+    let form: ImageForm = request.form("image");
     if !is_authenticated(&request.session).await {
         warning!(request.notices => "Please log in to access your profile.");
         return Ok(Redirect::to("/login").into_response());
@@ -235,7 +234,7 @@ pub async fn formulaires_templates(mut request: Request) -> AppResult<Response> 
 }
 
 pub async fn formulaires_helpers(mut request: Request) -> AppResult<Response> {
-    let form: SearchDemoForm = request.form();
+    let form: SearchDemoForm = request.form("helpers");
     inject_globals(&mut request).await;
     let data = extract_helpers_data(&request, form.cleaned::<String>("search"));
     context_update!(request => {
@@ -250,7 +249,7 @@ pub async fn formulaires_helpers(mut request: Request) -> AppResult<Response> {
 // ─── Contribution ─────────────────────────────────────────────────────────────
 
 pub async fn contribution_submit(mut request: Request) -> AppResult<Response> {
-    let form: ContributionForm = request.form();
+    let form: ContributionForm = request.form("contribution");
     if !is_authenticated(&request.session).await {
         warning!(request.notices => "Please log in to access your profile.");
         return Ok(Redirect::to("/login").into_response());
