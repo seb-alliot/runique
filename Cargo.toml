@@ -62,7 +62,7 @@ chrono = { version = "0.4.45", features = ["serde"] }
 chrono-tz = "0.10"
 anyhow = "1.0"
 regex = "1.13"
-fancy-regex = "0.19.0"
+fancy-regex = "0.20.0"
 urlencoding = "2.1.3"
 url = "2.5.8"
 byte = "0.2.7"
@@ -74,7 +74,8 @@ phone_number = "0.1.1"
 country = "0.5.0"
 postal-code = "0.3.0"
 dyn-clone = "1.0.20"
-image = { version = "0.25.10", features = ["avif", "avif-native"] }
+image = "0.25.10"
+imagesize = { version = "0.15", default-features = false, features = ["heif"] }
 dialoguer = "0.12"
 walkdir = "2.5.0"
 
@@ -100,7 +101,7 @@ scrypt = { version = "0.12.0", features = ["phc", "getrandom"] }
 password-hash = "0.6.1"
 rand = "0.10.3"
 ammonia = "4.1.4"
-html-escape = "0.2"
+html-escape = "0.3.0"
 
 # Documentation
 pulldown-cmark = "0.13.4"
@@ -123,6 +124,6 @@ rpassword = "7.5.4"
 crossterm = "0.29.0"
 
 # Daemon admin
-syn = { version = "3.0.6", features = ["full", "visit"] }
+syn = { version = "3.0.9", features = ["full", "visit"] }
 quote = "1"
 proc-macro2 = { version = "1", features = ["span-locations"] }

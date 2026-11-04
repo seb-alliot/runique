@@ -94,6 +94,7 @@ postal-code.workspace = true
 dyn-clone.workspace = true
 rust_decimal.workspace = true
 image.workspace = true
+imagesize.workspace = true
 walkdir.workspace = true
 
 

@@ -36,7 +36,7 @@ impl IntoUploadPath for &StaticConfig {
     }
 }
 use async_trait::async_trait;
-use image::ImageReader;
+use image::{ImageFormat, ImageReader};
 use serde::Serialize;
 use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
@@ -246,6 +246,13 @@ pub(crate) async fn is_valid_image_content(path: &str) -> bool {
 /// The text stays in the log: the form shows `forms.file_invalid_image`.
 pub(crate) fn read_image_dimensions(path: &str) -> Result<(u32, u32), String> {
     let reader = ImageReader::open(path).map_err(|e| e.to_string())?;
+    // `image` only reads AVIF through the system library dav1d: its header alone
+    // holds the size, and a project shouldn't have to install anything for it.
+    if reader.format() == Some(ImageFormat::Avif) {
+        let size = imagesize::size(path).map_err(|e| e.to_string())?;
+        let side = |n: usize| u32::try_from(n).map_err(|e| e.to_string());
+        return Ok((side(size.width)?, side(size.height)?));
+    }
     reader.into_dimensions().map_err(|e| e.to_string())
 }
 
@@ -1346,8 +1353,8 @@ mod guarantees {
         );
     }
 
-    /// `avif` encodes and `avif-native` decodes. A real file is measured by the
-    /// field. A bare `ftyp` box is covered by the refusal test above.
+    /// `image` encodes, `imagesize` reads the header back: no system library. A
+    /// file without a readable size is refused, never let past the limit.
     #[tokio::test]
     async fn avif_roundtrip_is_measured_by_the_dimension_limit() {
         let bytes = encode_image(image::ImageFormat::Avif, 8, 2);
@@ -1363,7 +1370,7 @@ mod guarantees {
         let dir = temp_dir("avif-read");
         let path = dir.join("photo.avif");
         fs::write(&path, &bytes).unwrap();
-        let dims = read_image_dimensions(&path.to_string_lossy()).expect("avif decoder");
+        let dims = read_image_dimensions(&path.to_string_lossy()).expect("avif size");
         assert_eq!(dims, (8, 2));
         let _ = fs::remove_dir_all(&dir);
 
@@ -1378,6 +1385,15 @@ mod guarantees {
         assert!(
             !image_with_limit("photo.avif", &bytes, 8, 1).await,
             "over the height"
+        );
+        assert!(
+            !image_with_limit("bare.avif", b"\0\0\0\x18ftypavif", 8, 8).await,
+            "a header without a size"
+        );
+        let cut = &bytes[..bytes.len().min(40)];
+        assert!(
+            !image_with_limit("cut.avif", cut, 8, 8).await,
+            "a file cut before its size"
         );
     }
 
