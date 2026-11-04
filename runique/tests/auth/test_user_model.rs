@@ -22,6 +22,7 @@ fn make_model() -> Model {
         created_at: None,
         updated_at: None,
         activated_at: Some(chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap().into()),
+        session_version: 0,
     }
 }
 
@@ -163,7 +164,8 @@ const USERS_DDL: &str = "
         is_superuser INTEGER NOT NULL DEFAULT 0,
         created_at  TEXT,
         updated_at  TEXT,
-        activated_at TEXT
+        activated_at TEXT,
+        session_version INTEGER NOT NULL DEFAULT 0
     )
 ";
 
@@ -180,7 +182,8 @@ const USERS_DDL: &str = "
         is_superuser INTEGER NOT NULL DEFAULT 0,
         created_at  TEXT,
         updated_at  TEXT,
-        activated_at TEXT
+        activated_at TEXT,
+        session_version INTEGER NOT NULL DEFAULT 0
     )
 ";
 

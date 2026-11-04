@@ -34,6 +34,10 @@ pub struct Model {
     /// `None` while the account waits for that; never cleared afterwards. The
     /// database refuses `is_active` without it.
     pub activated_at: Option<chrono::NaiveDateTime>,
+    /// Increased to close every session of the account, whatever store holds
+    /// them: a session opened under an older value ends at its next request.
+    #[sea_orm(default_value = 0)]
+    pub session_version: i32,
 }
 
 impl_objects!(Entity);
@@ -100,6 +104,9 @@ impl RuniqueUser for Model {
     fn is_superuser(&self) -> bool {
         self.is_superuser
     }
+    fn session_version(&self) -> i32 {
+        self.session_version
+    }
 }
 
 // ─── Account lookups ─────────────────────────────────────────────────────────
@@ -155,7 +162,9 @@ impl BuiltinUserEntity {
 
     /// Sets the password (already hashed) of the account with this id — the
     /// path for flows where the id comes from a secret (a reset token), never
-    /// from a field the client controls.
+    /// from a field the client controls. Open sessions stay: signing in rehashes
+    /// through here, and that must close nothing. To close them,
+    /// [`close_user_sessions`](crate::engine::RuniqueEngine::close_user_sessions).
     pub async fn update_password_by_id(
         db: &ADb,
         id: Pk,
@@ -195,7 +204,8 @@ impl BuiltinUserEntity {
     }
 
     /// The owner sets their password through the emailed link: a pending
-    /// account is activated by it, any other only gets the new password.
+    /// account is activated by it, any other only gets the new password. Sessions
+    /// opened before it end.
     pub async fn set_password_and_activate(
         db: &ADb,
         id: Pk,
@@ -203,6 +213,27 @@ impl BuiltinUserEntity {
     ) -> Result<(), sea_orm::DbErr> {
         Self::update_password_by_id(db, id, new_hash).await?;
         Self::activate_account(db, id).await?;
+        Self::increase_session_version(db, id).await
+    }
+
+    /// Ends every session opened before this call, whatever store holds it.
+    /// The update reads the current value in the database: two calls at once
+    /// both count, and neither can bring back a value already passed.
+    pub async fn increase_session_version<C: ConnectionTrait>(
+        db: &C,
+        id: Pk,
+    ) -> Result<(), sea_orm::DbErr> {
+        Entity::update_many()
+            .col_expr(
+                Column::SessionVersion,
+                sea_orm::sea_query::ExprTrait::add(
+                    sea_orm::sea_query::Expr::col(Column::SessionVersion),
+                    1,
+                ),
+            )
+            .filter(Column::Id.eq(id))
+            .exec(db)
+            .await?;
         Ok(())
     }
 
@@ -228,7 +259,7 @@ impl BuiltinUserEntity {
             activation.activated_at = Set(Some(chrono::Utc::now().naive_utc()));
             activation.update(db).await?;
         }
-        Ok(())
+        Self::increase_session_version(db, id).await
     }
 }
 
@@ -369,6 +400,14 @@ pub fn schema() -> crate::migration::schema::ModelSchema {
             crate::migration::ColumnDef::new("activated_at")
                 .datetime()
                 .nullable()
+                .ignore(),
+        )
+        // Written only by the password reset and `close_user_sessions`.
+        .column(
+            crate::migration::ColumnDef::new("session_version")
+                .integer()
+                .required()
+                .default(0.into())
                 .ignore(),
         )
         .build()

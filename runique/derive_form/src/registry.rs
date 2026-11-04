@@ -5,6 +5,7 @@ pub enum PhantomType {
     Pk,
     String,
     Bool,
+    I32,
     NaiveDateTime,
 }
 
@@ -14,6 +15,7 @@ impl PhantomType {
             PhantomType::Pk => quote! { ::runique::utils::config::Pk },
             PhantomType::String => quote! { String },
             PhantomType::Bool => quote! { bool },
+            PhantomType::I32 => quote! { i32 },
             PhantomType::NaiveDateTime => quote! { ::chrono::NaiveDateTime },
         }
     }
@@ -120,6 +122,8 @@ static EIHWAZ_USERS: &[PhantomColumn] = &[
         null,
         FormWidget::Skip
     ),
+    // Increased by the reset to close the account's sessions, never by a form.
+    col!("session_version", PhantomType::I32, FormWidget::Skip),
 ];
 
 static EIHWAZ_GROUPES: &[PhantomColumn] = &[

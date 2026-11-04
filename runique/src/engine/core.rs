@@ -97,15 +97,16 @@ impl RuniqueEngine {
             .unwrap_or(false)
     }
 
-    /// Closes every session of `user_id`, whatever the device: its rows in
-    /// `eihwaz_sessions`, then its copies in memory. On a database error the
-    /// rows survive, and so do the sessions: nothing else is touched and the
-    /// error is returned. A store plugged in with `with_session_store()` can't
-    /// be searched by user and is left as is.
+    /// Closes every session of `user_id`, whatever the device or the store: its
+    /// `session_version` increases, which ends them all at their next request,
+    /// in a store plugged in with `with_session_store()` too; then its rows in
+    /// `eihwaz_sessions` and its copies in memory go. On a database error the
+    /// error is returned and the sessions may survive: try again.
     pub async fn close_user_sessions(
         &self,
         user_id: crate::utils::pk::Pk,
     ) -> Result<(), sea_orm::DbErr> {
+        crate::auth::BuiltinUserEntity::increase_session_version(&self.db, user_id).await?;
         let db_store = self.session_db_store.read().ok().and_then(|g| g.clone());
         if let Some(store) = db_store {
             store.invalidate_all(user_id).await?;

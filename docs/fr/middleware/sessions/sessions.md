@@ -16,7 +16,7 @@ Une session connectée est sauvegardée dans `eihwaz_sessions` pour survivre à 
 
 Le déchiffrement n'a lieu qu'à la restauration après un redémarrage. Une session encore en mémoire n'est vérifiée que sur sa ligne.
 
-**Changer `SECRET_KEY`** rend les sessions sauvegardées illisibles : au prochain redémarrage, leurs utilisateurs se reconnectent. Un attaquant qui lit aussi votre `.env` possède la clé. Un store passé à `with_session_store(...)` n'est pas chiffré par Runique.
+**Changer `SECRET_KEY`** rend les sessions sauvegardées illisibles : au prochain redémarrage, leurs utilisateurs se reconnectent. Un attaquant qui lit aussi votre `.env` possède la clé. Un store passé à `with_session_store(...)` n'est pas chiffré par Runique ; un reset ferme quand même ses sessions, par `session_version`.
 
 ---
 

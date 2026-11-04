@@ -95,6 +95,7 @@ Re-checked against `Cargo.lock` on 2026-10-10. The CI runs `cargo audit` on ever
 | 4.0 | Form global errors rendered without escaping (XSS) | Medium |
 | 4.0 | Debug error page able to show a file outside `templates/` | Medium |
 | 4.0 | Session content stored in clear in the database | Medium |
+| 4.0 | Password reset leaving the other sessions of a custom store valid | Medium |
 | 4.0 | Form sent from another site reaching a handler that doesn't check the token | Medium |
 | 4.0 | Admin refusal message telling that an account is a superuser | Low |
 | 4.0 | "Forgot password" response time telling whether an account exists | Low |

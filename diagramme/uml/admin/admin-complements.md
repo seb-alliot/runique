@@ -66,7 +66,9 @@ classDiagram
     class PageSheets {
         +of(page, resource) stylesheets résolus + hashés au boot
     }
-    class Block / GlobalBlock / ModelBlocks
+    class Block
+    class GlobalBlock
+    class ModelBlocks
     AdminTemplate *-- "*" PathAdminTemplate
     ModelAdmin --> ModelTemplates
     AdminState --> PageSheets
@@ -89,7 +91,7 @@ sequenceDiagram
     participant H as handler
 
     R->>LU: session → user_id
-    LU->>LU: relit compte + groupes + droits en DB
+    LU->>LU: relit compte + groupes + droits en DB, compare session_version
     Note over LU: pas de cache process-local (AM4 sans objet)
     LU-->>R: Extension~CurrentUser~ si actif + (rang>Lambda ‖ staff)
     R->>AA: can_access_admin ?

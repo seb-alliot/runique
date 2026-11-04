@@ -43,6 +43,10 @@ Middlewares correspondants (slots) : TrustedProxies(2), CORS(8), HostValidation(
 OpenRedirect(25), SecurityHeaders(30)/CSP(31), CSRF(60), AntiBot(65).
 `open_redirect::is_safe_redirect` valide les `Location` de redirection contre les hôtes autorisés.
 
+CSRF (`csrf_middleware`) : un formulaire sans `X-CSRF-Token` que le navigateur annonce `cross-site`
+ou `same-site` (`Sec-Fetch-Site`, `from_another_site`) reçoit un 403 avant le handler, toujours
+actif, hors `csrf_exempt`. Séquence : [../../flux/requete-csrf-upload.md](../../flux/requete-csrf-upload.md).
+
 ## Anomalies / flux suspects
 
 ### 🟠 SEC1 — `RateLimiter` en mémoire process-local (même famille que AU1)

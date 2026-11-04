@@ -44,6 +44,7 @@ ALTER TABLE eihwaz_users
     DROP COLUMN is_staff,
     ADD COLUMN is_dirigeant BOOLEAN NOT NULL DEFAULT FALSE,
     ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0,
     ADD CONSTRAINT eihwaz_users_one_rank_at_most CHECK (
         (CASE WHEN is_superuser THEN 1 ELSE 0 END)
       + (CASE WHEN is_dirigeant THEN 1 ELSE 0 END)
@@ -111,6 +112,7 @@ ALTER TABLE eihwaz_users
     DROP COLUMN is_staff,
     ADD COLUMN is_dirigeant BOOL NOT NULL DEFAULT FALSE,
     ADD COLUMN is_admin BOOL NOT NULL DEFAULT FALSE,
+    ADD COLUMN session_version INT NOT NULL DEFAULT 0,
     ADD CONSTRAINT eihwaz_users_one_rank_at_most CHECK (
         (CASE WHEN is_superuser THEN 1 ELSE 0 END)
       + (CASE WHEN is_dirigeant THEN 1 ELSE 0 END)
@@ -189,6 +191,7 @@ CREATE TABLE eihwaz_users_new (
     created_at DATETIME NULL,
     updated_at DATETIME NULL,
     activated_at DATETIME NULL,
+    session_version INTEGER NOT NULL DEFAULT 0,
     CONSTRAINT eihwaz_users_active_needs_activation CHECK (NOT is_active OR activated_at IS NOT NULL),
     CONSTRAINT eihwaz_users_one_rank_at_most CHECK (
         (CASE WHEN is_superuser THEN 1 ELSE 0 END)
@@ -358,6 +361,8 @@ See [the CSRF docs](https://runique.io/docs/en/middleware/csrf).
 ## Sessions
 
 **`RuniqueSessionStore::new` takes `SECRET_KEY`**: `RuniqueSessionStore::new(db, &secret_key)`, to adapt if you call it directly. `session_data` is encrypted: read it with `open_session_data(&model)`.
+
+**`eihwaz_users.session_version`** closes an account's sessions, in every store: `close_user_sessions` and a completed reset increase it. `update_password_by_id` leaves it: call `close_user_sessions` if a password change must sign other devices out. A hand-written `RuniqueUser` model can override `session_version()`; by default it is `0` and closes nothing.
 
 ---
 

@@ -473,6 +473,7 @@ mod tests {
         for hidden in [
             "password",
             "activated_at",
+            "session_version",
             "is_superuser",
             "is_dirigeant",
             "is_admin",

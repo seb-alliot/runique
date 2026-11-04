@@ -26,7 +26,7 @@ classDiagram
     class FormFieldKind {
         <<enum>> text/email/password/richtext/textarea/url/int/bigint/i8/i16/u32/u64/
         float/f32/decimal/percent/bool/date/time/datetime/timestamp/timestamp_tz/
-        image/document/file/color/slug/uuid/json/json_binary/binary/var_binary/
+        image/audio/video/document/file/color/slug/uuid/json/json_binary/binary/var_binary/
         blob/ip/cidr/mac_address/interval/choice/radio/checkbox/multichoice/char/phone
         +is_list() checkbox|multichoice
     }
@@ -48,8 +48,8 @@ classDiagram
 + `nullable` interdit, `nullable` sur `auto_now` interdit, type non texte sans
 `required`/`nullable`/`default` interdit), listes (`validate_list` : enum obligatoire, seuls
 `required`/`enum`/`label`), enums entiers (`validate_int_values` : une valeur par variante, dans
-les limites, sans doublon), `belongs_to` (`validate_belongs_to` : colonne déclarée, `set_null` ⇒
-`nullable`), `fk(...)` refusé avec un message qui renvoie vers `belongs_to`.
+les limites, sans doublon), `belongs_to` (action `ON DELETE` obligatoire, `[no_action]` permis s'il
+est écrit ; `validate_belongs_to` : colonne déclarée, `set_null` ⇒ `nullable`), `fk(...)` refusé avec un message qui renvoie vers `belongs_to`.
 
 ## AST — représentation universelle (ce que le générateur consomme)
 
@@ -80,13 +80,13 @@ classDiagram
     }
     class FieldOption {
         <<enum>> Required/Nullable/Unique/Default/MaxLen/MinLen/Max/Min/MaxF/MinF/
-        AutoNow/AutoNowUpdate/Readonly/Label(String)/File{kind,upload_to}/MaxSize
+        AutoNow/AutoNowUpdate/Readonly/Label(String)/File(kind,upload_to)/MaxSize
     }
     class FileKind { <<enum>> Image/Document/Any }
     class EnumDef { +Ident name +Vec~EnumVariant~ variants +EnumBackingType }
     class EnumBackingType { <<enum>> Auto/I8/I16/I32/I64 }
     class RelationDef {
-        <<enum>> BelongsTo{model,via,on_delete,on_update}/HasMany/HasOne/ManyToMany
+        <<enum>> BelongsTo(model,via,on_delete,on_update)/HasMany/HasOne/ManyToMany
     }
     class FkAction { <<enum>> NoAction/Cascade/SetNull/Restrict/SetDefault }
     ModelInput "1" *-- "*" FieldDef
@@ -167,3 +167,7 @@ supprimés.
 ### ✅ CORRIGÉ (2026-10-06) — enums entiers sans valeur stockés à 0
 `Priority: i32 [Low, High]` donnait `num_value = 0` aux deux variantes (`_ => 0`,
 `unwrap_or(0)`) : `High` relu comme `Low`. Refusé à la compilation (`validate_int_values`).
+
+**Colonnes fantômes de `eihwaz_users`** (`registry.rs`) : un `extend!{}` de la table des comptes
+relit `is_active`, les rangs, `activated_at` et `session_version` (`PhantomType::I32`) sans jamais
+les mettre dans un formulaire (`FormWidget::Skip`).

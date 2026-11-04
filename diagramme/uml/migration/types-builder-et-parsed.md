@@ -73,7 +73,7 @@ classDiagram
         <<crate>>
         ModelInput / ExtendDsl
     }
-    MacroCollector ..> runique_dsl : syn::parse2
+    MacroCollector ..> runique_dsl : syn parse2
     to_schema ..> runique_dsl
     ParsedModel *-- ParsedSchema
 ```

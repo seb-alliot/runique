@@ -43,4 +43,11 @@ lors de toute modification de l'ordre des slots ([../app/builder-staging.md](../
 
 ### Rappels (déjà listés)
 - **C1/C3** (corrigés) : le pipeline Prisme parse le multipart ; commit désormais en staging.
-- **C2** (corrigé, 2.1.21) : `Prisme::data` est `pub(crate)` ; le corps se lit via `req.form()` ou `req.prisme.checked_data()` (fail-closed CSRF). Plus d'accès brut hors CSRF côté code tiers.
+- **C2** (corrigé, 2.1.21) : `Prisme::data` est `pub(crate)` ; le corps se lit via `request.form("nom")` ou `req.prisme.checked_data()` (fail-closed CSRF). Plus d'accès brut hors CSRF côté code tiers.
+
+## Méthodes de `Request` liées au pipeline
+
+- `form::<T>(nom)` : construit le formulaire, ne le remplit que si le nom revient.
+- `db_atomic()` : ouvre une transaction à passer à `save`/`delete`.
+- `render(template)` : ajoute `csrf.js` une seule fois quand la page contient un champ
+  `csrf_token` (`with_csrf_script`).

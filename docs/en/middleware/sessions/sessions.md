@@ -16,7 +16,7 @@ A signed-in session is saved in `eihwaz_sessions` to survive a restart. Its cont
 
 Decryption only happens when restoring after a restart. A session still in memory is only checked against its row.
 
-**Changing `SECRET_KEY`** makes the saved sessions unreadable: at the next restart, their users sign in again. An attacker who also reads your `.env` has the key. A store given to `with_session_store(...)` isn't encrypted by Runique.
+**Changing `SECRET_KEY`** makes the saved sessions unreadable: at the next restart, their users sign in again. An attacker who also reads your `.env` has the key. A store given to `with_session_store(...)` isn't encrypted by Runique; a reset still closes its sessions, through `session_version`.
 
 ---
 

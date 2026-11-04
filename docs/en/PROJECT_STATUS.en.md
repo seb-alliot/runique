@@ -142,6 +142,7 @@ This document consolidates the actual state of the repository from the reference
 | 4.0.0 | Debug template page: read outside `templates/` | High |
 | 4.0.0 | Form global errors unescaped (XSS) | Medium |
 | 4.0.0 | Session content stored in clear in the database | Medium |
+| 4.0.0 | Reset leaving the other sessions of a custom store valid (#15) | Medium |
 | 4.0.0 | Form from another site reaching a handler that doesn't check the token | Medium |
 | 4.0.0 | A database delete error could leave a reusable session; session revocation outside the reset's transaction (faille.md #12) | Medium |
 | 4.0.0 | Non-atomic reset token replacement: two valid tokens under concurrency (#13) | Medium |

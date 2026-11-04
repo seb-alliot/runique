@@ -223,3 +223,15 @@ Schéma données 4.0 : `is_staff` quitte `users` pour `groupes` ; rangs
 
 - D2/D3/D4, S1/S2, multi-instance lockout/rate-limit, A7 queryset métier
 - Passe fine éventuelle sur uml/app (AdminStaging.site), forms, middleware si drift mineur
+
+## Session 2026-11-04 — diagrammes alignés sur la 4.0 finale
+
+Mis à jour d'après le code : `flux/requete-csrf-upload` (refus cross-site, `request.form(nom)`,
+`try_form`, nouvelle séquence `save` + fichier), `flux/auth-session-et-makemigrations` (login,
+nouvelle séquence de fermeture), `uml/forms/*` (`FormAccess`, `DbWrite`, `MediaField`,
+`UploadMedia`), `uml/middleware/*`, `uml/auth/authentification`, `merise/modele-donnees`
+(`session_version`, `session_data` chiffré, `reset_tokens.user_id` unique), `uml/context/*`,
+`uml/engine`, `uml/utils`, `uml/derive_form`, `uml/admin/admin-complements`.
+
+Non refait : les liens de ligne des anomalies historiques, conservés pour mémoire et sans doute
+décalés. Les 64 blocs Mermaid passent l'analyse de syntaxe (Mermaid 11.4.1), dont 13 corrigés dans cette passe ; leur rendu visuel n'a pas été contrôlé.

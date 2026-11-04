@@ -71,7 +71,7 @@ sequenceDiagram
     participant SA as save_as
 
     H->>M: create|edit(req, user, id?)
-    M->>VF: try_new (CSRF + validate async)
+    M->>VF: try_form (nom renvoyé, CSRF, validate async)
     alt invalide
         M-->>H: FormOutcome::Show(form+errors)
     else valide

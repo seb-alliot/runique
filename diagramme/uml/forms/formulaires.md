@@ -18,6 +18,8 @@ classDiagram
         -HashMap query_params
         -bool force_invalid
         -Option~String~ honeypot_field_name
+        -SaveComportement save_comportement
+        -Option~str~ name
         +field_label(name, v) &mut Self
         +field_placeholder(name, v) &mut Self
         +field_required/readonly/disabled(name, b) &mut Self
@@ -25,6 +27,10 @@ classDiagram
         +field_max_size(name, size) Result
         +fill(raw, method)
         +finalize() / validate() / render() [async]
+        +add_js(files) / set_csp_nonce(nonce)
+        +publish_uploads() / rollback_uploads() / complete_uploads() [async]
+        -sent_by(request) bool
+        -keep_submitted_if(sent)
     }
     class FormField {
         <<trait, async_trait>>
@@ -37,6 +43,7 @@ classDiagram
         +is_password() bool
         +model_max_size() Option~u64~
         +set_max_size_bounded(size) Result
+        +apply_column_type(type) / column_type()
     }
     class GenericField {
         +GeneratedField field
@@ -46,6 +53,7 @@ classDiagram
         Text(TextField)
         Numeric(NumericField)
         File(FileField)
+        Media(MediaField)
         Boolean / Choice / Radio / Checkbox
         Date / Time / DateTime / Duration
         Color / Slug / UUID / JSON / IPAddress / Hidden
@@ -54,7 +62,9 @@ classDiagram
     GenericField "1" *-- "1" GeneratedField
     GenericField ..|> FormField
     GeneratedField ..> FileField
+    GeneratedField ..> MediaField
     FileField ..|> FormField
+    MediaField ..|> FormField
     TextField ..|> FormField
 ```
 
@@ -62,11 +72,14 @@ classDiagram
 
 ```mermaid
 classDiagram
-    class RuniqueForm {
-        <<trait, async_trait>>
+    class FormAccess {
+        <<trait>>
         +register_fields(form)*
         +from_form(form) Self*
         +forms() / forms_mut()*
+    }
+    class RuniqueForm {
+        <<trait, async_trait>>
         +customize(form) [défaut no-op, statique]
         +register_dynamic_fields(request) [async, défaut no-op]
         +allow_get(request) bool [défaut false — sécurité, opt-in]
@@ -76,9 +89,15 @@ classDiagram
     }
     class ValidationForm~F~ {
         -F form
-        +try_new(form, request)$ Result~Self,F~
+        +try_form(form, request)$ Result~Self,F~
         +into_form() F
-        +database_error(msg) &mut Self
+        +database_error(err)
+        +save(db) Result~F,F~ [F: FormEntity]
+        +delete(db) Result~F,F~ [F: FormEntity]
+    }
+    class DbWrite {
+        <<trait scellé>>
+        +as_adb() Option~ADb~
     }
     class ModelForm {
         <<trait>>
@@ -90,33 +109,43 @@ classDiagram
     class FileField {
         +FieldConfig base
         +FileFieldType field_type
-        +AllowedExtensions allowed_extensions
-        +FileUploadConfig upload_config
-        +Option~u64~ model_max_size
+        +UploadMedia upload
+        +document(name)$ / any(name)$
         +max_size(FileSize) Self
-        -apply_max_size_bounded(size) Result
     }
     RuniqueForm ..> Forms
     ModelForm ..> ModelSchema : schema().fill_form()
-    ModelForm ..> RuniqueForm : via impl_form_access!(model)
+    RuniqueForm --|> FormAccess
+    ModelForm ..> FormAccess : register_fields généré
+    ValidationForm~F~ ..> DbWrite : connexion ou transaction
     ValidationForm~F~ o-- F : Deref (lecture seule)
-    ValidationForm~F~ ..> RuniqueForm : F: RuniqueForm
+    ValidationForm~F~ ..> RuniqueForm : borne de F
 ```
 
 Flux de construction d'un `#[form(schema=…)]` :
-`build/build_with_data` → `register_fields` → `model_register_fields` →
+`request.form(nom)` → `build_form` → `register_fields` → `model_register_fields` →
 `ModelSchema::fill_form` → `ColumnDef::to_form_field` (recrée chaque champ) →
-**`Self::customize(form)`** (hook ajouté) → `fill(raw)` → `validate`.
+**`Self::customize(form)`** → `enforce_limits` (`apply_column_type` en dernier) →
+`set_name` + nonce + paramètres d'URL → `fill(raw)` seulement si le nom revient → `validate`.
 
-Flux `ValidationForm<F>::try_new(form, request)` (remplace le boilerplate
+`FormAccess` est généré par `#[form]`. `build`/`build_with_data` n'existent plus ; en test : `build_form_for_test(tera, token, nom)`.
+
+Flux `ValidationForm<F>::try_form(form, request)` (remplace le boilerplate
 `if request.is_post() && form.is_valid() {...} else {...}` désormais **supprimé**) :
 `register_dynamic_fields(request).await` (champs dépendants de la requête) →
-dispatch `allow_get`/`allow_post` selon `request.method.is_safe()` → si
-`false`, retour `Err(form)` **sans validation** (pas d'erreur de champ posée) →
-si `true`, `form.is_valid().await` → `Ok(ValidationForm(form))` ou `Err(form)`
-(erreurs déjà peuplées par `is_valid()`). `into_form()` n'est atteignable
-qu'après un `Ok` : impossible d'agir sur un form non validé (garantie de type,
-pas seulement runtime).
+`sent_by(request)` puis `keep_submitted_if(sent)` → dispatch `allow_get`/`allow_post` selon
+`request.method.is_safe()` → si le nom n'est pas revenu ou si le dispatch répond `false`, retour
+`Err(form)` **sans validation** (pas d'erreur de champ posée) → sinon `form.is_valid().await` →
+`Ok(ValidationForm(form))` ou `Err(form)` (erreurs déjà peuplées par `is_valid()`).
+`save`/`delete`/`into_form()` ne sont atteignables qu'après un `Ok` : impossible d'agir sur un
+form non validé (garantie de type, pas seulement runtime).
+
+Écriture : `save(&db)` et `delete(&db)` prennent la connexion ou une transaction de
+`request.db_atomic()`. La ligne vient de l'URL (`{<nom>_<clé>}`, sinon `{<clé>}`, sinon création).
+Une route `admin` passe par `save_as` (la porte) et refuse une transaction
+(`RefusalReason::InTransaction`). Séquence : [../../flux/requete-csrf-upload.md](../../flux/requete-csrf-upload.md).
+
+`cleaned::<T>(nom)` lit la valeur par la colonne du champ quand il en a une, sinon par `T`.
 
 ## Anomalies / flux suspects
 
@@ -187,7 +216,7 @@ Ces 4 méthodes n'avaient plus qu'un seul usage réel dans tout le framework : l
 check honeypot (`self.is_post()` → inliné en `self.method == Method::POST`).
 Leur unique raison d'être historique était le boilerplate de validation
 `if request.is_post() && form.is_valid() {...} else {...}`, remplacé par
-`ValidationForm::try_new()` (ci-dessus), qui dispatche lui-même sur la méthode
+`ValidationForm::try_new()` (devenu `try_form` en 4.0, ci-dessus), qui dispatche lui-même sur la méthode
 via `http::Method::is_safe()`. Supprimées avec les tests associés ; nouveaux
 tests de régression honeypot ajoutés (`test_validation_form.rs`) puisque ce
 comportement n'était pas testé directement avant.
@@ -213,3 +242,14 @@ inconditionnellement ; seul un formulaire de recherche/filtre GET (lecture
 seule) doit opter explicitement pour `is_submitted()` — cas du `UsernameForm`
 de demo-app. Les surcharges désormais redondantes (`ForgotPasswordForm`,
 `PasswordResetForm`, et les 4 formulaires Campanile) ont été retirées.
+
+### 🟠 F9 — Type de colonne absent sur les vrais formulaires — ✅ CORRIGÉ (2026-11-03)
+`column_type` n'était posé qu'à l'admin : un `#[form(schema = …)]` ne contrôlait pas sa valeur
+contre sa colonne, et `cleaned` restait sur `T`. `enforce_limits` appelle maintenant
+`apply_column_type`, **en dernier** : placé avant ses contrôles, il masquait les `max_length`
+relâchés.
+
+### 🟠 F10 — `add_js` sans SHA ni nonce — ✅ CORRIGÉ (2026-11-04)
+`Forms::set_csp_nonce` n'était jamais appelée, et `js.html` passe par le filtre `static` : ni
+nonce, ni `integrity`. `request.form` pose le nonce ; le filtre `static_integrity` lit le hash
+du fichier calculé au démarrage. Voir [../context/extensions-et-middleware-config.md](../context/extensions-et-middleware-config.md).

@@ -26,7 +26,7 @@ classDiagram
     }
     Objects ..> RuniqueQueryBuilder : construit
     RuniqueQueryBuilder ..> Queryable
-    HasLists ..> ListField : List::Champ
+    HasLists ..> ListField : List.Champ
 ```
 
 Macros associées :
@@ -43,10 +43,10 @@ Macros associées :
 
 ```mermaid
 flowchart LR
-    UP["urlpatterns!{ \"/path\" => view }"] --> RT[Router Axum]
+    UP["urlpatterns!{ #quot;/path#quot; => view }"] --> RT[Router Axum]
     UP --> REG[register_url: nom → path reverse]
     V["view!"] --> H[handler GET/POST]
-    REG --> TAG["{% url %}` Tera"]
+    REG --> TAG["{% url %} Tera"]
 ```
 
 - `urlpatterns!{}` — déclare les routes (`"/x" => view`, `[get:…, post:…]`), peuple le

@@ -3,7 +3,9 @@ use crate::auth::user_trait::RuniqueUser;
 use crate::middleware::security::csrf::rotate_csrf_token;
 use crate::middleware::session::session_db::RuniqueSessionStore;
 use crate::utils::config::TraceResult;
-use crate::utils::constante::session_key::session::{SESSION_ACTIVE_KEY, SESSION_USER_ID_KEY};
+use crate::utils::constante::session_key::session::{
+    SESSION_ACTIVE_KEY, SESSION_USER_ID_KEY, SESSION_VERSION_KEY,
+};
 use crate::utils::pk::Pk;
 use tower_sessions::Session;
 
@@ -58,6 +60,93 @@ mod ttl_tests {
         // No builder → explicit 24h default, never 0/a panic.
         assert_eq!(resolve_ttl_secs(None), DEFAULT_AUTH_SESSION_TTL_SECS);
         assert_eq!(DEFAULT_AUTH_SESSION_TTL_SECS, 86_400);
+    }
+}
+
+#[cfg(test)]
+mod session_version_tests {
+    use super::{SESSION_VERSION_KEY, session_is_current};
+    use crate::auth::user_trait::RuniqueUser;
+    use crate::utils::pk::Pk;
+    use std::sync::Arc;
+    use tower_sessions::{MemoryStore, Session};
+
+    struct Account(Option<i32>);
+
+    impl RuniqueUser for Account {
+        fn user_id(&self) -> Pk {
+            Pk::default()
+        }
+        fn username(&self) -> &str {
+            "account"
+        }
+        fn email(&self) -> &str {
+            "account@example.com"
+        }
+        fn is_active(&self) -> bool {
+            true
+        }
+        fn is_superuser(&self) -> bool {
+            false
+        }
+        fn session_version(&self) -> i32 {
+            self.0.unwrap_or_default()
+        }
+    }
+
+    /// A session opened at `version`, or holding none.
+    async fn session(version: Option<i32>) -> Session {
+        let session = Session::new(None, Arc::new(MemoryStore::default()), None);
+        if let Some(version) = version {
+            session.insert(SESSION_VERSION_KEY, version).await.unwrap();
+        }
+        session
+    }
+
+    #[tokio::test]
+    async fn a_session_is_current_only_at_the_accounts_version() {
+        let opened = session(Some(3)).await;
+        assert!(session_is_current(&opened, &Account(Some(3))).await);
+        assert!(
+            !session_is_current(&opened, &Account(Some(4))).await,
+            "older"
+        );
+        assert!(
+            !session_is_current(&opened, &Account(Some(2))).await,
+            "newer"
+        );
+    }
+
+    /// A session opened before the column existed lives until the first increase.
+    #[tokio::test]
+    async fn a_session_without_a_version_ends_with_the_first_increase() {
+        let opened = session(None).await;
+        assert!(session_is_current(&opened, &Account(Some(0))).await);
+        assert!(!session_is_current(&opened, &Account(Some(1))).await);
+    }
+
+    #[tokio::test]
+    async fn a_user_type_that_declares_no_version_closes_nothing() {
+        struct Minimal;
+        impl RuniqueUser for Minimal {
+            fn user_id(&self) -> Pk {
+                Pk::default()
+            }
+            fn username(&self) -> &str {
+                "minimal"
+            }
+            fn email(&self) -> &str {
+                "minimal@example.com"
+            }
+            fn is_active(&self) -> bool {
+                true
+            }
+            fn is_superuser(&self) -> bool {
+                false
+            }
+        }
+        assert_eq!(Minimal.session_version(), 0);
+        assert!(session_is_current(&session(None).await, &Minimal).await);
     }
 }
 
@@ -159,6 +248,9 @@ pub async fn login(
     }
     // The id alone: the account (name, rights) is read from the database on
     // every request, a copy here would outlive a change.
+    session
+        .insert(SESSION_VERSION_KEY, user.session_version())
+        .await?;
     session.insert(SESSION_USER_ID_KEY, user_id).await?;
 
     // Promote the session TTL to the authenticated duration on the login request
@@ -282,6 +374,19 @@ impl From<tower_sessions::session::Error> for LoginError {
 
 /// Logs out a user — removes the memory session and the DB entry if provided.
 /// Does nothing when no one is logged in.
+/// Whether this session was opened under the account's current version. A
+/// session holding none counts as version 0, so it ends with the account's
+/// first increase.
+pub(crate) async fn session_is_current(session: &Session, user: &impl RuniqueUser) -> bool {
+    let opened_at = session
+        .get::<i32>(SESSION_VERSION_KEY)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or(0);
+    opened_at == user.session_version()
+}
+
 pub async fn logout(
     session: &Session,
     db_store: Option<&RuniqueSessionStore>,
