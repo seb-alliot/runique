@@ -139,7 +139,7 @@ Le modèle peut déclarer un plafond immuable via `.max_size()` dans `register_f
 
 ```rust
 // Dans register_fields — plafond modèle fixé à 5 MB
-form.field(&FileField::image("photo").max_size(FileSize::mb(5)));
+form.field(&MediaField::image("photo").max_size(FileSize::mb(5)));
 
 // Dans le handler — surcharge autorisée si ≤ plafond
 form.max_size("photo", FileSize::mb(3))?;   // Ok

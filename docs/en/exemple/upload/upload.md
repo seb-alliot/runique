@@ -15,7 +15,7 @@ pub struct ImageForm {
 impl FormAccess for ImageForm {
     fn register_fields(form: &mut Forms) {
         form.field(
-            &FileField::image("image")
+            &MediaField::image("image")
                 .label("Image")
                 .upload_to_env()        // → {MEDIA_ROOT}/image/
                 .max_size(FileSize::mb(5))
@@ -38,14 +38,14 @@ The folder is always **relative to `MEDIA_ROOT`**: the file is moved there on va
 
 ```rust
 // 1 — explicit subfolder → {MEDIA_ROOT}/avatars/
-FileField::image("avatar").upload_to("avatars")
+MediaField::image("avatar").upload_to("avatars")
 
 // 2 — subfolder named after the field → {MEDIA_ROOT}/img/
-FileField::image("img").upload_to_env()
+MediaField::image("img").upload_to_env()
 
 // 3 — root of MEDIA_ROOT (same as no upload_to)
 let config = StaticConfig::from_env();
-FileField::image("img").upload_to(&config)
+MediaField::image("img").upload_to(&config)
 ```
 
 Don't include `MEDIA_ROOT` in the path: `upload_to("media/avatars")` with `MEDIA_ROOT=media/` would give `media/media/avatars/`.
@@ -61,7 +61,7 @@ MEDIA_ROOT=media/
 ## Available field types
 
 ```rust
-FileField::image("img")     // jpg jpeg png gif webp avif
+MediaField::image("img")     // jpg jpeg png gif webp avif
 FileField::document("doc")  // pdf doc docx txt odt
 FileField::any("f")         // any extension, except .svg
 

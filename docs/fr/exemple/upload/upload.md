@@ -15,7 +15,7 @@ pub struct ImageForm {
 impl FormAccess for ImageForm {
     fn register_fields(form: &mut Forms) {
         form.field(
-            &FileField::image("image")
+            &MediaField::image("image")
                 .label("Image")
                 .upload_to_env()        // → {MEDIA_ROOT}/image/
                 .max_size(FileSize::mb(5))
@@ -38,14 +38,14 @@ Le dossier est toujours **relatif à `MEDIA_ROOT`** : le fichier y est déplacé
 
 ```rust
 // 1 — sous-dossier explicite → {MEDIA_ROOT}/avatars/
-FileField::image("avatar").upload_to("avatars")
+MediaField::image("avatar").upload_to("avatars")
 
 // 2 — sous-dossier au nom du champ → {MEDIA_ROOT}/img/
-FileField::image("img").upload_to_env()
+MediaField::image("img").upload_to_env()
 
 // 3 — racine de MEDIA_ROOT (comme sans upload_to)
 let config = StaticConfig::from_env();
-FileField::image("img").upload_to(&config)
+MediaField::image("img").upload_to(&config)
 ```
 
 Ne pas inclure `MEDIA_ROOT` dans le chemin : `upload_to("media/avatars")` avec `MEDIA_ROOT=media/` donnerait `media/media/avatars/`.
@@ -61,7 +61,7 @@ MEDIA_ROOT=media/
 ## Extensions disponibles
 
 ```rust
-FileField::image("img")     // jpg jpeg png gif webp avif
+MediaField::image("img")     // jpg jpeg png gif webp avif
 FileField::document("doc")  // pdf doc docx txt odt
 FileField::any("f")         // toute extension, sauf .svg
 

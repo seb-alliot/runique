@@ -157,6 +157,8 @@ Le type Rust indiqué est celui d'une colonne NOT NULL ; une colonne `nullable` 
 | `mac_address`      | `String`                   | `VARCHAR`                       |
 | `interval`         | `String`                   | `VARCHAR`                       |
 | `image`            | `String`                   | `VARCHAR` — chemin du fichier   |
+| `audio`            | `String`                   | `VARCHAR` — chemin du fichier   |
+| `video`            | `String`                   | `VARCHAR` — chemin du fichier   |
 | `document`         | `String`                   | `VARCHAR` — chemin du fichier   |
 | `file`             | `String`                   | `VARCHAR` — chemin du fichier   |
 | `choice`           | `NomEnum`                  | colonne de l'enum — requiert `enum(NomEnum)`, rendu `<select>` |
@@ -398,13 +400,15 @@ model! {
 }
 ```
 
-| Type      | Extensions autorisées          |
-|-----------|--------------------------------|
-| `image`   | `jpg jpeg png gif webp avif`   |
-| `document`| `pdf doc docx txt odt`         |
-| `file`    | aucun filtre                   |
+| Type      | Extensions autorisées              | Champ de formulaire                       |
+|-----------|------------------------------------|-------------------------------------------|
+| `image`   | `jpg jpeg png gif webp avif`       | `MediaField::image` — contenu vérifié     |
+| `audio`   | `mp3 ogg oga wav m4a flac aac`     | `MediaField::audio` — contenu vérifié     |
+| `video`   | `mp4 webm mov ogv`                 | `MediaField::video` — contenu vérifié     |
+| `document`| `pdf doc docx txt odt`             | `FileField::document`                     |
+| `file`    | aucun filtre (sauf `.svg`)         | `FileField::any`                          |
 
-`upload_to:` est obligatoire pour les trois types. Le chemin est relatif à `MEDIA_ROOT`.
+`upload_to:` est obligatoire pour ces cinq types. Le chemin est relatif à `MEDIA_ROOT`. Voir [Champs](/docs/fr/formulaire/champs) pour le contrôle du contenu.
 
 ---
 

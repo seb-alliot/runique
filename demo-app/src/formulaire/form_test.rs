@@ -101,7 +101,7 @@ impl FormAccess for TestAllFieldsForm {
         form.field(&DurationField::new("f_duration").label("Durée (secondes)"));
         // ── File ──
         form.field(
-            &FileField::image("f_file_image")
+            &MediaField::image("f_file_image")
                 .label("Image")
                 .max_size_mb(5),
         );
