@@ -299,6 +299,18 @@ async fn both_writes_store_the_session_data_encrypted() {
     assert_eq!(store.open_session_data(&row).as_deref(), Some(SECRET_DATA));
 }
 
+/// A session removed meanwhile (a logout) is reported, not written back.
+#[tokio::test]
+async fn updating_a_session_without_a_row_reports_it() {
+    let store = make_store().await;
+    assert!(
+        !store
+            .update_session("gone", pk(1), future_expiry(), None)
+            .await
+            .unwrap()
+    );
+}
+
 #[tokio::test]
 async fn a_session_without_data_stays_without_data() {
     let store = make_store().await;

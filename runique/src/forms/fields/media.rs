@@ -834,6 +834,184 @@ mod tests {
         assert!(field.validate().await, "an .m4a is: {:?}", field.error());
     }
 
+    // Written from cargo-mutants survivors: `MediaField` delegates its upload to
+    // `UploadMedia`, and these delegations were only tested through `FileField`.
+
+    /// `set_value` then `validate`, as a real submission does, then `finalize`.
+    async fn finalized(field: &mut MediaField, staged: &str) {
+        field.set_value(staged);
+        assert!(field.validate().await, "{:?}", field.error());
+        field.finalize().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn publishing_moves_the_file_of_a_media_field_out_of_staging() {
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let staged = media.staged("ep.mp3", MP3_ID3);
+        let mut field = MediaField::audio("podcast");
+
+        finalized(&mut field, &staged).await;
+        assert_eq!(field.value(), "ep.mp3", "finalize stores the relative path");
+        assert!(Path::new(&staged).exists(), "not moved before the write");
+        assert!(!media.root.join("ep.mp3").exists());
+
+        field.publish_uploads().await.unwrap();
+        assert!(media.root.join("ep.mp3").exists());
+        assert!(!Path::new(&staged).exists());
+    }
+
+    #[tokio::test]
+    async fn rolling_back_takes_the_file_of_a_media_field_back_and_restores_the_value() {
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        fs::write(media.root.join("old.mp3"), MP3_ID3).unwrap();
+        let mut field = MediaField::audio("podcast");
+        field.set_value("old.mp3");
+
+        finalized(&mut field, &media.staged("new.mp3", MP3_ID3)).await;
+        field.publish_uploads().await.unwrap();
+        assert!(media.root.join("new.mp3").exists());
+
+        field.rollback_uploads().await;
+        assert!(!media.root.join("new.mp3").exists(), "taken back");
+        assert!(media.root.join("old.mp3").exists(), "the old file stays");
+        assert_eq!(field.value(), "old.mp3");
+    }
+
+    #[tokio::test]
+    async fn a_completed_upload_of_a_media_field_is_no_longer_taken_back() {
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let mut field = MediaField::audio("podcast");
+
+        finalized(&mut field, &media.staged("kept.mp3", MP3_ID3)).await;
+        field.publish_uploads().await.unwrap();
+        field.complete_uploads().await;
+
+        field.rollback_uploads().await;
+        assert!(media.root.join("kept.mp3").exists());
+        assert_eq!(field.value(), "kept.mp3");
+    }
+
+    #[tokio::test]
+    async fn a_media_field_only_takes_a_submitted_value_that_is_a_staged_upload() {
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let staged = media.staged("ep.mp3", MP3_ID3);
+
+        let mut field = MediaField::audio("podcast");
+        field.set_submitted_value(&staged);
+        assert_eq!(field.value(), staged);
+
+        let mut field = MediaField::audio("podcast");
+        field.set_submitted_value("/etc/passwd");
+        assert_eq!(field.value(), "", "a path sent as text is ignored");
+    }
+
+    #[test]
+    fn a_media_field_gives_its_path_as_its_column_value() {
+        let mut field = MediaField::audio("podcast");
+        assert_eq!(field.to_value(), Ok(None), "empty");
+        field.base.value = "ep.mp3".to_string();
+        assert_eq!(field.to_value(), Ok(Some(sea_orm::Value::from("ep.mp3"))));
+    }
+
+    #[test]
+    fn a_media_field_applies_the_size_cap_it_is_given() {
+        let mut field = MediaField::video("clip");
+        FormField::cap_max_size(&mut field, 100);
+        assert_eq!(field.upload.upload_config.max_size, Some(100));
+        FormField::cap_max_size(&mut field, 200);
+        assert_eq!(
+            field.upload.upload_config.max_size,
+            Some(100),
+            "a cap never raises the limit"
+        );
+    }
+
+    #[test]
+    fn only_more_than_one_file_makes_the_input_multiple() {
+        for (count, multiple) in [(0, false), (1, false), (2, true)] {
+            let field = MediaField::image("photo").max_files(count);
+            assert_eq!(
+                field.base.html_attributes.contains_key("multiple"),
+                multiple,
+                "{count}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_template_learns_whether_several_files_are_allowed() {
+        let mut tera = tera::Tera::default();
+        tera.add_raw_template("base_file.html", "{{ multiple }}")
+            .unwrap();
+        let tera = std::sync::Arc::new(tera);
+        for (field, multiple) in [
+            (MediaField::image("photo"), "false"),
+            (MediaField::image("photo").max_files(1), "false"),
+            (MediaField::image("photo").max_files(2), "true"),
+        ] {
+            assert_eq!(field.render(&tera).unwrap(), multiple);
+        }
+    }
+
+    /// One limit alone is enough to measure the image: a `max_width` without
+    /// `max_height`, or the reverse, must not skip the check.
+    #[tokio::test]
+    async fn a_single_dimension_limit_is_enforced() {
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let photo = |name: &str| {
+            let path = media.staging.join(name);
+            image::RgbImage::new(8, 2).save(&path).unwrap();
+            path.to_string_lossy().into_owned()
+        };
+        let checked = async |name: &str, width: Option<u32>, height: Option<u32>| {
+            let mut field = MediaField::image("photo");
+            field.max_width = width;
+            field.max_height = height;
+            field.set_value(&photo(name));
+            field.validate().await
+        };
+
+        assert!(!checked("wide.png", Some(4), None).await, "too wide");
+        assert!(!checked("tall.png", None, Some(1)).await, "too tall");
+        assert!(
+            checked("w_ok.png", Some(8), None).await,
+            "width at the limit"
+        );
+        assert!(
+            checked("h_ok.png", None, Some(2)).await,
+            "height at the limit"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_signature_needs_every_one_of_its_bytes() {
+        const FRAME_LOW: &[u8] = &[0xFF, 0x00, 0, 0];
+        const FRAME_HIGH: &[u8] = &[0x00, 0xE0, 0, 0];
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let cases: [(&str, &[u8], bool); 6] = [
+            ("three.mp3", b"ID3", false),
+            ("four.ogg", b"OggS", true),
+            ("frame_low.mp3", FRAME_LOW, false),
+            ("frame_high.mp3", FRAME_HIGH, false),
+            ("riff_avi.wav", b"RIFF\x24\x00\x00\x00AVI ", false),
+            ("no_riff.wav", b"JUNK\x24\x00\x00\x00WAVE", false),
+        ];
+        for (name, bytes, accepted) in cases {
+            let path = media.staged(name, bytes);
+            assert_eq!(
+                has_av_signature(&path, MediaKind::Audio).await,
+                accepted,
+                "{name}"
+            );
+        }
+    }
+
     #[test]
     fn each_kind_starts_from_its_own_extension_list() {
         let exts = |f: MediaField| f.upload.allowed_extensions.extensions;
