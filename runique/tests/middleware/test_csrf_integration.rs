@@ -19,6 +19,27 @@ async fn fresh_app() -> axum::Router {
 
 // ── oneshot tests (isolated, no session persistence) ──────────────────────────
 
+/// A GET carrying `csrf_token` in its query is redirected to the same URL
+/// without it — the other parameters kept, so the token never lingers in the
+/// browser's history or a referrer.
+#[tokio::test]
+async fn test_csrf_get_query_token_is_stripped_other_params_kept() {
+    let resp = request::get(fresh_app().await, "/?page=2&csrf_token=abc&sort=asc").await;
+    assert_status(&resp, 302);
+    assert_eq!(
+        resp.headers().get("location").and_then(|v| v.to_str().ok()),
+        Some("/?page=2&sort=asc")
+    );
+
+    let resp = request::get(fresh_app().await, "/?csrf_token=abc").await;
+    assert_status(&resp, 302);
+    assert_eq!(
+        resp.headers().get("location").and_then(|v| v.to_str().ok()),
+        Some("/"),
+        "only the token: the bare path"
+    );
+}
+
 #[tokio::test]
 async fn test_csrf_get_retourne_200_et_header_token() {
     let resp = request::get(fresh_app().await, "/").await;

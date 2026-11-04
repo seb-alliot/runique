@@ -1211,6 +1211,29 @@ mod finalize_tests {
         assert_eq!(forms.fields["doc"].value(), "old.png");
     }
 
+    /// Once the write committed, the upload is settled: a rollback asked
+    /// afterwards (a later failure in the handler) neither removes the moved
+    /// file nor brings the previous value back.
+    #[tokio::test]
+    async fn a_completed_upload_is_no_longer_taken_back() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let staged = media.staged("new.png", b"new bytes");
+        let mut field = FileField::any("doc");
+        field.set_value("old.png");
+        field.set_value(&staged);
+        field.finalize().await.unwrap();
+
+        let mut forms = crate::forms::form::Forms::new("");
+        forms.field(&field);
+        forms.publish_uploads().await.unwrap();
+        forms.complete_uploads().await;
+        forms.rollback_uploads().await;
+
+        assert!(media.root.join("new.png").exists(), "settled: kept");
+        assert_eq!(forms.fields["doc"].value(), "new.png");
+    }
+
     #[tokio::test]
     async fn the_upload_moves_after_the_write_and_before_the_commit() {
         use sea_orm::TransactionTrait;

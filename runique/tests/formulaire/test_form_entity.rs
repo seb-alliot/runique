@@ -43,6 +43,24 @@ mod groups {
     }
 }
 
+mod typed {
+    use runique::prelude::*;
+
+    model! {
+        Typed,
+        table: "fe_typed",
+        pk: id => i32,
+        {
+            title: text [max_length: 20, required],
+            views: int [nullable],
+        }
+    }
+}
+
+#[runique::prelude::form(schema = typed, fields = All)]
+pub struct TypedForm;
+impl runique::forms::RuniqueForm for TypedForm {}
+
 #[runique::prelude::form(schema = blog, fields = All)]
 pub struct SchemaForm;
 impl runique::forms::RuniqueForm for SchemaForm {}
@@ -137,4 +155,46 @@ async fn search_on_a_schema_form_returns_the_matching_row_only() {
         .unwrap();
     assert_eq!(not_b.len(), 2);
     assert!(not_b.iter().all(|r| r.title != "b"));
+}
+
+/// Each field of a schema form knows its column's type, as a handler gets the
+/// form (`request.form()`, then `try_form`): the type `is_valid` checks a
+/// value against before the write, and the one `cleaned` could check against.
+#[cfg(feature = "test-utils")]
+#[tokio::test]
+async fn a_schema_form_types_each_field_like_its_column() {
+    use crate::helpers::{handler_req::build_handler_req, server::build_engine};
+    use runique::forms::field::FormAccess;
+    use runique::prelude::ValidationForm;
+    use runique::sea_orm::ColumnTrait;
+
+    let request = build_handler_req(
+        build_engine().await,
+        None,
+        std::collections::HashMap::new(),
+        axum::http::Method::GET,
+    )
+    .await;
+    let columns = [("title", typed::Column::Title), ("views", typed::Column::Views)];
+
+    let form: TypedForm = request.form();
+    for (name, column) in &columns {
+        assert_eq!(
+            form.forms().fields[*name].column_type(),
+            Some(column.def().get_column_type()),
+            "after request.form(): {name}"
+        );
+    }
+
+    let form = ValidationForm::try_form(form, &request, "typed")
+        .await
+        .err()
+        .expect("a bare GET never validates");
+    for (name, column) in &columns {
+        assert_eq!(
+            form.forms().fields[*name].column_type(),
+            Some(column.def().get_column_type()),
+            "after try_form: {name}"
+        );
+    }
 }
