@@ -70,9 +70,9 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
     let mut validated = match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(validated) => validated,
         Err(form) => {
-            // GET (rien soumis) : formulaire vierge, pas de flash.
-            // Soumis mais invalide : ré-affichage avec le flash d'erreur.
-            if request.method.is_safe() {
+            // Pas envoyé (premier affichage) : formulaire vierge, pas de flash.
+            // Envoyé mais invalide : ré-affichage avec le flash d'erreur.
+            if !form.is_submitted() {
                 context_update!(request => {
                     "title" => "Inscription",
                     "register_form" => &form,

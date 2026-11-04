@@ -16,7 +16,6 @@ What Runique 4.0 doesn't do yet, or does with a restriction. Each line points to
 
 | Limit | Details |
 | --- | --- |
-| Several forms on one page: `request.method.is_safe()` doesn't tell which one was sent (the global message would show under all of them) | [RuniqueForm trait](/docs/en/formulaire/trait) |
 | A failed session write loses the flash message silently | [Flash macros](/docs/en/flash/macros) |
 | A published file followed by a hard stop before the database commit can leave an orphan file | [Fields](/docs/en/formulaire/fields) |
 

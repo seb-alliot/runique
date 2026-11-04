@@ -15,6 +15,7 @@ pub const SIMPLE_TEMPLATES: &[(&str, &str)] = tpls![
     ("503.html", "errors/503.html"),
     ("debug.html", "errors/debug_error.html"),
     ("csrf.html", "csrf/csrf.html"),
+    ("csrf_js.html", "csrf/csrf_js.html"),
     ("csp.html", "csp/csp.html"),
     ("js_files.html", "asset/js.html"),
 ];

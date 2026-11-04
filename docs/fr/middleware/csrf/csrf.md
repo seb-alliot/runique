@@ -89,14 +89,13 @@ Runique gère ça à deux niveaux :
   recrée une). L'utilisateur ne perd jamais sa saisie et ne voit l'échec CSRF que si le
   réseau est indisponible au moment de soumettre.
 
-Ce script n'est **pas chargé automatiquement** dans les templates d'une application — à
-inclure explicitement dans votre layout de base :
+Runique **ajoute ce script lui-même** : `request.render()` insère une seule balise avant `</body>`, avec le nonce CSP de la requête, dans toute page qui contient un champ CSRF, quelle qu'en soit l'origine (un formulaire Runique, `{% csrf %}`, le filtre `csrf_field` ou la fonction `csrf_token`). Une page à plusieurs formulaires reçoit une seule balise. Rien n'est ajouté à une page sans champ CSRF, à une page qui charge déjà `js/csrf.js`, ni à un fragment sans `</body>` (réponse HTMX).
+
+Seule une page **sans formulaire** qui envoie des `fetch` en POST, ou une réponse HTML construite sans `request.render()`, doit l'inclure elle-même :
 
 ```html
 <script {% csp %} src="{% runique_static "js/csrf.js" %}" defer></script>
 ```
-
-(le panel admin le charge déjà lui-même, via `{% runique_static %}`).
 
 ---
 

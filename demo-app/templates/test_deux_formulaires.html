@@ -1,0 +1,51 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href="{% static "css/test_deux_formulaires.css" %}">
+{% endblock %}
+
+{% block content %}
+<div class="test-deux-formulaires">
+    <h1>Test temporaire : deux formulaires en POST</h1>
+    <p class="sous-titre">Méthode de la requête : <span class="methode">{{ methode }}</span></p>
+
+    <section class="carte tableau">
+        <table>
+            <tr>
+                <th>Formulaire</th>
+                <th><code>try_form</code></th>
+                <th><code>request.method.is_safe()</code></th>
+                <th><code>form.is_submitted()</code></th>
+                <th>Erreurs de champ</th>
+            </tr>
+            {% for c in constats %}
+            <tr>
+                <td><strong>{{ c.formulaire }}</strong></td>
+                <td><span class="pastille {% if c.resultat == "Ok" %}oui{% else %}non{% endif %}">{{ c.resultat }}</span></td>
+                <td><span class="pastille {% if c.methode_sure %}oui{% else %}non{% endif %}">{{ c.methode_sure }}</span></td>
+                <td><span class="pastille {% if c.is_submitted %}oui{% else %}non{% endif %}">{{ c.is_submitted }}</span></td>
+                <td>{{ c.erreurs_de_champ }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </section>
+
+    <section class="formulaires">
+        <div class="carte">
+            <h2>login</h2>
+            <form method="post">
+                {% form.login_form %}
+                <button type="submit">Envoyer login</button>
+            </form>
+        </div>
+        <div class="carte">
+            <h2>email</h2>
+            <form method="post">
+                {% form.email_form %}
+                <button type="submit">Envoyer email</button>
+            </form>
+        </div>
+    </section>
+</div>
+{% endblock %}

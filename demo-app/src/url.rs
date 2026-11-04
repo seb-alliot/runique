@@ -15,10 +15,15 @@ use crate::views::{
 };
 
 use runique::prelude::*;
+// TEMPORAIRE — à supprimer avec src/test_deux_formulaires.rs.
+use crate::test_deux_formulaires::deux_formulaires;
 
 pub fn routes() -> Routes {
     urlpatterns! {
         "/"                              => view!{ index },                   name = "index",
+
+        // TEMPORAIRE — à supprimer avec src/test_deux_formulaires.rs.
+        "/test/deux-formulaires"         => view! { deux_formulaires },       name = "test_deux_formulaires",
 
         // Auth
         // POST only, with the page's CSRF token: a GET could be triggered by another site.

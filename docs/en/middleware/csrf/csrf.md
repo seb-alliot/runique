@@ -74,14 +74,13 @@ Runique handles this at two levels:
   The user never loses what they typed, and only sees the CSRF failure if the network is
   down at the moment of submission.
 
-This script is **not loaded automatically** in an application's templates — include it
-explicitly in your base layout:
+Runique **adds this script itself**: `request.render()` inserts a single tag before `</body>`, with the request's CSP nonce, into every page that carries a CSRF field, whatever wrote it (a Runique form, `{% csrf %}`, the `csrf_field` filter or the `csrf_token` function). A page with several forms gets one tag. Nothing is added to a page without a CSRF field, to a page already loading `js/csrf.js`, or to a fragment without `</body>` (HTMX response).
+
+Only a page **without a form** that sends `fetch` POSTs, or an HTML response built without `request.render()`, has to include it itself:
 
 ```html
 <script {% csp %} src="{% runique_static "js/csrf.js" %}" defer></script>
 ```
-
-(the admin panel already loads it itself, via `{% runique_static %}`).
 
 ---
 
