@@ -3718,3 +3718,96 @@ async fn render_admin_pages() {
     }
     eprintln!("pages written to {}", out.canonicalize().unwrap().display());
 }
+
+// ── An account's rank and groups, read-only ──────────────────────────────────
+
+/// The sign-in alone: `routes()` replaces the accounts' detail page.
+fn sign_in_routes() -> Routes {
+    runique::urlpatterns! {
+        "/sign-in/{n}" => get(sign_in), name = "declared_test_sign_in",
+    }
+}
+
+#[tokio::test]
+#[serial]
+async fn the_accounts_list_shows_each_rank_and_group() {
+    let base = spawn_with("", sign_in_routes()).await;
+    let client = signed_in(&base, SUPERUSER).await;
+
+    let html = text(&client, format!("{base}/secret-admin/users/list")).await;
+
+    for rank in ["superuser", "admin", "lambda"] {
+        assert!(
+            html.contains(&format!(r#"data-account-rank="{rank}""#)),
+            "{rank}"
+        );
+    }
+    assert!(
+        !html.contains(r#"data-account-rank="dirigeant""#),
+        "nobody is"
+    );
+    assert!(html.contains(">relecteurs<"), "a member's group");
+}
+
+#[tokio::test]
+#[serial]
+async fn the_account_page_shows_its_rank_and_groups_and_nobody_elses() {
+    let base = spawn_with("", sign_in_routes()).await;
+    let client = signed_in(&base, SUPERUSER).await;
+
+    let staff = text(
+        &client,
+        format!("{base}/secret-admin/users/{}/detail", pk(STAFF_MEMBER)),
+    )
+    .await;
+    assert!(staff.contains(r#"data-account-rank="lambda""#));
+    assert!(staff.contains(">relecteurs<"));
+    assert!(!staff.contains(">orphelins<"), "another account's group");
+
+    let member = text(
+        &client,
+        format!("{base}/secret-admin/users/{}/detail", pk(MEMBER)),
+    )
+    .await;
+    assert!(!member.contains("data-account-group"), "no group");
+
+    let admin = text(
+        &client,
+        format!("{base}/secret-admin/users/{}/detail", pk(ADMIN)),
+    )
+    .await;
+    assert!(admin.contains(r#"data-account-rank="admin""#));
+}
+
+/// Puts markup in a group's name, as someone with the right to edit it could.
+async fn rename_group(req: Request) -> &'static str {
+    use runique::sea_orm::{ConnectionTrait, Statement};
+    let db = &req.engine.db;
+    db.execute_raw(Statement::from_string(
+        db.get_database_backend(),
+        "UPDATE eihwaz_groupes SET nom = '<b>x</b>' WHERE nom = 'relecteurs'",
+    ))
+    .await
+    .unwrap();
+    "renamed"
+}
+
+/// A group's name is typed by staff: it comes out escaped.
+#[tokio::test]
+#[serial]
+async fn a_group_name_is_escaped_on_the_accounts_pages() {
+    let routes = sign_in_routes().merge(runique::urlpatterns! {
+        "/rename-group" => get(rename_group), name = "declared_test_rename_group",
+    });
+    let base = spawn_with("", routes).await;
+    let client = signed_in(&base, SUPERUSER).await;
+    assert_eq!(
+        text(&client, format!("{base}/rename-group")).await,
+        "renamed"
+    );
+
+    let html = text(&client, format!("{base}/secret-admin/users/list")).await;
+
+    assert!(!html.contains("<b>x</b>"));
+    assert!(html.contains("&lt;b&gt;x&lt;"));
+}

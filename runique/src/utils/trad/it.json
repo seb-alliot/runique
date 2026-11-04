@@ -305,6 +305,8 @@
       "my_groups_none": "Questo gruppo non dà alcun diritto sulle tabelle."
     },
     "list": {
+      "rank_label": "Rango",
+      "groups_label": "Gruppi",
       "entries_count_one": "voce",
       "entries_count_many": "voci",
       "btn_create": "Crea",
@@ -519,6 +521,7 @@
       "group_sheet": "Scheda del gruppo"
     },
     "rank": {
+      "superuser": "Superutente",
       "lambda": "Account del sito",
       "admin": "Admin",
       "dirigeant": "Dirigente",

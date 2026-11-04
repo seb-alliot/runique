@@ -9,6 +9,7 @@
 //! Every link comes built: a page never assembles a URL from a route name
 //! or the admin's prefix. A link the account may not follow is `None`, and
 //! its button isn't shown; the gate decides again on the page it leads to.
+use crate::admin::router::account::summary::AccountSummary;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::utils::aliases::{AppResult, StrMap};
@@ -86,6 +87,8 @@ pub struct ListEntry {
     pub links: RowLinks,
     /// On a group taken back after a departure: who took it.
     pub taken_by: Option<String>,
+    /// On an account: its rank and groups.
+    pub account: Option<AccountSummary>,
 }
 
 /// `admin/list.html` and its HTMX part `admin/list_partial.html`.
@@ -175,6 +178,8 @@ pub struct DetailContext {
     /// On a group taken back after a departure: who took it. Shown as
     /// "a responsable is to be named".
     pub taken_by: Option<String>,
+    /// On an account: its rank and groups.
+    pub account: Option<AccountSummary>,
 }
 
 /// One of the signed-in account's groups, on the dashboard.

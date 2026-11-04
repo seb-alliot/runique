@@ -305,6 +305,8 @@
       "my_groups_none": "このグループはテーブルへの権限を与えません。"
     },
     "list": {
+      "rank_label": "ランク",
+      "groups_label": "グループ",
       "entries_count_one": "件",
       "entries_count_many": "件",
       "btn_create": "作成",
@@ -519,6 +521,7 @@
       "group_sheet": "グループの詳細"
     },
     "rank": {
+      "superuser": "スーパーユーザー",
       "lambda": "サイトのアカウント",
       "admin": "管理者",
       "dirigeant": "責任者",

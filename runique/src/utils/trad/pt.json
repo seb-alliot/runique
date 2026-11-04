@@ -305,6 +305,8 @@
       "my_groups_none": "Este grupo não dá nenhum direito sobre as tabelas."
     },
     "list": {
+      "rank_label": "Nível",
+      "groups_label": "Grupos",
       "entries_count_one": "entrada",
       "entries_count_many": "entradas",
       "btn_create": "Criar",
@@ -519,6 +521,7 @@
       "group_sheet": "Ficha do grupo"
     },
     "rank": {
+      "superuser": "Superusuário",
       "lambda": "Conta do site",
       "admin": "Admin",
       "dirigeant": "Diretor",

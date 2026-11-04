@@ -305,6 +305,8 @@
       "my_groups_none": "Эта группа не даёт прав на таблицы."
     },
     "list": {
+      "rank_label": "Ранг",
+      "groups_label": "Группы",
       "entries_count_one": "запись",
       "entries_count_many": "записей",
       "btn_create": "Создать",
@@ -519,6 +521,7 @@
       "group_sheet": "Карточка группы"
     },
     "rank": {
+      "superuser": "Суперпользователь",
       "lambda": "Учётная запись сайта",
       "admin": "Администратор",
       "dirigeant": "Руководитель",

@@ -56,6 +56,8 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     "admin.list.entries_count_one",
     "admin.list.entries_count_many",
     "admin.list.btn_create",
+    "admin.list.rank_label",
+    "admin.list.groups_label",
     "admin.list.th_id",
     "admin.list.th_actions",
     "admin.list.bool_true",

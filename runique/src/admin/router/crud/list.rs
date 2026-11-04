@@ -75,7 +75,28 @@ pub(crate) async fn list_view(
             values,
             links,
             taken_by: None,
+            account: None,
         });
+    }
+    if model.is_account_table() {
+        let ids: Vec<crate::utils::pk::Pk> =
+            entries.iter().filter_map(|e| e.id.parse().ok()).collect();
+        match crate::admin::router::account::summary::account_summaries(&req.engine.db, &ids).await
+        {
+            Ok(mut summaries) => {
+                for entry in &mut entries {
+                    entry.account = entry.id.parse().ok().and_then(|id| summaries.remove(&id));
+                }
+            }
+            Err(e) => {
+                return failure(
+                    crate::admin::builder::registered::AdminError::Db(e),
+                    &req,
+                    &admin,
+                )
+                .await;
+            }
+        }
     }
     if key == crate::utils::constante::resource_key::GROUPES {
         let ids: Vec<i32> = entries.iter().filter_map(|e| e.id.parse().ok()).collect();

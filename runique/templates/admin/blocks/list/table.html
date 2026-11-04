@@ -54,6 +54,16 @@
                 {% endif %}
               </div>
             {% endfor %}
+            {% if entry.account %}
+              <div class="admin-list__field">
+                <span class="admin-list__field-label">{{ admin_list_rank_label }}</span>
+                <span class="admin-badge {% if entry.account.rank == "superuser" %}admin-badge--red{% elif entry.account.rank == "dirigeant" %}admin-badge--yellow{% elif entry.account.rank == "admin" %}admin-badge--blue{% else %}admin-badge--neutral{% endif %}" data-account-rank="{{ entry.account.rank }}">{{ entry.account.rank_label }}</span>
+              </div>
+              <div class="admin-list__field">
+                <span class="admin-list__field-label">{{ admin_list_groups_label }}</span>
+                {% if entry.account.groups | length > 0 %}<span class="admin-badge admin-badge--neutral" data-account-group>{{ entry.account.groups | join(sep=", ") }}</span>{% else %}<span class="admin-text--muted">—</span>{% endif %}
+              </div>
+            {% endif %}
           </div>
         </div>
       {% endfor %}
