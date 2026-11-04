@@ -325,10 +325,13 @@ async fn try_form_with_its_name_still_reports_field_errors() {
 
     match ValidationForm::try_form(form, &request, "search").await {
         Ok(_) => panic!("the sent form with a missing required field must not validate"),
-        Err(form) => assert!(
-            form.forms().has_errors(),
-            "the sent form must show its own validation errors"
-        ),
+        Err(form) => {
+            assert!(
+                form.forms().has_errors(),
+                "the sent form must show its own validation errors"
+            );
+            assert!(form.is_submitted(), "sent and refused: its message shows");
+        }
     }
 }
 
@@ -341,10 +344,16 @@ async fn try_form_with_another_name_is_err_without_field_errors() {
 
     match ValidationForm::try_form(form, &request, "search").await {
         Ok(_) => panic!("a POST sent by another form must not validate this one"),
-        Err(form) => assert!(
-            !form.forms().has_errors(),
-            "is_valid() must not run on a form that wasn't sent"
-        ),
+        Err(form) => {
+            assert!(
+                !form.forms().has_errors(),
+                "is_valid() must not run on a form that wasn't sent"
+            );
+            assert!(
+                !form.is_submitted(),
+                "another form was sent, not this one, POST or not"
+            );
+        }
     }
 }
 
@@ -357,8 +366,56 @@ async fn try_form_without_any_name_is_err_without_field_errors() {
 
     match ValidationForm::try_form(form, &request, "search").await {
         Ok(_) => panic!("a POST carrying no form name must bind no named form"),
-        Err(form) => assert!(!form.forms().has_errors()),
+        Err(form) => {
+            assert!(!form.forms().has_errors());
+            assert!(!form.is_submitted());
+        }
     }
+}
+
+/// Two forms filled from one POST: only the one whose name came back is
+/// submitted, so a handler shows the error message under that one only.
+#[tokio::test]
+async fn of_two_forms_only_the_one_sent_is_submitted() {
+    let engine = build_engine().await;
+    let data = named_data(Some("search"), None);
+    let request = build_handler_req(engine, None, data, Method::POST).await;
+    let sent: SearchForm = request.form();
+    let other: SearchForm = request.form();
+
+    let Err(sent) = ValidationForm::try_form(sent, &request, "search").await else {
+        panic!("missing required field: refused");
+    };
+    let Err(other) = ValidationForm::try_form(other, &request, "filter").await else {
+        panic!("not sent: not validated");
+    };
+    assert!(sent.is_submitted());
+    assert!(!other.is_submitted());
+}
+
+/// A GET search sent with its name but no value stays unsent: no
+/// "required" error on the first display, as `fill` decided.
+#[tokio::test]
+async fn a_get_search_sent_empty_stays_unsent() {
+    let engine = build_engine().await;
+    let empty = named_data(Some("search"), Some(""));
+    let request = build_handler_req(engine.clone(), None, empty, Method::GET).await;
+    let form: SearchForm = request.form();
+    let Err(form) = ValidationForm::try_form(form, &request, "search").await else {
+        panic!("nothing to validate");
+    };
+    assert!(!form.is_submitted());
+    assert!(!form.forms().has_errors());
+
+    let filled = named_data(Some("search"), Some("rust"));
+    let request = build_handler_req(engine, None, filled, Method::GET).await;
+    let form: SearchForm = request.form();
+    assert!(
+        ValidationForm::try_form(form, &request, "search")
+            .await
+            .is_ok(),
+        "with a value it is sent, and validates"
+    );
 }
 
 #[tokio::test]

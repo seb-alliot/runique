@@ -56,10 +56,9 @@ pub async fn handle_inscription(request: &mut Request, form: RegisterForm) -> Ap
     let mut validated = match ValidationForm::try_form(form, request, "inscription").await {
         Ok(validated) => validated,
         Err(form) => {
-            // GET (nothing submitted yet): blank form, no flash. Submitted but
-            // invalid (POST, or PUT/DELETE/PATCH since `view!{}` registers all
-            // methods on this route): re-render with the validation-error flash.
-            if request.method.is_safe() {
+            // Not sent (first display): blank form, no flash. Sent but
+            // invalid: re-render with the validation-error flash.
+            if !form.is_submitted() {
                 context_update!(request => {
                     "title"            => "User registration",
                     "inscription_form" => &form,

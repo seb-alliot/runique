@@ -37,17 +37,24 @@ impl<F: RuniqueForm> ValidationForm<F> {
     ///
     /// A submission carrying another name (another form on the same page), or
     /// none, returns `Err(form)` without running `is_valid()`: no field error is
-    /// set on a form the user didn't send. On a failed validation, `form` comes
-    /// back with its field errors so the caller can re-render it.
+    /// set on a form the user didn't send, and its `is_submitted()` is false. On
+    /// a failed validation, `form` comes back with its field errors so the
+    /// caller can re-render it — `is_submitted()` true, to show its message:
+    ///
+    /// ```rust,ignore
+    /// Err(form) if form.is_submitted() => { /* sent and refused: errors + message */ }
+    /// Err(form) => { /* not sent: plain display */ }
+    /// ```
     pub async fn try_form(mut form: F, request: &Request, name: &'static str) -> Result<Self, F> {
         form.register_dynamic_fields(request).await;
         form.forms_mut().set_name(name);
 
+        let sent = request.prisme.data.get(FORM_NAME_KEY).map(String::as_str) == Some(name);
+        form.forms_mut().keep_submitted_if(sent);
         let validate = match request.method.is_safe() {
             true => form.allow_get(request),
             false => form.allow_post(request),
         };
-        let sent = request.prisme.data.get(FORM_NAME_KEY).map(String::as_str) == Some(name);
 
         if validate && sent && form.is_valid().await {
             Ok(Self { form })

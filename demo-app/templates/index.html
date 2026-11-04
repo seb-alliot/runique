@@ -75,6 +75,7 @@
             <a href="{% link "changelog" %}">Changelog</a>
             <a href="{% link "contribution_list" %}">Contribute</a>
             <a href="{% link "rust_django_framework" %}">Runique</a>
+            <a href="{% link "test_deux_formulaires" %}">Test-2-form</a>
             {% if user %}
                 {% if user.rang != "Lambda" %}
             <a href="{% link "search-user" %}">User Search</a>
@@ -132,7 +133,6 @@
     </footer>
     <script {% csp %} src="{% static "js/theme.js" %}"></script>
     <script {% csp %} src="{% static "js/site_nav.js" %}"></script>
-    <script {% csp %} src="{% runique_static "js/csrf.js" %}" defer></script>
     {% if not debug %}
     {% else %}
     <script defer {% csp %} src="https://static.cloudflareinsights.com/beacon.min.js"

@@ -191,11 +191,13 @@ pub trait RuniqueForm: FormAccess {
     /// before dispatching to `allow_get`/`allow_post`.
     async fn register_dynamic_fields(&mut self, _request: &Request) {}
 
-    /// Whether this form has been submitted — `true` unconditionally once a
-    /// POST-class request is reached, `true` for a GET-class request only
-    /// once its fields actually carry data (thin wrapper over
-    /// `Forms::is_submitted()`, exposed here so external forms never need to
-    /// reach into `Forms` directly to opt into `allow_get`, below).
+    /// Whether this form has been submitted — `true` once a POST-class request
+    /// is reached, `true` for a GET-class request only once its fields
+    /// actually carry data. After [`ValidationForm::try_form`](crate::forms::ValidationForm::try_form),
+    /// only for the form whose name came back: on `Err(form)`, it tells a form
+    /// sent and refused (show the error message) from one not sent (the first
+    /// display, or another form of the page). Thin wrapper over
+    /// `Forms::is_submitted()`, so external forms never reach into `Forms`.
     fn is_submitted(&self) -> bool {
         self.forms().is_submitted()
     }

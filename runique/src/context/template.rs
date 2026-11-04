@@ -235,6 +235,32 @@ where
     }
 }
 
+/// A page that carries a CSRF field — whatever wrote it: a form, `{% csrf %}`,
+/// the `csrf_field` filter or the `csrf_token` function — gets `csrf.js` once,
+/// before `</body>`, with the request's nonce: it refreshes the token right
+/// before a form is sent (a tab left open, a restart). Left as it is: a page
+/// without a CSRF field, one already loading the script, or a fragment with
+/// no `</body>`.
+fn with_csrf_script(html: String, tera: &tera::Tera, context: &Context) -> String {
+    if !html.contains(r#"name="csrf_token""#) || html.contains("js/csrf.js") {
+        return html;
+    }
+    let Some(end) = html.rfind("</body>") else {
+        return html;
+    };
+    match tera.render("csrf_js.html", context) {
+        Ok(script) => {
+            let mut html = html;
+            html.insert_str(end, &script);
+            html
+        }
+        Err(e) => {
+            error!(error = %e, "csrf.js tag not rendered");
+            html
+        }
+    }
+}
+
 impl Request {
     /// Builds a bare `Request` outside of the normal `FromRequest` extraction path
     /// (e.g. for tests or internally-constructed requests), with empty path/query
@@ -285,7 +311,9 @@ impl Request {
             // This applies Regex on {% messages %}, {% form.xxx %}, etc.
             match TemplateLoader::init(&self.engine.config, self.engine.url_registry.clone()) {
                 Ok(dev_tera) => {
-                    let res = dev_tera.render(template, &self.context);
+                    let res = dev_tera
+                        .render(template, &self.context)
+                        .map(|html| with_csrf_script(html, &dev_tera, &self.context));
                     if let Err(ref e) = res {
                         // Detailed log of the Tera error with all sources
                         error!(
@@ -322,7 +350,10 @@ impl Request {
             }
         } else {
             // Production mode: uses the already transformed instance
-            self.engine.tera.render(template, &self.context)
+            self.engine
+                .tera
+                .render(template, &self.context)
+                .map(|html| with_csrf_script(html, &self.engine.tera, &self.context))
         };
 
         html_result
@@ -629,5 +660,72 @@ mod admin_constraint_tests {
         assert_eq!(gated_as(&gated.forms().save_comportement), Some(pk(7)));
         let open = extracted(Method::GET, None).await.form::<ProbeForm>();
         assert_eq!(gated_as(&open.forms().save_comportement), None);
+    }
+}
+
+#[cfg(test)]
+mod csrf_script_tests {
+    use super::with_csrf_script;
+    use tera::{Context, Tera};
+
+    const SCRIPT: &str = r#"<script nonce="n1" src="/js/csrf.js" defer></script>"#;
+
+    fn tera() -> Tera {
+        let mut tera = Tera::default();
+        tera.add_raw_template(
+            "csrf_js.html",
+            r#"<script nonce="{{ csp_nonce }}" src="/js/csrf.js" defer></script>"#,
+        )
+        .unwrap();
+        tera
+    }
+
+    fn context() -> Context {
+        let mut context = Context::new();
+        context.insert("csp_nonce", "n1");
+        context
+    }
+
+    fn page(body: &str) -> String {
+        format!("<html><body>{body}</body></html>")
+    }
+
+    const FIELD: &str = r#"<input type="hidden" name="csrf_token" value="t">"#;
+
+    #[test]
+    fn a_page_with_a_csrf_field_gets_the_script_once_before_body_end() {
+        let out = with_csrf_script(page(FIELD), &tera(), &context());
+        assert_eq!(out, page(&format!("{FIELD}{SCRIPT}")));
+    }
+
+    #[test]
+    fn two_forms_still_get_a_single_script() {
+        let out = with_csrf_script(page(&format!("{FIELD}{FIELD}")), &tera(), &context());
+        assert_eq!(out.matches("js/csrf.js").count(), 1);
+    }
+
+    #[test]
+    fn a_page_without_a_csrf_field_is_left_as_it_is() {
+        let html = page("<p>hello</p>");
+        assert_eq!(with_csrf_script(html.clone(), &tera(), &context()), html);
+    }
+
+    #[test]
+    fn a_page_already_loading_the_script_is_left_as_it_is() {
+        let html = page(&format!("{FIELD}{SCRIPT}"));
+        assert_eq!(with_csrf_script(html.clone(), &tera(), &context()), html);
+    }
+
+    #[test]
+    fn a_fragment_without_body_end_is_left_as_it_is() {
+        let html = FIELD.to_string();
+        assert_eq!(with_csrf_script(html.clone(), &tera(), &context()), html);
+    }
+
+    #[test]
+    fn the_script_goes_before_the_last_body_end() {
+        let html = format!("<html><body>{FIELD}<pre>&lt;/body&gt;</pre></body></html>");
+        let out = with_csrf_script(html, &tera(), &context());
+        assert!(out.ends_with(&format!("{SCRIPT}</body></html>")));
     }
 }

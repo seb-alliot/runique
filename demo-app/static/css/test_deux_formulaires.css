@@ -1,0 +1,84 @@
+/* TEMPORAIRE — page de test à deux formulaires, à supprimer avec
+   src/test_deux_formulaires.rs et templates/test_deux_formulaires.html. */
+.test-deux-formulaires {
+    --fond: #f5f6f8;
+    --carte: #ffffff;
+    --texte: #1f2430;
+    --discret: #6b7280;
+    --bord: #e3e6eb;
+    --accent: #b7410e;
+    --oui-fond: #e7f6ec;
+    --oui-texte: #17663a;
+    --non-fond: #fdecec;
+    --non-texte: #a12a2a;
+}
+@media (prefers-color-scheme: dark) {
+    .test-deux-formulaires {
+        --fond: #15171c;
+        --carte: #1e2128;
+        --texte: #e6e8ec;
+        --discret: #9aa1ad;
+        --bord: #2e333d;
+        --oui-fond: #16341f;
+        --oui-texte: #7bd99b;
+        --non-fond: #3a1a1a;
+        --non-texte: #f19c9c;
+    }
+}
+.test-deux-formulaires {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    color: var(--texte);
+}
+.test-deux-formulaires * { box-sizing: border-box; }
+.test-deux-formulaires h1 { margin: 0 0 .25rem; font-size: 1.6rem; }
+.test-deux-formulaires .sous-titre { margin: 0 0 1.5rem; color: var(--discret); }
+.test-deux-formulaires .methode {
+    display: inline-block;
+    padding: .1rem .5rem;
+    border-radius: 4px;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    font-size: .85rem;
+}
+.test-deux-formulaires .carte {
+    background: var(--carte);
+    border: 1px solid var(--bord);
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+.test-deux-formulaires .tableau { overflow-x: auto; }
+.test-deux-formulaires table { width: 100%; border-collapse: collapse; }
+.test-deux-formulaires th, .test-deux-formulaires td { padding: .6rem .75rem; text-align: left; border-bottom: 1px solid var(--bord); }
+.test-deux-formulaires th { font-size: .8rem; text-transform: uppercase; letter-spacing: .03em; color: var(--discret); }
+.test-deux-formulaires tr:last-child td { border-bottom: none; }
+.test-deux-formulaires code { font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: .9em; }
+.test-deux-formulaires .pastille {
+    display: inline-block;
+    min-width: 3.5rem;
+    padding: .1rem .5rem;
+    border-radius: 999px;
+    text-align: center;
+    font-weight: 600;
+    font-size: .85rem;
+}
+.test-deux-formulaires .oui { background: var(--oui-fond); color: var(--oui-texte); }
+.test-deux-formulaires .non { background: var(--non-fond); color: var(--non-texte); }
+.test-deux-formulaires .formulaires { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; }
+.test-deux-formulaires .formulaires h2 { margin: 0 0 1rem; font-size: 1.1rem; }
+.test-deux-formulaires .formulaires form { display: grid; gap: .5rem; }
+.test-deux-formulaires .formulaires input { width: 100%; padding: .5rem; border: 1px solid var(--bord); border-radius: 6px; background: var(--fond); color: var(--texte); }
+.test-deux-formulaires .formulaires button {
+    margin-top: .5rem;
+    padding: .55rem 1rem;
+    border: none;
+    border-radius: 6px;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+.test-deux-formulaires .formulaires button:hover { filter: brightness(1.1); }

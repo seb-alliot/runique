@@ -670,6 +670,12 @@ impl Forms {
     pub(crate) fn is_submitted(&self) -> bool {
         self.submitted
     }
+
+    /// `fill` marks every form of a request; only the one whose name came back
+    /// (`sent`) keeps it. A GET search sent empty stays unsent, as `fill` left it.
+    pub(crate) fn keep_submitted_if(&mut self, sent: bool) {
+        self.submitted &= sent;
+    }
 }
 
 // ============================================================================

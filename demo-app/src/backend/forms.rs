@@ -39,10 +39,10 @@ pub async fn handle_upload_image(request: &mut Request, form: ImageForm) -> AppR
             Ok(Redirect::to("/upload-image").into_response())
         }
         Err(form) => {
-            // GET (nothing submitted yet): show the blank form. POST that
-            // failed validation: this route redirects with a flash instead
-            // of re-rendering inline (unlike the other form handlers).
-            if request.method.is_safe() {
+            // Not sent (first display): show the blank form. Sent but
+            // invalid: this route redirects with a flash instead of
+            // re-rendering inline (unlike the other form handlers).
+            if !form.is_submitted() {
                 context_update!(request => {
                     "title"         => "Upload a file",
                     "image_form"    => &form,

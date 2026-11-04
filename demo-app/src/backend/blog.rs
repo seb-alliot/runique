@@ -36,7 +36,7 @@ pub async fn handle_blog_save(request: &mut Request, blog: BlogForm) -> AppResul
     let mut blog = match ValidationForm::try_form(blog, request, "blog").await {
         Ok(validated) => validated.into_form(),
         Err(blog) => {
-            if request.method.is_safe() {
+            if !blog.is_submitted() {
                 context_update!(request => { "title" => "Create a blog post", "blog_form" => &blog });
             } else {
                 context_update!(request => {

@@ -5,6 +5,8 @@ mod entities;
 mod formulaire;
 mod url;
 mod views;
+// TEMPORAIRE — page de test à deux formulaires, à supprimer après vérification.
+mod test_deux_formulaires;
 
 #[cfg(test)]
 mod runique_test;

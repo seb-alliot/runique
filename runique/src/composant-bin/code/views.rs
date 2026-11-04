@@ -20,13 +20,13 @@ pub async fn sign_up(mut request: Request) -> AppResult<Response> {
 
     let template = "signup.html";
 
-    // GET (nothing submitted yet): blank form, no message. Submitted but
-    // invalid: the same page again, each field with its errors; `save()` is
-    // never attempted.
+    // Not sent (first display): blank form, no message. Sent but invalid:
+    // the same page again, each field with its errors; `save()` is never
+    // attempted.
     let mut form = match ValidationForm::try_form(form, &request, "signup").await {
         Ok(validated) => validated.into_form(),
         Err(form) => {
-            if request.method.is_safe() {
+            if !form.is_submitted() {
                 context_update!(request => {
                     "title" => "Sign up",
                     "signup_form" => &form,

@@ -16,7 +16,6 @@ Ce que Runique 4.0 ne fait pas encore, ou fait avec une restriction. Chaque lign
 
 | Limite | Détail |
 | --- | --- |
-| Plusieurs formulaires sur une page : `request.method.is_safe()` ne dit pas lequel a été envoyé (le message global s'afficherait sous tous) | [Trait RuniqueForm](/docs/fr/formulaire/trait) |
 | Un échec d'écriture en session perd le message flash sans erreur | [Macros flash](/docs/fr/flash/macros) |
 | Un fichier publié puis une écriture en base qui échoue brutalement (coupure) peuvent laisser un fichier orphelin | [Champs](/docs/fr/formulaire/champs) |
 

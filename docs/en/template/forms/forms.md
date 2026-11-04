@@ -32,9 +32,9 @@ pub async fn signup(mut request: Request) -> AppResult<Response> {
     let validated = match ValidationForm::try_form(form, &request, "signup").await {
         Ok(validated) => validated,
         Err(form) => {
-            // GET (nothing submitted): blank form, no flash.
-            // Submitted but invalid: re-render with the error flash.
-            if request.method.is_safe() {
+            // Not sent (first display): blank form, no flash.
+            // Sent but invalid: re-render with the error flash.
+            if !form.is_submitted() {
                 context_update!(request => {
                     "title" => "Sign Up",
                     "signup_form" => &form,

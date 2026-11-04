@@ -199,7 +199,12 @@ pub async fn search(mut request: Request) -> AppResult<Response> {
 }
 ```
 
-> Pour distinguer "premier affichage" de "formulaire soumis sans données valides" (afficher un message d'erreur global dans le second cas seulement), les exemples testent aujourd'hui `request.method.is_safe()` (GET/HEAD). **Limite :** sur une page qui affiche plusieurs formulaires, l'envoi de l'un est un POST, et `is_safe()` répond `false` pour tous : le message s'afficherait aussi sous les formulaires non envoyés. Les erreurs de champ, elles, ne sont posées que sur le formulaire envoyé (grâce à son nom).
+> Pour distinguer « premier affichage » de « formulaire envoyé mais refusé » (afficher un message d'erreur global dans le second cas seulement), testez `form.is_submitted()` dans la branche `Err(form)`. Après `try_form`, il n'est vrai que pour le formulaire dont le nom est revenu : sur une page à plusieurs formulaires, chacun répond pour lui-même, en POST comme en GET. Ne testez pas `request.method.is_safe()` : la méthode est la même pour tous les formulaires de la requête.
+>
+> ```rust
+> Err(form) if form.is_submitted() => { /* envoyé et refusé : erreurs + message */ }
+> Err(form) => { /* pas envoyé : simple affichage */ }
+> ```
 
 ---
 

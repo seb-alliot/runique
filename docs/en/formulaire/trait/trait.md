@@ -201,7 +201,12 @@ pub async fn search(mut request: Request) -> AppResult<Response> {
 }
 ```
 
-> To tell "first page load" from "form submitted with invalid data" (showing a global error message in the second case only), the examples test `request.method.is_safe()` (GET/HEAD) today. **Limit:** on a page showing several forms, submitting one is a POST, and `is_safe()` answers `false` for all of them: the message would also show under the forms not submitted. Field errors, on the other hand, are only set on the submitted form (thanks to its name).
+> To tell "first display" from "form sent but refused" (showing a global error message in the second case only), test `form.is_submitted()` in the `Err(form)` branch. After `try_form`, it is true only for the form whose name came back: on a page with several forms, each answers for itself, POST or GET. Don't test `request.method.is_safe()`: the method is the same for every form of the request.
+>
+> ```rust
+> Err(form) if form.is_submitted() => { /* sent and refused: errors + message */ }
+> Err(form) => { /* not sent: plain display */ }
+> ```
 
 ---
 
