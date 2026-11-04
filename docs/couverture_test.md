@@ -4,9 +4,9 @@ Snapshot du **2026-11-04** · commande : `cargo llvm-cov --package runique --fea
 
 | | Régions | Fonctions | Lignes |
 |---|---|---|---|
-| **TOTAL** | **91.41 %** | **92.37 %** | **92.35 %** |
+| **TOTAL** | **91.51 %** | **92.51 %** | **92.45 %** |
 
-Évolution depuis le 2026-10-29 : régions 91.19 % → 91.41 %, fonctions 92.51 % → 92.37 %, lignes 92.21 % → 92.35 %.
+Évolution depuis le 2026-10-29 : régions 91.19 % → 91.51 %, fonctions 92.51 % → 92.51 %, lignes 92.21 % → 92.45 %.
 
 ---
 
@@ -201,9 +201,9 @@ Snapshot du **2026-11-04** · commande : `cargo llvm-cov --package runique --fea
 | fields/boolean.rs | 100.00 % | 100.00 % | 100.00 % |
 | fields/choice.rs | 90.55 % | 92.00 % | 86.87 % |
 | fields/datetime.rs | 79.20 % | 87.30 % | 80.13 % |
-| fields/file.rs | 97.19 % | 94.89 % | 96.52 % |
+| fields/file.rs | 97.05 % | 94.41 % | 96.47 % |
 | fields/hidden.rs | 88.65 % | 84.00 % | 85.96 % |
-| fields/media.rs | 89.45 % | 83.75 % | 87.46 % |
+| fields/media.rs | 94.40 % | 93.00 % | 93.15 % |
 | fields/number.rs | 90.82 % | 92.86 % | 91.74 % |
 | fields/special.rs | 82.90 % | 84.38 % | 79.32 % |
 | fields/text.rs | 92.59 % | 92.11 % | 94.94 % |
@@ -285,7 +285,7 @@ Snapshot du **2026-11-04** · commande : `cargo llvm-cov --package runique --fea
 
 | Fichier | Régions | Fonctions | Lignes |
 |---|---|---|---|
-| logic/builder_test.rs | 88.00 % | 85.37 % | 88.63 % |
+| logic/builder_test.rs | 88.24 % | 85.37 % | 88.63 % |
 | logic/expect_test.rs | 80.95 % | 100.00 % | 92.86 % |
 | logic/struct_test.rs | 97.40 % | 100.00 % | 98.10 % |
 | logic/transaction_test.rs | 91.67 % | 81.25 % | 94.20 % |
