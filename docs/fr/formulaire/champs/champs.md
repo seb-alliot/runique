@@ -258,12 +258,27 @@ form.field(
 
 ---
 
-## FileField — Upload de fichiers
+## FileField et MediaField — Upload de fichiers
+
+Deux champs partagent le même mécanisme d'upload (dossier temporaire, déplacement entre l'écriture et le commit, taille, nombre, destination) :
+
+- **`MediaField`** — images, audio et vidéo : `MediaField::image()`, `::audio()`, `::video()`. Le **contenu** de chaque fichier est vérifié (sa signature), pas seulement son extension : un fichier texte renommé en `.mp4` est refusé.
+- **`FileField`** — documents et autres fichiers : `FileField::document()`, `::any()`. Seuls l'extension, la taille et le nombre sont vérifiés.
+
+| Constructeur | Extensions acceptées par défaut | Contenu vérifié |
+| --- | --- | --- |
+| `MediaField::image` | jpg, jpeg, png, gif, webp, avif | signature + dimensions (`max_dimensions`) |
+| `MediaField::audio` | mp3, ogg, oga, wav, m4a, flac, aac | signature (MP3, Ogg, WAV, FLAC, MP4/M4A, AAC) |
+| `MediaField::video` | mp4, webm, mov, ogv | signature (MP4/MOV, WebM, Ogg) |
+| `FileField::document` | pdf, doc, docx, txt, odt | non |
+| `FileField::any` | toutes sauf `.svg` | non |
+
+La taille maximale par défaut est de 10 Mo pour tous ; pour l'audio et la vidéo, réglez `.max_size()`. La limite globale du corps de la requête (`RUNIQUE_MAX_UPLOAD_MB`) s'applique aussi.
 
 ```rust
 // Image avec contraintes complètes — dossier explicite
 form.field(
-    &FileField::image("avatar")
+    &MediaField::image("avatar")
         .label("Photo de profil")
         .upload_to("uploads/avatars")   // → {MEDIA_ROOT}/uploads/avatars/
         .max_size(FileSize::mb(5))
@@ -275,7 +290,7 @@ form.field(
 // Image — dossier automatique depuis MEDIA_ROOT (.env)
 // Les fichiers vont dans {MEDIA_ROOT}/{nom_du_champ}/  ex: media/photo/
 form.field(
-    &FileField::image("photo")
+    &MediaField::image("photo")
         .label("Photo")
         .upload_to_env()
         .max_size(FileSize::mb(5)),
@@ -283,9 +298,23 @@ form.field(
 
 // Sans upload_to — fichiers stockés directement dans MEDIA_ROOT
 form.field(
-    &FileField::image("image")
+    &MediaField::image("image")
         .label("Image")
         .max_size(FileSize::mb(5)),
+);
+
+// Audio et vidéo : le contenu est vérifié comme pour une image
+form.field(
+    &MediaField::audio("podcast")
+        .label("Épisode")
+        .upload_to("podcasts")
+        .max_size(FileSize::mb(50)),
+);
+form.field(
+    &MediaField::video("bande_annonce")
+        .label("Bande-annonce")
+        .upload_to("videos")
+        .max_size(FileSize::mb(200)),
 );
 
 // Document
@@ -339,7 +368,7 @@ match form.save(&request.engine.db).await {
 
 > **Limite actuelle** : le disque ne participe pas à la transaction. Un arrêt brutal du processus entre le déplacement du fichier et la validation en base, ou un échec du commit qu'on ne peut rattraper, peut laisser un fichier orphelin sous `MEDIA_ROOT` — jamais une ligne qui pointe vers un fichier absent.
 
-> **Sécurité** : les fichiers `.svg` sont **toujours refusés** (risque XSS). `FileField::any` accepte toute autre extension et ne lit pas le contenu : la sécurité de ce champ est à la charge de l'application. Pour une image, la validation vérifie le format réel via les magic bytes (pas seulement l'extension). Avec `max_dimensions`, le crate `image` mesure le fichier : si la mesure échoue, le fichier est refusé, pour tous les formats. Sans cette mesure, le plafond de largeur et de hauteur ne s'appliquerait pas. Les fichiers vides (aucun fichier sélectionné) sont ignorés proprement — le champ `required` fonctionne correctement.
+> **Sécurité** : les fichiers `.svg` sont **toujours refusés** (risque XSS). `FileField::any` accepte toute autre extension et ne lit pas le contenu : la sécurité de ce champ est à la charge de l'application. Pour un `MediaField`, la validation vérifie le format réel via la signature du fichier (pas seulement l'extension) : image, audio ou vidéo. Avec `max_dimensions`, le crate `image` mesure le fichier : si la mesure échoue, le fichier est refusé, pour tous les formats. Sans cette mesure, le plafond de largeur et de hauteur ne s'appliquerait pas. Les fichiers vides (aucun fichier sélectionné) sont ignorés proprement — le champ `required` fonctionne correctement.
 
 ### Fichiers JS associés
 
@@ -451,7 +480,8 @@ form.field(
 | `TimeField`      | `new()`                                                                    | Format `HH:MM`, bornes min/max                                |
 | `DateTimeField`  | `new()`                                                                    | Format `YYYY-MM-DDTHH:MM`, bornes min/max                     |
 | `DurationField`  | `new()`                                                                    | Secondes, bornes min/max                                      |
-| `FileField`      | `image()`, `document()`, `any()`                                           | Extensions, taille, dimensions, anti-SVG                      |
+| `MediaField`     | `image()`, `audio()`, `video()`                                            | Extensions, taille, signature du contenu, dimensions (image), anti-SVG |
+| `FileField`      | `document()`, `any()`                                                      | Extensions, taille, anti-SVG                                  |
 | `ColorField`     | `new()`                                                                    | Format `#RRGGBB` ou `#RGB`                                    |
 | `SlugField`      | `new()`                                                                    | ASCII/unicode, pas de tiret en début/fin                      |
 | `UUIDField`      | `new()`                                                                    | Format UUID valide                                            |

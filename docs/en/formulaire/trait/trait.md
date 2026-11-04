@@ -141,7 +141,7 @@ The model can declare an immutable ceiling via `.max_size()` in `register_fields
 
 ```rust
 // In register_fields — model ceiling set to 5 MB
-form.field(&FileField::image("photo").max_size(FileSize::mb(5)));
+form.field(&MediaField::image("photo").max_size(FileSize::mb(5)));
 
 // In the handler — override allowed if ≤ ceiling
 form.max_size("photo", FileSize::mb(3))?;   // Ok

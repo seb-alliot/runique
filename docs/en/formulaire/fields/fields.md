@@ -254,12 +254,27 @@ form.field(
 
 ---
 
-## FileField — File uploads
+## FileField and MediaField — File uploads
+
+Two fields share the same upload mechanism (staging folder, move between the write and the commit, size, count, destination):
+
+- **`MediaField`** — images, audio and video: `MediaField::image()`, `::audio()`, `::video()`. The **content** of each file is checked (its signature), not only its extension: a text file renamed `.mp4` is refused.
+- **`FileField`** — documents and other files: `FileField::document()`, `::any()`. Only the extension, size and count are checked.
+
+| Constructor | Extensions accepted by default | Content checked |
+| --- | --- | --- |
+| `MediaField::image` | jpg, jpeg, png, gif, webp, avif | signature + dimensions (`max_dimensions`) |
+| `MediaField::audio` | mp3, ogg, oga, wav, m4a, flac, aac | signature (MP3, Ogg, WAV, FLAC, MP4/M4A, AAC) |
+| `MediaField::video` | mp4, webm, mov, ogv | signature (MP4/MOV, WebM, Ogg) |
+| `FileField::document` | pdf, doc, docx, txt, odt | no |
+| `FileField::any` | all but `.svg` | no |
+
+The default maximum size is 10 MB for all; for audio and video, set `.max_size()`. The request body's global limit (`RUNIQUE_MAX_UPLOAD_MB`) applies too.
 
 ```rust
 // Image with full constraints — explicit directory
 form.field(
-    &FileField::image("avatar")
+    &MediaField::image("avatar")
         .label("Profile picture")
         .upload_to("uploads/avatars")   // → {MEDIA_ROOT}/uploads/avatars/
         .max_size(FileSize::mb(5))
@@ -271,7 +286,7 @@ form.field(
 // Image — automatic directory from MEDIA_ROOT (.env)
 // Files go to {MEDIA_ROOT}/{field_name}/  e.g. media/photo/
 form.field(
-    &FileField::image("photo")
+    &MediaField::image("photo")
         .label("Photo")
         .upload_to_env()
         .max_size(FileSize::mb(5)),
@@ -279,9 +294,23 @@ form.field(
 
 // Without upload_to — files stored directly in MEDIA_ROOT
 form.field(
-    &FileField::image("image")
+    &MediaField::image("image")
         .label("Image")
         .max_size(FileSize::mb(5)),
+);
+
+// Audio and video: the content is checked as for an image
+form.field(
+    &MediaField::audio("podcast")
+        .label("Episode")
+        .upload_to("podcasts")
+        .max_size(FileSize::mb(50)),
+);
+form.field(
+    &MediaField::video("trailer")
+        .label("Trailer")
+        .upload_to("videos")
+        .max_size(FileSize::mb(200)),
 );
 
 // Document
@@ -335,7 +364,7 @@ match form.save(&request.engine.db).await {
 
 > **Current limit**: the disk takes no part in the transaction. A hard stop of the process between moving the file and the database commit, or a commit failure that can't be caught, can leave an orphan file under `MEDIA_ROOT` — never a row pointing at a missing file.
 
-> **Security**: `.svg` files are **always rejected** (XSS risk). `FileField::any` accepts every other extension and does not read the content: the security of that field is the application's responsibility. For an image, validation checks the real format by reading its magic bytes (not just the extension). With `max_dimensions`, the `image` crate measures the file: if the measurement fails, the file is refused, for every format. Without that measurement, the width and height limits would not apply. Empty submissions (no file selected) are handled correctly — the `required` constraint works as expected.
+> **Security**: `.svg` files are **always rejected** (XSS risk). `FileField::any` accepts every other extension and does not read the content: the security of that field is the application's responsibility. For a `MediaField`, validation checks the real format by reading the file's signature (not just the extension): image, audio or video. With `max_dimensions`, the `image` crate measures the file: if the measurement fails, the file is refused, for every format. Without that measurement, the width and height limits would not apply. Empty submissions (no file selected) are handled correctly — the `required` constraint works as expected.
 
 ### Associated JS files
 
@@ -447,7 +476,8 @@ form.field(
 | `TimeField`      | `new()`                                                                | `HH:MM` format, min/max bounds                      |
 | `DateTimeField`  | `new()`                                                                | `YYYY-MM-DDTHH:MM` format, min/max bounds           |
 | `DurationField`  | `new()`                                                                | Seconds, min/max bounds                             |
-| `FileField`      | `image()`, `document()`, `any()`                                       | Extensions, size, dimensions, anti-SVG              |
+| `MediaField`     | `image()`, `audio()`, `video()`                                        | Extensions, size, content signature, dimensions (image), anti-SVG |
+| `FileField`      | `document()`, `any()`                                                  | Extensions, size, anti-SVG                          |
 | `ColorField`     | `new()`                                                                | `#RRGGBB` or `#RGB` format                          |
 | `SlugField`      | `new()`                                                                | ASCII/unicode, no hyphen at start/end               |
 | `UUIDField`      | `new()`                                                                | Valid UUID format                                   |

@@ -151,7 +151,7 @@ impl RuniqueForm for ArticleForm {
     fn customize(form: &mut Forms) {
         // Replaces the `image` field only; the others stay the model's
         form.field(
-            &FileField::image("image")
+            &MediaField::image("image")
                 .label("Illustration")
                 .upload_to("articles")
                 .max_size(FileSize::mb(5)),

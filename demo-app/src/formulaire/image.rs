@@ -11,7 +11,7 @@ impl FormAccess for ImageForm {
     impl_form_access!();
     fn register_fields(form: &mut Forms) {
         form.field(
-            &FileField::image("image")
+            &MediaField::image("image")
                 .label("Choisissez une image à uploader")
                 .upload_to("uploads/images")
                 .required()

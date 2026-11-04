@@ -156,6 +156,8 @@ The Rust type shown is the one of a NOT NULL column; a `nullable` column gives `
 | `mac_address`      | `String`                   | `VARCHAR`                       |
 | `interval`         | `String`                   | `VARCHAR`                       |
 | `image`            | `String`                   | `VARCHAR` — file path           |
+| `audio`            | `String`                   | `VARCHAR` — file path           |
+| `video`            | `String`                   | `VARCHAR` — file path           |
 | `document`         | `String`                   | `VARCHAR` — file path           |
 | `file`             | `String`                   | `VARCHAR` — file path           |
 | `choice`           | `EnumName`                 | the enum's column — requires `enum(EnumName)`, rendered as `<select>` |
@@ -392,13 +394,15 @@ model! {
 }
 ```
 
-| Type      | Allowed extensions             |
-|-----------|--------------------------------|
-| `image`   | `jpg jpeg png gif webp avif`   |
-| `document`| `pdf doc docx txt odt`         |
-| `file`    | no filter                      |
+| Type      | Allowed extensions                 | Form field                                |
+|-----------|------------------------------------|-------------------------------------------|
+| `image`   | `jpg jpeg png gif webp avif`       | `MediaField::image` — content checked     |
+| `audio`   | `mp3 ogg oga wav m4a flac aac`     | `MediaField::audio` — content checked     |
+| `video`   | `mp4 webm mov ogv`                 | `MediaField::video` — content checked     |
+| `document`| `pdf doc docx txt odt`             | `FileField::document`                     |
+| `file`    | no filter (except `.svg`)          | `FileField::any`                          |
 
-`upload_to:` is required for all three types. The path is relative to `MEDIA_ROOT`.
+`upload_to:` is required for these five types. The path is relative to `MEDIA_ROOT`. See [Fields](/docs/en/formulaire/fields) for the content check.
 
 ---
 
