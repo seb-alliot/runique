@@ -9,11 +9,11 @@ This document consolidates the actual state of the repository from the reference
 
 ---
 
-## Snapshot (as of November 2, 2026)
+## Snapshot (as of November 4, 2026)
 
 - **Workspace version**: `4.0.0` (**unreleased** on crates.io — code + docs in tree)
-- **derive_form**: `3.0.0`
-- **runique_dsl**: `0.1.0`
+- **derive_form**: `4.0.0`
+- **runique_dsl**: `0.2.0`
 - **License**: MIT
 - **Branch**: `fix-bug`
 - **Stack**: Axum 0.8.9 + SeaORM 2.0.4 + Tera 2.4 · Rust edition 2024 · Rust 1.94
@@ -83,6 +83,8 @@ This document consolidates the actual state of the repository from the reference
 - Timing-safe login (dummy-hash verify — no user enumeration)
 - DB-persisted password-reset tokens: SHA-256-hashed, single-use, IDOR-hardened (mutation keyed on the token-bound user id)
 - CSRF checked via both the `csrf_token` body field and the `X-CSRF-Token` header (2026-09-02) — needed for JSON/`fetch` clients that can't add a hidden form field; safe by construction, a cross-origin `fetch` setting this header triggers a CORS preflight Runique never allows by default (`CorsConfig` disabled, `any_origin() + allow_credentials(true)` is a build error)
+- Form sent from another site or a subdomain refused before the handler (`Sec-Fetch-Site`)
+- Session content encrypted in the database (XChaCha20-Poly1305, key derived from `SECRET_KEY`)
 
 ### ORM / Migrations
 
@@ -139,6 +141,8 @@ This document consolidates the actual state of the repository from the reference
 | 4.0.0 | `password` / `is_active` exposed on `extend!` forms | High |
 | 4.0.0 | Debug template page: read outside `templates/` | High |
 | 4.0.0 | Form global errors unescaped (XSS) | Medium |
+| 4.0.0 | Session content stored in clear in the database | Medium |
+| 4.0.0 | Form from another site reaching a handler that doesn't check the token | Medium |
 | 4.0.0 | A database delete error could leave a reusable session; session revocation outside the reset's transaction (faille.md #12) | Medium |
 | 4.0.0 | Non-atomic reset token replacement: two valid tokens under concurrency (#13) | Medium |
 | 4.0.0 | Hash with an unrecognized prefix: faster, hence measurable, check (#3) | Low |

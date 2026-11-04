@@ -122,6 +122,7 @@ sha2.workspace = true
 hex.workspace = true
 base64.workspace = true
 subtle.workspace = true
+chacha20poly1305.workspace = true
 
 # Procedural macros
 derive_form.workspace = true

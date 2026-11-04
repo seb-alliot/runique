@@ -42,6 +42,20 @@ Runique 4.0 keeps the 3.0.x security fixes and adds more (listed below). Runique
 - **How to protect yourself now**: never expose a deployment with `DEBUG=true`, and don't build template names from request data.
 - **Fix**: Runique 4.0 only reads a plain relative path under `templates/`; `..` and absolute paths are refused.
 
+#### Session content readable in the database — Medium, fixed in 4.0
+
+- **What it does**: `eihwaz_sessions.session_data` holds the content of signed-in sessions in clear, CSRF token and whatever the application stores there included. Reading the database (a backup, an SQL injection) gives all of it.
+- **Who is affected**: Runique 3.0.x projects using the default session store.
+- **How to protect yourself now**: restrict access to the database and its backups, and keep sensitive values out of the session.
+- **Fix**: Runique 4.0 encrypts the content (XChaCha20-Poly1305, key derived from `SECRET_KEY`, tied to the row). A row in clear, altered or copied is refused. `user_id` and `expires_at` stay in clear, and someone who can also read `SECRET_KEY` can decrypt. Upgrading empties the table: users sign in again once.
+
+#### Form sent from another site reaches handlers that don't check the token — Medium, fixed in 4.0
+
+- **What it does**: a handler reading its body with an Axum extractor (`Form<T>`, `Multipart`) instead of `request.form("name")` doesn't check the CSRF token, and the middleware lets a form without an `X-CSRF-Token` header through. Another site can then submit that form on behalf of a signed-in user.
+- **Who is affected**: Runique 3.0.x projects with such a handler on a route that writes. Forms going through `request.form` are not affected: their token is checked.
+- **How to protect yourself now**: check the token in those handlers, or move them to `request.form`.
+- **Fix**: Runique 4.0 refuses (403), before the handler, a form the browser announces as sent from another site or a subdomain (`Sec-Fetch-Site`). Browsers only send that header over HTTPS and on localhost, so a handler using an extractor must still check the token. A path in `csrf_exempt()` or a request with `X-CSRF-Token` isn't concerned.
+
 #### Admin refusal message tells that an account is a superuser — Low, fixed in 4.0
 
 - **What it does**: refused an action on a superuser's account, a staff member reads "Only a superuser can change a superuser's account", which tells them which accounts are superusers.
@@ -80,8 +94,11 @@ Re-checked against `Cargo.lock` on 2026-10-10. The CI runs `cargo audit` on ever
 | 4.0 | CSRF token sent by `csrf.js` with `fetch` requests to other origins | Medium |
 | 4.0 | Form global errors rendered without escaping (XSS) | Medium |
 | 4.0 | Debug error page able to show a file outside `templates/` | Medium |
+| 4.0 | Session content stored in clear in the database | Medium |
+| 4.0 | Form sent from another site reaching a handler that doesn't check the token | Medium |
 | 4.0 | Admin refusal message telling that an account is a superuser | Low |
 | 4.0 | "Forgot password" response time telling whether an account exists | Low |
+| 4.0 | `add_js` scripts without an SRI hash or a CSP nonce | Hardening |
 | 3.0.3 | `bulk_create`: a create-only right could update existing rows (regenerate the admin) | High |
 | 3.0.3 | Staff member able to take over a superuser's account (email change + password reset) | High |
 | 3.0.3 | Open redirect through a tab (`/\t/evil.com`) or a non-ASCII `Location` left unchecked | Medium |
@@ -93,7 +110,7 @@ Re-checked against `Cargo.lock` on 2026-10-10. The CI runs `cargo audit` on ever
 | 3.0.2 | Admin password reset reachable from a resource that isn't an account | Low |
 | 3.0.2 | Admin accepted the raw CSRF token (per-response masking bypassed) | Hardening |
 
-The 4.0 fixes are described under Active Advisories above. Details in the CHANGELOG: [3.0.3](CHANGELOG.md#303---2026-10-10), [3.0.2](CHANGELOG.md#302---2026-10-09). Earlier fixes (2.1.x) are listed in [PROJECT_STATUS](docs/en/PROJECT_STATUS.en.md).
+The main 4.0 fixes are described under Active Advisories above. Details in the CHANGELOG: [3.0.3](CHANGELOG.md#303---2026-10-10), [3.0.2](CHANGELOG.md#302---2026-10-09). Earlier fixes (2.1.x) are listed in [PROJECT_STATUS](docs/en/PROJECT_STATUS.en.md).
 
 ## Reporting a Vulnerability
 
@@ -115,7 +132,7 @@ When using Runique in production:
 
 1. **Always use HTTPS** (`ENFORCE_HTTPS=true` behind a TLS proxy, or ACME) — it also turns on HSTS
 2. **Run with `DEBUG=false`**: error pages then show no internal detail
-3. **Set strong SECRET_KEY** (32+ random characters)
+3. **Set strong SECRET_KEY** (32+ random characters): it also encrypts the sessions saved in the database
 4. **Enable host validation** in the builder: `.middleware(|m| m.with_allowed_hosts(|h| h.enabled(true).host("mysite.com")))`
 5. **Use the strict CSP preset** (`.with_csp(|c| c.policy(SecurityPolicy::strict()))`) — CSP itself is always active by default
 6. **Protect the admin sign-in against brute force**: `.with_admin(|a| a.with_login_guard(LoginGuard::new()))` — it's opt-in

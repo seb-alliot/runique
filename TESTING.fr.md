@@ -37,7 +37,7 @@ Postgres et MariaDB sont ignorés, pas en échec, quand aucune URL n'est configu
 
 ```bash
 cd runique
-cargo test --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme
+cargo test --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin
 ```
 
 C'est exactement le jeu de features utilisé par la CI.
@@ -68,13 +68,25 @@ La CI lance la suite trois fois, une par type de clé primaire :
 
 ```bash
 cd runique
-cargo test --features big-pk,all-databases
-cargo test --features pk-uuid,all-databases
+cargo test --features big-pk,all-databases,admin
+cargo test --features pk-uuid,all-databases,admin
 ```
 
 `cargo clippy --features big-pk` (ou `pk-uuid`) seul n'active aucun moteur de base : définissez
 `DB_ENGINE=postgres` pour lui, comme le fait la CI, sinon les macros de modèle ne peuvent pas
 choisir de moteur.
+
+### Autres jeux de features
+
+```bash
+cd runique
+cargo test --features all-databases                  # sans l'admin
+cargo test --features all-databases,admin,test-utils # avec les tests de formulaires et du builder
+```
+
+Sans `test-utils`, 6 modules de test sont écartés sans erreur, avec 0 test lancé :
+`test_validation_form`, `test_form_guarantees`, `test_hooks`, `test_login_form`, `test_builder`
+et l'assistant `handler_req`. La CI lance les deux.
 
 ### Tests JavaScript
 
@@ -146,7 +158,7 @@ Clés facultatives :
 
 | Clé | Pour |
 | --- | --- |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `SMTP_STARTTLS` | L'envoi d'emails (activation de compte, réinitialisation du mot de passe). Sans elles, l'admin affiche le lien de réinitialisation à l'écran |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `SMTP_STARTTLS` | L'envoi d'emails (activation de compte, réinitialisation du mot de passe). Sans elles, l'admin indique que c'est indisponible : le lien n'est jamais montré au staff |
 | `GROQ_API_KEY` | Le retour de l'IA sur les exercices des cours (`/cours/…/exercice`) |
 | `RUNIQUE_MAX_UPLOAD_MB` | Les uploads de plus de 2 Mo |
 
@@ -200,7 +212,7 @@ fonctionner).
 | 4. Mot de passe | Au moins **12 caractères**, avec une minuscule, une majuscule, un chiffre **et un caractère spécial** (`-`, `!`, `@`…) ; saisi deux fois, jamais affiché |
 | 5. Récapitulatif | Confirmez, ou revenez modifier une étape |
 
-Le compte est créé actif, membre du staff et superutilisateur. Connectez-vous sur
+Le compte est créé actif et superutilisateur. Connectez-vous sur
 `http://127.0.0.1:3000/prefix-test/admin-runique/`.
 
 Ctrl+C quitte sans rien créer.

@@ -379,7 +379,7 @@ fn register_fields(form: &mut Forms) {
 }
 ```
 
-Les fichiers JS sont inclus automatiquement dans le rendu HTML du formulaire.
+Les fichiers JS sont inclus automatiquement dans le rendu HTML du formulaire, avec le nonce CSP de la requête et leur hash SRI.
 
 ---
 

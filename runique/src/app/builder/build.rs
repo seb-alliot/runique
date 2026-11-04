@@ -365,7 +365,8 @@ impl<P> RuniqueAppBuilder<P> {
 
         #[cfg(feature = "orm")]
         {
-            let db_store = RuniqueSessionStore::new(engine.db.clone());
+            let db_store =
+                RuniqueSessionStore::new(engine.db.clone(), &engine.config.server.secret_key);
             if let Ok(mut guard) = engine.session_db_store.write() {
                 *guard = Some(Arc::new(db_store));
             }

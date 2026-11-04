@@ -94,6 +94,80 @@ fn json(form: &SearchForm) -> Value {
     serde_json::to_value(form.forms()).unwrap()
 }
 
+struct ScriptForm {
+    form: Forms,
+}
+
+impl FormAccess for ScriptForm {
+    fn register_fields(form: &mut Forms) {
+        form.add_js(&["js/a.js"]);
+    }
+    fn from_form(form: Forms) -> Self {
+        Self { form }
+    }
+    fn forms(&self) -> &Forms {
+        &self.form
+    }
+    fn forms_mut(&mut self) -> &mut Forms {
+        &mut self.form
+    }
+}
+
+impl RuniqueForm for ScriptForm {}
+
+/// What `request.form` renders for a form with a script, under `nonce`.
+async fn script_tag(nonce: Option<&str>) -> String {
+    let mut js_tera = Tera::default();
+    js_tera.autoescape_on(vec!["html", "xml"]);
+    register_asset_filters(
+        &mut js_tera,
+        "/static".to_string(),
+        "/media".to_string(),
+        "/runique/static".to_string(),
+        "/runique/media".to_string(),
+        new_registry(),
+    );
+    js_tera
+        .add_raw_templates(vec![
+            (
+                "js_files.html",
+                include_str!("../../templates/asset/js.html"),
+            ),
+            (
+                "base_form_name.html",
+                include_str!("../../templates/field_html/base_form_name.html"),
+            ),
+            ("csrf.html", include_str!("../../templates/csrf/csrf.html")),
+        ])
+        .unwrap();
+    let mut engine = build_engine().await;
+    Arc::get_mut(&mut engine).expect("fresh engine").tera = Arc::new(js_tera);
+    let mut request = build_handler_req(engine, None, HashMap::new(), Method::GET).await;
+    if let Some(nonce) = nonce {
+        request.context.insert("csp_nonce", nonce);
+    }
+    let form: ScriptForm = request.form("script");
+    serde_json::to_value(form.forms()).unwrap()["rendered_js"]
+        .as_str()
+        .unwrap()
+        .to_string()
+}
+
+#[tokio::test]
+async fn a_form_from_the_request_gives_its_script_the_requests_nonce() {
+    let tag = script_tag(Some("n0nc3")).await;
+    assert!(tag.contains(r#"nonce="n0nc3""#), "{tag}");
+}
+
+#[tokio::test]
+async fn a_request_without_a_nonce_gives_no_nonce_attribute() {
+    for nonce in [None, Some("")] {
+        let tag = script_tag(nonce).await;
+        assert!(tag.contains("js/a.js"), "{nonce:?}: {tag}");
+        assert!(!tag.contains("nonce="), "{nonce:?}: {tag}");
+    }
+}
+
 // ── Ordre des champs ─────────────────────────────────────────────────────────
 
 #[test]

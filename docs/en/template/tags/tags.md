@@ -118,7 +118,7 @@ Renders the entire form: all HTML fields, validation errors, the CSRF token, and
 
 ## {% form.xxx.js %} — Form JS scripts
 
-Emits the form's `<script>` block: one per file declared via `add_js`, with the correct CSP nonce and resolved static URL. Use it **only in field-by-field rendering**, wherever you want the scripts (typically just before `</form>`).
+Emits the form's `<script>` block: one per file declared via `add_js`, with the request's CSP nonce, the file's SRI hash and the resolved static URL. Use it **only in field-by-field rendering**, wherever you want the scripts (typically just before `</form>`).
 
 ```html
 <form method="post" action="/signup">

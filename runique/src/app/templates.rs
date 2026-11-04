@@ -72,6 +72,7 @@ impl TemplateLoader {
                 &config.static_files.static_runique_path,
             )),
         };
+        static_tera::register_integrity_filter(&mut tera, integrity_map.site.clone());
 
         // 3. Runique's templates, the admin's with their block includes
         //    rewritten, then the developer's (WITH preprocess). One batch:

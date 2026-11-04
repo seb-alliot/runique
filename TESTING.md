@@ -37,7 +37,7 @@ tests are skipped, not failed, when no URL is configured.
 
 ```bash
 cd runique
-cargo test --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme
+cargo test --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin
 ```
 
 This is the exact feature set the CI uses.
@@ -68,12 +68,24 @@ The CI runs the suite three times, once per primary key type:
 
 ```bash
 cd runique
-cargo test --features big-pk,all-databases
-cargo test --features pk-uuid,all-databases
+cargo test --features big-pk,all-databases,admin
+cargo test --features pk-uuid,all-databases,admin
 ```
 
 `cargo clippy --features big-pk` (or `pk-uuid`) alone enables no database engine: set
 `DB_ENGINE=postgres` for it, as the CI does, or the model macros can't pick an engine.
+
+### Other feature sets
+
+```bash
+cd runique
+cargo test --features all-databases                  # without the admin
+cargo test --features all-databases,admin,test-utils # with the form and builder tests
+```
+
+Without `test-utils`, 6 test modules are left out with no error and 0 test run:
+`test_validation_form`, `test_form_guarantees`, `test_hooks`, `test_login_form`, `test_builder`
+and the `handler_req` helper. The CI runs both.
 
 ### JavaScript tests
 
@@ -144,7 +156,7 @@ Optional keys:
 
 | Key | For |
 | --- | --- |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `SMTP_STARTTLS` | Sending emails (account activation, password reset). Without them, the admin shows the reset link on screen instead |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `SMTP_STARTTLS` | Sending emails (account activation, password reset). Without them, the admin says it's unavailable: the link is never shown to the staff |
 | `GROQ_API_KEY` | The AI feedback on course exercises (`/cours/…/exercice`) |
 | `RUNIQUE_MAX_UPLOAD_MB` | Uploads above 2 MB |
 
@@ -197,7 +209,7 @@ Plain `cargo run -p demo-app` is enough; no code generation step.
 | 4. Password | At least **12 characters**, with a lowercase letter, an uppercase letter, a digit **and a special character** (`-`, `!`, `@`…); typed twice, never shown |
 | 5. Review | Confirm, or go back to change a step |
 
-The account is created active, staff and superuser. Sign in at
+The account is created active and superuser. Sign in at
 `http://127.0.0.1:3000/prefix-test/admin-runique/`.
 
 Ctrl+C leaves without creating anything.

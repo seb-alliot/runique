@@ -100,13 +100,13 @@ runique/
 - **`form_data.rs`** — form data → model conversions (`FormDataError`)
 - **`field.rs`** — `FormField` trait
 - **`generic.rs`** — generic field implementation
-- **`extractor.rs`** — Prisme pipeline (`prisme_pipeline`): CSRF check + body parsing, consumed via `request.form::<T>()`
+- **`extractor.rs`** — Prisme pipeline (`prisme_pipeline`): CSRF check + body parsing, consumed via `request.form::<T>("name")`
 - **`renderer.rs`** — HTML renderer for form fields
 - **`validator.rs`** — validation logic
 - **`model_form/`** — `ModelForm` (form bound to a SeaORM model)
-- **`fields/`** — field types: `text`, `number`, `boolean`, `choice`, `datetime`, `file`, `special`, `hidden`
+- **`fields/`** — field types: `text`, `number`, `boolean`, `choice`, `datetime`, `file`, `media`, `binary`, `special`, `hidden`
 - **`options/`** — `length`, `bool_choice` option structs
-- **`prisme/`** — validation pipeline: `aegis` (security), `sentinel`, `rules` (CSRF check inline dans `extractor::check_csrf`)
+- **`prisme/`** — body extraction: `aegis` (CSRF check in `extractor::check_csrf`)
 
 ### `macros/` — Macros
 - **`bdd/`** — `impl_objects!`, `search!` / `search_cond!` (+ internal `search_apply_op!`, `search_munch!`), `Objects` query builder (`objects.rs`, `query.rs`), list fields `HasLists` / `ListField` (`list.rs`)
@@ -129,7 +129,7 @@ runique/
 - **`security/rate_limit.rs`** — `RateLimiter` with 429 + `Retry-After`
 - **`security/trusted_proxies.rs`** — trusted proxy / client-IP resolution (CIDR, private nets)
 - **`session/cleaning_store.rs`** — `CleaningMemoryStore` (128MB/256MB watermarks)
-- **`session/session_db.rs`** — DB-backed session store
+- **`session/session_db.rs`** — DB-backed session store, content encrypted
 
 ### `migration/` — Migration Tooling
 - **`mod.rs`** — public migration API
@@ -147,7 +147,7 @@ runique/
 - **`config/runique_log/`** — `RuniqueLog` categories
 - **`config/url_params.rs`** — URL query parameter helpers
 - **`constante/`** — session/CSRF/admin key constants, error strings, template names
-- **`crypto/`** — `csrf.rs` (`CsrfToken`, mask/unmask), `csp_nonce.rs`
+- **`crypto/`** — `csrf.rs` (`CsrfToken`, mask/unmask), `csp_nonce.rs`, `session_cipher.rs` (`SessionKey`)
 - **`forms/`** — `parse_html`, `sanitizer`, `parse_boolean`
 - **`init_error/init.rs`** — `init_logging()` — reads `DEBUG`/`RUST_LOG`
 - **`mailer/`** — email sending utilities

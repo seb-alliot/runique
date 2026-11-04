@@ -6,6 +6,20 @@ Runique utilise `CleaningMemoryStore` par défaut — mémoire en premier lieu, 
 
 ---
 
+## Données de session en base
+
+Une session connectée est sauvegardée dans `eihwaz_sessions` pour survivre à un redémarrage. Son contenu y est **chiffré** (XChaCha20-Poly1305, clé dérivée de `SECRET_KEY`), sans rien à configurer :
+
+- une lecture de la base (sauvegarde, injection SQL) ne donne pas le contenu des sessions, ni le jeton CSRF qu'il contient ;
+- un contenu modifié en base, ou copié sur une autre ligne, est refusé ;
+- `user_id` et `expires_at` restent en clair : le store en a besoin pour ses requêtes.
+
+Le déchiffrement n'a lieu qu'à la restauration après un redémarrage. Une session encore en mémoire n'est vérifiée que sur sa ligne.
+
+**Changer `SECRET_KEY`** rend les sessions sauvegardées illisibles : au prochain redémarrage, leurs utilisateurs se reconnectent. Un attaquant qui lit aussi votre `.env` possède la clé. Un store passé à `with_session_store(...)` n'est pas chiffré par Runique.
+
+---
+
 ## Durées de session
 
 | Durée | Usage |

@@ -32,6 +32,7 @@ What this SQL removes:
 - `is_staff` on accounts, with no equivalent: then give each account its rank (`UPDATE eihwaz_users SET is_dirigeant = TRUE WHERE id = …`). An `is_admin` has no rights until the dirigeant gives some.
 - group rights on the framework's tables, now forbidden.
 - pending reset tokens: a link already sent stops working.
+- saved sessions: their content is now encrypted, a row in clear is refused. Users sign in again once.
 
 <details>
 <summary>PostgreSQL</summary>
@@ -89,6 +90,8 @@ CREATE UNIQUE INDEX uq_eihwaz_groupes_droits_user
 ALTER TABLE eihwaz_history ADD COLUMN object_repr VARCHAR NOT NULL DEFAULT '';
 UPDATE eihwaz_history SET object_repr = object_pk;
 ALTER TABLE eihwaz_history ALTER COLUMN object_repr DROP DEFAULT;
+
+DELETE FROM eihwaz_sessions;
 
 DELETE FROM eihwaz_reset_tokens;
 ALTER TABLE eihwaz_reset_tokens ADD CONSTRAINT eihwaz_reset_tokens_user_id_key UNIQUE (user_id);
@@ -156,6 +159,8 @@ ALTER TABLE eihwaz_groupes_droits
 ALTER TABLE eihwaz_history ADD COLUMN object_repr VARCHAR(255) NOT NULL DEFAULT '' AFTER object_pk;
 UPDATE eihwaz_history SET object_repr = object_pk;
 ALTER TABLE eihwaz_history ALTER COLUMN object_repr DROP DEFAULT;
+
+DELETE FROM eihwaz_sessions;
 
 DELETE FROM eihwaz_reset_tokens;
 ALTER TABLE eihwaz_reset_tokens ADD UNIQUE KEY uq_eihwaz_reset_tokens_user_id (user_id);
@@ -253,6 +258,8 @@ CREATE UNIQUE INDEX uq_eihwaz_groupes_droits_user
 ALTER TABLE eihwaz_history ADD COLUMN object_repr VARCHAR NOT NULL DEFAULT '';
 UPDATE eihwaz_history SET object_repr = object_pk;
 
+DELETE FROM eihwaz_sessions;
+
 DELETE FROM eihwaz_reset_tokens;
 CREATE UNIQUE INDEX uq_eihwaz_reset_tokens_user_id ON eihwaz_reset_tokens (user_id);
 
@@ -345,6 +352,12 @@ Then run `runique makemigrations`: a precision change is flagged as destructive 
 - a page of one of your subdomains: send the token in `X-CSRF-Token` with `fetch`, or add the path to `csrf_exempt()`.
 
 See [the CSRF docs](https://runique.io/docs/en/middleware/csrf).
+
+---
+
+## Sessions
+
+**`RuniqueSessionStore::new` takes `SECRET_KEY`**: `RuniqueSessionStore::new(db, &secret_key)`, to adapt if you call it directly. `session_data` is encrypted: read it with `open_session_data(&model)`.
 
 ---
 

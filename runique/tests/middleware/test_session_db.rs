@@ -44,7 +44,10 @@ fn past_expiry() -> chrono::NaiveDateTime {
 
 async fn make_store() -> RuniqueSessionStore {
     let db = db::fresh_db_with_schema(SESSIONS_DDL).await;
-    RuniqueSessionStore::new(runique::db::ADb::from_connection(db))
+    RuniqueSessionStore::new(
+        runique::db::ADb::from_connection(db),
+        crate::helpers::server::TEST_SECRET,
+    )
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -71,7 +74,10 @@ async fn test_session_db_does_not_store_the_raw_cookie_id() {
     use runique::sea_orm::{ConnectionTrait, Statement};
 
     let conn = db::fresh_db_with_schema(SESSIONS_DDL).await;
-    let store = RuniqueSessionStore::new(runique::db::ADb::from_connection(conn.clone()));
+    let store = RuniqueSessionStore::new(
+        runique::db::ADb::from_connection(conn.clone()),
+        crate::helpers::server::TEST_SECRET,
+    );
     let cookie_id = "sensitive-session-cookie";
     store
         .create(cookie_id, pk(1), "sess-1", future_expiry())
@@ -211,7 +217,10 @@ async fn test_session_db_upsert_inserts_when_absent() {
 
     let s = store.find_by_cookie_id("cookie-up").await.unwrap().unwrap();
     assert_eq!(s.user_id, pk(3));
-    assert_eq!(s.session_data, Some("{\"key\":\"value\"}".to_string()));
+    assert_eq!(
+        store.open_session_data(&s),
+        Some("{\"key\":\"value\"}".to_string())
+    );
 }
 
 #[tokio::test]
@@ -233,7 +242,142 @@ async fn test_session_db_upsert_updates_data_on_existing() {
         .unwrap();
 
     let s = store.find_by_cookie_id("cookie-ud").await.unwrap().unwrap();
-    assert_eq!(s.session_data, Some("{\"v\":2}".to_string()));
+    assert_eq!(store.open_session_data(&s), Some("{\"v\":2}".to_string()));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// session_data encrypted at rest
+// ═══════════════════════════════════════════════════════════════
+
+const SECRET_DATA: &str = "{\"csrf\":\"top-secret\"}";
+
+/// What the table really holds, without going through the store.
+async fn stored_data(conn: &runique::sea_orm::DatabaseConnection) -> String {
+    use runique::sea_orm::{ConnectionTrait, Statement};
+    conn.query_one_raw(Statement::from_string(
+        conn.get_database_backend(),
+        "SELECT session_data FROM eihwaz_sessions",
+    ))
+    .await
+    .unwrap()
+    .unwrap()
+    .try_get("", "session_data")
+    .unwrap()
+}
+
+#[tokio::test]
+async fn both_writes_store_the_session_data_encrypted() {
+    let conn = db::fresh_db_with_schema(SESSIONS_DDL).await;
+    let store = RuniqueSessionStore::new(
+        runique::db::ADb::from_connection(conn.clone()),
+        crate::helpers::server::TEST_SECRET,
+    );
+
+    store
+        .upsert_session("c", pk(1), future_expiry(), Some(SECRET_DATA.to_string()))
+        .await
+        .unwrap();
+    let after_upsert = stored_data(&conn).await;
+    assert!(after_upsert.starts_with("v1:"), "{after_upsert}");
+    assert!(!after_upsert.contains("top-secret"));
+
+    assert!(
+        store
+            .update_session("c", pk(1), future_expiry(), Some(SECRET_DATA.to_string()))
+            .await
+            .unwrap()
+    );
+    let after_update = stored_data(&conn).await;
+    assert!(after_update.starts_with("v1:"), "{after_update}");
+    assert!(!after_update.contains("top-secret"));
+    assert_ne!(
+        after_upsert, after_update,
+        "the same data encrypts differently on each write"
+    );
+
+    let row = store.find_by_cookie_id("c").await.unwrap().unwrap();
+    assert_eq!(store.open_session_data(&row).as_deref(), Some(SECRET_DATA));
+}
+
+#[tokio::test]
+async fn a_session_without_data_stays_without_data() {
+    let store = make_store().await;
+    store
+        .upsert_session("c", pk(1), future_expiry(), None)
+        .await
+        .unwrap();
+
+    let row = store.find_by_cookie_id("c").await.unwrap().unwrap();
+    assert_eq!(row.session_data, None);
+    assert_eq!(store.open_session_data(&row), None);
+}
+
+#[tokio::test]
+async fn another_secret_key_cannot_read_the_session_data() {
+    let conn = db::fresh_db_with_schema(SESSIONS_DDL).await;
+    let store = RuniqueSessionStore::new(
+        runique::db::ADb::from_connection(conn.clone()),
+        crate::helpers::server::TEST_SECRET,
+    );
+    let other = RuniqueSessionStore::new(
+        runique::db::ADb::from_connection(conn),
+        "another_secret_key_of_at_least_32_chars",
+    );
+    store
+        .upsert_session("c", pk(1), future_expiry(), Some(SECRET_DATA.to_string()))
+        .await
+        .unwrap();
+
+    let row = other.find_by_cookie_id("c").await.unwrap().unwrap();
+    assert_eq!(other.open_session_data(&row), None);
+}
+
+#[tokio::test]
+async fn a_payload_altered_copied_or_in_clear_is_refused() {
+    let store = make_store().await;
+    store
+        .upsert_session("c", pk(1), future_expiry(), Some(SECRET_DATA.to_string()))
+        .await
+        .unwrap();
+    let row = store.find_by_cookie_id("c").await.unwrap().unwrap();
+    let sealed = row.session_data.clone().unwrap();
+    assert!(
+        store.open_session_data(&row).is_some(),
+        "the row itself opens"
+    );
+
+    let with_data = |data: &str| {
+        let mut changed = row.clone();
+        changed.session_data = Some(data.to_string());
+        store.open_session_data(&changed)
+    };
+
+    let last = sealed.len() - 4;
+    let flipped = if &sealed[last..last + 1] == "A" {
+        "B"
+    } else {
+        "A"
+    };
+    let altered = format!("{}{}{}", &sealed[..last], flipped, &sealed[last + 1..]);
+    assert_eq!(with_data(&altered), None, "altered");
+
+    assert_eq!(with_data(SECRET_DATA), None, "in clear, from before 4.0");
+    assert_eq!(with_data("v1:"), None, "nothing after the format");
+    assert_eq!(with_data("v1:AAAA"), None, "shorter than a nonce");
+    assert_eq!(with_data("v1:not base64!"), None, "not base64");
+    assert_eq!(
+        with_data(sealed.trim_start_matches("v1:")),
+        None,
+        "no format"
+    );
+
+    let mut copied = row.clone();
+    copied.cookie_id = "another-cookie".to_string();
+    assert_eq!(
+        store.open_session_data(&copied),
+        None,
+        "copied on another row"
+    );
 }
 
 #[tokio::test]
@@ -277,7 +421,10 @@ async fn test_session_db_spawn_cleanup_actually_purges_expired() {
     // > now`), donc inutilisable pour vérifier la présence d'une session déjà
     // expirée avant le cleanup — on compte la ligne brute dans la table à la place.
     let conn = crate::helpers::db::fresh_db_with_schema(SESSIONS_DDL).await;
-    let store = RuniqueSessionStore::new(runique::db::ADb::from_connection(conn.clone()));
+    let store = RuniqueSessionStore::new(
+        runique::db::ADb::from_connection(conn.clone()),
+        crate::helpers::server::TEST_SECRET,
+    );
     store
         .create("cookie-expired", pk(1), "sess-expired", past_expiry())
         .await
