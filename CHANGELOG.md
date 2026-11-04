@@ -61,6 +61,7 @@ All notable changes to this project will be documented in this file.
 
 #### Added
 
+* **An account's rank and groups shown in the admin**: on the accounts' list and detail, read-only, for every account with access to that list. Changing either still goes through the gate. Two more queries per page, however many rows it has.
 * **`request.db_atomic()` and `save`/`delete` inside a transaction**: `save` and `delete` take the connection or a transaction, to tie the form's write to the handler's own; nothing is real before `commit()`. A form on an `admin` route refuses a transaction: the gate decides on what it reads through the connection.
 * **`MediaField::audio()` and `MediaField::video()`, DSL types `audio` and `video`**: same rules as `MediaField::image()`, with the file's signature checked on top of its extension.
 * **`csrf.js` loaded by itself**: `request.render()` adds a single tag per page as soon as it holds a `csrf_token` field, however many forms it has, and none if the page already loads the script.

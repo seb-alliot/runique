@@ -38,12 +38,27 @@ pub(crate) async fn detail_view(
     let mut current_rank = None;
     let mut rights_url = None;
     let mut memberships = Vec::new();
+    let mut account_summary = None;
     if model.is_account_table()
         && let Ok(pk) = id.parse::<crate::utils::pk::Pk>()
         && let Some(account) =
             crate::auth::user::BuiltinUserEntity::find_by_id(&req.engine.db, pk).await
     {
         let rang = crate::auth::permissions::rang::Rang::from(&account);
+        account_summary =
+            match crate::admin::router::account::summary::account_summaries(&req.engine.db, &[pk])
+                .await
+            {
+                Ok(mut summaries) => summaries.remove(&pk),
+                Err(e) => {
+                    return failure(
+                        crate::admin::builder::registered::AdminError::Db(e),
+                        &req,
+                        &admin,
+                    )
+                    .await;
+                }
+            };
         // The groups the viewer manages, ticked when the account belongs.
         if crate::auth::gate::membership::may_set_memberships(&user, &account) {
             use crate::auth::permissions::users_groupes;
@@ -91,12 +106,7 @@ pub(crate) async fn detail_view(
         }
         if rang < user.rang && account.id != user.id {
             rank_choices = crate::admin::router::permission::rank::rank_choices(user.rang);
-            current_rank = Some(match rang {
-                crate::auth::permissions::rang::Rang::Lambda => "lambda",
-                crate::auth::permissions::rang::Rang::Admin => "admin",
-                crate::auth::permissions::rang::Rang::Dirigeant => "dirigeant",
-                crate::auth::permissions::rang::Rang::Superuser => "superuser",
-            });
+            current_rank = Some(crate::admin::router::account::summary::rank_key(rang));
         }
     }
 
@@ -178,6 +188,7 @@ pub(crate) async fn detail_view(
             transfer_url: (!transfer_receivers.is_empty()).then(|| paths.transfer_of(key, &id)),
             transfer_receivers,
             taken_by,
+            account: account_summary,
             object_id: id,
             entry,
             rich_fields: Vec::new(),

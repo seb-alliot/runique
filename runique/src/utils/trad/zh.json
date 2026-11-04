@@ -305,6 +305,8 @@
       "my_groups_none": "此用户组不授予任何表权限。"
     },
     "list": {
+      "rank_label": "等级",
+      "groups_label": "用户组",
       "entries_count_one": "条目",
       "entries_count_many": "条目",
       "btn_create": "创建",
@@ -519,6 +521,7 @@
       "group_sheet": "用户组详情"
     },
     "rank": {
+      "superuser": "超级用户",
       "lambda": "网站账户",
       "admin": "管理员",
       "dirigeant": "负责人",

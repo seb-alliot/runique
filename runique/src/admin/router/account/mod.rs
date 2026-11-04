@@ -2,3 +2,4 @@
 //! choose a password, setting the groups it belongs to.
 pub mod memberships;
 pub mod reset_password;
+pub mod summary;

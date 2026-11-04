@@ -61,6 +61,7 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 #### Ajouté
 
+* **Rang et groupes d'un compte visibles dans l'admin** : sur la liste et le détail des comptes, en lecture seule, pour tout compte ayant accès à cette liste. Modifier l'un ou l'autre passe toujours par la porte. Deux requêtes de plus par page, quel que soit le nombre de lignes.
 * **`request.db_atomic()` et `save`/`delete` dans une transaction** : `save` et `delete` acceptent la connexion ou une transaction, pour lier l'écriture du formulaire à celles du handler ; rien n'est réel avant `commit()`. Un formulaire d'une route `admin` refuse une transaction : la porte décide sur ce qu'elle lit par la connexion.
 * **`MediaField::audio()` et `MediaField::video()`, types `audio` et `video` du DSL** : mêmes règles que `MediaField::image()`, avec contrôle de la signature du fichier en plus de son extension.
 * **`csrf.js` chargé tout seul** : `request.render()` ajoute une seule balise par page dès qu'elle contient un champ `csrf_token`, quel que soit le nombre de formulaires, et aucune si la page charge déjà le script.

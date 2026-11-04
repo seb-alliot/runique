@@ -82,7 +82,7 @@ Also rendered, without layout, for HTMX requests (`admin/list_partial.html`).
 | --- | --- |
 | `resource` | `{ key, title, display: { list_filter: [(column, label)] } }` |
 | `resource_links` | `{ list, create, bulk, rights }`; `create`, `bulk`, `rights` are `none` without the right |
-| `entries` | The page's rows: `{ id, values, links: { detail, edit, delete }, taken_by }` |
+| `entries` | The page's rows: `{ id, values, links: { detail, edit, delete }, taken_by, account }` |
 | `visible_columns` | Shown columns, in order (key left out) |
 | `sortable_columns` | Sortable columns (declared `.sortable()`) |
 | `column_labels` | Each column's header, by name |
@@ -118,6 +118,7 @@ Also rendered, without layout, for HTMX requests (`admin/list_partial.html`).
 | `memberships`, `memberships_url` | On an account: groups managed `(field name, group name, ticked)`, where to post |
 | `transfer_receivers`, `transfer_url` | On a group, for a dirigeant: accounts it may be handed to `(id, name)`, transfer page |
 | `taken_by` | Group taken back after a departure: by whom |
+| `account` | On an account: `{ rank, rank_label, groups }`, read-only |
 
 ---
 
