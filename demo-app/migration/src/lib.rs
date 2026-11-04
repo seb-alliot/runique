@@ -29,6 +29,8 @@ mod m20261023_183131_create_test_relation_profile_table;
 mod m20261023_183131_create_test_relation_tag_table;
 mod m20261023_183131_create_users_booster_table;
 mod m20261023_183131_extend_eihwaz_users_table;
+mod m20261104_153221_alter_demo_page_table;
+mod m20261104_153221_alter_doc_page_table;
 
 pub struct Migrator;
 
@@ -70,6 +72,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20261023_183131_create_test_relation_parent_tag_table::Migration),
             Box::new(m20261023_183131_create_users_booster_table::Migration),
             Box::new(m20261023_183131_extend_eihwaz_users_table::Migration),
+            Box::new(m20261104_153221_alter_demo_page_table::Migration),
+            Box::new(m20261104_153221_alter_doc_page_table::Migration),
         ]
     }
 }

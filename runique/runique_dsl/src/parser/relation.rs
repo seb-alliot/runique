@@ -9,7 +9,7 @@ use syn::{
 
 impl Parse for RelationDef {
     fn parse(input: ParseStream) -> Result<Self> {
-        // belongs_to: users via user_id,
+        // belongs_to: users via user_id [cascade],
         // has_many: comments as user_comments,
         // has_one: profile as user_profile,
         // many_to_many: roles through user_roles,
@@ -41,10 +41,17 @@ impl Parse for RelationDef {
                     }
                 }
                 let mut actions = actions.into_iter();
+                let Some(on_delete) = actions.next() else {
+                    return Err(syn::Error::new(
+                        via.span(),
+                        "belongs_to needs its ON DELETE action: \
+                         [cascade], [set_null], [restrict], [set_default] or [no_action]",
+                    ));
+                };
                 RelationDef::BelongsTo {
                     model,
                     via,
-                    on_delete: actions.next().unwrap_or(FkAction::NoAction),
+                    on_delete,
                     on_update: actions.next().unwrap_or(FkAction::NoAction),
                 }
             }
@@ -115,7 +122,7 @@ mod tests {
 
     #[test]
     fn belongs_to_basic() {
-        let rel = parse("belongs_to: User via user_id").unwrap();
+        let rel = parse("belongs_to: User via user_id [no_action]").unwrap();
         match rel {
             RelationDef::BelongsTo { model, via, .. } => {
                 assert_eq!(model.to_string(), "User");
@@ -145,17 +152,38 @@ mod tests {
     }
 
     #[test]
-    fn belongs_to_actions_default_to_no_action() {
+    fn belongs_to_without_on_delete_action_rejected() {
+        for src in [
+            "belongs_to: User via user_id",
+            "belongs_to: User via user_id []",
+        ] {
+            let err = parse(src).err().expect(src).to_string();
+            assert!(err.contains("ON DELETE"), "{src}: {err}");
+        }
+    }
+
+    #[test]
+    fn belongs_to_on_update_defaults_to_no_action() {
         let RelationDef::BelongsTo {
             on_delete,
             on_update,
             ..
-        } = parse("belongs_to: User via user_id").unwrap()
+        } = parse("belongs_to: User via user_id [cascade]").unwrap()
+        else {
+            panic!("expected BelongsTo");
+        };
+        assert_eq!(on_delete, FkAction::Cascade);
+        assert_eq!(on_update, FkAction::NoAction);
+    }
+
+    #[test]
+    fn belongs_to_explicit_no_action_accepted() {
+        let RelationDef::BelongsTo { on_delete, .. } =
+            parse("belongs_to: User via user_id [no_action]").unwrap()
         else {
             panic!("expected BelongsTo");
         };
         assert_eq!(on_delete, FkAction::NoAction);
-        assert_eq!(on_update, FkAction::NoAction);
     }
 
     #[test]

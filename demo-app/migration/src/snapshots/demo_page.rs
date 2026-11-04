@@ -17,7 +17,7 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .col(ColumnDef::new(Alias::new("slug")).string().not_null())
                     .col(ColumnDef::new(Alias::new("title")).string().not_null())
                     .col(ColumnDef::new(Alias::new("lead")).string().null())
-                    .col(ColumnDef::new_with_type(Alias::new("page_type"), ColumnType::Enum { name: Alias::new("PageType").into_iden(), variants: vec![Alias::new("code").into_iden(), Alias::new("form").into_iden(), Alias::new("custom").into_iden(), Alias::new("doc_en").into_iden(), Alias::new("doc_fr").into_iden()] }).not_null())
+                    .col(ColumnDef::new_with_type(Alias::new("page_type"), if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres { ColumnType::Enum { name: Alias::new("PageType").into_iden(), variants: vec![Alias::new("code").into_iden(), Alias::new("form").into_iden(), Alias::new("custom").into_iden(), Alias::new("doc_en").into_iden(), Alias::new("doc_fr").into_iden()] } } else { ColumnType::String(Default::default()) }).not_null())
                     .col(ColumnDef::new(Alias::new("sort_order")).integer().not_null())
                     .to_owned()
             )
@@ -29,7 +29,7 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .name("demo_page_category_id_demo_category_fkey")
                     .from(Alias::new("demo_page"), Alias::new("category_id"))
                     .to(Alias::new("demo_category"), Alias::new("id"))
-                    .on_delete(ForeignKeyAction::Cascade)
+                    .on_delete(ForeignKeyAction::Restrict)
                     .on_update(ForeignKeyAction::NoAction)
                     .to_owned(),
             )

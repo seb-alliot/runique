@@ -27,6 +27,8 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 * **La production refuse une réinitialisation sans mailer** : `with_password_reset()` sans `with_mailer()` / `with_mailer_from_env()` (avec ses `SMTP_*` définis) arrête le démarrage, comme une URL publique manquante : la page ne pourrait jamais envoyer son lien. Le debug démarre toujours, et la page répond alors à toutes les adresses le même message « pas disponible pour le moment ». Aucun jeton de reset n'est plus créé quand aucun email ne peut le porter.
 * **`AdminConfig.reset_route` remplacé par `reset_link`** : `Option<ResetLinkConfig>` (la route de la page de reset et la durée du lien), posé par le builder depuis `with_password_reset()`. `None` sans lui : le site ne sert pas de page de reset, l'admin n'envoie donc pas de lien au lieu d'en envoyer un qui ne mène nulle part. Les liens de reset sont fabriqués par une seule fonction, `auth::password::send_reset_link`, pour la page du site comme pour l'admin.
 * **`decimal` déclare sa précision** : `prix: decimal [max_digits: 10, decimal_places: 2]` (`max_digits` compte tous les chiffres, `decimal_places` ceux après la virgule : 99999999.99 au plus ici). Un `decimal` sans les deux est une erreur de compilation : en leur absence, MySQL/MariaDB créaient un `DECIMAL(10, 0)` et arrondissaient chaque valeur à l'entier (voir *Corrigé*). Les limites sont celles de MySQL/MariaDB, les plus basses des trois moteurs : 65 chiffres, dont 30 après la virgule.
+* **`belongs_to` déclare son action `ON DELETE`** : `belongs_to: Cour via cour_id [cascade]`. Sans action, erreur de compilation, comme `on_delete` dans Django. `[no_action]` garde le comportement d'avant, sans changement de schéma.
+* **Nouvel admin : builder typé `ModelAdmin`, rangs et droits par compte** : `admin!{}`, le code généré dans `src/admins/` et `runique start` disparaissent. Déclaration dans `src/admin.rs`, câblage `.with_admin(admin::config)`, `cargo run` suffit. L'accès repose sur trois rangs de compte (`is_superuser`, `is_dirigeant`, `is_admin`) qui remplacent `is_staff` sur le compte ; `is_staff` passe sur les groupes. Toute opération de l'admin passe par une seule porte de décision. Les colonnes de `eihwaz_users`, `eihwaz_groupes`, `eihwaz_groupes_droits` et `eihwaz_history` changent : voir [le guide de migration](MIGRATION-4.0.fr.md).
 
 ### Moteur de formulaire
 
@@ -125,8 +127,6 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 ## [3.0.0] - 2026-10-09
 
 > Trois nouveautés structurantes : `ValidationForm<F>` (une validation prouvée par le type), `ADb` (un seul type de connexion à la base, identique en production et en test) et le builder de test `runique_test` avec sa commande `runique test`. Le DSL des modèles est désormais lu par une seule crate, `runique_dsl`, partagée par la macro et la CLI. L'authentification et l'admin ont fait l'objet d'une revue de sécurité complète, et une passe `cargo mutants` a supprimé les API mortes ou en double.
->
-> **Pour passer de la 2.x : suivez le [guide de migration](MIGRATION-3.0.fr.md)**, qui reprend chaque rupture ci-dessous avec le code avant et après.
 
 ### Sécurité
 

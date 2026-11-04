@@ -127,7 +127,7 @@ fn relations_source() -> &'static str {
             user_id: int [required],
         },
         relations: {
-            belongs_to: User via user_id,
+            belongs_to: User via user_id [no_action],
             has_many: Comment,
         }
     }

@@ -22,6 +22,6 @@ model! {
         sort_order:  int [required],
     },
     relations: {
-        belongs_to: demo_category via category_id [cascade],
+        belongs_to: demo_category via category_id [restrict],
     }
 }

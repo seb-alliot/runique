@@ -88,7 +88,7 @@ model! {
         titre:   text [required],
     },
     relations: {
-        belongs_to: Cour via cour_id,
+        belongs_to: Cour via cour_id [cascade],
     }
 }
 ```
@@ -442,7 +442,8 @@ clé étrangère. Elle produit à la fois la contrainte SQL et la relation SeaOR
   introuvable est une erreur de `makemigrations`.
 - **`colonne`** doit être un champ déclaré du modèle (de préférence `Pk`, voir plus haut).
 - **Actions** entre crochets : la première pour `ON DELETE`, la seconde (facultative) pour
-  `ON UPDATE` — `cascade`, `set_null`, `restrict`, `set_default`, `no_action` (par défaut). Une
+  `ON UPDATE` — `cascade`, `set_null`, `restrict`, `set_default`, `no_action`. L'action `ON DELETE`
+  est obligatoire : sans elle, erreur de compilation. Sans action `ON UPDATE`, c'est `no_action`. Une
   action inconnue est une erreur de compilation, et `set_null` exige une colonne `nullable`.
 - **Index** : `makemigrations` crée un index `idx_<table>_<colonne>` sur chaque colonne de
   `belongs_to`, comme Django — sauf si la colonne est déjà `unique` ou en tête d'un index déclaré

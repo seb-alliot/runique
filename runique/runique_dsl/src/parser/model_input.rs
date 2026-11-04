@@ -489,7 +489,7 @@ mod tests {
         // two FKs toward the same target model, through different columns —
         // must NOT be flagged as a duplicate relation.
         model_ok(
-            r#"Test, table: "tests", pk: id => i32, { created_by: int [required], updated_by: int [required], }, relations: { belongs_to: users via created_by, belongs_to: users via updated_by, },"#,
+            r#"Test, table: "tests", pk: id => i32, { created_by: int [required], updated_by: int [required], }, relations: { belongs_to: users via created_by [no_action], belongs_to: users via updated_by [no_action], },"#,
         );
     }
 
@@ -514,7 +514,7 @@ mod tests {
             r#"Book, table: "books", pk: id => i32, enums: { Tag: [A] }, { tags: checkbox [enum(Tag)], title: text [required] }, meta: { indexes: [(tags)] },"#,
         );
         model_err(
-            r#"Book, table: "books", pk: id => i32, enums: { Tag: [A] }, { tags: checkbox [enum(Tag)] }, relations: { belongs_to: tag via tags },"#,
+            r#"Book, table: "books", pk: id => i32, enums: { Tag: [A] }, { tags: checkbox [enum(Tag)] }, relations: { belongs_to: tag via tags [no_action] },"#,
         );
     }
 
@@ -538,7 +538,7 @@ mod tests {
     #[test]
     fn belongs_to_via_must_be_a_declared_field() {
         model_err(
-            r#"Test, table: "tests", pk: id => i32, { name: text }, relations: { belongs_to: users via user_id },"#,
+            r#"Test, table: "tests", pk: id => i32, { name: text }, relations: { belongs_to: users via user_id [no_action] },"#,
         );
     }
 
@@ -619,7 +619,7 @@ mod tests {
     fn meta_owner_on_a_declared_field_accepted() {
         let m = parse_model(
             r#"Test, table: "tests", pk: id => i32, { user_id: int [required], },
-               relations: { belongs_to: eihwaz_users via user_id, },
+               relations: { belongs_to: eihwaz_users via user_id [no_action], },
                meta: { owner: user_id }"#,
         )
         .expect("owner linked to the users table parses");

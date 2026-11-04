@@ -115,7 +115,7 @@ async fn test_a_new_token_replaces_the_previous_one() {
     let rows: i64 = conn
         .query_one_raw(Statement::from_string(
             conn.get_database_backend(),
-            "SELECT COUNT(*) AS n FROM eihwaz_reset_tokens WHERE user_id = 1",
+            "SELECT COUNT(*) AS n FROM eihwaz_reset_tokens",
         ))
         .await
         .unwrap()
