@@ -424,7 +424,7 @@ where
                 crate::utils::trad::t("admin.bulk.no_selection").into_owned(),
             ));
         }
-        if ids.len() as u64 > self.list.page_size(site_page_size) {
+        if ids.len() as u64 > self.list.default_page_size(site_page_size) {
             return Ok(refused());
         }
         let action = value(BULK_ACTION);

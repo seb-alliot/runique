@@ -70,6 +70,7 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     "admin.list.empty_desc",
     "admin.list.btn_create_first",
     "admin.list.search_placeholder",
+    "admin.list.per_page",
     // create
     "admin.create.title",
     "admin.create.breadcrumb",

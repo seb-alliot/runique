@@ -322,6 +322,7 @@
       "empty_desc": "Начните с создания элемента.",
       "btn_create_first": "Создать первый",
       "search_placeholder": "Поиск...",
+      "per_page": "На странице",
       "bulk_selected": "выбрано",
       "bulk_delete": "Удалить",
       "filters": "Фильтры",

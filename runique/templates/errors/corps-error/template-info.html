@@ -18,13 +18,10 @@
         {% if template_info.source %}
         <h3>{{ debug_template_source }}</h3>
             <div class="code-block">
-                {% for line in template_info.source | split(pat="\n") %}
-                    {% if template_info.line_number and loop.index == template_info.line_number %}
-                        <span class="highlight"><span class="line-number">{{ loop.index }}</span>{{ line }}</span>
-                    {% else %}
-                        <span class="line-number">{{ loop.index }}</span>{{ line }}
-                    {% endif %}
-                {% endfor %}</div>
+{%- for line in template_info.source | split(pat="\n") -%}
+<span class="code-line{% if template_info.line_number and loop.index == template_info.line_number %} highlight{% endif %}"><span class="line-number">{{ loop.index }}</span>{{ line }}</span>
+{%- endfor -%}
+</div>
         {% endif %}
 
         {% if template_info.available_templates %}

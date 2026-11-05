@@ -20,7 +20,14 @@ pub(crate) struct ListQuery {
     pub sort_dir: Option<String>,
     pub search: Option<String>,
     pub filters: Vec<(String, String)>,
+    /// The page size asked in the URL, kept only when it is one of
+    /// [`PER_PAGE_OPTIONS`]: a free value would let a request pull the whole
+    /// table in one page.
+    pub per_page: Option<u64>,
 }
+
+/// The page sizes the list offers, and the only ones the URL may set.
+pub const PER_PAGE_OPTIONS: [u64; 4] = [10, 25, 50, 100];
 
 /// Shorter terms search nothing: one or two letters match almost every row
 /// and scan the whole table, while the list searches as one types.
@@ -32,6 +39,9 @@ impl ListQuery {
     pub(crate) fn from_params(mut params: StrMap, search_max_len: usize) -> Self {
         let mut non_empty = |key: &str| params.remove(key).filter(|v| !v.is_empty());
         let page = non_empty("page").and_then(|p| p.parse().ok()).unwrap_or(1);
+        let per_page = non_empty("per_page")
+            .and_then(|v| v.parse().ok())
+            .filter(|v| PER_PAGE_OPTIONS.contains(v));
         let sort_by = non_empty("sort_by");
         let sort_dir = non_empty("sort_dir");
         let search = non_empty("search")
@@ -47,6 +57,7 @@ impl ListQuery {
 
         Self {
             page,
+            per_page,
             sort_by,
             sort_dir,
             search,
@@ -363,9 +374,21 @@ impl<E: EntityTrait> ListConfig<E> {
             .fold(Condition::all(), |cond, expr| cond.add(expr));
         (!cond.is_empty()).then_some(cond)
     }
-    /// Rows per page: the model's own `per_page`, otherwise the site's.
-    pub(crate) fn page_size(&self, site_default: u64) -> u64 {
+    /// Rows per page without a viewer's choice: the model's `per_page`,
+    /// otherwise the site's. The bulk guard caps its ids to this.
+    pub(crate) fn default_page_size(&self, site_default: u64) -> u64 {
         std::cmp::max(self.per_page.unwrap_or(site_default), 1)
+    }
+
+    /// Rows per page: the URL's choice (already bound to [`PER_PAGE_OPTIONS`]),
+    /// otherwise [`default_page_size`](Self::default_page_size).
+    pub(crate) fn page_size(&self, query: &ListQuery, site_default: u64) -> u64 {
+        std::cmp::max(
+            query
+                .per_page
+                .unwrap_or_else(|| self.default_page_size(site_default)),
+            1,
+        )
     }
 
     /// The rows the page draws from: the gate's scope, then search and filters.
@@ -757,6 +780,38 @@ mod tests {
         let query = ListQuery::from_params(params(&[("search", ""), ("filter_id", "")]), 150);
         assert!(query.search.is_none());
         assert!(query.filters.is_empty());
+    }
+
+    #[test]
+    fn a_per_page_in_the_options_is_read() {
+        let q = ListQuery::from_params(params(&[("per_page", "25")]), 150);
+        assert_eq!(q.per_page, Some(25));
+    }
+
+    #[test]
+    fn a_per_page_outside_the_options_is_ignored() {
+        for v in ["1000000", "7", "0", "abc", "-5"] {
+            let q = ListQuery::from_params(params(&[("per_page", v)]), 150);
+            assert_eq!(q.per_page, None, "{v}");
+        }
+    }
+
+    #[test]
+    fn the_url_page_size_wins_over_the_model_and_site_defaults() {
+        let list = ListConfig::<Entity>::default().per_page(10);
+        let picked = ListQuery {
+            per_page: Some(50),
+            ..Default::default()
+        };
+        assert_eq!(list.page_size(&picked, 5), 50, "the url");
+        assert_eq!(list.page_size(&ListQuery::default(), 5), 10, "the model");
+        let bare = ListConfig::<Entity>::default();
+        assert_eq!(bare.page_size(&ListQuery::default(), 5), 5, "the site");
+        assert_eq!(
+            bare.default_page_size(5),
+            5,
+            "the bulk guard ignores the url"
+        );
     }
 
     #[test]

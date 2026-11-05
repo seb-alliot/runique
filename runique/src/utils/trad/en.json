@@ -322,6 +322,7 @@
       "empty_desc": "Start by creating an item.",
       "btn_create_first": "Create the first",
       "search_placeholder": "Search...",
+      "per_page": "Per page",
       "bulk_selected": "selected",
       "bulk_delete": "Delete",
       "filters": "Filters",

@@ -259,7 +259,7 @@ impl<E: ModelMeta> ModelAdmin<E> {
     ) -> Result<ListPage, DbErr> {
         let backend = db.get_database_backend();
         let list = self.list.readable_only(proof.readable());
-        let page_size = list.page_size(site_page_size);
+        let page_size = list.page_size(query, site_page_size);
         let page = query.page.max(1);
         let rows: Vec<ListRow> = list
             .select(backend, proof.conditions(), query)

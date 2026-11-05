@@ -153,3 +153,26 @@
     .admin-list__toolbar { padding: 0.65rem 1rem; }
     .admin-list__cards { gap: 1rem; }
 }
+
+/* Rows-per-page selector, pushed to the right of the toolbar. */
+.admin-list__size {
+    margin-left: auto;
+}
+
+.admin-list__size-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+.admin-list__size-select {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.82rem;
+    color: var(--text-main);
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}

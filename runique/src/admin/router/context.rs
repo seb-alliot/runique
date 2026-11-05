@@ -135,6 +135,13 @@ pub struct ListContext {
     pub next_page: u64,
     /// Whether the grouped actions' bar offers delete.
     pub bulk_delete: bool,
+    /// Rows per page now in force.
+    pub page_size: u64,
+    /// The sizes the selector offers.
+    pub page_size_options: Vec<u64>,
+    /// `&per_page=N` to carry on every link, empty while the size is the model's
+    /// default (nothing to pin then).
+    pub size_qs: String,
 }
 
 /// `admin/detail.html`.

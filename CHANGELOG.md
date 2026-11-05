@@ -61,6 +61,7 @@ All notable changes to this project will be documented in this file.
 
 #### Added
 
+* **Per-page size selector on the admin lists**: a selector (10 / 25 / 50 / 100) at the top right, kept across sort, search and filters. Only those values are accepted from the URL; a free size is ignored.
 * **An account's rank and groups shown in the admin**: on the accounts' list and detail, read-only, for every account with access to that list. Changing either still goes through the gate. Two more queries per page, however many rows it has.
 * **`request.db_atomic()` and `save`/`delete` inside a transaction**: `save` and `delete` take the connection or a transaction, to tie the form's write to the handler's own; nothing is real before `commit()`. A form on an `admin` route refuses a transaction: the gate decides on what it reads through the connection.
 * **`MediaField::audio()` and `MediaField::video()`, DSL types `audio` and `video`**: same rules as `MediaField::image()`, with the file's signature checked on top of its extension.
