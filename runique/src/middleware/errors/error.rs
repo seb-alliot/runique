@@ -455,6 +455,7 @@ fn inject_global_vars(context: &mut Context, config: &RuniqueConfig, csrf_token:
         context.insert("csrf_token", &token);
     }
     context.insert("debug", &config.debug);
+    context.insert("dev", &config.dev);
     context.insert("lang", &crate::utils::trad::current_lang().code());
 }
 

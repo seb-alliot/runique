@@ -46,9 +46,9 @@ Le nom du champ n'a aucun préfixe reconnaissable — un bot ne peut pas le saut
 
 ## Contrainte de test local
 
-Le cookie de session utilise `Secure=true` quand `DEBUG=false`. Sur `http://localhost`, les navigateurs refusent d'envoyer un cookie Secure, ce qui signifie que le nom du champ honeypot est régénéré à chaque requête et que le piège ne se déclenche jamais.
+Le cookie de session utilise `Secure=true` en production (`RUNIQUE_ENV=prod`). Sur `http://localhost`, les navigateurs refusent d'envoyer un cookie Secure, ce qui signifie que le nom du champ honeypot est régénéré à chaque requête et que le piège ne se déclenche jamais.
 
-**Tester en local avec `DEBUG=true`.** Sur le VPS en HTTPS, le middleware fonctionne correctement sans aucune modification.
+**Tester en local avec `RUNIQUE_ENV=dev`.** Sur le VPS en HTTPS, le middleware fonctionne correctement sans aucune modification.
 
 ## Slot
 

@@ -46,9 +46,9 @@ The field name has no recognizable prefix — a bot cannot skip it by pattern ma
 
 ## Local testing constraint
 
-The session cookie uses `Secure=true` when `DEBUG=false`. On `http://localhost`, browsers refuse to send a Secure cookie, which means the honeypot field name is regenerated on every request and the trap never triggers.
+The session cookie uses `Secure=true` in production (`RUNIQUE_ENV=prod`). On `http://localhost`, browsers refuse to send a Secure cookie, which means the honeypot field name is regenerated on every request and the trap never triggers.
 
-**Test locally with `DEBUG=true`.** On the VPS over HTTPS, the middleware works correctly without any override.
+**Test locally with `RUNIQUE_ENV=dev`.** On the VPS over HTTPS, the middleware works correctly without any override.
 
 ## Slot
 

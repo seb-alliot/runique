@@ -350,6 +350,74 @@ fn test_middleware_staging_no_allowed_hosts_disabled_by_default() {
 }
 
 #[test]
+fn test_middleware_staging_allowed_hosts_defaut_suit_le_mode() {
+    let prod = MiddlewareStaging::new(false).with_allowed_hosts(|h| h.host("monsite.fr"));
+    assert!(prod.features().enable_host_validation, "prod + hôtes");
+    assert_eq!(prod.allowed_hosts().len(), 1);
+
+    let dev = MiddlewareStaging::new(true).with_allowed_hosts(|h| h.host("monsite.fr"));
+    assert!(!dev.features().enable_host_validation, "dev + hôtes");
+    assert_eq!(dev.allowed_hosts().len(), 1, "la liste est gardée en dev");
+}
+
+#[test]
+fn test_middleware_staging_allowed_hosts_liste_vide_ne_valide_pas_par_defaut() {
+    for dev in [false, true] {
+        let ms = MiddlewareStaging::new(dev).with_allowed_hosts(|h| h);
+        assert!(!ms.features().enable_host_validation, "dev: {dev}");
+        assert!(ms.allowed_hosts().is_empty());
+    }
+}
+
+#[test]
+fn test_middleware_staging_allowed_hosts_enabled_a_le_dernier_mot() {
+    let dev_on = MiddlewareStaging::new(true).with_allowed_hosts(|h| h.enabled(true).host("a.fr"));
+    assert!(
+        dev_on.features().enable_host_validation,
+        "enabled(true) en dev"
+    );
+
+    let prod_off =
+        MiddlewareStaging::new(false).with_allowed_hosts(|h| h.enabled(false).host("a.fr"));
+    assert!(
+        !prod_off.features().enable_host_validation,
+        "enabled(false) en prod"
+    );
+
+    for dev in [false, true] {
+        let ms = MiddlewareStaging::new(dev).with_allowed_hosts(|h| h.enabled(true));
+        assert!(
+            ms.features().enable_host_validation,
+            "liste vide, dev: {dev}"
+        );
+    }
+    let ms = MiddlewareStaging::new(false).with_allowed_hosts(|h| h.host("a.fr").enabled(false));
+    assert!(
+        !ms.features().enable_host_validation,
+        "l'ordre des appels ne change rien"
+    );
+}
+
+#[test]
+fn test_middleware_staging_from_config_allowed_hosts_suit_config_dev() {
+    for (dev, attendu) in [(false, true), (true, false)] {
+        let config = RuniqueConfig {
+            dev,
+            ..RuniqueConfig::default()
+        };
+        let sans = MiddlewareStaging::from_config(&config);
+        assert!(!sans.features().enable_host_validation, "dev: {dev}");
+
+        let avec = MiddlewareStaging::from_config(&config).with_allowed_hosts(|h| h.host("a.fr"));
+        assert_eq!(
+            avec.features().enable_host_validation,
+            attendu,
+            "dev: {dev}"
+        );
+    }
+}
+
+#[test]
 fn test_middleware_staging_with_debug_errors_false() {
     let ms = MiddlewareStaging::new(false).with_debug_errors(false);
     assert!(!ms.features().enable_debug_errors);
@@ -698,7 +766,7 @@ async fn test_build_profil_production_couvre_csp_host_validation() {
     let db = Database::connect("sqlite::memory:").await.unwrap();
 
     let mut config = make_config();
-    config.debug = false;
+    config.dev = false;
 
     let result = RuniqueAppBuilder::new(config)
         .routes(Router::new())

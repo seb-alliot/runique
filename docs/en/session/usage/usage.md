@@ -46,7 +46,7 @@ Session cookies are configured with the following security attributes by default
 | --- | --- | --- |
 | `HttpOnly` | `true` | Always enabled — inaccessible to JavaScript |
 | `SameSite` | `Strict` | Blocks cross-site requests |
-| `Secure` | `true` in production | HTTPS only (disabled in debug mode) |
+| `Secure` | `true` in production | HTTPS only (disabled with `RUNIQUE_ENV=dev`) |
 
 These defaults are set automatically by the builder and cannot be overridden without modifying the framework.
 

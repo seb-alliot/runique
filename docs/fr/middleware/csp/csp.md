@@ -84,7 +84,7 @@ ENFORCE_HTTPS=true
 
 ```rust
 // main.rs — la validation du Host se règle dans le builder, pas dans le .env
-.middleware(|m| m.with_allowed_hosts(|h| h.enabled(true).host("monsite.fr")))
+.middleware(|m| m.with_allowed_hosts(|h| h.host("monsite.fr")))
 ```
 
 ```nginx

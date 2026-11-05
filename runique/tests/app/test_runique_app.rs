@@ -59,7 +59,7 @@ fn test_builder_core_closure() {
 async fn test_builder_build_avec_sqlite_memory() {
     let db = Database::connect("sqlite::memory:").await.unwrap();
     let mut config = RuniqueConfig::from_env();
-    config.debug = true;
+    config.dev = true;
     let router = Router::new().route("/", get(|| async { "ok" }));
 
     let app = RuniqueApp::builder(config)
@@ -77,7 +77,7 @@ async fn test_builder_build_avec_sqlite_memory() {
 async fn test_builder_build_retourne_runique_app() {
     let db = Database::connect("sqlite::memory:").await.unwrap();
     let mut config = RuniqueConfig::from_env();
-    config.debug = true;
+    config.dev = true;
 
     let app = RuniqueApp::builder(config)
         .with_database(db)

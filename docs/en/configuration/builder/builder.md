@@ -70,7 +70,7 @@ let app = RuniqueApp::builder(config)
     .await?;
 ```
 
-The error handler is mounted by default; `DEBUG` decides what it shows (a detailed page in debug, a generic one in production). `with_debug_errors(false)` removes it altogether: errors then leave with no Runique page.
+The error handler is mounted by default; `DEBUG` decides what it shows (a detailed page with `DEBUG=true`, a generic one otherwise). `with_debug_errors(false)` removes it altogether: errors then leave with no Runique page.
 
 ### Middlewares
 
@@ -81,7 +81,7 @@ let app = RuniqueApp::builder(config)
     .routes(router)
     .middleware(|m| {
         m.with_csp(|c| c)              // CSP is always active — customize it here
-         .with_allowed_hosts(|h| h.enabled(true).host("mydomain.com"))      // Enable host validation
+         .with_allowed_hosts(|h| h.host("mydomain.com"))      // Enable host validation
          .with_cache(true)              // Keep the HTTP cache in dev (no no-cache headers)
          .with_debug_errors(true)       // Enable detailed errors
     })
@@ -89,9 +89,9 @@ let app = RuniqueApp::builder(config)
     .await?;
 ```
 
-Host validation is enabled via `.with_allowed_hosts(|h| h.enabled(true).host("..."))` in the builder — without this call, validation is disabled. No `.env` variable controls this behaviour.
+Host validation is declared via `.with_allowed_hosts(|h| h.host("..."))` in the builder: on with `RUNIQUE_ENV=prod`, off with `RUNIQUE_ENV=dev`, and `.enabled(...)` has the last word. Without this call, nothing is validated.
 
-> **`is_debug()`** — global helper available via `use runique::prelude::*`. Returns `true` if `DEBUG=true` in `.env`. Read once at startup (`LazyLock`), available everywhere without passing a parameter.
+> **`is_dev()`** — global helper available via `use runique::prelude::*`. Returns `true` if `RUNIQUE_ENV=dev`. Read once (`LazyLock`), after loading `.env`, available everywhere without passing a parameter. **`is_debug()`** does the same for `DEBUG`, which only drives the detailed error pages.
 
 ### Session duration
 
@@ -127,9 +127,9 @@ let app = RuniqueApp::builder(config)
     .await?;
 ```
 
-In production (`DEBUG=false`), the app **refuses to boot** without it as soon as the password reset or the admin is enabled: a link built from the request's `Host` header would go wherever the client decides (`Host: evil.com` → the reset token goes to the attacker). In debug, the `Host` is the fallback, with a warning.
+In production (`RUNIQUE_ENV=prod`), the app **refuses to boot** without it as soon as the password reset or the admin is enabled: a link built from the request's `Host` header would go wherever the client decides (`Host: evil.com` → the reset token goes to the attacker). With `RUNIQUE_ENV=dev`, the public URL is always `http://127.0.0.1:{PORT}`, even when `.with_public_url()` is called: links lead to your machine, not to the production site.
 
-Your own links (account activation, an email pointing to the site…) use the same rule through `request.public_url()`: the public URL, else the `Host` in debug only, else `None`. Never build them from the `Host` header yourself.
+Your own links (account activation, an email pointing to the site…) use the same rule through `request.public_url()`: the public URL, else `None`, never the `Host`. Never build them from the `Host` header yourself.
 
 ```rust
 let Some(base) = request.public_url() else {
@@ -139,12 +139,7 @@ let Some(base) = request.public_url() else {
 let activate_url = format!("{base}/activate/{token}");
 ```
 
-It's called **once**: a second `.with_public_url(...)` doesn't compile ("`with_public_url()` has already been called on this builder"), rather than silently replacing the first. To tell local from production apart, choose the value, not the call (the two branches of an `if` around the call wouldn't have the same type); an empty string leaves the public URL unset:
-
-```rust
-let public_url = if is_debug() { "" } else { "https://mysite.com" };
-let builder = RuniqueApp::builder(config).with_public_url(public_url);
-```
+It's called **once**: a second `.with_public_url(...)` doesn't compile ("`with_public_url()` has already been called on this builder"), rather than silently replacing the first. Write the production address in it: development ignores it.
 
 ### Framework logs
 
@@ -171,7 +166,7 @@ RuniqueApp::builder(config)
 
 #### `subscriber_level` — subscriber level
 
-Default: `"debug"` if `DEBUG=true` in `.env`, otherwise `"warn"`. The `RUST_LOG` environment variable always takes priority.
+Default: `"debug"` if `RUNIQUE_ENV=dev`, otherwise `"warn"`. The `RUST_LOG` environment variable always takes priority.
 
 ```rust
 RuniqueApp::builder(config)
@@ -183,10 +178,10 @@ RuniqueApp::builder(config)
 
 #### `.dev()` — enable everything in development
 
-Preset that activates all categories at `DEBUG` level. No-op if `DEBUG` is not `true` in `.env` — safe to use unconditionally.
+Preset that activates all categories at `DEBUG` level. No-op if `RUNIQUE_ENV` is not `dev` — safe to use unconditionally.
 
 ```rust
-// Dev only (no-op if DEBUG != true)
+// Dev only (no-op if RUNIQUE_ENV != dev)
 RuniqueApp::builder(config)
     .with_log(|l| l.dev())
     .routes(router)
@@ -297,10 +292,10 @@ The state lives in the builder's type (`RuniqueAppBuilder<S>`), invisible while 
 | **Error handler** | ✅ Enabled | |
 | **CSP + security headers** | ✅ Always on | Unconditional, regardless of mode; `.with_csp(...)` customizes, doesn't enable |
 | **Host validation** | ❌ Disabled | No `.env` variable controls it — call `.with_allowed_hosts(...)` |
-| **Cache control** | ✅ Enabled | No-cache in debug; `.with_cache(true)` turns it off |
+| **Cache control** | ✅ Enabled | No-cache in development; `.with_cache(true)` turns it off |
 | **Static files** | ✅ Enabled | Served under `STATIC_URL` and `MEDIA_URL`; `.static_files(\|s\| s.enabled(false))` to disable (files served by Nginx, for instance) |
 | **Public URL** | — | Required in production when the password reset or the admin is enabled — `.with_public_url(...)` |
-| **Admin hot reload** | Follows `DEBUG` | Automatic via `is_debug()` |
+| **Admin hot reload** | Follows `RUNIQUE_ENV` | Automatic via `is_dev()` |
 | **Framework logs** | ❌ Disabled | Enable via `.with_log(\|l\| ...)` |
 
 ---

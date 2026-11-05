@@ -1,17 +1,17 @@
 use crate::views::{
     about, activate_account, admin_declaration, admin_hub, admin_setup, admin_surcharge,
-    blog_detail, blog_list, blog_save, changelog, comparatif_demo, configuration_demo,
+    blog_detail, blog_list, blog_save, changelog, comparatif, configuration_demo,
     contribution_list, contribution_submit, database_demo, deconnexion, docs_index_en,
     docs_index_fr, docs_page, docs_section, erreur_502, force_not_found, force_server_error,
     force_to_many_requests, formulaires_champs, formulaires_helpers, formulaires_hub,
-    formulaires_templates, google_verify, i18n_demo, index, info_user, installation_demo,
-    llms_full_txt, llms_txt, login_user, macros_demo, middleware_csp, middleware_csrf,
-    middleware_hosts, middleware_https, middleware_hub, middleware_login_guard,
-    middleware_rate_limit, migrations_demo, model_demo, orm_demo, probleme_connu, profil,
-    propos_template_error, readme_en, readme_fr, rgpd, roadmap, router_demo, rust_django_framework,
-    security_txt, session_demo, sitemap_xml, soumission_inscription, surcharge_exemple,
+    formulaires_templates, google_verify, i18n_demo, index, installation_demo, llms_full_txt,
+    llms_txt, login_user, macros_demo, middleware_csp, middleware_csrf, middleware_hosts,
+    middleware_https, middleware_hub, middleware_login_guard, middleware_rate_limit,
+    migrations_demo, model_demo, orm_demo, probleme_connu, profil, propos_template_error,
+    readme_en, readme_fr, rgpd, roadmap, router_demo, rust_django_framework, security_txt,
+    session_demo, set_language, sitemap_xml, soumission_inscription, surcharge_exemple,
     template_demo, test_csrf, test_fields, upload_image_submit, view_cours_detail,
-    view_cours_exercice, view_cours_index,
+    view_cours_index,
 };
 
 use runique::prelude::*;
@@ -21,6 +21,7 @@ use crate::test_deux_formulaires::deux_formulaires;
 pub fn routes() -> Routes {
     urlpatterns! {
         "/"                              => view!{ index },                   name = "index",
+        "/lang/{code}"                   => view! { set_language },           name = "set_language",
 
         // TEMPORAIRE — à supprimer avec src/test_deux_formulaires.rs.
         "/test/deux-formulaires"         => view! { deux_formulaires },       name = "test_deux_formulaires",
@@ -32,9 +33,6 @@ pub fn routes() -> Routes {
 
         // Profil
         "/profil"                        => view! { profil },                 name = "profil",
-        admin "/view-user"               => view! { info_user },
-            name = "search-user",
-            for_model = runique::auth::user::Entity,
 
         // Blog
         "/blog/liste"                    => view! { blog_list },              name = "blog_list",
@@ -57,7 +55,7 @@ pub fn routes() -> Routes {
         "/templates"                     => view! { template_demo },          name = "template_demo",
         "/configuration"                 => view! { configuration_demo },     name = "configuration_demo",
         "/orm"                           => view! { orm_demo },               name = "orm_demo",
-        "/comparatif"                    => view! { comparatif_demo },        name = "comparatif_demo",
+        "/comparatif"                    => view! { comparatif },             name = "comparatif",
         "/routeur"                       => view! { router_demo },            name = "router_demo",
         "/modeles"                       => view! { model_demo },             name = "model_demo",
         "/roadmap"                       => view! { roadmap },                name = "roadmap",
@@ -104,7 +102,8 @@ pub fn routes() -> Routes {
         // Rust Courses
         "/cours"                         => view! { view_cours_index },       name = "cours_index",
         "/cours/{slug}"                  => view! { view_cours_detail },      name = "cours_detail",
-        "/cours/{slug}/exercice"         => view! { view_cours_exercice },    name = "cours_exercice",
+        // Exercices IA : le code fonctionne, à faire évoluer plus tard. Réactiver aussi le tchat de cours_detail.html.
+        // "/cours/{slug}/exercice"         => view! { view_cours_exercice },    name = "cours_exercice",
 
         // Documentation
         "/docs/fr"                       => view! { docs_index_fr },          name = "doc_index_fr",

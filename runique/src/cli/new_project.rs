@@ -389,6 +389,30 @@ mod generated_files_tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
+    #[test]
+    fn the_generated_env_sets_the_mode_and_the_error_pages() {
+        let dir = std::env::temp_dir().join(format!("rq_new_env_{}", uuid::Uuid::new_v4()));
+        create_project_dirs(&dir).unwrap();
+        write_project_files(&dir, "shop", "9.8.7").unwrap();
+        let env = std::fs::read_to_string(dir.join(".env")).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+
+        let lines: Vec<&str> = env.lines().map(str::trim).collect();
+        assert!(lines.contains(&"RUNIQUE_ENV=dev"), "{env}");
+        assert!(lines.contains(&"DEBUG=true"), "{env}");
+        let comment_before = |key: &str| {
+            let at = lines.iter().position(|l| l.starts_with(key)).unwrap();
+            lines[..at]
+                .iter()
+                .rev()
+                .take_while(|l| !l.is_empty())
+                .any(|l| l.starts_with('#'))
+        };
+        assert!(comment_before("RUNIQUE_ENV="), "{env}");
+        assert!(comment_before("DEBUG="), "{env}");
+        assert!(!env.contains("your_secret_key_here"), "{env}");
+    }
+
     /// The generated project builds against this checkout of runique: the only
     /// test that catches the scaffold falling behind the API. Slow on its first
     /// run (it compiles SeaORM), hence ignored; the CI runs it with

@@ -88,8 +88,7 @@
     </div>
 
     <div class="back-link">
-        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/09-flash-messages.md" target="_blank" class="btn btn-secondary">Doc FR</a>
-        <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/flash/09-flash-messages.md" target="_blank" class="btn btn-secondary">Doc EN</a>
+        <a href="{% if ui_lang == "fr" %}https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/09-flash-messages.md{% else %}https://github.com/seb-alliot/runique/blob/main/docs/en/flash/09-flash-messages.md{% endif %}" target="_blank" rel="noopener" class="btn btn-secondary">Documentation</a>
         <a href="{% link "index" %}">← Back home</a>
     </div>
 </div>

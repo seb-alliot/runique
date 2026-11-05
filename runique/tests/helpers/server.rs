@@ -80,8 +80,8 @@ pub async fn build_engine() -> Arc<RuniqueEngine> {
     build_engine_cfg(false, false).await
 }
 
-/// Test engine in debug mode (`config.debug = true`).
-pub async fn build_engine_debug() -> Arc<RuniqueEngine> {
+/// Test engine in development (`config.dev = true`).
+pub async fn build_engine_dev() -> Arc<RuniqueEngine> {
     build_engine_cfg(false, true).await
 }
 
@@ -90,7 +90,7 @@ pub async fn build_engine_https() -> Arc<RuniqueEngine> {
     build_engine_cfg(true, false).await
 }
 
-async fn build_engine_cfg(enforce_https: bool, debug: bool) -> Arc<RuniqueEngine> {
+async fn build_engine_cfg(enforce_https: bool, dev: bool) -> Arc<RuniqueEngine> {
     let db = Database::connect(SQLITE_URL)
         .await
         .expect("sqlite::memory: connect");
@@ -98,7 +98,7 @@ async fn build_engine_cfg(enforce_https: bool, debug: bool) -> Arc<RuniqueEngine
     let mut config = RuniqueConfig::default();
     config.server.secret_key = TEST_SECRET.to_string();
     config.security.enforce_https = enforce_https;
-    config.debug = debug;
+    config.dev = dev;
 
     Arc::new(RuniqueEngine {
         config,

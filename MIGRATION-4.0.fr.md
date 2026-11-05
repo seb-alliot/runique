@@ -13,7 +13,7 @@ Ce guide liste les ruptures de la 4.0 et ce qu'il faut faire. Le [journal des mo
 3. **Formulaires** : nommer chaque formulaire et passer à `try_form` (voir [Formulaires](#formulaires)).
 4. **Modèles** : préciser les `decimal`, retirer `required` des `bool` qui ne voulaient dire que NOT NULL (voir [DSL des modèles](#dsl-des-modèles)).
 5. **Code** : corriger ce que le compilateur signale, à l'aide des sections ci-dessous.
-6. **Comportement** : relire [CSRF](#csrf) et [Fichiers](#fichiers) : ces deux changements ne se voient pas à la compilation.
+6. **Comportement** : relire [Environnement](#environnement), [CSRF](#csrf) et [Fichiers](#fichiers) : ces changements ne se voient pas à la compilation.
 7. **Redémarrer** l'application : les fichiers statiques changent.
 
 ---
@@ -294,6 +294,28 @@ PRAGMA foreign_keys = ON;
 - Un template de liste surchargé lit `list_pager`, `filter_pagers` et `filter_size_pager` au lieu de `has_prev`, `has_next`, `prev_page`, `next_page` et `page_size_options` ; `filter_values` devient une liste de `{ value, active, qs }`, et `active_filters` associe chaque colonne à une liste de valeurs.
 
 Voir [la mise en place de l'admin](https://runique.io/docs/fr/admin/setup) et [les rôles et permissions](https://runique.io/docs/fr/admin/permission).
+
+---
+
+## Environnement
+
+Ajoutez `RUNIQUE_ENV` à chaque `.env` : `RUNIQUE_ENV=dev` en local, `RUNIQUE_ENV=prod` sur un serveur. **Un `.env` local qui ne contient que `DEBUG=true` tourne désormais en mode production** : le cookie de session devient `Secure` et les contrôles au démarrage s'appliquent.
+
+| Clé | Pilote désormais |
+| --- | --- |
+| `RUNIQUE_ENV` | Cookie de session, contrôles au démarrage, URL publique, hôtes autorisés, `upgrade-insecure-requests`, rechargement des templates, no-cache, page d'accueil par défaut, logs, hot reload de l'admin, SRI |
+| `DEBUG` | Les pages d'erreur détaillées, et rien d'autre |
+
+`DEBUG=true` fonctionne toujours avec `RUNIQUE_ENV=prod`, pour diagnostiquer un problème en direct : tous les visiteurs voient alors ces pages, et un avertissement s'affiche au démarrage. Vérifiez qu'il est coupé sur vos serveurs.
+
+Dans `main.rs` :
+
+- `h.enabled(!is_debug())` et `.with_upgrade_insecure(!is_debug())` : à retirer, le framework s'en charge.
+- `h.enabled(true)` : à retirer aussi, sauf si vous voulez la validation en développement.
+- Autres usages de `is_debug()` et `config.debug` qui veulent dire « en développement » : `is_dev()` et `config.dev`.
+- `{% if debug %}` dans un template, s'il veut dire « en développement » : `{% if dev %}`.
+
+Avec `RUNIQUE_ENV=dev`, l'URL publique est toujours `http://127.0.0.1:{PORT}` : naviguez sur cette adresse plutôt que sur `localhost`, et gardez l'adresse de production dans `.with_public_url()`.
 
 ---
 

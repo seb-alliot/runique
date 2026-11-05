@@ -23,8 +23,7 @@
 <div class="doc-mobile-bar">
     <span class="doc-mobile-bar-title">{{ cour.title }}</span>
     <div class="doc-mobile-bar-actions">
-        <button class="ia-trigger-btn" id="ia-open-btn" title="Runique exercise Beta">⚡</button>
-        <button class="doc-hamburger" id="doc-hamburger-btn" aria-label="Navigation">☰</button>
+        <button class="doc-hamburger" id="doc-hamburger-btn">Pages</button>
     </div>
 </div>
 
@@ -45,11 +44,6 @@
             </a>
             {% endfor %}
         </nav>
-        <div class="ia-sidebar-action">
-            <button class="ia-trigger-btn ia-trigger-btn--full" id="ia-open-btn-sidebar">
-                ⚡ Runique exercise Beta
-            </button>
-        </div>
     </aside>
 
     <div class="doc-content" id="doc-content">
@@ -81,42 +75,13 @@
             {% endfor %}
         </main>
 
-        <div class="ia-panel" id="ia-panel">
-            <div class="ia-panel-header" id="ia-panel-header">
-                <span class="ia-panel-title">⚡ Runique exercise Beta</span>
-                <div class="ia-panel-actions">
-                    <button class="ia-panel-close" id="ia-minimize-btn" title="Minimize">⋮</button>
-                    <button class="ia-panel-close" id="ia-close-btn" title="Close">✕</button>
-                </div>
-            </div>
-
-            <div class="ia-messages" id="ia-messages">
-                <div class="ia-message ia-message--system">
-                    Say <strong>hello</strong> to start an exercise for this course.
-                </div>
-            </div>
-
-            <div class="ia-input-area">
-                <textarea
-                    id="ia-input"
-                    class="ia-textarea"
-                    placeholder="Your message..."
-                    rows="2"
-                    maxlength="500"
-                ></textarea>
-                <button class="ia-send-btn" id="ia-send-btn">Send</button>
-            </div>
-        </div>
-
     </div>
 
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script {% csp %}>
-    window.COUR_SLUG = "{{ cour.slug }}";
-</script>
 <script {% csp %} src="{% static "js/highlight.min.js" %}"></script>
-<script {% csp %} src="{% static "js/cour_ia.js" %}"></script>
+<script {% csp %} src="{% static "js/highlight_init.js" %}"></script>
+<script {% csp %} src="{% static "js/doc_sidebar.js" %}"></script>
 {% endblock %}

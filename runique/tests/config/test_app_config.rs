@@ -84,6 +84,88 @@ fn test_runique_config_from_env_debug_invalide_utilise_assertions() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// from_env — RUNIQUE_ENV (mode) indépendant de DEBUG (pages d'erreur)
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_runique_config_default_dev_false() {
+    assert!(!RuniqueConfig::default().dev);
+}
+
+#[test]
+#[serial]
+fn test_runique_config_from_env_runique_env_dev() {
+    for value in ["dev", "DEV", " dev "] {
+        set_env("RUNIQUE_ENV", value);
+        let cfg = RuniqueConfig::from_env();
+        assert!(cfg.dev, "{value:?}");
+    }
+    del_env("RUNIQUE_ENV");
+}
+
+#[test]
+#[serial]
+fn test_runique_config_from_env_runique_env_prod_absent_ou_inconnu() {
+    set_env("RUNIQUE_ENV", "prod");
+    assert!(!RuniqueConfig::from_env().dev, "prod");
+
+    del_env("RUNIQUE_ENV");
+    assert!(!RuniqueConfig::from_env().dev, "absent");
+
+    for inconnu in ["staging", "development", "true", ""] {
+        set_env("RUNIQUE_ENV", inconnu);
+        assert!(!RuniqueConfig::from_env().dev, "{inconnu:?}");
+    }
+    del_env("RUNIQUE_ENV");
+}
+
+#[test]
+#[serial]
+fn test_runique_config_from_env_runique_env_et_debug_independants() {
+    for (env, debug) in [
+        ("dev", "true"),
+        ("dev", "false"),
+        ("prod", "true"),
+        ("prod", "false"),
+    ] {
+        set_env("RUNIQUE_ENV", env);
+        set_env("DEBUG", debug);
+        let cfg = RuniqueConfig::from_env();
+        assert_eq!(cfg.dev, env == "dev", "RUNIQUE_ENV={env} DEBUG={debug}");
+        assert_eq!(
+            cfg.debug,
+            debug == "true",
+            "RUNIQUE_ENV={env} DEBUG={debug}"
+        );
+    }
+    del_env("RUNIQUE_ENV");
+    del_env("DEBUG");
+}
+
+#[test]
+#[serial]
+fn test_runique_config_from_env_cache_suit_runique_env_pas_debug() {
+    for (env, debug, cache) in [
+        ("dev", "true", false),
+        ("dev", "false", false),
+        ("prod", "true", true),
+        ("prod", "false", true),
+    ] {
+        set_env("RUNIQUE_ENV", env);
+        set_env("DEBUG", debug);
+        let cfg = RuniqueConfig::from_env();
+        assert_eq!(
+            cfg.middleware.enable_cache, cache,
+            "RUNIQUE_ENV={env} DEBUG={debug}"
+        );
+    }
+    del_env("RUNIQUE_ENV");
+    del_env("DEBUG");
+
+    assert!(RuniqueConfig::from_env().middleware.enable_cache, "absent");
+}
+
+// ═══════════════════════════════════════════════════════════════
 // from_env — sous-configs agrégées
 // ═══════════════════════════════════════════════════════════════
 

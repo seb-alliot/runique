@@ -103,7 +103,7 @@ async fn serve(router: Router) -> String {
 async fn spawn_with_password_config(password: PasswordConfig) -> (String, DatabaseConnection) {
     let dbc = seeded_db().await;
     let mut config = RuniqueConfig::from_env();
-    config.debug = true;
+    config.dev = true;
     config.password = password;
     let app = RuniqueApp::builder(config)
         .with_database(dbc.clone())
@@ -120,7 +120,7 @@ async fn spawn_with_password_config(password: PasswordConfig) -> (String, Databa
 async fn spawn_with_custom_store() -> (String, DatabaseConnection) {
     let dbc = seeded_db().await;
     let mut config = RuniqueConfig::from_env();
-    config.debug = true;
+    config.dev = true;
     let app = RuniqueApp::builder(config)
         .with_database(dbc.clone())
         .routes(test_routes())

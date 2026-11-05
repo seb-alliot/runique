@@ -14,6 +14,13 @@ use tower::ServiceExt;
 async fn build(
     statics: impl FnOnce(runique::app::staging::StaticStaging) -> runique::app::staging::StaticStaging,
 ) -> (Result<Router, String>, std::path::PathBuf) {
+    build_in(true, statics).await
+}
+
+async fn build_in(
+    dev: bool,
+    statics: impl FnOnce(runique::app::staging::StaticStaging) -> runique::app::staging::StaticStaging,
+) -> (Result<Router, String>, std::path::PathBuf) {
     let root = std::env::temp_dir().join(format!("rq_static_{}", uuid::Uuid::new_v4()));
     let (static_dir, media_dir) = (root.join("static"), root.join("media"));
     std::fs::create_dir_all(&static_dir).unwrap();
@@ -22,7 +29,8 @@ async fn build(
     std::fs::write(media_dir.join("photo.txt"), "x").unwrap();
 
     let mut config = RuniqueConfig::from_env();
-    config.debug = true;
+    config.dev = dev;
+    config.server.secret_key = "a-long-enough-test-secret-key-for-production-0123456789".into();
     config.static_files.staticfiles_dirs = static_dir.to_string_lossy().into_owned();
     config.static_files.media_root = media_dir.to_string_lossy().into_owned();
     config.static_files.static_url = "/static".into();
@@ -52,7 +60,10 @@ fn header<'a>(resp: &'a axum::response::Response, name: &str) -> &'a str {
 #[tokio::test]
 #[serial]
 async fn static_and_media_files_carry_their_cache_and_security_headers() {
-    let (app, root) = build(|s| s.static_cache("public, max-age=60").media_cache("no-cache")).await;
+    let (app, root) = build_in(false, |s| {
+        s.static_cache("public, max-age=60").media_cache("no-cache")
+    })
+    .await;
     let app = app.unwrap();
 
     let css = fetch(app.clone(), "/static/app.css").await;
@@ -125,6 +136,32 @@ async fn media_responses_forbid_scripts() {
 
 /// A built app whose only route reads the form body through `Request`, its
 /// body limit set as RUNIQUE_MAX_UPLOAD_MB would.
+/// While a stylesheet is edited its URL doesn't change: the browser must ask
+/// again, whatever the builder says. Media files keep their own setting.
+#[tokio::test]
+#[serial]
+async fn development_static_files_are_never_kept_by_the_browser() {
+    let (app, root) = build(|s| s.static_cache("public, max-age=60").media_cache("private")).await;
+    let app = app.unwrap();
+    let css = fetch(app.clone(), "/static/app.css").await;
+    assert_eq!(header(&css, "cache-control"), "no-cache");
+    let media = fetch(app, "/media/photo.txt").await;
+    assert_eq!(header(&media, "cache-control"), "private");
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[tokio::test]
+#[serial]
+async fn production_static_files_keep_the_long_cache_by_default() {
+    let (app, root) = build_in(false, |s| s).await;
+    let css = fetch(app.unwrap(), "/static/app.css").await;
+    assert_eq!(
+        header(&css, "cache-control"),
+        "public, max-age=31536000, immutable"
+    );
+    let _ = std::fs::remove_dir_all(root);
+}
+
 async fn build_with_upload_limit(max_upload_mb: u64) -> Router {
     build_with_body_limit(max_upload_mb, Some(max_upload_mb)).await
 }
@@ -132,7 +169,7 @@ async fn build_with_upload_limit(max_upload_mb: u64) -> Router {
 async fn build_with_body_limit(max_upload_mb: u64, max_body_mb: Option<u64>) -> Router {
     // GET too: `app_with_session` reads the token a first page hands out.
     let mut config = RuniqueConfig::from_env();
-    config.debug = true;
+    config.dev = true;
     config.static_files.max_upload_mb = max_upload_mb;
     config.static_files.max_body_mb = max_body_mb;
     // Uploads accepted by these tests are staged under the test run's

@@ -125,9 +125,9 @@ pub async fn fetch_roadmap(db: &ADb) -> Vec<CardSection> {
         .unwrap_or_default();
 
     let status_sections = [
-        (RoadmapStatus::Active, "🔧 In progress", "roadmap-active"),
-        (RoadmapStatus::Planned, "📋 Planned", "roadmap-planned"),
-        (RoadmapStatus::Future, "🔭 Future", "roadmap-future"),
+        (RoadmapStatus::Active, "In progress", "roadmap-active"),
+        (RoadmapStatus::Planned, "Planned", "roadmap-planned"),
+        (RoadmapStatus::Future, "Later", "roadmap-future"),
     ];
 
     status_sections

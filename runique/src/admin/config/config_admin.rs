@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::admin::template::AdminTemplate;
 use crate::auth::guard::LoginGuard;
 use crate::middleware::security::RateLimiter;
-use crate::utils::env::is_debug;
+use crate::utils::env::is_dev;
 
 /// Configuration for the admin panel: route prefix, branding, hot reload,
 /// template overrides, and per-panel security settings
@@ -106,12 +106,12 @@ impl std::fmt::Debug for AdminConfig {
 
 impl AdminConfig {
     /// Builds the default admin configuration: prefix `/admin`, hot reload
-    /// following `is_debug()`, 10 rows per page, and
+    /// following `is_dev()`, 10 rows per page, and
     /// framework-default templates.
     pub fn new() -> Self {
         Self {
             prefix: "/admin".to_string(),
-            hot_reload: is_debug(),
+            hot_reload: is_dev(),
             site_title: String::new(),
             view_site_url: None,
             enabled: true,

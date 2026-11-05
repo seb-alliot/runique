@@ -121,7 +121,7 @@ runique test blog created_article_is_found_by_id   # a single test
 - **MediaRoot**: a media folder that can't be created;
 - **CORS**: `any_origin()` combined with `allow_credentials(true)`.
 
-**Outside debug mode only** (`DEBUG=false`), what would be unsafe in production:
+**In production only** (`RUNIQUE_ENV=prod`), what would be unsafe in production:
 
 - **Security**: a weak `SECRET_KEY`;
 - **PublicUrl**: the password reset or the admin enabled without `.with_public_url(...)`;

@@ -121,7 +121,7 @@ runique test blog un_article_cree_est_trouve_par_son_id   # un seul test
 - **MediaRoot** : un dossier media impossible à créer ;
 - **CORS** : `any_origin()` combiné à `allow_credentials(true)`.
 
-**Hors mode debug uniquement** (`DEBUG=false`), ce qui serait dangereux en production :
+**En production uniquement** (`RUNIQUE_ENV=prod`), ce qui serait dangereux en production :
 
 - **Security** : une `SECRET_KEY` faible ;
 - **PublicUrl** : le reset de mot de passe ou l'admin activés sans `.with_public_url(...)` ;

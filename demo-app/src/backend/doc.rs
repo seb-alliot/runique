@@ -35,6 +35,7 @@ pub async fn doc_index(lang: &str, request: &mut Request) -> AppResult<Response>
         "cours_difficultes"  => &cours_difficultes,
         "cours"              => &cours,
         "lang"               => lang,
+        "ui_lang"            => lang,
     });
 
     request.render("docs/doc_index.html")

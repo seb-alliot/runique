@@ -64,7 +64,7 @@ docker compose up -d
 
 | Section | Description |
 | --- | --- |
-| [Application & Serveur](/docs/fr/env/application) | DEBUG, IP_SERVER, PORT, DB |
+| [Application & Serveur](/docs/fr/env/application) | RUNIQUE_ENV, DEBUG, IP_SERVER, PORT, DB |
 | [Sécurité & sessions](/docs/fr/env/securite) | Middlewares, CSP, Sessions |
 
 ## Retour au sommaire

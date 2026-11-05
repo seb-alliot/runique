@@ -4,15 +4,15 @@
 //
 //   .middleware(|m| {
 //       m.with_allowed_hosts(|h| {
-//           h.enabled(true)
-//            .host("mysite.com")
+//           h.host("mysite.com")
 //            .host("www.mysite.com")
 //       })
 //   })
 //
 // ACTIVATION:
-//   .enabled(true)          → enables Host header validation
-//   .enabled(false)         → disables (rare case, escape hatch)
+//   default                 → on in production (RUNIQUE_ENV), off in development
+//   .enabled(true)          → always on, to try the validation in development
+//   .enabled(false)         → always off (rare case, escape hatch)
 //
 // HOSTS:
 //   .host("mysite.com")     → adds an exact host
@@ -26,14 +26,14 @@
 
 /// Allowed hosts configuration, passed via closure to `.with_allowed_hosts(|h| { ... })`.
 ///
-/// Disabled by default — call `.enabled(true)` to enable.
+/// Validation is on in production as soon as a host is listed, off in
+/// development (`RUNIQUE_ENV`).
 ///
 /// # Example
 /// ```rust,ignore
 /// .middleware(|m| {
 ///     m.with_allowed_hosts(|h| {
-///         h.enabled(true)
-///          .host("mysite.com")
+///         h.host("mysite.com")
 ///          .host("www.mysite.com")
 ///     })
 /// })
@@ -42,8 +42,7 @@
 /// # Wildcard subdomains
 /// ```rust,ignore
 /// m.with_allowed_hosts(|h| {
-///     h.enabled(true)
-///      .host(".mysite.com") // mysite.com + subdomains
+///     h.host(".mysite.com") // mysite.com + subdomains
 /// })
 /// ```
 ///
@@ -51,16 +50,13 @@
 #[derive(Default)]
 pub struct HostConfig {
     pub(crate) hosts: Vec<String>,
-    pub(crate) enabled: bool,
+    pub(crate) enabled: Option<bool>,
 }
 
 impl HostConfig {
-    /// Enables or disables Host header validation.
-    ///
-    /// Without calling `.enabled(true)`, validation is inactive
-    /// even if hosts are defined.
+    /// Forces Host header validation on or off, whatever `RUNIQUE_ENV` says.
     pub fn enabled(mut self, enable: bool) -> Self {
-        self.enabled = enable;
+        self.enabled = Some(enable);
         self
     }
 

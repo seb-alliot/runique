@@ -1,4 +1,4 @@
-//! Runique's welcome page at `/`: served in debug only, and only when the app
+//! Runique's welcome page at `/`: served in dev only, and only when the app
 //! surely leaves `/` free.
 use axum::Router;
 use axum::body::{Body, to_bytes};
@@ -14,9 +14,9 @@ use tower::ServiceExt;
 
 const WELCOME: &str = "Runique is running";
 
-async fn build(debug: bool, routes: Option<Routes>) -> Router {
+async fn build(dev: bool, routes: Option<Routes>) -> Router {
     let mut config = RuniqueConfig::from_env();
-    config.debug = debug;
+    config.dev = dev;
     config.server.secret_key = "a-long-enough-test-secret-key-for-production-0123456789".into();
     let builder = RuniqueApp::builder(config)
         .with_database(Database::connect("sqlite::memory:").await.unwrap());
@@ -46,7 +46,7 @@ fn without_root() -> Routes {
 
 #[tokio::test]
 #[serial]
-async fn debug_serves_the_welcome_page_when_root_is_undeclared() {
+async fn dev_serves_the_welcome_page_when_root_is_undeclared() {
     let (status, body) = home(build(true, Some(without_root())).await).await;
     assert_eq!(status, StatusCode::OK);
     assert!(body.contains(WELCOME), "{body}");
@@ -55,7 +55,7 @@ async fn debug_serves_the_welcome_page_when_root_is_undeclared() {
 
 #[tokio::test]
 #[serial]
-async fn debug_serves_the_welcome_page_without_any_routes() {
+async fn dev_serves_the_welcome_page_without_any_routes() {
     let (status, body) = home(build(true, None).await).await;
     assert_eq!(status, StatusCode::OK);
     assert!(body.contains(WELCOME), "{body}");

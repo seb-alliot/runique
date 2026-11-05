@@ -29,8 +29,7 @@ No dedicated configuration — the middleware reads `with_allowed_hosts` automat
 ```rust
 .middleware(|m| {
     m.with_allowed_hosts(|h| {
-        h.enabled(true)
-         .host("example.com")
+        h.host("example.com")
          .host(".example.com")  // example.com + all subdomains
     })
 })

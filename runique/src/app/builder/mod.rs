@@ -57,7 +57,7 @@ pub mod state {
         PublicUrlUnset,
         "`with_public_url()` has already been called on this builder",
         "a second `with_public_url()` would silently replace the first",
-        "keep a single `.with_public_url(...)`; to tell local from production apart, wrap it in an `if`"
+        "keep a single `.with_public_url(...)` with the production address; `RUNIQUE_ENV=dev` uses the local server instead"
     );
     once_only!(
         /// `routes()` not called yet.
@@ -179,8 +179,8 @@ impl<PU, RT, LG, PR, DB, SD, ML> RuniqueAppBuilder<(PU, RT, LG, PR, DB, SD, ML)>
     /// address a visitor types, base of every absolute link the app sends out
     /// — password reset links among them — and of the admin's "view site"
     /// link unless the admin sets its own. Required in production when the
-    /// password reset or the admin is enabled; in debug, the request's `Host`
-    /// stands in for it.
+    /// password reset or the admin is enabled. Ignored with `RUNIQUE_ENV=dev`,
+    /// where the public URL is always `http://127.0.0.1:{port}`.
     ///
     /// Called once: a second call doesn't compile, rather than silently
     /// replacing the first.
@@ -491,7 +491,7 @@ impl<S> RuniqueAppBuilder<S> {
     /// ```rust,ignore
     /// .with_admin(|a| a
     ///     .prefix("/admin")
-    ///     .hot_reload(is_debug())
+    ///     .hot_reload(is_dev())
     ///     .site_title("My Admin")
     /// )
     /// ```

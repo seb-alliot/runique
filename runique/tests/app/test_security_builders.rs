@@ -13,7 +13,7 @@ use std::net::SocketAddr;
 async fn spawn_prod_app() -> String {
     let db = Database::connect("sqlite::memory:").await.unwrap();
     let mut config = RuniqueConfig::from_env();
-    config.debug = false;
+    config.dev = false;
     config.server.secret_key = "a-long-enough-test-secret-key-for-production-0123456789".into();
 
     let routes = Router::new().route("/", get(|| async { "ok" })).route(
@@ -125,10 +125,10 @@ async fn a_forwarded_ip_is_ignored_when_no_proxy_is_trusted() {
     assert_eq!(ip, "127.0.0.1", "the header can't spoof the client address");
 }
 
-async fn build_with_key(debug: bool, key: &str) -> Result<RuniqueApp, String> {
+async fn build_with_key(dev: bool, key: &str) -> Result<RuniqueApp, String> {
     let db = Database::connect("sqlite::memory:").await.unwrap();
     let mut config = RuniqueConfig::from_env();
-    config.debug = debug;
+    config.dev = dev;
     config.server.secret_key = key.into();
     RuniqueApp::builder(config)
         .with_database(db)
@@ -168,7 +168,7 @@ async fn spawn_https_app(acme: bool) -> String {
 async fn spawn_https_app_with(enforce_https: bool, acme: bool) -> String {
     let db = Database::connect("sqlite::memory:").await.unwrap();
     let mut config = RuniqueConfig::from_env();
-    config.debug = true;
+    config.dev = true;
     config.security.enforce_https = enforce_https;
     config.security.acme_enabled = acme;
     config.security.acme_domain = Some("example.com".into());
@@ -235,7 +235,7 @@ async fn enforce_https_is_not_mounted_alongside_acme() {
 async fn spawn_host_app(enabled: bool) -> String {
     let db = Database::connect("sqlite::memory:").await.unwrap();
     let mut config = RuniqueConfig::from_env();
-    config.debug = false;
+    config.dev = false;
     config.server.secret_key = "a-long-enough-test-secret-key-for-production-0123456789".into();
     let app = RuniqueApp::builder(config)
         .with_database(db)
@@ -293,6 +293,116 @@ async fn host_validation_lets_only_the_listed_host_through() {
     );
 }
 
+/// `.with_allowed_hosts` without `.enabled(..)`: the mode decides.
+async fn spawn_default_host_app(dev: bool) -> String {
+    let db = Database::connect("sqlite::memory:").await.unwrap();
+    let mut config = RuniqueConfig::from_env();
+    config.dev = dev;
+    config.server.secret_key = "a-long-enough-test-secret-key-for-production-0123456789".into();
+    let app = RuniqueApp::builder(config)
+        .with_database(db)
+        .routes(Router::new().route("/", get(|| async { "ok" })))
+        .static_files(|s| s.enabled(false))
+        .middleware(|m| {
+            m.with_session_store(tower_sessions::MemoryStore::default())
+                .with_allowed_hosts(|h| h.host("good.example"))
+                .with_trusted_proxies(|t| t.none())
+        })
+        .build()
+        .await
+        .unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let router = app.router;
+    tokio::spawn(async move {
+        axum::serve(
+            listener,
+            router.into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .await
+        .unwrap()
+    });
+    format!("http://{addr}")
+}
+
+#[tokio::test]
+#[serial]
+async fn host_validation_is_on_by_default_in_production() {
+    let base = spawn_default_host_app(false).await;
+    assert_eq!(
+        as_host(&base, "good.example").await,
+        (200, "ok".to_string())
+    );
+    assert_eq!(as_host(&base, "evil.example").await.0, 400);
+    assert_eq!(as_host(&base, "good.example.evil.example").await.0, 400);
+}
+
+#[tokio::test]
+#[serial]
+async fn host_validation_is_off_by_default_in_development() {
+    let base = spawn_default_host_app(true).await;
+    for host in ["good.example", "evil.example"] {
+        assert_eq!(
+            as_host(&base, host).await,
+            (200, "ok".to_string()),
+            "{host}"
+        );
+    }
+}
+
+/// An app with `SecurityPolicy::strict()` and `upgrade-insecure-requests` asked for.
+async fn csp_header(dev: bool) -> String {
+    let db = Database::connect("sqlite::memory:").await.unwrap();
+    let mut config = RuniqueConfig::from_env();
+    config.dev = dev;
+    config.server.secret_key = "a-long-enough-test-secret-key-for-production-0123456789".into();
+    let app = RuniqueApp::builder(config)
+        .with_database(db)
+        .routes(Router::new().route("/", get(|| async { "ok" })))
+        .static_files(|s| s.enabled(false))
+        .middleware(|m| {
+            m.with_session_store(tower_sessions::MemoryStore::default())
+                .with_csp(|c| {
+                    c.policy(runique::middleware::SecurityPolicy::strict())
+                        .with_upgrade_insecure(true)
+                })
+                .with_trusted_proxies(|t| t.none())
+        })
+        .build()
+        .await
+        .unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let router = app.router;
+    tokio::spawn(async move {
+        axum::serve(
+            listener,
+            router.into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .await
+        .unwrap()
+    });
+    let resp = reqwest::get(format!("http://{addr}/")).await.unwrap();
+    header(&resp, "content-security-policy")
+}
+
+/// A local server only speaks HTTP: upgrading its requests to HTTPS would break
+/// every asset.
+#[tokio::test]
+#[serial]
+async fn upgrade_insecure_requests_is_dropped_in_development_only() {
+    let dev = csp_header(true).await;
+    assert!(
+        dev.contains("default-src 'none'"),
+        "strict policy kept: {dev}"
+    );
+    assert!(!dev.contains("upgrade-insecure-requests"), "{dev}");
+
+    let prod = csp_header(false).await;
+    assert!(prod.contains("default-src 'none'"), "{prod}");
+    assert!(prod.contains("upgrade-insecure-requests"), "{prod}");
+}
+
 // ── Written from cargo-mutants survivors (2026-10-08): applicator.rs ─────────
 
 /// Without `ENFORCE_HTTPS`, a request the proxy received over http is served.
@@ -314,12 +424,12 @@ async fn the_acme_flag_alone_does_not_drop_the_https_redirect() {
     assert_eq!(get_forwarded(&base, "http").await.status().as_u16(), 308);
 }
 
-/// An app in debug or production mode with the default session store, CORS
+/// An app in development or production mode with the default session store, CORS
 /// without a max age.
-async fn spawn_mode_app(debug: bool) -> String {
+async fn spawn_mode_app(dev: bool) -> String {
     let db = Database::connect("sqlite::memory:").await.unwrap();
     let mut config = RuniqueConfig::from_env();
-    config.debug = debug;
+    config.dev = dev;
     config.server.secret_key = "a-long-enough-test-secret-key-for-production-0123456789".into();
     let app = RuniqueApp::builder(config)
         .with_database(db)
@@ -346,23 +456,23 @@ async fn spawn_mode_app(debug: bool) -> String {
     format!("http://{addr}")
 }
 
-/// The session cookie is `Secure` in production only; local debug pages are
+/// The session cookie is `Secure` in production only; local development pages are
 /// never cached; a CORS max age of 0 means the one-hour default.
 /// applicator.rs:155, 271, 296.
 #[tokio::test]
 #[serial]
-async fn debug_and_production_differ_where_they_should() {
-    for debug in [true, false] {
-        let base = spawn_mode_app(debug).await;
+async fn dev_and_production_differ_where_they_should() {
+    for dev in [true, false] {
+        let base = spawn_mode_app(dev).await;
         let client = reqwest::Client::new();
         let resp = client.get(format!("{base}/")).send().await.unwrap();
         let cookie = header(&resp, "set-cookie");
-        assert!(!cookie.is_empty(), "a session cookie (debug: {debug})");
-        assert_eq!(cookie.contains("Secure"), !debug, "{cookie}");
+        assert!(!cookie.is_empty(), "a session cookie (dev: {dev})");
+        assert_eq!(cookie.contains("Secure"), !dev, "{cookie}");
         assert_eq!(
             header(&resp, "cache-control").contains("no-store"),
-            debug,
-            "debug: {debug}"
+            dev,
+            "dev: {dev}"
         );
 
         let preflight = client

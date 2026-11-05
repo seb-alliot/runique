@@ -7,7 +7,7 @@ use runique::config::RuniqueConfig;
 
 let config = RuniqueConfig::from_env();
 
-println!("Debug: {}", config.debug);
+println!("Development: {}", config.dev);
 println!("Port: {}", config.server.port);
 ```
 
@@ -15,6 +15,7 @@ println!("Port: {}", config.server.port);
 
 | Field | Content |
 | --- | --- |
+| `config.dev` | `RUNIQUE_ENV=dev` |
 | `config.debug` | `DEBUG` |
 | `config.server` | `ip_server`, `port`, `secret_key`, `public_url` (set by `.with_public_url(...)`) |
 | `config.static_files` | Folders and prefixes: templates, static, media |
@@ -31,7 +32,7 @@ async fn my_handler(mut request: Request) -> AppResult<Response> {
     let config = &request.engine.config;
 
     context_update!(request => {
-        "debug" => config.debug,
+        "dev" => config.dev,
         "port" => config.server.port,
     });
     request.render("page.html")
@@ -45,14 +46,14 @@ async fn my_handler(mut request: Request) -> AppResult<Response> {
 ## Conditional configuration
 
 ```rust
-if request.engine.config.debug {
-    // Debug mode: detailed error pages, templates read again on every request
+if request.engine.config.dev {
+    // Development: templates read again on every request, no startup checks
 } else {
-    // Production mode: generic errors
+    // Production
 }
 ```
 
-Outside a handler, `is_debug()` (in the prelude) gives the same answer.
+Outside a handler, `is_dev()` (in the prelude) gives the same answer. `config.debug` and `is_debug()` only tell one thing: whether the detailed error pages are shown.
 
 ---
 

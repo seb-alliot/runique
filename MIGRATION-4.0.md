@@ -13,7 +13,7 @@ This guide lists the 4.0 breaking changes and what to do about them. The [change
 3. **Forms**: name every form and move to `try_form` (see [Forms](#forms)).
 4. **Models**: give each `decimal` its precision, remove `required` from every `bool` that only meant NOT NULL (see [Model DSL](#model-dsl)).
 5. **Code**: fix what the compiler reports, using the sections below.
-6. **Behaviour**: read [CSRF](#csrf) and [Files](#files): neither change shows at compile time.
+6. **Behaviour**: read [Environment](#environment), [CSRF](#csrf) and [Files](#files): none of these changes shows at compile time.
 7. **Restart** the application: static files change.
 
 ---
@@ -294,6 +294,28 @@ PRAGMA foreign_keys = ON;
 - An overridden list template reads `list_pager`, `filter_pagers` and `filter_size_pager` instead of `has_prev`, `has_next`, `prev_page`, `next_page` and `page_size_options`; `filter_values` becomes a list of `{ value, active, qs }`, and `active_filters` maps each column to a list of values.
 
 See [admin setup](https://runique.io/docs/en/admin/setup) and [roles and permissions](https://runique.io/docs/en/admin/permission).
+
+---
+
+## Environment
+
+Add `RUNIQUE_ENV` to every `.env`: `RUNIQUE_ENV=dev` locally, `RUNIQUE_ENV=prod` on a server. **A local `.env` that only has `DEBUG=true` now runs in production mode**: the session cookie becomes `Secure` and the startup checks apply.
+
+| Key | Now drives |
+| --- | --- |
+| `RUNIQUE_ENV` | Session cookie, startup checks, public URL, allowed hosts, `upgrade-insecure-requests`, template reload, no-cache, default home page, logs, admin hot reload, SRI |
+| `DEBUG` | The detailed error pages, and nothing else |
+
+`DEBUG=true` keeps working with `RUNIQUE_ENV=prod`, to look into a problem on a live site: every visitor then sees those pages, and a warning shows at startup. Check that it's off on your servers.
+
+In `main.rs`:
+
+- `h.enabled(!is_debug())` and `.with_upgrade_insecure(!is_debug())`: remove them, the framework does it.
+- `h.enabled(true)`: remove it too, unless you want validation in development.
+- Other uses of `is_debug()` and `config.debug` that mean "in development": `is_dev()` and `config.dev`.
+- `{% if debug %}` in a template that means "in development": `{% if dev %}`.
+
+With `RUNIQUE_ENV=dev`, the public URL is always `http://127.0.0.1:{PORT}`: browse on that address rather than on `localhost`, and keep the production address in `.with_public_url()`.
 
 ---
 

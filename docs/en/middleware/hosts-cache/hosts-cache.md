@@ -29,13 +29,12 @@ In production, `WARN` is recommended to detect attacks or misconfigurations.
 
 ### Configuration via the builder
 
-Host validation is configured in `main.rs` via the builder — there is no environment variable for this:
+Host validation is configured in `main.rs` via the builder — the list doesn't go through an environment variable:
 
 ```rust
 .middleware(|m| {
     m.with_allowed_hosts(|h| {
-        h.enabled(!is_debug())
-         .host("example.com")
+        h.host("example.com")
          .host(".example.com")  // matches example.com AND all its subdomains
     })
 })
@@ -47,24 +46,24 @@ Host validation is configured in `main.rs` via the builder — there is no envir
 - `".example.com"` — matches `example.com` and `*.example.com`
 - `"*"` — all hosts (⚠️ dangerous in production)
 
-### Debug mode
+### By environment
 
-In `DEBUG=true`, typically use `.enabled(!is_debug())` to disable validation during development.
+Validation is on with `RUNIQUE_ENV=prod` as soon as a host is declared, off with `RUNIQUE_ENV=dev`. `.enabled(true)` or `.enabled(false)` has the last word, for instance to try the validation locally.
 
 ---
 
 ## Cache-Control
 
-### Development mode (`DEBUG=true` **and** accessed via `localhost`/`127.0.0.1`/`[::1]`)
+### Development mode (`RUNIQUE_ENV=dev` **and** accessed via `localhost`/`127.0.0.1`/`[::1]`)
 
-Both conditions are required — accessing with `DEBUG=true` through a different host name (LAN, tunnel, staging) won't trigger these headers. Added to force reloads:
+Both conditions are required — accessing with `RUNIQUE_ENV=dev` through a different host name (LAN, tunnel, staging) won't trigger these headers. Added to force reloads:
 
 ```http
 Cache-Control: no-cache, no-store, must-revalidate
 Pragma: no-cache
 ```
 
-### Production mode (`DEBUG=false`)
+### Production mode (`RUNIQUE_ENV=prod`)
 
 No no-cache header is added: the browser applies its usual cache. Static and media files caching is set with `.static_files(|s| s.static_cache("…").media_cache("…"))`.
 

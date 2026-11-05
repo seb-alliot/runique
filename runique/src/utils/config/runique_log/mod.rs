@@ -55,7 +55,7 @@ pub use templates::TemplatesTracing;
 #[derive(Debug, Clone, Default)]
 pub struct RuniqueLog {
     /// Tracing subscriber level. `RUST_LOG` takes priority if defined.
-    /// Default: `"debug"` if `DEBUG=true`, else `"warn"`.
+    /// Default: `"debug"` if `RUNIQUE_ENV=dev`, else `"warn"`.
     subscriber_level: Option<String>,
 
     /// Form pipeline tracing (`#[form]` fields, validation, render, finalize).
@@ -166,7 +166,7 @@ impl RuniqueLog {
         }
 
         let default = self.subscriber_level.as_deref().unwrap_or_else(|| {
-            if crate::utils::env::is_debug() {
+            if crate::utils::env::is_dev() {
                 "debug"
             } else {
                 "warn"
@@ -342,7 +342,7 @@ impl RuniqueLog {
 
     /// Enables all categories at `DEBUG` level.
     ///
-    /// No effect if `DEBUG` is not `true` or `1` in the environment —
+    /// No effect unless `RUNIQUE_ENV=dev` —
     /// can be used unconditionally in `.with_log()`.
     ///
     /// ```rust,ignore
@@ -352,7 +352,7 @@ impl RuniqueLog {
     /// ```
     #[must_use]
     pub fn dev(self) -> Self {
-        if !crate::utils::env::is_debug() {
+        if !crate::utils::env::is_dev() {
             return self;
         }
         self.forms(|f| f.dev())

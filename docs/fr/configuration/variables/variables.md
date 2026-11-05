@@ -8,11 +8,14 @@ La configuration de l'application se lit dans le fichier `.env` à la racine du 
 
 ## Exemples complets
 
+`RUNIQUE_ENV` règle le comportement de l'application ; `DEBUG` n'affiche que les pages d'erreur détaillées. Voir [Application & Serveur](/docs/fr/env/application).
+
 ### Développement (SQLite)
 
 ```env
 IP_SERVER=127.0.0.1
 PORT=3000
+RUNIQUE_ENV=dev
 DEBUG=true
 
 SECRET_KEY=<généré par runique new>
@@ -28,6 +31,7 @@ DATABASE_URL="sqlite://data.db?mode=rwc"
 ```env
 IP_SERVER=127.0.0.1
 PORT=3000
+RUNIQUE_ENV=dev
 DEBUG=true
 
 SECRET_KEY=<généré par runique new>
@@ -54,6 +58,7 @@ Quand `DATABASE_URL` est définie, elle l'emporte : les variables `DB_*` sont ig
 ```env
 IP_SERVER=127.0.0.1
 PORT=3000
+RUNIQUE_ENV=prod
 DEBUG=false
 
 SECRET_KEY=<une clé propre à ce déploiement>
@@ -85,7 +90,7 @@ openssl rand -hex 32
 Les hosts autorisés, la CSP, CORS, les sessions et les middlewares se configurent dans le builder (`main.rs`) :
 
 ```rust
-.middleware(|m| m.with_allowed_hosts(|h| h.enabled(!is_debug()).host("exemple.com")))
+.middleware(|m| m.with_allowed_hosts(|h| h.host("exemple.com")))
 ```
 
 Voir [Builder](/docs/fr/configuration/builder).

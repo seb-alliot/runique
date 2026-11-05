@@ -46,7 +46,7 @@ async fn spawn() -> (String, DatabaseConnection) {
     .await;
 
     let mut config = RuniqueConfig::from_env();
-    config.debug = true;
+    config.dev = true;
     let app = RuniqueApp::builder(config)
         .with_database(dbc.clone())
         .routes(

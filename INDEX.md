@@ -142,14 +142,14 @@ runique/
 ### `utils/` — Utilities
 - **`acme/`** — automatic TLS via Let's Encrypt (ACME HTTP-01), `acme` feature
 - **`aliases/`** — `ADb`, `AEngine`, `JsonMap`, `StrMap`… type aliases
-- **`config/env.rs`** — `.env` flags (`env_flag`, `debug_from`), `is_debug()`, `css_token()`
+- **`config/env.rs`** — `.env` flags (`env_flag`, `debug_from`, `dev_from`), `is_debug()`, `is_dev()`, `css_token()`
 - **`config/pk.rs`** — `Pk` type alias (`i32` by default, `i64` with `big-pk`, `Uuid` with `pk-uuid`)
 - **`config/runique_log/`** — `RuniqueLog` categories
 - **`config/url_params.rs`** — URL query parameter helpers
 - **`constante/`** — session/CSRF/admin key constants, error strings, template names
 - **`crypto/`** — `csrf.rs` (`CsrfToken`, mask/unmask), `csp_nonce.rs`, `session_cipher.rs` (`SessionKey`)
 - **`forms/`** — `parse_html`, `sanitizer`, `parse_boolean`
-- **`init_error/init.rs`** — `init_logging()` — reads `DEBUG`/`RUST_LOG`
+- **`init_error/init.rs`** — `init_logging()`
 - **`mailer/`** — email sending utilities
 - **`password/`** — Argon2 / Bcrypt / Scrypt hashing, `PasswordConfig`
 - **`reset_token/`** — secure token generation for password resets

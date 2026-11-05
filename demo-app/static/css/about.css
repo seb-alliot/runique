@@ -1,23 +1,18 @@
 /* =========================
-    ABOUT PAGE
+    ABOUT PAGE (mobile first)
    ========================= */
 
-.about {
-    max-width: 90%;
-}
-
 .about .lead {
-    font-size: 1.05rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
 }
 
 .about section {
-    margin-top: 2.5rem;
+    margin-top: 1.5rem;
 }
 
 .about ul {
     margin-top: 1rem;
-    padding-left: 1.2rem;
+    padding-left: 1.25rem;
 }
 
 .about li {
@@ -29,9 +24,9 @@
     DEMO FLASH MESSAGES
    ========================= */
 .about-intro {
-    color: var(--text-muted);
-    font-size: 0.9rem;
     margin-bottom: 1.5rem;
+    font-size: 0.9375rem;
+    color: var(--text-muted);
 }
 
 .about-levels {
@@ -39,48 +34,17 @@
 }
 
 .about-levels h3 {
-    color: var(--accent);
-    font-size: 1rem;
     margin-bottom: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--label);
 }
 
 .msg-success { color: var(--success-color); }
 .msg-info    { color: var(--accent); }
-.msg-warning { color: var(--accent-warning); }
+.msg-warning { color: var(--warning-color); }
 .msg-error   { color: var(--error-color); }
 
-/* =========================
-    RESPONSIVE
-   ========================= */
-@media (max-width: 768px) {
-    .about h1 {
-        font-size: 1.8rem;
-    }
-
-    .about .lead {
-        font-size: 0.95rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .about section {
-        margin-top: 1.5rem;
-    }
-
-    .about h2 {
-        font-size: 1.3rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .about h1 {
-        font-size: 1.5rem;
-    }
-
-    .about h2 {
-        font-size: 1.1rem;
-    }
-
-    .about .lead {
-        font-size: 0.9rem;
-    }
+@media (min-width: 48rem) {
+    .about section { margin-top: 2.5rem; }
 }

@@ -43,7 +43,7 @@ impl StaticStaging {
     /// Enables or disables the static files service.
     ///
     /// Useful for pure APIs, when a CDN/reverse-proxy manages static files,
-    /// or to toggle on a computed flag (e.g. `s.enabled(!is_debug())`).
+    /// or to toggle on a computed flag (e.g. `s.enabled(!is_dev())`).
     ///
     /// ```rust,ignore
     /// .static_files(|s| s.enabled(false))
@@ -55,7 +55,8 @@ impl StaticStaging {
 
     /// Overrides the Cache-Control header for versioned static assets.
     ///
-    /// Default: `"public, max-age=31536000, immutable"`
+    /// Default: `"public, max-age=31536000, immutable"`. Ignored with
+    /// `RUNIQUE_ENV=dev`, where static files are always `no-cache`.
     ///
     /// ```rust,ignore
     /// .static_files(|s| s.static_cache("public, max-age=86400"))

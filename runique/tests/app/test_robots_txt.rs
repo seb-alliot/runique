@@ -20,7 +20,7 @@ use serial_test::serial;
 async fn build_app_with_admin(mount: &str) -> axum::Router {
     let db = Database::connect("sqlite::memory:").await.unwrap();
     let mut config = RuniqueConfig::from_env();
-    config.debug = true;
+    config.dev = true;
 
     let app = RuniqueApp::builder(config)
         .with_database(db)
@@ -37,7 +37,7 @@ async fn build_app_with_admin(mount: &str) -> axum::Router {
 async fn build_app_with_admin_no_robots(mount: &str) -> axum::Router {
     let db = Database::connect("sqlite::memory:").await.unwrap();
     let mut config = RuniqueConfig::from_env();
-    config.debug = true;
+    config.dev = true;
 
     let app = RuniqueApp::builder(config)
         .with_database(db)

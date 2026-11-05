@@ -7,8 +7,8 @@
 /// ## Error page management
 /// `enable_debug_errors` controls whether the `error_handler` middleware is added to the router.
 /// When active, error pages are rendered by Tera:
-/// - In **development** (`DEBUG=true` or `cargo build` without `--release`): full traces.
-/// - In **production** (`cargo build --release`): clean 404/500 pages without traces.
+/// - With `DEBUG=true`: full traces.
+/// - Otherwise: clean 404/500 pages without traces.
 ///
 use serde::{Deserialize, Serialize};
 
@@ -40,14 +40,14 @@ impl Default for MiddlewareConfig {
 impl MiddlewareConfig {
     /// Builds a config from the environment, with host validation left
     /// disabled (configured only through the builder). The HTTP cache follows
-    /// `DEBUG`: off in debug (no-cache headers), on otherwise.
+    /// `RUNIQUE_ENV`: off in development (no-cache headers), on otherwise.
     pub fn from_env() -> Self {
         Self {
             // Host validation configured only via the builder
             enable_host_validation: false,
             enable_debug_errors: true, // always mounted — config.debug handles content
-            enable_cache: !crate::utils::config::env::debug_from(
-                std::env::var("DEBUG").ok().as_deref(),
+            enable_cache: !crate::utils::config::env::dev_from(
+                std::env::var("RUNIQUE_ENV").ok().as_deref(),
             ),
             exclusive_login: false,
         }

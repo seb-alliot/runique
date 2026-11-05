@@ -114,7 +114,7 @@ fn test_chained_builders() {
 
 #[test]
 fn test_dev_does_not_panic() {
-    // dev() is a no-op when DEBUG env is not set.
+    // dev() is a no-op unless RUNIQUE_ENV=dev.
     let log = RuniqueLog::new().dev();
     drop(log);
 }

@@ -105,7 +105,7 @@ async fn a_commit_inside_the_test_fails_it_on_sqlite() {
 #[tokio::test]
 async fn an_env_file_without_a_database_never_runs_the_handler() {
     let scratch = Scratch::new("no_db");
-    let env = scratch.env_file(&["DEBUG=true".to_string()]);
+    let env = scratch.env_file(&["RUNIQUE_ENV=dev".to_string()]);
     let ran = AtomicBool::new(false);
 
     let outcome = runique_test::<ADb>(&env, async |_| {

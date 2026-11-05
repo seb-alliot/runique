@@ -1,0 +1,137 @@
+{% extends "index.html" %}
+
+{% block meta %}
+{% if ui_lang == "fr" %}
+<meta name="description" content="Runique comparé à Loco, Cot et Django, ses limites connues et ce qui arrive.">
+<meta property="og:description" content="Runique comparé à Loco, Cot et Django, ses limites connues et ce qui arrive.">
+{% else %}
+<meta name="description" content="Runique compared with Loco, Cot and Django, its known limits and what's coming.">
+<meta property="og:description" content="Runique compared with Loco, Cot and Django, its known limits and what's coming.">
+{% endif %}
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Runique">
+<meta property="og:title" content="Runique, Loco, Cot, Django">
+<meta property="og:url" content="https://runique.io/comparatif">
+<meta property="og:image" content="{{ og_image }}">
+<link rel="canonical" href="https://runique.io/comparatif">
+{% endblock %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href="{% static "css/doc.css" %}">
+    <link rel="stylesheet" href="{% static "css/comparatif.css" %}">
+    <link rel="stylesheet" href="{% static "css/highlight-github-dark.min.css" %}">
+{% endblock %}
+
+{% block content %}
+<div class="compare-page">
+    <h1>{% if ui_lang == "fr" %}Comparatif{% else %}Comparison{% endif %}</h1>
+    <p class="compare-lead">{% if ui_lang == "fr" %}Runique face à Loco, Cot et Django, ses limites connues et ce qui arrive.{% else %}Runique next to Loco, Cot and Django, its known limits and what's coming.{% endif %}</p>
+
+    <div class="compare-layout">
+    <details class="compare-toc">
+        <summary>{% if ui_lang == "fr" %}Sommaire{% else %}Contents{% endif %}</summary>
+        <nav class="compare-toc-list" aria-label="{% if ui_lang == "fr" %}Sommaire{% else %}Contents{% endif %}">
+            <div class="compare-toc-group" data-for="loco">
+                {% for block in loco %}{% if block.heading %}<a href="#loco-{{ block.heading | slugify }}">{{ block.heading }}</a>{% endif %}{% endfor %}
+            </div>
+            <div class="compare-toc-group" data-for="cot">
+                {% for block in cot %}{% if block.heading %}<a href="#cot-{{ block.heading | slugify }}">{{ block.heading }}</a>{% endif %}{% endfor %}
+            </div>
+            <div class="compare-toc-group" data-for="django">
+                {% for block in django %}{% if block.heading %}<a href="#django-{{ block.heading | slugify }}">{{ block.heading }}</a>{% endif %}{% endfor %}
+            </div>
+            <a class="compare-toc-page" href="#limites">{% if ui_lang == "fr" %}Limites connues{% else %}Known limits{% endif %}</a>
+            <div class="compare-toc-group">
+                {% for block in limits %}{% if block.heading %}<a href="#limites-{{ block.heading | slugify }}">{{ block.heading }}</a>{% endif %}{% endfor %}
+            </div>
+            <a class="compare-toc-page" href="#a-venir">{% if ui_lang == "fr" %}À venir{% else %}What's coming{% endif %}</a>
+            <a class="compare-toc-page" href="#problemes-connus">{% if ui_lang == "fr" %}Problèmes connus{% else %}Known issues{% endif %}</a>
+        </nav>
+    </details>
+    <div class="compare-main">
+    <section class="compare-tabs" data-tabs="hash">
+        <div class="hero-code-tabs" role="tablist">
+            <button class="hero-tab active" data-tab="loco" role="tab" type="button">Loco</button>
+            <button class="hero-tab" data-tab="cot" role="tab" type="button">Cot</button>
+            <button class="hero-tab" data-tab="django" role="tab" type="button">Django</button>
+        </div>
+
+        {% if loco and cot %}
+        {% set panel_blocks = loco %}{% set panel_prefix = "loco" %}{% set panel_title = "Runique / Loco" %}
+        {% include "comparatif/panel.html" %}
+        {% set panel_blocks = cot %}{% set panel_prefix = "cot" %}{% set panel_title = "Runique / Cot" %}
+        {% include "comparatif/panel.html" %}
+        {% elif ui_lang == "fr" %}
+            {% include "comparatif/tables_fr.html" %}
+        {% else %}
+            {% include "comparatif/tables_en.html" %}
+        {% endif %}
+
+        {% set panel_blocks = django %}{% set panel_prefix = "django" %}{% set panel_title = "Runique / Django" %}
+        {% include "comparatif/panel.html" %}
+    </section>
+
+    <section class="compare-section" id="limites">
+        <h2>{% if ui_lang == "fr" %}Limites connues{% else %}Known limits{% endif %}</h2>
+        <div class="doc-block-content">
+            {% for block in limits %}
+            {% if block.heading %}<h3 id="limites-{{ block.heading | slugify }}">{{ block.heading }}</h3>{% endif %}
+            {{ block.content | markdown }}
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="compare-section" id="a-venir">
+        <h2>{% if ui_lang == "fr" %}À venir{% else %}What's coming{% endif %}</h2>
+        {% if not roadmap %}
+        <p class="compare-source"><a href="https://github.com/seb-alliot/runique/blob/main/{% if ui_lang == "fr" %}ROADMAP.fr.md{% else %}ROADMAP.md{% endif %}" target="_blank" rel="noopener">{% if ui_lang == "fr" %}Lire la feuille de route complète{% else %}Read the full roadmap{% endif %}</a></p>
+        {% else %}
+        <div class="compare-tabs" data-tabs="local">
+            <div class="hero-code-tabs" role="tablist">
+                {% for section in roadmap %}
+                <button class="hero-tab{% if loop.first %} active{% endif %}" data-tab="{{ section.heading_class }}" role="tab" type="button">
+                    {% if section.heading_class == "roadmap-active" %}{% if ui_lang == "fr" %}En cours{% else %}In progress{% endif %}
+                    {% elif section.heading_class == "roadmap-planned" %}{% if ui_lang == "fr" %}Prévu{% else %}Planned{% endif %}
+                    {% else %}{% if ui_lang == "fr" %}Plus tard{% else %}Later{% endif %}{% endif %}
+                </button>
+                {% endfor %}
+            </div>
+            {% for section in roadmap %}
+            <div class="hero-tab-panel{% if loop.first %} active{% endif %}" data-panel="{{ section.heading_class }}">
+                <div class="roadmap-grid">
+                    {% for entry in section.entries %}
+                    <div class="roadmap-card">
+                        <h3>{{ entry.title }}</h3>
+                        <p>{{ entry.description | sanitize }}</p>
+                        {% if entry.link_url %}
+                        <a href="{{ entry.link_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary">{{ entry.link_label }}</a>
+                        {% endif %}
+                        {% if entry.link_url_2 %}
+                        <a href="{{ entry.link_url_2 }}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary">{{ entry.link_label_2 }}</a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </section>
+
+    <p class="compare-known-issues" id="problemes-connus">
+        <a href="{% link "problemes_connus" %}">{% if ui_lang == "fr" %}Voir les problèmes connus par version{% else %}See the known issues by version{% endif %}</a>
+    </p>
+    </div>
+    </div>
+</div>
+<a class="compare-top" href="#top" aria-label="{% if ui_lang == "fr" %}Remonter en haut de la page{% else %}Back to top{% endif %}"></a>
+{% endblock %}
+
+{% block scripts %}
+<script {% csp %} src="{% static "js/highlight.min.js" %}"></script>
+<script {% csp %} src="{% static "js/highlight_init.js" %}"></script>
+<script {% csp %} src="{% static "js/doc_copy.js" %}"></script>
+<script {% csp %} src="{% static "js/comparatif.js" %}"></script>
+{% endblock %}

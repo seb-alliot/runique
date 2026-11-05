@@ -6,11 +6,11 @@ Runique exposes a structured tracing system via `RuniqueLog`. By default a **con
 
 ```rust
 RuniqueApp::builder(config)
-    .with_log(|l| l.dev())   // everything at DEBUG if DEBUG=true
+    .with_log(|l| l.dev())   // everything at DEBUG if RUNIQUE_ENV=dev
     // ...
 ```
 
-`.dev()` is a no-op if `DEBUG` is not `true` — safe to use unconditionally.
+`.dev()` is a no-op if `RUNIQUE_ENV` is not `dev` — safe to use unconditionally.
 
 ---
 
@@ -243,5 +243,5 @@ Regardless of tracing config, some events are always emitted:
 
 ## See also
 
-- [Environment variables](/docs/en/env) — `RUST_LOG`, `DEBUG`
+- [Environment variables](/docs/en/env) — `RUST_LOG`, `RUNIQUE_ENV`
 - [Programmatic configuration](/docs/en/configuration/builder) — `.with_log()`

@@ -1,75 +1,68 @@
-/* Error pages styles — 502, 503, 504, etc. */
+/* Error pages styles — 502, 503, 504, etc. (mobile first) */
 
 .error-container {
-    min-height: 60vh;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    padding: 2rem var(--gutter);
     text-align: center;
-    padding: 2rem;
 }
 
 .error-code {
-    font-size: 8rem;
-    font-weight: 700;
-    color: var(--accent-primary, #8b5cf6);
-    text-shadow: 0 0 40px rgba(139, 92, 246, 0.4);
-    line-height: 1;
     margin-bottom: 0.5rem;
-    font-family: 'JetBrains Mono', monospace;
-    animation: pulse 3s ease-in-out infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+    font-family: var(--font-mono);
+    font-size: 4.5rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--accent);
 }
 
 .error-title {
-    font-size: 1.75rem;
-    color: var(--text-primary, #f8fafc);
     margin-bottom: 1rem;
+    font-size: 1.5rem;
     font-weight: 600;
+    color: var(--text-main);
 }
 
 .error-code-block {
-    background: var(--bg-tertiary, #0d0d14);
-    border: 1px solid rgba(139, 92, 246, 0.2);
-    border-radius: 8px;
-    padding: 1.5rem 2rem;
+    max-width: 31.25rem;
     margin: 1.5rem 0;
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
-    font-size: 0.9rem;
+    padding: 1rem;
+    overflow-x: auto;
+    background: var(--bg-code);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
     text-align: left;
-    max-width: 500px;
-    position: relative;
+    color: var(--text-code);
 }
 
 .error-code-block::before {
-    content: '// Server temporarily unavailable';
+    content: "// Server temporarily unavailable";
     display: block;
-    color: var(--text-muted, #64748b);
     margin-bottom: 0.75rem;
-    font-size: 0.8rem;
+    font-size: 0.8125rem;
+    color: #94a3b8;
 }
 
-/* Syntax highlighting for Rust code block */
-.keyword { color: #c084fc; }
-.string { color: #86efac; }
-.function { color: #60a5fa; }
-.comment { color: #64748b; }
+.keyword { color: #fb923c; }
+.string { color: #34d399; }
+.function { color: #38bdf8; }
+.comment { color: #94a3b8; }
 
 .spinner {
     display: inline-block;
-    width: 16px;
-    height: 16px;
-    border: 2px solid var(--accent-primary, #8b5cf6);
+    width: 1rem;
+    height: 1rem;
+    margin-left: 0.5rem;
+    border: 2px solid #fb923c;
     border-top-color: transparent;
     border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-left: 0.5rem;
     vertical-align: middle;
+    animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
@@ -77,75 +70,24 @@
 }
 
 .error-message {
-    color: var(--text-secondary, #94a3b8);
     margin-bottom: 2rem;
-    font-size: 1rem;
     line-height: 1.6;
+    color: var(--text-muted);
 }
 
 .error-actions {
     display: flex;
-    gap: 1rem;
     flex-wrap: wrap;
     justify-content: center;
+    gap: 0.75rem;
 }
 
-.btn-primary {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: var(--accent-primary, #8b5cf6);
-    color: white;
-    border: none;
-    padding: 0.875rem 1.75rem;
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all 0.2s ease;
+@media (min-width: 40rem) {
+    .error-code { font-size: 6rem; }
+    .error-title { font-size: 1.75rem; }
+    .error-code-block { padding: 1.25rem 1.5rem; font-size: 0.875rem; }
 }
 
-.btn-primary:hover {
-    background: var(--accent-secondary, #a78bfa);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
-}
-
-.btn-secondary {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: transparent;
-    border: 1px solid var(--border-color, rgba(139, 92, 246, 0.3));
-    color: var(--text-secondary, #94a3b8);
-    padding: 0.875rem 1.75rem;
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: 0.95rem;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all 0.2s ease;
-}
-
-.btn-secondary:hover {
-    border-color: var(--accent-primary, #8b5cf6);
-    color: var(--text-primary, #f8fafc);
-}
-
-/* Responsive adjustments */
-@media (max-width: 480px) {
-    .error-code {
-        font-size: 6rem;
-    }
-    
-    .error-title {
-        font-size: 1.4rem;
-    }
-    
-    .error-code-block {
-        font-size: 0.8rem;
-        padding: 1rem;
-    }
+@media (prefers-reduced-motion: reduce) {
+    .spinner { animation: none; }
 }

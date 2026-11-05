@@ -1,23 +1,19 @@
 use crate::backend::{
     auth::{get_profile_user, handle_activate, handle_inscription, handle_login},
     blog::{get_article, handle_blog_save, list_articles},
+    comparatif::comparatif_page,
     contribution::{handle_contribution_submit, list_contributions},
     cours::{ExerciceInput, cours_detail, cours_exercice, cours_index},
     demo_code_page,
     doc::{doc_index, doc_page, doc_section_index},
-    fetch_changelog_paged, fetch_known_issues, fetch_roadmap,
+    fetch_changelog_paged, fetch_known_issues,
     forms::{extract_helpers_data, get_field_groups, handle_upload_image},
     inject_globals,
 };
 use crate::formulaire::{
-    BlogForm, ContributionForm, EmailForm, ImageForm, LoginForm, RegisterForm, SearchDemoForm,
-    UsernameForm,
+    BlogForm, ContributionForm, ImageForm, LoginForm, RegisterForm, SearchDemoForm,
 };
-use runique::auth::gate::{GateCtx, check::authorize_list};
-use runique::auth::meta::ModelMeta;
-use runique::auth::user::{Column as UserColumn, Entity as UserEntity};
 use runique::prelude::*;
-use sea_orm::{IdenStatic, QuerySelect};
 
 pub async fn erreur_502(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
@@ -27,6 +23,17 @@ pub async fn erreur_502(mut request: Request) -> AppResult<Response> {
 pub async fn index(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
     request.render("index.html")
+}
+
+#[derive(serde::Deserialize)]
+pub struct LangQuery {
+    #[serde(default)]
+    next: Option<String>,
+}
+
+pub async fn set_language(Path(code): Path<String>, request: Request) -> AppResult<Response> {
+    let next = request.query::<LangQuery>()?.next;
+    Ok(crate::backend::lang::switch_language(&code, next.as_deref(), &request).await)
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -76,89 +83,6 @@ pub async fn profil(mut request: Request) -> AppResult<Response> {
         "connected"    => &true,
     });
     request.render("profile/profile.html")
-}
-
-pub async fn info_user(mut request: Request) -> AppResult<Response> {
-    let username_form: UsernameForm = request.form("username");
-    let email_form: EmailForm = request.form("email");
-    inject_globals(&mut request).await;
-    let Some(user) = request.user.as_ref() else {
-        return Ok(StatusCode::NOT_FOUND.into_response());
-    };
-    let gate = GateCtx {
-        db: &request.engine.db,
-        user,
-    };
-    let Ok(proof) = authorize_list::<UserEntity>(&gate) else {
-        return Ok(StatusCode::NOT_FOUND.into_response());
-    };
-    let columns = proof
-        .readable()
-        .preserve::<UserEntity>(&[UserColumn::Id, UserColumn::Username, UserColumn::Email])
-        .into_iter()
-        .filter(|column| {
-            !UserEntity::SECRET
-                .iter()
-                .any(|secret| secret.as_str() == column.as_str())
-        })
-        .collect::<Vec<_>>();
-
-    let (username_form, searched_username) =
-        match ValidationForm::try_form(username_form, &request).await {
-            Ok(validated) => {
-                let searched = validated.cleaned::<String>("username");
-                (validated.into_form(), searched)
-            }
-            Err(form) => (form, None),
-        };
-    let (email_form, searched_email) = match ValidationForm::try_form(email_form, &request).await {
-        Ok(validated) => {
-            let searched = validated.cleaned::<String>("email");
-            (validated.into_form(), searched)
-        }
-        Err(form) => (form, None),
-    };
-    let searched_username =
-        searched_username.filter(|_| proof.readable().allows(UserColumn::Username.as_str()));
-    let searched_email =
-        searched_email.filter(|_| proof.readable().allows(UserColumn::Email.as_str()));
-    let found_by_username = if let Some(username) = searched_username.as_deref() {
-        search!(UserEntity => Username eq username)
-            .filter_by_gate(&proof)
-            .into_select()
-            .select_only()
-            .columns(columns.clone())
-            .into_json()
-            .one(&request.engine.db)
-            .await?
-    } else {
-        None
-    };
-    let found_by_email = if let Some(email) = searched_email.as_deref() {
-        search!(UserEntity => Email eq email)
-            .filter_by_gate(&proof)
-            .into_select()
-            .select_only()
-            .columns(columns)
-            .into_json()
-            .one(&request.engine.db)
-            .await?
-    } else {
-        None
-    };
-
-    context_update!(request => {
-        "title"             => "User view",
-        "username_form"     => &username_form,
-        "email_form"        => &email_form,
-        "searched_username" => &searched_username,
-        "searched_email"    => &searched_email,
-        "found_by_username" => &found_by_username,
-        "found_by_email"    => &found_by_email,
-        "can_read_username" => &proof.readable().allows(UserColumn::Username.as_str()),
-        "can_read_email"    => &proof.readable().allows(UserColumn::Email.as_str()),
-    });
-    request.render("profile/view_user.html")
 }
 
 // ─── Blog ─────────────────────────────────────────────────────────────────────
@@ -342,16 +266,8 @@ pub async fn probleme_connu(mut request: Request) -> AppResult<Response> {
     request.render("info/cards.html")
 }
 
-pub async fn roadmap(mut request: Request) -> AppResult<Response> {
-    inject_globals(&mut request).await;
-    let sections = fetch_roadmap(&request.engine.db).await;
-    context_update!(request => {
-        "title"          => "What's coming",
-        "sections"       => &sections,
-        "ext_link_label" => "Full Roadmap",
-        "ext_link_url"   => "https://github.com/seb-alliot/runique/blob/main/ROADMAP.md",
-    });
-    request.render("info/cards.html")
+pub async fn roadmap() -> Redirect {
+    Redirect::permanent("/comparatif#a-venir")
 }
 
 // ─── Sitemap ──────────────────────────────────────────────────────────────────
@@ -366,16 +282,10 @@ pub async fn google_verify(_: Request) -> Response {
 }
 
 pub async fn sitemap_xml(_: Request) -> Response {
-    let candidates = ["demo-app/sitemap.xml", "sitemap.xml", "/app/sitemap.xml"];
-    let xml = candidates
-        .iter()
-        .find_map(|p| std::fs::read_to_string(p).ok())
-        .unwrap_or_else(|| "<?xml version=\"1.0\" encoding=\"UTF-8\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"></urlset>".to_string());
-
     (
         StatusCode::OK,
         [("content-type", "application/xml; charset=utf-8")],
-        xml,
+        include_str!("../sitemap.xml"),
     )
         .into_response()
 }
@@ -402,6 +312,7 @@ pub async fn readme_fr(mut request: Request) -> AppResult<Response> {
         "title"   => "README — French",
         "content" => &content,
         "lang"    => "fr",
+        "ui_lang" => "fr",
     });
     request.render("readme.html")
 }
@@ -417,6 +328,7 @@ pub async fn readme_en(mut request: Request) -> AppResult<Response> {
         "title"   => "README — English",
         "content" => &content,
         "lang"    => "en",
+        "ui_lang" => "en",
     });
     request.render("readme.html")
 }
@@ -466,6 +378,8 @@ pub async fn view_cours_detail(
     cours_detail(&slug, &mut request).await
 }
 
+// Sa route est en commentaire dans url.rs : à retirer avec sa réactivation.
+#[allow(dead_code)]
 pub async fn view_cours_exercice(
     Path(slug): Path<String>,
     mut request: Request,
@@ -546,8 +460,8 @@ pub async fn migrations_demo(mut request: Request) -> AppResult<Response> {
     demo_code_page("migrations_demo", &mut request).await
 }
 
-pub async fn comparatif_demo(mut request: Request) -> AppResult<Response> {
-    demo_code_page("comparatif_demo", &mut request).await
+pub async fn comparatif(mut request: Request) -> AppResult<Response> {
+    comparatif_page(&mut request).await
 }
 
 pub async fn orm_demo(mut request: Request) -> AppResult<Response> {
@@ -615,98 +529,9 @@ pub async fn security_txt() -> &'static str {
 }
 
 pub async fn llms_txt() -> &'static str {
-    "# Runique\n\
-    \n\
-    > Rust web framework inspired by Django, built on Axum, SeaORM and Tera.\n\
-    > Type-safe forms, auto-generated admin, CSRF/CSP middleware, persistent sessions.\n\
-    \n\
-    Runique is open-source and available on crates.io. This site is a live demo.\n\
-    \n\
-    ## Documentation\n\
-    \n\
-    - [Documentation (EN)](https://runique.io/docs/en): Full English documentation\n\
-    - [Documentation (FR)](https://runique.io/docs/fr): Documentation complete en francais\n\
-    - [Changelog](https://runique.io/changelog): Version history and release notes\n\
-    - [Roadmap](https://runique.io/roadmap): Planned features and status\n\
-    \n\
-    ## Source\n\
-    \n\
-    - [GitHub](https://github.com/seb-alliot/runique): Source code\n\
-    - [crates.io](https://crates.io/crates/runique): Rust package\n\
-    \n\
-    ## Demo\n\
-    \n\
-    - [Live demo](https://runique.io): Forms, admin, auth, ORM, middlewares\n\
-    - [llms-full.txt](https://runique.io/llms-full.txt): Full content for LLMs\n"
+    include_str!("../llms.txt")
 }
 
 pub async fn llms_full_txt() -> &'static str {
-    "# Runique — Full LLM Reference\n\
-        \n\
-        ## What is Runique?\n\
-        \n\
-        Runique is a Rust web framework inspired by Django. It is built on top of:\n\
-        - **Axum** — HTTP server and routing\n\
-        - **SeaORM** — async ORM supporting PostgreSQL, MySQL, MariaDB and SQLite\n\
-        - **Tera** — Jinja2-compatible template engine\n\
-        \n\
-        Current version: 4.0.0 (Rust edition 2024, MSRV 1.94)\n\
-        \n\
-        ## Key Features\n\
-        \n\
-        ### Type-safe Forms\n\
-        Declare forms manually or derive them from a SeaORM schema with `#[form]`.\n\
-        Fields: TextField, NumericField, BooleanField, ChoiceField, DateField, FileField, and more.\n\
-        CSRF protection is built-in and automatic via the request form extractor.\n\
-        \n\
-        ### Typed Admin (ModelAdmin)\n\
-        Declare each model with the typed `ModelAdmin` builder in `src/admin.rs`.\n\
-        Runique serves full CRUD routes, list/create/edit/delete views, search,\n\
-        pagination, column sorting, and role-based access. No macro, no generated files.\n\
-        Templates are overridable via the builder. Plain `cargo run` is enough.\n\
-        \n\
-        ### Middleware\n\
-        - CSRF (via the form extractor)\n\
-        - CSP (Content Security Policy with nonce)\n\
-        - Session (memory store with optional DB persistence)\n\
-        - Rate limiter (sliding window per IP)\n\
-        - Login guard (lockout after N failed attempts)\n\
-        - Host validation\n\
-        - HTTPS redirect\n\
-        \n\
-        ### Auth\n\
-        Built-in user model stored in the `eihwaz_users` table (Runique's internal user table), login/logout helpers, session persistence,\n\
-        exclusive session (one session per user), password reset via email.\n\
-        \n\
-        ### Migrations\n\
-        `runique makemigrations` generates SeaORM migration files from `model!{}` entities.\n\
-        Supports PostgreSQL, MySQL/MariaDB, SQLite. Atomic rollback.\n\
-        \n\
-        ### Internationalisation\n\
-        9 built-in languages: EN, FR, DE, ES, IT, PT, JA, ZH, RU.\n\
-        Set via `set_lang(Lang::En)` in main().\n\
-        \n\
-        ## Quick Start\n\
-        \n\
-        ```bash\n\
-        cargo install runique\n\
-        runique new my-project\n\
-        cd my-project\n\
-        cargo run\n\
-        ```\n\
-        \n\
-        ## Cargo.toml\n\
-        \n\
-        ```toml\n\
-        [dependencies]\n\
-        runique = { version = \"4.0.0\", features = [\"postgres\"] }\n\
-        ```\n\
-        \n\
-        ## Links\n\
-        \n\
-        - GitHub: https://github.com/seb-alliot/runique\n\
-        - crates.io: https://crates.io/crates/runique\n\
-        - Documentation english: https://runique.io/docs/en\n\
-        - Documentation french: https://runique.io/docs/fr\n\
-        - Demo: https://runique.io\n"
+    include_str!("../llms-full.txt")
 }

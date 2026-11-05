@@ -62,25 +62,16 @@
         </div>
     {% endif %}
 
-    <button id="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark">🌙</button>
-
     {% block header %}
     <nav class="site-nav" id="site-nav">
-        <a href="{% link "index" %}" class="site-nav-logo"> Runique</a>
+        <a href="{% link "index" %}" class="site-nav-logo">Runique</a>
         {% if runique_release %}<span class="site-nav-version">v{{ runique_release.version }}</span>{% endif %}
         <div class="site-nav-links">
-            <a href="{% link "doc_index_en" %}">Documentation</a>
-            <a href="/cours">Courses</a>
-            <a href="{% link "roadmap" %}">Roadmap</a>
+            <a href="/docs/{% if ui_lang == "fr" %}fr{% else %}en{% endif %}">Documentation</a>
+            <a href="/cours">{% if ui_lang == "fr" %}Cours{% else %}Courses{% endif %}</a>
+            <a href="{% link "comparatif" %}">{% if ui_lang == "fr" %}Comparatif{% else %}Comparison{% endif %}</a>
             <a href="{% link "changelog" %}">Changelog</a>
-            <a href="{% link "contribution_list" %}">Contribute</a>
-            <a href="{% link "rust_django_framework" %}">Runique</a>
-            <a href="{% link "test_deux_formulaires" %}">Test-2-form</a>
-            {% if user %}
-                {% if user.rang != "Lambda" %}
-            <a href="{% link "search-user" %}">User Search</a>
-                {% endif %}
-            {% endif %}
+            <a href="{% link "contribution_list" %}">{% if ui_lang == "fr" %}Contribuer{% else %}Contribute{% endif %}</a>
         </div>
         <div class="site-nav-actions">
             {% if user %}
@@ -89,34 +80,37 @@
                 {% endif %}
                 <a href="{% link "profil" %}" class="site-nav-link-action">{{ user.username }}</a>
             {% else %}
-                <a href="{% link "login" %}" class="site-nav-link-action">Login</a>
+                <a href="{% link "login" %}" class="site-nav-link-action">{% if ui_lang == "fr" %}Connexion{% else %}Login{% endif %}</a>
             {% endif %}
+        </div>
+        <div class="site-nav-tools">
+            {% if ui_lang == "fr" %}<a class="site-nav-tool" href="/lang/en{% if current_path %}?next={{ current_path }}{% endif %}" rel="nofollow" hreflang="en" aria-label="Switch to English">EN</a>{% else %}<a class="site-nav-tool" href="/lang/fr{% if current_path %}?next={{ current_path }}{% endif %}" rel="nofollow" hreflang="fr" aria-label="Passer en français">FR</a>{% endif %}
+            <button id="theme-toggle" class="site-nav-tool" type="button" data-light="{% if ui_lang == "fr" %}Clair{% else %}Light{% endif %}" data-dark="{% if ui_lang == "fr" %}Sombre{% else %}Dark{% endif %}" aria-label="{% if ui_lang == "fr" %}Changer de thème{% else %}Toggle light or dark theme{% endif %}">{% if ui_lang == "fr" %}Clair{% else %}Light{% endif %}</button>
         </div>
         <button class="site-nav-toggle" id="site-nav-toggle" aria-label="Menu">☰</button>
     </nav>
     <div class="site-nav-overlay" id="site-nav-overlay"></div>
     <div class="site-nav-panel" id="site-nav-panel">
         <div class="site-nav-panel-header">
-            <span>  Runique</span>
+            <span>Runique</span>
             <button class="site-nav-panel-close" id="site-nav-panel-close">✕</button>
         </div>
-        <a href="{% link "doc_index_en" %}">Documentation</a>
-        <a href="/cours">Courses</a>
-        <a href="{% link "roadmap" %}">Roadmap</a>
+        <a href="/docs/{% if ui_lang == "fr" %}fr{% else %}en{% endif %}">Documentation</a>
+        <a href="/cours">{% if ui_lang == "fr" %}Cours{% else %}Courses{% endif %}</a>
+        <a href="{% link "comparatif" %}">{% if ui_lang == "fr" %}Comparatif{% else %}Comparison{% endif %}</a>
         <a href="{% link "changelog" %}">Changelog</a>
-        <a href="{% link "contribution_list" %}">Contribute</a>
-        <a href="{% link "rust_django_framework" %}">Runique</a>
+        <a href="{% link "contribution_list" %}">{% if ui_lang == "fr" %}Contribuer{% else %}Contribute{% endif %}</a>
         {% if user %}
             {% if user.rang != "Lambda" %}
                 <a href="{% link "admin_login" %}">Admin</a>
             {% endif %}
             <a href="{% link "profil" %}">{{ user.username }}</a>
         {% else %}
-            <a href="{% link "login" %}">Login</a>
+            <a href="{% link "login" %}">{% if ui_lang == "fr" %}Connexion{% else %}Login{% endif %}</a>
         {% endif %}
         {% if runique_release %}
-        <a href="{{ runique_release.github_url }}" target="_blank">GitHub</a>
-        <a href="{{ runique_release.crates_url }}" target="_blank">Crates.io</a>
+        <a href="{{ runique_release.github_url }}" target="_blank" rel="noopener">GitHub</a>
+        <a href="{{ runique_release.crates_url }}" target="_blank" rel="noopener">crates.io</a>
         {% endif %}
     </div>
     {% endblock %}

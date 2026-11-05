@@ -2,10 +2,10 @@
 
 ## Middlewares
 
-No middleware is configured through `.env`. In debug mode (`DEBUG=true`), no-cache headers are added on `localhost`; `.middleware(|m| m.with_cache(true))` turns them off.
+No middleware is configured through `.env`. In development (`RUNIQUE_ENV=dev`), no-cache headers are added on `localhost`; `.middleware(|m| m.with_cache(true))` turns them off.
 
 > **CSP** — Configured exclusively via the builder (`.with_csp(...)`). See [CSP](/docs/en/middleware/csp).
-> **Host validation** — Configured exclusively via the builder (`.with_allowed_hosts(|h| h.enabled(true).host("..."))`). See [Host Validation](/docs/en/middleware/hosts-cache).
+> **Host validation** — Configured exclusively via the builder (`.with_allowed_hosts(|h| h.host("..."))`). See [Host Validation](/docs/en/middleware/hosts-cache).
 
 ---
 
@@ -18,7 +18,7 @@ No middleware is configured through `.env`. In debug mode (`DEBUG=true`), no-cac
 | `ACME_ENABLED` | `false` | Let's Encrypt certificates handled by Runique (`acme` feature) |
 | `ACME_DOMAIN`, `ACME_EMAIL` | — | Required when `ACME_ENABLED=true` |
 | `ACME_CERTS_DIR` | `./certs` | Certificate folder — an absolute path in production |
-| `RUST_LOG` | — | Log filter (`tracing`), overrides the default level (`debug` in debug, `warn` otherwise) |
+| `RUST_LOG` | — | Log filter (`tracing`), overrides the default level (`debug` with `RUNIQUE_ENV=dev`, `warn` otherwise) |
 | `RUNIQUE_LOG_FILE` | — | Adds a log file, with no recompiling |
 
 See [Network & HTTP](/docs/en/installation/network) for ACME.
@@ -35,7 +35,7 @@ Session memory limits and cleanup interval are configured via the builder — se
 
 | Section | Description |
 | --- | --- |
-| [Application & Server](/docs/en/env/application) | DEBUG, IP_SERVER, PORT, DB |
+| [Application & Server](/docs/en/env/application) | RUNIQUE_ENV, DEBUG, IP_SERVER, PORT, DB |
 | [Assets & media](/docs/en/env/assets) | Static files, media, templates |
 
 ## Back to summary

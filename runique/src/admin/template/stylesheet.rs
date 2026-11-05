@@ -253,6 +253,15 @@ impl PageSheets {
         Ok(Self(all))
     }
 
+    /// The same sheets served without their hashes: in development, a sheet
+    /// being edited must load.
+    pub(crate) fn without_integrity(mut self) -> Self {
+        for sheet in self.0.values_mut().flatten() {
+            sheet.integrity = None;
+        }
+        self
+    }
+
     /// The sheets of `page` for model `key` (`""` for none).
     pub(crate) fn of(&self, page: Page, key: &str) -> &[ServedStylesheet] {
         self.0
