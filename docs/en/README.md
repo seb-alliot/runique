@@ -1,7 +1,7 @@
 # Runique — the Django developer experience, in type-safe Rust
 
 ![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-3092%20passing-green)
+![Tests passing](https://img.shields.io/badge/tests-3308%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-4.0.0-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
@@ -79,10 +79,10 @@ For the full picture: [Runique vs Django](https://runique.io/docs/en/comparatif)
 
 None of this is bolted on afterward — it's part of the base you start from:
 
-- CSRF protection compares tokens in constant time (`ct_eq`), so timing can't leak a match
+- CSRF protection compares tokens in constant time (`ct_eq`), so timing can't leak a match, and a form sent from another site is refused before the handler
 - CSP ships with a per-response nonce, configurable through the builder
 - Login is timing-safe (no user enumeration through response time) and passwords are hashed with Argon2
-- Sessions persist to the database, with authenticated sessions protected first when memory runs low
+- Sessions persist to the database, their content encrypted, with authenticated sessions protected first when memory runs low
 - Password reset tokens live in the database hashed with SHA-256, single-use, and hardened against IDOR
 - Output is sanitized (ammonia) on top of Tera's own auto-escaping, and host validation is enforced
 
@@ -125,7 +125,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-Routes go through the `urlpatterns!` macro and come out as a regular Axum `Router`:
+Routes go through the `urlpatterns!` macro and come out as `Routes`, which the builder mounts on Axum:
 
 ```rust
 pub fn routes() -> Routes {
@@ -159,7 +159,7 @@ Workspace version (source of truth): **4.0.0**.
 - `runique create-superuser`
 - `runique test [file] [test]`
 - `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
-- `runique migration up | down -n N | status` (runs the `migration` crate, no `sea-orm-cli`)
+- `runique migration up | down [-n N] | status` (runs the project's `migration/` crate with `cargo run`, no `sea-orm-cli` needed)
 
 There is no `runique start`: the app is a normal Rust binary (`cargo run`). Admin is plain Rust (`ModelAdmin` + `.with_admin(...)`), with no generation step.
 
@@ -173,7 +173,7 @@ Admin is a typed builder — no macro, no generated files under `src/admins/`.
 2. register them on `AdminSite` via `.with_admin(admin::config)` in `main`
 3. run with plain `cargo run`
 
-Columns are SeaORM enums (`article::Column::Title`), so a typo or a secret field fails at compile time. Permissions, list filters, search and forms are configured on the same builder.
+Columns are SeaORM enums (`article::Column::Title`), so a typo fails at compile time; a secret column (a password) put in a list or a form is refused at startup. Permissions, list filters, search and forms are configured on the same builder.
 
 Admin docs: [Admin](https://runique.io/docs/en/admin)
 
@@ -189,7 +189,7 @@ Pick exactly one backend explicitly: `sqlite`, `postgres`, `mysql`, `mariadb` (m
 
 ## Sessions
 
-`CleaningMemoryStore` stands in for the default `MemoryStore`, adding automatic cleanup of expired sessions, a two-tier watermark (128 MB / 256 MB) to keep memory bounded, and priority for authenticated sessions — they're the last to be purged under pressure, and they survive restarts through a database fallback.
+`CleaningMemoryStore` stands in for the default `MemoryStore`, adding automatic cleanup of expired sessions, a two-tier watermark (128 MB / 256 MB) to keep memory bounded, and priority for authenticated sessions — they're the last to be purged under pressure, and they survive restarts through an encrypted database fallback.
 
 Full reference: [Sessions](https://runique.io/docs/en/session)
 
@@ -197,11 +197,11 @@ Full reference: [Sessions](https://runique.io/docs/en/session)
 
 ## Tests and coverage
 
-- Tests reported: **3092 passing** (3 ignored)
-- Coverage snapshot (`2026-10-08`, package `runique`, admin module included): functions **88.72%**, lines **88.81%**, regions **87.25%**
+- Tests reported: **3308 passing** (110 ignored)
+- Coverage snapshot (`2026-11-04`, package `runique`, admin module included): functions **92.51%**, lines **92.45%**, regions **91.51%**
 
 ```bash
-cargo llvm-cov --package runique --features all-databases --summary-only
+cargo llvm-cov --package runique --features all-databases,admin,test-utils --summary-only
 ```
 
 Full per-file breakdown: [docs/couverture_test.md](docs/couverture_test.md)
@@ -222,7 +222,6 @@ Full per-file breakdown: [docs/couverture_test.md](docs/couverture_test.md)
 - [Flash Messages](https://runique.io/docs/en/flash)
 - [Examples](https://runique.io/docs/en/exemple)
 - [Admin beta](https://runique.io/docs/en/admin)
-- [Known limits](https://runique.io/docs/en/limites)
 - [Sessions](https://runique.io/docs/en/session)
 - [Environment variables](https://runique.io/docs/en/env)
 
@@ -232,6 +231,7 @@ Full per-file breakdown: [docs/couverture_test.md](docs/couverture_test.md)
 
 - [Project status](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.en.md) — kept up to date as the project moves
 - [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md)
+- [Upgrading from 3.0 to 4.0](https://github.com/seb-alliot/runique/blob/main/MIGRATION-4.0.md)
 - [Runique vs Django — feature comparison](https://runique.io/docs/en/comparatif)
 - [Crates.io](https://crates.io/crates/runique)
 - [Security policy](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)

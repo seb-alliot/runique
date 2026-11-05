@@ -81,6 +81,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+* **Admin pages without CSS after upgrading Runique**: the statics' `?v=` only followed the project's files, not Runique's, served `immutable` for a year. A CDN or browser therefore kept the old file under the same address, and the browser blocked it because it no longer matched its SRI hash. The token now covers both folders.
 * **The failing line was never highlighted on the debug page**: the number was looked for by a regex (`line N`) in the error's text, which Tera 2 no longer writes that way. It is read from the error's span.
 * **Wrong Rust version on the debug page**: `rustc --version` ran at runtime, so on the machine running the binary (often without `rustc`). The compiler is now recorded at build time.
 * **The list's size selector and search kept the old URL**: `hx-get=""` made the fields get added to the current URL. Changing the size or searching didn't go back to the first page, and the URL grew with each keystroke. Both now target the list's address.

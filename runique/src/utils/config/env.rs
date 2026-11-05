@@ -75,8 +75,22 @@ use std::{
 
 static CSS_TOKEN: LazyLock<String> = LazyLock::new(|| {
     let static_dir = std::env::var("STATICFILES_DIRS").unwrap_or_else(|_| "static".to_string());
-    hash_static_files(&static_dir).unwrap_or_else(|| "1000".to_string())
+    let runique_dir = crate::config::StaticConfig::from_env().static_runique_path;
+    asset_token(&[&static_dir, &runique_dir])
 });
+
+/// The token of several static folders. Runique's folder counts as much as the
+/// project's: its files are served `immutable` under the same `?v=`, so a
+/// token blind to them leaves browsers and CDNs on the old file after an
+/// upgrade, which its new SRI hash then blocks.
+fn asset_token(dirs: &[&str]) -> String {
+    let hashes: String = dirs.iter().filter_map(|d| hash_static_files(d)).collect();
+    if hashes.is_empty() {
+        "1000".to_string()
+    } else {
+        hashes
+    }
+}
 
 fn hash_static_files(dir: &str) -> Option<String> {
     let mut hasher = DefaultHasher::new();
@@ -101,8 +115,9 @@ fn hash_static_files(dir: &str) -> Option<String> {
 /// Returns the cache-busting token appended as `?v=` to static asset URLs.
 ///
 /// Computed once (`LazyLock`) as a hash of every `.css`/`.js` file's content under
-/// `STATICFILES_DIRS` (default `"static"`), so it changes whenever those files
-/// change. Falls back to `"1000"` if the directory has no matching files.
+/// `STATICFILES_DIRS` (default `"static"`) and Runique's own static folder, so it
+/// changes whenever those files change. Falls back to `"1000"` if neither has
+/// matching files.
 pub fn css_token() -> String {
     CSS_TOKEN.clone()
 }
@@ -167,6 +182,31 @@ mod debug_tests {
         assert_eq!(token, Some(format!("{:08x}", expected.finish())));
         assert_eq!(same, token, "an image change doesn't move the token");
         assert_eq!(none, None, "no stylesheet or script: no token");
+    }
+
+    #[test]
+    fn the_asset_token_follows_every_folder() {
+        let root = std::env::temp_dir().join(format!("rq_token_{}", uuid::Uuid::new_v4()));
+        let (project, framework) = (root.join("project"), root.join("framework"));
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&framework).unwrap();
+        std::fs::write(project.join("site.css"), "a{}").unwrap();
+        std::fs::write(framework.join("admin.css"), "b{}").unwrap();
+        let (p, f) = (project.to_str().unwrap(), framework.to_str().unwrap());
+
+        let before = super::asset_token(&[p, f]);
+        std::fs::write(framework.join("admin.css"), "b{color:red}").unwrap();
+        let framework_changed = super::asset_token(&[p, f]);
+        std::fs::write(project.join("site.css"), "a{color:red}").unwrap();
+        let project_changed = super::asset_token(&[p, f]);
+        let one_missing = super::asset_token(&[p, "/rq_no_such_folder"]);
+        let none = super::asset_token(&["/rq_no_such_folder"]);
+        let _ = std::fs::remove_dir_all(&root);
+
+        assert_ne!(framework_changed, before, "Runique's own file moves it");
+        assert_ne!(project_changed, framework_changed, "the project's too");
+        assert!(!one_missing.is_empty(), "a folder missing leaves the other");
+        assert_eq!(none, "1000", "no folder: the fallback");
     }
 
     #[test]

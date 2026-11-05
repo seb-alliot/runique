@@ -81,6 +81,7 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ### Corrigé
 
+* **Pages admin sans CSS après une montée de version de Runique** : le `?v=` des statiques ne suivait que les fichiers du projet, pas ceux de Runique, servis `immutable` pendant un an. Un CDN ou un navigateur gardait donc l'ancien fichier sous la même adresse, et le navigateur le bloquait parce qu'il ne correspondait plus à son empreinte SRI. Le jeton couvre désormais les deux dossiers.
 * **La ligne en erreur n'était jamais surlignée sur la page de debug** : le numéro était cherché par une regex (`line N`) dans le texte de l'erreur, que Tera 2 n'écrit plus sous cette forme. Il est lu dans le span de l'erreur.
 * **Version de Rust fausse sur la page de debug** : `rustc --version` était lancé à l'exécution, donc sur la machine qui fait tourner le binaire (souvent sans `rustc`). Le compilateur est désormais relevé à la compilation.
 * **Le sélecteur de taille et la recherche de la liste gardaient l'ancienne URL** : `hx-get=""` faisait ajouter les champs à l'URL courante. Changer de taille ou chercher ne revenait pas à la première page, et l'URL grossissait à chaque frappe. Les deux visent maintenant l'adresse de la liste.

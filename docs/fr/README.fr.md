@@ -1,7 +1,7 @@
 # Runique — l'expérience développeur Django, en Rust type-safe
 
 ![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-3092%20passing-green)
+![Tests passing](https://img.shields.io/badge/tests-3308%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-4.0.0-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
@@ -79,10 +79,10 @@ Pour le tableau complet : [Runique vs Django](https://runique.io/docs/fr/compara
 
 Rien de tout ça n'est ajouté après coup — c'est la base dont vous partez :
 
-- le CSRF compare les tokens en temps constant (`ct_eq`), pour qu'aucun timing ne trahisse une correspondance
+- le CSRF compare les tokens en temps constant (`ct_eq`), pour qu'aucun timing ne trahisse une correspondance, et un formulaire envoyé depuis un autre site est refusé avant le handler
 - le CSP embarque un nonce par réponse, configurable via le builder
 - le login est timing-safe (pas d'énumération d'utilisateurs par le temps de réponse), et les mots de passe sont hashés en Argon2
-- les sessions sont persistées en base, avec priorité donnée aux sessions authentifiées quand la mémoire se tend
+- les sessions sont persistées en base, leur contenu chiffré, avec priorité donnée aux sessions authentifiées quand la mémoire se tend
 - les tokens de réinitialisation de mot de passe vivent en base, hashés SHA-256, à usage unique, durcis contre l'IDOR
 - les sorties sont assainies (ammonia) en plus de l'auto-échappement de Tera, et la validation des hôtes autorisés est appliquée
 
@@ -125,7 +125,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-Les routes passent par la macro `urlpatterns!` et ressortent sous forme d'un `Router` Axum classique :
+Les routes passent par la macro `urlpatterns!` et ressortent sous forme de `Routes`, que le builder monte sur Axum :
 
 ```rust
 pub fn routes() -> Routes {
@@ -159,7 +159,7 @@ Version du workspace (source de vérité) : **4.0.0**.
 - `runique create-superuser`
 - `runique test [file] [test]`
 - `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
-- `runique migration up | down -n N | status` (lance le crate `migration`, sans `sea-orm-cli`)
+- `runique migration up | down [-n N] | status` (lance le crate `migration/` du projet par `cargo run`, sans `sea-orm-cli`)
 
 Pas de `runique start` : l'app est un binaire Rust normal (`cargo run`). L'admin est du Rust plain (`ModelAdmin` + `.with_admin(...)`), sans génération de code.
 
@@ -173,7 +173,7 @@ L'admin est un builder typé — pas de macro, pas de fichiers générés sous `
 2. enregistrez-les sur `AdminSite` via `.with_admin(admin::config)` dans `main`
 3. lancez avec un simple `cargo run`
 
-Les colonnes sont des enums SeaORM (`article::Column::Title`) : une typo ou un champ secret échoue à la compilation. Permissions, filtres de liste, recherche et formulaires se configurent sur le même builder.
+Les colonnes sont des enums SeaORM (`article::Column::Title`) : une typo échoue à la compilation ; une colonne secrète (un mot de passe) placée dans une liste ou un formulaire est refusée au démarrage. Permissions, filtres de liste, recherche et formulaires se configurent sur le même builder.
 
 Documentation admin : [Admin](https://runique.io/docs/fr/admin)
 
@@ -189,7 +189,7 @@ Choisir explicitement un seul backend : `sqlite`, `postgres`, `mysql`, `mariadb`
 
 ## Sessions
 
-`CleaningMemoryStore` remplace le `MemoryStore` par défaut : il ajoute un nettoyage automatique des sessions expirées, un système de double watermark (128 Mo / 256 Mo) pour borner la mémoire, et une priorité pour les sessions authentifiées — elles sont purgées en dernier sous pression, et survivent aux redémarrages grâce à un fallback en base.
+`CleaningMemoryStore` remplace le `MemoryStore` par défaut : il ajoute un nettoyage automatique des sessions expirées, un système de double watermark (128 Mo / 256 Mo) pour borner la mémoire, et une priorité pour les sessions authentifiées — elles sont purgées en dernier sous pression, et survivent aux redémarrages grâce à un fallback chiffré en base.
 
 Référence complète : [Sessions](https://runique.io/docs/fr/session)
 
@@ -197,11 +197,11 @@ Référence complète : [Sessions](https://runique.io/docs/fr/session)
 
 ## Tests et couverture
 
-- Tests rapportés : **3092 réussis** (3 ignorés)
-- Snapshot de couverture (`2026-10-08`, package `runique`, module admin inclus) : fonctions **88.72%**, lignes **88.81%**, régions **87.25%**
+- Tests rapportés : **3308 réussis** (110 ignorés)
+- Snapshot de couverture (`2026-11-04`, package `runique`, module admin inclus) : fonctions **92.51%**, lignes **92.45%**, régions **91.51%**
 
 ```bash
-cargo llvm-cov --package runique --features all-databases --summary-only
+cargo llvm-cov --package runique --features all-databases,admin,test-utils --summary-only
 ```
 
 Détail complet par fichier : [docs/couverture_test.md](docs/couverture_test.md)
@@ -222,7 +222,6 @@ Détail complet par fichier : [docs/couverture_test.md](docs/couverture_test.md)
 - [Messages flash](https://runique.io/docs/fr/flash)
 - [Exemples](https://runique.io/docs/fr/exemple)
 - [Admin bêta](https://runique.io/docs/fr/admin)
-- [Limites connues](https://runique.io/docs/fr/limites)
 - [Sessions](https://runique.io/docs/fr/session)
 - [Variables d'environnement](https://runique.io/docs/fr/env)
 
@@ -232,6 +231,7 @@ Détail complet par fichier : [docs/couverture_test.md](docs/couverture_test.md)
 
 - [État du projet](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.en.md) — tenu à jour au fil de l'avancement
 - [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md)
+- [Passer de la 3.0 à la 4.0](https://github.com/seb-alliot/runique/blob/main/MIGRATION-4.0.fr.md)
 - [Runique vs Django — comparatif des fonctionnalités](https://runique.io/docs/fr/comparatif)
 - [Crates.io](https://crates.io/crates/runique)
 - [Politique de sécurité](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
