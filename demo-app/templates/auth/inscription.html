@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block content %}
-<h1>{{ title }}</h1>
+<h1>{% set tr_text = title %}{% include "utils/tr.html" %}</h1>
 
 {% block message %}
     {% messages %}
@@ -19,13 +19,13 @@
     <div id="form" class="demo-form-panel">
         <form method="post" action="/inscription">
             {% form.inscription_form %}
-            <button type="submit">Sign up</button>
+            <button type="submit">{% if ui_lang == "fr" %}S'inscrire{% else %}Sign up{% endif %}</button>
         </form>
 
         <div class="text-center mt-3">
-            <a href='{% link "login" %}'>Already have an account? Sign in</a>
-            <a href="/">← Back to home</a>
-            <p class="rgpd-notice">Demo site — use a real email address: your account is activated through the link sent to it. <a href="{% link "rgpd" %}">Privacy</a>.</p>
+            <a href='{% link "login" %}'>{% if ui_lang == "fr" %}Déjà un compte ? Se connecter{% else %}Already have an account? Sign in{% endif %}</a>
+            <a href="/">{% if ui_lang == "fr" %}← Retour à l'accueil{% else %}← Back to home{% endif %}</a>
+            <p class="rgpd-notice">{% if ui_lang == "fr" %}Site de démonstration : utilisez une vraie adresse email, votre compte s'active par le lien qui y est envoyé.{% else %}Demo site — use a real email address: your account is activated through the link sent to it.{% endif %} <a href="{% link "rgpd" %}">{% if ui_lang == "fr" %}Confidentialité{% else %}Privacy{% endif %}</a>.</p>
         </div>
     </div>
 
@@ -35,7 +35,7 @@
             <span class="hero-code-dots">● ● ●</span>
             <div class="hero-code-tabs" role="tablist">
                 {% for example in code_examples %}
-                <button class="hero-tab{% if loop.first %} active{% endif %}" data-tab="{{ loop.index0 }}" role="tab">{{ example.title }}</button>
+                <button class="hero-tab{% if loop.first %} active{% endif %}" data-tab="{{ loop.index0 }}" role="tab">{% set tr_text = example.title %}{% include "utils/tr.html" %}</button>
                 {% endfor %}
             </div>
         </div>

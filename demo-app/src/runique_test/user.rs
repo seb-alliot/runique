@@ -95,3 +95,38 @@ async fn the_generic_save_writes_the_password_as_its_hash() -> Result<(), TestFa
     })
     .await
 }
+
+/// The activation email writes the username as is: a name that could carry HTML
+/// is refused, also when sent as entities, which the form decodes first.
+#[tokio::test]
+async fn a_username_that_could_carry_html_is_refused() -> Result<(), TestFailure> {
+    runique_test::<ADb>(super::ENV, async |db| {
+        for (username, accepted) in [
+            ("&lt;a href=evil&gt;click&lt;/a&gt;", false),
+            ("user_&amp;_name", false),
+            ("user_'_name", false),
+            ("user_\"_name", false),
+            ("user_#_name", false),
+            ("valid_user-name.1", true),
+        ] {
+            let req = super::form_save::named_request(
+                db,
+                "register",
+                &[],
+                &[
+                    ("username", username),
+                    ("email", "runique_test_html@example.com"),
+                    ("password", TYPED),
+                ],
+            );
+            let result = ValidationForm::try_form(req.form::<RegisterForm>("register"), &req).await;
+            if result.is_ok() != accepted {
+                return Err(DbErr::Custom(format!(
+                    "{username}: expected accepted = {accepted}"
+                )));
+            }
+        }
+        Ok(())
+    })
+    .await
+}

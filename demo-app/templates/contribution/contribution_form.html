@@ -8,23 +8,23 @@
 
 {% block content %}
 <div class="container">
-    <h1>{{ title }}</h1>
+    <h1>{% set tr_text = title %}{% include "utils/tr.html" %}</h1>
     <div class="demo-layout">
 
         <div class="form-container demo-form-panel">
             <form id="contribution_form" method="post" action="{% link "contribution" %}">
                 {% form.contribution_form %}
                 <button type="submit" class="btn btn-primary btn-submit">
-                    Submit
+                    {% if ui_lang == "fr" %}Envoyer{% else %}Submit{% endif %}
                 </button>
             </form>
 
             <div class="text-center mt-3">
-                <a href="{% link "contribution_list" %}">View contributions</a>
+                <a href="{% link "contribution_list" %}">{% if ui_lang == "fr" %}Voir les contributions{% else %}View contributions{% endif %}</a>
                 <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md" target="_blank" class="btn btn-secondary">Doc ORM FR</a>
                 <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md" target="_blank" class="btn btn-secondary">Doc ORM EN</a>
-                <a href="https://github.com/seb-alliot/runique/blob/main/CONTRIBUTING.md" target="_blank" class="btn btn-secondary">Contribute</a>
-                <a href="{% link "index" %}">← Back to home</a>
+                <a href="https://github.com/seb-alliot/runique/blob/main/CONTRIBUTING.md" target="_blank" class="btn btn-secondary">{% if ui_lang == "fr" %}Contribuer{% else %}Contribute{% endif %}</a>
+                <a href="{% link "index" %}">{% if ui_lang == "fr" %}← Retour à l'accueil{% else %}← Back to home{% endif %}</a>
             </div>
         </div>
 
@@ -49,7 +49,7 @@
     }
 }</code></pre>
 
-            <div class="demo-code-title">views.rs — protected route</div>
+            <div class="demo-code-title">{% if ui_lang == "fr" %}views.rs — route protégée{% else %}views.rs — protected route{% endif %}</div>
             <pre><code><span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="fn_">contribution_submit</span>(
     <span class="kw">mut</span> request: <span class="ty">Request</span>,
 ) -&gt; <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {

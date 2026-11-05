@@ -18,20 +18,20 @@
 
 {% block content %}
 <div class="cours-index-container">
-    <h1>Rust Courses (French only for now)</h1>
-    <p class="cours-index-lead">From beginner to advanced — all courses to master Rust.</p>
+    <h1>{% if ui_lang == "fr" %}Cours Rust{% else %}Rust Courses (French only for now){% endif %}</h1>
+    <p class="cours-index-lead">{% if ui_lang == "fr" %}Du débutant à l'avancé : tous les cours pour maîtriser Rust.{% else %}From beginner to advanced — all courses to master Rust.{% endif %}</p>
 
     {% for niveau in niveaux %}
     {% set niveau_cours = [c for c in cours if c.difficulte == niveau] %}
     {% if niveau_cours %}
     <section class="cours-niveau-section cours-niveau-section--{{ niveau }}">
         <h2>
-            {% if niveau == "debutant" %}Beginner
-            {% elif niveau == "intermediaire" %}Intermediate
-            {% elif niveau == "avance" %}Advanced
+            {% if niveau == "debutant" %}{% if ui_lang == "fr" %}Débutant{% else %}Beginner{% endif %}
+            {% elif niveau == "intermediaire" %}{% if ui_lang == "fr" %}Intermédiaire{% else %}Intermediate{% endif %}
+            {% elif niveau == "avance" %}{% if ui_lang == "fr" %}Avancé{% else %}Advanced{% endif %}
             {% else %}Runique
             {% endif %}
-            {% if niveau == "runique" or niveau == "avance" %}<span class="cours-beta-badge">Beta</span>{% endif %}
+            {% if niveau == "runique" or niveau == "avance" %}<span class="cours-beta-badge">{% if ui_lang == "fr" %}Bêta{% else %}Beta{% endif %}</span>{% endif %}
         </h2>
         <div class="cours-grid">
             {% for c in niveau_cours %}

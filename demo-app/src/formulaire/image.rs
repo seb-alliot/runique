@@ -1,3 +1,5 @@
+use crate::backend::lang::visitor_lang;
+use runique::axum::http::HeaderMap;
 use runique::prelude::*;
 use serde::Serialize;
 
@@ -12,7 +14,7 @@ impl FormAccess for ImageForm {
     fn register_fields(form: &mut Forms) {
         form.field(
             &MediaField::image("image")
-                .label("Choisissez une image à uploader")
+                .label("Choose an image to upload")
                 .upload_to("uploads/images")
                 .required()
                 .max_size(FileSize::mb(5))
@@ -20,8 +22,17 @@ impl FormAccess for ImageForm {
                 .max_dimensions(1920, 1080)
                 .allowed_extensions(vec!["png", "jpg", "jpeg", "gif"]),
         );
-        form.add_js(&["js/test_csrf.js"]);
     }
 }
 
 impl RuniqueForm for ImageForm {}
+
+impl ImageForm {
+    pub fn in_language(mut self, headers: &HeaderMap) -> Self {
+        if visitor_lang(headers) == "fr" {
+            self.forms_mut()
+                .field_label("image", "Choisissez une image à envoyer");
+        }
+        self
+    }
+}

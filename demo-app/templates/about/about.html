@@ -8,37 +8,37 @@
 
 {% block content %}
 <div class="content about">
-    <h1>Flash Messages</h1>
+    <h1>{% if ui_lang == "fr" %}Messages flash{% else %}Flash Messages{% endif %}</h1>
     <p class="lead">
-        Server-side session notifications, displayed once after redirect.
+        {% if ui_lang == "fr" %}Notifications de session côté serveur, affichées une seule fois après une redirection.{% else %}Server-side session notifications, displayed once after redirect.{% endif %}
     </p>
 
     <div class="demo-layout">
 
         <div class="demo-form-panel">
             <p class="about-intro">
-                Click the button to inject all 4 message types and see them displayed.
+                {% if ui_lang == "fr" %}Cliquez sur le bouton pour injecter les 4 types de messages et les voir affichés.{% else %}Click the button to inject all 4 message types and see them displayed.{% endif %}
             </p>
 
             <a href="{% link "about" %}" class="btn btn-primary btn-submit">
-                Show messages
+                {% if ui_lang == "fr" %}Afficher les messages{% else %}Show messages{% endif %}
             </a>
 
             {% messages %}
 
             <div class="about-levels">
-                <h3>4 available levels</h3>
+                <h3>{% if ui_lang == "fr" %}4 niveaux disponibles{% else %}4 available levels{% endif %}</h3>
                 <ul>
-                    <li><strong class="msg-success">Success</strong> — successful action, save, login</li>
-                    <li><strong class="msg-info">Info</strong> — neutral information</li>
-                    <li><strong class="msg-warning">Warning</strong> — attention required</li>
-                    <li><strong class="msg-error">Error</strong> — error, access denied</li>
+                    <li><strong class="msg-success">{% if ui_lang == "fr" %}Succès{% else %}Success{% endif %}</strong> — {% if ui_lang == "fr" %}action réussie, enregistrement, connexion{% else %}successful action, save, login{% endif %}</li>
+                    <li><strong class="msg-info">Info</strong> — {% if ui_lang == "fr" %}information neutre{% else %}neutral information{% endif %}</li>
+                    <li><strong class="msg-warning">{% if ui_lang == "fr" %}Avertissement{% else %}Warning{% endif %}</strong> — {% if ui_lang == "fr" %}attention requise{% else %}attention required{% endif %}</li>
+                    <li><strong class="msg-error">{% if ui_lang == "fr" %}Erreur{% else %}Error{% endif %}</strong> — {% if ui_lang == "fr" %}erreur, accès refusé{% else %}error, access denied{% endif %}</li>
                 </ul>
             </div>
         </div>
 
         <div class="demo-code">
-            <div class="demo-code-title">views.rs — injection dans la vue</div>
+            <div class="demo-code-title">{% if ui_lang == "fr" %}views.rs — injection dans la vue{% else %}views.rs — injection in the view{% endif %}</div>
             <pre><code><span class="kw">pub async fn</span> <span class="fn_">about</span>(
     <span class="kw">mut</span> request: <span class="ty">Request</span>,
 ) -> <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
@@ -50,7 +50,7 @@
     request.<span class="fn_">render</span>(<span class="st">"about/about.html"</span>)
 }</code></pre>
 
-            <div class="demo-code-title">views.rs — pattern redirect typique</div>
+            <div class="demo-code-title">{% if ui_lang == "fr" %}views.rs — redirection typique{% else %}views.rs — typical redirect pattern{% endif %}</div>
             <pre><code><span class="cm">// After an action: add + redirect</span>
 <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="fn_">create_post</span>(
     <span class="kw">mut</span> request: <span class="ty">Request</span>,
@@ -69,13 +69,13 @@
     <span class="ty">Ok</span>(<span class="ty">Redirect</span>::<span class="fn_">to</span>(<span class="st">"/blog"</span>).<span class="fn_">into_response</span>())
 }</code></pre>
 
-            <div class="demo-code-title">flash_now! — immediate message without session</div>
+            <div class="demo-code-title">{% if ui_lang == "fr" %}flash_now! — message immédiat sans session{% else %}flash_now! — immediate message without session{% endif %}</div>
             <pre><code><span class="cm">// Display the message on the current page (no redirect)</span>
 <span class="mc">context_update!</span>(request =&gt; {
     <span class="st">"messages"</span> =&gt; <span class="mc">flash_now!</span>(error =&gt; <span class="st">"Invalid form."</span>),
 });</code></pre>
 
-            <div class="demo-code-title">index.html — affichage dans le template</div>
+            <div class="demo-code-title">{% if ui_lang == "fr" %}index.html — affichage dans le template{% else %}index.html — display in the template{% endif %}</div>
             <pre><code><span class="cm">&lt;!-- dans le layout de base --&gt;</span>
 &lt;<span class="kw">main</span>&gt;
     {<span class="st">% block messages %</span>}
@@ -89,7 +89,7 @@
 
     <div class="back-link">
         <a href="{% if ui_lang == "fr" %}https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/09-flash-messages.md{% else %}https://github.com/seb-alliot/runique/blob/main/docs/en/flash/09-flash-messages.md{% endif %}" target="_blank" rel="noopener" class="btn btn-secondary">Documentation</a>
-        <a href="{% link "index" %}">← Back home</a>
+        <a href="{% link "index" %}">{% if ui_lang == "fr" %}← Retour à l'accueil{% else %}← Back home{% endif %}</a>
     </div>
 </div>
 {% endblock %}

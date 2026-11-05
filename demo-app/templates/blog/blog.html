@@ -8,7 +8,7 @@
 
 {% block content %}
 <div class="container">
-    <h1>{{ title }}</h1>
+    <h1>{% set tr_text = title %}{% include "utils/tr.html" %}</h1>
 
     <div class="demo-layout">
 
@@ -16,14 +16,14 @@
             <form id="blog_form" method="post" action="{% link "blog_info" %}">
                 {% form.blog_form %}
                 <button type="submit" class="btn btn-primary btn-submit">
-                    Save article
+                    {% if ui_lang == "fr" %}Enregistrer l'article{% else %}Save article{% endif %}
                 </button>
             </form>
 
             <div class="text-center mt-3">
-                <a href="{% link "blog_list" %}">View articles</a>
+                <a href="{% link "blog_list" %}">{% if ui_lang == "fr" %}Voir les articles{% else %}View articles{% endif %}</a>
                 <a href="{% if ui_lang == "fr" %}https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/05-forms.md{% else %}https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/05-forms.md{% endif %}" target="_blank" rel="noopener" class="btn btn-secondary">Documentation</a>
-                <a href="{% link "index" %}">← Back to home</a>
+                <a href="{% link "index" %}">{% if ui_lang == "fr" %}← Retour à l'accueil{% else %}← Back to home{% endif %}</a>
             </div>
         </div>
 

@@ -9,7 +9,7 @@
 
 {% block content %}
 <div class="content field-test-page">
-    <h1>{{ title }}</h1>
+    <h1>{% set tr_text = title %}{% include "utils/tr.html" %}</h1>
 
     {% if field_groups %}
     <div class="field-toolbar">

@@ -2,32 +2,32 @@
 
 {% block content %}
 <div class="container">
-    <h1>{{ title }}</h1>
+    <h1>{% set tr_text = title %}{% include "utils/tr.html" %}</h1>
     <p class="lead lead-mb">
-        You will find here the 4 error pages provided by Runique.
+        {% if ui_lang == "fr" %}Vous trouverez ici les 4 pages d'erreur fournies par Runique.{% else %}You will find here the 4 error pages provided by Runique.{% endif %}
     </p>
 
     <div class="demo-cards">
         <a href="{% link "force_404" %}" class="feature-card">
-            <h3>404 - Page Not Found</h3>
-            <p>Automatic protection — transparent in forms via <code>request.form("name")</code></p>
+            <h3>{% if ui_lang == "fr" %}404 - Page introuvable{% else %}404 - Page Not Found{% endif %}</h3>
+            <p>{% if ui_lang == "fr" %}Protection automatique, transparente dans les formulaires via{% else %}Automatic protection — transparent in forms via{% endif %} <code>request.form("name")</code></p>
         </a>
         <a href="{% link "force_500" %}" class="feature-card">
-            <h3>500 - Internal Server Error</h3>
-            <p>Content Security Policy — directives, nonce, predefined profiles</p>
+            <h3>{% if ui_lang == "fr" %}500 - Erreur interne du serveur{% else %}500 - Internal Server Error{% endif %}</h3>
+            <p>{% if ui_lang == "fr" %}Content Security Policy : directives, nonce, profils prédéfinis{% else %}Content Security Policy — directives, nonce, predefined profiles{% endif %}</p>
         </a>
         <a href="{% link "force_429" %}" class="feature-card">
-            <h3>429 - Too Many Requests</h3>
-            <p>Rate limiting per IP with sliding window</p>
+            <h3>{% if ui_lang == "fr" %}429 - Trop de requêtes{% else %}429 - Too Many Requests{% endif %}</h3>
+            <p>{% if ui_lang == "fr" %}Limitation par IP avec fenêtre glissante{% else %}Rate limiting per IP with sliding window{% endif %}</p>
         </a>
         <a href="{% link "test-502" %}" class="feature-card">
-            <h3>502 - Nginx Error Page</h3>
-            <p>View the maintenance page design</p>
+            <h3>{% if ui_lang == "fr" %}502 - Page d'erreur Nginx{% else %}502 - Nginx Error Page{% endif %}</h3>
+            <p>{% if ui_lang == "fr" %}Voir le design de la page de maintenance{% else %}View the maintenance page design{% endif %}</p>
         </a>
     </div>
 
     <div class="back-link">
-        <a href="{% link "index" %}">← Back to home</a>
+        <a href="{% link "index" %}">{% if ui_lang == "fr" %}← Retour à l'accueil{% else %}← Back to home{% endif %}</a>
     </div>
 </div>
 {% endblock %}

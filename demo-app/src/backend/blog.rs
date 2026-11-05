@@ -1,3 +1,4 @@
+use crate::backend::lang::msg;
 use crate::entities::blog::Entity as BlogEntity;
 use crate::formulaire::BlogForm;
 use runique::prelude::*;
@@ -35,14 +36,15 @@ pub async fn handle_blog_save(request: &mut Request, blog: BlogForm) -> AppResul
 
     let mut blog = match ValidationForm::try_form(blog, request).await {
         Ok(validated) => validated.into_form(),
-        Err(blog) => {
+        Err(mut blog) => {
+            crate::backend::lang::localize_errors(blog.forms_mut(), &request.headers);
             if !blog.is_submitted() {
                 context_update!(request => { "title" => "Create a blog post", "blog_form" => &blog });
             } else {
                 context_update!(request => {
                     "title"     => "Validation error",
                     "blog_form" => &blog,
-                    "messages"  => flash_now!(error => "Please correct the errors below"),
+                    "messages"  => flash_now!(error => msg(&request.headers, "Please correct the errors below", "Veuillez corriger les erreurs ci-dessous")),
                 });
             }
             return request.render(template);
@@ -51,7 +53,7 @@ pub async fn handle_blog_save(request: &mut Request, blog: BlogForm) -> AppResul
 
     match save_blog(&mut blog, &request.engine.db).await {
         Ok(_) => {
-            success!(request.notices => "Article saved!");
+            success!(request.notices => msg(&request.headers, "Article saved!", "Article enregistré !"));
             Ok(Redirect::to("/blog/liste").into_response())
         }
         Err(err) => {

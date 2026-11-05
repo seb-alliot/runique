@@ -1,4 +1,5 @@
 use crate::backend::FieldGroup;
+use crate::backend::lang::msg;
 use crate::entities::{code_example, demo_page, form_field, page_doc_link};
 use crate::formulaire::ImageForm;
 use runique::prelude::*;
@@ -35,10 +36,11 @@ pub async fn handle_upload_image(request: &mut Request, form: ImageForm) -> AppR
                 return Ok(Redirect::to("/upload-image").into_response());
             }
             form.forms_mut().complete_uploads().await;
-            success!(request.notices => "File uploaded successfully!");
+            success!(request.notices => msg(&request.headers, "File uploaded successfully!", "Fichier envoyé !"));
             Ok(Redirect::to("/upload-image").into_response())
         }
-        Err(form) => {
+        Err(mut form) => {
+            crate::backend::lang::localize_errors(form.forms_mut(), &request.headers);
             // Not sent (first display): show the blank form. Sent but
             // invalid: this route redirects with a flash instead of
             // re-rendering inline (unlike the other form handlers).
@@ -53,7 +55,7 @@ pub async fn handle_upload_image(request: &mut Request, form: ImageForm) -> AppR
             } else {
                 let errors = form.forms().errors();
                 let msg = if errors.is_empty() {
-                    "Validation error".to_string()
+                    msg(&request.headers, "Validation error", "Erreur de validation").to_string()
                 } else {
                     errors.values().cloned().collect::<Vec<_>>().join(" | ")
                 };

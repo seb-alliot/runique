@@ -7,16 +7,16 @@
 
 {% block content %}
 <div class="container">
-    <h1>{{ title }}</h1>
+    <h1>{% set tr_text = title %}{% include "utils/tr.html" %}</h1>
     <p class="lead lead-mb">
-        Override the default admin templates with your own.
-        <span class="text-hint">(beta feature)</span>
+        {% if ui_lang == "fr" %}Remplacez les templates par défaut de l'admin par les vôtres.{% else %}Override the default admin templates with your own.{% endif %}
+        <span class="text-hint">{% if ui_lang == "fr" %}(fonctionnalité bêta){% else %}(beta feature){% endif %}</span>
     </p>
 
     <div class="demo-layout">
 
         <div class="demo-code">
-            <div class="demo-code-title">Override in main.rs</div>
+            <div class="demo-code-title">{% if ui_lang == "fr" %}Surcharge dans main.rs{% else %}Override in main.rs{% endif %}</div>
             <pre><code><span class="ty">RuniqueApp</span>::<span class="fn_">builder</span>(config)
     .<span class="fn_">with_admin</span>(|a| {
         a.<span class="fn_">site_title</span>(<span class="st">"Administration"</span>)
@@ -27,14 +27,14 @@
             .<span class="fn_">site</span>(|s| s.<span class="fn_">register</span>(…))
     })</code></pre>
 
-            <div class="demo-code-title">Example used in this demo</div>
+            <div class="demo-code-title">{% if ui_lang == "fr" %}Exemple utilisé dans cette démo{% else %}Example used in this demo{% endif %}</div>
             <pre><code><span class="ty">RuniqueApp</span>::<span class="fn_">builder</span>(config)
     .<span class="fn_">with_admin</span>(admin::<span class="fn_">config</span>)
 <span class="cm">// src/admin.rs — ModelAdmin + .templates(|t| t.with_dashboard(...))</span></code></pre>
         </div>
 
         <div class="demo-code">
-            <div class="demo-code-title">Overridable templates</div>
+            <div class="demo-code-title">{% if ui_lang == "fr" %}Templates surchargeables{% else %}Overridable templates{% endif %}</div>
             <pre><code><span class="cm">// All views (full CRUD)</span>
 t.<span class="fn_">with_dashboard</span>(<span class="st">"admin/my_dashboard.html"</span>)
 t.<span class="fn_">with_list</span>(<span class="st">"admin/my_list.html"</span>)
@@ -47,7 +47,7 @@ t.<span class="fn_">with_delete</span>(<span class="st">"admin/my_delete.html"</
 t.<span class="fn_">with_login</span>(<span class="st">"admin/my_login.html"</span>)
 t.<span class="fn_">with_history</span>(<span class="st">"admin/my_history.html"</span>)</code></pre>
 
-            <div class="demo-code-title">Keys injected by Runique (required)</div>
+            <div class="demo-code-title">{% if ui_lang == "fr" %}Clés injectées par Runique (obligatoires){% else %}Keys injected by Runique (required){% endif %}</div>
             <pre><code><span class="cm">// For the dashboard:</span>
 {% raw %}{{ site_title }}{% endraw %}       <span class="cm">// title set with .site_title()</span>
 {% raw %}{{ resources }}{% endraw %}        <span class="cm">// list of resources</span>
@@ -61,7 +61,7 @@ t.<span class="fn_">with_history</span>(<span class="st">"admin/my_history.html"
 
 <span class="cm">// Full key list for each view in the documentation!</span></code></pre>
 
-            <div class="demo-code-title">Overridable Tera blocks</div>
+            <div class="demo-code-title">{% if ui_lang == "fr" %}Blocs Tera surchargeables{% else %}Overridable Tera blocks{% endif %}</div>
             <pre><code><span class="cm">// Available blocks in admin/admin_template</span>
 {% raw %}{% block extra_css %}{% endblock %}{% endraw %}   <span class="cm">// additional CSS styles</span>
 {% raw %}{% block title %}{% endblock %}{% endraw %}       <span class="cm">// tab title</span>
@@ -73,23 +73,23 @@ t.<span class="fn_">with_history</span>(<span class="st">"admin/my_history.html"
 {% raw %}{% block extra_js %}{% endblock %}{% endraw %}    <span class="cm">// additional JS scripts</span>
 {% raw %}{% block footer %}{% endblock %}{% endraw %}      <span class="cm">// footer</span></code></pre>
 
-            <div class="demo-code-title">Context keys on the dashboard</div>
+            <div class="demo-code-title">{% if ui_lang == "fr" %}Clés de contexte du tableau de bord{% else %}Context keys on the dashboard{% endif %}</div>
             <pre><code><span class="cm">// Injected by the framework for every admin view.</span>
 <span class="cm">// E.g.: site title, resources, custom dashboard data.</span>
 {% raw %}{{ resource_counts[resource.key] }}{% endraw %}  <span class="cm">// from this demo</span></code></pre>
 
-            <div class="demo-code-title">Concrete example</div>
+            <div class="demo-code-title">{% if ui_lang == "fr" %}Exemple concret{% else %}Concrete example{% endif %}</div>
             <pre><code><span class="cm">// The dashboard shown in this demo's admin view</span>
 <span class="cm">// is itself an override template.</span>
 <span class="cm">// demo-app/templates/admin/test_dashboard.html</span></code></pre>
-            <a href="https://github.com/seb-alliot/runique/blob/main/demo-app/templates/admin/test_dashboard.html" target="_blank" class="btn btn-secondary">View on GitHub</a>
+            <a href="https://github.com/seb-alliot/runique/blob/main/demo-app/templates/admin/test_dashboard.html" target="_blank" class="btn btn-secondary">{% if ui_lang == "fr" %}Voir sur GitHub{% else %}View on GitHub{% endif %}</a>
         </div>
 
     </div>
 
     <div class="back-link">
         <a href="{% if ui_lang == "fr" %}https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/surcharge/surcharge.md{% else %}https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/surcharge/surcharge.md{% endif %}" target="_blank" rel="noopener" class="btn btn-secondary">Documentation</a>
-        <a href="{% link "admin_hub" %}">Back home</a>
+        <a href="{% link "admin_hub" %}">{% if ui_lang == "fr" %}Retour à l'accueil{% else %}Back home{% endif %}</a>
     </div>
 </div>
 {% endblock %}

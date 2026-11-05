@@ -10,11 +10,7 @@ pub struct EmailForm {
 
 impl FormAccess for EmailForm {
     fn register_fields(form: &mut Forms) {
-        form.field(
-            &TextField::email("email")
-                .label("Entrez un email")
-                .required(),
-        );
+        form.field(&TextField::email("email").label("Enter an email").required());
     }
     impl_form_access!();
 }

@@ -30,8 +30,8 @@
     {% endif %}
 
     <div class="blog-detail-nav">
-        <a href="{% link "blog_list" %}" class="btn btn-secondary">← Back to articles</a>
-        <a href="{% link "blog_info" %}" class="btn btn-primary">+ New article</a>
+        <a href="{% link "blog_list" %}" class="btn btn-secondary">{% if ui_lang == "fr" %}← Retour aux articles{% else %}← Back to articles{% endif %}</a>
+        <a href="{% link "blog_info" %}" class="btn btn-primary">{% if ui_lang == "fr" %}+ Nouvel article{% else %}+ New article{% endif %}</a>
         <a href="{% if ui_lang == "fr" %}https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md{% else %}https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md{% endif %}" target="_blank" rel="noopener" class="btn btn-secondary">Documentation</a>
     </div>
 </div>

@@ -19,6 +19,59 @@ pub fn visitor_lang(headers: &HeaderMap) -> &'static str {
     if chosen == Some("fr") { "fr" } else { "en" }
 }
 
+/// `en` or `fr`, for the visitor's language.
+pub fn msg(headers: &HeaderMap, en: &'static str, fr: &'static str) -> &'static str {
+    if visitor_lang(headers) == "fr" {
+        fr
+    } else {
+        en
+    }
+}
+
+/// `clean()` has no access to the request, so its errors are written in English
+/// and translated here once the form has been validated.
+fn clean_error_fr(en: &str) -> Option<&'static str> {
+    Some(match en {
+        "The username must be at least 5 characters long." => {
+            "Le nom d'utilisateur doit faire au moins 5 caractères."
+        }
+        "The username cannot contain #, —, <, >, &, \" or '." => {
+            "Le nom d'utilisateur ne peut pas contenir #, —, <, >, &, \" ou '."
+        }
+        "The password must be at least 10 characters long." => {
+            "Le mot de passe doit faire au moins 10 caractères."
+        }
+        "The password must contain at least one uppercase letter, one digit and one special character." => {
+            "Le mot de passe doit contenir au moins une majuscule, un chiffre et un caractère spécial."
+        }
+        "The title must be at least 3 characters long." => {
+            "Le titre doit faire au moins 3 caractères."
+        }
+        "The website must start with http or https." => {
+            "Le site web doit commencer par http ou https."
+        }
+        "Invalid email address." => "Adresse email invalide.",
+        "The summary must be at least 5 characters long." => {
+            "Le résumé doit faire au moins 5 caractères."
+        }
+        "The content must be at least 10 characters long." => {
+            "Le contenu doit faire au moins 10 caractères."
+        }
+        _ => return None,
+    })
+}
+
+pub fn localize_errors(form: &mut Forms, headers: &HeaderMap) {
+    if visitor_lang(headers) != "fr" {
+        return;
+    }
+    for field in form.fields.values_mut() {
+        if let Some(error) = field.error().and_then(|error| clean_error_fr(error)) {
+            field.set_error(error.to_string());
+        }
+    }
+}
+
 /// The page to go back to: a path of this site, never another host. `//host`
 /// and `/\host` are read as another host by browsers, and `Redirect::to`
 /// panics on anything that isn't a valid header value.

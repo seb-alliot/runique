@@ -17,7 +17,7 @@
 {% block content %}
 <div class="error-container">
     <div class="error-code">502</div>
-    <h1 class="error-title">Service Temporarily Unavailable</h1>
+    <h1 class="error-title">{% if ui_lang == "fr" %}Service temporairement indisponible{% else %}Service Temporarily Unavailable{% endif %}</h1>
     
     <div class="error-code-block">
         <span class="keyword">match</span> <span class="function">server</span>.<span class="function">check_health</span>() {<br>
@@ -28,16 +28,16 @@
     </div>
     
     <p class="error-message">
-        The server is currently undergoing maintenance.<br>
-        Please try again in a few moments.
+        {% if ui_lang == "fr" %}Le serveur est en cours de maintenance.{% else %}The server is currently undergoing maintenance.{% endif %}<br>
+        {% if ui_lang == "fr" %}Veuillez réessayer dans quelques instants.{% else %}Please try again in a few moments.{% endif %}
     </p>
     
     <div class="error-actions">
         <a href="{% link "index" %}" class="btn-primary">
-            <span>↻</span> Retry
+            <span>↻</span> {% if ui_lang == "fr" %}Réessayer{% else %}Retry{% endif %}
         </a>
         <a href="{% link "index" %}" class="btn-secondary">
-            <span>→</span> Back to Home
+            <span>→</span> {% if ui_lang == "fr" %}Retour à l'accueil{% else %}Back to Home{% endif %}
         </a>
     </div>
 </div>
