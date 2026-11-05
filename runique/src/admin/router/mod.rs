@@ -115,6 +115,24 @@ fn chrome(
         .insert("lang", crate::utils::trad::current_lang().code());
 }
 
+/// What a page declared `admin` in `urlpatterns!` needs to extend
+/// `admin_base.html`: stylesheets, menu with the rights applied, top bar and site
+/// identity. `page` picks the stylesheets to load, `current_resource` the model
+/// the menu highlights. It only prepares the display: what the handler reads or
+/// writes still goes through the gate. Without a signed-in user, it adds nothing.
+pub fn admin_page_context(
+    req: &mut Request,
+    admin: &AdminState,
+    site: &AdminSite,
+    page: crate::admin::template::Page,
+    current_resource: &str,
+) {
+    let Some(user) = req.user.clone() else {
+        return;
+    };
+    chrome(req, admin, site, &user, current_resource, page);
+}
+
 /// A resource key that matches no registered model.
 fn unknown_resource(resource: &str) -> AppResult<Response> {
     Err(Box::new(AppError::new(ErrorContext::not_found(resource))))

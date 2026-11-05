@@ -102,6 +102,24 @@ urlpatterns! {
 - Access: signed in with admin access → your handler; signed in without it → sent to `/` with a notice, session kept; anonymous → `/` (or the admin login when coming from the admin). The admin prefix is never shown to a stranger.
 - The protection only checks **admin access**. What your handler reads or writes goes through the gate, as everywhere in the framework: see [Permissions](/docs/en/admin/permission).
 
+For a page on the admin's layout (stylesheets, menu with the rights applied, top bar), call `admin_page_context` and extend `admin_base.html`:
+
+```rust
+use runique::admin::template::Page;
+use runique::admin::{AdminSite, AdminState, admin_page_context};
+
+pub async fn article_stats(
+    Extension(admin): Extension<Arc<AdminState>>,
+    Extension(site): Extension<Arc<AdminSite>>,
+    mut request: Request,
+) -> AppResult<Response> {
+    admin_page_context(&mut request, &admin, &site, Page::Detail, "articles");
+    request.render("admin/article_stats.html")
+}
+```
+
+`Page` picks the stylesheets to load, and the last argument the model the menu highlights. This function only prepares the display: it grants no right.
+
 When the admin is disabled, declaring an `admin` route refuses the boot.
 
 ## Useful imports

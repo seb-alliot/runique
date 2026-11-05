@@ -9,8 +9,11 @@ use crate::helpers::framework_tables::{
     USERS_GROUPES_DDL,
 };
 use crate::helpers::pk::{pk, pk_sql_literal};
+use axum::Extension;
 use axum::extract::Path;
 use axum::routing::get;
+use runique::admin::template::Page;
+use runique::admin::{AdminSite, AdminState, admin_page_context};
 use runique::app::RuniqueApp;
 use runique::auth::{BuiltinUserEntity, login};
 use runique::config::RuniqueConfig;
@@ -20,6 +23,7 @@ use runique::macros::Routes;
 use runique::prelude::{FormAccess, RuniqueForm, ValidationForm, form};
 use runique::sea_orm::{EntityTrait, QueryOrder};
 use serial_test::serial;
+use std::sync::Arc;
 
 async fn sign_in(Path(n): Path<u32>, req: Request) -> &'static str {
     let user = BuiltinUserEntity::find_by_id(&req.engine.db, pk(n))
@@ -150,6 +154,16 @@ async fn seed(dbc: &runique::sea_orm::DatabaseConnection) {
     .await;
 }
 
+/// A declared page on the admin's layout, as a project writes one.
+async fn custom_page(
+    Extension(admin): Extension<Arc<AdminState>>,
+    Extension(site): Extension<Arc<AdminSite>>,
+    mut req: Request,
+) -> runique::utils::aliases::AppResult<axum::response::Response> {
+    admin_page_context(&mut req, &admin, &site, Page::Dashboard, "");
+    req.render("admin_base.html")
+}
+
 fn routes() -> Routes {
     runique::urlpatterns! {
         "/sign-in/{n}" => get(sign_in), name = "declared_test_sign_in",
@@ -157,6 +171,9 @@ fn routes() -> Routes {
         "/flashes" => get(flashes), name = "declared_test_flashes",
         admin "/custom/{id}" => get(|| async { "private" }),
             name = "declared_test_custom",
+            for_model = runique::auth::user::Entity,
+        admin "/custom-page" => get(custom_page),
+            name = "declared_test_custom_page",
             for_model = runique::auth::user::Entity,
         admin "/accounts/{id}" => get(|| async { "custom detail" }),
             name = "declared_test_account_detail",
@@ -327,6 +344,32 @@ async fn an_admin_reaches_the_declared_route() {
     let resp = fetch(&client, format!("{base}/custom/42"), None).await;
     assert_eq!(resp.status(), reqwest::StatusCode::OK);
     assert_eq!(resp.text().await.unwrap(), "private");
+}
+
+/// A declared page gets the admin's layout, and its menu keeps the rights: the
+/// admin has rights on `probe_notes`, none on `bare_notes`.
+#[tokio::test]
+#[serial]
+async fn a_declared_page_renders_on_the_admin_layout_with_the_rights_applied() {
+    let base = spawn().await;
+    let client = signed_in(&base, ADMIN).await;
+    let resp = fetch(&client, format!("{base}/custom-page"), None).await;
+    assert_eq!(resp.status(), reqwest::StatusCode::OK);
+    let page = resp.text().await.unwrap();
+    assert!(page.contains("css/admin/variables.css"), "{page}");
+    assert!(page.contains("probe_notes"), "{page}");
+    assert!(!page.contains("bare_notes"), "{page}");
+}
+
+/// The boundary still comes first: the helper never opens the page.
+#[tokio::test]
+#[serial]
+async fn a_declared_page_stays_closed_without_admin_access() {
+    let base = spawn().await;
+    let client = signed_in(&base, MEMBER).await;
+    let resp = fetch(&client, format!("{base}/custom-page"), None).await;
+    assert!(resp.status().is_redirection());
+    assert_eq!(location(&resp), Some("/"));
 }
 
 /// The use case of a group page: a member of a staff group whose responsable
