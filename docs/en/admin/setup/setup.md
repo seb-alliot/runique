@@ -86,7 +86,7 @@ builder::new(config)
     .await?;
 ```
 
-In production (`RUNIQUE_ENV=prod`), add `.with_public_url("https://my-site.com")`: without it, the boot is refused as soon as the admin is enabled. Links sent by email (account creation, reset) are built on this address, never on the request's `Host` header, which an attacker can forge. With `RUNIQUE_ENV=dev`, it is always `http://127.0.0.1:{PORT}`.
+In production (`RUNIQUE_ENV=prod`), add `.with_public_url("https://my-site.com")`: without it, the boot is refused as soon as the admin is enabled. Links sent by email (account creation, reset) are built on this address, never on the request's `Host` header, which an attacker can forge. In dev, without `.with_public_url()`, it is `http://127.0.0.1:{PORT}`.
 
 Or an inline closure:
 

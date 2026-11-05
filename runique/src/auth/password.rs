@@ -244,7 +244,7 @@ impl PasswordResetConfig {
 }
 
 /// The origin absolute links are built on: the public URL, which the build sets
-/// to the local server in development. Production refuses to boot without it
+/// to the local server when none is configured. Production refuses to boot without it
 /// when the reset or the admin is on (`cross_validate`), and it never falls back
 /// on the `Host` header: that is the client's to choose, and a link pointing at
 /// someone else's site would hand them the token. Apps reach it through

@@ -72,7 +72,7 @@ Le lien de bienvenue n'est envoyé que si les trois conditions sont réunies :
 
 - un mailer est configuré (variables `SMTP_*` dans `.env`, voir [Mailer](/docs/fr/mailer)) ;
 - la réinitialisation de mot de passe est activée (`.with_password_reset(…)` dans le builder) : le lien mène à sa page ;
-- l'adresse publique est connue (`.with_public_url(…)` ; avec `RUNIQUE_ENV=dev`, c'est `http://127.0.0.1:{PORT}`).
+- l'adresse publique est connue (`.with_public_url(…)`, sinon `http://127.0.0.1:{PORT}` en dev).
 
 Sinon le compte est créé quand même, et l'admin voit un avertissement « lien indisponible ». **Le lien n'est jamais affiché à l'admin**, même en développement : celui qui crée le compte ne doit pas pouvoir choisir le mot de passe à la place de son propriétaire. L'utilisateur peut toujours demander un lien plus tard par « mot de passe oublié ».
 

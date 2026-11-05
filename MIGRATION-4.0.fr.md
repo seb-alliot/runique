@@ -315,7 +315,7 @@ Dans `main.rs` :
 - Autres usages de `is_debug()` et `config.debug` qui veulent dire « en développement » : `is_dev()` et `config.dev`.
 - `{% if debug %}` dans un template, s'il veut dire « en développement » : `{% if dev %}`.
 
-Avec `RUNIQUE_ENV=dev`, l'URL publique est toujours `http://127.0.0.1:{PORT}` : naviguez sur cette adresse plutôt que sur `localhost`, et gardez l'adresse de production dans `.with_public_url()`.
+L'URL publique est celle de `.with_public_url()`, en dev comme en production ; si elle n'est pas appelée, c'est `http://127.0.0.1:{PORT}`. Liens envoyés par mail, `og:image` et favicon la suivent tous.
 
 ---
 
