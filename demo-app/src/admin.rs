@@ -24,9 +24,37 @@ pub fn config(admin: AdminStaging) -> AdminStaging {
         .sitemap("https://runique.io/sitemap.xml")
         .path("/admin-runique/")
         .prefix("/prefix-test")
+        // Where the top bar's "← Site" link leads (default: `/`).
+        .view_site_url("https://runique.io")
         .with_rate_limiter(RateLimiter::new().max_requests(20).retry_after(3600))
         .with_login_guard(LoginGuard::new().max_attempts(20).lockout_secs(300))
         .page_size(15)
+        // The longest search term a list accepts from the URL (default: 150).
+        .search_max_len(120)
+        // The menu order; any resource left out follows, sorted by title.
+        .resource_order([
+            "users",
+            "groupes",
+            "blog",
+            "changelog_entry",
+            "roadmap_entry",
+            "runique_release",
+            "known_issue",
+            "contribution",
+            "demo_category",
+            "demo_page",
+            "demo_section",
+            "doc_section",
+            "doc_page",
+            "doc_block",
+            "page_doc_link",
+            "chapitre",
+            "code_example",
+        ])
+        // Other staging declarations, left at their defaults here:
+        //   .hot_reload(true)   — reload admin templates on each render (dev only)
+        //   .no_robots_txt()    — stop serving the admin's robots.txt
+        //   .templates(|t| …)   — replace admin pages or blocks site-wide
         .site(site)
 }
 

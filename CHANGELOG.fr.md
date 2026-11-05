@@ -61,6 +61,7 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 #### Ajouté
 
+* **Choix du nombre de lignes par page dans les listes de l'admin** : un sélecteur (10 / 25 / 50 / 100) en haut à droite, conservé avec le tri, la recherche et les filtres. Seules ces valeurs sont acceptées depuis l'URL ; une taille libre est ignorée.
 * **Rang et groupes d'un compte visibles dans l'admin** : sur la liste et le détail des comptes, en lecture seule, pour tout compte ayant accès à cette liste. Modifier l'un ou l'autre passe toujours par la porte. Deux requêtes de plus par page, quel que soit le nombre de lignes.
 * **`request.db_atomic()` et `save`/`delete` dans une transaction** : `save` et `delete` acceptent la connexion ou une transaction, pour lier l'écriture du formulaire à celles du handler ; rien n'est réel avant `commit()`. Un formulaire d'une route `admin` refuse une transaction : la porte décide sur ce qu'elle lit par la connexion.
 * **`MediaField::audio()` et `MediaField::video()`, types `audio` et `video` du DSL** : mêmes règles que `MediaField::image()`, avec contrôle de la signature du fichier en plus de son extension.

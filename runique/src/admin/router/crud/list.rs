@@ -45,6 +45,15 @@ pub(crate) async fn list_view(
         .collect();
     let active_filters: StrMap = query.filters.iter().cloned().collect();
     let sort_dir = query.sort_dir.clone().unwrap_or_else(|| "asc".to_string());
+    let size_qs = query
+        .per_page
+        .map(|n| format!("&per_page={n}"))
+        .unwrap_or_default();
+    let mut page_size_options = crate::admin::builder::list::PER_PAGE_OPTIONS.to_vec();
+    if !page_size_options.contains(&page.page_size) {
+        page_size_options.push(page.page_size);
+        page_size_options.sort_unstable();
+    }
     let sort_dir_toggle = if sort_dir == "asc" { "desc" } else { "asc" };
     let key = model.key();
     let rights = model.rights(&user);
@@ -180,7 +189,7 @@ pub(crate) async fn list_view(
                 urlencoding::encode(query.sort_by.as_deref().unwrap_or_default()),
                 urlencoding::encode(&sort_dir),
                 urlencoding::encode(query.search.as_deref().unwrap_or_default()),
-                filter_qs
+                format!("{filter_qs}{size_qs}")
             ),
             active_filters,
             filter_qs,
@@ -196,6 +205,9 @@ pub(crate) async fn list_view(
             prev_page: page.page.saturating_sub(1).max(1),
             next_page: page.page + 1,
             bulk_delete: can_delete,
+            page_size: page.page_size,
+            page_size_options,
+            size_qs,
         },
     )?;
 

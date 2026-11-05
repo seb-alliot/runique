@@ -19,6 +19,7 @@
       >
       {% if sort_by %}<input type="hidden" name="sort_by" value="{{ sort_by }}">{% endif %}
       {% if sort_dir %}<input type="hidden" name="sort_dir" value="{{ sort_dir }}">{% endif %}
+      {% if size_qs %}<input type="hidden" name="per_page" value="{{ page_size }}">{% endif %}
       {% for col, val in active_filters %}<input type="hidden" name="filter_{{ col }}" value="{{ val }}">{% endfor %}
       <button type="submit" class="btn btn-secondary admin-search__btn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
@@ -26,7 +27,7 @@
         </svg>
       </button>
       {% if search %}
-      <a href="?{% if sort_by %}sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{{ filter_qs }}"
+      <a href="?{% if sort_by %}sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{{ filter_qs }}{{ size_qs }}"
           class="btn btn-secondary">✕</a>
       {% endif %}
     </div>
