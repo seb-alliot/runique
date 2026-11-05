@@ -191,6 +191,13 @@ impl AdminStaging {
         self
     }
 
+    /// Sets the values each filter group of a list shows before its arrows
+    /// (default: 10). A model's own `.list(|l| l.filter_size(n))` wins.
+    pub fn filter_size(mut self, size: u64) -> Self {
+        self.config = self.config.filter_size(size);
+        self
+    }
+
     /// Sets the longest caractere in search  sql.
     pub fn search_max_len(mut self, len: usize) -> Self {
         self.config = self.config.search_max_len(len);

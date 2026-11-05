@@ -325,6 +325,7 @@
       "btn_create_first": "最初の項目を作成",
       "search_placeholder": "検索...",
       "per_page": "表示件数",
+      "filter_per_page": "ページあたりの値の数",
       "bulk_selected": "件選択中",
       "bulk_delete": "削除",
       "filters": "フィルター",

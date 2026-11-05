@@ -119,6 +119,7 @@ Two separate knobs:
 | --- | --- |
 | `.site_title("…")` | Title in the UI |
 | `.page_size(15)` | Default list page size |
+| `.filter_size(8)` | Default values per page of the filter groups |
 | `.search_max_len(n)` | Max search term length |
 | `.with_rate_limiter(...)` | Login / action rate limit |
 | `.with_login_guard(...)` | Lockout after N failures |

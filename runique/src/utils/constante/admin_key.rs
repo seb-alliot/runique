@@ -71,6 +71,7 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     "admin.list.btn_create_first",
     "admin.list.search_placeholder",
     "admin.list.per_page",
+    "admin.list.filter_per_page",
     // create
     "admin.create.title",
     "admin.create.breadcrumb",

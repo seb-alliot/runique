@@ -131,6 +131,7 @@ pub(crate) trait RegisteredModel: Send + Sync {
         user: &CurrentUser,
         query: &ListQuery,
         site_page_size: u64,
+        site_filter_size: u64,
     ) -> Result<ListPage, AdminError>;
     /// What `user` may see of this model's history, or `None`.
     fn history_scope(&self, db: &ADb, user: &CurrentUser) -> Option<HistoryScope>;
@@ -268,9 +269,12 @@ where
         user: &CurrentUser,
         query: &ListQuery,
         site_page_size: u64,
+        site_filter_size: u64,
     ) -> Result<ListPage, AdminError> {
         let proof = authorize_list::<E>(&GateCtx { db, user })?;
-        let mut page = self.fetch_list(db, &proof, query, site_page_size).await?;
+        let mut page = self
+            .fetch_list(db, &proof, query, site_page_size, site_filter_size)
+            .await?;
         // The bar offers a declared action only where the gate would let it
         // write: the update right, the column ticked, never the owner through
         // `_own` alone. It decides again on each row.

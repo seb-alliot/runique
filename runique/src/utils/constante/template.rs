@@ -116,6 +116,15 @@ pub const ADMIN_TEMPLATES: &[(&str, &str)] = tpls![
         "admin/blocks/list/pagination.html",
         "admin/blocks/list/pagination.html"
     ),
+    // Arrows and size selector shared by the list and the filter groups.
+    (
+        "admin/blocks/list/pager.html",
+        "admin/blocks/list/pager.html"
+    ),
+    (
+        "admin/blocks/list/pager_size.html",
+        "admin/blocks/list/pager_size.html"
+    ),
     (
         "admin/blocks/list/filters.html",
         "admin/blocks/list/filters.html"

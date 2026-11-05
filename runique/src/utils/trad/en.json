@@ -325,6 +325,7 @@
       "btn_create_first": "Create the first",
       "search_placeholder": "Search...",
       "per_page": "Per page",
+      "filter_per_page": "Values per page",
       "bulk_selected": "selected",
       "bulk_delete": "Delete",
       "filters": "Filters",

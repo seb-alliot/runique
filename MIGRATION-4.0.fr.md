@@ -291,8 +291,16 @@ PRAGMA foreign_keys = ON;
 - `urlpatterns!` renvoie un `Routes` : une fonction `routes() -> Router` devient `routes() -> Routes`.
 - `AdminTemplate::with_base` et `with_bulk_edit` sont retirés.
 - Sentinel et `GuardRules` sont retirés : le contrôle d'accès par rang ou groupe passe par les routes `admin`.
+- Un template de liste surchargé lit `list_pager`, `filter_pagers` et `filter_size_pager` au lieu de `has_prev`, `has_next`, `prev_page`, `next_page` et `page_size_options` ; `filter_values` devient une liste de `{ value, active, qs }`, et `active_filters` associe chaque colonne à une liste de valeurs.
 
 Voir [la mise en place de l'admin](https://runique.io/docs/fr/admin/setup) et [les rôles et permissions](https://runique.io/docs/fr/admin/permission).
+
+---
+
+## Erreurs
+
+- `RuniqueError::Template(message)` devient `RuniqueError::Template { message, line }`. Depuis une erreur Tera, `RuniqueError::template(&erreur)` remplit les deux ; un `match` écrit `RuniqueError::Template { .. }`.
+- `EnvironmentInfo.app_version` devient `runique_version`. Une page de debug personnalisée lit `environment.runique_version`, et `app_name` / `app_version` pour la version du projet.
 
 ---
 

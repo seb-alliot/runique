@@ -52,19 +52,19 @@ Une erreur arrête le démarrage avec un message clair.
 
 ## Étape 3 — Requêtes SQL
 
-Pour chaque colonne filtrable, le handler charge les valeurs **distinctes** dans le périmètre autorisé (max 100) :
+Pour chaque colonne filtrable, le handler charge une page de valeurs **distinctes** dans le périmètre autorisé :
 
 ```sql
 SELECT DISTINCT CAST(lang AS TEXT)
 FROM doc_page
 WHERE lang IS NOT NULL
 ORDER BY lang ASC
-LIMIT 100
+LIMIT {taille + 1} OFFSET {décalage}
 ```
 
 `CAST(... AS TEXT)` uniformise le type : booléens, entiers et chaînes passent tous par là.
 
-Le résultat alimente `filter_values` dans le contexte Tera : colonne → liste de valeurs.
+Le résultat alimente `filter_values` dans le contexte Tera : colonne → liste de valeurs (`value`, `active`, `qs`).
 
 ---
 
@@ -93,7 +93,7 @@ La sidebar s'appuie sur `resource.display.list_filter` et `filter_values` :
 {% endfor %}
 ```
 
-Chaque valeur est un lien qui ajoute `filter_{col}={val}` à l'URL. Cliquer applique un `WHERE col = val` côté SQL.
+Chaque valeur est un lien (`qs`) qui ajoute `filter_{col}={val}` à l'URL, ou l'en retire si elle est déjà active. Plusieurs valeurs d'une colonne s'additionnent (`col = a OR col = b`) ; plusieurs colonnes se cumulent (`AND`).
 
 Les filtres actifs sont aussi exposés via `active_filters` et `filter_qs` pour préserver l'état dans la pagination.
 

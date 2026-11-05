@@ -1,0 +1,13 @@
+{# Page-size selector of a `pager` (the list's or a filter group's). Set
+   `pager` and `size_label` before including. A new size starts again from the
+   first page; every other parameter of the page goes along as a hidden input.
+   `hx-get` names the list, never empty: htmx would add the fields to the
+   current URL, and the old size and page would stay in it. #}
+<form method="GET" action="" class="admin-list__size" hx-get="{{ resource_links.list }}" hx-target="#list-content" hx-swap="outerHTML" hx-push-url="true" hx-trigger="change">
+  {% for pair in pager.keep %}<input type="hidden" name="{{ pair[0] }}" value="{{ pair[1] }}">{% endfor %}
+  <label class="admin-list__size-label"><span class="admin-list__size-text">{{ size_label }}</span>
+    <select name="{{ pager.size_param }}" class="admin-list__size-select" title="{{ size_label }}">
+      {% for n in pager.size_options %}<option value="{{ n }}"{% if n == pager.size %} selected{% endif %}>{{ n }}</option>{% endfor %}
+    </select>
+  </label>
+</form>

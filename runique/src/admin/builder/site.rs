@@ -510,7 +510,7 @@ mod tests {
         let page = site
             .model("notes")
             .unwrap()
-            .list(&db, &reader, &ListQuery::default(), 25)
+            .list(&db, &reader, &ListQuery::default(), 25, 10)
             .await
             .unwrap();
         assert_eq!(page.total, 3);
@@ -533,7 +533,7 @@ mod tests {
         let result = site
             .model("notes")
             .unwrap()
-            .list(&db, &writer, &ListQuery::default(), 25)
+            .list(&db, &writer, &ListQuery::default(), 25, 10)
             .await;
         assert!(matches!(result, Err(AdminError::Refused(_))));
     }

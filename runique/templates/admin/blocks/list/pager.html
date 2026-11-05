@@ -1,0 +1,20 @@
+{# Previous / next arrows of a `pager` (the list's or a filter group's).
+   Set `pager` before including. The links come built, the page's other
+   parameters kept. #}
+<div class="admin-pagination">
+  {% if pager.prev_qs %}
+    <a href="{{ pager.prev_qs }}" hx-get="{{ pager.prev_qs }}"
+      hx-target="#list-content" hx-swap="outerHTML" hx-push-url="true"
+      class="btn btn-sm btn-secondary">&laquo;</a>
+  {% else %}
+    <span class="btn btn-sm btn-secondary disabled">&laquo;</span>
+  {% endif %}
+  <span class="admin-pagination__info">{{ pager.page }}{% if pager.page_count %} / {{ pager.page_count }}{% endif %}</span>
+  {% if pager.next_qs %}
+    <a href="{{ pager.next_qs }}" hx-get="{{ pager.next_qs }}"
+      hx-target="#list-content" hx-swap="outerHTML" hx-push-url="true"
+      class="btn btn-sm btn-secondary">&raquo;</a>
+  {% else %}
+    <span class="btn btn-sm btn-secondary disabled">&raquo;</span>
+  {% endif %}
+</div>

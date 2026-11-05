@@ -29,6 +29,9 @@ pub fn config(admin: AdminStaging) -> AdminStaging {
         .with_rate_limiter(RateLimiter::new().max_requests(20).retry_after(3600))
         .with_login_guard(LoginGuard::new().max_attempts(20).lockout_secs(300))
         .page_size(15)
+        // Values each filter group of the right panel shows before its
+        // arrows (default: 10); a model's `.filter_size(n)` wins.
+        .filter_size(8)
         // The longest search term a list accepts from the URL (default: 150).
         .search_max_len(120)
         // The menu order; any resource left out follows, sorted by title.
@@ -104,6 +107,8 @@ fn changelog_entry() -> ModelAdmin<changelog_entry::Entity> {
                 .search_help("Titre ou numéro de version")
                 .filter([Category, Version])
                 .per_page(15)
+                // One version per release: 5 at a time, then the arrows.
+                .filter_size(5)
         })
         .form(|f| {
             f.fields([
@@ -176,6 +181,8 @@ fn code_example() -> ModelAdmin<code_example::Entity> {
             .search([Title, Code])
             .filter([Language, PageId])
             .per_page(20)
+            // Many pages carry examples: 15 page ids at a time in the panel.
+            .filter_size(15)
     })
 }
 

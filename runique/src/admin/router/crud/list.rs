@@ -4,7 +4,8 @@ use crate::admin::builder::registered::readable;
 use crate::admin::builder::site::AdminSite;
 use crate::admin::router::admin_router::AdminState;
 use crate::admin::router::context::{
-    Display, ListContext, ListEntry, ResourceLinks, ResourceRef, RowLinks, put,
+    Display, FilterOption, ListContext, ListEntry, Pager, ResourceLinks, ResourceRef, RowLinks,
+    filter_clear_qs, put,
 };
 use crate::admin::router::{chrome, failure, unknown_resource};
 use crate::admin::trad::insert_admin_messages;
@@ -22,7 +23,8 @@ pub(crate) async fn list_view(
     Extension(site): Extension<Arc<AdminSite>>,
     Extension(admin): Extension<Arc<AdminState>>,
     Extension(user): Extension<CurrentUser>,
-    Query(params): Query<StrMap>,
+    // A list of pairs: a filter sends one name several times.
+    Query(params): Query<Vec<(String, String)>>,
     mut req: Request,
 ) -> AppResult<Response> {
     let Some(model) = site.model(&resource) else {
@@ -30,7 +32,13 @@ pub(crate) async fn list_view(
     };
     let query = ListQuery::from_params(params, admin.config.search_max_len);
     let page = match model
-        .list(&req.engine.db, &user, &query, admin.config.page_size)
+        .list(
+            &req.engine.db,
+            &user,
+            &query,
+            admin.config.page_size,
+            admin.config.filter_size,
+        )
         .await
     {
         Ok(page) => page,
@@ -43,17 +51,114 @@ pub(crate) async fn list_view(
         .iter()
         .map(|(col, value)| format!("&filter_{col}={}", urlencoding::encode(value)))
         .collect();
-    let active_filters: StrMap = query.filters.iter().cloned().collect();
+    let mut active_filters: std::collections::HashMap<String, Vec<String>> =
+        std::collections::HashMap::new();
+    for (col, value) in &query.filters {
+        active_filters
+            .entry(col.clone())
+            .or_default()
+            .push(value.clone());
+    }
     let sort_dir = query.sort_dir.clone().unwrap_or_else(|| "asc".to_string());
     let size_qs = query
         .per_page
         .map(|n| format!("&per_page={n}"))
         .unwrap_or_default();
-    let mut page_size_options = crate::admin::builder::list::PER_PAGE_OPTIONS.to_vec();
-    if !page_size_options.contains(&page.page_size) {
-        page_size_options.push(page.page_size);
-        page_size_options.sort_unstable();
+    // The panel's size from the URL (a size the model or site set isn't pinned
+    // in the links, like `per_page`), and the groups moved, read from the
+    // list's own filter columns only: a name made up in the URL is never sent back.
+    let filter_nav: Vec<(String, String)> = query
+        .filter_size
+        .map(|n| ("fsize".to_string(), n.to_string()))
+        .into_iter()
+        .chain(
+            page.filters
+                .iter()
+                .filter(|f| f.page > 1)
+                .map(|f| (format!("fpage_{}", f.column), f.page.to_string())),
+        )
+        .collect();
+    let filter_nav_qs: String = filter_nav
+        .iter()
+        .map(|(k, v)| format!("&{k}={v}"))
+        .collect();
+    // The page's whole query, from which every pager builds its links.
+    let mut params: Vec<(String, String)> = Vec::new();
+    if page.page > 1 {
+        params.push(("page".into(), page.page.to_string()));
     }
+    if let Some(n) = query.per_page {
+        params.push(("per_page".into(), n.to_string()));
+    }
+    if let Some(sort_by) = &query.sort_by {
+        params.push(("sort_by".into(), sort_by.clone()));
+        params.push(("sort_dir".into(), sort_dir.clone()));
+    }
+    if let Some(search) = &query.search {
+        params.push(("search".into(), search.clone()));
+    }
+    for (col, value) in &query.filters {
+        params.push((format!("filter_{col}"), value.clone()));
+    }
+    params.extend(filter_nav.iter().cloned());
+    let list_pager = Pager::new(
+        &params,
+        "page",
+        "per_page",
+        page.page,
+        Some(page_count),
+        page.page < page_count,
+        page.page_size,
+    );
+    let filter_pagers: std::collections::HashMap<&'static str, Pager> = page
+        .filters
+        .iter()
+        .map(|f| {
+            let pager = Pager::new(
+                &params,
+                &format!("fpage_{}", f.column),
+                "fsize",
+                f.page,
+                None,
+                f.has_next,
+                f.size,
+            );
+            (f.column, pager)
+        })
+        .collect();
+    // The panel's one selector. A new size restarts every group from its first
+    // page, so none is kept; no parameter is named `fpage_`, nothing to move.
+    let unpaged: Vec<(String, String)> = params
+        .iter()
+        .filter(|(k, _)| !k.starts_with("fpage_"))
+        .cloned()
+        .collect();
+    let filter_size_pager = page
+        .filters
+        .first()
+        .map(|f| Pager::new(&unpaged, "fpage_", "fsize", 1, None, false, f.size));
+    let filter_values: std::collections::HashMap<&'static str, Vec<FilterOption>> = page
+        .filters
+        .iter()
+        .map(|f| {
+            let applied_elsewhere = query
+                .filters
+                .iter()
+                .filter(|(c, v)| c == f.column && !f.values.contains(v))
+                .map(|(_, v)| v.clone());
+            let options = applied_elsewhere
+                .chain(f.values.iter().cloned())
+                .map(|value| FilterOption::new(&params, f.column, value))
+                .collect();
+            (f.column, options)
+        })
+        .collect();
+    let filter_clear: std::collections::HashMap<&'static str, String> = page
+        .filters
+        .iter()
+        .filter(|f| query.filters.iter().any(|(c, _)| c == f.column))
+        .map(|f| (f.column, filter_clear_qs(&params, f.column)))
+        .collect();
     let sort_dir_toggle = if sort_dir == "asc" { "desc" } else { "asc" };
     let key = model.key();
     let rights = model.rights(&user);
@@ -165,11 +270,8 @@ pub(crate) async fn list_view(
                 },
                 ..ResourceRef::new(key, model.title())
             },
-            filter_values: page
-                .filters
-                .into_iter()
-                .map(|f| (f.column, f.values))
-                .collect(),
+            filter_values,
+            filter_clear,
             resource_links: ResourceLinks {
                 list: paths.list_of(key),
                 create: rights.can_create.then(|| paths.create_of(key)),
@@ -184,12 +286,11 @@ pub(crate) async fn list_view(
             rich_fields: Vec::new(),
             group_actions: page.actions,
             return_qs: format!(
-                "page={}&sort_by={}&sort_dir={}&search={}{}",
+                "page={}&sort_by={}&sort_dir={}&search={}{filter_qs}{size_qs}{filter_nav_qs}",
                 page.page,
                 urlencoding::encode(query.sort_by.as_deref().unwrap_or_default()),
                 urlencoding::encode(&sort_dir),
                 urlencoding::encode(query.search.as_deref().unwrap_or_default()),
-                format!("{filter_qs}{size_qs}")
             ),
             active_filters,
             filter_qs,
@@ -200,14 +301,14 @@ pub(crate) async fn list_view(
             total: page.total,
             page: page.page,
             page_count,
-            has_prev: page.page > 1,
-            has_next: page.page < page_count,
-            prev_page: page.page.saturating_sub(1).max(1),
-            next_page: page.page + 1,
+            list_pager,
+            filter_pagers,
+            filter_size_pager,
             bulk_delete: can_delete,
             page_size: page.page_size,
-            page_size_options,
             size_qs,
+            filter_nav_qs,
+            filter_nav,
         },
     )?;
 
