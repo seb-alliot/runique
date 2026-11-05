@@ -317,8 +317,10 @@ mod process_content_tests {
             r#"<link rel="stylesheet" href="{% static "app.css" %}">"#,
         )
         .unwrap();
-        let mut config = RuniqueConfig::default();
-        config.dev = dev;
+        let mut config = RuniqueConfig {
+            dev,
+            ..Default::default()
+        };
         config.static_files.staticfiles_dirs = statics.to_string_lossy().into_owned();
         config.static_files.templates_dir = vec![templates.to_string_lossy().into_owned()];
         config.static_files.static_url = "/static".into();
