@@ -71,7 +71,7 @@ Rust already has fast, low-level building blocks for the web — what it doesn't
 | QuerySet | SeaORM + `search!` query DSL |
 | middleware | ordered middleware slots |
 
-For the full picture: [Runique vs Django](https://runique.io/docs/en/comparatif).
+For the full picture: [Runique vs Django](https://runique.io/comparatif#django).
 
 ---
 
@@ -232,7 +232,7 @@ Full per-file breakdown: [docs/couverture_test.md](docs/couverture_test.md)
 - [Project status](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.en.md) — kept up to date as the project moves
 - [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md)
 - [Upgrading from 3.0 to 4.0](https://github.com/seb-alliot/runique/blob/main/MIGRATION-4.0.md)
-- [Runique vs Django — feature comparison](https://runique.io/docs/en/comparatif)
+- [Runique vs Django — feature comparison](https://runique.io/comparatif#django)
 - [Crates.io](https://crates.io/crates/runique)
 - [Security policy](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
 

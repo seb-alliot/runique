@@ -315,7 +315,7 @@ In `main.rs`:
 - Other uses of `is_debug()` and `config.debug` that mean "in development": `is_dev()` and `config.dev`.
 - `{% if debug %}` in a template that means "in development": `{% if dev %}`.
 
-The public URL is the one given to `.with_public_url()`, in dev and production alike; when it isn't called, it is `http://127.0.0.1:{PORT}`. Emailed links, `og:image` and the favicon all follow it.
+With `RUNIQUE_ENV=dev`, `.with_public_url()` is ignored: the public URL is always `http://127.0.0.1:{PORT}`, the port coming from `PORT` (3000 by default). Emailed links, `og:image` and the favicon all follow it: browse on that address rather than on `localhost`, where the CSP blocks the favicon. In production without a URL (no reset, no admin), `og:image` and the favicon stay relative paths. Keep the production address in `.with_public_url()`.
 
 ---
 

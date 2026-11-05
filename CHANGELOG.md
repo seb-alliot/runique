@@ -183,7 +183,7 @@ All notable changes to this project will be documented in this file.
 * **Prelude**: `tracing::Level` is exported as `LogLevel` (no clash with a model enum named `Level`).
 * **`.env`**: `RATE_LIMITING`, `ALLOWED_HOSTS`, `RUNIQUE_ENABLE_CACHE` and `RUNIQUE_USER_TABLE` are no longer read; `DEBUG` is read whatever its case; `RuniqueEnv` is removed.
 * **`RUNIQUE_ENV`** (`dev` or `prod`, `prod` when unset or unknown) now sets how the application behaves: session cookie, startup checks, template reload, no-cache, default home page, logs, admin hot reload. `DEBUG` only shows the detailed error pages, including in production, with a warning at startup. New: `is_dev()`, `config.dev`, the `dev` template variable.
-* **Development** (`RUNIQUE_ENV=dev`): the public URL stays the one given to `.with_public_url()`, and `http://127.0.0.1:{PORT}` when it isn't called; the request's `Host` is never used any more; `upgrade-insecure-requests` is removed; pages carry no SRI and static files are `no-cache`, so edited CSS reloads without a restart.
+* **Development** (`RUNIQUE_ENV=dev`): the public URL is always `http://127.0.0.1:{PORT}`, even with `.with_public_url()`; the request's `Host` is never used any more; `upgrade-insecure-requests` is removed; pages carry no SRI and static files are `no-cache`, so edited CSS reloads without a restart.
 * **`with_allowed_hosts`**: validates in production as soon as a host is listed, not in development; `.enabled(...)` still has the last word.
 * **`Request::is_get` / `is_post` / `is_put` / `is_delete`** are removed.
 * **`request.query::<T>()`** returns `AppResult<T>`: a query string that doesn't fit is a 400.

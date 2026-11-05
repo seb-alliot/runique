@@ -47,6 +47,16 @@ pub async fn doc_page(
     page_slug: &str,
     request: &mut Request,
 ) -> AppResult<Response> {
+    // Only `/comparatif` shows this section: its pages keep serving as its data.
+    if section_slug == "comparatif" {
+        let tab = match page_slug {
+            "loco" => "loco",
+            "cot" => "cot",
+            _ => "django",
+        };
+        return Ok(Redirect::permanent(&format!("/comparatif#{tab}")).into_response());
+    }
+
     crate::backend::inject_globals(request).await;
     let db = request.engine.db.clone();
 

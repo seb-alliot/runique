@@ -86,7 +86,7 @@ builder::new(config)
     .await?;
 ```
 
-En production (`RUNIQUE_ENV=prod`), ajoutez `.with_public_url("https://mon-site.fr")` : sans elle, le démarrage est refusé dès que l'admin est actif. Les liens envoyés par mail (création de compte, réinitialisation) sont construits sur cette adresse, jamais sur l'en-tête `Host` de la requête, qu'un attaquant peut forger. En dev, sans `.with_public_url()`, c'est `http://127.0.0.1:{PORT}`.
+En production (`RUNIQUE_ENV=prod`), ajoutez `.with_public_url("https://mon-site.fr")` : sans elle, le démarrage est refusé dès que l'admin est actif. Les liens envoyés par mail (création de compte, réinitialisation) sont construits sur cette adresse, jamais sur l'en-tête `Host` de la requête, qu'un attaquant peut forger. Avec `RUNIQUE_ENV=dev`, c'est toujours `http://127.0.0.1:{PORT}`.
 
 Tu peux aussi passer une closure inline :
 
