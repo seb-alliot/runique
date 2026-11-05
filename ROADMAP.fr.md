@@ -45,7 +45,7 @@ encore eu lieu.
   déplacé entre l'écriture et le commit, `MediaField` (image, audio, vidéo).
 
 - [x] **`RUNIQUE_ENV` et `DEBUG` séparés** — `RUNIQUE_ENV` (`dev` / `prod`) règle le comportement (cookie de session, contrôles au
-  démarrage, hôtes autorisés, cache, SRI) ; `DEBUG` n'affiche que les pages d'erreur détaillées. En dev, le CSS
+  démarrage, URL publique, hôtes autorisés, cache, SRI) ; `DEBUG` n'affiche que les pages d'erreur détaillées. En dev, le CSS
   modifié se recharge sans redémarrer.
 - [x] **demo-app** — visuel refait en mobile first, bouton de langue, page comparatif (Loco, Cot, Django, limites, à venir).
 

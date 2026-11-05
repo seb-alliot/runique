@@ -201,7 +201,7 @@ Pour le rapport d'état détaillé et continuellement mis à jour, voir [PROJECT
 ## Ressources
 
 - [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md)
-- [Runique vs Django — Comparaison des fonctionnalités](https://runique.io/docs/en/comparatif)
+- [Runique vs Django — Comparaison des fonctionnalités](https://runique.io/comparatif#django)
 - [Crates.io](https://crates.io/crates/runique)
 - [Politique de sécurité](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
 

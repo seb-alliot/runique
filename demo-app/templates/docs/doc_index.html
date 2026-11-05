@@ -25,7 +25,7 @@
     <div class="doc-index-groups">
         {% for key in ["Demarrage", "Web", "Database", "Security", "Admin", "Autres"] %}
             {% set key_lower = key | lower %}
-            {% set group_sections = [s for s in sections if s.theme == key] %}
+            {% set group_sections = [s for s in sections if s.theme == key and s.slug != "comparatif"] %}
             {% if group_sections | length > 0 %}
             <section class="doc-index-group">
                 <h2>
@@ -48,6 +48,8 @@
                     <a href="/docs/{{ lang }}/admin/{% if lang == "fr" %}liste{% else %}list{% endif %}" class="doc-index-nav-link">{% if lang == "fr" %}Liste et filtres{% else %}List and filters{% endif %}</a>
                     <a href="/docs/{{ lang }}/admin/permission" class="doc-index-nav-link">{% if lang == "fr" %}Rôles et droits{% else %}Roles and rights{% endif %}</a>
                     <a href="/docs/{{ lang }}/admin/template" class="doc-index-nav-link">Templates</a>
+                    {% elif key_lower == "autres" %}
+                    <a href="{% link "comparatif" %}" class="doc-index-nav-link">{% if lang == "fr" %}Comparatif{% else %}Comparison{% endif %}</a>
                     {% endif %}
                 </div>
             </section>

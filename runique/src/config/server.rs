@@ -30,8 +30,8 @@ pub struct ServerConfig {
     /// Public URL of the application, without trailing slash
     /// (`https://mysite.com`), set with the builder's `.with_public_url()`. The base of every absolute
     /// link sent out of the app — password reset links among them. Required in
-    /// production when the password reset or the admin is enabled; otherwise the
-    /// build falls back on `http://127.0.0.1:{port}`.
+    /// production when the password reset or the admin is enabled; with
+    /// `RUNIQUE_ENV=dev`, the build replaces it with `http://127.0.0.1:{port}`.
     pub public_url: Option<String>,
 }
 

@@ -58,8 +58,8 @@
     --topbar-height:      4em;      /* 64px */
 
     /* Controls */
-    --control-height:     2.25em;   /* 36px */
-    --control-height-sm:  1.875em;  /* 30px */
+    --control-height:     2.25rem;   /* 36px */
+    --control-height-sm:  1.875rem;  /* 30px */
 
     /* Rayons */
     --radius:      0.375rem;

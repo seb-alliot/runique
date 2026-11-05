@@ -127,7 +127,7 @@ let app = RuniqueApp::builder(config)
     .await?;
 ```
 
-En production (`RUNIQUE_ENV=prod`), l'application **refuse de démarrer** sans elle dès que le reset de mot de passe ou l'admin est activé : un lien construit à partir de l'en-tête `Host` de la requête irait là où le client le décide (`Host: evil.com` → le jeton de reset part chez l'attaquant). L'URL publique est celle de `.with_public_url()`, en dev comme en production ; si elle n'est pas appelée, c'est `http://127.0.0.1:{PORT}`. Liens envoyés par mail, `og:image` et favicon la suivent tous.
+En production (`RUNIQUE_ENV=prod`), l'application **refuse de démarrer** sans elle dès que le reset de mot de passe ou l'admin est activé : un lien construit à partir de l'en-tête `Host` de la requête irait là où le client le décide (`Host: evil.com` → le jeton de reset part chez l'attaquant). Avec `RUNIQUE_ENV=dev`, `.with_public_url()` est ignorée : l'URL publique est toujours `http://127.0.0.1:{PORT}`, le port venant de `PORT` (3000 par défaut). Liens envoyés par mail, `og:image` et favicon la suivent tous : naviguez sur cette adresse plutôt que sur `localhost`, où la CSP bloque le favicon. En production sans URL (ni reset ni admin), `og:image` et le favicon restent en chemin relatif.
 
 Vos propres liens (activation de compte, mail pointant vers le site…) suivent la même règle via `request.public_url()` : l'URL publique, sinon `None`, jamais le `Host`. Ne les construisez jamais vous-même à partir de l'en-tête `Host`.
 
@@ -139,7 +139,7 @@ let Some(base) = request.public_url() else {
 let activate_url = format!("{base}/activer/{token}");
 ```
 
-Elle ne s'appelle **qu'une fois** : un second `.with_public_url(...)` ne compile pas (« `with_public_url()` has already been called on this builder »), plutôt que de remplacer le premier sans rien dire.
+Elle ne s'appelle **qu'une fois** : un second `.with_public_url(...)` ne compile pas (« `with_public_url()` has already been called on this builder »), plutôt que de remplacer le premier sans rien dire. Écrivez-y l'adresse de production : le développement n'en tient pas compte.
 
 ### Logs framework
 

@@ -110,7 +110,9 @@ impl<P> RuniqueAppBuilder<P> {
         // Step 3: destructuring
         let extensions = self.core.extensions;
         let mut config = self.config;
-        if config.server.public_url.is_none() {
+        // In development, links and assets must lead back to this machine, never
+        // to the production site a hard-coded `.with_public_url()` names.
+        if config.dev {
             config.server.public_url = Some(format!("http://127.0.0.1:{}", config.server.port));
         }
         let url_registry = self.core.url_registry;
