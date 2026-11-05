@@ -244,6 +244,8 @@
     "debug_disabled": "Desativado",
     "debug_rust_version": "Versão do Rust",
     "debug_app_version": "Versão do App",
+    "debug_runique_version": "Versão do Runique",
+    "debug_occurred_at": "Erro ocorrido em:",
     "debug_status_code": "Código de status",
     "debug_header_name": "Nome",
     "debug_header_value": "Valor"

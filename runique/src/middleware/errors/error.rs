@@ -5,7 +5,7 @@ use crate::utils::{
 };
 use crate::{
     config::RuniqueConfig,
-    errors::error::{ErrorContext, ErrorType, RuniqueError},
+    errors::error::{ErrorContext, ErrorType, RuniqueError, app_package},
     utils::csrf::CsrfToken,
     utils::trad::t,
 };
@@ -222,7 +222,7 @@ fn log_runique_error(err: &RuniqueError, request_helper: &RequestInfoHelper) {
         RuniqueError::Internal
         | RuniqueError::Database(_)
         | RuniqueError::Io(_)
-        | RuniqueError::Template(_)
+        | RuniqueError::Template { .. }
         | RuniqueError::Custom { .. }
         | RuniqueError::Build(_) => {
             error!(
@@ -285,7 +285,7 @@ fn render_400(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
 
     let rendered = tera
         .render("400.html", &context)
-        .or_else(|_| tera.render("400", &context));
+        .or_else(|_| tera.render("400.html", &context));
     let mut response = match rendered {
         Ok(html) => (StatusCode::BAD_REQUEST, Html(html)).into_response(),
         Err(e) => {
@@ -307,7 +307,7 @@ fn render_404(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
 
     let rendered = tera
         .render("404.html", &context)
-        .or_else(|_| tera.render("404", &context));
+        .or_else(|_| tera.render("404.html", &context));
     let mut response = match rendered {
         Ok(html) => (StatusCode::NOT_FOUND, Html(html)).into_response(),
         Err(e) => {
@@ -425,6 +425,9 @@ fn render_debug_error_from_context(
     };
     inject_global_vars(&mut context, config, csrf_token);
     insert_debug_messages(&mut context);
+    let (app_name, app_version) = app_package(&config.base_dir);
+    context.insert("app_name", &app_name);
+    context.insert("app_version", &app_version);
 
     let mut response = match tera.render("debug.html", &context) {
         Ok(html) => (
@@ -444,7 +447,10 @@ fn render_debug_error_from_context(
 
 fn inject_global_vars(context: &mut Context, config: &RuniqueConfig, csrf_token: Option<String>) {
     context.insert("static_runique", &config.static_files.static_runique_url);
-    context.insert("timestamp", &Utc::now().to_rfc3339());
+    context.insert(
+        "timestamp",
+        &Utc::now().format("%Y-%m-%d %H:%M:%S UTC").to_string(),
+    );
     if let Some(token) = csrf_token {
         context.insert("csrf_token", &token);
     }

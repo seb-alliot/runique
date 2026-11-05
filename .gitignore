@@ -36,6 +36,7 @@ incoherence_doc.md
 scip
 index.json
 mdp-test.md
+evaluation_chantier_makemigration.md
 
 # cargo-mutants reports
 mutants.out/
