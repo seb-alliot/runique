@@ -3761,8 +3761,12 @@ async fn the_account_page_shows_its_rank_and_groups_and_nobody_elses() {
     )
     .await;
     assert!(staff.contains(r#"data-account-rank="lambda""#));
-    assert!(staff.contains(">relecteurs<"));
-    assert!(!staff.contains(">orphelins<"), "another account's group");
+    // On the badge alone: the page also has a box per group the viewer manages,
+    // member or not. The whole content rules out another account's group.
+    assert!(
+        staff.contains("data-account-group>relecteurs</span>"),
+        "{staff}"
+    );
 
     let member = text(
         &client,

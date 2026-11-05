@@ -29,6 +29,8 @@ path = "src/lib.rs"
 toml = "1"
 
 [dependencies]
+# Reads the app's own Cargo.toml for the debug page (name, version).
+toml = "1"
 # Web framework
 axum.workspace = true
 tower.workspace = true

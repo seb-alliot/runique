@@ -26,6 +26,8 @@ pub const DEBUG_MESSAGE_KEYS: &[&str] = &[
     "debug_disabled",
     "debug_rust_version",
     "debug_app_version",
+    "debug_runique_version",
+    "debug_occurred_at",
     "debug_status_code",
     "debug_header_name",
     "debug_header_value",

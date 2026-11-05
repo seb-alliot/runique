@@ -54,8 +54,13 @@ pub enum RuniqueError {
     Database(String),
     #[error("IO error: {0}")]
     Io(String),
-    #[error("Template error: {0}")]
-    Template(String),
+    #[error("Template error: {message}")]
+    Template {
+        message: String,
+        /// 1-based line of the failing template source, read from the Tera
+        /// error's span (`None` when the error carries no span).
+        line: Option<usize>,
+    },
     #[error("{message}")]
     Custom {
         message: String,
@@ -73,7 +78,10 @@ impl Clone for RuniqueError {
             RuniqueError::Validation(msg) => RuniqueError::Validation(msg.clone()),
             RuniqueError::Database(msg) => RuniqueError::Database(msg.clone()),
             RuniqueError::Io(msg) => RuniqueError::Io(msg.clone()),
-            RuniqueError::Template(msg) => RuniqueError::Template(msg.clone()),
+            RuniqueError::Template { message, line } => RuniqueError::Template {
+                message: message.clone(),
+                line: *line,
+            },
             RuniqueError::Custom { message, source: _ } => RuniqueError::Custom {
                 message: message.clone(),
                 source: None,
@@ -85,6 +93,31 @@ impl Clone for RuniqueError {
 impl From<std::io::Error> for RuniqueError {
     fn from(err: std::io::Error) -> Self {
         RuniqueError::Io(err.to_string())
+    }
+}
+
+/// The 1-based line a Tera error points at, read from its span. Tera 2 no longer
+/// puts a line in the `Display` text (it emits a codespan report), so the span
+/// on the error kind is the only reliable source. `#[non_exhaustive]` on
+/// `ErrorKind` forces the catch-all arm.
+#[must_use]
+pub fn tera_error_line(error: &tera::Error) -> Option<usize> {
+    match error.kind() {
+        tera::ErrorKind::RenderingError(report) | tera::ErrorKind::SyntaxError(report) => {
+            Some(report.span().start_line)
+        }
+        _ => None,
+    }
+}
+
+impl RuniqueError {
+    /// Builds a `Template` error from a Tera error, preserving the failing line.
+    #[must_use]
+    pub fn template(error: &tera::Error) -> Self {
+        RuniqueError::Template {
+            message: error.to_string(),
+            line: tera_error_line(error),
+        }
     }
 }
 
@@ -104,7 +137,9 @@ impl RuniqueError {
             RuniqueError::Validation(msg) => info!("{}", tf("error.validation", &[msg])),
             RuniqueError::Database(msg) => error!("{}", tf("error.database", &[msg])),
             RuniqueError::Io(msg) => error!("{}", tf("error.io", &[msg])),
-            RuniqueError::Template(msg) => error!("{}", tf("error.template", &[msg])),
+            RuniqueError::Template { message, .. } => {
+                error!("{}", tf("error.template", &[message]));
+            }
             RuniqueError::Custom { message, source } => {
                 error!("{}", tf("error.custom", &[message]));
                 if let Some(source) = source.as_ref() {
@@ -137,7 +172,7 @@ impl RuniqueError {
                 ErrorType::Database,
                 ("{}", t("error.database")),
             ),
-            RuniqueError::Template(_) => (
+            RuniqueError::Template { .. } => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorType::Template,
                 ("{}", t("error.template")),
@@ -244,8 +279,9 @@ pub struct StackFrame {
 #[derive(Debug, Serialize, Clone)]
 pub struct EnvironmentInfo {
     pub debug_mode: bool,
+    /// The compiler that built the binary, captured by `build.rs`.
     pub rust_version: String,
-    pub app_version: String,
+    pub runique_version: String,
 }
 
 impl ErrorContext {
@@ -264,8 +300,8 @@ impl ErrorContext {
             stack_trace: Vec::new(),
             environment: EnvironmentInfo {
                 debug_mode: is_debug(),
-                rust_version: rust_version(),
-                app_version: env!("CARGO_PKG_VERSION").to_string(),
+                rust_version: env!("RUNIQUE_RUSTC_VERSION").to_string(),
+                runique_version: env!("CARGO_PKG_VERSION").to_string(),
             },
         }
     }
@@ -281,15 +317,8 @@ impl ErrorContext {
         });
         self
     }
-    #[must_use]
-    fn extract_tera_line(message: &str) -> Option<usize> {
-        let re = regex::Regex::new(r"line (\d+)").ok()?;
-        re.captures(message)
-            .and_then(|cap| cap.get(1))
-            .and_then(|m| m.as_str().parse::<usize>().ok())
-    }
     /// Builds an `ErrorContext` from a Tera rendering error, resolving the failing
-    /// template's source and the line number reported in the error message.
+    /// template's source and the line number read from the error's span.
     pub fn from_tera_error(error: &tera::Error, template_name: &str, tera: &tera::Tera) -> Self {
         let mut ctx = Self::new(
             ErrorType::Template,
@@ -300,7 +329,7 @@ impl ErrorContext {
         ctx.template_info = Some(TemplateInfo {
             name: template_name.to_string(),
             source: read_template_source(template_name),
-            line_number: Self::extract_tera_line(&error.to_string()),
+            line_number: tera_error_line(error),
             available_templates: tera
                 .get_template_names()
                 .filter(|name| !get_internal_templates().contains(name))
@@ -428,9 +457,9 @@ impl ErrorContext {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 &tf("error.io", &[msg.as_str()]),
             ),
-            RuniqueError::Template(msg) => Self::generic(
+            RuniqueError::Template { message, .. } => Self::generic(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &tf("error.template", &[msg.as_str()]),
+                &tf("error.template", &[message.as_str()]),
             ),
             RuniqueError::Custom { message, source: _ } => {
                 Self::generic(StatusCode::INTERNAL_SERVER_ERROR, message)
@@ -443,16 +472,15 @@ impl ErrorContext {
 
         ctx.build_stack_trace(err);
 
-        if let (RuniqueError::Template(msg), Some(tera), Some(name)) = (err, tera, template_name) {
+        if let (RuniqueError::Template { line, .. }, Some(tera), Some(name)) =
+            (err, tera, template_name)
+        {
             ctx.template_info = Some(TemplateInfo {
                 name: name.to_string(),
                 source: read_template_source(name),
-                // The line comes from the actual rendering error carried by the
-                // variant. The previous code called `tera.get_template(name)` and
-                // parsed its `unwrap_err()` — a "template not found" error that has
-                // no relation to where rendering failed (and `get_template` is now
-                // private in Tera 2).
-                line_number: Self::extract_tera_line(msg),
+                // The line is carried on the variant, filled by
+                // `RuniqueError::template` from the Tera error's span.
+                line_number: *line,
                 available_templates: tera
                     .get_template_names()
                     .map(std::string::ToString::to_string)
@@ -478,23 +506,46 @@ pub fn read_template_source(template_name: &str) -> Option<String> {
     std::fs::read_to_string(std::path::Path::new("templates").join(relative)).ok()
 }
 
-fn rust_version() -> String {
-    use std::process::Command;
-    use std::sync::OnceLock;
-    static RUST_VERSION: OnceLock<String> = OnceLock::new();
-    RUST_VERSION
-        .get_or_init(|| {
-            if let Ok(output) = Command::new("rustc").arg("--version").output()
-                && let Ok(version) = String::from_utf8(output.stdout)
-            {
-                return version
-                    .split('(')
-                    .next()
-                    .unwrap_or("N/A")
-                    .trim()
-                    .to_string();
-            }
-            "N/A".to_string()
-        })
-        .clone()
+/// The developer's package name and version, read from the `Cargo.toml` in
+/// `base_dir`. Runique can't know them at compile time (its own `env!` gives
+/// Runique's version), so the debug page reads the project on disk. Only the
+/// debug page calls it: production never reads the manifest.
+#[must_use]
+pub fn app_package(base_dir: &str) -> (Option<String>, Option<String>) {
+    let dir = std::path::Path::new(base_dir);
+    let Some(manifest) = read_manifest(&dir.join("Cargo.toml")) else {
+        return (None, None);
+    };
+    let Some(package) = manifest.get("package") else {
+        return (None, None);
+    };
+    let name = package
+        .get("name")
+        .and_then(toml::Value::as_str)
+        .map(str::to_string);
+    let version = match package.get("version") {
+        Some(toml::Value::String(v)) => Some(v.clone()),
+        // `version.workspace = true`: the value sits in the workspace manifest.
+        Some(v) if v.get("workspace").and_then(toml::Value::as_bool) == Some(true) => {
+            workspace_version(dir)
+        }
+        _ => None,
+    };
+    (name, version)
+}
+
+fn workspace_version(dir: &std::path::Path) -> Option<String> {
+    let dir = dir.canonicalize().ok()?;
+    dir.ancestors().find_map(|d| {
+        read_manifest(&d.join("Cargo.toml"))?
+            .get("workspace")?
+            .get("package")?
+            .get("version")?
+            .as_str()
+            .map(str::to_string)
+    })
+}
+
+fn read_manifest(path: &std::path::Path) -> Option<toml::Table> {
+    std::fs::read_to_string(path).ok()?.parse().ok()
 }

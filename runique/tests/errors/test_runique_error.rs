@@ -69,7 +69,7 @@ fn test_runique_error_io_display() {
 
 #[test]
 fn test_runique_error_template_display() {
-    let err = RuniqueError::Template("template.html manquant".to_string());
+    let err = RuniqueError::Template { message: "template.html manquant".to_string(), line: None };
     let msg = err.to_string();
     assert!(
         msg.contains("template.html manquant"),
@@ -180,7 +180,7 @@ fn test_to_error_context_internal_500() {
 
 #[test]
 fn test_to_error_context_template_500() {
-    let err = RuniqueError::Template("erreur template".to_string());
+    let err = RuniqueError::Template { message: "erreur template".to_string(), line: None };
     let ctx = err.to_error_context();
     assert_eq!(ctx.status_code, 500);
 }
@@ -236,8 +236,59 @@ fn test_error_context_timestamp_non_vide() {
 #[test]
 fn test_error_context_environment_info() {
     let ctx = ErrorContext::generic(StatusCode::OK, "ok");
-    assert!(!ctx.environment.rust_version.is_empty() || ctx.environment.rust_version == "N/A");
-    assert!(!ctx.environment.app_version.is_empty());
+    assert!(!ctx.environment.rust_version.is_empty());
+    assert_eq!(ctx.environment.runique_version, env!("CARGO_PKG_VERSION"));
+}
+
+#[test]
+fn test_app_package_reads_the_project_manifest() {
+    use crate::helpers::temp::TempDir;
+    use runique::errors::error::app_package;
+
+    let dir = TempDir::new("rq_app_pkg");
+    std::fs::write(
+        dir.join("Cargo.toml"),
+        "[package]\nname = \"mon-site\"\nversion = \"2.3.1\"\n",
+    )
+    .unwrap();
+    let (name, version) = app_package(dir.path().to_str().unwrap());
+    assert_eq!(name.as_deref(), Some("mon-site"));
+    assert_eq!(version.as_deref(), Some("2.3.1"));
+}
+
+#[test]
+fn test_app_package_follows_workspace_version() {
+    use crate::helpers::temp::TempDir;
+    use runique::errors::error::app_package;
+
+    let root = TempDir::new("rq_app_ws");
+    std::fs::write(
+        root.join("Cargo.toml"),
+        "[workspace]\nmembers = [\"app\"]\n[workspace.package]\nversion = \"7.0.0\"\n",
+    )
+    .unwrap();
+    std::fs::create_dir(root.join("app")).unwrap();
+    std::fs::write(
+        root.join("app/Cargo.toml"),
+        "[package]\nname = \"app\"\nversion.workspace = true\n",
+    )
+    .unwrap();
+    let (name, version) = app_package(root.join("app").to_str().unwrap());
+    assert_eq!(name.as_deref(), Some("app"));
+    assert_eq!(version.as_deref(), Some("7.0.0"));
+}
+
+#[test]
+fn test_app_package_without_manifest_gives_nothing() {
+    use crate::helpers::temp::TempDir;
+    use runique::errors::error::app_package;
+
+    let dir = TempDir::new("rq_app_none");
+    assert_eq!(app_package(dir.path().to_str().unwrap()), (None, None));
+
+    // A manifest without `[package]` (a bare workspace) gives nothing either.
+    std::fs::write(dir.join("Cargo.toml"), "[workspace]\nmembers = []\n").unwrap();
+    assert_eq!(app_package(dir.path().to_str().unwrap()), (None, None));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -302,7 +353,7 @@ fn test_runique_error_clone_io() {
 
 #[test]
 fn test_runique_error_clone_template() {
-    let err = RuniqueError::Template("template.html".to_string());
+    let err = RuniqueError::Template { message: "template.html".to_string(), line: None };
     let cloned = err.clone();
     assert_eq!(cloned.to_string(), err.to_string());
 }
@@ -386,7 +437,7 @@ fn test_from_runique_error_io() {
 
 #[test]
 fn test_from_runique_error_template() {
-    let err = RuniqueError::Template("rendu.html".to_string());
+    let err = RuniqueError::Template { message: "rendu.html".to_string(), line: None };
     let ctx = ErrorContext::from_runique_error(&err, None, None, None, None);
     assert_eq!(ctx.status_code, 500);
     assert!(ctx.message.contains("rendu.html"));
@@ -475,7 +526,7 @@ fn test_log_all_variants_no_panic() {
     RuniqueError::Validation("champ".to_string()).log();
     RuniqueError::Database("db".to_string()).log();
     RuniqueError::Io("io".to_string()).log();
-    RuniqueError::Template("tmpl".to_string()).log();
+    RuniqueError::Template { message: "tmpl".to_string(), line: None }.log();
     RuniqueError::Custom {
         message: "msg".to_string(),
         source: None,
@@ -596,9 +647,17 @@ fn test_from_tera_error_template_name_stored() {
 fn test_to_error_context_keeps_the_error_category() {
     let db = RuniqueError::Database("down".into()).to_error_context();
     assert!(matches!(db.error_type, ErrorType::Database));
-    let tpl = RuniqueError::Template("broken".into()).to_error_context();
+    let tpl = RuniqueError::Template { message: "broken".to_string(), line: None }.to_error_context();
     assert!(matches!(tpl.error_type, ErrorType::Template));
     assert_ne!(db.title, tpl.title);
+}
+
+/// Builds a real Tera syntax error (an unterminated expression carries a span),
+/// so the span's `start_line` is a genuine 1-based line and not parsed from text.
+fn tera_syntax_error(source: &str) -> tera::Error {
+    tera::Tera::default()
+        .add_raw_template("broken.html", source)
+        .unwrap_err()
 }
 
 #[test]
@@ -606,12 +665,38 @@ fn test_from_tera_error_reads_the_line_and_hides_internal_templates() {
     let mut tera = tera::Tera::default();
     tera.add_raw_template("home.html", "x").unwrap();
     tera.add_raw_template("404.html", "y").unwrap(); // a Runique builtin name
-    let err = tera::Error::message("Failed to render: unexpected token at line 12, column 3");
-    let ctx = ErrorContext::from_tera_error(&err, "home.html", &tera);
+
+    // Error on the first line.
+    let ctx = ErrorContext::from_tera_error(&tera_syntax_error("{{ x"), "home.html", &tera);
     let info = ctx.template_info.expect("template info");
-    assert_eq!(info.line_number, Some(12));
+    assert_eq!(info.line_number, Some(1));
     assert_eq!(info.available_templates, ["home.html"]);
 
+    // Error on a later line: the line is read, not hardcoded.
+    let multiline = ErrorContext::from_tera_error(&tera_syntax_error("ok\n{{ x"), "home.html", &tera);
+    assert_eq!(multiline.template_info.unwrap().line_number, Some(2));
+
+    // A kind without a span (`Msg`) yields no line.
     let no_line = ErrorContext::from_tera_error(&tera::Error::message("oops"), "home.html", &tera);
     assert_eq!(no_line.template_info.unwrap().line_number, None);
+}
+
+#[test]
+fn test_runique_error_template_carries_the_tera_line() {
+    // The typed constructor fills both the message and the span's line.
+    let err = RuniqueError::template(&tera_syntax_error("ok\n{{ x"));
+    match err {
+        RuniqueError::Template { line, .. } => assert_eq!(line, Some(2)),
+        other => panic!("expected Template, got {other:?}"),
+    }
+
+    // No span (`Msg`) → no line, but still a Template error with its message.
+    let err = RuniqueError::template(&tera::Error::message("boom"));
+    match err {
+        RuniqueError::Template { message, line } => {
+            assert_eq!(line, None);
+            assert!(message.contains("boom"));
+        }
+        other => panic!("expected Template, got {other:?}"),
+    }
 }

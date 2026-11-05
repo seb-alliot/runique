@@ -244,6 +244,8 @@
     "debug_disabled": "無効",
     "debug_rust_version": "Rustバージョン",
     "debug_app_version": "アプリバージョン",
+    "debug_runique_version": "Runique バージョン",
+    "debug_occurred_at": "エラー発生日時:",
     "debug_status_code": "ステータスコード",
     "debug_header_name": "名前",
     "debug_header_value": "値"

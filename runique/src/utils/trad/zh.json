@@ -244,6 +244,8 @@
     "debug_disabled": "已禁用",
     "debug_rust_version": "Rust 版本",
     "debug_app_version": "应用版本",
+    "debug_runique_version": "Runique 版本",
+    "debug_occurred_at": "错误发生时间：",
     "debug_status_code": "状态码",
     "debug_header_name": "名称",
     "debug_header_value": "值"

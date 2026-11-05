@@ -22,14 +22,24 @@
           {{ environment.rust_version }}
         </div>
       </div>
+      {% if app_version %}
       <div class="info-card">
         <div class="label">
           {{ debug_app_version }}
         </div>
-          <div class="value">
-            {{ environment.app_version }}
-          </div>
+        <div class="value">
+          {% if app_name %}{{ app_name }} {% endif %}{{ app_version }}
         </div>
+      </div>
+      {% endif %}
+      <div class="info-card">
+        <div class="label">
+          {{ debug_runique_version }}
+        </div>
+        <div class="value">
+          {{ environment.runique_version }}
+        </div>
+      </div>
         <div class="info-card">
           <div class="label">
             {{ debug_status_code }}

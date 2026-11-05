@@ -244,6 +244,8 @@
     "debug_disabled": "Отключено",
     "debug_rust_version": "Версия Rust",
     "debug_app_version": "Версия приложения",
+    "debug_runique_version": "Версия Runique",
+    "debug_occurred_at": "Ошибка произошла:",
     "debug_status_code": "Код статуса",
     "debug_header_name": "Имя",
     "debug_header_value": "Значение"
