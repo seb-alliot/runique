@@ -95,6 +95,17 @@ pub(crate) fn changes<E: ModelMeta>(
     }
 }
 
+/// Gives each field of `form` the type of its column in `E`: it then validates
+/// and reads as that column does. Untyped, an integer reads as `i64`, which an
+/// `i32` column refuses whatever the value.
+pub(crate) fn type_fields<E: EntityTrait>(form: &mut Forms) {
+    for column in E::Column::iter() {
+        if let Some(field) = form.fields.get_mut(column.as_str()) {
+            field.apply_column_type(column.def().get_column_type());
+        }
+    }
+}
+
 fn is_primary_key<E: EntityTrait>(name: &str) -> bool {
     E::PrimaryKey::iter().any(|key| key.into_column().as_str() == name)
 }
@@ -241,6 +252,37 @@ mod tests {
         let model = built(&form, &ColumnRights::All, WriteKind::Create);
         assert_eq!(set(&model, C::Title), text("Hello"));
         assert_eq!(set(&model, C::Score), Some(Value::Int(Some(42))));
+    }
+
+    #[test]
+    fn an_integer_field_only_fits_its_column_once_typed() {
+        let values: &[(&str, &str)] = &[("score", "0")];
+        let mut untyped = Forms::new("");
+        untyped.field(&NumericField::integer("score"));
+        let untyped = with(untyped, values);
+        assert_eq!(
+            changes::<E>(
+                &untyped,
+                &ColumnRights::All,
+                WriteKind::Update,
+                Secrets::Skip
+            )
+            .map(|_| ())
+            .unwrap_err(),
+            vec![("score".to_string(), unconvertible())]
+        );
+
+        let mut typed = Forms::new("");
+        typed.field(&NumericField::integer("score"));
+        super::type_fields::<E>(&mut typed);
+        let typed = with(typed, values);
+        assert_eq!(
+            set(
+                &built(&typed, &ColumnRights::All, WriteKind::Update),
+                C::Score
+            ),
+            Some(Value::Int(Some(0)))
+        );
     }
 
     #[test]

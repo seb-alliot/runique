@@ -333,6 +333,7 @@ where
 
         let mut form = req.form::<E::Form>(admin_form::CREATE);
         let forms = form.forms_mut();
+        crate::auth::gate::change::type_fields::<E>(forms);
         self.shape_for_create(forms, &user.rights_on(E::KEY).columns);
         // A create points at no row: nothing in the URL may stand for a key.
         forms.path_params.clear();
@@ -507,6 +508,7 @@ where
 
         let mut form = req.form::<E::Form>(admin_form::UPDATE);
         let forms = form.forms_mut();
+        crate::auth::gate::change::type_fields::<E>(forms);
         self.shape_for_edit(forms, &readable, &user.rights_on(E::KEY).columns);
         // `save_as` looks for the row under the key's own name; the route
         // calls it `{id}` whatever the model names it.
