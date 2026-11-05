@@ -105,8 +105,7 @@ urlpatterns! {
 For a page on the admin's layout (stylesheets, menu with the rights applied, top bar), call `admin_page_context` and extend `admin_base.html`:
 
 ```rust
-use runique::admin::template::Page;
-use runique::admin::{AdminSite, AdminState, admin_page_context};
+use runique::prelude::*;
 
 pub async fn article_stats(
     Extension(admin): Extension<Arc<AdminState>>,

@@ -178,8 +178,6 @@ pub mod prelude {
     // ========================================================================
     // MIDDLEWARE
     // ========================================================================
-    #[cfg(feature = "admin")]
-    pub use crate::admin::AdminView;
     pub use crate::auth::user as runique_users;
     pub use crate::auth::user::BuiltinUserEntity;
     pub use crate::auth::*;
@@ -271,6 +269,24 @@ pub mod prelude {
     #[cfg(feature = "admin")]
     pub use crate::admin::{
         AdminConfig, AdminState, CrudOperation, inject_admin_prefix, insert_admin_messages,
+    };
+    // Declaring the admin: `src/admin.rs`, its models, their templates.
+    #[cfg(feature = "admin")]
+    pub use crate::admin::template::{AdminTemplate, Block, GlobalBlock, ModelTemplates, Page};
+    #[cfg(feature = "admin")]
+    pub use crate::admin::{AdminSite, AdminView, ModelAdmin, ModelMeta, admin_page_context};
+    #[cfg(feature = "admin")]
+    pub use crate::app::staging::AdminStaging;
+    #[cfg(feature = "admin")]
+    pub use sea_orm::Order;
+    // A page declared `admin` in `urlpatterns!`: the route only checks access to
+    // the admin, what the handler reads and writes goes through the gate.
+    #[cfg(feature = "admin")]
+    pub use crate::auth::gate::check::{authorize_list, authorize_view, readable_ids};
+    #[cfg(feature = "admin")]
+    pub use crate::auth::gate::{
+        Authorized, Create, Crud, CrudAction, Delete, GateCtx, List, Refusal, Update, View,
+        authorize_create, authorize_row, write,
     };
     pub use crate::auth::permissions::groupe;
     pub use crate::db::sql_dialect::{ilike, text_cast_type, text_eq, text_eq_ci};
