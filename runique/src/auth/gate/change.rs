@@ -98,6 +98,7 @@ pub(crate) fn changes<E: ModelMeta>(
 /// Gives each field of `form` the type of its column in `E`: it then validates
 /// and reads as that column does. Untyped, an integer reads as `i64`, which an
 /// `i32` column refuses whatever the value.
+#[cfg(any(feature = "admin", test))]
 pub(crate) fn type_fields<E: EntityTrait>(form: &mut Forms) {
     for column in E::Column::iter() {
         if let Some(field) = form.fields.get_mut(column.as_str()) {
