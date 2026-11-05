@@ -2,7 +2,7 @@
 # Runique — Framework Rust inspiré de Django
 
 ![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-3092%20passing-green)
+![Tests passing](https://img.shields.io/badge/tests-3308%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-4.0.0-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
@@ -131,14 +131,14 @@ Backends sélectionnables (mutuellement exclusifs) :
 
 ## Aperçu des tests et de la couverture
 
-- Tests rapportés : **3092 passants** (3 ignorés)
-- Aperçu de la couverture (`2026-10-08`, package `runique`, module admin inclus) :
-  - Fonctions : **88,72 %**
-  - Lignes : **88,81 %**
-  - Régions : **87,25 %**
+- Tests rapportés : **3308 passants** (110 ignorés)
+- Aperçu de la couverture (`2026-11-04`, package `runique`, module admin inclus) :
+  - Fonctions : **92,51 %**
+  - Lignes : **92,45 %**
+  - Régions : **91,51 %**
 
 ```bash
-cargo llvm-cov --package runique --features all-databases --summary-only
+cargo llvm-cov --package runique --features all-databases,admin,test-utils --summary-only
 ```
 
 Répartition complète par fichier : [docs/couverture_test.md](docs/couverture_test.md)
