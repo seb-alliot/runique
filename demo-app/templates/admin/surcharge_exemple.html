@@ -7,9 +7,9 @@
 
 {% block content %}
 <div class="container">
-    <h1>{{ title }}</h1>
+    <h1>{% set tr_text = title %}{% include "utils/tr.html" %}</h1>
     <p class="lead lead-mb">
-        Custom dashboard template used in this demo.
+        {% if ui_lang == "fr" %}Template de tableau de bord personnalisé utilisé dans cette démo.{% else %}Custom dashboard template used in this demo.{% endif %}
     </p>
 
     <div class="demo-code">
@@ -113,8 +113,8 @@
     </div>
 
     <div class="back-link">
-        <a href="https://github.com/seb-alliot/runique/blob/main/demo-app/templates/admin/test_dashboard.html" target="_blank" class="btn btn-secondary">View on GitHub</a>
-        <a href="{% link "admin_surcharge" %}">← Back to override</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/demo-app/templates/admin/test_dashboard.html" target="_blank" class="btn btn-secondary">{% if ui_lang == "fr" %}Voir sur GitHub{% else %}View on GitHub{% endif %}</a>
+        <a href="{% link "admin_surcharge" %}">{% if ui_lang == "fr" %}← Retour à la surcharge{% else %}← Back to override{% endif %}</a>
     </div>
 </div>
 {% endblock %}

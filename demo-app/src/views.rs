@@ -1,3 +1,4 @@
+use crate::backend::lang::msg;
 use crate::backend::{
     auth::{get_profile_user, handle_activate, handle_inscription, handle_login},
     blog::{get_article, handle_blog_save, list_articles},
@@ -40,6 +41,7 @@ pub async fn set_language(Path(code): Path<String>, request: Request) -> AppResu
 
 pub async fn soumission_inscription(mut request: Request) -> AppResult<Response> {
     let form: RegisterForm = request.form("inscription");
+    let form = form.in_language(&request.headers);
     handle_inscription(&mut request, form).await
 }
 
@@ -52,6 +54,7 @@ pub async fn activate_account(
 
 pub async fn login_user(mut request: Request) -> AppResult<Response> {
     let form: LoginForm = request.form("login");
+    let form = form.in_language(&request.headers);
     handle_login(&mut request, form).await
 }
 
@@ -68,7 +71,7 @@ pub async fn deconnexion(request: Request) -> AppResult<Response> {
 pub async fn profil(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
     if !is_authenticated(&request.session).await {
-        warning!(request.notices => "Please log in to access your profile.");
+        warning!(request.notices => msg(&request.headers, "Please log in to access your profile.", "Connectez-vous pour accéder à votre profil."));
         return Ok(Redirect::to("/login").into_response());
     }
     let user_id = request.user.as_ref().map(|user| user.id);
@@ -89,6 +92,7 @@ pub async fn profil(mut request: Request) -> AppResult<Response> {
 
 pub async fn blog_list(mut request: Request) -> AppResult<Response> {
     let form: SearchDemoForm = request.form("search");
+    let form = form.in_language(&request.headers);
     inject_globals(&mut request).await;
     let form = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated.into_form(),
@@ -107,8 +111,9 @@ pub async fn blog_list(mut request: Request) -> AppResult<Response> {
 
 pub async fn blog_save(mut request: Request) -> AppResult<Response> {
     let blog: BlogForm = request.form("blog");
+    let blog = blog.in_language(&request.headers);
     if !is_authenticated(&request.session).await {
-        warning!(request.notices => "Please log in to access your profile.");
+        warning!(request.notices => msg(&request.headers, "Please log in to access your profile.", "Connectez-vous pour accéder à votre profil."));
         return Ok(Redirect::to("/login").into_response());
     }
     handle_blog_save(&mut request, blog).await
@@ -120,7 +125,7 @@ pub async fn blog_detail(Path(id): Path<Pk>, mut request: Request) -> AppResult<
         context_update!(request => { "title" => &a.title, "article" => &a });
         request.render("blog/blog_detail.html")
     } else {
-        warning!(request.notices => "Article not found.");
+        warning!(request.notices => msg(&request.headers, "Article not found.", "Article introuvable."));
         Ok(Redirect::to("/blog/liste").into_response())
     }
 }
@@ -129,8 +134,9 @@ pub async fn blog_detail(Path(id): Path<Pk>, mut request: Request) -> AppResult<
 
 pub async fn upload_image_submit(mut request: Request) -> AppResult<Response> {
     let form: ImageForm = request.form("image");
+    let form = form.in_language(&request.headers);
     if !is_authenticated(&request.session).await {
-        warning!(request.notices => "Please log in to access your profile.");
+        warning!(request.notices => msg(&request.headers, "Please log in to access your profile.", "Connectez-vous pour accéder à votre profil."));
         return Ok(Redirect::to("/login").into_response());
     }
     handle_upload_image(&mut request, form).await
@@ -159,6 +165,7 @@ pub async fn formulaires_templates(mut request: Request) -> AppResult<Response> 
 
 pub async fn formulaires_helpers(mut request: Request) -> AppResult<Response> {
     let form: SearchDemoForm = request.form("helpers");
+    let form = form.in_language(&request.headers);
     inject_globals(&mut request).await;
     let data = extract_helpers_data(&request, form.cleaned::<String>("search"));
     context_update!(request => {
@@ -174,8 +181,9 @@ pub async fn formulaires_helpers(mut request: Request) -> AppResult<Response> {
 
 pub async fn contribution_submit(mut request: Request) -> AppResult<Response> {
     let form: ContributionForm = request.form("contribution");
+    let form = form.in_language(&request.headers);
     if !is_authenticated(&request.session).await {
-        warning!(request.notices => "Please log in to access your profile.");
+        warning!(request.notices => msg(&request.headers, "Please log in to access your profile.", "Connectez-vous pour accéder à votre profil."));
         return Ok(Redirect::to("/login").into_response());
     }
     handle_contribution_submit(&mut request, form).await
@@ -183,7 +191,7 @@ pub async fn contribution_submit(mut request: Request) -> AppResult<Response> {
 
 pub async fn contribution_list(mut request: Request) -> AppResult<Response> {
     if !is_authenticated(&request.session).await {
-        warning!(request.notices => "Please log in to access contributions.");
+        warning!(request.notices => msg(&request.headers, "Please log in to access contributions.", "Connectez-vous pour accéder aux contributions."));
         return Ok(Redirect::to("/login").into_response());
     }
     inject_globals(&mut request).await;
@@ -196,10 +204,10 @@ pub async fn contribution_list(mut request: Request) -> AppResult<Response> {
 
 pub async fn about(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    success!(request.notices => "Action successful.");
-    info!(request.notices => "Information message.");
-    warning!(request.notices => "Attention required.");
-    error!(request.notices => "An error occurred.");
+    success!(request.notices => msg(&request.headers, "Action successful.", "Action réussie."));
+    info!(request.notices => msg(&request.headers, "Information message.", "Message d'information."));
+    warning!(request.notices => msg(&request.headers, "Attention required.", "Attention requise."));
+    error!(request.notices => msg(&request.headers, "An error occurred.", "Une erreur est survenue."));
     context_update!(request => {
         "title"   => "About the Runique Framework",
         "content" => "Runique is a web framework inspired by Django, built on Axum and Tera.",
@@ -217,7 +225,7 @@ pub async fn rust_django_framework(mut request: Request) -> AppResult<Response> 
     inject_globals(&mut request).await;
     context_update!(request => {
         "title"       => "Rust Web Framework Inspired by Django",
-        "description" => "Runique is a Rust web framework inspired by Django: typed ModelAdmin panel, type-safe forms, built-in CSRF/CSP security and persistent sessions. The Django alternative for Rust, built on Axum, SeaORM and Tera.",
+        "description" => "Runique is a Rust web framework inspired by Django: typed ModelAdmin panel, type-safe forms, built-in CSRF/CSP security and persistent sessions. A Django alternative for Rust, built on Axum, SeaORM and Tera.",
     });
     request.render("seo/rust_django_framework.html")
 }
@@ -499,7 +507,7 @@ pub async fn i18n_demo(mut request: Request) -> AppResult<Response> {
 // ─── Errors / CSRF ────────────────────────────────────────────────────────────
 
 pub async fn test_csrf(request: Request) -> AppResult<Response> {
-    success!(request.notices => "CSRF token validated successfully!");
+    success!(request.notices => msg(&request.headers, "CSRF token validated successfully!", "Jeton CSRF validé !"));
     Ok(Redirect::to("/").into_response())
 }
 

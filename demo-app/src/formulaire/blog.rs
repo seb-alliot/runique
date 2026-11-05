@@ -1,4 +1,6 @@
+use crate::backend::lang::visitor_lang;
 use crate::entities::blog;
+use runique::axum::http::HeaderMap;
 use runique::prelude::*;
 
 #[form(schema = blog, fields = [title, email, summary, website, content])]
@@ -17,7 +19,7 @@ impl RuniqueForm for BlogForm {
         if title.len() < 3 {
             errors.insert(
                 "title".to_string(),
-                "Le titre doit faire au moins 3 caractères.".to_string(),
+                "The title must be at least 3 characters long.".to_string(),
             );
         }
         if let Some(ref w) = website
@@ -25,22 +27,22 @@ impl RuniqueForm for BlogForm {
         {
             errors.insert(
                 "website".to_string(),
-                "Le site web doit commencer par http ou https.".to_string(),
+                "The website must start with http or https.".to_string(),
             );
         }
         if !email.contains('@') {
-            errors.insert("email".to_string(), "Adresse email invalide.".to_string());
+            errors.insert("email".to_string(), "Invalid email address.".to_string());
         }
         if summary.len() < 5 {
             errors.insert(
                 "summary".to_string(),
-                "Le résumé doit faire au moins 5 caractères.".to_string(),
+                "The summary must be at least 5 characters long.".to_string(),
             );
         }
         if content.len() < 10 {
             errors.insert(
                 "content".to_string(),
-                "Le contenu doit faire au moins 10 caractères.".to_string(),
+                "The content must be at least 10 characters long.".to_string(),
             );
         }
 
@@ -68,5 +70,18 @@ impl BlogForm {
             self.clear();
         }
         new_blog
+    }
+}
+
+impl BlogForm {
+    pub fn in_language(mut self, headers: &HeaderMap) -> Self {
+        if visitor_lang(headers) == "fr" {
+            self.forms_mut()
+                .field_label("title", "Titre")
+                .field_label("summary", "Résumé")
+                .field_label("website", "Site web")
+                .field_label("content", "Contenu");
+        }
+        self
     }
 }

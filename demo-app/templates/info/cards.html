@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="container">
-    <h1>{{ title }}</h1>
+    <h1>{% set tr_text = title %}{% include "utils/tr.html" %}</h1>
 
     {% for section in sections %}
     <div class="roadmap-section">
@@ -32,15 +32,15 @@
     {% if total_pages and total_pages > 1 %}
     <div class="pagination-nav">
         {% if prev_page %}
-        <a href="?page={{ prev_page }}" class="btn btn-outline-secondary">← Newer</a>
+        <a href="?page={{ prev_page }}" class="btn btn-outline-secondary">{% if ui_lang == "fr" %}← Plus récent{% else %}← Newer{% endif %}</a>
         {% else %}
-        <span class="btn btn-outline-secondary disabled">← Newer</span>
+        <span class="btn btn-outline-secondary disabled">{% if ui_lang == "fr" %}← Plus récent{% else %}← Newer{% endif %}</span>
         {% endif %}
         <span class="pagination-info">{{ current_page }} / {{ total_pages }}</span>
         {% if next_page %}
-        <a href="?page={{ next_page }}" class="btn btn-outline-secondary">Older →</a>
+        <a href="?page={{ next_page }}" class="btn btn-outline-secondary">{% if ui_lang == "fr" %}Plus ancien →{% else %}Older →{% endif %}</a>
         {% else %}
-        <span class="btn btn-outline-secondary disabled">Older →</span>
+        <span class="btn btn-outline-secondary disabled">{% if ui_lang == "fr" %}Plus ancien →{% else %}Older →{% endif %}</span>
         {% endif %}
     </div>
     {% endif %}
@@ -54,9 +54,9 @@
         <a href="{{ runique_release.changelog_fr_url }}" target="_blank" rel="noopener" class="btn btn-secondary">Changelog (FR)</a>
         {% endif %}
         {% elif ext_link_url %}
-        <a href="{{ ext_link_url }}" target="_blank" class="btn btn-secondary">{{ ext_link_label }}</a>
+        <a href="{{ ext_link_url }}" target="_blank" class="btn btn-secondary">{% set tr_text = ext_link_label %}{% include "utils/tr.html" %}</a>
         {% endif %}
-        <a href="{% link "index" %}">← Back home</a>
+        <a href="{% link "index" %}">{% if ui_lang == "fr" %}← Retour à l'accueil{% else %}← Back home{% endif %}</a>
     </div>
 </div>
 {% endblock %}

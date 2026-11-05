@@ -2,33 +2,33 @@
 
 {% block content %}
 <div class="container">
-    <h1>{{ title }}</h1>
+    <h1>{% set tr_text = title %}{% include "utils/tr.html" %}</h1>
     <p class="lead">
-        Runique form system — declaration, validation, rendering.
+        {% if ui_lang == "fr" %}Le système de formulaires de Runique : déclaration, validation, rendu.{% else %}Runique form system — declaration, validation, rendering.{% endif %}
     </p>
 
     <div class="demo-cards">
         <a href="{% link "test_fields" %}" class="feature-card">
-            <h3>Field visual rendering</h3>
-            <p>Preview of all field types available in Runique</p>
+            <h3>{% if ui_lang == "fr" %}Rendu visuel des champs{% else %}Field visual rendering{% endif %}</h3>
+            <p>{% if ui_lang == "fr" %}Aperçu de tous les types de champs de Runique{% else %}Preview of all field types available in Runique{% endif %}</p>
         </a>
         <a href="{% link "formulaires_champs" %}" class="feature-card">
-            <h3>Declare a field</h3>
-            <p>Manual declaration and via the <code>#[form]</code> proc macro</p>
+            <h3>{% if ui_lang == "fr" %}Déclarer un champ{% else %}Declare a field{% endif %}</h3>
+            <p>{% if ui_lang == "fr" %}Déclaration manuelle ou avec la macro{% else %}Manual declaration and via the{% endif %} <code>#[form]</code>{% if ui_lang == "fr" %}{% else %} proc macro{% endif %}</p>
         </a>
         <a href="{% link "formulaires_templates" %}" class="feature-card">
-            <h3>Rendering in templates</h3>
+            <h3>{% if ui_lang == "fr" %}Rendu dans les templates{% else %}Rendering in templates{% endif %}</h3>
             <p><code>{% raw %}{%{% endraw %} form.mon_form {% raw %}%}{% endraw %}</code> vs <code>{% raw %}{%{% endraw %} form.nom_form.champ {% raw %}%}{% endraw %}</code></p>
         </a>
         <a href="{% link "formulaires_helpers" %}" class="feature-card">
-            <h3>Helpers & URL access</h3>
-            <p>Typed conversions, <code>get_path()</code>, <code>get_query()</code> and whitelisted <code>cleaned()</code></p>
+            <h3>{% if ui_lang == "fr" %}Helpers et accès à l'URL{% else %}Helpers & URL access{% endif %}</h3>
+            <p>{% if ui_lang == "fr" %}Conversions typées,{% else %}Typed conversions,{% endif %} <code>get_path()</code>, <code>get_query()</code> {% if ui_lang == "fr" %}et{% else %}and whitelisted{% endif %} <code>cleaned()</code>{% if ui_lang == "fr" %} en liste blanche{% else %}{% endif %}</p>
         </a>
     </div>
 
     <div class="back-link">
         <a href="{% if ui_lang == "fr" %}https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/05-forms.md{% else %}https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/05-forms.md{% endif %}" target="_blank" rel="noopener" class="btn btn-secondary">Documentation</a>
-        <a href="{% link "index" %}">← Back to home</a>
+        <a href="{% link "index" %}">{% if ui_lang == "fr" %}← Retour à l'accueil{% else %}← Back to home{% endif %}</a>
     </div>
 </div>
 {% endblock %}

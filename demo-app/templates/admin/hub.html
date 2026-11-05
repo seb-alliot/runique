@@ -8,19 +8,19 @@
 
 {% block content %}
 <div class="container">
-    <h1>{{ title }}</h1>
+    <h1>{% set tr_text = title %}{% include "utils/tr.html" %}</h1>
     <p class="lead">
-        Typed <code>ModelAdmin</code> CRUD from your models — plain Rust, no generation.
+        {% if ui_lang == "fr" %}CRUD typé{% else %}Typed{% endif %} <code>ModelAdmin</code> {% if ui_lang == "fr" %}à partir de vos modèles : du Rust simple, sans génération.{% else %}CRUD from your models — plain Rust, no generation.{% endif %}
     </p>
 
     <div class="demo-sections">
 
         <div class="demo-section">
-            <h2>Live demo</h2>
+            <h2>{% if ui_lang == "fr" %}Démo en direct{% else %}Live demo{% endif %}</h2>
             <div class="demo-cards">
                 <a href="{% link "admin_login" %}" class="feature-card feature-card-admin">
-                    <h3>Access the admin</h3>
-                    <p>Typed ModelAdmin CRUD, permissions, custom dashboard</p>
+                    <h3>{% if ui_lang == "fr" %}Accéder à l'admin{% else %}Access the admin{% endif %}</h3>
+                    <p>{% if ui_lang == "fr" %}CRUD typé ModelAdmin, droits, tableau de bord personnalisé{% else %}Typed ModelAdmin CRUD, permissions, custom dashboard{% endif %}</p>
                     <div class="admin-credentials">
                         <span>admin-demo</span>
                         <span class="cred-sep">/</span>
@@ -35,18 +35,18 @@
             <div class="demo-cards">
 
                 <a href="{% link "admin_declaration" %}" class="feature-card">
-                    <h3>Declaration — <code>ModelAdmin</code></h3>
-                    <p>Declare a model in the admin, fields, permissions</p>
+                    <h3>{% if ui_lang == "fr" %}Déclaration{% else %}Declaration{% endif %} — <code>ModelAdmin</code></h3>
+                    <p>{% if ui_lang == "fr" %}Déclarer un modèle dans l'admin, ses champs et ses droits{% else %}Declare a model in the admin, fields, permissions{% endif %}</p>
                 </a>
 
                 <a href="{% link "admin_setup" %}" class="feature-card">
-                    <h3>Configuration &amp; wiring</h3>
-                    <p>Setup, <code>.with_admin</code>, plain <code>cargo run</code></p>
+                    <h3>{% if ui_lang == "fr" %}Configuration et branchement{% else %}Configuration &amp; wiring{% endif %}</h3>
+                    <p>{% if ui_lang == "fr" %}Mise en place,{% else %}Setup,{% endif %} <code>.with_admin</code>, {% if ui_lang == "fr" %}un simple{% else %}plain{% endif %} <code>cargo run</code></p>
                 </a>
 
                 <a href="{% link "admin_surcharge" %}" class="feature-card">
-                    <h3>Template override <span>(beta)</span></h3>
-                    <p>Customize admin templates: dashboard, list, form</p>
+                    <h3>{% if ui_lang == "fr" %}Surcharge de templates{% else %}Template override{% endif %} <span>(beta)</span></h3>
+                    <p>{% if ui_lang == "fr" %}Personnaliser les templates de l'admin : tableau de bord, liste, formulaire{% else %}Customize admin templates: dashboard, list, form{% endif %}</p>
                 </a>
 
             </div>
@@ -55,7 +55,7 @@
     </div>
 
     <div class="back-link">
-        <a href="{% link "index" %}">← Back home</a>
+        <a href="{% link "index" %}">{% if ui_lang == "fr" %}← Retour à l'accueil{% else %}← Back home{% endif %}</a>
     </div>
 </div>
 {% endblock %}

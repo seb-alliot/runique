@@ -1,3 +1,5 @@
+use crate::backend::lang::visitor_lang;
+use runique::axum::http::HeaderMap;
 use runique::prelude::*;
 
 // inscription
@@ -13,22 +15,27 @@ impl RuniqueForm for RegisterForm {
         if username.len() < 5 {
             errors.insert(
                 "username".to_string(),
-                "Le nom d'utilisateur doit faire au moins 5 caractères.".to_string(),
+                "The username must be at least 5 characters long.".to_string(),
             );
         }
 
-        if username.contains('#') || username.contains('\u{2014}') {
+        // The username is written unescaped in the activation email: `clean()` runs
+        // after entities are decoded, so `<` is seen here even if sent as `&lt;`.
+        if username
+            .chars()
+            .any(|c| matches!(c, '#' | '\u{2014}' | '<' | '>' | '&' | '"' | '\''))
+        {
             errors.insert(
                 "username".to_string(),
-                "Le nom d'utilisateur ne peut pas contenir '#' ou '—'.".to_string(),
+                "The username cannot contain #, —, <, >, &, \" or '.".to_string(),
             );
         }
         // Mot de passe
         const SPECIAL: &str = "!@#$%^&*()_+-=[]{}|;':\",./<>?";
-        if password.len() < 10 {
+        if password.len() < 12 {
             errors.insert(
                 "password".to_string(),
-                "Le mot de passe doit faire au moins 10 caractères.".to_string(),
+                "The password must be at least 12 characters long.".to_string(),
             );
         } else if !password.chars().any(|c| c.is_uppercase())
             || !password.chars().any(|c| c.is_ascii_digit())
@@ -36,7 +43,7 @@ impl RuniqueForm for RegisterForm {
         {
             errors.insert(
                 "password".to_string(),
-                "Le mot de passe doit contenir au moins une majuscule, un chiffre et un caractère spécial (!@#$%...).".to_string(),
+                "The password must contain at least one uppercase letter, one digit and one special character.".to_string(),
             );
         }
 
@@ -71,5 +78,16 @@ impl RegisterForm {
             user.id = Set(::sea_orm::prelude::Uuid::now_v7());
         }
         user.insert(db).await
+    }
+}
+
+impl RegisterForm {
+    pub fn in_language(mut self, headers: &HeaderMap) -> Self {
+        if visitor_lang(headers) == "fr" {
+            self.forms_mut()
+                .field_label("username", "Nom d'utilisateur")
+                .field_label("password", "Mot de passe");
+        }
+        self
     }
 }

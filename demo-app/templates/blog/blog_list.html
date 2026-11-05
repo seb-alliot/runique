@@ -3,15 +3,15 @@
 {% block content %}
 <div class="content">
     <div class="blog-header">
-        <h1>{{ title }}</h1>
-        <a href="{% link "blog_info" %}" class="btn btn-primary">+ New article</a>
+        <h1>{% set tr_text = title %}{% include "utils/tr.html" %}</h1>
+        <a href="{% link "blog_info" %}" class="btn btn-primary">{% if ui_lang == "fr" %}+ Nouvel article{% else %}+ New article{% endif %}</a>
     </div>
 
     <form method="get" action="{% link "blog_list" %}" class="search-bar">
         {% form.search_form.search %}
-        <button type="submit" class="btn btn-secondary">Search</button>
+        <button type="submit" class="btn btn-secondary">{% if ui_lang == "fr" %}Rechercher{% else %}Search{% endif %}</button>
         {% if search %}
-            <a href="{% link "blog_list" %}" class="btn btn-secondary">✕ Clear</a>
+            <a href="{% link "blog_list" %}" class="btn btn-secondary">{% if ui_lang == "fr" %}✕ Effacer{% else %}✕ Clear{% endif %}</a>
         {% endif %}
     </form>
 
@@ -24,7 +24,7 @@
                             <a href="{% link "blog_detail" id=article.id %}">{{ article.title }}</a>
                         </h2>
                         <span class="blog-card-meta">
-                            By {{ article.email }}
+                            {% if ui_lang == "fr" %}Par{% else %}By{% endif %} {{ article.email }}
                             {% if article.created_at %}· {{ article.created_at }}{% endif %}
                         </span>
                     </div>
@@ -36,7 +36,7 @@
                             </a>
                         {% endif %}
                         <a href="{% link "blog_detail" id=article.id %}" class="btn-secondary btn-sm">
-                            Read more →
+                            {% if ui_lang == "fr" %}Lire la suite →{% else %}Read more →{% endif %}
                         </a>
                     </div>
                 </article>
@@ -44,14 +44,14 @@
         </div>
     {% else %}
         <div class="empty-state">
-            <p>No articles yet.</p>
-            <a href="{% link "blog_info" %}" class="btn btn-primary">Write the first article</a>
+            <p>{% if ui_lang == "fr" %}Aucun article pour l'instant.{% else %}No articles yet.{% endif %}</p>
+            <a href="{% link "blog_info" %}" class="btn btn-primary">{% if ui_lang == "fr" %}Écrire le premier article{% else %}Write the first article{% endif %}</a>
         </div>
     {% endif %}
 
     <div class="back-link">
         <a href="{% if ui_lang == "fr" %}https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md{% else %}https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md{% endif %}" target="_blank" rel="noopener" class="btn btn-secondary">Documentation</a>
-        <a href="{% link "index" %}">← Back to home</a>
+        <a href="{% link "index" %}">{% if ui_lang == "fr" %}← Retour à l'accueil{% else %}← Back to home{% endif %}</a>
     </div>
 </div>
 {% endblock %}

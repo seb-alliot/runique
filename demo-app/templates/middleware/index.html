@@ -2,41 +2,41 @@
 
 {% block content %}
 <div class="container">
-    <h1>{{ title }}</h1>
+    <h1>{% set tr_text = title %}{% include "utils/tr.html" %}</h1>
     <p class="lead lead-mb">
-        Runique middlewares connect via the builder — execution order guaranteed by the framework.
+        {% if ui_lang == "fr" %}Les middlewares de Runique se branchent via le builder, et le framework garantit leur ordre d'exécution.{% else %}Runique middlewares connect via the builder — execution order guaranteed by the framework.{% endif %}
     </p>
 
     <div class="demo-cards">
         <a href="{% link "middleware_csrf" %}" class="feature-card">
             <h3>CSRF</h3>
-            <p>Automatic protection — transparent in forms via <code>request.form("name")</code></p>
+            <p>{% if ui_lang == "fr" %}Protection automatique, transparente dans les formulaires via{% else %}Automatic protection — transparent in forms via{% endif %} <code>request.form("name")</code></p>
         </a>
         <a href="{% link "middleware_csp" %}" class="feature-card">
             <h3>CSP</h3>
-            <p>Content Security Policy — directives, nonce, predefined profiles</p>
+            <p>{% if ui_lang == "fr" %}Content Security Policy : directives, nonce, profils prédéfinis{% else %}Content Security Policy — directives, nonce, predefined profiles{% endif %}</p>
         </a>
         <a href="{% link "middleware_rate_limit" %}" class="feature-card">
-            <h3>Rate Limiter</h3>
-            <p>Request limiting per IP with sliding window</p>
+            <h3>{% if ui_lang == "fr" %}Limitation de débit{% else %}Rate Limiter{% endif %}</h3>
+            <p>{% if ui_lang == "fr" %}Limitation des requêtes par IP avec fenêtre glissante{% else %}Request limiting per IP with sliding window{% endif %}</p>
         </a>
         <a href="{% link "middleware_login_guard" %}" class="feature-card">
             <h3>Login Guard</h3>
-            <p>Anti brute-force by username — configurable lockout</p>
+            <p>{% if ui_lang == "fr" %}Anti brute force par nom d'utilisateur, avec blocage configurable{% else %}Anti brute-force by username — configurable lockout{% endif %}</p>
         </a>
         <a href="{% link "middleware_hosts" %}" class="feature-card">
-            <h3>Host Validation</h3>
-            <p>Allowed hosts validation — wildcards, ports, IPv6</p>
+            <h3>{% if ui_lang == "fr" %}Validation des hôtes{% else %}Host Validation{% endif %}</h3>
+            <p>{% if ui_lang == "fr" %}Validation des hôtes autorisés : jokers, ports, IPv6{% else %}Allowed hosts validation — wildcards, ports, IPv6{% endif %}</p>
         </a>
         <a href="{% link "middleware_https" %}" class="feature-card">
             <h3>HTTPS</h3>
-            <p>HTTP → HTTPS redirection and security headers (HSTS)</p>
+            <p>{% if ui_lang == "fr" %}Redirection HTTP → HTTPS et en-têtes de sécurité (HSTS){% else %}HTTP → HTTPS redirection and security headers (HSTS){% endif %}</p>
         </a>
     </div>
 
     <div class="back-link">
         <a href="{% if ui_lang == "fr" %}https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/08-middleware.md{% else %}https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/08-middleware.md{% endif %}" target="_blank" rel="noopener" class="btn btn-secondary">Documentation</a>
-        <a href="{% link "index" %}">← Back to home</a>
+        <a href="{% link "index" %}">{% if ui_lang == "fr" %}← Retour à l'accueil{% else %}← Back to home{% endif %}</a>
     </div>
 </div>
 {% endblock %}

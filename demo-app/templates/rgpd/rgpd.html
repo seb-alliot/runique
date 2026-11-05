@@ -2,48 +2,120 @@
 
 {% block content %}
 <div class="content">
-    <h1>{{ title }}</h1>
+    <h1>{% set tr_text = title %}{% include "utils/tr.html" %}</h1>
 
+    {% if ui_lang == "fr" %}
+    <h2>Site de démonstration</h2>
+    <p>
+        Ce site est une démonstration technique du framework <strong>Runique</strong>.
+        Il n'a aucun but commercial.
+    </p>
+
+    <h2>Données collectées</h2>
+    <p>À la création d'un compte :</p>
+    <p><strong>nom d'utilisateur</strong>, <strong>adresse email</strong>, <strong>mot de passe</strong> (haché, jamais stocké en clair).</p>
+    <p>
+        <strong>Utilisez une vraie adresse email</strong> : votre compte s'active par le lien qui y est envoyé,
+        et elle sert aussi à réinitialiser votre mot de passe.
+    </p>
+    <p>
+        Si vous les utilisez : les articles et contributions que vous publiez, avec les informations
+        que vous y saisissez (l'email et le site web d'un article, par exemple), et les fichiers que vous envoyez.
+    </p>
+    <p>
+        Comme pour tout site web, votre adresse IP est traitée pour acheminer les requêtes,
+        protéger le site contre les abus et tenir les journaux du serveur.
+    </p>
+
+    <h2>Cookies et stockage local</h2>
+    <p>Ce site n'utilise pas de cookie publicitaire :</p>
+    <p>— <code>id</code> : cookie de session, nécessaire au fonctionnement du site et à sa sécurité</p>
+    <p>— <code>lang</code> : la langue choisie, conservée un an</p>
+    <p>— <code>theme</code> : le thème clair ou sombre, gardé dans votre navigateur (stockage local)</p>
+
+    <h2>Hébergement et prestataires</h2>
+    <p>
+        Les données sont stockées dans la base du serveur qui héberge ce site.
+        Pour fonctionner, le site s'appuie sur <strong>Cloudflare</strong>, par lequel passent les requêtes,
+        et sur un service d'envoi de mails pour les messages d'activation et de réinitialisation.
+    </p>
+
+    <h2>Utilisation des données</h2>
+    <p>Vos données ne servent qu'au fonctionnement de ce site. Elles ne sont <strong>jamais</strong> :</p>
+    <p>— vendues</p>
+    <p>— utilisées à des fins commerciales</p>
+    <p>— utilisées pour du profilage ou du marketing</p>
+
+    <h2>Conservation des données</h2>
+    <p>
+        Les données peuvent être supprimées à tout moment sur demande.
+        La base de démonstration peut aussi être réinitialisée sans préavis :
+        comptes et contenus sont alors effacés.
+    </p>
+
+    <h2>Contact</h2>
+    <p>
+        Pour toute demande d'accès, de correction ou de suppression, ou pour toute question, ouvrez une issue sur le
+        <a href="https://github.com/seb-alliot/runique" target="_blank" rel="noopener">dépôt GitHub</a>.
+    </p>
+    {% else %}
     <h2>Demo site</h2>
     <p>
         This site is a technical demonstration of the <strong>Runique</strong> framework.
-        It has no commercial purpose. The data entered is used solely to illustrate
-        how the framework works.
+        It has no commercial purpose.
     </p>
 
     <h2>Data collected</h2>
+    <p>When creating an account:</p>
+    <p><strong>username</strong>, <strong>email address</strong>, <strong>password</strong> (hashed, never stored in plain text).</p>
     <p>
-        When creating an account, the following information is recorded:
-    </p>
-    <p><strong>Username</strong>, <strong>email address</strong>, <strong>password</strong> (hashed, never stored in plain text).</p>
-    <p>
-        Since this is a demonstration, <strong>no real email is required</strong> —
-        a fake address (e.g.: <code>test@example.com</code>) is perfectly acceptable.
+        <strong>Use a real email address</strong>: your account is activated through the link sent to it,
+        and it is also used to reset your password.
     </p>
     <p>
-        This data is stored in a local database for testing purposes only.
+        If you use them: the articles and contributions you publish, with the information
+        you enter in them (an article's email and website, for example), and the files you upload.
+    </p>
+    <p>
+        As on any website, your IP address is processed to route requests,
+        protect the site from abuse and keep server logs.
+    </p>
+
+    <h2>Cookies and local storage</h2>
+    <p>This site uses no advertising cookies:</p>
+    <p>— <code>id</code>: session cookie, needed for the site to work and stay secure</p>
+    <p>— <code>lang</code>: the language you chose, kept for one year</p>
+    <p>— <code>theme</code>: the light or dark theme, kept in your browser (local storage)</p>
+
+    <h2>Hosting and service providers</h2>
+    <p>
+        Data is stored in the database of the server hosting this site.
+        To work, the site relies on <strong>Cloudflare</strong>, which requests pass through,
+        and on an email delivery service for activation and reset messages.
     </p>
 
     <h2>Data usage</h2>
-    <p>Your data is <strong>never</strong>:</p>
-    <p>— shared with third parties</p>
+    <p>Your data only serves to run this site. It is <strong>never</strong>:</p>
+    <p>— sold</p>
     <p>— used for commercial purposes</p>
     <p>— used for profiling or marketing</p>
 
     <h2>Data retention</h2>
     <p>
         Data can be deleted at any time upon request.
-        The demo database is reset periodically.
+        The demo database may also be reset without notice,
+        which erases accounts and content.
     </p>
 
     <h2>Contact</h2>
     <p>
-        For any deletion request or question, open an issue on the
-        <a href="https://github.com/seb-alliot/runique" target="_blank">GitHub repository</a>.
+        For any request to access, correct or delete your data, or any question, open an issue on the
+        <a href="https://github.com/seb-alliot/runique" target="_blank" rel="noopener">GitHub repository</a>.
     </p>
+    {% endif %}
 
     <div class="back-link">
-        <a href="{% link "index" %}">← Back to home</a>
+        <a href="{% link "index" %}">{% if ui_lang == "fr" %}← Retour à l'accueil{% else %}← Back to home{% endif %}</a>
     </div>
 </div>
 {% endblock %}

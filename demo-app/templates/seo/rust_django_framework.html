@@ -4,6 +4,40 @@
     "rust web framework with admin panel", "type-safe forms rust". #}
 
 {% block jsonld %}
+{% if ui_lang == "fr" %}
+<script type="application/ld+json" {% csp %}>
+    {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+        {
+        "@type": "Question",
+        "name": "Existe-t-il un framework web de type Django pour Rust ?",
+        "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Oui, il y en a plusieurs. Runique s'inspire de Django et Cot s'en inspire aussi pour son API ; tous deux sont des frameworks complets avec panneau d'administration. Loco, lui, s'inspire de Rails."
+        }
+        },
+        {
+        "@type": "Question",
+        "name": "Runique a-t-il un panneau d'administration comme l'admin de Django ?",
+        "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Oui. Runique sert une administration CRUD complète à partir de vos modèles, avec colonnes de liste, recherche, filtres, actions groupées et droits, déclarée avec le builder typé ModelAdmin."
+        }
+        },
+        {
+        "@type": "Question",
+        "name": "Quelle alternative à Django choisir en Rust ?",
+        "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Runique et Cot suivent tous deux l'approche de Django. Le choix dépend de vos besoins : la page Comparatif de ce site les met côte à côte, fonctionnalité par fonctionnalité."
+        }
+        }
+    ]
+}
+</script>
+{% else %}
 <script type="application/ld+json" {% csp %}>
     {
     "@context": "https://schema.org",
@@ -14,7 +48,7 @@
         "name": "Is there a Django-like web framework for Rust?",
         "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. Runique is a Rust web framework inspired by Django, built on Axum, SeaORM and Tera. It ships a typed ModelAdmin panel, type-safe forms, migrations, authentication and built-in CSRF/CSP security."
+            "text": "Yes, there are several. Runique is inspired by Django, and Cot models its API after Django too; both are batteries-included frameworks with an admin panel. Loco, for its part, is inspired by Rails."
         }
         },
         {
@@ -27,15 +61,16 @@
         },
         {
         "@type": "Question",
-        "name": "What is the best Django alternative in Rust?",
+        "name": "Which Django alternative should I choose in Rust?",
         "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Runique aims to bring the Django developer experience to Rust: a batteries-included framework with models, type-safe forms, a typed ModelAdmin panel, sessions and security middleware, on top of the Axum and SeaORM ecosystem."
+            "text": "Runique and Cot both follow the Django approach. The right choice depends on your needs: this site's Comparison page puts them side by side, feature by feature."
         }
         }
     ]
 }
 </script>
+{% endif %}
 {% endblock %}
 
 {% block style %}
@@ -45,6 +80,91 @@
 
 {% block content %}
 <main class="seo-page">
+{% if ui_lang == "fr" %}
+
+    <h1>Runique : un framework web Rust inspiré de Django</h1>
+
+    <p class="seo-lead">
+        <strong>Runique</strong> apporte l'expérience de développement de Django à Rust. C'est un
+        <strong>framework web Rust</strong> complet : administration typée, formulaires typés,
+        modèles et migrations, authentification et sécurité CSRF/CSP intégrée, construit sur
+        <a href="https://crates.io/crates/axum" target="_blank" rel="noopener">Axum</a>,
+        <a href="https://crates.io/crates/sea-orm" target="_blank" rel="noopener">SeaORM</a> et Tera.
+    </p>
+
+    <div class="seo-cta">
+        <a href="/docs/{{ ui_lang }}/installation" class="hero-btn hero-btn--primary">Commencer →</a>
+        <a href="https://crates.io/crates/runique" target="_blank" rel="noopener" class="hero-btn hero-btn--secondary">crates.io</a>
+        <a href="https://github.com/seb-alliot/runique" target="_blank" rel="noopener" class="hero-btn hero-btn--secondary">GitHub</a>
+    </div>
+
+    <h2>Pourquoi un framework de type Django en Rust ?</h2>
+    <p>
+        Rust dispose de briques web rapides et de bas niveau, et aussi de frameworks complets : Cot s'inspire de Django, Loco de Rails.
+        Runique suit l'approche de Django : au lieu d'assembler à la main un ORM, un moteur de templates,
+        une administration et une couche de formulaires, vous les obtenez intégrés et guidés par des conventions,
+        en gardant la sûreté de typage et les performances de Rust.
+    </p>
+
+    <h2>Une administration typée</h2>
+    <p>
+        Comme l'admin de Django, Runique sert une interface CRUD complète à partir de vos modèles avec
+        le builder typé <code>ModelAdmin</code> : colonnes de liste, recherche, filtres latéraux, pagination,
+        actions groupées et contrôle des droits. Voir la <a href="/docs/{{ ui_lang }}/admin">documentation de l'admin</a>.
+    </p>
+
+    <h2>Formulaires et modèles typés</h2>
+    <p>
+        Déclarez un modèle une fois : Runique en dérive l'entité SeaORM, la migration SQL et un formulaire
+        typé avec validation côté serveur. En savoir plus sur les
+        <a href="/docs/{{ ui_lang }}/formulaire">formulaires</a> et les
+        <a href="/docs/{{ ui_lang }}/model">modèles et la macro <code>model!</code></a>.
+    </p>
+
+    <h2>Tout est inclus : authentification, sessions, sécurité</h2>
+    <p>
+        L'authentification, les sessions persistantes, la réinitialisation du mot de passe, la protection CSRF,
+        une CSP configurable et la validation des hôtes sont fournies d'origine. Découvrez
+        l'<a href="/docs/{{ ui_lang }}/auth">authentification</a>,
+        les <a href="/docs/{{ ui_lang }}/session">sessions</a> et les
+        <a href="/docs/{{ ui_lang }}/middleware">middlewares de sécurité</a>.
+    </p>
+
+    <h2>De Django à Runique en un coup d'œil</h2>
+    <table class="seo-table">
+        <thead><tr><th>Django (Python)</th><th>Runique (Rust)</th></tr></thead>
+        <tbody>
+            <tr><td>models.py</td><td>macro <code>model!</code> → entité SeaORM + migration</td></tr>
+            <tr><td>forms.py</td><td>formulaires typés <code>#[form]</code></td></tr>
+            <tr><td>admin.py</td><td>administration typée <code>ModelAdmin</code></td></tr>
+            <tr><td>urls.py</td><td>macro de routage <code>urlpatterns!</code></td></tr>
+            <tr><td>Templates Django</td><td>templates Tera (échappement automatique)</td></tr>
+            <tr><td>ORM (QuerySet)</td><td>SeaORM + DSL de requêtes <code>search!</code></td></tr>
+            <tr><td>middleware</td><td>middlewares ordonnés par slots (CSRF, CSP, sessions…)</td></tr>
+        </tbody>
+    </table>
+    <p>
+        Une comparaison détaillée se trouve sur la page <a href="/comparatif#django">Comparatif Django et Runique</a>.
+    </p>
+
+    <h2 class="seo-faq-title">FAQ</h2>
+    <div class="seo-faq">
+        <h3>Existe-t-il un framework web de type Django pour Rust ?</h3>
+        <p>Oui, il y en a plusieurs. Runique s'inspire de Django et Cot s'en inspire aussi pour son API ; tous deux sont des frameworks complets avec panneau d'administration. Loco, lui, s'inspire de Rails.</p>
+
+        <h3>Runique a-t-il un panneau d'administration comme l'admin de Django ?</h3>
+        <p>Oui. Il sert une administration CRUD complète à partir de vos modèles, avec recherche, filtres,
+        actions groupées et droits.</p>
+
+        <h3>Quelle alternative à Django choisir en Rust ?</h3>
+        <p>Runique et Cot suivent tous deux l'approche de Django. Le choix dépend de vos besoins : la page <a href="/comparatif">Comparatif</a> les met côte à côte, fonctionnalité par fonctionnalité.</p>
+    </div>
+
+    <div class="seo-cta">
+        <a href="/docs/{{ ui_lang }}/installation" class="hero-btn hero-btn--primary">Lire la documentation →</a>
+        <a href="{% link "index" %}" class="hero-btn hero-btn--secondary">← Retour à l'accueil</a>
+    </div>
+{% else %}
 
     <h1>Runique — a Rust web framework inspired by Django</h1>
 
@@ -57,41 +177,40 @@
     </p>
 
     <div class="seo-cta">
-        <a href="/docs/en/installation" class="hero-btn hero-btn--primary">Get started →</a>
+        <a href="/docs/{{ ui_lang }}/installation" class="hero-btn hero-btn--primary">Get started →</a>
         <a href="https://crates.io/crates/runique" target="_blank" rel="noopener" class="hero-btn hero-btn--secondary">crates.io</a>
         <a href="https://github.com/seb-alliot/runique" target="_blank" rel="noopener" class="hero-btn hero-btn--secondary">GitHub</a>
     </div>
 
     <h2>Why a Django-like framework in Rust?</h2>
     <p>
-        Rust has fast, low-level web building blocks, but no "batteries-included" framework with the
-        productivity of Django. Runique fills that gap: instead of wiring an ORM, a templating engine,
-        an admin and a form layer by hand, you get them integrated and convention-driven — while keeping
-        Rust's type safety and performance.
+        Rust has fast, low-level web building blocks, and full frameworks too: Cot is inspired by Django, Loco by Rails.
+        Runique follows the Django approach: instead of wiring an ORM, a templating engine, an admin and a
+        form layer by hand, you get them integrated and convention-driven, while keeping Rust's type safety and performance.
     </p>
 
     <h2>A typed admin panel</h2>
     <p>
         Like the Django admin, Runique serves a full CRUD back office from your models with the
         typed <code>ModelAdmin</code> builder: list display, search, side filters, pagination, bulk actions and
-        permission checks. See the <a href="/docs/en/admin">admin documentation</a>.
+        permission checks. See the <a href="/docs/{{ ui_lang }}/admin">admin documentation</a>.
     </p>
 
     <h2>Type-safe forms and models</h2>
     <p>
         Declare a model once and Runique derives the SeaORM entity, the SQL migration and a type-safe
         form with server-side validation. Read about
-        <a href="/docs/en/formulaire">forms</a> and
-        <a href="/docs/en/model">models and the <code>model!</code> macro</a>.
+        <a href="/docs/{{ ui_lang }}/formulaire">forms</a> and
+        <a href="/docs/{{ ui_lang }}/model">models and the <code>model!</code> macro</a>.
     </p>
 
     <h2>Batteries included: auth, sessions, security</h2>
     <p>
         Authentication, persistent sessions, password reset, CSRF protection, a configurable CSP and
         host validation ship in the box. Explore
-        <a href="/docs/en/auth">authentication</a>,
-        <a href="/docs/en/session">sessions</a> and
-        <a href="/docs/en/middleware">security middleware</a>.
+        <a href="/docs/{{ ui_lang }}/auth">authentication</a>,
+        <a href="/docs/{{ ui_lang }}/session">sessions</a> and
+        <a href="/docs/{{ ui_lang }}/middleware">security middleware</a>.
     </p>
 
     <h2>Django → Runique at a glance</h2>
@@ -114,22 +233,20 @@
     <h2 class="seo-faq-title">FAQ</h2>
     <div class="seo-faq">
         <h3>Is there a Django-like web framework for Rust?</h3>
-        <p>Yes — Runique is a Rust web framework inspired by Django, with a typed ModelAdmin panel, type-safe
-        forms, migrations, auth and built-in security.</p>
+        <p>Yes, there are several. Runique is inspired by Django, and Cot models its API after Django too; both are batteries-included frameworks with an admin panel. Loco, for its part, is inspired by Rails.</p>
 
         <h3>Does Runique have an admin panel like Django admin?</h3>
         <p>Yes. It generates a full CRUD admin from your models, with search, filters, bulk actions and
         permissions.</p>
 
-        <h3>What is the best Django alternative in Rust?</h3>
-        <p>Runique focuses specifically on the Django experience — batteries included — on top of the
-        Axum and SeaORM ecosystem.</p>
+        <h3>Which Django alternative should I choose in Rust?</h3>
+        <p>Runique and Cot both follow the Django approach. The right choice depends on your needs: the <a href="/comparatif">Comparison</a> page puts them side by side, feature by feature.</p>
     </div>
 
     <div class="seo-cta">
-        <a href="/docs/en/installation" class="hero-btn hero-btn--primary">Read the docs →</a>
+        <a href="/docs/{{ ui_lang }}/installation" class="hero-btn hero-btn--primary">Read the docs →</a>
         <a href="{% link "index" %}" class="hero-btn hero-btn--secondary">← Back home</a>
     </div>
-
+{% endif %}
 </main>
 {% endblock %}

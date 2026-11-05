@@ -1,4 +1,6 @@
+use crate::backend::lang::visitor_lang;
 use crate::entities::contribution;
+use runique::axum::http::HeaderMap;
 use runique::prelude::*;
 
 pub fn contribution_type_choices() -> Vec<ChoiceOption> {
@@ -34,13 +36,13 @@ impl RuniqueForm for ContributionForm {
         if title.len() < 3 {
             errors.insert(
                 "title".to_string(),
-                "Le titre doit faire au moins 3 caractères.".to_string(),
+                "The title must be at least 3 characters long.".to_string(),
             );
         }
         if content.len() < 10 {
             errors.insert(
                 "content".to_string(),
-                "Le contenu doit faire au moins 10 caractères.".to_string(),
+                "The content must be at least 10 characters long.".to_string(),
             );
         }
 
@@ -70,5 +72,17 @@ impl ContributionForm {
             ..Default::default()
         };
         new_contribution.insert(db).await
+    }
+}
+
+impl ContributionForm {
+    pub fn in_language(mut self, headers: &HeaderMap) -> Self {
+        if visitor_lang(headers) == "fr" {
+            self.forms_mut()
+                .field_label("contribution_type", "Type de contribution")
+                .field_label("title", "Titre")
+                .field_label("content", "Contenu");
+        }
+        self
     }
 }

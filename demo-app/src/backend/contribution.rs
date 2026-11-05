@@ -1,3 +1,4 @@
+use crate::backend::lang::msg;
 use crate::entities::contribution::Entity as ContributionEntity;
 use crate::formulaire::ContributionForm;
 use runique::prelude::*;
@@ -44,14 +45,15 @@ pub async fn handle_contribution_submit(
 
     let mut form = match ValidationForm::try_form(form, request).await {
         Ok(validated) => validated.into_form(),
-        Err(form) => {
+        Err(mut form) => {
+            crate::backend::lang::localize_errors(form.forms_mut(), &request.headers);
             if !form.is_submitted() {
                 context_update!(request => { "title" => "Submit a contribution", "contribution_form" => &form });
             } else {
                 context_update!(request => {
                     "title"             => "Validation error",
                     "contribution_form" => &form,
-                    "messages"          => flash_now!(error => "Please correct the errors below"),
+                    "messages"          => flash_now!(error => msg(&request.headers, "Please correct the errors below", "Veuillez corriger les erreurs ci-dessous")),
                 });
             }
             return request.render(template);
@@ -64,7 +66,7 @@ pub async fn handle_contribution_submit(
     };
     match save_contribution(&mut form, &request.engine.db, user_id).await {
         Ok(_) => {
-            success!(request.notices => "Thank you for your contribution!");
+            success!(request.notices => msg(&request.headers, "Thank you for your contribution!", "Merci pour votre contribution !"));
             Ok(Redirect::to("/contributions").into_response())
         }
         Err(err) => {
