@@ -1475,11 +1475,37 @@ async fn a_filter_offers_the_values_and_narrows_the_list() {
         "the title's value offered"
     );
     assert!(page.contains("filter_code=C1"), "the code's value offered");
+    assert!(
+        !page.contains("hx-get=\"\""),
+        "htmx would add the form's fields to the current URL"
+    );
 
     let narrowed = text(&client, format!("{list}?filter_title=seed")).await;
     assert!(narrowed.contains("#1"), "the matching row stays");
     let empty = text(&client, format!("{list}?filter_title=none")).await;
     assert!(!empty.contains("#1"), "no row matches");
+
+    let either = text(
+        &client,
+        format!("{list}?filter_title=none&filter_title=seed"),
+    )
+    .await;
+    assert!(either.contains("#1"), "one of the column's values matches");
+    assert!(
+        either.contains("filter_title=seed&amp;page=1"),
+        "`none`, on no page of values, stays offered: its link turns it off"
+    );
+    assert!(
+        either.contains("filter_title=none&amp;page=1"),
+        "`seed` turns off alone, `none` kept"
+    );
+
+    let other_column = text(
+        &client,
+        format!("{list}?filter_title=seed&filter_code=none"),
+    )
+    .await;
+    assert!(!other_column.contains("#1"), "every column must match");
 }
 
 /// A column the account can't read is never offered as a filter: its values

@@ -36,6 +36,10 @@ pub struct AdminConfig {
     /// Number of entries per page in the list view (default: 10)
     pub page_size: u64,
 
+    /// Values each filter group of the list shows before its arrows
+    /// (default: 10)
+    pub filter_size: u64,
+
     /// Longest search caractere maximum , default 150
     pub search_max_len: usize,
 
@@ -75,6 +79,7 @@ impl Clone for AdminConfig {
             enabled: self.enabled,
             templates: self.templates.clone(),
             page_size: self.page_size,
+            filter_size: self.filter_size,
             search_max_len: self.search_max_len,
             reset_link: self.reset_link.clone(),
             user_resources: self.user_resources.clone(),
@@ -112,6 +117,7 @@ impl AdminConfig {
             enabled: true,
             templates: AdminTemplate::new(),
             page_size: 10,
+            filter_size: crate::admin::builder::list::FILTER_PAGE_SIZE,
             search_max_len: 150,
             reset_link: None,
             user_resources: std::collections::HashMap::new(),
@@ -125,6 +131,13 @@ impl AdminConfig {
     /// Sets the number of rows per page in list views (clamped to at least 1).
     pub fn page_size(mut self, size: u64) -> Self {
         self.page_size = size.max(1);
+        self
+    }
+
+    /// Sets the values each filter group shows before its arrows (clamped
+    /// to at least 1).
+    pub fn filter_size(mut self, size: u64) -> Self {
+        self.filter_size = size.max(1);
         self
     }
 
@@ -251,6 +264,7 @@ mod tests {
     #[test]
     fn a_zero_is_raised_to_one() {
         assert_eq!(AdminConfig::new().page_size(0).page_size, 1);
+        assert_eq!(AdminConfig::new().filter_size(0).filter_size, 1);
         assert_eq!(AdminConfig::new().search_max_len(0).search_max_len, 1);
     }
 }

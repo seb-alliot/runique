@@ -54,6 +54,7 @@ Keep `use …::Column::*` **inside** the model function so two models with a `Ti
 | `.search_help("…")` | Search help text. **No effect for now** (see Limits) |
 | `.filter([Col, …])` | Side filters (`?filter_status=…`) |
 | `.per_page(n)` | Page size for this model |
+| `.filter_size(n)` | Values per page of the filter groups for this model |
 | `.empty_value("—")` | Text for empty values. **No effect for now** (see Limits) |
 | `.action(Col, value, "Label")` | Bulk action: set `Col` to `value` on checked rows |
 

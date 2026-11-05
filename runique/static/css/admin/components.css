@@ -679,6 +679,35 @@
     background: var(--danger-light);
 }
 
+/* The panel's size selector, under its title. */
+.admin-filter__size {
+    padding: 0.55rem 1.1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.admin-filter__size .admin-list__size {
+    margin-left: 0;
+}
+
+.admin-filter__size .admin-list__size-label {
+    display: flex;
+    justify-content: space-between;
+}
+
+/* A filter group's arrows, under its values. It stays in the panel: never
+   fixed to the bottom like the list's pagination on a phone. */
+.admin-filter__pager {
+    padding: 0.4rem 1rem 0.6rem;
+}
+
+#list-content .admin-filter__pager .admin-pagination {
+    position: static;
+    margin-top: 0;
+    gap: 0.5rem;
+    background: none;
+    z-index: auto;
+}
+
 @media (min-width: 64em) {
     .admin-filter__sidebar {
         position: sticky;

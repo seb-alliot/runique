@@ -90,13 +90,19 @@ Also rendered, without layout, for HTMX requests (`admin/list_partial.html`).
 | `group_actions` | Grouped actions offered: `{ index, label }` |
 | `bulk_delete` | Whether the grouped actions' bar offers delete |
 | `return_qs` | Current query (search, sort, filters, page), to come back to the same place |
-| `filter_values` | Each filter's values, by column |
-| `active_filters` | Applied filters, column → value |
+| `filter_values` | Each filter's values, by column: `value`, `active`, `qs` (link turning it on or off) |
+| `filter_clear` | Link turning a whole filter off, for the filtered columns |
+| `active_filters` | Applied filters, column → values |
 | `filter_qs` | Applied filters as a query string (`&filter_col=value…`) |
 | `search` | Current search |
 | `sort_by`, `sort_dir`, `sort_dir_toggle` | Current sort (`asc` / `desc`) and the other direction |
 | `total` | Matching rows, all pages |
-| `page`, `page_count`, `has_prev`, `has_next`, `prev_page`, `next_page` | Pagination |
+| `page`, `page_count`, `page_size` | Current page, page count, rows per page |
+| `list_pager` | The list's arrows and selector: `page`, `page_count`, `prev_qs`, `next_qs` (`None` with no page that way), `size`, `size_options`, `size_param`, `keep` |
+| `filter_pagers` | Each filter group's arrows, by column (same shape, `page_count` is `None`) |
+| `filter_size_pager` | The filter panel's selector (same shape), `None` without a filter |
+| `size_qs`, `filter_nav_qs` | The list's size, and the panel's pages and size, as a query string to keep on a link |
+| `filter_nav` | The panel's pages and size, as pairs for a form's hidden inputs |
 
 `entry.values[column]` gives a shown column's value.
 

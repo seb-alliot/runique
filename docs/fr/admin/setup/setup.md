@@ -127,6 +127,7 @@ admin
 | --- | --- |
 | `.site_title("…")` | Titre dans l'UI |
 | `.page_size(15)` | Taille de page liste par défaut |
+| `.filter_size(8)` | Valeurs par page des groupes de filtre, par défaut |
 | `.search_max_len(n)` | Longueur max du terme de recherche |
 | `.with_rate_limiter(...)` | Rate limit login / actions |
 | `.with_login_guard(...)` | Verrouillage après N échecs |

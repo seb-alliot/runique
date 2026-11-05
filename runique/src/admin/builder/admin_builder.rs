@@ -27,11 +27,17 @@ pub struct ModelAdmin<E: ModelMeta> {
     pub(super) templates: crate::admin::template::ModelTemplates,
 }
 
-/// One filter of a list: its column and the values it offers.
+/// One filter of a list: its column and the page of values it offers.
 #[derive(serde::Serialize)]
 pub(crate) struct ListFilter {
     pub column: &'static str,
     pub values: Vec<String>,
+    /// The page of values shown, from 1.
+    pub page: u64,
+    /// Values per page of this group.
+    pub size: u64,
+    /// Whether values follow this page.
+    pub has_next: bool,
 }
 
 /// A declared action the list's bar offers this account.
@@ -256,6 +262,7 @@ impl<E: ModelMeta> ModelAdmin<E> {
         proof: &Authorized<List, E>,
         query: &ListQuery,
         site_page_size: u64,
+        site_filter_size: u64,
     ) -> Result<ListPage, DbErr> {
         let backend = db.get_database_backend();
         let list = self.list.readable_only(proof.readable());
@@ -302,13 +309,28 @@ impl<E: ModelMeta> ModelAdmin<E> {
         let sortable = list.sortable_columns().iter().map(|c| c.as_str()).collect();
         let mut filters = Vec::new();
         for col in list.filter_columns() {
-            let values = ListConfig::<E>::filter_values(backend, proof.conditions(), *col)
-                .into_tuple::<String>()
-                .all(&**db)
-                .await?;
+            let size = list.filter_page_size(query, site_filter_size);
+            let fetch = move |page: u64| {
+                ListConfig::<E>::filter_values(backend, proof.conditions(), *col, page, size)
+                    .into_tuple::<String>()
+                    .all(&**db)
+            };
+            let mut filter_page = query.filter_page(col.as_str());
+            let mut values = fetch(filter_page).await?;
+            // A page past the last (an old link, values gone since): the
+            // first page instead of an empty group with no way back.
+            if values.is_empty() && filter_page > 1 {
+                filter_page = 1;
+                values = fetch(1).await?;
+            }
+            let has_next = values.len() as u64 > size;
+            values.truncate(usize::try_from(size).unwrap_or(usize::MAX));
             filters.push(ListFilter {
                 column: col.as_str(),
                 values,
+                page: filter_page,
+                size,
+                has_next,
             });
         }
         Ok(ListPage {
@@ -742,7 +764,7 @@ mod tests {
             user: &reader,
         };
         let proof = authorize_list::<Entity>(&ctx).unwrap();
-        admin.fetch_list(&db, &proof, &query, 25).await.unwrap()
+        admin.fetch_list(&db, &proof, &query, 25, 10).await.unwrap()
     }
 
     fn paged(per_page: u64) -> ModelAdmin<Entity> {
@@ -811,7 +833,7 @@ mod tests {
         let admin =
             ModelAdmin::<Entity>::new().list(|l| l.display([Column::Id]).filter([Column::Id]));
         let page = admin
-            .fetch_list(&db, &proof, &ListQuery::default(), 25)
+            .fetch_list(&db, &proof, &ListQuery::default(), 25, 10)
             .await
             .unwrap();
         let mut values = page.filters.into_iter().next().unwrap().values;
@@ -829,6 +851,49 @@ mod tests {
         assert_eq!(filter_values_for(pk(10), read).await, ["1", "2", "3"]);
         assert_eq!(filter_values_for(pk(10), read_own).await, ["1"]);
         assert_eq!(filter_values_for(pk(20), read_own).await, ["2"]);
+    }
+
+    /// A filter group shows one page of its values, and says whether another
+    /// follows, without counting them.
+    #[tokio::test]
+    async fn a_filter_pages_its_values() {
+        let db = db().await;
+        let reader = staff(
+            pk(10),
+            "notes",
+            [false, true, false, false, false, false, false],
+        );
+        let ctx = GateCtx {
+            db: &db,
+            user: &reader,
+        };
+        let proof = authorize_list::<Entity>(&ctx).unwrap();
+        let admin =
+            ModelAdmin::<Entity>::new().list(|l| l.display([Column::Id]).filter([Column::Id]));
+        let at = |page: u64| ListQuery {
+            filter_size: Some(2),
+            filter_pages: vec![("id".to_string(), page)],
+            ..Default::default()
+        };
+
+        let first = admin.fetch_list(&db, &proof, &at(1), 25, 10).await.unwrap();
+        let first = first.filters.into_iter().next().unwrap();
+        assert_eq!(
+            (first.values.len(), first.page, first.has_next),
+            (2, 1, true)
+        );
+
+        let last = admin.fetch_list(&db, &proof, &at(2), 25, 10).await.unwrap();
+        let last = last.filters.into_iter().next().unwrap();
+        assert_eq!((last.values.len(), last.page, last.has_next), (1, 2, false));
+
+        // Past the end, even a page no offset can reach: back to the first page.
+        let past = admin
+            .fetch_list(&db, &proof, &at(u64::MAX), 25, 10)
+            .await
+            .unwrap();
+        let past = past.filters.into_iter().next().unwrap();
+        assert_eq!((past.values.len(), past.page, past.has_next), (2, 1, true));
     }
 
     #[tokio::test]
@@ -887,7 +952,7 @@ mod tests {
                     .filter([user::Column::Email])
                     .sortable([user::Column::Email])
             })
-            .fetch_list(&db, &proof, &query, 25)
+            .fetch_list(&db, &proof, &query, 25, 10)
             .await
             .unwrap()
     }
@@ -971,7 +1036,7 @@ mod tests {
             };
             let proof = authorize_list::<user::Entity>(&ctx).unwrap();
             let page = admin
-                .fetch_list(&db, &proof, &ListQuery::default(), 25)
+                .fetch_list(&db, &proof, &ListQuery::default(), 25, 10)
                 .await
                 .unwrap();
             assert_eq!(page.rows[0]["username"], first, "email readable: {email}");

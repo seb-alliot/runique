@@ -72,11 +72,28 @@ Behaviour:
 .list(|l| l.filter([Status, Lang]))
 ```
 
-Each filter offers **distinct** values in the allowed scope (max 100). URL prefix is `filter_`:
+Each filter offers **distinct** values in the allowed scope, page by page. URL prefix is `filter_`:
 
 ```text
-?filter_status=Published&filter_lang=en
+?filter_status=Published&filter_status=Draft&filter_lang=en
 ```
+
+Several values of one column add up (`Published` **or** `Draft`), several columns combine (**and**). Clicking a value turns it on; clicking it again turns it off, the others stay. A column accepts at most 100 values from the URL.
+
+Each group of the panel has its arrows, and a single selector, under the panel's title, sets the number of values of all groups:
+
+| Level | Method | Default |
+| --- | --- | --- |
+| Site | `AdminStaging::filter_size(n)` | 10 |
+| Model | `ListConfig::filter_size(n)` | inherits site |
+
+```rust
+admin.filter_size(8)
+
+.list(|l| l.filter([PageId]).filter_size(15))
+```
+
+The choice made in the selector (10, 25, 50 or 100) wins over these settings.
 
 ## Bulk actions
 
@@ -108,6 +125,8 @@ admin.page_size(15)
 .list(|l| l.per_page(30))
 ```
 
+The list's selector (10, 25, 50 or 100) wins over these settings. The URL can't ask for another size.
+
 ## URL parameters
 
 | Param | Role |
@@ -116,7 +135,10 @@ admin.page_size(15)
 | `sort_by` | Column name (must be in `sortable`) |
 | `sort_dir` | `asc` or `desc` |
 | `search` | Full-text term |
-| `filter_<col>` | Filter value |
+| `per_page` | Rows per page (10, 25, 50 or 100) |
+| `filter_<col>` | Filter value, repeatable |
+| `fpage_<col>` | Page of values of the filter group `<col>` |
+| `fsize` | Values per page of the filter groups (10, 25, 50 or 100) |
 
 Example:
 

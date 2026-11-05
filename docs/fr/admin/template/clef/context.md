@@ -90,13 +90,19 @@ Aussi rendue, sans layout, pour les requêtes HTMX (`admin/list_partial.html`).
 | `group_actions` | Actions groupées proposées : `{ index, label }` |
 | `bulk_delete` | La barre d'actions groupées propose la suppression |
 | `return_qs` | Requête courante (recherche, tri, filtres, page), pour revenir au même endroit |
-| `filter_values` | Valeurs de chaque filtre, par colonne |
-| `active_filters` | Filtres appliqués, colonne → valeur |
+| `filter_values` | Valeurs de chaque filtre, par colonne : `value`, `active`, `qs` (lien qui l'active ou la retire) |
+| `filter_clear` | Lien retirant tout un filtre, pour les colonnes filtrées |
+| `active_filters` | Filtres appliqués, colonne → valeurs |
 | `filter_qs` | Filtres appliqués en query string (`&filter_col=valeur…`) |
 | `search` | Recherche en cours |
 | `sort_by`, `sort_dir`, `sort_dir_toggle` | Tri en cours (`asc` / `desc`) et sens inverse |
 | `total` | Lignes correspondantes, toutes pages |
-| `page`, `page_count`, `has_prev`, `has_next`, `prev_page`, `next_page` | Pagination |
+| `page`, `page_count`, `page_size` | Page en cours, nombre de pages, lignes par page |
+| `list_pager` | Flèches et sélecteur de la liste : `page`, `page_count`, `prev_qs`, `next_qs` (`None` sans page dans ce sens), `size`, `size_options`, `size_param`, `keep` |
+| `filter_pagers` | Flèches de chaque groupe de filtre, par colonne (même forme, `page_count` à `None`) |
+| `filter_size_pager` | Sélecteur du panneau de filtres (même forme), `None` sans filtre |
+| `size_qs`, `filter_nav_qs` | Taille de la liste, et pages et taille du panneau, en query string à garder sur un lien |
+| `filter_nav` | Pages et taille du panneau, en paires pour les champs cachés d'un formulaire |
 
 `entry.values[colonne]` donne la valeur d'une colonne affichée.
 

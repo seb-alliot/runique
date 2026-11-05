@@ -54,6 +54,7 @@ Le `use …::Column::*` reste **dans** la fonction du modèle : deux modèles av
 | `.search_help("…")` | Texte d'aide de la recherche. **Sans effet pour l'instant** (voir Limites) |
 | `.filter([Col, …])` | Filtres latéraux (`?filter_status=…`) |
 | `.per_page(n)` | Taille de page pour ce modèle |
+| `.filter_size(n)` | Valeurs par page des groupes de filtre pour ce modèle |
 | `.empty_value("—")` | Texte des valeurs vides. **Sans effet pour l'instant** (voir Limites) |
 | `.action(Col, value, "Label")` | Action groupée : fixe `Col` à `value` sur les lignes cochées |
 

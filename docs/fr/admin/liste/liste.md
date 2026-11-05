@@ -72,11 +72,30 @@ Comportement :
 .list(|l| l.filter([Status, Lang]))
 ```
 
-Chaque filtre propose les valeurs **distinctes** présentes dans le périmètre autorisé (max 100). L'URL utilise le préfixe `filter_` :
+Chaque filtre propose les valeurs **distinctes** présentes dans le périmètre autorisé, page par page. L'URL utilise le préfixe `filter_` :
 
 ```text
-?filter_status=Published&filter_lang=fr
+?filter_status=Published&filter_status=Draft&filter_lang=fr
 ```
+
+Plusieurs valeurs d'une colonne s'additionnent (`Published` **ou** `Draft`), plusieurs colonnes se cumulent (**et**). Cliquer sur une valeur l'active ; cliquer de nouveau la retire, les autres restent. Une colonne accepte au plus 100 valeurs depuis l'URL.
+
+Chaque groupe du panneau a ses flèches, et un seul sélecteur, sous le titre du panneau, règle le nombre de valeurs de tous les groupes :
+
+| Niveau | Méthode | Défaut |
+| --- | --- | --- |
+| Site | `AdminStaging::filter_size(n)` | 10 |
+| Modèle | `ListConfig::filter_size(n)` | hérite du site |
+
+```rust
+// site
+admin.filter_size(8)
+
+// modèle
+.list(|l| l.filter([PageId]).filter_size(15))
+```
+
+Le choix fait dans le sélecteur (10, 25, 50 ou 100) l'emporte sur ces réglages.
 
 ## Actions groupées
 
@@ -110,6 +129,8 @@ admin.page_size(15)
 .list(|l| l.per_page(30))
 ```
 
+Le sélecteur de la liste (10, 25, 50 ou 100) l'emporte sur ces réglages. L'URL ne peut pas demander une autre taille.
+
 ## Paramètres d'URL
 
 | Param | Rôle |
@@ -118,7 +139,10 @@ admin.page_size(15)
 | `sort_by` | Nom de colonne (doit être dans `sortable`) |
 | `sort_dir` | `asc` ou `desc` |
 | `search` | Terme plein-texte |
-| `filter_<col>` | Valeur de filtre |
+| `per_page` | Lignes par page (10, 25, 50 ou 100) |
+| `filter_<col>` | Valeur de filtre, répétable |
+| `fpage_<col>` | Page de valeurs du groupe de filtre `<col>` |
+| `fsize` | Valeurs par page des groupes de filtre (10, 25, 50 ou 100) |
 
 Exemple :
 

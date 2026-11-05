@@ -69,7 +69,10 @@ fn test_runique_error_io_display() {
 
 #[test]
 fn test_runique_error_template_display() {
-    let err = RuniqueError::Template { message: "template.html manquant".to_string(), line: None };
+    let err = RuniqueError::Template {
+        message: "template.html manquant".to_string(),
+        line: None,
+    };
     let msg = err.to_string();
     assert!(
         msg.contains("template.html manquant"),
@@ -180,7 +183,10 @@ fn test_to_error_context_internal_500() {
 
 #[test]
 fn test_to_error_context_template_500() {
-    let err = RuniqueError::Template { message: "erreur template".to_string(), line: None };
+    let err = RuniqueError::Template {
+        message: "erreur template".to_string(),
+        line: None,
+    };
     let ctx = err.to_error_context();
     assert_eq!(ctx.status_code, 500);
 }
@@ -353,7 +359,10 @@ fn test_runique_error_clone_io() {
 
 #[test]
 fn test_runique_error_clone_template() {
-    let err = RuniqueError::Template { message: "template.html".to_string(), line: None };
+    let err = RuniqueError::Template {
+        message: "template.html".to_string(),
+        line: None,
+    };
     let cloned = err.clone();
     assert_eq!(cloned.to_string(), err.to_string());
 }
@@ -437,7 +446,10 @@ fn test_from_runique_error_io() {
 
 #[test]
 fn test_from_runique_error_template() {
-    let err = RuniqueError::Template { message: "rendu.html".to_string(), line: None };
+    let err = RuniqueError::Template {
+        message: "rendu.html".to_string(),
+        line: None,
+    };
     let ctx = ErrorContext::from_runique_error(&err, None, None, None, None);
     assert_eq!(ctx.status_code, 500);
     assert!(ctx.message.contains("rendu.html"));
@@ -526,7 +538,11 @@ fn test_log_all_variants_no_panic() {
     RuniqueError::Validation("champ".to_string()).log();
     RuniqueError::Database("db".to_string()).log();
     RuniqueError::Io("io".to_string()).log();
-    RuniqueError::Template { message: "tmpl".to_string(), line: None }.log();
+    RuniqueError::Template {
+        message: "tmpl".to_string(),
+        line: None,
+    }
+    .log();
     RuniqueError::Custom {
         message: "msg".to_string(),
         source: None,
@@ -647,7 +663,11 @@ fn test_from_tera_error_template_name_stored() {
 fn test_to_error_context_keeps_the_error_category() {
     let db = RuniqueError::Database("down".into()).to_error_context();
     assert!(matches!(db.error_type, ErrorType::Database));
-    let tpl = RuniqueError::Template { message: "broken".to_string(), line: None }.to_error_context();
+    let tpl = RuniqueError::Template {
+        message: "broken".to_string(),
+        line: None,
+    }
+    .to_error_context();
     assert!(matches!(tpl.error_type, ErrorType::Template));
     assert_ne!(db.title, tpl.title);
 }
@@ -673,7 +693,8 @@ fn test_from_tera_error_reads_the_line_and_hides_internal_templates() {
     assert_eq!(info.available_templates, ["home.html"]);
 
     // Error on a later line: the line is read, not hardcoded.
-    let multiline = ErrorContext::from_tera_error(&tera_syntax_error("ok\n{{ x"), "home.html", &tera);
+    let multiline =
+        ErrorContext::from_tera_error(&tera_syntax_error("ok\n{{ x"), "home.html", &tera);
     assert_eq!(multiline.template_info.unwrap().line_number, Some(2));
 
     // A kind without a span (`Msg`) yields no line.

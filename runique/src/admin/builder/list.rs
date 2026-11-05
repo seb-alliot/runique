@@ -1,7 +1,6 @@
 //! The list page of one model.
 use crate::auth::gate::rights::ReadableColumns;
 use crate::db::sql_dialect::{search_condition, text_cast_type_of};
-use crate::utils::aliases::StrMap;
 use sea_orm::{
     sea_query::{Alias, Asterisk, Expr, ExprTrait, Func, StringLen, WindowStatement},
     {
@@ -19,15 +18,30 @@ pub(crate) struct ListQuery {
     pub sort_by: Option<String>,
     pub sort_dir: Option<String>,
     pub search: Option<String>,
+    /// `(column, value)`, several per column: a row matches one of a column's
+    /// values, and every column.
     pub filters: Vec<(String, String)>,
     /// The page size asked in the URL, kept only when it is one of
     /// [`PER_PAGE_OPTIONS`]: a free value would let a request pull the whole
     /// table in one page.
     pub per_page: Option<u64>,
+    /// Values per page of the filter groups (`fsize`), bound to
+    /// [`PER_PAGE_OPTIONS`] like `per_page`.
+    pub filter_size: Option<u64>,
+    /// The page each filter group shows (`fpage_{col}`). Any name is kept
+    /// here; only the list's own filter columns ever read it.
+    pub filter_pages: Vec<(String, u64)>,
 }
 
 /// The page sizes the list offers, and the only ones the URL may set.
 pub const PER_PAGE_OPTIONS: [u64; 4] = [10, 25, 50, 100];
+
+/// Values per filter group without a choice in the URL.
+pub(crate) const FILTER_PAGE_SIZE: u64 = 10;
+
+/// Values one column's filter accepts from the URL: past it, the rest is
+/// ignored, so a forged query can't grow the `WHERE` without bound.
+const FILTER_CHOSEN_MAX: usize = 100;
 
 /// Shorter terms search nothing: one or two letters match almost every row
 /// and scan the whole table, while the list searches as one types.
@@ -36,10 +50,21 @@ pub(crate) const SEARCH_MIN_LEN: usize = 3;
 impl ListQuery {
     /// Reads the URL's query string. It only shapes the values: which column
     /// a name may reach is decided later, by `ListConfig`.
-    pub(crate) fn from_params(mut params: StrMap, search_max_len: usize) -> Self {
-        let mut non_empty = |key: &str| params.remove(key).filter(|v| !v.is_empty());
+    pub(crate) fn from_params(params: Vec<(String, String)>, search_max_len: usize) -> Self {
+        // A name sent twice: the last one counts, except for a filter's values.
+        let non_empty = |key: &str| {
+            params
+                .iter()
+                .rev()
+                .find(|(k, _)| k == key)
+                .map(|(_, v)| v.clone())
+                .filter(|v| !v.is_empty())
+        };
         let page = non_empty("page").and_then(|p| p.parse().ok()).unwrap_or(1);
         let per_page = non_empty("per_page")
+            .and_then(|v| v.parse().ok())
+            .filter(|v| PER_PAGE_OPTIONS.contains(v));
+        let filter_size = non_empty("fsize")
             .and_then(|v| v.parse().ok())
             .filter(|v| PER_PAGE_OPTIONS.contains(v));
         let sort_by = non_empty("sort_by");
@@ -47,13 +72,22 @@ impl ListQuery {
         let search = non_empty("search")
             .filter(|s| s.trim().chars().count() >= SEARCH_MIN_LEN)
             .map(|s| s.chars().take(search_max_len).collect());
-        let filters = params
-            .into_iter()
-            .filter_map(|(key, value)| {
-                let col = key.strip_prefix("filter_")?.to_string();
-                (!value.is_empty()).then_some((col, value))
-            })
-            .collect();
+        let mut filters: Vec<(String, String)> = Vec::new();
+        let mut filter_pages = Vec::new();
+        for (key, value) in params {
+            if let Some(col) = key.strip_prefix("filter_")
+                && !value.is_empty()
+                && !filters.iter().any(|(c, v)| c == col && *v == value)
+                && filters.iter().filter(|(c, _)| c == col).count() < FILTER_CHOSEN_MAX
+            {
+                filters.push((col.to_string(), value));
+            } else if let Some(col) = key.strip_prefix("fpage_")
+                && let Ok(n) = value.parse::<u64>()
+                && n > 1
+            {
+                filter_pages.push((col.to_string(), n));
+            }
+        }
 
         Self {
             page,
@@ -62,7 +96,18 @@ impl ListQuery {
             sort_dir,
             search,
             filters,
+            filter_size,
+            filter_pages,
         }
+    }
+
+    /// The page the filter group of `col` shows, 1 when the URL names none.
+    pub(crate) fn filter_page(&self, col: &str) -> u64 {
+        self.filter_pages
+            .iter()
+            .rev()
+            .find(|(c, _)| c == col)
+            .map_or(1, |(_, n)| *n)
     }
 }
 
@@ -77,9 +122,6 @@ pub(crate) struct Action<E: EntityTrait> {
 
 /// Alias of the value a filter offers.
 pub(crate) const FILTER_VALUE: &str = "value";
-/// The values one filter offers at most: past it, the list is too long to
-/// click through, and the search field serves better.
-pub(crate) const FILTER_VALUES_MAX: u64 = 100;
 
 /// Alias of the window column carrying the total on every row.
 pub(crate) const TOTAL: &str = "__total";
@@ -102,6 +144,8 @@ pub struct ListConfig<E: EntityTrait> {
     filter: Vec<E::Column>,
     /// The default number of items per page.
     per_page: Option<u64>,
+    /// The default number of values per filter group.
+    filter_size: Option<u64>,
     /// Text under the search bar
     pub(super) search_help: Option<String>,
     /// Shown in place of an empty value (`None`: the template's default).
@@ -120,6 +164,7 @@ impl<E: EntityTrait> Default for ListConfig<E> {
             search: None,
             filter: Vec::new(),
             per_page: None,
+            filter_size: None,
             search_help: None,
             empty_value: None,
             actions: Vec::new(),
@@ -177,9 +222,22 @@ impl<E: EntityTrait> ListConfig<E> {
 
     /// The values a filter offers for `col`: the distinct ones of the rows in
     /// `scope`, as text (how `resolve_filters` compares them), sorted, NULL
-    /// left out, at most `FILTER_VALUES_MAX`.
-    pub(crate) fn filter_values(backend: DbBackend, scope: Condition, col: E::Column) -> Select<E> {
+    /// left out, `page` of `size` of them. One more than `size` is read: its
+    /// presence says a next page exists, without counting the values.
+    pub(crate) fn filter_values(
+        backend: DbBackend,
+        scope: Condition,
+        col: E::Column,
+        page: u64,
+        size: u64,
+    ) -> Select<E> {
         let cast = Alias::new(text_cast_type_of(backend));
+        // The databases take a signed 64-bit offset: a huge page from the URL
+        // stays in range instead of failing the query.
+        let offset = std::cmp::Ord::min(
+            page.saturating_sub(1).saturating_mul(size),
+            i64::MAX.unsigned_abs(),
+        );
         E::find()
             .filter(scope)
             .filter(col.is_not_null())
@@ -187,7 +245,8 @@ impl<E: EntityTrait> ListConfig<E> {
             .column_as(Expr::col((E::default(), col)).cast_as(cast), FILTER_VALUE)
             .distinct()
             .order_by_asc(Expr::col(Alias::new(FILTER_VALUE)))
-            .limit(FILTER_VALUES_MAX)
+            .offset(offset)
+            .limit(size.saturating_add(1))
     }
 
     pub fn links(mut self, cols: impl IntoIterator<Item = E::Column>) -> Self {
@@ -218,6 +277,24 @@ impl<E: EntityTrait> ListConfig<E> {
     pub fn per_page(mut self, per_page: u64) -> Self {
         self.per_page = Some(per_page);
         self
+    }
+
+    /// Values each filter group shows before its arrows, over the site's
+    /// `filter_size` (at least 1).
+    pub fn filter_size(mut self, size: u64) -> Self {
+        self.filter_size = Some(std::cmp::max(size, 1));
+        self
+    }
+
+    /// Values per page of the filter groups: the URL's choice (bound to
+    /// [`PER_PAGE_OPTIONS`]), otherwise the model's, otherwise the site's.
+    pub(crate) fn filter_page_size(&self, query: &ListQuery, site_default: u64) -> u64 {
+        std::cmp::max(
+            query
+                .filter_size
+                .unwrap_or_else(|| self.filter_size.unwrap_or(site_default)),
+            1,
+        )
     }
 
     pub fn search_help(mut self, text: impl Into<String>) -> Self {
@@ -361,17 +438,22 @@ impl<E: EntityTrait> ListConfig<E> {
         filters: &[(String, String)],
     ) -> Option<Condition> {
         let cast = Alias::new(text_cast_type_of(backend));
-        let cond = filters
-            .iter()
-            .filter_map(|(name, value)| {
-                let col = self.filter.iter().find(|c| c.as_str() == name.as_str())?;
-                Some(
-                    Expr::col((E::default(), *col))
-                        .cast_as(cast.clone())
-                        .eq(value.as_str()),
-                )
-            })
-            .fold(Condition::all(), |cond, expr| cond.add(expr));
+        let mut cond = Condition::all();
+        for col in &self.filter {
+            let one_of = filters
+                .iter()
+                .filter(|(name, _)| name == col.as_str())
+                .fold(Condition::any(), |any, (_, value)| {
+                    any.add(
+                        Expr::col((E::default(), *col))
+                            .cast_as(cast.clone())
+                            .eq(value.as_str()),
+                    )
+                });
+            if !one_of.is_empty() {
+                cond = cond.add(one_of);
+            }
+        }
         (!cond.is_empty()).then_some(cond)
     }
     /// Rows per page without a viewer's choice: the model's `per_page`,
@@ -490,10 +572,9 @@ fn decimal_fits(len: Option<(u32, u32)>, d: &sea_orm::prelude::Decimal) -> bool 
 #[cfg(feature = "sqlite")]
 #[cfg(test)]
 mod tests {
-    use super::{ListConfig, ListQuery, decimal_fits};
+    use super::{FILTER_CHOSEN_MAX, ListConfig, ListQuery, decimal_fits};
     use crate::auth::gate::test_support::fixtures::note::{Column, Entity};
     use crate::auth::user;
-    use crate::utils::aliases::StrMap;
     use sea_orm::prelude::Decimal;
     use sea_orm::{Condition, DbBackend, EntityTrait, IdenStatic, Order, QueryFilter, QueryTrait};
 
@@ -712,6 +793,46 @@ mod tests {
     }
 
     #[test]
+    fn the_values_of_one_column_are_alternatives() {
+        let cond = filtered_list()
+            .resolve_filters(
+                DbBackend::Sqlite,
+                &pairs(&[("owner_id", "10"), ("owner_id", "20"), ("id", "1")]),
+            )
+            .unwrap();
+        let w = note_where(cond);
+        assert!(w.contains(" OR "), "the column's two values: {w}");
+        assert!(w.contains(" AND "), "the two columns: {w}");
+        assert!(w.contains("'10'") && w.contains("'20'"), "{w}");
+    }
+
+    #[test]
+    fn a_column_keeps_each_of_its_values_once_up_to_the_cap() {
+        let q = ListQuery::from_params(
+            params(&[
+                ("filter_id", "1"),
+                ("filter_id", "2"),
+                ("filter_id", "1"),
+                ("filter_id", ""),
+            ]),
+            150,
+        );
+        assert_eq!(q.filters, pairs(&[("id", "1"), ("id", "2")]));
+
+        let many: Vec<(String, String)> = (0..=FILTER_CHOSEN_MAX)
+            .map(|n| ("filter_id".to_string(), n.to_string()))
+            .collect();
+        let q = ListQuery::from_params(many, 150);
+        assert_eq!(q.filters.len(), FILTER_CHOSEN_MAX);
+    }
+
+    #[test]
+    fn a_name_sent_twice_keeps_its_last_value() {
+        let q = ListQuery::from_params(params(&[("page", "2"), ("page", "3")]), 150);
+        assert_eq!(q.page, 3);
+    }
+
+    #[test]
     fn an_undeclared_column_is_dropped() {
         let list = ListConfig::<Entity>::default().filter([Column::OwnerId]);
         let filters = pairs(&[("id", "1")]);
@@ -750,7 +871,7 @@ mod tests {
         );
     }
 
-    fn params(raw: &[(&str, &str)]) -> StrMap {
+    fn params(raw: &[(&str, &str)]) -> Vec<(String, String)> {
         raw.iter()
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect()
@@ -794,6 +915,70 @@ mod tests {
             let q = ListQuery::from_params(params(&[("per_page", v)]), 150);
             assert_eq!(q.per_page, None, "{v}");
         }
+    }
+
+    #[test]
+    fn a_filter_size_is_bound_to_the_options() {
+        let bare = ListConfig::<Entity>::default();
+        let q = ListQuery::from_params(params(&[("fsize", "50")]), 150);
+        assert_eq!(bare.filter_page_size(&q, 10), 50);
+        for v in ["1000000", "7", "0", "abc"] {
+            let q = ListQuery::from_params(params(&[("fsize", v)]), 150);
+            assert_eq!(bare.filter_page_size(&q, 10), 10, "{v}");
+        }
+    }
+
+    /// A selector resubmitted over a URL that already names a size: the new
+    /// one counts, or picking 50 would fall back on the previous 10.
+    #[test]
+    fn the_last_filter_size_and_page_of_the_url_count() {
+        let bare = ListConfig::<Entity>::default();
+        let q = ListQuery::from_params(
+            params(&[
+                ("fsize", "10"),
+                ("fsize", "50"),
+                ("fpage_status", "2"),
+                ("fpage_status", "3"),
+            ]),
+            150,
+        );
+        assert_eq!(bare.filter_page_size(&q, 5), 50);
+        assert_eq!(q.filter_page("status"), 3);
+    }
+
+    #[test]
+    fn the_url_filter_size_wins_over_the_model_and_site_defaults() {
+        let model = ListConfig::<Entity>::default().filter_size(15);
+        let picked = ListQuery::from_params(params(&[("fsize", "25")]), 150);
+        let none = ListQuery::default();
+        assert_eq!(model.filter_page_size(&picked, 5), 25, "the url");
+        assert_eq!(model.filter_page_size(&none, 5), 15, "the model");
+        let bare = ListConfig::<Entity>::default();
+        assert_eq!(bare.filter_page_size(&none, 5), 5, "the site");
+        assert_eq!(
+            ListConfig::<Entity>::default()
+                .filter_size(0)
+                .filter_page_size(&none, 5),
+            1,
+            "a zero is raised to one"
+        );
+    }
+
+    #[test]
+    fn a_filter_page_is_read_per_column() {
+        let q = ListQuery::from_params(params(&[("fpage_status", "3"), ("fpage_lang", "x")]), 150);
+        assert_eq!(q.filter_page("status"), 3);
+        assert_eq!(q.filter_page("lang"), 1, "not a number");
+        assert_eq!(q.filter_page("other"), 1, "not in the url");
+        // `fpage_*` / `fsize` are not filters: they must not narrow the rows.
+        assert!(q.filters.is_empty());
+        let sized = ListQuery::from_params(params(&[("fsize", "25")]), 150);
+        assert!(sized.filters.is_empty());
+        let one = ListQuery::from_params(params(&[("fpage_status", "1")]), 150);
+        assert!(
+            one.filter_pages.is_empty(),
+            "page 1 is the default, not kept"
+        );
     }
 
     #[test]
