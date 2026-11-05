@@ -1,4 +1,4 @@
-//! Cache-control middleware — injects `Cache-Control: no-cache` in debug mode to force reloading.
+//! Cache-control middleware — injects `Cache-Control: no-cache` in development to force reloading.
 use crate::utils::aliases::AEngine;
 use axum::{
     body::Body,
@@ -9,15 +9,14 @@ use axum::{
 };
 
 /// Forces `Cache-Control: no-cache, no-store, must-revalidate` (plus `Pragma`
-/// and `Expires`) on responses when the app is in debug mode and the request
+/// and `Expires`) on responses when the app is in development and the request
 /// targets localhost, so local development never serves a stale cached page.
 pub async fn dev_no_cache_middleware(
     State(engine): State<AEngine>,
     req: Request<Body>,
     next: Next,
 ) -> Response {
-    // Check if in debug mode AND on localhost
-    let should_no_cache = engine.config.debug && is_localhost(&req);
+    let should_no_cache = engine.config.dev && is_localhost(&req);
 
     let mut response = next.run(req).await;
 

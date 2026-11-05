@@ -1,10 +1,12 @@
 pub mod auth;
 pub mod blog;
 mod cards;
+pub mod comparatif;
 pub mod contribution;
 pub mod cours;
 pub mod doc;
 pub mod forms;
+pub mod lang;
 mod pages;
 pub mod seeds;
 
@@ -37,21 +39,18 @@ pub async fn inject_globals(request: &mut Request) {
             .await
             .unwrap_or(None);
 
-    let lang = if request
-        .path_params
-        .get("lang")
-        .map(|l| l == "fr")
-        .unwrap_or(false)
-    {
-        "fr"
-    } else {
-        "en"
+    // A language in the URL wins, so a shared link shows what it was shared for.
+    let lang = match request.path_params.get("lang").map(|l| l.as_str()) {
+        Some("fr") => "fr",
+        Some("en") => "en",
+        _ => lang::visitor_lang(&request.headers),
     };
 
     context_update!(request =>{
         "runique_release" => &release,
         "user" => user,
         "lang" => lang,
+        "ui_lang" => lang,
     }
     )
 }

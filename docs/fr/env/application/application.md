@@ -4,7 +4,8 @@
 
 | Variable | Défaut | Description |
 |----------|--------|-------------|
-| `DEBUG` | `false` | Interrupteur global dev/prod — lu **une seule fois** au démarrage. Accepte `true`/`1`/`yes`/`on` et `false`/`0`/`no`/`off`, quelle que soit la casse. Active : niveau de log `debug` (sauf `RUST_LOG`), pages d'erreur détaillées, templates relus à chaque requête, page d'accueil par défaut si `/` n'est pas déclaré. En production (`false`) : niveau `warn`, erreurs génériques, contrôles de sécurité au démarrage (`SECRET_KEY`, `with_public_url`, ACME). |
+| `RUNIQUE_ENV` | `prod` | `dev` ou `prod`, quelle que soit la casse ; absente ou inconnue, c'est `prod` (avec un avertissement si la valeur est inconnue). Lue **une seule fois** au démarrage. En `dev` : cookie de session sans `Secure`, niveau de log `debug` (sauf `RUST_LOG`), templates relus à chaque requête, en-têtes no-cache sur `localhost`, page d'accueil par défaut si `/` n'est pas déclaré, URL publique à `http://127.0.0.1:{PORT}`, hôtes autorisés non validés, pas de `upgrade-insecure-requests`, pas de SRI et fichiers statiques en `no-cache` pour que le CSS modifié se recharge sans redémarrer. En `prod` : contrôles de sécurité au démarrage (`SECRET_KEY`, `with_public_url`, mailer du reset, ACME). |
+| `DEBUG` | `false` | Affiche les pages d'erreur détaillées et ne change rien d'autre — lu **une seule fois** au démarrage. Accepte `true`/`1`/`yes`/`on` et `false`/`0`/`no`/`off`, quelle que soit la casse. Fonctionne aussi avec `RUNIQUE_ENV=prod` pour diagnostiquer un problème en direct : déconseillé, car tous les visiteurs voient alors ces pages (un avertissement s'affiche au démarrage). |
 | `BASE_DIR` | `.` | Répertoire racine de l'application |
 | `TZ` | `UTC` | Fuseau horaire IANA de l'application (ex : `Europe/Paris`, `America/New_York`). Accessible via `config.timezone` — à parser avec `chrono-tz` dans le projet. |
 | `LANG` | locale système | Langue de la CLI (`fr`, `en`, `de`, `es`, `it`, `pt`, `ja`, `zh`, `ru`). Priorité : `LANG` / `LC_ALL` / `LC_MESSAGES` du `.env` > locale système > `en`. La langue de l'application se règle dans le code (`set_lang(Lang::Fr)`) |
@@ -17,7 +18,7 @@
 |----------|--------|-------------|
 | `IP_SERVER` | `127.0.0.1` | Adresse IP d'écoute |
 | `PORT` | `3000` | Port d'écoute |
-| `SECRET_KEY` | `default_secret_key` | Clé secrète (CSRF, signatures, chiffrement des sessions en base : la changer déconnecte leurs utilisateurs au redémarrage). `runique new` en génère une aléatoire (64 caractères hexadécimaux) dans le `.env` du projet. Pour la remplacer : n'importe quelle chaîne aléatoire d'au moins 32 caractères (`openssl rand -hex 32`). En production (`DEBUG=false`), le **démarrage échoue** si elle est vide, égale au défaut, ou fait moins de 32 caractères ; en debug, un avertissement est affiché |
+| `SECRET_KEY` | `default_secret_key` | Clé secrète (CSRF, signatures, chiffrement des sessions en base : la changer déconnecte leurs utilisateurs au redémarrage). `runique new` en génère une aléatoire (64 caractères hexadécimaux) dans le `.env` du projet. Pour la remplacer : n'importe quelle chaîne aléatoire d'au moins 32 caractères (`openssl rand -hex 32`). En production (`RUNIQUE_ENV=prod`), le **démarrage échoue** si elle est vide, égale au défaut, ou fait moins de 32 caractères ; en développement, un avertissement est affiché si elle est absente |
 
 ---
 

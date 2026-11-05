@@ -13,8 +13,7 @@ let app = RuniqueApp::builder(config)
               c.policy(SecurityPolicy::strict())
            })
          .with_allowed_hosts(|h| {
-              h.enabled(true)
-               .host("monsite.fr")
+              h.host("monsite.fr")
                .host("www.monsite.fr")
            })
          .with_cache(true)
@@ -30,18 +29,12 @@ let app = RuniqueApp::builder(config)
 
 ```rust
 .middleware(|m| {
-    m.with_csp(|c| {
-          c.policy(SecurityPolicy::strict())
-           .with_upgrade_insecure(!is_debug())
-       })
-     .with_allowed_hosts(|h| {
-          h.enabled(!is_debug())  // désactivé en dev, actif en prod
-           .host("monsite.fr")
-       })
+    m.with_csp(|c| c.policy(SecurityPolicy::strict()))
+     .with_allowed_hosts(|h| h.host("monsite.fr"))
 })
 ```
 
-> En mode `DEBUG=true`, `is_debug()` retourne `true` — les guards de sécurité peuvent être désactivés conditionnellement.
+> `RUNIQUE_ENV` fait le reste : avec `dev`, les hôtes ne sont pas validés et `upgrade-insecure-requests` est retiré ; avec `prod`, les deux s'appliquent. Pour votre propre code, `is_dev()` donne la même information.
 
 ---
 

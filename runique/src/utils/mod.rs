@@ -18,7 +18,7 @@ pub use config::runique_log;
 pub use config::*;
 pub use constante::*;
 pub use crypto::*;
-pub use env::is_debug;
+pub use env::{is_debug, is_dev};
 pub use forms::*;
 pub use init_error::init_logging;
 pub use mailer::{

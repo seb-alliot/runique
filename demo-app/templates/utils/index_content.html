@@ -4,61 +4,39 @@
 <section class="hero">
     <div class="hero-visual">
         <picture>
-            <source srcset="{% media "runique_320.avif" %}" media="(max-width: 600px)">
-            <img src="{% media "runique_ecran.avif" %}" alt="Runique — Rust carrying Django to new horizons" class="hero-banner">
+            <img src="{% media "runique_ecran.avif" %}" alt="{% if ui_lang == "fr" %}Runique : Rust porte Django vers de nouveaux horizons{% else %}Runique — Rust carrying Django to new horizons{% endif %}" class="hero-banner">
         </picture>
         <div class="hero-visual-text">
-            <h1 class="hero-heading">
-                <span class="hero-name">Runique</span>
-                <span>A Rust web framework</span>
-                <span class="hero-title"><span class="hero-accent">inspired by Django</span></span>
-            </h1>
-            <p class="hero-sub">Axum · SeaORM · Tera · Native CSRF · Built-in Admin</p>
-            <div class="hero-cta">
-                <a href="{% link "doc_index_en" %}" class="hero-btn hero-btn--primary">Documentation →</a>
-                <a href="/cours" class="hero-btn hero-btn--secondary">Rust Courses</a>
+            <div class="hero-visual-inner">
+                <div class="hero-copy">
+                    <h1 class="hero-heading">{% if ui_lang == "fr" %}Le framework web Rust inspiré de Django{% else %}The Rust web framework inspired by Django{% endif %}</h1>
+                    <p class="hero-sub">{% if ui_lang == "fr" %}Modèles, migrations, formulaires typés, administration et sécurité intégrés, sur Axum, SeaORM et Tera.{% else %}Models, migrations, typed forms, administration and security built in, on Axum, SeaORM and Tera.{% endif %}</p>
+                    <div class="hero-cta">
+                        <a href="/docs/{% if ui_lang == "fr" %}fr{% else %}en{% endif %}" class="hero-btn hero-btn--primary">{% if ui_lang == "fr" %}Lire la documentation{% else %}Read the documentation{% endif %}</a>
+                        <a href="#get-started" class="hero-btn hero-btn--secondary">{% if ui_lang == "fr" %}Démarrer{% else %}Get started{% endif %}</a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    
-    {# ══════════════════════════════════════════
-        STACK STRIP
+</section>
+
+{# ══════════════════════════════════════════
+    CODE
     ══════════════════════════════════════════ #}
-<div class="stack-strip">
-    <a href="https://crates.io/crates/axum" target="_blank" class="stack-chip">
-        <span class="stack-chip-label">Backend</span>
-        <span class="stack-chip-value">Axum</span>
-    </a>
-    <a href="https://crates.io/crates/sea-orm" target="_blank" class="stack-chip">
-        <span class="stack-chip-label">ORM</span>
-        <span class="stack-chip-value">SeaORM</span>
-    </a>
-    <a href="https://crates.io/crates/tera" target="_blank" class="stack-chip">
-        <span class="stack-chip-label">Templates</span>
-        <span class="stack-chip-value">Tera</span>
-    </a>
-    <a href="https://crates.io/crates/tokio" target="_blank" class="stack-chip">
-        <span class="stack-chip-label">Runtime</span>
-        <span class="stack-chip-value">Tokio</span>
-    </a>
-    <a href="https://crates.io/crates/tower-sessions" target="_blank" class="stack-chip">
-        <span class="stack-chip-label">Sessions</span>
-        <span class="stack-chip-value">tower-sessions</span>
-    </a>
-    <a href="https://crates.io/crates/sea-orm-migration" target="_blank" class="stack-chip">
-        <span class="stack-chip-label">Migrations</span>
-        <span class="stack-chip-value">sea-orm-migration</span>
-    </a>
-</div>
-    <div class="hero-inner">
-        <div class="hero-code" id="hero-code">
+<section class="home-section">
+    <div class="home-split">
+        <div>
+            <h2>{% if ui_lang == "fr" %}Du code lisible et typé{% else %}Readable, typed code{% endif %}</h2>
+            <p class="home-section-sub">{% if ui_lang == "fr" %}Le schéma, les routes, l'administration et la sécurité se déclarent en Rust et sont vérifiés à la compilation.{% else %}Schema, routes, administration and security are declared in Rust and checked at compile time.{% endif %}</p>
+        </div>
+<div class="hero-code" id="hero-code">
             <div class="hero-code-header">
-                <span class="hero-code-dots">● ● ●</span>
                 <div class="hero-code-tabs" role="tablist">
                     <button class="hero-tab active" data-tab="orm"       role="tab">ORM</button>
                     <button class="hero-tab"        data-tab="route"     role="tab">Route</button>
                     <button class="hero-tab"        data-tab="admin"     role="tab">Admin</button>
-                    <button class="hero-tab"        data-tab="securite"  role="tab">Security</button>
+                    <button class="hero-tab"        data-tab="securite"  role="tab">{% if ui_lang == "fr" %}Sécurité{% else %}Security{% endif %}</button>
                 </div>
             </div>
 
@@ -109,8 +87,7 @@
 
             <pre class="hero-code-body hero-tab-panel" data-panel="securite"><code>.<span class="hc-fn">middleware</span>(|m| {
     m.<span class="hc-fn">with_allowed_hosts</span>(|h| {
-        h.<span class="hc-fn">enabled</span>(!<span class="hc-fn">is_debug</span>())
-            .<span class="hc-fn">host</span>(<span class="hc-str">"runique.io"</span>)
+        h.<span class="hc-fn">host</span>(<span class="hc-str">"runique.io"</span>)
     })
     .<span class="hc-fn">with_csp</span>(|c| {
         c.<span class="hc-fn">policy</span>(<span class="hc-ty">SecurityPolicy</span>::<span class="hc-fn">strict</span>())
@@ -124,44 +101,69 @@
     </div>
 </section>
 
+{# ══════════════════════════════════════════
+    STACK STRIP
+    ══════════════════════════════════════════ #}
+<section class="home-section">
+<div class="stack-strip">
+    <a href="https://crates.io/crates/axum" target="_blank" class="stack-chip">
+        <span class="stack-chip-label">Backend</span>
+        <span class="stack-chip-value">Axum</span>
+    </a>
+    <a href="https://crates.io/crates/sea-orm" target="_blank" class="stack-chip">
+        <span class="stack-chip-label">ORM</span>
+        <span class="stack-chip-value">SeaORM</span>
+    </a>
+    <a href="https://crates.io/crates/tera" target="_blank" class="stack-chip">
+        <span class="stack-chip-label">Templates</span>
+        <span class="stack-chip-value">Tera</span>
+    </a>
+    <a href="https://crates.io/crates/tokio" target="_blank" class="stack-chip">
+        <span class="stack-chip-label">Runtime</span>
+        <span class="stack-chip-value">Tokio</span>
+    </a>
+    <a href="https://crates.io/crates/tower-sessions" target="_blank" class="stack-chip">
+        <span class="stack-chip-label">Sessions</span>
+        <span class="stack-chip-value">tower-sessions</span>
+    </a>
+    <a href="https://crates.io/crates/sea-orm-migration" target="_blank" class="stack-chip">
+        <span class="stack-chip-label">Migrations</span>
+        <span class="stack-chip-value">sea-orm-migration</span>
+    </a>
+</div>
+</section>
 
-    {# ══════════════════════════════════════════
+{# ══════════════════════════════════════════
         FEATURES
     ══════════════════════════════════════════ #}
-<section class="features">
-    <div class="features-inner">
-        <h2 class="features-title">Everything you need</h2>
-        <p class="features-sub">A complete framework, without compromising on security.</p>
+<section class="home-section">
+    <div>
+        <h2 class="features-title">{% if ui_lang == "fr" %}Tout ce qu'il faut{% else %}Everything you need{% endif %}</h2>
+        <p class="features-sub">{% if ui_lang == "fr" %}Un framework complet, sans compromis sur la sécurité.{% else %}A complete framework, without compromising on security.{% endif %}</p>
         <div class="features-grid">
-            <a href="/docs/en/orm" class="feature-item">
-                <span class="feature-icon">⚡</span>
-                <h3>Django-like ORM</h3>
-                <p>search!, objects, auto-generated migrations from your Rust models</p>
+            <a href="/docs/{% if ui_lang == "fr" %}fr{% else %}en{% endif %}/orm" class="feature-item">
+                <h3>{% if ui_lang == "fr" %}ORM à la Django{% else %}Django-like ORM{% endif %}</h3>
+                <p>{% if ui_lang == "fr" %}search!, objects, migrations générées depuis vos modèles Rust{% else %}search!, objects, auto-generated migrations from your Rust models{% endif %}</p>
             </a>
-            <a href="/docs/en/middleware" class="feature-item">
-                <span class="feature-icon">🔒</span>
-                <h3>Native Security</h3>
-                <p>CSRF, CSP, rate limiting, host validation — built-in, not optional</p>
+            <a href="/docs/{% if ui_lang == "fr" %}fr{% else %}en{% endif %}/middleware" class="feature-item">
+                <h3>{% if ui_lang == "fr" %}Sécurité native{% else %}Native Security{% endif %}</h3>
+                <p>{% if ui_lang == "fr" %}CSRF, CSP, limitation de débit, validation des hôtes : intégrés, pas en option{% else %}CSRF, CSP, rate limiting, host validation — built-in, not optional{% endif %}</p>
             </a>
-            <a href="/docs/en/admin" class="feature-item">
-                <span class="feature-icon">🏗</span>
-                <h3>Typed Admin</h3>
-                <p>Typed CRUD interface from your models via <code>ModelAdmin</code>, customizable</p>
+            <a href="/docs/{% if ui_lang == "fr" %}fr{% else %}en{% endif %}/admin" class="feature-item">
+                <h3>{% if ui_lang == "fr" %}Administration typée{% else %}Typed Admin{% endif %}</h3>
+                <p>{% if ui_lang == "fr" %}Interface CRUD typée depuis vos modèles avec <code>ModelAdmin</code>, personnalisable{% else %}Typed CRUD interface from your models via <code>ModelAdmin</code>, customizable{% endif %}</p>
             </a>
-            <a href="/docs/en/formulaire" class="feature-item">
-                <span class="feature-icon">📝</span>
-                <h3>Typed Forms</h3>
-                <p>Static declaration, automatic validation, file uploads</p>
+            <a href="/docs/{% if ui_lang == "fr" %}fr{% else %}en{% endif %}/formulaire" class="feature-item">
+                <h3>{% if ui_lang == "fr" %}Formulaires typés{% else %}Typed Forms{% endif %}</h3>
+                <p>{% if ui_lang == "fr" %}Déclaration statique, validation automatique, envoi de fichiers{% else %}Static declaration, automatic validation, file uploads{% endif %}</p>
             </a>
-            <a href="/docs/en/template" class="feature-item">
-                <span class="feature-icon">🧩</span>
-                <h3>Tera Templates</h3>
-                <p>Custom filters, tags, i18n, flash messages, macros</p>
+            <a href="/docs/{% if ui_lang == "fr" %}fr{% else %}en{% endif %}/template" class="feature-item">
+                <h3>{% if ui_lang == "fr" %}Templates Tera{% else %}Tera Templates{% endif %}</h3>
+                <p>{% if ui_lang == "fr" %}Filtres et balises personnalisés, i18n, messages flash, macros{% else %}Custom filters, tags, i18n, flash messages, macros{% endif %}</p>
             </a>
-            <a href="/docs/en/installation" class="feature-item">
-                <span class="feature-icon">🚀</span>
+            <a href="/docs/{% if ui_lang == "fr" %}fr{% else %}en{% endif %}/installation" class="feature-item">
                 <h3>Axum / Tokio</h3>
-                <p>Rust performance, native async, zero runtime overhead</p>
+                <p>{% if ui_lang == "fr" %}Performances de Rust, async natif, sans surcoût à l'exécution{% else %}Rust performance, native async, zero runtime overhead{% endif %}</p>
             </a>
         </div>
     </div>
@@ -170,28 +172,28 @@
     {# ══════════════════════════════════════════
         DEMO — SECTIONS
     ══════════════════════════════════════════ #}
-<section class="demo-section-wrapper">
-    <div class="demo-inner">
-        <h2 class="demo-section-title">Explore the demo</h2>
-        <p class="demo-section-sub">Each section is an interactive page of the demo-app.</p>
+<section class="home-section">
+    <div>
+        <h2 class="demo-section-title">{% if ui_lang == "fr" %}Explorer la démo{% else %}Explore the demo{% endif %}</h2>
+        <p class="demo-section-sub">{% if ui_lang == "fr" %}Chaque section est une page interactive de la demo-app.{% else %}Each section is an interactive page of the demo-app.{% endif %}</p>
 
         <div class="demo-sections">
 
             <div class="demo-section">
                 <details>
-                    <summary><h2>Authentication</h2></summary>
+                    <summary><h2>{% if ui_lang == "fr" %}Authentification{% else %}Authentication{% endif %}</h2></summary>
                     <div class="demo-cards">
                         <a href="{% link "inscription" %}" class="feature-card">
-                            <h3>Registration</h3>
-                            <p>Model-based form, validation, password hashing</p>
+                            <h3>{% if ui_lang == "fr" %}Inscription{% else %}Registration{% endif %}</h3>
+                            <p>{% if ui_lang == "fr" %}Formulaire lié au modèle, validation, hachage du mot de passe{% else %}Model-based form, validation, password hashing{% endif %}</p>
                         </a>
                         <a href="{% link "login" %}" class="feature-card">
-                            <h3>Authentication</h3>
-                            <p>Login / logout, sessions, route protection</p>
+                            <h3>{% if ui_lang == "fr" %}Authentification{% else %}Authentication{% endif %}</h3>
+                            <p>{% if ui_lang == "fr" %}Connexion, déconnexion, sessions, protection des routes{% else %}Login / logout, sessions, route protection{% endif %}</p>
                         </a>
                         <a href="{% link "profil" %}" class="feature-card">
-                            <h3>User Profile</h3>
-                            <p>Active session, user data, logout</p>
+                            <h3>{% if ui_lang == "fr" %}Profil utilisateur{% else %}User Profile{% endif %}</h3>
+                            <p>{% if ui_lang == "fr" %}Session active, données du compte, déconnexion{% else %}Active session, user data, logout{% endif %}</p>
                         </a>
                     </div>
                 </details>
@@ -199,15 +201,15 @@
 
             <div class="demo-section">
                 <details>
-                    <summary><h2>Forms</h2></summary>
+                    <summary><h2>{% if ui_lang == "fr" %}Formulaires{% else %}Forms{% endif %}</h2></summary>
                     <div class="demo-cards">
                         <a href="{% link "formulaires_hub" %}" class="feature-card">
-                            <h3>Forms</h3>
-                            <p>Declaration, available fields, Tera rendering</p>
+                            <h3>{% if ui_lang == "fr" %}Formulaires{% else %}Forms{% endif %}</h3>
+                            <p>{% if ui_lang == "fr" %}Déclaration, champs disponibles, rendu Tera{% else %}Declaration, available fields, Tera rendering{% endif %}</p>
                         </a>
                         <a href="{% link "upload_image" %}" class="feature-card">
-                            <h3>File Upload</h3>
-                            <p>Image, size and extension validation</p>
+                            <h3>{% if ui_lang == "fr" %}Envoi de fichiers{% else %}File Upload{% endif %}</h3>
+                            <p>{% if ui_lang == "fr" %}Image, contrôle de la taille et de l'extension{% else %}Image, size and extension validation{% endif %}</p>
                         </a>
                     </div>
                 </details>
@@ -215,19 +217,19 @@
 
             <div class="demo-section">
                 <details>
-                    <summary><h2>Database</h2></summary>
+                    <summary><h2>{% if ui_lang == "fr" %}Base de données{% else %}Database{% endif %}</h2></summary>
                     <div class="demo-cards">
                         <a href="{% link "orm_demo" %}" class="feature-card">
-                            <h3>ORM — Queries</h3>
-                            <p>objects, filter, paginate, relations, create/update/delete</p>
+                            <h3>{% if ui_lang == "fr" %}ORM : requêtes{% else %}ORM — Queries{% endif %}</h3>
+                            <p>{% if ui_lang == "fr" %}objects, filtres, pagination, relations, création, modification, suppression{% else %}objects, filter, paginate, relations, create/update/delete{% endif %}</p>
                         </a>
                         <a href="{% link "database_demo" %}" class="feature-card">
-                            <h3>Database</h3>
-                            <p>DatabaseConfig, from_env, from_url, pool, timeouts</p>
+                            <h3>{% if ui_lang == "fr" %}Base de données{% else %}Database{% endif %}</h3>
+                            <p>{% if ui_lang == "fr" %}DatabaseConfig, from_env, from_url, pool, délais{% else %}DatabaseConfig, from_env, from_url, pool, timeouts{% endif %}</p>
                         </a>
                         <a href="{% link "model_demo" %}" class="feature-card">
-                            <h3>Models & Schemas</h3>
-                            <p>Define a model, types, constraints, relations, migrations</p>
+                            <h3>{% if ui_lang == "fr" %}Modèles et schémas{% else %}Models & Schemas{% endif %}</h3>
+                            <p>{% if ui_lang == "fr" %}Définir un modèle, types, contraintes, relations, migrations{% else %}Define a model, types, constraints, relations, migrations{% endif %}</p>
                         </a>
                     </div>
                 </details>
@@ -235,23 +237,23 @@
 
             <div class="demo-section">
                 <details>
-                    <summary><h2>Getting Started</h2></summary>
+                    <summary><h2>{% if ui_lang == "fr" %}Démarrer{% else %}Getting Started{% endif %}</h2></summary>
                     <div class="demo-cards">
                         <a href="{% link "installation_demo" %}" class="feature-card">
                             <h3>Installation</h3>
-                            <p>Prerequisites, .env, CLI commands, quick start</p>
+                            <p>{% if ui_lang == "fr" %}Prérequis, .env, commandes de la CLI, démarrage rapide{% else %}Prerequisites, .env, CLI commands, quick start{% endif %}</p>
                         </a>
                         <a href="{% link "configuration_demo" %}" class="feature-card">
-                            <h3>Configuration Builder</h3>
-                            <p>RuniqueApp::builder(), middlewares, secrets, assets</p>
+                            <h3>{% if ui_lang == "fr" %}Builder de configuration{% else %}Configuration Builder{% endif %}</h3>
+                            <p>{% if ui_lang == "fr" %}RuniqueApp::builder(), middlewares, secrets, fichiers statiques{% else %}RuniqueApp::builder(), middlewares, secrets, assets{% endif %}</p>
                         </a>
                         <a href="{% link "migrations_demo" %}" class="feature-card">
                             <h3>Migrations</h3>
-                            <p>model! macro, makemigrations, migration up/down/status</p>
+                            <p>{% if ui_lang == "fr" %}Macro model!, makemigrations, migration up/down/status{% else %}model! macro, makemigrations, migration up/down/status{% endif %}</p>
                         </a>
-                        <a href="{% link "comparatif_demo" %}" class="feature-card">
-                            <h3>Django Comparison</h3>
-                            <p>Equivalences routes, views, forms, ORM, security</p>
+                        <a href="{% link "comparatif" %}" class="feature-card">
+                            <h3>{% if ui_lang == "fr" %}Comparatif{% else %}Comparison{% endif %}</h3>
+                            <p>{% if ui_lang == "fr" %}Runique face à Loco, Cot et Django, limites connues, à venir{% else %}Runique next to Loco, Cot and Django, known limits, what's coming{% endif %}</p>
                         </a>
                     </div>
                 </details>
@@ -262,36 +264,36 @@
                     <summary><h2>Framework</h2></summary>
                     <div class="demo-cards">
                         <a href="{% link "router_demo" %}" class="feature-card">
-                            <h3>Router</h3>
-                            <p>urlpatterns!, path parameters, named links</p>
+                            <h3>{% if ui_lang == "fr" %}Routeur{% else %}Router{% endif %}</h3>
+                            <p>{% if ui_lang == "fr" %}urlpatterns!, paramètres de chemin, liens nommés{% else %}urlpatterns!, path parameters, named links{% endif %}</p>
                         </a>
                         <a href="{% link "template_demo" %}" class="feature-card">
-                            <h3>Templates & Tags</h3>
+                            <h3>{% if ui_lang == "fr" %}Templates et balises{% else %}Templates & Tags{% endif %}</h3>
                             <p>{% raw %}{% static %}, {% link %}, {% media %}, {% messages %}, {% form.xxx %}{% endraw %}</p>
                         </a>
                         <a href="{% link "middleware_hub" %}" class="feature-card">
                             <h3>Middlewares</h3>
-                            <p>CSRF, CSP, Rate Limiter, Login Guard, Host Validation, HTTPS</p>
+                            <p>{% if ui_lang == "fr" %}CSRF, CSP, limitation de débit, Login Guard, validation des hôtes, HTTPS{% else %}CSRF, CSP, Rate Limiter, Login Guard, Host Validation, HTTPS{% endif %}</p>
                         </a>
                         <a href="{% link "about" %}" class="feature-card">
-                            <h3>Flash Messages</h3>
-                            <p>Success, info, warning, error</p>
+                            <h3>{% if ui_lang == "fr" %}Messages flash{% else %}Flash Messages{% endif %}</h3>
+                            <p>{% if ui_lang == "fr" %}Succès, information, avertissement, erreur{% else %}Success, info, warning, error{% endif %}</p>
                         </a>
                         <a href="{% link "i18n_demo" %}" class="feature-card">
-                            <h3>Internationalization</h3>
-                            <p>Runique template language — 9 languages available</p>
+                            <h3>{% if ui_lang == "fr" %}Internationalisation{% else %}Internationalization{% endif %}</h3>
+                            <p>{% if ui_lang == "fr" %}Langue des templates de Runique : 9 langues disponibles{% else %}Runique template language — 9 languages available{% endif %}</p>
                         </a>
                         <a href="{% link "session_demo" %}" class="feature-card">
                             <h3>Sessions</h3>
-                            <p>MemoryStore, memory limits, automatic periodic cleanup</p>
+                            <p>{% if ui_lang == "fr" %}MemoryStore, limites de mémoire, nettoyage périodique automatique{% else %}MemoryStore, memory limits, automatic periodic cleanup{% endif %}</p>
                         </a>
                         <a href="{% link "macros_demo" %}" class="feature-card">
                             <h3>Macros</h3>
                             <p>context_update!, context!, impl_from_error!</p>
                         </a>
                         <a href="{% link "propos_template_error" %}" class="feature-card">
-                            <h3>Error Pages</h3>
-                            <p>404, 500, 429, 502 — Runique page verification</p>
+                            <h3>{% if ui_lang == "fr" %}Pages d'erreur{% else %}Error Pages{% endif %}</h3>
+                            <p>{% if ui_lang == "fr" %}404, 500, 429, 502 : vérification des pages de Runique{% else %}404, 500, 429, 502 — Runique page verification{% endif %}</p>
                         </a>
                     </div>
                 </details>
@@ -303,12 +305,32 @@
                     <div class="demo-cards">
                         <a href="{% link "admin_hub" %}" class="feature-card feature-card-admin">
                             <h3>Administration</h3>
-                            <p>Typed CRUD, permissions, dashboard, template overrides</p>
+                            <p>{% if ui_lang == "fr" %}CRUD typé, droits, tableau de bord, surcharge des templates{% else %}Typed CRUD, permissions, dashboard, template overrides{% endif %}</p>
                         </a>
                     </div>
                 </details>
             </div>
 
+        </div>
+    </div>
+</section>
+
+{# ══════════════════════════════════════════
+    GET STARTED
+    ══════════════════════════════════════════ #}
+<section class="home-section home-section--last" id="get-started">
+    <div class="home-split">
+        <div>
+            <h2>{% if ui_lang == "fr" %}Démarrer{% else %}Get started{% endif %}</h2>
+            <p class="home-section-sub">{% if ui_lang == "fr" %}Installez la CLI, créez un projet et ses tables, lancez-le.{% else %}Install the CLI, create a project, create its tables, run it.{% endif %}</p>
+            <a href="/docs/{% if ui_lang == "fr" %}fr{% else %}en{% endif %}/installation" class="hero-btn hero-btn--secondary">{% if ui_lang == "fr" %}Guide d'installation{% else %}Installation guide{% endif %}</a>
+        </div>
+        <div class="terminal-block">
+            <div><span>$</span> cargo install runique --features sqlite --locked</div>
+            <div><span>$</span> runique new {% if ui_lang == "fr" %}mon_projet{% else %}my_project{% endif %}</div>
+            <div><span>$</span> cd {% if ui_lang == "fr" %}mon_projet{% else %}my_project{% endif %}</div>
+            <div><span>$</span> runique migration up</div>
+            <div><span>$</span> cargo run</div>
         </div>
     </div>
 </section>

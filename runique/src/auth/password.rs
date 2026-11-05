@@ -243,29 +243,14 @@ impl PasswordResetConfig {
     }
 }
 
-/// The origin absolute links are built on: the public URL (`.with_public_url()`),
-/// else — in debug only — the request's `Host`. Production refuses to boot without
-/// it when the reset or the admin is on (`cross_validate`): the `Host` header is the
-/// client's to choose, and a link pointing at someone else's site would hand them
-/// the token. Apps reach it through [`Request::public_url`](crate::context::template::Request::public_url).
-pub(crate) fn public_link_base(
-    configured: Option<&str>,
-    headers: &axum::http::HeaderMap,
-    debug: bool,
-) -> Option<String> {
-    if let Some(base) = configured {
-        return Some(base.trim_end_matches('/').to_string());
-    }
-    if !debug {
-        return None;
-    }
-    let host = headers
-        .get(axum::http::header::HOST)
-        .and_then(|v| v.to_str().ok())?;
-    tracing::warn!(
-        "reset link built from the request's Host header: set .with_public_url() before production"
-    );
-    Some(format!("http://{host}"))
+/// The origin absolute links are built on: the public URL, which the build sets
+/// to the local server in development. Production refuses to boot without it
+/// when the reset or the admin is on (`cross_validate`), and it never falls back
+/// on the `Host` header: that is the client's to choose, and a link pointing at
+/// someone else's site would hand them the token. Apps reach it through
+/// [`Request::public_url`](crate::context::template::Request::public_url).
+pub(crate) fn public_link_base(configured: Option<&str>) -> Option<String> {
+    configured.map(|base| base.trim_end_matches('/').to_string())
 }
 
 // ─── The reset link ───────────────────────────────────────────────────────────
@@ -854,36 +839,17 @@ mod reset_link_tests {
 #[cfg(test)]
 mod public_link_base_tests {
     use super::public_link_base;
-    use axum::http::{HeaderMap, HeaderValue, header::HOST};
-
-    fn with_host(host: &str) -> HeaderMap {
-        let mut headers = HeaderMap::new();
-        headers.insert(HOST, HeaderValue::from_str(host).unwrap());
-        headers
-    }
 
     #[test]
-    fn the_configured_base_wins_over_the_host() {
-        let headers = with_host("evil.com");
-        for debug in [true, false] {
-            assert_eq!(
-                public_link_base(Some("https://mysite.com/"), &headers, debug).as_deref(),
-                Some("https://mysite.com")
-            );
-        }
-    }
-
-    #[test]
-    fn production_never_uses_the_host() {
-        assert_eq!(public_link_base(None, &with_host("evil.com"), false), None);
-    }
-
-    #[test]
-    fn debug_falls_back_on_the_host() {
+    fn the_configured_base_loses_its_trailing_slash() {
         assert_eq!(
-            public_link_base(None, &with_host("localhost:3000"), true).as_deref(),
-            Some("http://localhost:3000")
+            public_link_base(Some("https://mysite.com/")).as_deref(),
+            Some("https://mysite.com")
         );
-        assert_eq!(public_link_base(None, &HeaderMap::new(), true), None);
+    }
+
+    #[test]
+    fn no_configured_base_means_no_link() {
+        assert_eq!(public_link_base(None), None);
     }
 }

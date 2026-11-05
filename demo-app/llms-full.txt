@@ -1,0 +1,68 @@
+# Runique — Full LLM Reference
+
+## What is Runique?
+
+Runique is a Rust web framework inspired by Django. It is built on top of:
+- **Axum** — HTTP server and routing
+- **SeaORM** — async ORM supporting PostgreSQL, MySQL, MariaDB and SQLite
+- **Tera** — Jinja2-compatible template engine
+
+Current version: 4.0.0 (Rust edition 2024, MSRV 1.94)
+
+## Key Features
+
+### Type-safe Forms
+Declare forms manually or derive them from a SeaORM schema with `#[form]`.
+Fields: TextField, NumericField, BooleanField, ChoiceField, DateField, FileField, and more.
+CSRF protection is built-in and automatic via the request form extractor.
+
+### Typed Admin (ModelAdmin)
+Declare each model with the typed `ModelAdmin` builder in `src/admin.rs`.
+Runique serves full CRUD routes, list/create/edit/delete views, search,
+pagination, column sorting, and role-based access. No macro, no generated files.
+Templates are overridable via the builder. Plain `cargo run` is enough.
+
+### Middleware
+- CSRF (via the form extractor)
+- CSP (Content Security Policy with nonce)
+- Session (memory store with optional DB persistence)
+- Rate limiter (sliding window per IP)
+- Login guard (lockout after N failed attempts)
+- Host validation
+- HTTPS redirect
+
+### Auth
+Built-in user model stored in the `eihwaz_users` table (Runique's internal user table), login/logout helpers, session persistence,
+exclusive session (one session per user), password reset via email.
+
+### Migrations
+`runique makemigrations` generates SeaORM migration files from `model!{}` entities.
+Supports PostgreSQL, MySQL/MariaDB, SQLite. Atomic rollback.
+
+### Internationalisation
+9 built-in languages: EN, FR, DE, ES, IT, PT, JA, ZH, RU.
+Set via `set_lang(Lang::En)` in main().
+
+## Quick Start
+
+```bash
+cargo install runique
+runique new my-project
+cd my-project
+cargo run
+```
+
+## Cargo.toml
+
+```toml
+[dependencies]
+runique = { version = "4.0.0", features = ["postgres"] }
+```
+
+## Links
+
+- GitHub: https://github.com/seb-alliot/runique
+- crates.io: https://crates.io/crates/runique
+- Documentation english: https://runique.io/docs/en
+- Documentation french: https://runique.io/docs/fr
+- Demo: https://runique.io

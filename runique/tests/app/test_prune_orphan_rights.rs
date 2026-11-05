@@ -38,7 +38,7 @@ async fn resource_keys(db: &DatabaseConnection) -> Vec<String> {
 
 async fn boot(db: DatabaseConnection, register: bool) {
     let mut config = RuniqueConfig::from_env();
-    config.debug = true;
+    config.dev = true;
     RuniqueApp::builder(config)
         .with_database(db)
         .routes(Router::new().route("/", get(|| async { "ok" })))

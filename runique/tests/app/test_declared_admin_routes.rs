@@ -180,7 +180,7 @@ async fn spawn_with_reset(
     seed(&dbc).await;
 
     let mut config = RuniqueConfig::from_env();
-    config.debug = true;
+    config.dev = true;
     let builder = RuniqueApp::builder(config).with_database(dbc);
     // `with_password_reset` changes the builder's type: the rest of the
     // chain is shared by a macro rather than written twice.
@@ -436,7 +436,7 @@ async fn an_admin_route_name_already_taken_refuses_the_build() {
     let dbc = db::fresh_db().await;
     seed(&dbc).await;
     let mut config = RuniqueConfig::from_env();
-    config.debug = true;
+    config.dev = true;
     let error = RuniqueApp::builder(config)
         .with_database(dbc)
         .routes(routes)
@@ -3498,7 +3498,8 @@ async fn every_page_loads_its_sheets_in_its_head() {
         );
         for tag in head.split("<link rel=\"stylesheet\"").skip(1) {
             let tag = &tag[..tag.find('>').unwrap_or(tag.len())];
-            assert!(tag.contains("integrity=\"sha384-"), "{page}: {tag}");
+            // This app runs in development, where a sheet being edited must load.
+            assert!(!tag.contains("integrity="), "{page}: {tag}");
         }
     }
 }
@@ -3526,7 +3527,7 @@ async fn spawn_themed(
     let dbc = db::fresh_db().await;
     seed(&dbc).await;
     let mut config = RuniqueConfig::from_env();
-    config.debug = true;
+    config.dev = true;
     config.static_files.templates_dir = vec![dir];
     let app = RuniqueApp::builder(config)
         .with_database(dbc)

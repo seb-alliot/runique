@@ -1,52 +1,73 @@
-/* SEO landing page (rust_django_framework.html) */
+/* SEO landing page (rust_django_framework.html) — mobile first */
 .seo-page {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 2rem 1.25rem 4rem;
+    max-width: 56.25rem;
+    margin: 0 auto;
+    padding: 2rem var(--gutter) 3rem;
 }
 
 .seo-page h1 {
-  font-size: 2.1rem;
-  line-height: 1.2;
-  margin-bottom: .75rem;
+    margin-bottom: 0.75rem;
+    font-size: 1.875rem;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
 }
 
 .seo-page h2 {
-  font-size: 1.45rem;
-  margin-top: 2.5rem;
+    margin: 2.5rem 0 0.75rem;
+    font-size: 1.375rem;
+    font-weight: 600;
+}
+
+.seo-page p {
+    margin-bottom: 1rem;
+}
+
+.seo-page ul {
+    margin-bottom: 1rem;
+    padding-left: 1.25rem;
 }
 
 .seo-lead {
-  font-size: 1.15rem;
-  opacity: .9;
+    font-size: 1.125rem;
+    color: var(--text-muted);
 }
 
 .seo-cta {
-  display: flex;
-  gap: .75rem;
-  flex-wrap: wrap;
-  margin: 1.75rem 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin: 1.75rem 0;
 }
 
 .seo-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 1rem 0;
+    display: block;
+    width: 100%;
+    margin: 1rem 0;
+    overflow-x: auto;
+    border-collapse: collapse;
 }
 
 .seo-table th,
 .seo-table td {
-  text-align: left;
-  padding: .6rem .75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, .12);
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
 }
 
 .seo-table th {
-  opacity: .7;
-  font-weight: 600;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--label);
 }
 
 .seo-faq h3 {
-  margin: 1.4rem 0 .3rem;
-  font-size: 1.1rem;
+    margin: 1.4rem 0 0.3rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+@media (min-width: 48rem) {
+    .seo-page { padding-top: 3rem; padding-bottom: 4.5rem; }
+    .seo-page h1 { font-size: 2.375rem; }
 }

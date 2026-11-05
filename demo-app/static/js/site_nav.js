@@ -1,15 +1,37 @@
-// ── Hero tabs ────────────────────────────────────────────────
+// ── Onglets, groupe par groupe ───────────────────────────────
 (function () {
-    const tabs   = document.querySelectorAll('.hero-tab');
-    const panels = document.querySelectorAll('.hero-tab-panel');
-    if (!tabs.length) return;
+    document.querySelectorAll('.hero-code, [data-tabs]').forEach(group => {
+        const tabs   = group.querySelectorAll('.hero-tab');
+        const panels = group.querySelectorAll('.hero-tab-panel');
+        if (!tabs.length) return;
 
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const target = tab.dataset.tab;
-            tabs.forEach(t => t.classList.toggle('active', t === tab));
+        const show = target => {
+            tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === target));
             panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+        };
+        const inUrl = group.dataset.tabs === 'hash';
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                show(tab.dataset.tab);
+                if (inUrl) history.replaceState(null, '', '#' + tab.dataset.tab);
+            });
         });
+
+        if (group.dataset.tabs) group.classList.add('is-ready');
+        const fromUrl = () => {
+            const wanted = location.hash.slice(1);
+            if (!wanted) return;
+            const target = document.getElementById(wanted);
+            const panel = target && target.closest('.hero-tab-panel');
+            if (!panel || !group.contains(panel)) return;
+            show(panel.dataset.panel);
+            target.scrollIntoView();
+        };
+        if (inUrl) {
+            fromUrl();
+            window.addEventListener('hashchange', fromUrl);
+        }
     });
 })();
 

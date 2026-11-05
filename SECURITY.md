@@ -132,9 +132,9 @@ We will respond within 48 hours and work on a fix as soon as possible.
 When using Runique in production:
 
 1. **Always use HTTPS** (`ENFORCE_HTTPS=true` behind a TLS proxy, or ACME) — it also turns on HSTS
-2. **Run with `DEBUG=false`**: error pages then show no internal detail
+2. **Run with `RUNIQUE_ENV=prod` and `DEBUG=false`**: the startup checks apply and error pages show no internal detail
 3. **Set strong SECRET_KEY** (32+ random characters): it also encrypts the sessions saved in the database
-4. **Enable host validation** in the builder: `.middleware(|m| m.with_allowed_hosts(|h| h.enabled(true).host("mysite.com")))`
+4. **Enable host validation** in the builder: `.middleware(|m| m.with_allowed_hosts(|h| h.host("mysite.com")))`
 5. **Use the strict CSP preset** (`.with_csp(|c| c.policy(SecurityPolicy::strict()))`) — CSP itself is always active by default
 6. **Protect the admin sign-in against brute force**: `.with_admin(|a| a.with_login_guard(LoginGuard::new()))` — it's opt-in
 7. **Size uploads explicitly**: `RUNIQUE_MAX_UPLOAD_MB` (unset, a request is capped at 2 MB)

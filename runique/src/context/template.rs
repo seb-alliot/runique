@@ -174,6 +174,7 @@ where
 
         let mut context = Context::new();
         context.insert("debug", &engine.config.debug);
+        context.insert("dev", &engine.config.dev);
         context.insert(
             "csrf_token",
             &csrf_token
@@ -268,9 +269,9 @@ impl Request {
     /// ever parsed to validate a CSRF token against.
     pub fn new(engine: AEngine, session: Session, csrf_token: CsrfToken, method: Method) -> Self {
         let mut context = tera::Context::new();
-        // mod reload for templates in debug mode
         // The backend cannot be reloaded here because it is shared between requests
         context.insert("debug", &engine.config.debug);
+        context.insert("dev", &engine.config.dev);
         context.insert("static_runique", &engine.config.static_files);
         context.insert(
             "csrf_token",
@@ -306,8 +307,8 @@ impl Request {
 
     /// Unique generic rendering to avoid duplication
     pub fn render(&mut self, template: &str) -> AppResult<Response> {
-        let html_result = if self.engine.config.debug {
-            // In debug mode, Tera is fully reinitialized with the Loader
+        let html_result = if self.engine.config.dev {
+            // In development, Tera is fully reinitialized with the Loader
             // This applies Regex on {% messages %}, {% form.xxx %}, etc.
             match TemplateLoader::init(&self.engine.config, self.engine.url_registry.clone()) {
                 Ok(dev_tera) => {
@@ -320,7 +321,7 @@ impl Request {
                             template = template,
                             error_kind = ?e.kind(),
                             error_message = %e,
-                            "Tera rendering failed in debug mode"
+                            "Tera rendering failed in development"
                         );
 
                         // Log the full error chain (source)
@@ -339,7 +340,7 @@ impl Request {
                     error!(
                         template = template,
                         error = %e,
-                        "Failed to initialize TemplateLoader in debug mode"
+                        "Failed to initialize TemplateLoader in development"
                     );
                     return Err(AppError::map_tera(
                         tera::Error::message(e.to_string()),
@@ -394,17 +395,13 @@ impl Request {
     }
 
     /// Base of the absolute links an app sends out (activation, reset, emails):
-    /// the public URL set with `.with_public_url()`, else — in debug only —
-    /// `http://` + the request's `Host`. `None` in production without a public
-    /// URL: `Host` is the client's to choose, and a link built on it would carry
-    /// its token to someone else's site.
+    /// the public URL set with `.with_public_url()`, or `http://127.0.0.1:{port}`
+    /// in development. `None` in production without a public URL: `Host` is the
+    /// client's to choose, and a link built on it would carry its token to
+    /// someone else's site.
     #[must_use]
     pub fn public_url(&self) -> Option<String> {
-        crate::auth::password::public_link_base(
-            self.engine.config.server.public_url.as_deref(),
-            &self.headers,
-            self.engine.config.debug,
-        )
+        crate::auth::password::public_link_base(self.engine.config.server.public_url.as_deref())
     }
 
     /// The id `login` stored in the session; `None` for an anonymous visitor.

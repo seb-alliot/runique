@@ -29,13 +29,12 @@ En production, `WARN` est recommandé pour détecter des attaques ou des mauvais
 
 ### Configuration via le builder
 
-La validation des hosts se configure dans `main.rs` via le builder — il n'y a pas de variable d'environnement pour cela :
+La validation des hosts se configure dans `main.rs` via le builder — la liste ne passe pas par une variable d'environnement :
 
 ```rust
 .middleware(|m| {
     m.with_allowed_hosts(|h| {
-        h.enabled(!is_debug())
-         .host("example.com")
+        h.host("example.com")
          .host(".example.com")  // match example.com ET tous ses sous-domaines
     })
 })
@@ -47,24 +46,24 @@ La validation des hosts se configure dans `main.rs` via le builder — il n'y a 
 - `".example.com"` — match `example.com` et `*.example.com`
 - `"*"` — tous les hosts (⚠️ dangereux en production)
 
-### Mode debug
+### Selon l'environnement
 
-En `DEBUG=true`, on passe généralement `.enabled(!is_debug())` pour désactiver la validation en développement.
+La validation est active avec `RUNIQUE_ENV=prod` dès qu'un hôte est déclaré, inactive avec `RUNIQUE_ENV=dev`. `.enabled(true)` ou `.enabled(false)` a le dernier mot, par exemple pour essayer la validation en local.
 
 ---
 
 ## Cache-Control
 
-### Mode développement (`DEBUG=true` **et** accès via `localhost`/`127.0.0.1`/`[::1]`)
+### Mode développement (`RUNIQUE_ENV=dev` **et** accès via `localhost`/`127.0.0.1`/`[::1]`)
 
-Les deux conditions sont requises — un accès en `DEBUG=true` via un autre nom d'hôte (LAN, tunnel, staging) ne déclenche pas ces headers. Ajoutés pour forcer le rechargement :
+Les deux conditions sont requises — un accès en `RUNIQUE_ENV=dev` via un autre nom d'hôte (LAN, tunnel, staging) ne déclenche pas ces headers. Ajoutés pour forcer le rechargement :
 
 ```http
 Cache-Control: no-cache, no-store, must-revalidate
 Pragma: no-cache
 ```
 
-### Mode production (`DEBUG=false`)
+### Mode production (`RUNIQUE_ENV=prod`)
 
 Aucun en-tête no-cache n'est ajouté : le navigateur applique son cache habituel. Le cache des fichiers statiques et médias se règle avec `.static_files(|s| s.static_cache("…").media_cache("…"))`.
 

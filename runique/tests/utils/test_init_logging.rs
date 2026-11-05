@@ -157,7 +157,7 @@ fn init_logging_does_not_panic() {
 fn dev_active_tous_les_domaines() {
     reset_log_for_test();
     // RuniqueLog::dev() dépend d'un LazyLock initialisé une seule fois —
-    // on construit la config manuellement pour ne pas dépendre de DEBUG env
+    // on construit la config manuellement pour ne pas dépendre de RUNIQUE_ENV
     log_init(
         RuniqueLog::new()
             .forms(|f| f.dev())

@@ -97,7 +97,7 @@ impl MiddlewareStaging {
         engine: AEngine,
         tera: ATera,
     ) -> (Router, Option<Arc<CleaningMemoryStore>>) {
-        let debug = config.debug;
+        let dev = config.dev;
         let mut entries: Vec<MiddlewareEntry> = Vec::new();
 
         // Slot 0: Extensions (Engine, Tera, Config) — outermost
@@ -267,11 +267,11 @@ impl MiddlewareStaging {
                 slot: SLOT_SESSION,
                 name: "Session",
                 apply: Box::new(move |r: Router| match applicator {
-                    Some(apply_fn) => apply_fn(r, debug, anon_duration),
+                    Some(apply_fn) => apply_fn(r, dev, anon_duration),
                     None => {
                         let store = store_for_layer.expect("store created above");
                         let layer = SessionManagerLayer::new((*store).clone())
-                            .with_secure(!debug)
+                            .with_secure(!dev)
                             .with_http_only(true)
                             .with_same_site(tower_sessions::cookie::SameSite::Strict)
                             .with_expiry(Expiry::OnInactivity(anon_duration));

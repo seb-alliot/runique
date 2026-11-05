@@ -270,8 +270,8 @@ async fn handler_public_url(req: TplRequest) -> impl IntoResponse {
     req.public_url().unwrap_or_else(|| "none".to_string())
 }
 
-/// App whose engine has the given public URL and debug mode.
-async fn public_url_app(public_url: Option<&str>, debug: bool) -> Router {
+/// App whose engine has the given public URL, in development or production.
+async fn public_url_app(public_url: Option<&str>, dev: bool) -> Router {
     use runique::engine::RuniqueEngine;
     use runique::middleware::{
         config::MiddlewareConfig,
@@ -280,7 +280,7 @@ async fn public_url_app(public_url: Option<&str>, debug: bool) -> Router {
     let base = build_engine().await;
     let mut config = base.config.clone();
     config.server.public_url = public_url.map(str::to_string);
-    config.debug = debug;
+    config.dev = dev;
     let engine = Arc::new(RuniqueEngine {
         tera: base.tera.clone(),
         config,
@@ -313,17 +313,12 @@ async fn public_url_is_the_configured_one_whatever_the_host() {
     assert_eq!(body_str(resp).await, "https://mysite.com");
 }
 
-// A forged Host must never become the base of a link outside debug.
+// A forged Host must never become the base of a link, in either mode.
 #[tokio::test]
-async fn public_url_ignores_the_host_in_production() {
-    let app = public_url_app(None, false).await;
-    let resp = request::get_with_header(app, "/u", "host", "evil.com").await;
-    assert_eq!(body_str(resp).await, "none");
-}
-
-#[tokio::test]
-async fn public_url_falls_back_to_the_host_in_debug() {
-    let app = public_url_app(None, true).await;
-    let resp = request::get_with_header(app, "/u", "host", "localhost:3000").await;
-    assert_eq!(body_str(resp).await, "http://localhost:3000");
+async fn public_url_never_uses_the_host() {
+    for dev in [false, true] {
+        let app = public_url_app(None, dev).await;
+        let resp = request::get_with_header(app, "/u", "host", "evil.com").await;
+        assert_eq!(body_str(resp).await, "none", "dev: {dev}");
+    }
 }

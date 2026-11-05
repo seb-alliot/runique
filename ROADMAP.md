@@ -43,6 +43,10 @@ Workspace is `4.0.0`. Breaking code is in the tree; the crates.io release has no
   `cleaned::<T>` read through the column, `save`/`delete` in a transaction (`db_atomic`), file
   moved between the write and the commit, `MediaField` (image, audio, video).
 
+- [x] **`RUNIQUE_ENV` and `DEBUG` split** — `RUNIQUE_ENV` (`dev` / `prod`) sets the behaviour (session cookie, startup checks,
+  public URL, allowed hosts, cache, SRI); `DEBUG` only shows the detailed error pages. In dev, edited CSS reloads without a restart.
+- [x] **demo-app** — mobile-first redesign, language button, comparison page (Loco, Cot, Django, limits, what's coming).
+
 ### Breaking items settled for 4.0
 
 - [x] **Mandatory delete action** — a `belongs_to` without an `ON DELETE` action no longer

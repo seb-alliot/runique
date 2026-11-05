@@ -15,17 +15,12 @@
 {% block style %}
     {{ super() }}
     <link rel="stylesheet" href="{% static "css/doc.css" %}">
-    <link rel="stylesheet" href="{% static "css/readme.css" %}">
     <link rel="stylesheet" href="{% static "css/highlight-github-dark.min.css" %}">
 {% endblock %}
 
 {% block content %}
-    <div class="readme-bar"><a href="{% link "doc_index_en" %}" class="btn btn-secondary">Documentation</a>
+    <div class="readme-bar"><a href="/docs/{{ lang }}" class="btn btn-sm btn-secondary">Documentation</a>
     <span class="readme-bar-title">README</span>
-    <div class="readme-lang-switch">
-        <a href="/readme/fr" class="btn {% if lang == 'fr' %}btn-primary{% else %}btn-secondary{% endif %}">Français</a>
-        <a href="/readme/en" class="btn {% if lang == 'en' %}btn-primary{% else %}btn-secondary{% endif %}">English</a>
-    </div>
 </div>
 <div class="readme-container doc-block-content">
     {{ content | markdown }}

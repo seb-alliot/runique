@@ -4,49 +4,44 @@
 
 .demo-layout {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 1.5rem;
     align-items: start;
     width: 100%;
+    max-width: calc(var(--page-max) + 2 * var(--gutter));
     margin: 0 auto;
-    padding: 4vw;
+    padding: 1.5rem var(--gutter) 3rem;
 }
 
-/* Tablette et + */
-@media (min-width: 768px) {
+@media (min-width: 64rem) {
     .demo-layout {
+        grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
         gap: 2rem;
     }
 }
 
-/* Desktop */
-@media (min-width: 1024px) {
-    .demo-layout {
-        grid-template-columns: 1fr 1fr;
-    }
-}
-@media (min-width: 1524px) {
-    .demo-layout {
-        width: 80%;
-    }
-}
 /* =========================
     FORM PANEL (gauche)
    ========================= */
 
 .demo-form-panel {
-    border: 1px solid var(--border);
-    border-radius: 0.75rem;
-    padding: 1.5rem 2rem;
-    background: var(--bg-base);
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding: 1.25rem;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    min-width: 0;
 }
 
 .demo-form-panel form {
-    width: 100%;
+    width: 80%;
+    max-width: 24rem;
     margin: 0;
+    padding: 0;
+    background: none;
+    border: none;
 }
 
 /* =========================
@@ -54,48 +49,36 @@
    ========================= */
 
 .demo-code {
+    min-width: 0;
     background: var(--bg-code);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 0.5rem;
     overflow: hidden;
 }
 
 .demo-code-title {
-    background: color-mix(in srgb, var(--bg-code) 70%, #000);
-    border-bottom: 1px solid var(--border);
-    padding: 0.6rem 1rem;
-    font-size: 0.75rem;
-    color: var(--text-dim);
-    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
     display: flex;
     align-items: center;
     gap: 0.75rem;
-}
-
-.demo-code-title::before {
-    content: "● ● ●";
-    font-size: 0.6rem;
-    letter-spacing: 0.15em;
-    color: var(--text-dim);
-    flex-shrink: 0;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: #94a3b8;
 }
 
 .demo-code pre {
     margin: 0;
-    padding: 1rem 1.25rem;
+    padding: 1rem;
     overflow-x: auto;
-    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
-    font-size: 0.82rem;
-    line-height: 1.75;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.7;
+    /* Le code se lit en entier, sans défilement caché. */
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
     color: var(--text-code);
     background: var(--bg-code);
-}
-
-@media (min-width: 768px) {
-    .demo-code pre {
-        padding: 1.1rem 1.5rem;
-        font-size: 0.85rem;
-    }
 }
 
 .demo-code code {
@@ -103,15 +86,24 @@
     background: none;
 }
 
+.demo-code pre code.hljs {
+    padding: 0;
+    background: transparent;
+}
+
+@media (min-width: 48rem) {
+    .demo-code pre {
+        padding: 1.25rem;
+        font-size: 0.84375rem;
+    }
+}
+
 /* =========================
     BOUTON SUBMIT
    ========================= */
 
 .btn-submit {
-    width: 50%;
-    padding: 0.8rem 1rem;
-    border-radius: 1rem;
-    font-size: 0.95rem;
+    width: 100%;
 }
 
 /* =========================
@@ -120,13 +112,11 @@
 
 .demo-code-badge {
     margin-left: auto;
-    background: var(--accent, #2563eb);
-    color: #fff;
-    font-size: 0.68rem;
     padding: 0.1rem 0.5rem;
-    border-radius: 0.4rem;
-    font-family: inherit;
-    letter-spacing: 0.02em;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    color: #a78bfa;
 }
 
 /* =========================
@@ -134,20 +124,21 @@
    ========================= */
 
 .field-details {
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
     margin-bottom: 0.5rem;
     background: var(--bg-base);
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
 }
 
 .field-details summary {
-    padding: 0.6rem 1rem;
-    cursor: pointer;
-    font-size: 0.9rem;
-    list-style: none;
     display: flex;
     align-items: center;
     gap: 0.4rem;
+    min-height: 2.75rem;
+    padding: 0.25rem 1rem;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    list-style: none;
 }
 
 .field-details summary::-webkit-details-marker { display: none; }
@@ -157,42 +148,41 @@
 }
 
 .field-type {
-    color: #ffa657;
-    font-size: 0.82rem;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--label);
 }
 
 .field-body {
     padding: 0.75rem 1rem;
-    font-size: 0.88rem;
+    font-size: 0.875rem;
+    min-width: 0;
 }
 
 .field-body p { margin: 0 0 0.5rem; }
-@media (max-width: 480px){
-    .field-body {
-        width: 80vw;
-    }
-}
+
 .field-body pre {
     margin: 0;
     padding: 0.75rem 1rem;
     overflow-x: auto;
-    font-size: 0.78rem;
+    border-radius: 0.375rem;
+    background: var(--bg-code);
+    color: var(--text-code);
+    font-size: 0.8125rem;
     line-height: 1.6;
-    background: var(--bg-surface);
-    border-radius: 0.4rem;
 }
 
-/* Syntax — classes légères */
-.kw  { color: #ff7b72; }   /* keywords: pub, fn, async, let, match, struct, impl */
-.ty  { color: #ffa657; }   /* types: String, Result, Vec, i32, bool */
-.st  { color: #a5d6ff; }   /* strings: "..." */
-.cm  { color: #8b949e; font-style: italic; } /* comments */
-.at  { color: #d2a8ff; }   /* attributes: #[form(...)] */
-.mc  { color: #d2a8ff; }   /* macros: Set!, impl_form_access! */
-.fn_ { color: #d2a8ff; }   /* function names */
-.nb  { color: #79c0ff; }   /* numbers, booleans */
-.op  { color: #ff7b72; }   /* operators */
-.field { color: #e6edf3; } /* field names */
+/* Syntaxe (blocs toujours sombres) */
+.kw  { color: #fb923c; }
+.ty  { color: #a78bfa; }
+.st  { color: #34d399; }
+.cm  { color: #94a3b8; }
+.at  { color: #fbbf24; }
+.mc  { color: #38bdf8; }
+.fn_ { color: #38bdf8; }
+.nb  { color: #fbbf24; }
+.op  { color: #cbd5e1; }
+.field { color: #e2e8f0; }
 
 /* Rendu visuel champ — field_test.html */
 .field-visual {
@@ -200,7 +190,7 @@
     padding: 0.75rem 1rem;
     background: var(--bg-surface);
     border: 1px solid var(--border);
-    border-radius: 0.4rem;
+    border-radius: 0.375rem;
 }
 
 .field-preview {
@@ -210,7 +200,7 @@
 }
 
 .field-preview label {
-    font-size: 0.8rem;
+    font-size: 0.8125rem;
     color: var(--text-muted);
 }
 
@@ -219,9 +209,10 @@
 .field-preview textarea {
     width: 100%;
     padding: 0.4rem 0.6rem;
-    background: var(--bg-main);
+    background: var(--bg-base);
     border: 1px solid var(--border);
-    border-radius: 0.3rem;
+    border-radius: 0.25rem;
     color: var(--text-main);
-    font-size: 0.85rem;
+    font: inherit;
+    font-size: 0.875rem;
 }

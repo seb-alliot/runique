@@ -1,14 +1,23 @@
 <div class="footer-content">
     <div class="footer-links">
-        <a href="{% link "index" %}">Back Home</a>
-        <a href="{% link "rgpd" %}">Privacy</a>
-        <a href="{% link "roadmap" %}">Roadmap</a>
-        <a href="{% link "changelog" %}">Changelog</a>
-        {% if runique_release %}
-        <a href="{{ runique_release.github_url }}" target="_blank">GitHub</a>
-        <a href="{{ runique_release.crates_url }}" target="_blank">Crates.io</a>
-        <a href="https://github.com/seb-alliot/runique " target="_blank" >GitHub</a>
-        {% endif %}
+        <div>
+            <h4>{% if ui_lang == "fr" %}Apprendre{% else %}Learn{% endif %}</h4>
+            <a href="/docs/{% if ui_lang == "fr" %}fr{% else %}en{% endif %}">Documentation</a>
+            <a href="/readme/{% if ui_lang == "fr" %}fr{% else %}en{% endif %}">Readme</a>
+            <a href="/cours">{% if ui_lang == "fr" %}Cours Rust{% else %}Rust Courses{% endif %}</a>
+        </div>
+        <div>
+            <h4>{% if ui_lang == "fr" %}Projet{% else %}Project{% endif %}</h4>
+            <a href="{% link "rust_django_framework" %}">{% if ui_lang == "fr" %}À propos de Runique{% else %}About Runique{% endif %}</a>
+            <a href="{% link "comparatif" %}">{% if ui_lang == "fr" %}Comparatif{% else %}Comparison{% endif %}</a>
+            <a href="{% link "changelog" %}">Changelog</a>
+        </div>
+        <div>
+            <h4>{% if ui_lang == "fr" %}Communauté{% else %}Community{% endif %}</h4>
+            <a href="{% link "contribution_list" %}">{% if ui_lang == "fr" %}Contribuer{% else %}Contribute{% endif %}</a>
+            <a href="https://github.com/seb-alliot/runique" target="_blank" rel="noopener">GitHub</a>
+            <a href="https://crates.io/crates/runique" target="_blank" rel="noopener">crates.io</a>
+        </div>
     </div>
-    <p>Created by <strong>Itsuki</strong> with {% if runique_release %}<a href="{{ runique_release.github_url }}" target="_blank">Runique</a>{% else %}Runique{% endif %} &mdash; &copy; 2026</p>
+    <p class="footer-bottom">{% if ui_lang == "fr" %}Créé par{% else %}Created by{% endif %} <strong>Itsuki</strong> {% if ui_lang == "fr" %}avec{% else %}with{% endif %} Runique &mdash; &copy; 2026 &middot; <a href="{% link "rgpd" %}">{% if ui_lang == "fr" %}Confidentialité{% else %}Privacy{% endif %}</a></p>
 </div>

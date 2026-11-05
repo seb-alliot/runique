@@ -85,6 +85,7 @@ Les trois déclarent `is_safe()` — leur sortie est émise sans échappement, `
 | `messages` | Flash messages de la requête |
 | `current_user` | Compte connecté (`username`, `id`, rang…), relu en base à chaque requête ; absent pour un visiteur anonyme |
 | `debug` | Valeur de `DEBUG` |
+| `dev` | `true` avec `RUNIQUE_ENV=dev` |
 | `current_path` | Path de l'URL courante, sans query string (utile pour `rel="canonical"`, `og:url`, navigation active) |
 
 ---

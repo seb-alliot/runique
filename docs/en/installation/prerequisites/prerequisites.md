@@ -109,6 +109,13 @@ See [Runique CLI](/docs/en/installation/cli). The admin panel also needs the `ad
 IP_SERVER=127.0.0.1
 PORT=3000
 
+# `dev` or `prod`: sets how the application behaves (session cookie, startup checks,
+# public URL, allowed hosts, template reload, logs). Unset or unknown: `prod`.
+RUNIQUE_ENV=dev
+
+# Shows the detailed error pages, and changes nothing else. It also works with
+# RUNIQUE_ENV=prod to look into a problem on a live site, but every visitor then sees those
+# pages: not recommended, turn it off as soon as you're done.
 DEBUG=true
 
 # Signs the CSRF tokens and the sessions: this project's own, keep it secret
@@ -125,7 +132,7 @@ The `SECRET_KEY` is generated at random when the project is created. If you need
 openssl rand -hex 32
 ```
 
-In production (`DEBUG=false`), Runique refuses to start with a key that is missing, too short, or left at its example value.
+In production (`RUNIQUE_ENV=prod`), Runique refuses to start with a key that is missing, too short, or left at its example value.
 
 The other variables (templates, static and media folders, logging…) have defaults: see [Environment variables](/docs/en/env).
 

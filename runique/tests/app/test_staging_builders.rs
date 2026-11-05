@@ -52,7 +52,7 @@ struct SearchClient(u8);
 #[serial]
 async fn an_extra_db_is_reachable_from_the_engine() {
     let mut config = RuniqueConfig::from_env();
-    config.debug = true;
+    config.dev = true;
     let app = RuniqueApp::builder(config)
         .with_database(Database::connect("sqlite::memory:").await.unwrap())
         .core(|c| c.with_extra_db(SearchClient(7)))

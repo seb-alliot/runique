@@ -31,6 +31,9 @@ pub(crate) type CustomMiddleware = Box<dyn FnOnce(Router) -> Router + Send>;
 /// proxies), session parameters, CSRF exemptions, and developer-added custom
 /// middlewares.
 pub struct MiddlewareStaging {
+    /// Development mode: `.with_allowed_hosts` doesn't validate by default
+    dev: bool,
+
     /// Middleware features configuration (CSP, Host, Cache, etc.)
     pub(crate) features: MiddlewareConfig,
 
@@ -74,15 +77,16 @@ pub struct MiddlewareStaging {
 }
 
 impl MiddlewareStaging {
-    /// Creates a `MiddlewareStaging` adapted to the mode (debug/production)
-    pub fn new(debug: bool) -> Self {
-        let features = if debug {
+    /// Creates a `MiddlewareStaging` adapted to the mode (development/production)
+    pub fn new(dev: bool) -> Self {
+        let features = if dev {
             MiddlewareConfig::development()
         } else {
             MiddlewareConfig::production()
         };
 
         Self {
+            dev,
             features,
             session_duration: Duration::seconds(86400),
             anonymous_session_duration: Duration::seconds(300),
@@ -104,14 +108,14 @@ impl MiddlewareStaging {
 
     /// Creates a `MiddlewareStaging` from `RuniqueConfig`.
     ///
-    /// Debug mode picks the defaults:
-    ///   - debug=true  → `development()` profile (permissive, no-cache headers)
-    ///   - debug=false → `production()` profile (strict)
+    /// `RUNIQUE_ENV` picks the defaults:
+    ///   - dev  → `development()` profile (permissive, no-cache headers)
+    ///   - prod → `production()` profile (strict)
     ///
     /// The dev can then override via `.middleware(|m| m.with_csp(true))`.
     pub fn from_config(config: &RuniqueConfig) -> Self {
         // Base profile according to mode
-        let defaults = if config.debug {
+        let defaults = if config.dev {
             MiddlewareConfig::development()
         } else {
             MiddlewareConfig::production()
@@ -126,6 +130,7 @@ impl MiddlewareStaging {
         };
 
         Self {
+            dev: config.dev,
             features,
             session_duration: Duration::seconds(86400),
             anonymous_session_duration: Duration::seconds(300),
@@ -191,15 +196,15 @@ impl MiddlewareStaging {
     /// Configures allowed hosts validation via a closure.
     ///
     /// The closure receives a [`HostConfig`] and returns the configured `HostConfig`.
-    /// Validation is **disabled by default** — call `.enabled(true)` explicitly.
-    /// To disable: do not call `.with_allowed_hosts` at all.
+    /// Validation follows `RUNIQUE_ENV`: on in production as soon as a host is
+    /// listed, off in development. `.enabled(...)` overrides both.
+    /// Without `.with_allowed_hosts`, nothing is validated.
     ///
     /// # Example
     /// ```rust,ignore
     /// .middleware(|m| {
     ///     m.with_allowed_hosts(|h| {
-    ///         h.enabled(true)
-    ///          .host("mysite.com")
+    ///         h.host("mysite.com")
     ///          .host("www.mysite.com")
     ///     })
     /// })
@@ -207,14 +212,15 @@ impl MiddlewareStaging {
     ///
     /// # Wildcard subdomains
     /// ```rust,ignore
-    /// m.with_allowed_hosts(|h| {
-    ///     h.enabled(true).host(".mysite.com")
-    /// })
+    /// m.with_allowed_hosts(|h| h.host(".mysite.com"))
     /// ```
     pub fn with_allowed_hosts(mut self, f: impl FnOnce(HostConfig) -> HostConfig) -> Self {
         let config: HostConfig = f(HostConfig::default());
+        // An empty list validates only on request: it would refuse every request.
+        self.features.enable_host_validation = config
+            .enabled
+            .unwrap_or(!self.dev && !config.hosts.is_empty());
         self.allowed_hosts = config.hosts;
-        self.features.enable_host_validation = config.enabled;
         self
     }
 
@@ -292,9 +298,9 @@ impl MiddlewareStaging {
         store: S,
     ) -> Self {
         self.session_applicator = Some(Box::new(
-            move |router: Router, debug: bool, duration: Duration| {
+            move |router: Router, dev: bool, duration: Duration| {
                 let layer = SessionManagerLayer::new(store)
-                    .with_secure(!debug)
+                    .with_secure(!dev)
                     .with_http_only(true)
                     .with_same_site(tower_sessions::cookie::SameSite::Strict)
                     .with_expiry(Expiry::OnInactivity(duration));
@@ -507,8 +513,8 @@ mod tests {
 
     #[test]
     fn default_session_watermarks_are_128_and_256_mb() {
-        for debug in [true, false] {
-            let staging = MiddlewareStaging::new(debug);
+        for dev in [true, false] {
+            let staging = MiddlewareStaging::new(dev);
             assert_eq!(
                 (
                     staging.session_low_watermark,
@@ -517,7 +523,7 @@ mod tests {
                 (LOW, HIGH)
             );
             let config = RuniqueConfig {
-                debug,
+                dev,
                 ..RuniqueConfig::default()
             };
             let staging = MiddlewareStaging::from_config(&config);

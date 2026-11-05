@@ -444,8 +444,7 @@ du framework (environnement, token CSS, configuration de session, nettoyage de t
 use std::sync::LazyLock;
 
 // Lecture de DEBUG une seule fois au démarrage
-static DEBUG: LazyLock<bool> =
-    LazyLock::new(|| debug_from(std::env::var("DEBUG").ok().as_deref()));
+static DEBUG: LazyLock<bool> = LazyLock::new(|| debug_from(read_after_dotenv("DEBUG").as_deref()));
 
 pub fn is_debug() -> bool {
     *DEBUG

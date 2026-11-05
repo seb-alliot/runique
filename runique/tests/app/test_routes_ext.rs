@@ -60,7 +60,7 @@ async fn every_route_added_to_a_routes_set_is_served() {
         );
 
     let mut config = RuniqueConfig::from_env();
-    config.debug = true;
+    config.dev = true;
     let app = RuniqueApp::builder(config)
         .with_database(Database::connect("sqlite::memory:").await.unwrap())
         .routes(routes)

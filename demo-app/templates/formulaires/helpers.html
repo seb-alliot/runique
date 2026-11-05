@@ -127,15 +127,14 @@ form.<span class="fn_">cleaned</span>::&lt;<span class="ty">String</span>&gt;(<s
     <span class="cm">// ...</span>
 }
 
-<span class="cm">// Real example: user search /view-user?username=alice</span>
+<span class="cm">// Example: user search /users?username=alice</span>
 <span class="kw">let</span> username = form.<span class="fn_">cleaned</span>::&lt;<span class="ty">String</span>&gt;(<span class="st">"username"</span>).<span class="fn_">unwrap_or_default</span>();</code></pre>
         </div>
 
     </div>
 
     <div class="back-link">
-        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/helpers/helpers.md" target="_blank" class="btn btn-secondary">Doc FR</a>
-        <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/helpers/helpers.md" target="_blank" class="btn btn-secondary">Doc EN</a>
+        <a href="{% if ui_lang == "fr" %}https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/helpers/helpers.md{% else %}https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/helpers/helpers.md{% endif %}" target="_blank" rel="noopener" class="btn btn-secondary">Documentation</a>
         <a href="{% link "formulaires_hub" %}">← Forms</a>
     </div>
 </div>

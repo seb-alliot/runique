@@ -23,7 +23,7 @@ use serial_test::serial;
 async fn build_app(mount: &str, admin_path: &str) -> runique::app::RuniqueApp {
     let db = Database::connect("sqlite::memory:").await.unwrap();
     let mut config = RuniqueConfig::from_env();
-    config.debug = true;
+    config.dev = true;
 
     RuniqueApp::builder(config)
         .with_database(db)
@@ -39,7 +39,7 @@ async fn build_app(mount: &str, admin_path: &str) -> runique::app::RuniqueApp {
 async fn build(mount: &str, admin_path: &str, prefix_first: bool) -> Router {
     let db = Database::connect("sqlite::memory:").await.unwrap();
     let mut config = RuniqueConfig::from_env();
-    config.debug = true;
+    config.dev = true;
 
     let app = RuniqueApp::builder(config)
         .with_database(db)
@@ -62,7 +62,7 @@ async fn build(mount: &str, admin_path: &str, prefix_first: bool) -> Router {
 async fn build_with_declarative_admin_route() -> Router {
     let db = Database::connect("sqlite::memory:").await.unwrap();
     let mut config = RuniqueConfig::from_env();
-    config.debug = true;
+    config.dev = true;
 
     let routes = runique::urlpatterns! {
         "/public" => get(|| async { "public" }), name = "public_test",

@@ -1,0 +1,23 @@
+# Runique
+
+> Rust web framework inspired by Django, built on Axum, SeaORM and Tera.
+> Type-safe forms, auto-generated admin, CSRF/CSP middleware, persistent sessions.
+
+Runique is open-source and available on crates.io. This site is a live demo.
+
+## Documentation
+
+- [Documentation (EN)](https://runique.io/docs/en): Full English documentation
+- [Documentation (FR)](https://runique.io/docs/fr): Documentation complete en francais
+- [Changelog](https://runique.io/changelog): Version history and release notes
+- [Comparison](https://runique.io/comparatif): Runique next to Loco, Cot and Django, known limits, what's coming
+
+## Source
+
+- [GitHub](https://github.com/seb-alliot/runique): Source code
+- [crates.io](https://crates.io/crates/runique): Rust package
+
+## Demo
+
+- [Live demo](https://runique.io): Forms, admin, auth, ORM, middlewares
+- [llms-full.txt](https://runique.io/llms-full.txt): Full content for LLMs

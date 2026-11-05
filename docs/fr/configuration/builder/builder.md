@@ -70,7 +70,7 @@ let app = RuniqueApp::builder(config)
     .await?;
 ```
 
-Le gestionnaire d'erreurs est monté par défaut ; c'est `DEBUG` qui décide de son contenu (page détaillée en debug, page générique en production). `with_debug_errors(false)` le retire entièrement : les erreurs sortent alors sans page Runique.
+Le gestionnaire d'erreurs est monté par défaut ; c'est `DEBUG` qui décide de son contenu (page détaillée avec `DEBUG=true`, page générique sinon). `with_debug_errors(false)` le retire entièrement : les erreurs sortent alors sans page Runique.
 
 ### Middlewares
 
@@ -81,7 +81,7 @@ let app = RuniqueApp::builder(config)
     .routes(router)
     .middleware(|m| {
         m.with_csp(|c| c)              // CSP toujours actif — personnalisable ici
-         .with_allowed_hosts(|h| h.enabled(true).host("mondomaine.fr"))  // Active la validation des hosts
+         .with_allowed_hosts(|h| h.host("mondomaine.fr"))  // Active la validation des hosts
          .with_cache(true)              // Garde le cache HTTP en dev (pas d'en-têtes no-cache)
          .with_debug_errors(true)       // Active les erreurs détaillées
     })
@@ -89,9 +89,9 @@ let app = RuniqueApp::builder(config)
     .await?;
 ```
 
-La validation des hosts s'active via `.with_allowed_hosts(|h| h.enabled(true).host("..."))` dans le builder — sans cet appel, la validation est désactivée. Aucune variable `.env` ne contrôle ce comportement.
+La validation des hosts se déclare via `.with_allowed_hosts(|h| h.host("..."))` dans le builder : active avec `RUNIQUE_ENV=prod`, inactive avec `RUNIQUE_ENV=dev`, et `.enabled(...)` a le dernier mot. Sans cet appel, rien n'est validé.
 
-> **`is_debug()`** — helper global disponible via `use runique::prelude::*`. Retourne `true` si `DEBUG=true` dans `.env`. Lu une seule fois au démarrage (`LazyLock`), disponible partout sans paramètre.
+> **`is_dev()`** — helper global disponible via `use runique::prelude::*`. Retourne `true` si `RUNIQUE_ENV=dev`. Lu une seule fois (`LazyLock`), après chargement du `.env`, disponible partout sans paramètre. **`is_debug()`** fait de même pour `DEBUG`, qui ne pilote que les pages d'erreur détaillées.
 
 ### Durée de session
 
@@ -127,9 +127,9 @@ let app = RuniqueApp::builder(config)
     .await?;
 ```
 
-En production (`DEBUG=false`), l'application **refuse de démarrer** sans elle dès que le reset de mot de passe ou l'admin est activé : un lien construit à partir de l'en-tête `Host` de la requête irait là où le client le décide (`Host: evil.com` → le jeton de reset part chez l'attaquant). En debug, le `Host` sert de repli, avec un avertissement.
+En production (`RUNIQUE_ENV=prod`), l'application **refuse de démarrer** sans elle dès que le reset de mot de passe ou l'admin est activé : un lien construit à partir de l'en-tête `Host` de la requête irait là où le client le décide (`Host: evil.com` → le jeton de reset part chez l'attaquant). Avec `RUNIQUE_ENV=dev`, l'URL publique est toujours `http://127.0.0.1:{PORT}`, même si `.with_public_url()` est appelée : les liens mènent à votre machine et non au site de production.
 
-Vos propres liens (activation de compte, mail pointant vers le site…) suivent la même règle via `request.public_url()` : l'URL publique, sinon le `Host` en debug uniquement, sinon `None`. Ne les construisez jamais vous-même à partir de l'en-tête `Host`.
+Vos propres liens (activation de compte, mail pointant vers le site…) suivent la même règle via `request.public_url()` : l'URL publique, sinon `None`, jamais le `Host`. Ne les construisez jamais vous-même à partir de l'en-tête `Host`.
 
 ```rust
 let Some(base) = request.public_url() else {
@@ -139,12 +139,7 @@ let Some(base) = request.public_url() else {
 let activate_url = format!("{base}/activer/{token}");
 ```
 
-Elle ne s'appelle **qu'une fois** : un second `.with_public_url(...)` ne compile pas (« `with_public_url()` has already been called on this builder »), plutôt que de remplacer le premier sans rien dire. Pour distinguer le local de la production, on choisit la valeur, pas l'appel (les deux branches d'un `if` autour de l'appel n'auraient pas le même type) ; une chaîne vide laisse l'URL publique non définie :
-
-```rust
-let public_url = if is_debug() { "" } else { "https://monsite.fr" };
-let builder = RuniqueApp::builder(config).with_public_url(public_url);
-```
+Elle ne s'appelle **qu'une fois** : un second `.with_public_url(...)` ne compile pas (« `with_public_url()` has already been called on this builder »), plutôt que de remplacer le premier sans rien dire. Écrivez-y l'adresse de production : le développement n'en tient pas compte.
 
 ### Logs framework
 
@@ -171,7 +166,7 @@ RuniqueApp::builder(config)
 
 #### `subscriber_level` — niveau du subscriber
 
-Par défaut : `"debug"` si `DEBUG=true` dans `.env`, sinon `"warn"`. La variable `RUST_LOG` a toujours la priorité.
+Par défaut : `"debug"` si `RUNIQUE_ENV=dev`, sinon `"warn"`. La variable `RUST_LOG` a toujours la priorité.
 
 ```rust
 RuniqueApp::builder(config)
@@ -183,10 +178,10 @@ RuniqueApp::builder(config)
 
 #### `.dev()` — tout activer en développement
 
-Preset qui active toutes les catégories au niveau `DEBUG`. Sans effet si `DEBUG` n'est pas `true` dans `.env` — peut être utilisé inconditionnellement.
+Preset qui active toutes les catégories au niveau `DEBUG`. Sans effet si `RUNIQUE_ENV` n'est pas `dev` — peut être utilisé inconditionnellement.
 
 ```rust
-// Dev uniquement (no-op si DEBUG != true)
+// Dev uniquement (no-op si RUNIQUE_ENV != dev)
 RuniqueApp::builder(config)
     .with_log(|l| l.dev())
     .routes(router)
@@ -297,10 +292,10 @@ L'état est porté par le type du builder (`RuniqueAppBuilder<S>`), invisible ta
 | **Error handler** | ✅ Activé | |
 | **CSP + headers de sécurité** | ✅ Toujours actifs | Inconditionnel, quel que soit le mode ; `.with_csp(...)` personnalise, n'active pas |
 | **Host validation** | ❌ Désactivée | Aucune variable `.env` ne la contrôle — appeler `.with_allowed_hosts(...)` |
-| **Cache control** | ✅ Activé | No-cache en debug ; `.with_cache(true)` le désactive |
+| **Cache control** | ✅ Activé | No-cache en développement ; `.with_cache(true)` le désactive |
 | **Static files** | ✅ Activés | Servis sous `STATIC_URL` et `MEDIA_URL` ; `.static_files(\|s\| s.enabled(false))` pour désactiver (fichiers servis par Nginx, par exemple) |
 | **URL publique** | — | Obligatoire en production si le reset ou l'admin est activé — `.with_public_url(...)` |
-| **Hot reload admin** | Selon `DEBUG` | Automatique via `is_debug()` |
+| **Hot reload admin** | Selon `RUNIQUE_ENV` | Automatique via `is_dev()` |
 | **Logs framework** | ❌ Désactivés | Activer via `.with_log(\|l\| ...)` |
 
 ---

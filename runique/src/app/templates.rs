@@ -37,20 +37,47 @@ pub struct BlockDispatch {
 }
 
 impl TemplateLoader {
-    /// Initializes Tera and processes all templates (internal + users)
+    /// Initializes Tera and processes all templates (internal + users). Called
+    /// on every render in development, where nothing is hashed: a stylesheet
+    /// being edited must load, and hashing every file on each page has a cost.
     pub fn init(
         config: &RuniqueConfig,
         url_registry: ARlockmap,
     ) -> Result<Tera, Box<dyn std::error::Error>> {
+        if config.dev {
+            return Self::load(config, url_registry, &Integrity::default());
+        }
         Self::init_with_integrity(config, url_registry).map(|(tera, _)| tera)
     }
 
-    /// `init`, also returning the static files' hashes it computed: the boot
-    /// reuses them for the admin's stylesheets instead of hashing twice.
+    /// The boot's `init`: the hashes are always computed, in development too,
+    /// for the admin to refuse a stylesheet that isn't a file of the static
+    /// folder. Its pages only carry them in production.
     pub(crate) fn init_with_integrity(
         config: &RuniqueConfig,
         url_registry: ARlockmap,
     ) -> Result<(Tera, Integrity), Box<dyn std::error::Error>> {
+        let hashes = Integrity {
+            site: crate::utils::integrity::build_integrity_map(Path::new(
+                &config.static_files.staticfiles_dirs,
+            )),
+            runique: crate::utils::integrity::build_integrity_map(Path::new(
+                &config.static_files.static_runique_path,
+            )),
+        };
+        let tera = if config.dev {
+            Self::load(config, url_registry, &Integrity::default())?
+        } else {
+            Self::load(config, url_registry, &hashes)?
+        };
+        Ok((tera, hashes))
+    }
+
+    fn load(
+        config: &RuniqueConfig,
+        url_registry: ARlockmap,
+        integrity_map: &Integrity,
+    ) -> Result<Tera, Box<dyn std::error::Error>> {
         let mut tera = Tera::default();
         tera.autoescape_on(vec!["html", "xml"]);
 
@@ -64,21 +91,13 @@ impl TemplateLoader {
             url_registry.clone(),
         );
 
-        let integrity_map = Integrity {
-            site: crate::utils::integrity::build_integrity_map(Path::new(
-                &config.static_files.staticfiles_dirs,
-            )),
-            runique: crate::utils::integrity::build_integrity_map(Path::new(
-                &config.static_files.static_runique_path,
-            )),
-        };
         static_tera::register_integrity_filter(&mut tera, integrity_map.site.clone());
 
         // 3. Runique's templates, the admin's with their block includes
         //    rewritten, then the developer's (WITH preprocess). One batch:
         //    Tera checks every include once all are in, so a rewritten include
         //    naming a developer's template resolves.
-        let mut all_templates = Self::internal_templates(&integrity_map, &config.block_dispatch);
+        let mut all_templates = Self::internal_templates(integrity_map, &config.block_dispatch);
         let internal_loaded = all_templates.len();
 
         // 4. Processing loop for configured template directories (dev) (WITH preprocess)
@@ -93,7 +112,7 @@ impl TemplateLoader {
                         let content = std::fs::read_to_string(&entry)?;
 
                         let processed =
-                            Self::process_content(content, &integrity_map, &config.block_dispatch);
+                            Self::process_content(content, integrity_map, &config.block_dispatch);
 
                         // Calculation of the template's logical name (relative path)
                         let name = entry
@@ -133,7 +152,7 @@ impl TemplateLoader {
             );
         }
 
-        Ok((tera, integrity_map))
+        Ok(tera)
     }
 
     /// Applies all Runique transformations on a template content
@@ -284,6 +303,55 @@ mod process_content_tests {
     }
 
     /// Runique's own files get their SRI from Runique's folder.
+    fn loaded_with(dev: bool) -> (String, super::Integrity) {
+        use super::TemplateLoader;
+        use crate::config::RuniqueConfig;
+
+        let root = std::env::temp_dir().join(format!("rq_sri_{}", uuid::Uuid::new_v4()));
+        let (statics, templates) = (root.join("static"), root.join("templates"));
+        std::fs::create_dir_all(&statics).unwrap();
+        std::fs::create_dir_all(&templates).unwrap();
+        std::fs::write(statics.join("app.css"), "body{}").unwrap();
+        std::fs::write(
+            templates.join("page.html"),
+            r#"<link rel="stylesheet" href="{% static "app.css" %}">"#,
+        )
+        .unwrap();
+        let mut config = RuniqueConfig::default();
+        config.dev = dev;
+        config.static_files.staticfiles_dirs = statics.to_string_lossy().into_owned();
+        config.static_files.templates_dir = vec![templates.to_string_lossy().into_owned()];
+        config.static_files.static_url = "/static".into();
+
+        let reloaded = TemplateLoader::init(&config, Default::default()).unwrap();
+        let (booted, hashes) =
+            TemplateLoader::init_with_integrity(&config, Default::default()).unwrap();
+        let context = tera::Context::new();
+        let page = reloaded.render("page.html", &context).unwrap();
+        assert_eq!(
+            booted.render("page.html", &context).unwrap(),
+            page,
+            "the boot and the reload write the same page"
+        );
+        let _ = std::fs::remove_dir_all(&root);
+        (page, hashes)
+    }
+
+    #[test]
+    fn development_pages_carry_no_integrity_but_the_boot_still_hashes() {
+        let (page, hashes) = loaded_with(true);
+        assert!(page.contains("/static/app.css"), "{page}");
+        assert!(!page.contains("integrity"), "{page}");
+        assert!(hashes.site.contains_key("app.css"));
+    }
+
+    #[test]
+    fn production_pages_carry_their_integrity() {
+        let (page, hashes) = loaded_with(false);
+        assert!(page.contains(r#"integrity="sha384-"#), "{page}");
+        assert!(hashes.site.contains_key("app.css"));
+    }
+
     #[test]
     fn a_runique_static_file_gets_its_integrity() {
         let out = TemplateLoader::process_content(

@@ -50,6 +50,7 @@ services:
       - path: demo-app/.env
         required: false
     environment:
+      RUNIQUE_ENV: dev
       DEBUG: "true"
       DB_ENGINE: postgres
       DATABASE_URL: postgres://runique:runique_test@postgres:5432/runique_demo

@@ -4,7 +4,8 @@
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DEBUG` | `false` | Global dev/prod switch — read **once** at startup. Accepts `true`/`1`/`yes`/`on` and `false`/`0`/`no`/`off`, whatever the case. Turns on: `debug` log level (unless `RUST_LOG`), detailed error pages, templates read again on every request, the default home page when `/` isn't declared. In production (`false`): `warn` level, generic errors, security checks at startup (`SECRET_KEY`, `with_public_url`, ACME). |
+| `RUNIQUE_ENV` | `prod` | `dev` or `prod`, whatever the case; unset or unknown means `prod` (with a warning for an unknown value). Read **once** at startup. In `dev`: session cookie without `Secure`, `debug` log level (unless `RUST_LOG`), templates read again on every request, no-cache headers on `localhost`, the default home page when `/` isn't declared, public URL set to `http://127.0.0.1:{PORT}`, allowed hosts not validated, no `upgrade-insecure-requests`, no SRI and static files in `no-cache`, so edited CSS reloads without a restart. In `prod`: security checks at startup (`SECRET_KEY`, `with_public_url`, the reset's mailer, ACME). |
+| `DEBUG` | `false` | Shows the detailed error pages and changes nothing else — read **once** at startup. Accepts `true`/`1`/`yes`/`on` and `false`/`0`/`no`/`off`, whatever the case. Also works with `RUNIQUE_ENV=prod` to look into a problem on a live site: not recommended, as every visitor then sees those pages (a warning shows at startup). |
 | `BASE_DIR` | `.` | Application root directory |
 | `TZ` | `UTC` | IANA timezone for the application (e.g. `Europe/Paris`, `America/New_York`). Accessible via `config.timezone` — parse it with `chrono-tz` in your project. |
 | `LANG` | system locale | CLI language (`fr`, `en`, `de`, `es`, `it`, `pt`, `ja`, `zh`, `ru`). Priority: `LANG` / `LC_ALL` / `LC_MESSAGES` from `.env` > system locale > `en`. The app's language is set in code (`set_lang(Lang::En)`) |
@@ -17,7 +18,7 @@
 |----------|---------|-------------|
 | `IP_SERVER` | `127.0.0.1` | Listening IP address |
 | `PORT` | `3000` | Listening port |
-| `SECRET_KEY` | `default_secret_key` | Secret key (CSRF, signatures, encryption of the sessions in the database: changing it signs their users out at restart). `runique new` writes a random one (64 hex characters) into the project's `.env`. To replace it: any random string of 32 characters or more (`openssl rand -hex 32`). In production (`DEBUG=false`), **startup fails** when it is empty, equal to the default, or shorter than 32 characters; in debug, a warning is shown |
+| `SECRET_KEY` | `default_secret_key` | Secret key (CSRF, signatures, encryption of the sessions in the database: changing it signs their users out at restart). `runique new` writes a random one (64 hex characters) into the project's `.env`. To replace it: any random string of 32 characters or more (`openssl rand -hex 32`). In production (`RUNIQUE_ENV=prod`), **startup fails** when it is empty, equal to the default, or shorter than 32 characters; in development, a warning is shown when it is missing |
 
 ---
 

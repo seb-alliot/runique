@@ -1,78 +1,107 @@
 /* =========================
     VARIABLES GLOBALES
+    Palette reprise de l'admin (runique/static/css/admin/variables.css)
    ========================= */
 
 :root {
-    /* ── Backgrounds (deux niveaux) ── */
-    --bg-base:    #0d1117;   /* fond page, elements les plus sombres */
-    --bg-surface: #111827;   /* surfaces posées : cards, inputs, panels */
+    /* ── Backgrounds ── */
+    --bg-base:    #090d16;
+    --bg-surface: #0f172a;
+    --bg-hover:   #1e293b;
 
     /* ── Text ── */
-    --text-main:  #f9fafb;   /* texte principal */
-    --text-muted: #73c7fa;   /* texte secondaire */
-    --text-dim:   #ed8282;   /* meta, footer, labels legers */
-    --font-size: math;  /* base size
+    --text-main:  #f8fafc;
+    --text-muted: #94a3b8;
+    --text-dim:   #94a3b8;
+    --text-nav:   #cbd5e1;
+    --label:      #a78bfa;
+
     /* ── Accent ── */
-    --accent:         #3b82f6;  /* bleu principal */
-    --accent-hover:   #2563eb;  /* bleu hover */
-    --accent-indigo:  #6366f1;  /* indigo (gradient secondaire) */
-    --accent-warning: #f59e0b;  /* orange/amber (carte admin, warnings) */
+    --accent:         #fb923c;
+    --accent-hover:   #f97316;
+    --accent-indigo:  #a78bfa;
+    --accent-warning: #fbbf24;
+    --accent-active:  rgba(249, 115, 22, 0.14);
+
+    /* Le blanc sur l'orange de l'admin reste sous 3:1 : texte sombre en thème sombre. */
+    --btn-bg:   #f97316;
+    --btn-text: #090d16;
 
     /* ── Borders ── */
-    --border:       #30363d;  /* bordure standard */
-    --border-light: #1f2937;  /* bordure douce (footer, header) */
+    --border:       rgba(148, 163, 184, 0.18);
+    --border-light: rgba(148, 163, 184, 0.12);
 
     /* ── Semantic ── */
-    --error-color:   #ef4444;
-    --success-color: #22c55e;
-    --warning-color: #f59e0b;
-    --danger:        #ff6b6b;
+    --error-color:   #f43f5e;
+    --success-color: #10b981;
+    --warning-color: #fbbf24;
+    --danger:        #f43f5e;
+
+    --msg-error-text:   #fecdd3;
+    --msg-success-text: #a7f3d0;
+    --msg-info-text:    #bae6fd;
+    --msg-warning-text: #fde68a;
 
     /* ── Spacing ── */
     --margin-top: 2%;
+    --page-max:   75rem;
+    --gutter:     1rem;
 
     /* -- color-card -- */
-    --card-color: #fca5a5;
+    --card-color: #a78bfa;
 
     --shadow-message: rgba(255, 255, 255, 0.03);
 
-    /* ── Code blocks ── */
-    --bg-code:        #161b22;
-    --bg-code-inline: rgba(255,255,255,0.08);
-    --text-code:      #e6edf3;
+    /* ── Fonts ── */
+    --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+    /* ── Code blocks (toujours sombres : highlight.js utilise un thème sombre) ── */
+    --bg-code:        #0b1326;
+    --bg-code-inline: rgba(255, 255, 255, 0.08);
+    --text-code:      #e2e8f0;
+}
+
+@media (min-width: 48rem) {
+    :root { --gutter: 2rem; }
 }
 
 /* ── Mode clair ── */
 [data-theme="light"] {
-    --msg-error-text:   #991b1b;
-    --msg-success-text: #166534;
-    --msg-info-text:    #1e40af;
+    --msg-error-text:   #9f1239;
+    --msg-success-text: #065f46;
+    --msg-info-text:    #075985;
     --msg-warning-text: #92400e;
-    --bg-base:    #f3f4f6;
+
+    --bg-base:    #f8fafc;
     --bg-surface: #ffffff;
+    --bg-hover:   #e2e8f0;
 
-    --text-main:  #111827;
-    --text-muted: #4b5563;
-    --text-dim:   #9ca3af;
+    --text-main:  #0f172a;
+    --text-muted: #475569;
+    --text-dim:   #475569;
+    --text-nav:   #334155;
+    --label:      #7c3aed;
 
-    --accent:         #2563eb;
-    --accent-hover:   #1d4ed8;
-    --accent-indigo:  #4f46e5;
-    --accent-warning: #d97706;
+    --accent:         #c2410c;
+    --accent-hover:   #9a3412;
+    --accent-indigo:  #7c3aed;
+    --accent-warning: #b45309;
+    --accent-active:  rgba(234, 88, 12, 0.10);
 
-    --border:       #080808;
-    --border-light: #e5e7eb;
+    --btn-bg:   #c2410c;
+    --btn-text: #ffffff;
 
-    --error-color:   #dc2626;
-    --success-color: #16a34a;
-    --warning-color: #d97706;
-    --danger:        #ef4444;
+    --border:       rgba(15, 23, 42, 0.16);
+    --border-light: rgba(15, 23, 42, 0.10);
 
-    --card-color: #fca5a5;
+    --error-color:   #e11d48;
+    --success-color: #059669;
+    --warning-color: #b45309;
+    --danger:        #e11d48;
+
+    --card-color: #7c3aed;
     --shadow-message: rgba(0, 0, 0, 0.04);
 
-    /* ── Code blocks (toujours sombres, comme GitHub) ── */
-    --bg-code:        #161b22;
-    --bg-code-inline: rgba(0,0,0,0.07);
-    --text-code:      #e6edf3;
+    --bg-code-inline: rgba(15, 23, 42, 0.07);
 }

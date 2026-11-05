@@ -109,6 +109,14 @@ Voir [CLI Runique](/docs/fr/installation/cli). Le panneau d'administration deman
 IP_SERVER=127.0.0.1
 PORT=3000
 
+# `dev` ou `prod` : règle le comportement de l'application (cookie de session,
+# contrôles au démarrage, URL publique, hôtes autorisés, rechargement des templates, logs).
+# Absente ou inconnue : `prod`.
+RUNIQUE_ENV=dev
+
+# Affiche les pages d'erreur détaillées, sans rien changer d'autre. Possible aussi avec
+# RUNIQUE_ENV=prod pour diagnostiquer en direct, mais tous les visiteurs voient ces pages :
+# déconseillé, à couper dès que le problème est trouvé.
 DEBUG=true
 
 # Signe les jetons CSRF et les sessions : propre à ce projet, à garder secret
@@ -125,7 +133,7 @@ Le `SECRET_KEY` est généré aléatoirement à la création. Si vous devez le r
 openssl rand -hex 32
 ```
 
-En production (`DEBUG=false`), Runique refuse de démarrer avec une clé absente, trop courte ou laissée à sa valeur d'exemple.
+En production (`RUNIQUE_ENV=prod`), Runique refuse de démarrer avec une clé absente, trop courte ou laissée à sa valeur d'exemple.
 
 Les autres variables (dossiers des templates, des fichiers statiques et des médias, journalisation…) ont des valeurs par défaut : voir [Variables d'environnement](/docs/fr/env).
 

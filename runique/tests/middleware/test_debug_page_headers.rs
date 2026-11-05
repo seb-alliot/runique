@@ -55,13 +55,22 @@ const SECRET_HEADERS: &[(&str, &str)] = &[
 const VISIBLE_HEADER: (&str, &str) = ("X-Trace-Id", "TRACE-VISIBLE");
 
 async fn spawn(debug: bool) -> String {
+    spawn_modes(debug, false).await
+}
+
+async fn spawn_modes(debug: bool, dev: bool) -> String {
     let db = Database::connect("sqlite::memory:").await.unwrap();
     let mut config = RuniqueConfig::from_env();
     config.debug = debug;
+    config.dev = dev;
     config.server.secret_key = "a-long-enough-test-secret-key-for-production-0123456789".into();
     let app = RuniqueApp::builder(config)
         .with_database(db)
-        .routes(Router::new().route("/boom", get(|| async { StatusCode::INTERNAL_SERVER_ERROR })))
+        .routes(
+            Router::new()
+                .route("/", get(|| async { "ok" }))
+                .route("/boom", get(|| async { StatusCode::INTERNAL_SERVER_ERROR })),
+        )
         .static_files(|s| s.enabled(false))
         .middleware(|m| m.with_session_store(tower_sessions::MemoryStore::default()))
         .build()
@@ -136,4 +145,46 @@ async fn the_production_error_page_shows_no_header() {
         assert!(!html.contains(VISIBLE_HEADER.1), "{path}");
         assert_no_secret(&html);
     }
+}
+
+async fn session_cookie(base: &str) -> String {
+    let resp = reqwest::get(format!("{base}/")).await.unwrap();
+    resp.headers()
+        .get_all("set-cookie")
+        .iter()
+        .map(|v| v.to_str().unwrap().to_string())
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+// DEBUG only picks the page: production with DEBUG=true shows the detailed page
+// and keeps its Secure cookie.
+#[tokio::test]
+#[serial]
+async fn debug_in_production_shows_the_detailed_page_and_keeps_the_cookie_secure() {
+    let base = spawn_modes(true, false).await;
+    for path in ["/boom", "/nowhere"] {
+        let (_, html) = error_page(&base, path).await;
+        assert!(html.contains(VISIBLE_HEADER.1), "{path}");
+        assert_no_secret(&html);
+    }
+    let cookie = session_cookie(&base).await;
+    assert!(!cookie.is_empty(), "a session cookie is set");
+    assert!(cookie.contains("Secure"), "{cookie}");
+}
+
+// RUNIQUE_ENV=dev alone doesn't open the detailed page; it only relaxes the cookie.
+#[tokio::test]
+#[serial]
+async fn dev_without_debug_shows_the_generic_page() {
+    let base = spawn_modes(false, true).await;
+    for path in ["/boom", "/nowhere"] {
+        let (status, html) = error_page(&base, path).await;
+        assert!(!html.contains(VISIBLE_HEADER.1), "{path}");
+        assert!(html.contains(&status.to_string()), "{path}: {html}");
+        assert_no_secret(&html);
+    }
+    let cookie = session_cookie(&base).await;
+    assert!(!cookie.is_empty(), "a session cookie is set");
+    assert!(!cookie.contains("Secure"), "{cookie}");
 }

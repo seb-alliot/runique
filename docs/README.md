@@ -75,7 +75,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_database(db)
         .statics()
         .middleware(|m| {
-            m.with_allowed_hosts(|h| h.enabled(!is_debug()).host("localhost:3000"))
+            m.with_allowed_hosts(|h| h.host("localhost:3000"))
         })
         .build()
         .await?

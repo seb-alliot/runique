@@ -24,13 +24,13 @@ fn test_is_localhost_false() {
 }
 
 // Written from cargo-mutants survivors (2026-10-08): the middleware itself was
-// never run — dev/cache.rs:20 (`debug && localhost`).
-async fn cache_control(debug: bool, host: &str) -> Option<String> {
-    use crate::helpers::server::{build_engine, build_engine_debug};
+// never run — dev/cache.rs:20 (`dev && localhost`).
+async fn cache_control(dev: bool, host: &str) -> Option<String> {
+    use crate::helpers::server::{build_engine, build_engine_dev};
     use axum::{Router, middleware, routing::get};
     use runique::middleware::dev::cache::dev_no_cache_middleware;
-    let engine = if debug {
-        build_engine_debug().await
+    let engine = if dev {
+        build_engine_dev().await
     } else {
         build_engine().await
     };
@@ -48,13 +48,13 @@ async fn cache_control(debug: bool, host: &str) -> Option<String> {
 }
 
 #[tokio::test]
-async fn test_no_cache_only_in_debug_on_localhost() {
+async fn test_no_cache_only_in_development_on_localhost() {
     let no_store = Some("no-cache, no-store, must-revalidate".to_string());
     assert_eq!(cache_control(true, "localhost:3000").await, no_store);
     assert_eq!(
         cache_control(true, "example.com").await,
         None,
-        "debug, but not local"
+        "development, but not local"
     );
     assert_eq!(
         cache_control(false, "localhost:3000").await,

@@ -64,8 +64,7 @@
         <div class="profile-actions">
             <a href='{% link "blog_info" %}' class="btn btn-primary">Write an article</a>
             <a href='{% link "index" %}' class="btn btn-secondary">Back to home</a>
-            <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/session/14-sessions.md" target="_blank" class="btn btn-secondary">Doc FR</a>
-            <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/session/14-sessions.md" target="_blank" class="btn btn-secondary">Doc EN</a>
+            <a href="{% if ui_lang == "fr" %}https://github.com/seb-alliot/runique/blob/main/docs/fr/session/14-sessions.md{% else %}https://github.com/seb-alliot/runique/blob/main/docs/en/session/14-sessions.md{% endif %}" target="_blank" rel="noopener" class="btn btn-secondary">Documentation</a>
             {# Strict CSP: use class="form-inline", not an inline style="display:inline" #}
             <form method="post" action='{% link "logout" %}' class="form-inline">
                 {% csrf %}

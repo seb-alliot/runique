@@ -37,13 +37,39 @@ Ce que Runique 4.0 ne fait pas encore, ou fait avec une restriction. Chaque lign
 | `.links`, `.search_help`, `.empty_value` acceptés mais sans effet sur l'affichage | [Builder ModelAdmin](/docs/fr/admin/declaration-macro) |
 | Pas de feuille de thème globale (contournement par un bloc)<br>`.with_htmx` est global, pas de fragment de liste par modèle<br>Un template de page ou une feuille de style absents ne sont signalés qu'à l'affichage | [Surcharge](/docs/fr/admin/template-surcharge) |
 | Pas d'interface de gestion des sessions | — |
-| Pas de many-to-many dans le DSL ni dans l'admin | [Évolutions](/docs/fr/admin/evolution) |
+| Many-to-many : déclaré dans le DSL par une table pivot, sans gestion dans l'admin | [Évolutions](/docs/fr/admin/evolution) |
 
 ## Développement local
 
 | Limite | Détail |
 | --- | --- |
 | Les cookies ignorent le port : deux projets sur `127.0.0.1` partagent (et s'écrasent) le cookie de session | [Dépannage](/docs/fr/installation/troubleshooting) |
+
+---
+
+## Solutions en attendant
+
+| Limite | Solution |
+| --- | --- |
+| `RateLimiter` et `LoginGuard` sans plafond mémoire, compteurs par processus | Limiter aussi au reverse proxy (exemple ci-dessous) |
+| `LoginGuard` bloque par nom d'utilisateur | L'associer à une limite par IP, au reverse proxy ou avec `RateLimiter` |
+| Store de sessions mémoire propre à un processus | Une seule instance, ou un reverse proxy qui renvoie chaque visiteur vers la même (`ip_hash` avec nginx) |
+| ACME : un seul site par machine | Confier le TLS à un reverse proxy dès qu'il y a plusieurs sites |
+| SQLite : un seul écrivain à la fois | PostgreSQL pour une charge en écriture soutenue |
+| Migration atomique seulement sous PostgreSQL | Sauvegarder la base avant `migration up` sur SQLite et MySQL / MariaDB |
+| Changement de type de colonne non migré | Compléter à la main la migration écrite par `--force` |
+| Cookies communs à deux projets sur `127.0.0.1` | Ouvrir l'un sur `127.0.0.1`, l'autre sur `localhost` |
+
+Limite par IP avec nginx, à adapter. La mémoire est plafonnée par la zone, et une requête refusée reçoit un code 503 par défaut :
+
+```nginx
+limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
+
+location /login {
+    limit_req zone=login burst=5 nodelay;
+    proxy_pass http://127.0.0.1:3000;
+}
+```
 
 ---
 

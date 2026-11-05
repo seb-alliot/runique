@@ -68,7 +68,8 @@ impl CspConfig {
     // TOGGLES — true/false
     // ═══════════════════════════════════════════════════
 
-    /// Enables or disables `upgrade-insecure-requests`.
+    /// Enables or disables `upgrade-insecure-requests`. Always off with
+    /// `RUNIQUE_ENV=dev`: a local server only speaks HTTP.
     pub fn with_upgrade_insecure(mut self, enable: bool) -> Self {
         self.policy.upgrade_insecure_requests = enable;
         self

@@ -12,11 +12,12 @@ use serial_test::serial;
 /// Database and routes set (their slots taken), everything else still open.
 type Base = RuniqueAppBuilder<(No, Yes, No, No, Yes, No, No)>;
 
-async fn builder(debug: bool) -> Base {
+async fn builder(dev: bool) -> Base {
     let mut config = RuniqueConfig::from_env();
-    config.debug = debug;
+    config.dev = dev;
     config.server.secret_key = "a-long-enough-test-secret-key-for-production-0123456789".into();
     config.server.public_url = None;
+    config.server.port = 4321;
     RuniqueApp::builder(config)
         .with_database(Database::connect("sqlite::memory:").await.unwrap())
         .routes(Router::new())
@@ -74,11 +75,11 @@ async fn production_needs_no_public_url_without_reset_nor_admin() {
     );
 }
 
-// In debug the request's Host stays the fallback: nothing to configure locally.
+// In development the public URL is the local server: nothing to configure.
 #[cfg(feature = "admin")]
 #[tokio::test]
 #[serial]
-async fn debug_boots_without_public_url() {
+async fn dev_boots_without_public_url() {
     let b = builder(true)
         .await
         .with_password_reset(|pr| pr)
@@ -88,6 +89,50 @@ async fn debug_boots_without_public_url() {
         !components.contains(&"PublicUrl".to_string()),
         "{components:?}"
     );
+}
+
+/// The public URL the engine ends up with, whatever the builder was given.
+async fn built_public_url(dev: bool, configured: Option<&str>) -> Option<String> {
+    let b = builder(dev).await;
+    let app = match configured {
+        Some(url) => b.with_public_url(url).build().await,
+        None => b.build().await,
+    }
+    .unwrap_or_else(|e| panic!("build failed: {e}"));
+    app.engine.config.server.public_url.clone()
+}
+
+// In development the emailed links lead back to the local server, even when the
+// code hard-codes the production URL: a reset sent from a dev machine must not
+// point at the live site.
+#[tokio::test]
+#[serial]
+async fn dev_public_url_is_the_local_server_whatever_the_builder_says() {
+    let local = Some("http://127.0.0.1:4321".to_string());
+    assert_eq!(
+        built_public_url(true, Some("https://mysite.com")).await,
+        local
+    );
+    assert_eq!(built_public_url(true, None).await, local);
+    let url = built_public_url(true, Some("https://evil.com"))
+        .await
+        .unwrap();
+    assert!(!url.contains("evil.com"), "{url}");
+}
+
+#[tokio::test]
+#[serial]
+async fn production_keeps_the_configured_public_url() {
+    assert_eq!(
+        built_public_url(false, Some("https://mysite.com")).await,
+        Some("https://mysite.com".to_string())
+    );
+    assert_eq!(
+        built_public_url(false, Some("https://mysite.com/")).await,
+        Some("https://mysite.com".to_string()),
+        "trailing slash trimmed"
+    );
+    assert_eq!(built_public_url(false, None).await, None);
 }
 
 // The boot report follows the configured language, messages and suggestions alike.
@@ -139,7 +184,7 @@ async fn production_refuses_a_password_reset_without_a_mailer() {
     let components = refused(with).await;
     assert!(!has_mailer_error(&components), "{components:?}");
 
-    // Debug boots without one, to develop without a mail server.
-    let debug = builder(true).await.with_password_reset(|pr| pr);
-    assert!(refused(debug).await.is_empty());
+    // Development boots without one, to develop without a mail server.
+    let dev = builder(true).await.with_password_reset(|pr| pr);
+    assert!(refused(dev).await.is_empty());
 }

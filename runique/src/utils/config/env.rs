@@ -1,8 +1,18 @@
-//! Execution environment — debug mode, CSS token.
+//! Execution environment — `RUNIQUE_ENV`, `DEBUG`, CSS token.
 use std::sync::LazyLock;
 
-/// `DEBUG` from `.env`, read once at startup.
-static DEBUG: LazyLock<bool> = LazyLock::new(|| debug_from(std::env::var("DEBUG").ok().as_deref()));
+/// A variable from the environment or `.env`, for the two flags below: a
+/// `LazyLock` keeps its first answer, and `main` may ask before
+/// `RuniqueConfig::from_env()` has loaded the file.
+fn read_after_dotenv(key: &str) -> Option<String> {
+    dotenvy::dotenv().ok();
+    std::env::var(key).ok()
+}
+
+static DEBUG: LazyLock<bool> = LazyLock::new(|| debug_from(read_after_dotenv("DEBUG").as_deref()));
+
+static DEV: LazyLock<bool> =
+    LazyLock::new(|| dev_from(read_after_dotenv("RUNIQUE_ENV").as_deref()));
 
 /// Reads a yes/no value, whatever its case and surrounding spaces: `true`,
 /// `1`, `yes`, `on` or `false`, `0`, `no`, `off`. `None` for anything else.
@@ -50,22 +60,47 @@ pub fn debug_from(value: Option<&str>) -> bool {
     value.and_then(flag_from).unwrap_or(false)
 }
 
-/// Returns `true` when `DEBUG` turns debug mode on (see [`debug_from`]).
+/// Whether a `RUNIQUE_ENV` value selects development: `dev`, whatever its case
+/// and surrounding spaces. Unset or anything else means production.
+#[must_use]
+pub fn dev_from(value: Option<&str>) -> bool {
+    value.is_some_and(|v| v.trim().eq_ignore_ascii_case("dev"))
+}
+
+/// Whether a `RUNIQUE_ENV` value is one of `dev` and `prod`.
+#[must_use]
+pub fn runique_env_is_known(value: &str) -> bool {
+    let value = value.trim();
+    value.eq_ignore_ascii_case("dev") || value.eq_ignore_ascii_case("prod")
+}
+
+/// Returns `true` when `DEBUG` turns on the detailed error pages (see
+/// [`debug_from`]). It changes nothing else: use [`is_dev`] for the behaviors
+/// that differ between development and production.
 ///
-/// Read once at startup, stored in a `LazyLock`, available everywhere in the
-/// framework without passing parameters.
+/// Read once, stored in a `LazyLock`, available everywhere in the framework
+/// without passing parameters.
+#[must_use]
+pub fn is_debug() -> bool {
+    *DEBUG
+}
+
+/// Returns `true` when `RUNIQUE_ENV=dev` (see [`dev_from`]).
+///
+/// Read once, stored in a `LazyLock`, available everywhere in the framework
+/// without passing parameters.
 ///
 /// # Example
 /// ```rust,ignore
 /// use runique::prelude::*;
 ///
-/// if is_debug() {
+/// if is_dev() {
 ///     println!("Development mode active");
 /// }
 /// ```
 #[must_use]
-pub fn is_debug() -> bool {
-    *DEBUG
+pub fn is_dev() -> bool {
+    *DEV
 }
 
 use std::{
@@ -136,6 +171,46 @@ mod debug_tests {
         }
         for neither in ["", "treu", "prod", "2"] {
             assert_eq!(flag_from(neither), None, "{neither:?}");
+        }
+    }
+
+    #[test]
+    fn only_dev_selects_development() {
+        for on in ["dev", "DEV", "Dev", " dev ", "\tdev\n"] {
+            assert!(super::dev_from(Some(on)), "{on:?} should select dev");
+        }
+        for off in [
+            "prod",
+            "PROD",
+            "development",
+            "dev2",
+            "de v",
+            "true",
+            "1",
+            "",
+            "  ",
+        ] {
+            assert!(!super::dev_from(Some(off)), "{off:?} should stay prod");
+        }
+        assert!(!super::dev_from(None));
+    }
+
+    #[test]
+    fn only_dev_and_prod_are_known_environments() {
+        for known in ["dev", "DEV", " dev ", "prod", "PROD", "Prod", " prod\t"] {
+            assert!(super::runique_env_is_known(known), "{known:?}");
+        }
+        for unknown in [
+            "",
+            " ",
+            "development",
+            "production",
+            "staging",
+            "true",
+            "dev prod",
+            "devs",
+        ] {
+            assert!(!super::runique_env_is_known(unknown), "{unknown:?}");
         }
     }
 

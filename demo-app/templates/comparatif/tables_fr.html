@@ -1,0 +1,46 @@
+<div class="hero-tab-panel active doc-block-content" data-panel="loco" id="loco">
+    <h2 class="compare-panel-title">Runique / Loco</h2>
+    <table>
+        <thead><tr><th scope="col">Sujet</th><th scope="col">Runique 4.0</th><th scope="col">Loco 1.3.1</th></tr></thead>
+        <tbody>
+            <tr><td>Inspiration</td><td>Django</td><td>Rails</td></tr>
+            <tr><td>Serveur</td><td>Axum</td><td>Axum</td></tr>
+            <tr><td>Base de données</td><td>SeaORM : SQLite, PostgreSQL, MySQL/MariaDB, un moteur par compilation</td><td>SeaORM : SQLite, PostgreSQL</td></tr>
+            <tr><td>Migrations</td><td><code>model!{}</code>, <code>makemigrations</code>, <code>migration up/down/status</code></td><td><code>cargo loco generate model/migration</code>, <code>db migrate/down/status</code></td></tr>
+            <tr><td>Vues</td><td>Tera</td><td>Tera, moteur remplaçable</td></tr>
+            <tr><td>Formulaires</td><td><code>#[form]</code> : validation et rendu HTML</td><td>Extraction et validation avec <code>validator</code></td></tr>
+            <tr><td>Administration</td><td>Intégrée, droits par compte</td><td>Au choix du projet</td></tr>
+            <tr><td>Authentification</td><td>Connexion, sessions, reset de mot de passe</td><td>JWT, sessions, OAuth, reset dans les applications générées</td></tr>
+            <tr><td>Sécurité web</td><td>CSRF toujours actif, en-têtes et CSP par défaut ; hôtes et limite de débit à déclarer</td><td><code>secure_headers</code> à activer (présets dont CSP) ; limite de débit par couche <code>tower</code></td></tr>
+            <tr><td>Tâches de fond</td><td>Au choix du projet</td><td>Workers, planificateur</td></tr>
+            <tr><td>Cache et stockage</td><td>Connexion externe enregistrée par le projet ; médias locaux</td><td>Cache mémoire et Redis ; S3, GCP, Azure</td></tr>
+            <tr><td>Générateurs</td><td>Projet et migrations</td><td>Modèle, contrôleur, scaffold, worker, mailer, tâche, déploiement</td></tr>
+            <tr><td>Licence</td><td>MIT</td><td>Apache-2.0</td></tr>
+        </tbody>
+    </table>
+    <p class="compare-source">Vérifié le 5 novembre 2026 dans <a href="https://loco.rs/docs/" target="_blank" rel="noopener">la documentation</a> et <a href="https://github.com/loco-rs/loco" target="_blank" rel="noopener">le dépôt de Loco</a>.</p>
+</div>
+
+<div class="hero-tab-panel doc-block-content" data-panel="cot" id="cot">
+    <h2 class="compare-panel-title">Runique / Cot</h2>
+    <table>
+        <thead><tr><th scope="col">Sujet</th><th scope="col">Runique 4.0</th><th scope="col">Cot 0.7</th></tr></thead>
+        <tbody>
+            <tr><td>Inspiration</td><td>Django</td><td>Django</td></tr>
+            <tr><td>Serveur</td><td>Axum</td><td><code>hyper</code> et <code>tower</code></td></tr>
+            <tr><td>Base de données</td><td>SeaORM : un moteur par compilation</td><td>ORM propre (<code>sea-query</code>, <code>sqlx</code>) : SQLite, PostgreSQL, MySQL</td></tr>
+            <tr><td>Migrations</td><td><code>makemigrations</code>, <code>migration up/down/status</code></td><td><code>cot migration make</code>, appliquées au démarrage, <code>migration rollback</code></td></tr>
+            <tr><td>Vues</td><td>Tera</td><td>Askama</td></tr>
+            <tr><td>Formulaires</td><td><code>#[form]</code></td><td><code>#[derive(Form)]</code>, champs de fichiers</td></tr>
+            <tr><td>Administration</td><td><code>ModelAdmin</code>, droits par compte</td><td>Intégrée (<code>AdminModel</code>), accès par connexion</td></tr>
+            <tr><td>Authentification</td><td>Connexion, sessions, reset de mot de passe</td><td><code>DatabaseUser</code>, sessions</td></tr>
+            <tr><td>Sessions</td><td>Mémoire avec repli en base, store personnalisable</td><td>Mémoire, base, fichier, Redis</td></tr>
+            <tr><td>Sécurité web</td><td>CSRF toujours actif, en-têtes et CSP par défaut ; hôtes et limite de débit à déclarer</td><td><code>SameSite</code> configurable ; le reste au choix du projet</td></tr>
+            <tr><td>API</td><td>Au choix du projet</td><td>OpenAPI et Swagger en option</td></tr>
+            <tr><td>E-mail et cache</td><td>E-mail intégré ; cache au choix du projet</td><td>E-mail ; cache mémoire et Redis</td></tr>
+            <tr><td>Tests</td><td><code>runique test</code>, isolation transactionnelle</td><td><code>cot::test</code>, bout en bout (<code>e2e_test</code>)</td></tr>
+            <tr><td>Licence</td><td>MIT</td><td>MIT ou Apache-2.0</td></tr>
+        </tbody>
+    </table>
+    <p class="compare-source">Vérifié le 5 novembre 2026 dans <a href="https://cot.rs/guide/latest/" target="_blank" rel="noopener">le guide</a> et <a href="https://github.com/cot-rs/cot" target="_blank" rel="noopener">le dépôt de Cot</a>.</p>
+</div>

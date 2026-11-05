@@ -148,6 +148,7 @@ Un Postgres installé sur la machine convient aussi : faites pointer `DATABASE_U
 **2. Créer `demo-app/.env`**
 
 ```env
+RUNIQUE_ENV=dev
 DEBUG=true
 DB_ENGINE=postgres
 DATABASE_URL=postgres://runique:runique_test@localhost:5433/runique_demo

@@ -72,7 +72,7 @@ The welcome link is sent only when all three conditions hold:
 
 - a mailer is configured (`SMTP_*` variables in `.env`, see [Mailer](/docs/en/mailer));
 - password reset is enabled (`.with_password_reset(…)` in the builder): the link leads to its page;
-- the public address is known (`.with_public_url(…)`; in debug only, the request's `Host` stands in for it).
+- the public address is known (`.with_public_url(…)`; with `RUNIQUE_ENV=dev`, it is `http://127.0.0.1:{PORT}`).
 
 Otherwise the account is still created, and the staff sees a "link unavailable" warning. **The link is never shown to the staff**, not even in development: whoever creates the account must not be able to choose the password in its owner's place. The user can always ask for a link later through "forgot password".
 

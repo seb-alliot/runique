@@ -1,5 +1,7 @@
 # Comparatif Runique vs Django
 
+Comparé à Django 6.1, vérifié le 5 novembre 2026 dans [sa documentation](https://docs.djangoproject.com/en/stable/) et le code de Runique.
+
 ## CLI
 
 Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `new`, `create-superuser`, `test`, `makemigrations`, `migration up`. Pas de `runique start` — l'admin est du Rust plain, `cargo run` suffit. Annuler / lister les migrations passe par SeaORM, pas par un sous-commande Runique.
@@ -26,8 +28,8 @@ Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `n
 | Routes dynamiques | `path('users/<int:id>/', view)` | `"/users/{id}"` dans `urlpatterns!` |
 | Namespaces | `app_name` + `include()` | `Router::new().nest("/prefix", ...)` |
 | Reverse URL | `{% url "nom_vue" %}` natif | `{% link "nom_vue" %}` → fonction Tera custom |
-| Paramètre de chemin typé | `kwargs['id']` (toujours str dans Django) | `request.get_path_as::<i32>("id")` |
-| Paramètre de chemin brut | `kwargs['id']` | `request.get_path("id")` |
+| Paramètre de chemin typé | `<int:id>` dans `path()`, converti en `int` | `request.get_path_as::<i32>("id")` |
+| Paramètre de chemin brut | `<str:id>` | `request.get_path("id")` |
 | Query param unique | `request.GET.get('key')` | `request.get_query("key")` |
 | Query string complète | `request.GET` | `request.query::<MyStruct>()?` (désérialise vers un struct `Deserialize`, 400 si la query ne correspond pas) |
 | Headers HTTP | `request.META['HTTP_X_FOO']` | `request.headers.get("x-foo")` |
@@ -53,13 +55,13 @@ Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `n
 
 | Fonctionnalité | Django | Runique |
 |----------------|--------|---------|
-| Définition | `class MonForm(ModelForm)` | `#[form]` struct ou `RuniqueForm` manuel |
-| Validation | `form.is_valid()` | `form.is_valid().await` |
-| Champs disponibles | CharField, EmailField, FileField, etc. | TextField (+ constructeurs `::email`/`::password`/`::url`/`::phone` → bon `<input type>` + validation), NumericField, BooleanField, CheckboxField, RadioField, ChoiceField, FileField, DateField, TimeField, DateTimeField, DurationField, ColorField, SlugField, UUIDField, IPAddressField, JSONField, HiddenField |
+| Définition | `class MonForm(ModelForm)` | `#[form(schema = blog, fields = [...])]`, lié à son entité par le schéma, ou `RuniqueForm` manuel |
+| Validation | `form.is_valid()` | `ValidationForm::try_form(form, &request).await` |
+| Champs disponibles | CharField, EmailField, FileField, etc. | TextField (+ constructeurs `::email`/`::password`/`::url`/`::phone` → bon `<input type>` + validation), NumericField, BooleanField, CheckboxField, RadioField, ChoiceField, FileField, DateField, TimeField, DateTimeField, DurationField, ColorField, SlugField, UUIDField, IPAddressField, JSONField, HiddenField, MediaField, BinaryField |
 | Rendu HTML | `{{ form.as_p }}` | `{% form.nom_form %}` (entier) ou `{% form.nom_form.champ %}` |
 | CSRF intégré | automatique | automatique — injecté avant le premier champ |
-| Sauvegarde | `form.save()` | `form.save(&db).await` (si `#[form]`) |
-| Accès aux données | `form.cleaned_data['clé']` | `form.cleaned::<String>("clé")`, `form.cleaned::<i32>(...)`, etc. |
+| Sauvegarde | `form.save()` | `validated.save(&db).await`, sur le formulaire validé, pour tout formulaire qui porte son entité (`FormEntity`) : `#[form(schema = …)]` ou `impl FormEntity` |
+| Accès aux données | `form.cleaned_data['clé']` | `validated.cleaned::<String>("clé")`, `validated.cleaned::<i32>(...)`, etc. |
 | Validation async | non | oui (accès DB dans `clean()`) |
 | Validation croisée | `clean()` | `clean()` async |
 | Fichiers | `FileField` (pas de validation de contenu par défaut) | `FileField` multipart natif — validation type/taille, **magic bytes** pour les images, SVG rejeté, écriture en **staging** seulement après le jeton CSRF, puis commit après validation (nom **UUID**, pas de path traversal) |
@@ -78,7 +80,7 @@ Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `n
 | URL reverse | `{% url "nom" %}` | `{% link "nom" %}` |
 | CSRF | `{% csrf_token %}` | `{% csrf %}` |
 | Messages | `{% for m in messages %}` | `{% messages %}` |
-| Internationalisation | `{% trans "..." %}` | `{{ t("section.clé") }}` / `{{ tf("...", ["var"]) }}` |
+| Internationalisation | `{% trans "..." %}` | — (`t()` et `tf()` côté Rust) |
 
 ---
 
@@ -87,16 +89,16 @@ Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `n
 | Fonctionnalité | Django | Runique |
 |----------------|--------|---------|
 | ORM | Django ORM natif | SeaORM (Rust async) |
-| Définition modèle | `class User(models.Model)` | macro `model!{}` (types v1 SQL ou v2 sémantiques) |
+| Définition modèle | `class User(models.Model)` | macro `model!{}` (types sémantiques) |
 | Migrations auto | oui (détection changements) | `runique makemigrations` |
 | QuerySet chaînable | `User.objects.filter(...).order_by(...)` | `User::objects.filter(...).order_by(...)` |
 | `.get()` strict | lève `MultipleObjectsReturned` | `.one()` — retourne `Err` si plusieurs lignes |
 | Tri aléatoire | `order_by('?')` | `.order_by_random()` |
-| Tri par expression | — | `.order_by_expr(expr, order)` |
+| Tri par expression | `order_by(Lower("titre").desc())` | `.order_by_expr(expr, order)` |
 | Relations | ForeignKey, ManyToMany, OneToOne | Relations SeaORM standard |
-| Transactions | `with transaction.atomic()` | `db.transaction(...)` |
+| Transactions | `with transaction.atomic()` | `request.db_atomic()` ou transaction SeaORM |
 | Multi-moteur SQL | oui | PostgreSQL, MySQL/MariaDB, SQLite (3 backends SeaORM ; MariaDB passe par le driver MySQL avec son propre dialecte de migration) |
-| Connexions secondaires | `DATABASES` multi-entrées | `.with_custom_db::<T>()` × N types (TypeMap) |
+| Connexions secondaires | `DATABASES` multi-entrées | `.with_custom_db(client)`, un client par type (TypeMap) |
 | Extension table framework | — | `extend!{}` — `ALTER TABLE ADD COLUMN` sur tables `eihwaz_*` |
 
 ---
@@ -107,13 +109,13 @@ Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `n
 |----------------|--------|---------|
 | Login / Logout | `authenticate()` + `login()` | `authenticate_user()` + `login()`, `logout()` |
 | Vérif authentification | `request.user.is_authenticated` | `is_authenticated(&session).await` |
-| Utilisateur courant | `request.user` | `CurrentUser` (injecté via middleware) |
-| Protection route | `@login_required` | `if !is_authenticated(...).await { redirect }` |
+| Utilisateur courant | `request.user` | `request.user` |
+| Protection route | `@login_required` | `.login_required("/profil", "profil", view!(profil), "/login")` |
 | Sessions | natif | tower-sessions (MemoryStore + DB fallback) |
 | Protection brute force | `django-axes` (tiers) | `LoginGuard` natif (lockout auto) |
-| Hashage mot de passe | PBKDF2 / Argon2 | Argon2 par défaut |
+| Hashage mot de passe | PBKDF2 par défaut, Argon2 en option | Argon2 par défaut |
 | Reset password | token signé lié au hash du mot de passe (stateless) | tokens persistés en DB, **hashés**, single-use (durcis IDOR — clé `user_id`), TTL configurable via `.token_ttl(...)`, template email personnalisable |
-| Déconnexion forcée | oui | `RuniqueSessionStore::invalidate_all(user_id)` |
+| Déconnexion forcée | changer le mot de passe ferme ses sessions | changer le mot de passe aussi ; `invalidate_all(user_id)` sur `RuniqueSessionStore` |
 
 ---
 
@@ -122,11 +124,11 @@ Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `n
 | Fonctionnalité | Django | Runique |
 |----------------|--------|---------|
 | CSRF | natif | natif (comparaison constant-time) |
-| CSP | `django-csp` (tiers) | natif (nonce par requête toujours actif) |
+| CSP | natif depuis Django 6.0 (`ContentSecurityPolicyMiddleware`), à activer | natif (nonce par requête toujours actif) |
 | HSTS | `SECURE_HSTS_SECONDS` | natif — émis **uniquement sur HTTPS réel** (`enforce_https`/ACME), `max-age`/`includeSubDomains`/`preload` configurables (preload **opt-in**) |
 | SameSite cookies | configurable | `Strict` par défaut |
 | HttpOnly cookies | par défaut | toujours `true` |
-| Rate limiting | `django-ratelimit` (tiers) | `RateLimiter` natif — clé = IP cliente réelle (peer `ConnectInfo`, jamais un header spoofable) |
+| Rate limiting | `django-ratelimit` (tiers) | `RateLimiter` natif, déclaré par route — clé = IP cliente résolue par les proxys de confiance, sinon le pair `ConnectInfo` ; jamais un en-tête non validé |
 | Open Redirect | — | natif — `Location` des réponses 3xx **et** en-tête `Refresh` de toute réponse, cible lue par l'analyseur d'URL WHATWG (le même que les navigateurs), refus en cas de doute |
 | CORS | `django-cors-headers` (tiers) | natif via `.with_cors(...)` |
 | Permissions-Policy | — | natif — preset sécurisé par défaut (~20 features refusées) |
@@ -145,23 +147,23 @@ Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `n
 | Colonnes affichées | `list_display` | `.list(\|l\| l.display([Title, Status]))` — colonnes SeaORM typées |
 | Recherche / filtres | natif | `.search([...])` + `.filter([...])` — colonnes directes uniquement, filtres cumulables |
 | Actions de groupe | `actions` | `.action(Col, value, "Libellé")` — valeur fixée dans le code, l'UI envoie l'index |
-| Édition en masse | — | bulk edit natif sur sélection multi-entrées |
+| Édition en masse | `list_editable` (plusieurs lignes depuis la liste) | édition en lot sur une sélection |
 | Suppression en masse | natif | natif si le compte peut supprimer |
 | Relations M2M / listes | `filter_horizontal` / `ManyRelatedField` | champs liste du modèle (`multichoice` / `checkbox`) |
 | Routes admin custom | `get_urls()` | `admin "…" => …` dans `urlpatterns!` |
 | Templates custom | oui | oui (hiérarchie Tera + `.templates(...)` par modèle) |
-| Permissions | par ressource | RBAC dynamique (Groupes / Droits scopés) |
+| Permissions | par ressource | Rangs, droits des admins par compte (table et colonne) |
 | Comptes superutilisateur | un staff ayant le droit de modifier les utilisateurs peut se rendre superutilisateur (la doc de Django le signale) | `is_superuser` jamais modifiable depuis l'admin, et le compte d'un superutilisateur (email, réinitialisation, suppression) n'est modifiable que par un superutilisateur |
-| Historique modifications | `django-simple-history` (tiers) | historique natif (créé/modifié/supprimé) avec diff de champs, vue timeline et filtres (ressource/action/utilisateur) |
-| Comptes étendus | — | `extend!{}` + `AdminSite::accounts_users(ModelAdmin)` |
+| Historique modifications | natif (`LogEntry`, lien « History ») ; diffs de champs avec `django-simple-history` (tiers) | historique natif (créé/modifié/supprimé) avec diff de champs, vue timeline et filtres (ressource/action/utilisateur) |
+| Comptes étendus | `AUTH_USER_MODEL` (modèle utilisateur personnalisé) | `extend!{}` + `AdminSite::accounts_users(ModelAdmin)` |
 | Verrouillage optimiste | — | natif — détecte les éditions concurrentes (`__original_updated_at`) |
 | Protection brute-force login | `django-axes` (tiers) | natif — `LoginGuard` + rate limiter sur le login admin |
-| Email création compte | plugin tiers | natif — mot de passe temporaire + email d'activation |
+| Email création compte | plugin tiers | natif — lien « choisir mon mot de passe » envoyé à l'adresse du compte, activé à la première définition |
 | Rafraîchissement liste partiel | — | natif — `list_partial` HTMX sans rechargement page |
 | Champs lecture seule / create-only | `readonly_fields` | `.readonly([...])` / `.create_only([...])` sur le builder form |
 | Fieldsets | `fieldsets` | — |
 | Navigation par date | `date_hierarchy` | — |
-| Export | CSV natif | — |
+| Export | tiers (`django-import-export`) | — |
 | Boutons save avancés | "Save and continue" / "Save and add" | — |
 
 ---
@@ -195,7 +197,7 @@ Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `n
 |----------------|--------|---------|
 | Langues supportées | illimitées | 9 langues par défaut (JSON compilé) |
 | Fallback | oui | oui (`Lang::En`) |
-| Traduction | `_("...")` | `t("section.clé")` / `tf("...", ["var"])` |
+| Traduction | `_("...")` | `t("section.clé")` / `tf("...", &[var])` en Rust, textes du framework |
 
 ---
 
@@ -204,8 +206,7 @@ Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `n
 | Aspect | Django | Runique |
 |--------|--------|---------|
 | Runtime | CPython (interprété) | Tokio async Rust (compilé) |
-| Empreinte mémoire | ~50–100 MB | ~5–15 MB |
-| Compilation | — | binaire statique unique |
+| Compilation | — | binaire unique |
 | ACME / TLS auto | `certbot` (externe) | natif via feature `acme` |
 
 ---
@@ -214,9 +215,9 @@ Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `n
 
 - **Redimensionnement automatique d'images** : resize/cropping côté serveur non natif.
 - **Vues CRUD publiques génériques** : pas d'équivalent aux `DetailView`, `ListView`, `CreateView` de Django pour les vues publiques — envisagé via `crud!{}` (feuille de route, sans engagement). Le panel admin couvre le CRUD backoffice via `ModelAdmin`.
-- **Signals / hooks modèles** : `before_save`, `after_save`, `before_delete`, `after_delete` — non implémenté, à l'état de plan (roadmap).
+- **Signals / hooks modèles** : `before_save`, `after_save`, `before_delete`, `after_delete` ne se déclarent pas dans `model!{}`. La structure interne `HooksDef` existe, sans lien avec le DSL ; le comportement généré par `model!{}` ne remplit que les colonnes `auto_now`. Prévu à la feuille de route, sans engagement.
 - **Management commands** : pas d'équivalent à `manage.py custom_command` — les opérations one-shot passent par `src/bin/`.
-- **Test client intégré** : pas de client HTTP de test natif — utiliser `reqwest` ou `axum::test`.
+- **Test client intégré** : pas de client HTTP de test natif. `runique test` et `runique_test` couvrent le lancement et l'isolation de la base ; les requêtes passent par `reqwest` ou `tower::ServiceExt::oneshot`.
 - **Fixtures** : pas de `loaddata`/`dumpdata` — les seeds sont des fonctions Rust.
 - **Admin inline** : pas d'édition d'objets liés directement dans le formulaire parent.
 - **Admin actions de groupe custom** : `.action(...)` ne supporte que des mises à jour de colonnes à valeur fixe — aucune logique Rust arbitraire possible sur la sélection (équivalent Django : `actions` avec une fonction quelconque).
@@ -225,7 +226,8 @@ Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `n
 - **Admin navigation par date** : pas de `date_hierarchy` pour filtrer la liste par année/mois/jour.
 - **Admin export** : pas d'export CSV/JSON natif depuis la liste.
 - **Admin boutons save avancés** : pas de "Enregistrer et continuer" / "Enregistrer et ajouter un autre".
-- **i18n complète** : `t()`/`tf()` disponibles, mais pas de pluralisation ni de traduction des templates Tera.
-- **Sitemap / RSS** : non natif.
-- **Authentification tiers** : OAuth / OIDC structuré (Google, Microsoft, Apple, LDAP, SAML) mais flow non implémenté — stub uniquement. JWT et API key auth absents.
-- **Observabilité sécurité** : CSP `report-uri`/`report-to` absent — les violations ne sont pas collectées. Audit log des connexions (réussies/échouées/lockouts) non tracé en DB.
+- **i18n complète** : `t()` et `tf()` sont des fonctions Rust pour les textes du framework. Pas de fonction de traduction dans les templates Tera, pas de pluralisation, et un projet ne peut pas encore ajouter ses propres traductions.
+- **Tâches de fond** : pas de framework de tâches ; Django en a un depuis la 6.0 (`@task`, avec un worker externe).
+- **Sitemap / RSS** : pas de génération native. `.sitemap(url)` ajoute seulement la directive `Sitemap:` au `/robots.txt` généré.
+- **Authentification tiers** : le mode `Delegated` nomme des fournisseurs (Google, Microsoft, Apple, LDAP, SAML, personnalisé), mais aucun flow n'est implémenté. JWT et clés d'API absents.
+- **Observabilité sécurité** : CSP `report-uri`/`report-to` absent, les violations ne sont pas collectées. Les connexions (réussies, échouées, verrouillages) passent par les logs (`RuniqueLog`) et ne sont pas enregistrées en base ; `eihwaz_history` trace les écritures de l'admin, les droits et les resets.

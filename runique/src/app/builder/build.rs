@@ -109,8 +109,12 @@ impl<P> RuniqueAppBuilder<P> {
 
         // Step 3: destructuring
         let extensions = self.core.extensions;
-        #[cfg_attr(not(feature = "admin"), allow(unused_mut))]
         let mut config = self.config;
+        // In development, emailed links must lead back to this machine, never
+        // to the production site a hard-coded `.with_public_url()` names.
+        if config.dev {
+            config.server.public_url = Some(format!("http://127.0.0.1:{}", config.server.port));
+        }
         let url_registry = self.core.url_registry;
         let mut middleware = self.middleware;
         let statics_enabled = self.statics.enabled;
@@ -156,6 +160,12 @@ impl<P> RuniqueAppBuilder<P> {
             );
         }
 
+        if config.debug && !config.dev {
+            tracing::warn!(
+                "DEBUG=true in production: every visitor sees the detailed error pages. Turn it off once the problem is found"
+            );
+        }
+
         let engine = new(RuniqueEngine {
             config: (*config).clone(),
             tera: tera.clone(),
@@ -168,9 +178,12 @@ impl<P> RuniqueAppBuilder<P> {
             },
             url_registry,
             security_csp: {
-                // Only the admin adds to the policy.
-                #[cfg_attr(not(feature = "admin"), allow(unused_mut))]
                 let mut policy = middleware.security_policy.take().unwrap_or_default();
+                // `strict()` turns it on, and a local server only speaks HTTP.
+                if config.dev {
+                    policy.upgrade_insecure_requests = false;
+                }
+                // Only the admin adds to the policy.
                 #[cfg(feature = "admin")]
                 if self.admin.enabled {
                     policy.merge_htmx_hashes();
@@ -206,13 +219,13 @@ impl<P> RuniqueAppBuilder<P> {
         // merging after means admin routes run without Session/CSRF/Extensions.
         let router = router.unwrap_or_default();
 
-        // Outside debug, an undeclared `/` stays a 404: a welcome page on a
+        // In production, an undeclared `/` stays a 404: a welcome page on a
         // live site would look unfinished and name the framework.
         let forgot_on_root = self
             .password_reset
             .as_ref()
             .is_some_and(|pr| pr.config.forgot_route == "/");
-        let router = if config.debug && self.root_free && !forgot_on_root {
+        let router = if config.dev && self.root_free && !forgot_on_root {
             router.route("/", axum::routing::get(default_index))
         } else {
             router
@@ -296,6 +309,11 @@ impl<P> RuniqueAppBuilder<P> {
                     },
                 )
                 .map_err(BuildError::template)?
+            };
+            let sheets = if config.dev {
+                sheets.without_integrity()
+            } else {
+                sheets
             };
             let admin_router = build_admin_router(self.admin, sheets);
             add_urls(&engine);
@@ -415,7 +433,7 @@ impl<P> RuniqueAppBuilder<P> {
     }
 
     fn cross_validate(&self) -> Result<(), BuildError> {
-        if self.config.debug {
+        if self.config.dev {
             return Ok(());
         }
 
@@ -542,11 +560,18 @@ impl<P> RuniqueAppBuilder<P> {
                 ))
         };
 
+        // In development the `?v=` token stays the same while a file is edited:
+        // the browser must ask again instead of keeping its `immutable` copy.
+        let static_cache = if config.dev {
+            "no-cache"
+        } else {
+            static_cache.as_ref()
+        };
         // Value already validated in `StaticStaging::validate()` (build Step 1),
         // run before this function — the header is well-formed by construction.
         let static_headers = security_headers().layer(SetResponseHeaderLayer::if_not_present(
             HeaderName::from_static("cache-control"),
-            HeaderValue::from_str(&static_cache).expect("validated in StaticStaging::validate()"),
+            HeaderValue::from_str(static_cache).expect("validated in StaticStaging::validate()"),
         ));
 
         // Media are files users uploaded: served from the app's own origin, an

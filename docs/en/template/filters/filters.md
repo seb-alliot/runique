@@ -85,6 +85,7 @@ All three declare `is_safe()` — their output is emitted unescaped, `\| safe` i
 | `messages` | Request flash messages |
 | `current_user` | The signed-in account (`username`, `id`, rank…), read from the database on every request; absent for an anonymous visitor |
 | `debug` | The value of `DEBUG` |
+| `dev` | `true` with `RUNIQUE_ENV=dev` |
 | `current_path` | Current URL path, without query string (useful for `rel="canonical"`, `og:url`, active navigation) |
 
 ---
