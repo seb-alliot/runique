@@ -102,6 +102,24 @@ urlpatterns! {
 - Accès : connecté avec accès à l'admin → votre handler ; connecté sans accès → renvoyé vers `/` avec un message, session gardée ; anonyme → `/` (ou la connexion de l'admin s'il venait de l'admin). Le préfixe de l'admin n'est jamais révélé à un inconnu.
 - La protection ne vérifie que l'**accès à l'admin**. Ce que votre handler lit ou écrit passe par la porte, comme dans le reste du framework : voir [Permissions](/docs/fr/admin/permission).
 
+Pour une page sur le layout de l'admin (feuilles de style, menu avec les droits appliqués, barre du haut), appelez `admin_page_context` puis étendez `admin_base.html` :
+
+```rust
+use runique::admin::template::Page;
+use runique::admin::{AdminSite, AdminState, admin_page_context};
+
+pub async fn article_stats(
+    Extension(admin): Extension<Arc<AdminState>>,
+    Extension(site): Extension<Arc<AdminSite>>,
+    mut request: Request,
+) -> AppResult<Response> {
+    admin_page_context(&mut request, &admin, &site, Page::Detail, "articles");
+    request.render("admin/article_stats.html")
+}
+```
+
+`Page` choisit les feuilles de style chargées, et le dernier argument le modèle mis en avant dans le menu. Cette fonction ne prépare que l'affichage : elle ne donne aucun droit.
+
 Si l'admin est désactivé, déclarer une route `admin` refuse le démarrage.
 
 ## Imports utiles
