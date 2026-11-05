@@ -75,7 +75,7 @@ async fn production_needs_no_public_url_without_reset_nor_admin() {
     );
 }
 
-// In development the public URL is the local server: nothing to configure.
+// In development the public URL may stay unset: the build falls back on the local server.
 #[cfg(feature = "admin")]
 #[tokio::test]
 #[serial]
@@ -102,22 +102,19 @@ async fn built_public_url(dev: bool, configured: Option<&str>) -> Option<String>
     app.engine.config.server.public_url.clone()
 }
 
-// In development the emailed links lead back to the local server, even when the
-// code hard-codes the production URL: a reset sent from a dev machine must not
-// point at the live site.
+// The URL given to the builder is used in development too; the local server only
+// stands in when nothing is configured.
 #[tokio::test]
 #[serial]
-async fn dev_public_url_is_the_local_server_whatever_the_builder_says() {
-    let local = Some("http://127.0.0.1:4321".to_string());
+async fn dev_keeps_the_configured_public_url_else_the_local_server() {
     assert_eq!(
         built_public_url(true, Some("https://mysite.com")).await,
-        local
+        Some("https://mysite.com".to_string())
     );
-    assert_eq!(built_public_url(true, None).await, local);
-    let url = built_public_url(true, Some("https://evil.com"))
-        .await
-        .unwrap();
-    assert!(!url.contains("evil.com"), "{url}");
+    assert_eq!(
+        built_public_url(true, None).await,
+        Some("http://127.0.0.1:4321".to_string())
+    );
 }
 
 #[tokio::test]
@@ -132,7 +129,10 @@ async fn production_keeps_the_configured_public_url() {
         Some("https://mysite.com".to_string()),
         "trailing slash trimmed"
     );
-    assert_eq!(built_public_url(false, None).await, None);
+    assert_eq!(
+        built_public_url(false, None).await,
+        Some("http://127.0.0.1:4321".to_string())
+    );
 }
 
 // The boot report follows the configured language, messages and suggestions alike.

@@ -127,7 +127,7 @@ let app = RuniqueApp::builder(config)
     .await?;
 ```
 
-In production (`RUNIQUE_ENV=prod`), the app **refuses to boot** without it as soon as the password reset or the admin is enabled: a link built from the request's `Host` header would go wherever the client decides (`Host: evil.com` → the reset token goes to the attacker). With `RUNIQUE_ENV=dev`, the public URL is always `http://127.0.0.1:{PORT}`, even when `.with_public_url()` is called: links lead to your machine, not to the production site.
+In production (`RUNIQUE_ENV=prod`), the app **refuses to boot** without it as soon as the password reset or the admin is enabled: a link built from the request's `Host` header would go wherever the client decides (`Host: evil.com` → the reset token goes to the attacker). The public URL is the one given to `.with_public_url()`, in dev and production alike; when it isn't called, it is `http://127.0.0.1:{PORT}`. Emailed links, `og:image` and the favicon all follow it.
 
 Your own links (account activation, an email pointing to the site…) use the same rule through `request.public_url()`: the public URL, else `None`, never the `Host`. Never build them from the `Host` header yourself.
 
@@ -139,7 +139,7 @@ let Some(base) = request.public_url() else {
 let activate_url = format!("{base}/activate/{token}");
 ```
 
-It's called **once**: a second `.with_public_url(...)` doesn't compile ("`with_public_url()` has already been called on this builder"), rather than silently replacing the first. Write the production address in it: development ignores it.
+It's called **once**: a second `.with_public_url(...)` doesn't compile ("`with_public_url()` has already been called on this builder"), rather than silently replacing the first.
 
 ### Framework logs
 
