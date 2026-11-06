@@ -115,6 +115,7 @@ Also rendered, without layout, for HTMX requests (`admin/list_partial.html`).
 | `resource`, `resource_key` | The model (`resource_key` = `resource.key`) |
 | `object_id` | The row's key |
 | `entry` | The row: one entry per readable column |
+| `detail_columns` | The row's readable columns, in display order |
 | `rich_fields` | HTML columns, shown sanitized |
 | `list_url` | Back to the list |
 | `links` | `{ detail, edit, delete }` |

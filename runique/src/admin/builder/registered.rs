@@ -142,6 +142,8 @@ pub(crate) trait RegisteredModel: Send + Sync {
         user: &CurrentUser,
         id: &str,
     ) -> Result<serde_json::Value, AdminError>;
+    /// The columns of a row's page, in the order it shows them.
+    fn detail_order(&self) -> Vec<&'static str>;
     /// The create page: on GET the empty form, on POST the form sent,
     /// written through the gate as `user`.
     async fn create(&self, req: &Request, user: &CurrentUser) -> Result<FormOutcome, AdminError>;
@@ -325,6 +327,10 @@ where
         let id = id.parse::<PkOf<E>>().map_err(|_| not_found())?;
         let proof = authorize_view::<E>(&GateCtx { db, user }, id)?;
         self.fetch_detail(db, &proof).await?.ok_or_else(not_found)
+    }
+
+    fn detail_order(&self) -> Vec<&'static str> {
+        self.detail_columns().iter().map(|c| c.as_str()).collect()
     }
 
     async fn create(&self, req: &Request, user: &CurrentUser) -> Result<FormOutcome, AdminError> {

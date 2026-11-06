@@ -356,15 +356,7 @@ impl<E: ModelMeta> ModelAdmin<E> {
         let Some(id) = proof.id() else {
             return Ok(None);
         };
-        // The row's page shows what the list shows, in its order, then what
-        // else the form holds; the key comes with the form's columns.
-        let mut columns: Vec<E::Column> = self.list.display_columns().to_vec();
-        for col in self.form_columns() {
-            if !columns.iter().any(|c| c.as_str() == col.as_str()) {
-                columns.push(col);
-            }
-        }
-        let columns = proof.readable().preserve::<E>(&columns);
+        let columns = proof.readable().preserve::<E>(&self.detail_columns());
         E::find_by_id(id.clone())
             .filter(proof.conditions())
             .select_only()
@@ -376,6 +368,18 @@ impl<E: ModelMeta> ModelAdmin<E> {
 }
 
 impl<E: ModelMeta> ModelAdmin<E> {
+    /// The row's page shows what the list shows, in its order, then what else
+    /// the form holds; the key comes with the form's columns.
+    pub(crate) fn detail_columns(&self) -> Vec<E::Column> {
+        let mut columns: Vec<E::Column> = self.list.display_columns().to_vec();
+        for col in self.form_columns() {
+            if !columns.iter().any(|c| c.as_str() == col.as_str()) {
+                columns.push(col);
+            }
+        }
+        columns
+    }
+
     /// The columns the form pages work on: the declared fields, or without
     /// `.form()` every column but the secret ones. The key comes with them.
     pub(crate) fn form_columns(&self) -> Vec<E::Column> {

@@ -287,6 +287,8 @@ pub struct DetailContext {
     pub object_id: String,
     /// The row: one entry per readable column.
     pub entry: serde_json::Value,
+    /// The row's readable columns, in the order the page shows them.
+    pub detail_columns: Vec<&'static str>,
     /// Columns holding HTML, shown sanitized.
     pub rich_fields: Vec<String>,
     pub list_url: String,

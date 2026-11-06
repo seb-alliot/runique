@@ -13,6 +13,15 @@ use axum::extract::Path;
 use axum::response::Response;
 use std::sync::Arc;
 
+/// `order` cut to the columns the row holds: a column the account can't read
+/// isn't in it. A template's map loses its keys' order, hence the separate list.
+fn readable_in_order(order: Vec<&'static str>, entry: &serde_json::Value) -> Vec<&'static str> {
+    order
+        .into_iter()
+        .filter(|column| entry.get(column).is_some())
+        .collect()
+}
+
 pub(crate) async fn detail_view(
     Path((resource, id)): Path<(String, String)>,
     Extension(site): Extension<Arc<AdminSite>>,
@@ -30,6 +39,7 @@ pub(crate) async fn detail_view(
         Ok(entry) => entry,
         Err(error) => return failure(error, &req, &admin).await,
     };
+    let detail_columns = readable_in_order(model.detail_order(), &entry);
     let key = model.key();
     let rights = model.rights(&user);
     let paths = &admin.paths;
@@ -190,6 +200,7 @@ pub(crate) async fn detail_view(
             taken_by,
             account: account_summary,
             object_id: id,
+            detail_columns,
             entry,
             rich_fields: Vec::new(),
         },
@@ -198,4 +209,25 @@ pub(crate) async fn detail_view(
         crate::admin::template::Page::Detail,
         Some(model.templates()),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::readable_in_order;
+    use serde_json::json;
+
+    #[test]
+    fn the_order_is_the_declared_one_not_the_rows() {
+        let entry = json!({ "b": 1, "a": 2, "c": 3 });
+        assert_eq!(readable_in_order(vec!["c", "a", "b"], &entry), ["c", "a", "b"]);
+    }
+
+    #[test]
+    fn a_column_out_of_the_row_is_left_out() {
+        let entry = json!({ "a": 1, "empty": null });
+        assert_eq!(
+            readable_in_order(vec!["hidden", "empty", "a"], &entry),
+            ["empty", "a"]
+        );
+    }
 }

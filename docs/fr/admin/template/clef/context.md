@@ -115,6 +115,7 @@ Aussi rendue, sans layout, pour les requêtes HTMX (`admin/list_partial.html`).
 | `resource`, `resource_key` | Le modèle (`resource_key` = `resource.key`) |
 | `object_id` | Clé de la ligne |
 | `entry` | La ligne : une entrée par colonne lisible |
+| `detail_columns` | Colonnes lisibles de la ligne, dans l'ordre d'affichage |
 | `rich_fields` | Colonnes HTML, affichées assainies |
 | `list_url` | Retour à la liste |
 | `links` | `{ detail, edit, delete }` |
