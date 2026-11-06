@@ -384,6 +384,8 @@ impl<E: ModelMeta> ModelAdmin<E> {
         }
         E::Column::iter()
             .filter(|c| !E::SECRET.iter().any(|s| s.as_str() == c.as_str()))
+            // Bumped by the framework to revoke sessions: nothing to read or edit.
+            .filter(|c| !(E::IS_ACCOUNT_TABLE && c.as_str() == "session_version"))
             .collect()
     }
 

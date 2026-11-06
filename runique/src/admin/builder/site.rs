@@ -490,6 +490,21 @@ mod tests {
         assert!(notes.list.lists_using("id").is_empty());
     }
 
+    #[test]
+    fn an_account_page_never_holds_its_session_version() {
+        use sea_orm::IdenStatic;
+
+        let names = |columns: Vec<user::Column>| -> Vec<&'static str> {
+            columns.iter().map(|c| c.as_str()).collect()
+        };
+        let accounts = names(ModelAdmin::<user::Entity>::new().form_columns());
+        assert!(!accounts.contains(&"session_version"), "{accounts:?}");
+        assert!(!accounts.contains(&"password"), "{accounts:?}");
+        for shown in ["username", "email", "is_active"] {
+            assert!(accounts.contains(&shown), "{shown}");
+        }
+    }
+
     fn notes_site() -> AdminSite {
         AdminSite::default().register(
             ModelAdmin::<Entity>::new()
