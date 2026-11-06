@@ -3,7 +3,7 @@ use crate::context::tera::form::FormFilter;
 use crate::context::tera::url::LinkFunction;
 use crate::middleware::CsrfTokenFunction;
 use crate::utils::aliases::{ARlockmap, StrMap};
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime, NaiveTime};
 use pulldown_cmark::{Options, Parser, html};
 use tera::{Filter, Kwargs, State, Tera, TeraResult, Value, escape_html};
 
@@ -49,6 +49,33 @@ fn format_date_filter(value: &str, _: Kwargs, _: &State) -> String {
         .or_else(|_| NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S"))
         .map(|dt| dt.format("%d/%m/%Y %H:%M").to_string())
         .unwrap_or_else(|_| value.to_string())
+}
+
+/// A date-time as the admin shows it, in every page.
+pub(crate) fn display_datetime(value: &NaiveDateTime) -> String {
+    value.format("%Y-%m-%d %H:%M:%S").to_string()
+}
+
+/// The readable form of a date-time or time as a row's JSON gives it; `None`
+/// for anything else, a plain date included, which reads well as it is.
+fn display_time_text(value: &str) -> Option<String> {
+    if let Ok(with_offset) = DateTime::parse_from_rfc3339(value) {
+        return Some(display_datetime(&with_offset.naive_local()));
+    }
+    if let Ok(datetime) = NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S%.f") {
+        return Some(display_datetime(&datetime));
+    }
+    NaiveTime::parse_from_str(value, "%H:%M:%S%.f")
+        .ok()
+        .map(|time| time.format("%H:%M:%S").to_string())
+}
+
+// Any other value goes through untouched: a row's cell can be a number too.
+fn display_time_filter(value: Value, _: Kwargs, _: &State) -> Value {
+    match value.as_str().and_then(display_time_text) {
+        Some(text) => Value::from(text),
+        None => value,
+    }
 }
 
 // Markdown filter → HTML (tables, strikethrough, heading ids)
@@ -166,7 +193,7 @@ pub fn register_integrity_filter(tera: &mut Tera, hashes: StrMap) {
 /// Registers Runique's built-in Tera filters and functions on `tera`: contrib
 /// builtins (urlencode, slug, date…), `static`/`media`/`runique_static`/`runique_media`
 /// URL filters (versioned via a CSS cache-busting token), `form`, `csrf_field`,
-/// `markdown`, `sanitize`, `plaintext`, `format_date`, `humanize`, and the
+/// `markdown`, `sanitize`, `plaintext`, `format_date`, `display_time`, `humanize`, and the
 /// `csrf_token`/`link` functions.
 pub fn register_asset_filters(
     tera: &mut Tera,
@@ -206,7 +233,65 @@ pub fn register_asset_filters(
     // Auto-escaped like any plain value.
     tera.register_filter("plaintext", plaintext_filter);
     tera.register_filter("format_date", format_date_filter);
+    tera.register_filter("display_time", display_time_filter);
     tera.register_filter("humanize", humanize_filter);
     tera.register_function("csrf_token", CsrfTokenFunction);
     tera.register_function("link", LinkFunction { url_registry });
+}
+
+#[cfg(test)]
+mod display_time_tests {
+    use super::*;
+
+    fn render(value: impl Into<Value>) -> String {
+        let mut tera = Tera::default();
+        tera.register_filter("display_time", display_time_filter);
+        tera.add_raw_template("t", "{{ value | display_time }}")
+            .unwrap();
+        let mut context = tera::Context::new();
+        context.insert("value", &value.into());
+        tera.render("t", &context).unwrap()
+    }
+
+    #[test]
+    fn date_times_read_without_t_or_fraction() {
+        for value in [
+            "2026-11-06T14:58:32.907849",
+            "2026-11-06T14:58:32",
+            "2026-11-06T14:58:32+00:00",
+            "2026-11-06T14:58:32Z",
+        ] {
+            assert_eq!(render(value), "2026-11-06 14:58:32", "{value}");
+        }
+    }
+
+    #[test]
+    fn an_offset_keeps_the_stored_local_time() {
+        assert_eq!(render("2026-11-06T14:58:32+02:00"), "2026-11-06 14:58:32");
+    }
+
+    #[test]
+    fn a_time_loses_its_fraction() {
+        assert_eq!(render("14:58:32.907849"), "14:58:32");
+        assert_eq!(render("14:58:32"), "14:58:32");
+    }
+
+    #[test]
+    fn anything_else_stays_as_it_is() {
+        assert_eq!(render("2026-11-06"), "2026-11-06");
+        assert_eq!(render("Corte, 14:58"), "Corte, 14:58");
+        assert_eq!(render(42), "42");
+    }
+
+    #[test]
+    fn a_plain_value_is_still_escaped() {
+        assert_eq!(render("<b>"), "&lt;b&gt;");
+    }
+
+    #[test]
+    fn the_shared_format_has_no_fraction() {
+        let value =
+            NaiveDateTime::parse_from_str("2026-11-06T14:58:32.5", "%Y-%m-%dT%H:%M:%S%.f").unwrap();
+        assert_eq!(display_datetime(&value), "2026-11-06 14:58:32");
+    }
 }

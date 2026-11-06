@@ -30,7 +30,7 @@ fn row(entry: &history::Model, scope: &HistoryScope, paths: &AdminPaths) -> Hist
     let has_changes = !changes(entry, scope).is_empty();
     HistoryRow {
         id: entry.id,
-        created_at: entry.created_at.format("%Y-%m-%d %H:%M:%S").to_string(),
+        created_at: crate::context::tera::static_tera::display_datetime(&entry.created_at),
         username: entry.username.clone(),
         resource_key: entry.resource_key.clone(),
         resource_title: scope.title.clone(),
