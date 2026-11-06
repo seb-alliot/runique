@@ -451,6 +451,16 @@ pub(crate) async fn parse_multipart_guarded(
                             .into_response()
                     })?;
                 }
+                // tokio's write_all returns once the bytes are handed to a
+                // background task: without this, validation can read the size
+                // or content of a partial file, and a failed write goes unseen.
+                file.flush().await.map_err(|_| {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        t("forms.file_write_error").to_string(),
+                    )
+                        .into_response()
+                })?;
                 Ok(())
             }
             .await;
