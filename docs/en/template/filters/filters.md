@@ -54,6 +54,7 @@ All three declare `is_safe()` — their output is emitted unescaped, `\| safe` i
 |--------|-------------|
 | `humanize` | Readable identifier: `"changelog_entry"` → `"Changelog Entry"`. For technical names (enum values, columns), not for user input |
 | `format_date` | Date-time (`NaiveDateTime`) as `dd/mm/yyyy HH:MM` |
+| `display_time` | Date-time as `yyyy-mm-dd HH:MM:SS` and time as `HH:MM:SS`, as the admin shows them; any other value unchanged |
 | `date` | Date in the format of your choice (`{{ d \| date(format="%Y-%m-%d") }}`) |
 | `mask` | Replaces a value with as many bullets as it has characters (showing a sensitive value) |
 | `filesizeformat` / `filesize_format` | Size in bytes, readable (`1.2 MB`) |

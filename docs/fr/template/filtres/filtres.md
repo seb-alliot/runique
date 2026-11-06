@@ -54,6 +54,7 @@ Les trois déclarent `is_safe()` — leur sortie est émise sans échappement, `
 |--------|-------------|
 | `humanize` | Identifiant lisible : `"changelog_entry"` → `"Changelog Entry"`. Pour des noms techniques (valeurs d'enum, colonnes), pas pour une saisie utilisateur |
 | `format_date` | Date-heure (`NaiveDateTime`) au format `jj/mm/aaaa HH:MM` |
+| `display_time` | Date-heure au format `aaaa-mm-jj HH:MM:SS` et heure au format `HH:MM:SS`, comme dans l'admin ; toute autre valeur reste inchangée |
 | `date` | Date au format de votre choix (`{{ d \| date(format="%Y-%m-%d") }}`) |
 | `mask` | Remplace une valeur par autant de puces que de caractères (affichage d'une valeur sensible) |
 | `filesizeformat` / `filesize_format` | Taille en octets lisible (`1.2 MB`) |
