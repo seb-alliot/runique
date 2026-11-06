@@ -21,7 +21,7 @@ Config is declared on `ModelAdmin` via `.list(|l| …)`.
 .list(|l| l.display([Title, Status, Views]))
 ```
 
-Without `display`, every non-secret column appears (accounts: username, email, is_active).
+Without `display`, every non-secret column appears (accounts: username, email, is_active), with dates and times last. A declared `display` keeps its order. A row's detail page follows that order, but always puts dates and times at the end.
 
 Array order is header order.
 

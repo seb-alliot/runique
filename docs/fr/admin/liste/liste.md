@@ -21,7 +21,7 @@ La config se déclare sur `ModelAdmin` via `.list(|l| …)`.
 .list(|l| l.display([Title, Status, Views]))
 ```
 
-Sans `display`, toutes les colonnes non secrètes apparaissent (sauf comptes : username, email, is_active).
+Sans `display`, toutes les colonnes non secrètes apparaissent (sauf comptes : username, email, is_active), avec les dates et les heures en dernier. Un `display` déclaré garde son ordre. La fiche d'une ligne reprend cet ordre, mais y met toujours les dates et les heures à la fin.
 
 L'ordre du tableau est l'ordre d'affichage des en-têtes.
 
