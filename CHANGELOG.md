@@ -83,6 +83,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+* **`session_version` on an account's admin page**: the counter that revokes sessions showed among the fields when the account resource declares no `.form()`. It is no longer read there.
 * **Admin dates shown in raw ISO**: lists and detail pages showed `2026-11-06T14:58:32.907849`. Date-times and times now read like the history page, from a single function (`2026-11-06 14:58:32`), through the new `display_time` filter.
 * **Admin pages without CSS after upgrading Runique**: the statics' `?v=` only followed the project's files, not Runique's, served `immutable` for a year. A CDN or browser therefore kept the old file under the same address, and the browser blocked it because it no longer matched its SRI hash. The token now covers both folders.
 * **The failing line was never highlighted on the debug page**: the number was looked for by a regex (`line N`) in the error's text, which Tera 2 no longer writes that way. It is read from the error's span.
