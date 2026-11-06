@@ -77,7 +77,7 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 #### Corrigé
 
-* **Champs d'une fiche de l'admin dans un ordre aléatoire** : la page suivait la map du template, qui ne garde pas l'ordre. Elle montre maintenant les colonnes de la liste dans leur ordre, puis celles du formulaire, avec la nouvelle clé `detail_columns`.
+* **Champs d'une fiche de l'admin dans un ordre aléatoire** : la page suivait la map du template, qui ne garde pas l'ordre. Elle montre maintenant les colonnes de la liste dans leur ordre, puis celles du formulaire, avec la nouvelle clé `detail_columns`, et les dates et heures en dernier. Une liste automatique les met aussi à la fin ; un `display` déclaré garde son ordre.
 * **`session_version` sur la fiche d'un compte dans l'admin** : le compteur qui révoque les sessions s'affichait parmi les champs quand la ressource des comptes ne déclare pas de `.form()`. Il n'y est plus lu.
 * **Dates de l'admin affichées en ISO brut** : les listes et les fiches montraient `2026-11-06T14:58:32.907849`. Les dates-heures et les heures s'affichent maintenant comme dans l'historique, depuis une seule fonction (`2026-11-06 14:58:32`), avec le nouveau filtre `display_time`.
 * **Fichier et ligne d'un même `save` désaccordés** : le fichier est désormais déplacé dans la transaction, entre l'écriture et le commit. Une écriture refusée ne laisse plus de fichier publié, ni un fichier manquant derrière une ligne écrite. Reste un cas : le déplacement réussi puis le commit perdu laisse un fichier orphelin, jamais une ligne sans fichier.

@@ -15,6 +15,24 @@ use sea_orm::{
     QueryFilter, QueryResult, QuerySelect,
 };
 
+/// `columns` with those holding a date or a time last, each group in its order.
+fn time_columns_last<C: ColumnTrait>(columns: impl IntoIterator<Item = C>) -> Vec<C> {
+    use sea_orm::sea_query::ColumnType;
+
+    let (time, mut others): (Vec<C>, Vec<C>) = columns.into_iter().partition(|col| {
+        matches!(
+            col.def().get_column_type(),
+            ColumnType::Date
+                | ColumnType::Time
+                | ColumnType::DateTime
+                | ColumnType::Timestamp
+                | ColumnType::TimestampWithTimeZone
+        )
+    });
+    others.extend(time);
+    others
+}
+
 /// The account table's rank flags: written by the gate alone, never a form field.
 const RANK_FLAGS: [&str; 3] = ["is_superuser", "is_dirigeant", "is_admin"];
 
@@ -114,7 +132,7 @@ impl<E: ModelMeta> ModelAdmin<E> {
                 !E::SECRET.iter().any(|s| s.as_str() == name)
             }
         });
-        self.list = self.list.display(shown);
+        self.list = self.list.display(time_columns_last(shown));
         self
     }
 
@@ -369,7 +387,7 @@ impl<E: ModelMeta> ModelAdmin<E> {
 
 impl<E: ModelMeta> ModelAdmin<E> {
     /// The row's page shows what the list shows, in its order, then what else
-    /// the form holds; the key comes with the form's columns.
+    /// the form holds, dates and times last; the key comes with the form's columns.
     pub(crate) fn detail_columns(&self) -> Vec<E::Column> {
         let mut columns: Vec<E::Column> = self.list.display_columns().to_vec();
         for col in self.form_columns() {
@@ -377,7 +395,7 @@ impl<E: ModelMeta> ModelAdmin<E> {
                 columns.push(col);
             }
         }
-        columns
+        time_columns_last(columns)
     }
 
     /// The columns the form pages work on: the declared fields, or without
@@ -491,7 +509,37 @@ mod tests {
     use crate::auth::gate::test_support::fixtures::{db, pk, staff};
     use crate::auth::permissions::rang::Rang;
     use crate::auth::user;
-    use sea_orm::Order;
+    use sea_orm::{IdenStatic, Order};
+
+    fn names<C: IdenStatic>(columns: &[C]) -> Vec<&'static str> {
+        columns.iter().map(|c| c.as_str()).collect()
+    }
+
+    #[test]
+    fn an_automatic_list_shows_its_dates_last() {
+        let admin = ModelAdmin::<article::Entity>::new().with_default_display();
+        let shown = names(admin.list.display_columns());
+        assert_eq!(shown[shown.len() - 2..], ["created_at", "updated_at"]);
+        assert!(shown.contains(&"title"), "{shown:?}");
+    }
+
+    #[test]
+    fn a_declared_list_keeps_its_order() {
+        let admin = ModelAdmin::<article::Entity>::new()
+            .list(|l| l.display([article::Column::CreatedAt, article::Column::Title]))
+            .with_default_display();
+        assert_eq!(names(admin.list.display_columns()), ["created_at", "title"]);
+    }
+
+    #[test]
+    fn a_row_page_shows_its_dates_last_even_if_declared_first() {
+        let admin = ModelAdmin::<article::Entity>::new()
+            .list(|l| l.display([article::Column::CreatedAt, article::Column::Title]));
+        let shown = names(&admin.detail_columns());
+        assert_eq!(shown[0], "title");
+        assert_eq!(shown[shown.len() - 2..], ["created_at", "updated_at"]);
+    }
+
     /// One column of each kind the create check looks at.
     mod article {
         use sea_orm::entity::prelude::*;
