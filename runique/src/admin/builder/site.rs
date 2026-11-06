@@ -491,6 +491,19 @@ mod tests {
     }
 
     #[test]
+    fn a_row_page_lists_the_display_first_without_repeating_it() {
+        use sea_orm::IdenStatic;
+
+        let columns = ModelAdmin::<user::Entity>::new()
+            .list(|l| l.display([user::Column::Email, user::Column::Username]))
+            .detail_columns();
+        let names: Vec<&str> = columns.iter().map(|c| c.as_str()).collect();
+        assert_eq!(names[..2], ["email", "username"]);
+        assert_eq!(names.iter().filter(|n| **n == "email").count(), 1);
+        assert!(names.contains(&"is_active"), "{names:?}");
+    }
+
+    #[test]
     fn an_account_page_never_holds_its_session_version() {
         use sea_orm::IdenStatic;
 

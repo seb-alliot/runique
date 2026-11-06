@@ -5,7 +5,8 @@
       <span class="admin-detail__field-label">id</span>
       <span class="admin-badge--id">#{{ object_id }}</span>
     </div>
-    {% for key, value in entry %}
+    {% for key in detail_columns %}
+      {% set value = entry[key] %}
       {% if key != "id" %}
       <div class="admin-detail__field">
         <span class="admin-detail__field-label">{{ key | replace(from="_", to=" ") }}</span>
