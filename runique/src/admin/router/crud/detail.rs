@@ -219,7 +219,10 @@ mod tests {
     #[test]
     fn the_order_is_the_declared_one_not_the_rows() {
         let entry = json!({ "b": 1, "a": 2, "c": 3 });
-        assert_eq!(readable_in_order(vec!["c", "a", "b"], &entry), ["c", "a", "b"]);
+        assert_eq!(
+            readable_in_order(vec!["c", "a", "b"], &entry),
+            ["c", "a", "b"]
+        );
     }
 
     #[test]
