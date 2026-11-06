@@ -39,9 +39,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .statics()
         .middleware(|m| {
-            m.with_session_memory_limit(128 * 1024 * 1024, 256 * 1024 * 1024)
-                .with_session_cleanup_interval(5)
-                .with_anonymous_session_duration(600_i64.seconds())
+            m.with_session_memory_limit(256 * 1024 * 1024, 512 * 1024 * 1024)
+                .with_session_cleanup_interval(60)
+                .with_anonymous_session_duration(300_i64.seconds())
                 .with_allowed_hosts(|h| {
                     h.host("runique.io")
                         .host("www.runique.io")
