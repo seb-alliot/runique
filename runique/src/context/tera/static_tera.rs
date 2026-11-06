@@ -246,11 +246,12 @@ mod display_time_tests {
     fn render(value: impl Into<Value>) -> String {
         let mut tera = Tera::default();
         tera.register_filter("display_time", display_time_filter);
-        tera.add_raw_template("t", "{{ value | display_time }}")
+        // `.html`: Tera only escapes templates with an HTML-like extension.
+        tera.add_raw_template("t.html", "{{ value | display_time }}")
             .unwrap();
         let mut context = tera::Context::new();
         context.insert("value", &value.into());
-        tera.render("t", &context).unwrap()
+        tera.render("t.html", &context).unwrap()
     }
 
     #[test]
