@@ -73,7 +73,7 @@ impl Page {
     }
 
     /// The model blocks it shows.
-    fn blocks(self) -> &'static [Block] {
+    pub(crate) fn blocks(self) -> &'static [Block] {
         match self {
             Page::List => &[
                 Block::ListTable,
@@ -97,7 +97,7 @@ impl Page {
     }
 
     /// The global blocks it shows, the layout's included.
-    fn global_blocks(self) -> &'static [GlobalBlock] {
+    pub(crate) fn global_blocks(self) -> &'static [GlobalBlock] {
         const LAYOUT_BLOCKS: [GlobalBlock; 2] = [GlobalBlock::Sidebar, GlobalBlock::Topbar];
         match self {
             Page::Login => &[],

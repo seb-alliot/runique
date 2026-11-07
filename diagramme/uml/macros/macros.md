@@ -33,6 +33,10 @@ Macros associées :
 - `impl_objects!` — génère `Model::objects` (point d'entrée `Objects<E>`).
 - `search!{}` / `search_cond!` / `search_munch!` / `search_apply_op!` — DSL de filtres
   composables → `Condition` SeaORM (op `eq/like/gt/in/...`). Voir [filter.rs](../../../runique/src/macros/bdd/filter.rs).
+  `contains` / `icontains` / `startswith` / `endswith` prennent la valeur **littéralement**
+  (`%` et `_` échappés, `like_term` / `ci_like_term` de [sql_dialect.rs](../../../runique/src/db/sql_dialect.rs)) ;
+  `iexact` est une égalité sans casse (`eq_ci`), plus un `LIKE` ; seuls `like` / `ilike`
+  gardent la valeur comme motif. La recherche de la liste admin (`search_condition`) échappe de même (`escape_like`).
 - Champs liste (3.0.0, 2026-10-06) : `search!(E => Genres has v / has_any [..] / has_all [..])`
   passe par `<<E as HasLists>::List>::Genres` (généré par `model!{}`), un `ListField` typé qui
   produit une sous-requête portable ([list.rs](../../../runique/src/macros/bdd/list.rs)).

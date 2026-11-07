@@ -67,7 +67,7 @@ FormAccess::register_fields() → declare fields
         ↓
 req.form("name")             → build the instance, fill it if the request sends its name back
         ↓
-ValidationForm::try_form()   → register_dynamic_fields(), then is_valid()
+ValidationForm::try_form()   → allow_get() / allow_post(), then is_valid()
         ↓
 is_valid()                   → validation pipeline
     ↓  validate() per field  (required, format, length…)
@@ -344,7 +344,6 @@ With a key, `save` updates that row; `delete` needs one. A key that doesn't read
 
 - Values to check or adjust: `clean_field`, `clean`.
 - Values imposed by the code (signed-in account, parent row): `add_value` before `try_form`, on a column that is no field — see [Columns set by the code](/docs/en/formulaire/helpers).
-- Fields or choices that depend on the request: `register_dynamic_fields`. It runs inside `try_form`, **after** the form is filled: a field it adds does not get the data sent (only an `add_value` made in the hook gives it a value).
 - Outside effects (email, cache) and writes to other tables: in the handler, after a successful `save`.
 
 ---

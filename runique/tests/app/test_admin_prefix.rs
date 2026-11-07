@@ -356,7 +356,13 @@ async fn login_page(view_site_url: Option<&str>) -> String {
         .unwrap();
     let resp = app.router.oneshot(req).await.unwrap();
     assert_eq!(resp.status(), axum::http::StatusCode::OK);
-    String::from_utf8(to_bytes(resp.into_body(), usize::MAX).await.unwrap().to_vec()).unwrap()
+    String::from_utf8(
+        to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap()
+            .to_vec(),
+    )
+    .unwrap()
 }
 
 /// Below the sign-in button, a link back to the site: `view_site_url` when
@@ -370,7 +376,10 @@ async fn the_login_page_links_back_to_the_site() {
         "{page}"
     );
     let page = login_page(None).await;
-    assert!(page.contains(r#"<a class="login-back" href="/">"#), "{page}");
+    assert!(
+        page.contains(r#"<a class="login-back" href="/">"#),
+        "{page}"
+    );
     assert!(!page.contains(r#"class="login-back" href="/secret"#));
     let label = runique::utils::trad::t("admin.login.back_to_site").into_owned();
     assert!(!label.is_empty() && label != "admin.login.back_to_site");
@@ -398,15 +407,13 @@ async fn build_with_missing_page(dev: bool, debug: bool) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
-/// A replaced admin page Tera never loaded refuses the boot in development or
-/// debug, naming it; in production it is left to the first render.
+/// A replaced admin page Tera never loaded refuses the boot in every mode,
+/// naming it: development, debug and production alike.
 #[tokio::test]
 #[serial]
-async fn a_missing_replaced_page_refuses_the_boot_in_dev_or_debug_only() {
-    for (dev, debug) in [(true, false), (false, true), (true, true)] {
+async fn a_missing_replaced_page_refuses_the_boot_in_every_mode() {
+    for (dev, debug) in [(true, false), (false, true), (true, true), (false, false)] {
         let err = build_with_missing_page(dev, debug).await.unwrap_err();
         assert!(err.contains("nowhere/list.html"), "dev={dev} debug={debug}: {err}");
     }
-    let prod = build_with_missing_page(false, false).await;
-    assert!(prod.is_ok(), "production builds anyway: {prod:?}");
 }

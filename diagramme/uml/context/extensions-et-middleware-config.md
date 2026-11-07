@@ -55,6 +55,7 @@ flowchart LR
       M["{% media var %}"]
       U["{% url #quot;name#quot; %} reverse"]
       I["filtre static_integrity<br/>(hash SRI d'un chemin connu au rendu)"]
+      DT["filtre display_time<br/>(date-heure / heure lisible, sans T ni fraction)"]
     end
     DEV["dev_no_cache_middleware<br/>(Cache-Control: no-store en dev)"]
 ```
@@ -63,7 +64,12 @@ flowchart LR
 toutes lettres. `add_js` donne une liste connue au rendu : `js.html` passe par `| static` et
 `| static_integrity`. Ce filtre est enregistré à vide par `register_asset_filters`, puis remplacé
 par `TemplateLoader` une fois les fichiers hachés : Tera refuse un template nommant un filtre
-inconnu. Modifier un de ces fichiers demande un redémarrage.
+inconnu. Modifier un de ces fichiers demande un redémarrage. En développement
+(`RUNIQUE_ENV=dev`) les pages n'ont pas de SRI ; le boot calcule quand même les hashes.
+
+`display_time` (et `display_datetime` côté Rust) : une seule mise en forme
+(`2026-11-06 14:58:32`) pour les listes, fiches et l'historique de l'admin ; toute autre
+valeur ressort inchangée.
 
 Le refus des formulaires d'un autre site n'a pas d'option : aucun drapeau dans `MiddlewareConfig`.
 

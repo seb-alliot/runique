@@ -83,9 +83,9 @@ impl UploadMedia {
         {
             let req_mb = bytes as f64 / (1024.0 * 1024.0);
             let lim_mb = limit as f64 / (1024.0 * 1024.0);
-            return Err(format!(
-                "max_size override ({:.1}MB) dépasse la limite du modèle ({:.1}MB)",
-                req_mb, lim_mb
+            return Err(crate::utils::trad::tf(
+                "forms.max_size_above_model",
+                &[format!("{req_mb:.1}"), format!("{lim_mb:.1}")],
             ));
         }
         self.upload_config.max_size = Some(bytes);

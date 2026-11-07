@@ -37,7 +37,7 @@ Ce que Runique 4.0 ne fait pas encore, ou fait avec une restriction. Chaque lign
 | Limite | Détail |
 | --- | --- |
 | `.links`, `.search_help`, `.empty_value` acceptés mais sans effet sur l'affichage | [Builder ModelAdmin](/docs/fr/admin/declaration-macro) |
-| Pas de feuille de thème globale (contournement par un bloc)<br>`.with_htmx` est global, pas de fragment de liste par modèle<br>En production, un template de page absent n'est signalé qu'à l'affichage (refus du démarrage en dev ou avec `DEBUG=true`) ; une feuille de style absente ne l'est jamais | [Surcharge](/docs/fr/admin/template-surcharge) |
+| Pas de feuille de thème globale (contournement par un bloc)<br>`.with_htmx` est global, pas de fragment de liste par modèle<br>Une feuille de style absente n'est pas signalée | [Surcharge](/docs/fr/admin/template-surcharge) |
 | Pas d'interface de gestion des sessions | — |
 | Many-to-many : déclaré dans le DSL par une table pivot, sans gestion dans l'admin | [Évolutions](/docs/fr/admin/evolution) |
 

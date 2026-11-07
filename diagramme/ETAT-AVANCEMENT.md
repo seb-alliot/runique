@@ -235,3 +235,26 @@ nouvelle séquence de fermeture), `uml/forms/*` (`FormAccess`, `DbWrite`, `Media
 
 Non refait : les liens de ligne des anomalies historiques, conservés pour mémoire et sans doute
 décalés. Les 64 blocs Mermaid passent l'analyse de syntaxe (Mermaid 11.4.1), dont 13 corrigés dans cette passe ; leur rendu visuel n'a pas été contrôlé.
+
+## Session 2026-11-07 — diagrammes alignés sur les changements du 05 au 07
+
+Mis à jour d'après le code (40 commits depuis la passe du 04 + lot non commité) :
+- `uml/admin/admin-complements` : `AdminConfig` (`filter_size`, `user_resources` retiré),
+  système de templates réécrit (pages + blocs, `Overrides<K>`, `ModelTemplates`, `Page` à 11
+  valeurs, priorité modèle > global > Runique), contrôles des surcharges au boot
+  (`check_replaced_views`, `dispatch`, `missing_pages`, `unknown_variables`), contexte des
+  pages (`ListContext`, `Pager`, `FilterOption`, `AccountSummary`, `detail_columns`,
+  `admin_page_context`), lien retour au site sur la connexion.
+- `uml/admin/admin-resource-permissions` + `flux/admin-crud-reset-makemigrations` : liste
+  (`per_page` / `filter_size` bornés, filtres multi-valeurs paginés, `ListFilter`), séquence
+  de reset refaite (jeton dans le chemin, `password_get()`, transaction, `no-store`).
+- `uml/auth/authentification` : `PasswordResetConfig` réel, `ResetLinkConfig`, clé du `LoginGuard`.
+- `uml/app/builder-staging` : `RUNIQUE_ENV` / `config.dev`, étapes de `build()`, ACME à chaud,
+  slots (17 HttpsRedirect ajouté, CSP fusionnée au slot 30).
+- `uml/config/configuration`, `uml/transverse/utilitaires` (`RuniqueError::Template`,
+  `EnvironmentInfo`, `password_init/get`, plafonds de coût), `uml/utils/tracing-securite-tokens`
+  (`is_dev`, `css_token`, `private_file`), `uml/forms/*` (`code_values`, champs verrouillés,
+  bornes numériques, `ACTIVE_CONTENT`, `register_dynamic_fields` retiré), `flux/requete-csrf-upload`
+  (`changes()`), `uml/middleware/securite`, `uml/macros/macros` (`search!` littéral),
+  `uml/context/extensions-et-middleware-config` (`display_time`).
+- `anomalies.md` : tableau « Passe du 2026-11-05 au 2026-11-07 ».

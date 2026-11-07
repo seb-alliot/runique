@@ -152,10 +152,6 @@ pub struct PasswordResetConfig {
     /// Template used to render the reset email body. When `None`, a plain
     /// HTML body is built from the `reset.email_body` translation string instead.
     pub email_template: Option<String>,
-    /// Configured redirect target for a successful reset. Not currently read
-    /// by the built-in reset flow, which re-renders `reset_template` in place
-    /// with `reset_done = true` instead of redirecting.
-    pub success_redirect: String,
     /// Maximum number of requests allowed per rate-limit window on the
     /// forgot/reset routes.
     pub max_requests: u64,
@@ -175,7 +171,6 @@ impl Default for PasswordResetConfig {
             forgot_template: "auth/forgot_password.html".to_string(),
             reset_template: "auth/reset_password.html".to_string(),
             email_template: None,
-            success_redirect: "/".to_string(),
             max_requests: 5,
             retry_after: 300,
             token_ttl: Duration::from_secs(3600),
@@ -211,14 +206,6 @@ impl PasswordResetConfig {
     #[must_use]
     pub fn reset_template(mut self, template: &str) -> Self {
         self.reset_template = template.to_string();
-        self
-    }
-    /// Sets the redirect target recorded for a successful reset. See the
-    /// `success_redirect` field doc: the built-in flow does not currently
-    /// read this value.
-    #[must_use]
-    pub fn success_redirect(mut self, redirect: &str) -> Self {
-        self.success_redirect = redirect.to_string();
         self
     }
     /// Sets the template used to render the reset email body.
@@ -566,7 +553,10 @@ pub async fn handle_password_reset(
 
     let new_password = form.cleaned::<String>("password").unwrap_or_default();
     let new_hash =
-        match PasswordService::new(request.engine.config.password.clone()).hash(&new_password) {
+        // The global configuration, the one sign-in verifies with: hashed from
+        // the builder's copy, a `password_init` made before `build()` with
+        // another one would leave the account unable to sign in.
+        match PasswordService::new(crate::utils::password::password_get()).hash(&new_password) {
             Ok(hash) => hash,
             Err(_) => {
                 if let Some(field) = form.forms_mut().fields.get_mut("password") {

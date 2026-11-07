@@ -121,3 +121,40 @@ Bénins classés (pas des avalages) : `write!(String,…)` (generator/parsers), 
 | **F10** | `add_js` sans SHA ni nonce | ✅ corrigé |
 | **S5** | Contenu des sessions lisible en base | ✅ corrigé (chiffrement) |
 | **S6** | Store personnalisé non révoqué après un reset | ✅ corrigé (`session_version`) |
+
+### Passe du 2026-11-05 au 2026-11-07
+
+| ID | Anomalie | Statut |
+|----|----------|--------|
+| **F11** | Champ `readonly` renvoyé par le navigateur, lu par `cleaned()` | ✅ un champ verrouillé n'est plus rempli depuis la requête |
+| **F12** | Mot de passe saisi au format d'un hash enregistré tel quel, coût choisi par le visiteur | ✅ valeur de la requête toujours hachée ; coûts plafonnés à la vérification |
+| **F13** | `decimal` à une seule borne refusait toute valeur | ✅ borne absente non comparée |
+| **F14** | `f32` hors plage accepté puis refusé à l'écriture | ✅ borné à la validation |
+| **F15** | Bornes `bigint` au-delà de 2^53 arrondies (passage par `f64`) | ✅ `min_i64` / `max_i64` |
+| **F16** | JSON fait d'espaces : vide à la validation, refusé à l'écriture | ✅ vide des deux côtés |
+| **F17** | Filtre de protocoles coupant au milieu d'un mot (« profile: ») | ✅ début de texte ou après séparateur |
+| **F18** | Texte riche d'un `<textarea>` désescapé à chaque réédition | ✅ échappé une fois |
+| **F19** | `register_dynamic_fields` tournait après le remplissage : champ ajouté jamais rempli | ✅ hook retiré (rupture notée) |
+| **UP1** | Fichiers actifs (`.html`, `.js`, `.xml`…) acceptés hors `.svg` | ✅ `ACTIVE_CONTENT` toujours refusé ; CSP médias `form-action 'none'` |
+| **UP2** | Upload en échec : chemin serveur et erreur OS montrés au visiteur | ✅ `upload_failed` traduit, détail au journal |
+| **SQ1** | `search!` : `%` / `_` de la valeur agissaient en jokers, `iexact` en `LIKE` | ✅ littéral ; `iexact` = égalité |
+| **SEC4** | `X-Forwarded-For` multi-lignes : seule la première lue (IP forgée) | ✅ toutes les lignes lues |
+| **SEC5** | `with_cors` + `allow_credentials(true)` paniquait au boot | ✅ méthodes / en-têtes reflétés |
+| **AU2** | `LoginGuard` contourné par la casse / les espaces (MySQL/MariaDB) | ✅ clé trim + minuscules |
+| **AU3** | Déconnexion de l'admin sans CSRF | ✅ jeton exigé |
+| **AU4** | Reset d'un compte de rang supérieur depuis l'admin | ✅ `ResetPassword::PROTECTS_RANK` |
+| **AU5** | Nom du compte non échappé dans l'e-mail de reset intégré | ✅ `email_text` |
+| **AU6** | Reset intégré hachant avec `config.password` au lieu de `password_init` | ✅ `password_get()` |
+| **AU7** | Pages de reset et listes admin gardées en cache (navigateur / htmx) | ✅ `no-store`, cache d'historique htmx coupé |
+| **FS1** | `.env` de `runique new` et `key.pem` ACME lisibles par tous | ✅ `private_file` (0600) |
+| **AC1** | Certificat ACME jamais renouvelé sans redémarrage | ✅ contrôle toutes les 12 h + `reload_from_pem` |
+| **AD1** | Page admin surchargée absente : erreur au premier rendu seulement | ✅ `missing_pages` au boot, tous environnements |
+| **AD2** | Variable inconnue dans une surcharge admin : erreur au rendu | ✅ `unknown_variables` au boot, tous environnements |
+| **AD3** | Fiche admin dans un ordre aléatoire ; `session_version` affiché | ✅ `detail_columns` ; compteur jamais lu |
+| **AD4** | Comptes créés dans l'admin sans `created_at` / `updated_at` | ✅ remplis à l'enregistrement |
+| **AD5** | Liens de liste réencodant mal un nom de filtre inventé | ✅ réencodé |
+| **AD6** | Booléens d'`extend!{}` : valeur inconnue lue `false` | ✅ refusée |
+| **ST1** | `?v=` des statiques aveugle aux fichiers de Runique (SRI bloquant après montée) | ✅ jeton sur les deux dossiers |
+| **ER1** | Ligne d'erreur Tera jamais surlignée ; version de Rust lue à l'exécution | ✅ span de l'erreur ; `build.rs` |
+| **JS1** | `csrf.js` renvoyait un formulaire malgré `preventDefault()` (double envoi) | ✅ corrigé |
+| **DC1** | Code mort : `user_resource(_with_template)`, `success_redirect` | ✅ retirés (ruptures notées) |

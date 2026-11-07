@@ -51,13 +51,15 @@ sequenceDiagram
     participant G as authorize_list
     participant L as ListConfig
 
-    H->>H: ListQuery::from_params (page, sort, search, filter_*)
-    H->>M: list(db, user, query, site_page_size)
+    H->>H: ListQuery::from_params (page, sort, search, filter_* multiples, per_page, fsize, fpage_*)
+    H->>M: list(db, user, query, site_page_size, site_filter_size)
     M->>G: proof List + Scope All|Own
     M->>L: resolve_sort / resolve_search / resolve_filters
-    Note over L: colonnes hors config ignorées
+    Note over L: colonnes hors config ignorées, tailles hors PER_PAGE_OPTIONS ignorées
     M->>M: SELECT + window __total, colonnes lisibles only
+    M->>M: filter_values(scope, col, page, size) par filtre
     M-->>H: ListPage + OfferedAction filtrées par droits
+    H->>H: Pager (liste + chaque filtre) + FilterOption (qs on/off réencodé)
 ```
 
 ### Écriture (create / edit)
@@ -91,27 +93,39 @@ Au plus une page de lignes ; tout ou rien via le gate.
 
 ## Reset password (IDOR-safe, single-use)
 
-Inchangé dans l'esprit ; déclenchable aussi depuis l'admin
-(`ResetPassword` + rang protégé) en plus du flux public forgot/reset.
+Déclenchable depuis le flux public forgot/reset et depuis l'admin
+(`ResetPassword` : droit `update` sur les comptes + compte cible de rang
+strictement inférieur, tenu dans le `WHERE`).
+[`auth/password.rs`](../../runique/src/auth/password.rs)
 
 ```mermaid
 sequenceDiagram
     participant U as User / Admin
-    participant FP as handle_forgot_password | reset_password_view
+    participant FP as handle_forgot_password | admin reset
     participant RT as reset_token (DB hashé)
     participant RP as handle_password_reset
-    participant DB as BuiltinUserEntity
+    participant DB as txn : users + sessions
 
     U->>FP: POST email  ou  admin POST reset sur compte cible
     FP->>RT: generate() → token brut (mail) + hash + expires_at
-    Note over FP: réponse identique si email inconnu (anti-énumération)
-    U->>RP: GET /reset?token=…
-    RP->>RT: peek(token) → valide sans consommer
-    U->>RP: POST nouveau mot de passe
-    RP->>RT: consume(token) → user_id (delete + rows_affected==1)
-    RP->>DB: update_password_by_id / activate
+    Note over FP: réponse identique si email inconnu (anti-énumération)<br/>mail intégré : nom et lien échappés (email_text)
+    U->>RP: GET {reset_route}/{token}
+    RP->>RT: resolve(token) → user_id, sans consommer (sinon flash + /)
+    U->>RP: POST nouveau mot de passe (PasswordResetForm, .no_hash() pour comparer pw1/pw2)
+    RP->>RP: try_form puis PasswordService::new(password_get()).hash
+    RP->>DB: begin
+    RP->>RT: consume_in_transaction(token) → user_id
+    RP->>DB: set_password_and_activate + session_version + 1
+    RP->>DB: revoke_in_transaction (sessions du compte)
+    RP->>DB: commit puis forget_user_sessions (mémoire)
     Note over RP,DB: user_id vient du TOKEN, jamais de l'URL/form → IDOR-safe
 ```
+
+- Le hachage suit la stratégie déclarée par `password_init` (`password_get()`), pas
+  `config.password` du builder : un projet `Custom` ou `Delegated` garde la sienne.
+- Les deux routes sont servies en `Cache-Control: no-store` (jeton dans le chemin et
+  dans le CSRF du formulaire) et passent par un `RateLimiter` dédié.
+- Lien du mail : `public_link_base(public_url)` seulement, jamais le `Host` de la requête.
 
 ## makemigrations (diff complet + commit atomique)
 

@@ -1,5 +1,5 @@
 //! Tests — `ValidationForm<F>` (`forms/validation_form.rs`) et les hooks
-//! `register_dynamic_fields`/`allow_get`/`allow_post` de `RuniqueForm`.
+//! `allow_get`/`allow_post` de `RuniqueForm`.
 //!
 //! Chaque test vérifie un résultat concret (Ok/Err, contenu des erreurs, valeur
 //! nettoyée), pas seulement "ça n'a pas planté".
@@ -124,60 +124,6 @@ async fn post_with_data_validates_and_into_form_returns_the_form() {
 
     let form = validated.into_form();
     assert_eq!(form.cleaned::<String>("q"), Some("runique".to_string()));
-}
-
-// ═══════════════════════════════════════════════════════════════
-// register_dynamic_fields — le champ ajouté doit être visible AVANT
-// que la validation ne s'exécute
-// ═══════════════════════════════════════════════════════════════
-
-struct DynamicForm {
-    form: Forms,
-}
-
-impl FormAccess for DynamicForm {
-    fn register_fields(_form: &mut Forms) {}
-    fn from_form(form: Forms) -> Self {
-        Self { form }
-    }
-    fn forms(&self) -> &Forms {
-        &self.form
-    }
-    fn forms_mut(&mut self) -> &mut Forms {
-        &mut self.form
-    }
-}
-
-#[async_trait::async_trait]
-impl RuniqueForm for DynamicForm {
-    async fn register_dynamic_fields(&mut self, _request: &runique::context::Request) {
-        self.forms_mut()
-            .field(&TextField::text("late_field").required());
-        self.forms_mut().add_value("late_field", "present");
-    }
-}
-
-#[tokio::test]
-async fn register_dynamic_fields_runs_before_validation() {
-    let engine = build_engine().await;
-    // POST with no body data: the only way `is_valid()` can pass is if the
-    // required "late_field" — added and filled exclusively inside
-    // `register_dynamic_fields` — was actually registered before validation ran.
-    let request = build_handler_req(engine, None, named(HashMap::new()), Method::POST).await;
-    let form: DynamicForm = request.form(NAME);
-
-    match ValidationForm::try_form(form, &request).await {
-        Ok(validated) => {
-            assert_eq!(
-                validated.cleaned::<String>("late_field"),
-                Some("present".to_string())
-            );
-        }
-        Err(form) => panic!(
-            "late_field must have been registered+filled by register_dynamic_fields before is_valid(), errors: {:?}",
-            form.forms().errors()
-        ),
-    }
 }
 
 // ═══════════════════════════════════════════════════════════════

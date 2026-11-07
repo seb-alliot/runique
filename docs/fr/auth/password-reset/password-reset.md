@@ -51,7 +51,6 @@ Toutes les options sont optionnelles — les valeurs par défaut fonctionnent sa
     .forgot_template("auth/oubli.html")          // défaut : auth/forgot_password.html
     .reset_template("auth/reset.html")           // défaut : auth/reset_password.html
     .email_template("emails/reset.html")         // défaut : template intégré
-    .success_redirect("/connexion")              // enregistré, pas encore utilisé (voir le flux)
     .token_ttl(Duration::from_secs(1800))        // défaut : 1h (std::time::Duration)
 )
 ```
@@ -140,8 +139,7 @@ Le `<form>` sans `action` poste sur l'adresse de la page, `/reset-password/{toke
    - Valide le formulaire et compare l'email saisi au compte lié au token
    - Consomme le token (usage unique), met à jour le mot de passe et active
      le compte s'il était en attente, ferme ses sessions — en une transaction
-   - Réaffiche la page avec reset_done = true (pas de redirection :
-     success_redirect n'est pas encore lu)
+   - Réaffiche la page avec reset_done = true (pas de redirection)
 ```
 
 > **Sessions actives après reset :** une fois le nouveau mot de passe enregistré, **toutes les sessions du compte sont fermées**, sur tous les appareils — une session volée comprise —, ainsi que la session du navigateur qui a fait le reset. Le tout se fait dans la transaction du changement de mot de passe : si la base refuse, rien n'est changé et le lien reste utilisable. Un seul lien est actif par compte : une nouvelle demande remplace le précédent. L'utilisateur se reconnecte avec le nouveau mot de passe. Les autres comptes ne sont pas touchés. Seuls les stores de Runique sont concernés : un store branché avec `with_session_store()` (Redis…) ne peut pas être parcouru par utilisateur — voir [Révocation des sessions](/docs/fr/auth/session#revocation-des-sessions).

@@ -17,7 +17,6 @@ fn test_config_default_values() {
     let cfg = PasswordResetConfig::new();
     assert_eq!(cfg.forgot_route, "/forgot-password");
     assert_eq!(cfg.reset_route, "/reset-password");
-    assert_eq!(cfg.success_redirect, "/");
     assert_eq!(cfg.max_requests, 5);
     assert_eq!(cfg.retry_after, 300);
 }
@@ -47,20 +46,12 @@ fn test_config_reset_template() {
 }
 
 #[test]
-fn test_config_success_redirect() {
-    let cfg = PasswordResetConfig::new().success_redirect("/dashboard");
-    assert_eq!(cfg.success_redirect, "/dashboard");
-}
-
-#[test]
 fn test_config_chained_builders() {
     let cfg = PasswordResetConfig::new()
         .forgot_route("/forgot")
-        .reset_route("/reset")
-        .success_redirect("/home");
+        .reset_route("/reset");
     assert_eq!(cfg.forgot_route, "/forgot");
     assert_eq!(cfg.reset_route, "/reset");
-    assert_eq!(cfg.success_redirect, "/home");
 }
 
 // ═══════════════════════════════════════════════════════════════

@@ -1457,7 +1457,8 @@ mod guarantees {
         let mut field = FileField::any("doc").max_size(FileSize::mb(2));
         assert_eq!(field.model_max_size(), Some(2 * 1024 * 1024));
         let err = field.set_max_size_bounded(FileSize::mb(3)).unwrap_err();
-        assert!(err.contains("3.0MB") && err.contains("2.0MB"), "{err}");
+        // Translated: the sizes, not the unit, are what every language shows.
+        assert!(err.contains("3.0") && err.contains("2.0"), "{err}");
         field.set_max_size_bounded(FileSize::mb(1)).unwrap();
         assert_eq!(field.upload.upload_config.max_size, Some(1024 * 1024));
     }

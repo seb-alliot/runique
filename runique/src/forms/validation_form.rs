@@ -42,8 +42,6 @@ impl<F: RuniqueForm> ValidationForm<F> {
     /// Err(form) => { /* not sent: plain display */ }
     /// ```
     pub async fn try_form(mut form: F, request: &Request) -> Result<Self, F> {
-        form.register_dynamic_fields(request).await;
-
         let sent = form.forms().sent_by(request);
         // A value the handler put in (`add_value`, a prefill) marks the form
         // submitted too: only the form whose name came back is.

@@ -14,8 +14,10 @@ classDiagram
         +StaticConfig static_files
         +RuniqueLog log
         +String base_dir
-        +bool debug
+        +bool debug  « DEBUG : pages d'erreur détaillées »
+        +bool dev    « RUNIQUE_ENV=dev »
         +String timezone
+        -Vec~BlockDispatch~ block_dispatch  « blocs admin, posé par build »
         +from_env() Self
     }
     class ServerConfig {
