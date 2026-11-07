@@ -2,7 +2,7 @@
 
 ## What it does
 
-Intercepts all 3xx redirect responses and validates the `Location` header.
+Intercepts all 3xx redirect responses and validates the `Location` header, as well as the `Refresh` header of **any** response (`Refresh: 5; url=…` also sends the browser elsewhere, whatever the status).
 If the redirect destination is an external host not in the allowed list, the middleware returns HTTP 400.
 
 Protects against phishing attacks where an attacker crafts a link like
@@ -43,6 +43,8 @@ The open redirect middleware is **always active** and uses the same host list.
 
 URLs starting with `//` (e.g. `//evil.com/path`) are treated as absolute and subject to the same check.
 They are blocked unless the host is in the allowed list.
+
+The destination is read the way a browser reads it (WHATWG URL parser): `\` counts as `/`, tabs and newlines are dropped, credentials (`user@host`) are split from the host. `/\evil.com` or `/\t/evil.com` therefore do lead to `evil.com`, and are blocked. A scheme other than `http` / `https` (`javascript:`, `data:`) is always refused.
 
 ---
 

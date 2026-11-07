@@ -7,7 +7,7 @@ Runique provides a honeypot middleware that automatically protects forms against
 1. On first visit, the middleware generates a random 16-character hex field name and stores it in the session.
 2. On every request, the name is injected as an Axum extension (`HoneypotFieldName`).
 3. `Request::form()` reads it and adds the field to the rendered HTML (invisible via `hp.css`).
-4. On POST, if the field is non-empty → `force_invalid = true` → `form.is_valid()` returns `false` immediately.
+4. On any method other than GET and HEAD (POST, PUT, PATCH, DELETE…), if the field is non-empty → `force_invalid = true` → `form.is_valid()` returns `false` immediately.
 
 The handler sees a normal form validation failure — no special case needed.
 
@@ -46,7 +46,7 @@ The field name has no recognizable prefix — a bot cannot skip it by pattern ma
 
 ## Local testing constraint
 
-The session cookie uses `Secure=true` in production (`RUNIQUE_ENV=prod`). On `http://localhost`, browsers refuse to send a Secure cookie, which means the honeypot field name is regenerated on every request and the trap never triggers.
+The session cookie uses `Secure=true` in production (`RUNIQUE_ENV=prod`). On an `http` address that is not `localhost` (LAN IP, machine name), the browser does not send a Secure cookie: the session, and the trap field's name with it, is created again on every request, and the trap never triggers. Chrome and Firefox accept a Secure cookie on `http://localhost`, other browsers may not.
 
 **Test locally with `RUNIQUE_ENV=dev`.** On the VPS over HTTPS, the middleware works correctly without any override.
 

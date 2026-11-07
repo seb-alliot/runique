@@ -50,6 +50,8 @@ ACME_CERTS_DIR=/absolute/path/to/certs   # default: ./certs
 > If `ACME_ENABLED=true` but the `acme` feature is not compiled in, Runique
 > prints a warning at startup.
 
+**Renewal.** The certificate (90 days) is checked at startup, then every 12 hours. After 60 days, Runique asks for a new one, writes it to `ACME_CERTS_DIR` and reloads it without restarting the server. When the request fails, the current certificate is kept and the failure is logged: the next attempt comes 12 hours later.
+
 ### Limitation — one site per machine
 
 ACME requires **exclusive use of port 80**. If multiple applications run on the same server, only one can use ACME — the others cannot obtain their certificates simultaneously.

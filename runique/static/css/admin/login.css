@@ -69,3 +69,18 @@
     font-size: 0.9rem;
     margin-top: 0.5rem;
 }
+
+.login-back {
+    display: block;
+    margin-top: 1.25rem;
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    text-decoration: none;
+}
+
+.login-back:hover,
+.login-back:focus-visible {
+    color: var(--text-main);
+    text-decoration: underline;
+}

@@ -55,6 +55,9 @@ pub struct Forms {
     /// The name `try_form` gave the form: `save` looks for its key under
     /// `{<name>_<pk>}` in the URL first.
     pub(crate) name: Option<&'static str>,
+    /// Values `add_value` gave to names that are not fields: `save` writes the
+    /// ones naming a column of the entity, never filled from the request.
+    pub(crate) code_values: StrMap,
 }
 
 /// `write` runs the form's writes in a transaction it hands back uncommitted;
@@ -294,6 +297,7 @@ impl Forms {
             honeypot_field_name: None,
             save_comportement: SaveComportement::Open,
             name: None,
+            code_values: StrMap::new(),
         }
     }
 
@@ -534,12 +538,19 @@ impl Forms {
     /// Forces a value on a named field, bypassing `fill()`.
     /// Also marks the form as submitted if the value is non-empty.
     /// Use this for fields skipped by `fill()` (e.g. password hash pre-computed before POST parsing).
+    ///
+    /// A name that is no field is kept for `save`: it writes the value when the
+    /// name is a column of the entity (an author, the row a comment belongs
+    /// to), and ignores it otherwise. Not being a field, the visitor can never
+    /// send it.
     pub fn add_value(&mut self, name: &str, value: &str) {
         if let Some(field) = self.fields.get_mut(name) {
             field.set_value(value);
             if !value.trim().is_empty() && name != CSRF_TOKEN_KEY && name != FORM_NAME_KEY {
                 self.submitted = true;
             }
+        } else {
+            self.code_values.insert(name.to_string(), value.to_string());
         }
     }
 
@@ -551,6 +562,7 @@ impl Forms {
                 field.set_value("");
             }
         }
+        self.code_values.clear();
         self.submitted = false;
         self.validated = false;
     }

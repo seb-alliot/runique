@@ -606,3 +606,18 @@ fn test_uuid_json_ip_render_their_template() {
         r#"<input name="ip">"#
     );
 }
+
+#[tokio::test]
+async fn a_json_made_of_spaces_is_empty_both_when_validated_and_written() {
+    let mut field = JSONField::new("j");
+    field.set_value("   ");
+    assert!(field.validate().await);
+    assert_eq!(field.to_value(), Ok(None));
+
+    field.set_value(" {\"a\":1} ");
+    assert!(field.validate().await);
+    assert!(matches!(field.to_value(), Ok(Some(_))));
+
+    field.set_value("{");
+    assert!(!field.validate().await);
+}

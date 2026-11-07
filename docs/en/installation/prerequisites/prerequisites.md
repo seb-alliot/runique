@@ -83,7 +83,7 @@ cargo run
 ```
    Runique is operational
       └──>  Server launched on http://127.0.0.1:3000
-          └──>  Connected to database Postgres -> runique
+          └──>  Connected to database Sqlite -> data.db
               └──> ctrl + c to stop
 ```
 

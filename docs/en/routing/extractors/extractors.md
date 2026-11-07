@@ -95,7 +95,7 @@ async fn handler(mut request: Request) -> AppResult<Response> {
     // (`.with_public_url()`), never on
     // the Host header: the client chooses it, and a link to their own site
     // would carry away the token it holds.
-    let base_url = request.engine.config.server.public_url.clone();
+    let base_url: Option<String> = request.public_url(); // no trailing `/`
 
     // Read any header
     let lang = request.headers
@@ -149,6 +149,8 @@ async fn signup(mut request: Request) -> AppResult<Response> {
 ---
 
 ## Json — JSON body
+
+A handler that takes `Json` instead of `Request` reads the body itself. The CSRF middleware still applies: a JSON POST must carry the `X-CSRF-Token` header (the token the template gets in `{{ csrf_token }}`), otherwise it is refused with a 403 before reaching the handler. A route called by an outside service (webhook) is exempted with `csrf_exempt`, and checks the call's signature itself.
 
 ```rust
 use axum::Json;

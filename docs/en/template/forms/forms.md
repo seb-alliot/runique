@@ -94,6 +94,9 @@ These variables are automatically available in all templates:
 | `csp_nonce` | `String` | CSP nonce for inline scripts/styles |
 | `messages` | `Vec<FlashMessage>` | Flash messages from the previous session |
 | `debug` | `bool` | Debug mode status |
+| `dev` | `bool` | `true` with `RUNIQUE_ENV=dev` |
+| `current_user` | object | Signed-in account (`username`, `id`, rank…), absent for an anonymous visitor |
+| `current_path` | `String` | Path of the current URL, without the query string |
 
 ---
 

@@ -12,7 +12,7 @@ Contrairement au rate limiting IP, il n'y a pas de faux positifs liés au NAT ou
 
 `effective_key` détermine automatiquement la bonne clé selon que l'utilisateur a soumis un username ou non :
 
-- Username soumis → clé par compte (protection ciblée)
+- Username soumis → clé par compte (protection ciblée), sans espaces autour et en minuscules : `admin`, `Admin` et `admin ` partagent un seul compteur
 - Username vide → `"anonym:{ip}"` (protection par IP, compteurs indépendants)
 
 ```rust
@@ -31,6 +31,9 @@ pub async fn sign_in(
     client_ip: Option<Extension<ClientIp>>,
     mut request: Request,
 ) -> AppResult<Response> {
+    // Le champ password de LoginForm est déclaré `.no_hash()` : il est comparé tel
+    // quel par `authenticate_user`, jamais stocké. Sans lui, la validation le hache
+    // et `cleaned("password")` rend ce hash : la connexion échoue toujours.
     let form: LoginForm = request.form("login");
     let validated = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated,
@@ -44,7 +47,7 @@ pub async fn sign_in(
     // L'IP cliente réelle, résolue par le middleware des proxies de confiance
     let ip = client_ip.map(|Extension(ClientIp(ip))| ip.to_string()).unwrap_or_default();
 
-    // username soumis → "alice"  |  username vide → "anonym:1.2.3.4"
+    // username " Alice" → "alice"  |  username vide → "anonym:1.2.3.4"
     let key = LoginGuard::effective_key(&username, &ip);
 
     if GUARD.is_locked(&key) {
@@ -113,7 +116,7 @@ Durée du verrouillage en secondes.
 
 Retourne la clé à utiliser selon le contexte :
 
-- Username non vide → clé par username (protection compte ciblé)
+- Username non vide → clé par username, `trim()` puis en minuscules (protection compte ciblé ; une base qui compare les noms sans tenir compte de la casse, comme MySQL/MariaDB, ouvre le même compte pour `admin` et `Admin`)
 - Username vide ou absent → `"anonym:{ip}"` (protection anonyme par IP)
 
 Garantit que deux IPs anonymes différentes ont des compteurs indépendants — bloquer `"anonym:1.2.3.4"` n'affecte pas `"anonym:5.6.7.8"`.
@@ -130,7 +133,7 @@ Réinitialise le compteur. À appeler après une connexion réussie.
 
 ### `is_locked(key) -> bool`
 
-Retourne `true` si le nombre d'échecs dépasse `max_attempts` et que le délai de verrouillage n'est pas écoulé.
+Retourne `true` si le nombre d'échecs **atteint** `max_attempts` et que le délai de verrouillage n'est pas écoulé. Le délai court depuis le **dernier** échec ; le compteur lui-même s'efface `lockout_secs` après le dernier échec, même sous le seuil.
 Une entrée arrivée à expiration est supprimée lorsqu'elle est consultée. Pour les clés qui ne sont plus consultées, le nettoyage périodique les retire.
 
 ### `attempts(key) -> u32`
@@ -143,7 +146,7 @@ Secondes restantes avant déverrouillage. `None` si non verrouillé.
 
 ### Nettoyage périodique
 
-Le builder admin démarre automatiquement le nettoyage du `LoginGuard` configuré. Pour un usage autonome, appelez `spawn_cleanup` une fois pendant qu'un runtime Tokio est actif ; la période effective est bornée entre 1 et 60 secondes. Cette purge limite la rétention des entrées expirées mais ne fixe pas de plafond strict au nombre d'entrées.
+Le builder admin démarre automatiquement le nettoyage du `LoginGuard` configuré, à une cadence bornée entre 1 et 60 secondes. Pour un usage autonome, appelez `spawn_cleanup(période)` une fois pendant qu'un runtime Tokio est actif ; la période vaut au moins 1 seconde. Cette purge limite la rétention des entrées expirées mais ne fixe pas de plafond strict au nombre d'entrées.
 
 ---
 

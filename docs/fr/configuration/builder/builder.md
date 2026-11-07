@@ -96,7 +96,7 @@ La validation des hosts se déclare via `.with_allowed_hosts(|h| h.host("..."))`
 ### Durée de session
 
 ```rust
-use tower_sessions::cookie::time::Duration;
+use runique::tower_sessions::cookie::time::Duration;
 
 let app = RuniqueApp::builder(config)
     .with_session_duration(Duration::hours(2))  // Par défaut : 24h

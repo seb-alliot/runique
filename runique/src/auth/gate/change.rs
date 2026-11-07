@@ -2,7 +2,7 @@
 //! floor first, then the account's rights, then each field's own value.
 use crate::auth::meta::ModelMeta;
 use crate::auth::permissions::rights::ColumnRights;
-use crate::forms::column_value::null_value;
+use crate::forms::column_value::{column_value, null_value};
 use crate::forms::form::Forms;
 use crate::utils::trad::t;
 use sea_orm::{
@@ -30,7 +30,8 @@ pub(crate) type FieldErrors = Vec<(String, String)>;
 
 /// The `ActiveModel` of `E` that `form` may write as `kind`. A column stays
 /// `NotSet` when it is secret and `secrets` skips them, the key of an updated
-/// row, not allowed by `rights`, or not a field of the form.
+/// row, not allowed by `rights`, or neither a field of the form nor a value
+/// the code gave it through `add_value`.
 pub(crate) fn changes<E: ModelMeta>(
     form: &Forms,
     rights: &ColumnRights,
@@ -50,17 +51,22 @@ pub(crate) fn changes<E: ModelMeta>(
             WriteKind::Create => rights.can_create(name),
             WriteKind::Update => rights.can_update(name),
         };
-        let Some(field) = form.fields.get(name) else {
-            continue;
-        };
-        if !allowed || field.is_locked() {
-            continue;
-        }
-
         let def = column.def();
-        let value = match field.to_value() {
+        let read = match form.fields.get(name) {
+            _ if !allowed => continue,
+            Some(field) if field.is_locked() => continue,
+            Some(field) => match field.to_value() {
+                Ok(None) if field.keeps_when_empty() => continue,
+                read => read,
+            },
+            None => match form.code_values.get(name) {
+                Some(raw) if raw.is_empty() => Ok(None),
+                Some(raw) => column_value(def.get_column_type(), raw).map(Some),
+                None => continue,
+            },
+        };
+        let value = match read {
             Ok(Some(value)) => value,
-            Ok(None) if field.keeps_when_empty() => continue,
             Ok(None) if def.is_null() => match null_value(def.get_column_type()) {
                 Some(null) => null,
                 None => {
@@ -539,6 +545,152 @@ mod tests {
         form.field(&TextField::text("addr"));
         type_fields(&mut form);
         form
+    }
+
+    /// A form whose only field is `title`: every other name `add_value`
+    /// gives is a value of the code.
+    fn title_only(values: &[(&str, &str)]) -> Forms {
+        let mut form = Forms::new("");
+        form.field(&TextField::text("title"));
+        type_fields(&mut form);
+        with(form, values)
+    }
+
+    #[test]
+    fn a_value_of_the_code_is_written_to_its_column_typed_like_it() {
+        let form = title_only(&[
+            ("title", "t"),
+            ("nick", "n"),
+            ("score", "42"),
+            ("born", "2020-01-02"),
+        ]);
+        for kind in [WriteKind::Create, WriteKind::Update] {
+            for secrets in [Secrets::Skip, Secrets::Write] {
+                let model = changes::<E>(&form, &ColumnRights::All, kind, secrets).unwrap();
+                assert_eq!(set(&model, C::Title), text("t"));
+                assert_eq!(set(&model, C::Nick), text("n"), "{kind:?}");
+                assert_eq!(set(&model, C::Score), Some(Value::from(42)));
+                assert_eq!(
+                    set(&model, C::Born),
+                    Some(Value::from(NaiveDate::from_ymd_opt(2020, 1, 2).unwrap()))
+                );
+                assert_eq!(set(&model, C::Pass), None, "never given: not set");
+            }
+        }
+    }
+
+    #[test]
+    fn a_name_of_the_code_that_is_no_column_is_ignored() {
+        let form = title_only(&[("title", "t"), ("ghost", "x"), ("Nick", "x")]);
+        let model = built(&form, &ColumnRights::All, WriteKind::Create);
+        assert_eq!(set(&model, C::Title), text("t"));
+        assert_eq!(set(&model, C::Nick), None, "names match exactly");
+    }
+
+    #[test]
+    fn an_unreadable_value_of_the_code_is_an_error_naming_its_column() {
+        let form = title_only(&[("score", "abc"), ("born", "2020-13-01")]);
+        let errors =
+            changes::<E>(&form, &ColumnRights::All, WriteKind::Create, Secrets::Write).unwrap_err();
+        assert_eq!(
+            errors,
+            vec![
+                ("score".to_string(), unconvertible()),
+                ("born".to_string(), unconvertible())
+            ]
+        );
+        let form = title_only(&[("score", "2147483648")]);
+        assert!(
+            changes::<E>(&form, &ColumnRights::All, WriteKind::Create, Secrets::Write).is_err()
+        );
+        let form = title_only(&[("score", "2147483647")]);
+        assert!(changes::<E>(&form, &ColumnRights::All, WriteKind::Create, Secrets::Write).is_ok());
+    }
+
+    #[test]
+    fn an_empty_value_of_the_code_is_null_or_leaves_a_required_column() {
+        let form = title_only(&[("nick", ""), ("secret", "")]);
+        let model =
+            changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Write).unwrap();
+        assert_eq!(set(&model, C::Nick), Some(Value::String(None)));
+        assert_eq!(set(&model, C::Secret), None, "not nullable: left as it is");
+        let form = title_only(&[("addr", "")]);
+        let errors =
+            changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Write).unwrap_err();
+        assert_eq!(errors, vec![("addr".to_string(), unconvertible())]);
+    }
+
+    #[test]
+    fn a_value_of_the_code_follows_the_floor_like_a_field() {
+        let form = title_only(&[("id", "7"), ("secret", "s")]);
+        let update =
+            changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Write).unwrap();
+        assert_eq!(set(&update, C::Id), None, "never the key of an updated row");
+        assert_eq!(set(&update, C::Secret), text("s"));
+        let create =
+            changes::<E>(&form, &ColumnRights::All, WriteKind::Create, Secrets::Write).unwrap();
+        assert_eq!(set(&create, C::Id), Some(Value::from(7)));
+        for kind in [WriteKind::Create, WriteKind::Update] {
+            let model = built(&form, &ColumnRights::All, kind);
+            assert_eq!(
+                set(&model, C::Secret),
+                None,
+                "the admin never writes a secret"
+            );
+        }
+    }
+
+    #[test]
+    fn a_value_of_the_code_needs_the_right_on_its_column() {
+        let form = title_only(&[("title", "t"), ("nick", "n"), ("score", "1")]);
+        let rights = only(&[("title", true, true), ("nick", true, false)]);
+        let create = built(&form, &rights, WriteKind::Create);
+        assert_eq!(set(&create, C::Nick), text("n"));
+        assert_eq!(set(&create, C::Score), None);
+        let update = built(&form, &rights, WriteKind::Update);
+        assert_eq!(set(&update, C::Nick), None);
+        assert_eq!(set(&update, C::Title), text("t"));
+    }
+
+    #[test]
+    fn a_refused_value_of_the_code_is_no_error() {
+        let form = title_only(&[("score", "abc"), ("id", "abc")]);
+        let rights = only(&[("title", true, true)]);
+        assert!(changes::<E>(&form, &rights, WriteKind::Create, Secrets::Write).is_ok());
+        assert!(changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Skip).is_err());
+        let form = title_only(&[("id", "abc"), ("secret", "")]);
+        assert!(changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Skip).is_ok());
+    }
+
+    #[test]
+    fn the_request_never_gives_a_value_of_the_code() {
+        let mut form = title_only(&[]);
+        let sent: crate::utils::aliases::StrMap = [("title", "t"), ("nick", "forged"), ("id", "9")]
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+        form.fill(&sent, axum::http::Method::POST);
+        assert!(form.code_values.is_empty());
+        let model = built(&form, &ColumnRights::All, WriteKind::Create);
+        assert_eq!(set(&model, C::Title), text("t"));
+        assert_eq!(set(&model, C::Nick), None);
+        assert_eq!(set(&model, C::Id), None);
+    }
+
+    #[test]
+    fn a_field_takes_its_value_from_the_code_never_a_copy() {
+        let form = title_only(&[("title", "t")]);
+        assert!(form.code_values.is_empty());
+        let mut form = title_only(&[("nick", "n")]);
+        form.clear_values();
+        assert!(form.code_values.is_empty());
+        assert_eq!(
+            set(
+                &built(&form, &ColumnRights::All, WriteKind::Create),
+                C::Nick
+            ),
+            None
+        );
     }
 
     #[test]

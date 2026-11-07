@@ -73,7 +73,7 @@ All the thresholds described above are tunable from the builder, inside the `.mi
 
 ```rust
 use runique::prelude::*;
-use time::Duration;
+use runique::tower_sessions::cookie::time::Duration;
 
 let app = RuniqueApp::builder(config)
     // Inactivity TTL before expiration (authenticated sessions)
@@ -99,7 +99,7 @@ let app = RuniqueApp::builder(config)
 | Anonymous session TTL | `with_anonymous_session_duration(Duration)` | 5 min |
 | Exclusive login (one device) | `with_exclusive_login(bool)` | `false` |
 
-> Watermarks are expressed in **bytes**: `64 * 1024 * 1024` = 64 MB. The timer interval is in **seconds**.
+> Watermarks are expressed in **bytes**: `64 * 1024 * 1024` = 64 MB. The timer interval is in **seconds**. `with_session_duration` is called on the builder; the four other methods, inside `.middleware(|m| …)`. Both durations are `runique::tower_sessions::cookie::time::Duration`.
 
 ---
 

@@ -63,6 +63,7 @@
                         {% if admin_login_btn_submit %}{{ admin_login_btn_submit }}{% endif %}
                     </button>
                 </form>
+                <a class="login-back" href="{{ site_url | default(value="/") }}">{{ admin_login_back_to_site }}</a>
             </div>
         </div>
     </body>

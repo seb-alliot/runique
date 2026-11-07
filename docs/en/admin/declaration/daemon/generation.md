@@ -59,7 +59,7 @@ fn every_registered_model_passes_the_boot_checks() {
 
 - the template overrides (see [Template override](/docs/en/admin/template-surcharge));
 - in production, `with_public_url` is required when the admin is enabled;
-- group rights targeting an unregistered model are deleted from the database (only once the project registered at least one of its models).
+- the rights targeting an unregistered model (the groups' as well as the admins' grids) are **permanently deleted** from the database (only once the project registered at least one of its models).
 
 ## Defaults
 

@@ -8,7 +8,7 @@ Form values are stored as `String`. Use the `cleaned_*` typed helpers to convert
 
 ## Recommended API — `cleaned_*()`
 
-Methods on the `RuniqueForm` trait. They are whitelisted (undeclared field → `None`) and cover sources by priority: POST > Route parameter > Query string.
+Methods on the `RuniqueForm` trait. They are whitelisted (undeclared field → `None`) and read, in order: the field's value, then, when it is empty, a route parameter, then a query string parameter, of the same name. That URL fallback has not gone through the field's validation.
 
 ### Basics and Numerics
 
@@ -24,6 +24,8 @@ self.cleaned::<bool>("active")          // Option<bool> (true/1/on → true)
 ```
 
 ### Date / Time / UUID
+
+`NaiveDate`, `NaiveDateTime`, `DateTime`, `Utc` and `Uuid` come from the prelude; `NaiveTime` is imported separately (`use runique::chrono::NaiveTime;`).
 
 ```rust
 self.cleaned::<NaiveDate>("birthday")           // Option<NaiveDate> (YYYY-MM-DD format)
@@ -93,10 +95,190 @@ Example — pre-fill a field from the URL (`GET /edit?title=My+Article`):
 ```rust
 if request.method.is_safe() {
     if let Some(t) = form.cleaned::<String>("title") {
-        form.forms_mut().add_value("title", &t);
+        form.add_value("title", &t); // `form` declared `let mut`
     }
 }
 ```
+
+---
+
+## Columns set by the code — `add_value` outside the fields
+
+A name given to `add_value` that is not a field of the form is kept for `save()`: when it names a column of the entity, `save()` writes it, read as the column's type; otherwise it is ignored. The visitor can never send it: it is no field, `fill()` never reads it.
+
+This is how to impose a value the visitor must not choose: the author of a comment, the article it belongs to, the account that owns a row.
+
+### Example: a comment on an article
+
+The `comment` entity has three columns: `body`, `author_id`, `article_id`. The form declares `body` only.
+
+```rust
+#[form(schema = comment, fields = [body])]
+pub struct CommentForm;
+impl RuniqueForm for CommentForm {}
+
+// Route: "/article/{article_id}/comment"
+pub async fn comment(request: Request) -> AppResult<Response> {
+    let Some(user) = request.user.clone() else {
+        return Ok(Redirect::to("/login").into_response());
+    };
+    let article_id = request.get_path_as::<Pk>("article_id").unwrap_or_default();
+
+    // `show(form, &request)`: your function rendering the template with the form.
+
+    // 1. The form is created and filled with what the visitor sent.
+    let mut form: CommentForm = request.form("comment");
+
+    // 2. The code sets the columns the visitor does not choose.
+    form.add_value("author_id", &user.id.to_string());
+    form.add_value("article_id", &article_id.to_string());
+
+    // 3. Validation.
+    match ValidationForm::try_form(form, &request).await {
+        // 4. Write: body (visitor) + author_id and article_id (code).
+        Ok(form) => match form.save(&request.engine.db).await {
+            Ok(_) => Ok(Redirect::to("/thanks").into_response()),
+            Err(form) => show(form, &request),
+        },
+        Err(form) => show(form, &request),
+    }
+}
+```
+
+If the visitor adds `author_id=1` or `article_id=99` to the request, those values are ignored: no field reads them, and `save()` writes only what the code set.
+
+The code must first check that the article exists and that the account may comment on it: `add_value` imposes a value, it does not check that the value is legitimate.
+
+### The order: `request.form` → `add_value` → `try_form` → `save`
+
+| Step | Why here |
+|------|----------|
+| `request.form("name")` | Creates the form and fills it from the request. Before it, there is no form to call `add_value` on. |
+| `add_value(...)` | The form exists and can still be changed. The values set here go through validation with the rest. |
+| `ValidationForm::try_form(form, &request)` | Validates, then returns a **read-only** `ValidationForm`: what is written is exactly what was validated. |
+| `form.save(db)` | Writes the fields, then the columns set by the code. |
+
+Why not another order:
+
+- **`add_value` after `try_form`**: does not compile. `ValidationForm` only gives read access to the form; this is on purpose, otherwise a value could change between validation and writing.
+
+  ```rust
+  if let Ok(form) = ValidationForm::try_form(form, &request).await {
+      form.add_value("author_id", &id); // compile error: `form` cannot be changed
+  }
+  ```
+
+- **`add_value` before `request.form`**: impossible, the form does not exist yet. `request.form("name")` is the only way to create it (besides `build_form_for_test`, for tests only): it gives the form its name, its CSRF token and the data sent.
+
+### Values as text
+
+`add_value` takes a `&str`, like what the browser sends: the conversion to the column's type happens in one place, inside `save()`, with the same rules as for a field.
+
+```rust
+form.add_value("author_id", &user.id.to_string()); // integer or UUID
+form.add_value("published", "true");               // boolean: true/false, 1/0, on/off
+form.add_value("date", "2026-11-07");              // date: YYYY-MM-DD
+```
+
+### Bad practices
+
+**Taking the value from the request.** The visitor chooses the value again: exactly what `add_value` was meant to prevent.
+
+```rust
+// ❌ the visitor sends ?author_id=1 and comments as someone else
+if let Some(id) = request.get_query("author_id") {
+    form.add_value("author_id", id);
+}
+
+// ✅ the author comes from the signed-in account, read from the database on each request
+form.add_value("author_id", &user.id.to_string());
+```
+
+**Setting an id from the URL without checking it.** `article_id` comes from the path: the visitor can write any number. `add_value` imposes the value, it does not check that it is allowed.
+
+```rust
+// ❌ comments a private article, or one that does not exist
+form.add_value("article_id", &article_id.to_string());
+
+// ✅ check the article and the right to reach it first
+let Some(article) = search!(article::Entity => Id eq article_id, Published eq true)
+    .first(request.db()).await.ok().flatten()
+else {
+    return Ok(StatusCode::NOT_FOUND.into_response());
+};
+form.add_value("article_id", &article.id.to_string());
+```
+
+**Updating a row without checking whose it is.** On `/comment/{id}`, `save()` updates row `id` from the URL. Setting `author_id` does not protect that row: it hands it to the signed-in account.
+
+```rust
+// ❌ any account takes someone else's comment 42
+form.add_value("author_id", &user.id.to_string());
+form.save(db).await;
+
+// ✅ check first that the row belongs to the account
+let id = request.get_path_as::<Pk>("id").unwrap_or_default();
+let theirs = search!(comment::Entity => Id eq id, AuthorId eq user.id)
+    .count(request.db()).await.unwrap_or(0) > 0;
+if !theirs {
+    return Ok(StatusCode::NOT_FOUND.into_response());
+}
+```
+
+**Keeping the column as a field.** With `fields = All`, `author_id` is a field: the visitor can send it. An `add_value` after it replaces it, but a single code path that forgets it (a branch, an `if`) writes the visitor's value. Outside the fields, forgetting writes nothing.
+
+```rust
+// ❌ author_id is a field: protected only if every path calls add_value
+#[form(schema = comment, fields = All)]
+
+// ✅ only the fields the visitor fills
+#[form(schema = comment, fields = [body])]
+```
+
+**Passing a value formatted for display.** `{:?}` of an `Option` gives `Some(5)`, which the column cannot read: `save()` fails.
+
+```rust
+// ❌ "Some(5)"
+form.add_value("author_id", &format!("{:?}", request.user_id().await));
+
+// ✅ the value itself
+let Some(id) = request.user_id().await else { /* not signed in */ };
+form.add_value("author_id", &id.to_string());
+```
+
+**Getting the name wrong.** A name that is no column is ignored without error (`"authorId"`, `"Author_id"`). The column is then not written: `NULL` when nullable, insert refused otherwise. A test reading the written row back catches it.
+
+### Rules
+
+- Same rules as a field: never the key of an updated row, never a secret column in the admin, column rights applied behind the gate.
+- A value the column cannot read (`"abc"` for an integer) makes `save()` fail with a form error.
+- An empty value writes `NULL` to a nullable column; a non-nullable column keeps its value.
+- A name that is no column is ignored, without error: check the spelling (case matters).
+- A column the code does not set is not written: forgetting `add_value` leaves the column `NULL` or gets the insert refused, never a value from the visitor.
+- `add_value` on a name that **is** a field replaces the value the visitor sent for that field.
+
+## Inject dynamic choices — `field_choices`
+
+`Forms::field_choices` replaces a field with a `ChoiceField` filled from a `Vec<(String, String)>` list of `(value, label)` pairs. The current value is preselected and the `required` flag is kept.
+
+Useful in custom admin handlers to inject options loaded from the database:
+
+```rust
+use runique::forms::Forms;
+
+// In a CRUD closure or a custom admin handler
+let choices: Vec<(String, String)> = themes::Entity::find()
+    .all(&db).await?
+    .into_iter()
+    .map(|t| (t.id.to_string(), t.name))
+    .collect();
+
+form.forms_mut().field_choices("theme_id", "Theme", choices);
+```
+
+> In the `ModelAdmin` admin, form fields come from the columns declared with `.form(|f| f.fields([...]))`. For a select filled from another table, use `field_choices` in a custom handler, or a `ChoiceField` in your form. See [List view](/docs/en/admin/list) and [ModelAdmin builder](/docs/en/admin/declaration-macro).
+
+---
 
 ---
 

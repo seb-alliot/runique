@@ -9,8 +9,9 @@ The admin's look changes at three levels, lightest first:
 Everything is declared in the builder. At boot:
 
 - a missing block template refuses the boot (Tera checks every `{% include %}`);
+- a `{% dev_block "name" %}` with an unknown name (typo) refuses the boot: it stays as is and Tera doesn't know that tag;
 - a template path that doesn't end in `.html` / `.xml`, or that holds `"`, `{`, `}`, `%`, `#`, `\` or a control character, refuses the boot;
-- a missing **page** template is not detected at boot: the error comes the first time the page is shown;
+- a missing **page** template refuses the boot in development (`RUNIQUE_ENV=dev`) or with `DEBUG=true`, naming the page and the path. In production it is not looked up at boot: the error comes the first time the page is shown;
 - a missing stylesheet is not detected: the page loads without it (404 on the file).
 
 ---
@@ -214,7 +215,7 @@ ModelAdmin::new().templates(|t| t
 
 - No global theme stylesheet: to change the CSS variables on every page, go through a block shown everywhere, for instance `.global_block_stylesheet(GlobalBlock::Topbar, "css/admin/theme.css")` (every page but the login). See [CSS theme](/docs/en/admin/template-surcharge-blocks).
 - `.with_htmx` is global: no per-model list fragment.
-- A missing page template or stylesheet isn't reported at boot (see above).
+- In production, a missing page template is only reported on its first display, and a missing stylesheet never (see above).
 
 ## Sub-sections
 

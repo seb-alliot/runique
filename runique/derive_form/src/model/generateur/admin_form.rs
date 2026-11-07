@@ -333,14 +333,8 @@ fn numeric_attrs_tokens(attrs: &[FormFieldAttr]) -> TokenStream2 {
     let mut ts = quote! {};
     for attr in attrs {
         match attr {
-            FormFieldAttr::Min(n) => {
-                let v = *n as f64;
-                ts.extend(quote! { .min(#v, "") });
-            }
-            FormFieldAttr::Max(n) => {
-                let v = *n as f64;
-                ts.extend(quote! { .max(#v, "") });
-            }
+            FormFieldAttr::Min(n) => ts.extend(quote! { .min_i64(#n, "") }),
+            FormFieldAttr::Max(n) => ts.extend(quote! { .max_i64(#n, "") }),
             FormFieldAttr::MinF(n) => ts.extend(quote! { .min(#n, "") }),
             FormFieldAttr::MaxF(n) => ts.extend(quote! { .max(#n, "") }),
             _ => {}

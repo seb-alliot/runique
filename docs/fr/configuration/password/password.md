@@ -9,19 +9,31 @@
 ## Initialisation dans `main.rs`
 
 ```rust
-use runique::prelude::{password_init, PasswordConfig, Manual};
+use runique::prelude::*;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Argon2 automatique (défaut recommandé)
     password_init(PasswordConfig::auto());
 
+    let config = RuniqueConfig::from_env();
+
     RuniqueApp::builder(config)
         // ...
+        .build()
+        .await?
         .run()
-        .await;
+        .await?;
+    Ok(())
 }
 ```
+
+> **Ordre d'appel.** `password_init` ne compte qu'**une fois** : le premier appel gagne, les suivants sont ignorés (journalisés seulement avec le log `auth.password_init`). Appelez-le **en tout premier** dans `main`, avant `build()` et avant tout `hash()` / `verify()` :
+>
+> - un `hash()` ou un `verify()` appelé avant fige la configuration par défaut (`auto`) ;
+> - `build()` appelle lui-même `password_init(config.password)` : un appel fait **après** `build()` est ignoré.
+>
+> Gardez aussi `config.password` égal à ce que vous passez à `password_init` : la page de réinitialisation intégrée hache avec `config.password`.
 
 > Si `password_init()` n'est pas appelé, Argon2 est utilisé par défaut.
 
@@ -65,7 +77,8 @@ Aucun mot de passe local n'est géré par Runique : `verify()` répond toujours 
 > **Ce mode ne fournit pas encore l'authentification externe elle-même.** Les fournisseurs ci-dessous ne sont que des noms : Runique n'implémente aujourd'hui ni le flux OAuth (redirection, échange du code, lecture du profil), ni LDAP, ni SAML. `Delegated` sert à désactiver proprement les mots de passe locaux quand **votre application** gère la connexion par un autre moyen (une bibliothèque OAuth, un proxy d'authentification), puis ouvre la session avec `login(&request.session, &user, None, false)` une fois l'utilisateur identifié. L'intégration complète d'un fournisseur est une évolution prévue.
 
 ```rust
-use runique::prelude::{External};
+use runique::prelude::*;
+use runique::utils::password::External;
 
 password_init(PasswordConfig::Delegated(External::GoogleOAuth));
 password_init(PasswordConfig::Delegated(External::Microsoft));
@@ -79,7 +92,8 @@ Fournisseurs disponibles : `GoogleOAuth`, `Microsoft`, `Apple`, `Ldap(url)`, `Sa
 Implémente le trait `PasswordHandler` pour brancher ta propre logique de hachage/vérification.
 
 ```rust
-use runique::prelude::{PasswordHandler, PasswordConfig};
+use runique::prelude::{PasswordConfig, password_init};
+use runique::utils::password::PasswordHandler;
 
 #[derive(Clone)] // requis : PasswordHandler est cloné avec la config
 struct MyHasher;

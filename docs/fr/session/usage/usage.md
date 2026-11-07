@@ -16,7 +16,8 @@ pub async fn handler(request: Request) -> AppResult<Response> {
     // Supprimer une clé
     request.session.remove::<i32>("cart_id").await?;
 
-    // Détruire la session entière
+    // Vider la session entière (pour une déconnexion, préférez `logout`,
+    // qui supprime aussi la ligne en base et renouvelle l'identifiant)
     request.session.flush().await?;
 
     request.render("page.html")
@@ -57,7 +58,7 @@ Ces valeurs sont appliquées automatiquement par le builder et ne peuvent pas ê
 ```rust
 let app = RuniqueApp::builder(config)
     // Durée de vie des sessions (disponible directement sur le builder)
-    .with_session_duration(time::Duration::hours(2))
+    .with_session_duration(runique::tower_sessions::cookie::time::Duration::hours(2))
     // Watermarks et intervalle de cleanup (via .middleware())
     .middleware(|m| {
         m.with_session_memory_limit(64 * 1024 * 1024, 128 * 1024 * 1024)

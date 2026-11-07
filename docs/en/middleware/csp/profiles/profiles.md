@@ -9,7 +9,7 @@ Runique provides three built-in profiles, usable via `.policy(...)` in the build
 | Directive | `default()` | `strict()` | `permissive()` |
 | --- | :-----------: | :----------: | :--------------: |
 | `default-src` | `'none'` | `'none'` | `'none'` |
-| `script-src` | `'self'` + nonce | `'self'` + nonce | `'self'` + `'unsafe-inline'` + `'unsafe-eval'` |
+| `script-src` | `'self'` + nonce | `'self'` + nonce | `'self'` + `'unsafe-inline'`² + `'unsafe-eval'` |
 | `style-src` | `'self'` + nonce¹ | `'self'` + nonce | `'self'` + `'unsafe-inline'` |
 | `img-src` | `'self'` | `'self'` | `'self'` + `data:` + `https:` |
 | `font-src` | `'self'` | `'self'` | `'self'` + `data:` |
@@ -21,9 +21,11 @@ Runique provides three built-in profiles, usable via `.policy(...)` in the build
 | `base-uri` | `'self'` | `'self'` | `'self'` |
 | `form-action` | `'self'` | `'self'` | `'self'` |
 | `upgrade-insecure-requests` | ❌ | ✅ | ❌ |
-| Nonce | ✅ active | ✅ active | ❌ disabled |
+| Nonce | ✅ active | ✅ active | ✅ active² |
 
 ¹ `default()` includes `'unsafe-inline'` in `style-src` for htmx compatibility. When the nonce is active, `'unsafe-inline'` is dynamically removed and replaced by `'nonce-{val}'`.
+
+² The nonce is generated on every request, whatever the profile (`runique/src/middleware/security/csp.rs`); once present, `'unsafe-inline'` is stripped from `script-src` and `style-src`. With `permissive()`, only `'unsafe-eval'` stays effective.
 
 ---
 
@@ -63,8 +65,8 @@ RuniqueApp::builder(config)
 
 Relaxed policy for development or legacy integrations. **Do not use in production.**
 
-- `'unsafe-inline'` and `'unsafe-eval'` enabled → CSP no longer protects against XSS
-- Nonce disabled
+- `'unsafe-eval'` enabled on `script-src`: `eval()` and `new Function()` are allowed, the CSP protects less against XSS
+- `'unsafe-inline'` is declared but stripped when sent, as for the other profiles: inline scripts and styles still need the nonce
 - `data:` and `https:` allowed for images and fonts
 - `frame-ancestors 'self'` instead of `'none'`
 

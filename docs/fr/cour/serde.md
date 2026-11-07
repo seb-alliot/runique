@@ -457,10 +457,10 @@ pub struct Model {
 }
 ```
 
-### Réponses JSON dans un handler Axum
+### Réponses JSON dans un handler Runique
 
 ```rust
-use axum::{extract::State, Json};
+use runique::prelude::*;
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -469,24 +469,26 @@ struct ArticleListeReponse {
     total: u64,
 }
 
-pub async fn liste_articles(
-    State(db): State<DatabaseConnection>,
-) -> Result<Json<ArticleListeReponse>, AppError> {
-    let articles = Article::find()
+pub async fn liste_articles(request: Request) -> AppResult<Response> {
+    let articles = article::Entity::find()
         .filter(article::Column::Publie.eq(true))
-        .all(&db)
-        .await?;
+        .all(request.db())
+        .await?;                                   // DbErr → AppError automatiquement
 
     let total = articles.len() as u64;
 
-    Ok(Json(ArticleListeReponse { articles, total }))
+    Ok(Json(ArticleListeReponse { articles, total }).into_response())
 }
 ```
 
 ### Désérialiser un body de requête
 
+L'extracteur `Request` de Runique lit un body JSON comme une table plate de textes (`StrMap`), pour les formulaires. Pour un JSON structuré (listes, booléens, objets imbriqués), on utilise l'extracteur `Json` d'Axum à la place de `Request` : les deux lisent le body, un handler ne peut en prendre qu'un. La base reste accessible par l'engine, que Runique place dans les extensions de chaque requête.
+
+Le middleware CSRF s'applique toujours : un POST JSON doit porter l'en-tête `X-CSRF-Token`, avec le jeton que le template reçoit dans `{{ csrf_token }}` (par exemple posé dans une balise `<meta name="csrf-token">` et relu par le JavaScript), sinon il est refusé en 403 avant d'atteindre le handler.
+
 ```rust
-use axum::Json;
+use runique::prelude::*;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -501,9 +503,9 @@ struct CreerArticlePayload {
 }
 
 pub async fn creer_article(
-    State(db): State<DatabaseConnection>,
+    Extension(engine): Extension<AEngine>,
     Json(payload): Json<CreerArticlePayload>,
-) -> Result<Json<article::Model>, AppError> {
+) -> Result<Json<article::Model>, StatusCode> {
     let nouvel_article = article::ActiveModel {
         titre:   Set(payload.titre),
         contenu: Set(payload.contenu),
@@ -511,7 +513,10 @@ pub async fn creer_article(
         ..Default::default()
     };
 
-    let article = nouvel_article.insert(&db).await?;
+    let article = nouvel_article
+        .insert(&engine.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(article))
 }
 ```

@@ -72,6 +72,8 @@ context_update!(request => {
 });
 ```
 
+> **Attention :** la clé `messages` contient déjà les messages de session lus au début de la requête (ceux posés avant une redirection). La remplacer par `flash_now!` les fait disparaître de cette page : ils ne seront affichés nulle part. Sur une page qui peut recevoir les deux, n'injectez `flash_now!` que là où aucune redirection ne vient d'en poser.
+
 ---
 
 > **Limite actuelle :** les macros de redirection ignorent un échec d'écriture en session. Si la session ne peut pas être enregistrée (base indisponible avec le store en base), le message est perdu sans erreur. L'action elle-même n'est pas affectée.

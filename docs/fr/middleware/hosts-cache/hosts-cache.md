@@ -61,6 +61,7 @@ Les deux conditions sont requises — un accès en `RUNIQUE_ENV=dev` via un autr
 ```http
 Cache-Control: no-cache, no-store, must-revalidate
 Pragma: no-cache
+Expires: 0
 ```
 
 ### Mode production (`RUNIQUE_ENV=prod`)

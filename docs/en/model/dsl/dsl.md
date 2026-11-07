@@ -137,7 +137,7 @@ The Rust type shown is the one of a NOT NULL column; a `nullable` column gives `
 | `f32`              | `f32`                     | `FLOAT`                         |
 | `float`            | `f64`                     | `DOUBLE`                        |
 | `percent`          | `f64`                     | `DOUBLE` — form bounded to 0–100 |
-| `decimal`          | `Decimal`                 | `DECIMAL`                       |
+| `decimal`          | `Decimal`                 | `DECIMAL(p, s)` — needs `max_digits` and `decimal_places` |
 | `bool`             | `bool`                    | `BOOLEAN`                       |
 | `date`             | `NaiveDate`                | `DATE`                          |
 | `time`             | `NaiveTime`                | `TIME`                          |
@@ -174,9 +174,14 @@ their native types only exist on Postgres.
 type). On MySQL/MariaDB, `binary` is a **fixed-length** column padded with `0x00`: use
 `var_binary` to read back exactly the bytes written.
 
-> **Not available**: inline `decimal(precision, scale)` (e.g. `decimal(10, 2)`) has no current
-> equivalent — only plain `decimal` is supported. Workaround: apply precision/scale in
-> application-level validation rather than in the schema.
+> **`decimal` needs its precision and scale**: `max_digits` (all digits) and
+> `decimal_places` (those after the point), otherwise a compile error. Without them,
+> MySQL/MariaDB would create `DECIMAL(10, 0)` and round every value to an integer.
+> Bounds: `1 ≤ max_digits ≤ 65`, `decimal_places ≤ 30` and `≤ max_digits`.
+>
+> ```rust
+> price: decimal [required, max_digits: 10, decimal_places: 2],   // up to 99999999.99
+> ```
 
 ---
 
@@ -195,8 +200,10 @@ username: text [required, max_length: 150, unique],
 | `unique`                  | `UNIQUE` constraint                                                |
 | `max_length: n`           | Max length: validation **and** column size (`VARCHAR(n)`, `BINARY(n)`, `VARBINARY(n)`) |
 | `min_length: n`           | Min length (validation)                                            |
-| `min: n` / `max: n`       | Integer bounds (validation)                                        |
-| `min: n.0` / `max: n.0`   | Float bounds (validation)                                          |
+| `min: n` / `max: n`       | Integer bounds (validation) — integer types only                   |
+| `min: n.0` / `max: n.0`   | Float bounds (validation) — `float`, `f32`, `decimal`; one bound is enough |
+| `max_digits: n`           | `decimal` only — total number of digits (required)                 |
+| `decimal_places: n`       | `decimal` only — digits after the point (required)                 |
 | `default: value`          | SQL default value (`true`, `0`, `"draft"`, etc.)                   |
 | `auto_now`                | Filled on creation — excluded from forms                           |
 | `auto_now_update`         | Filled on every save — excluded from forms                         |
@@ -204,7 +211,7 @@ username: text [required, max_length: 150, unique],
 | `label: "str"`            | Custom label in forms                                              |
 | `upload_to: "path"`       | File field — upload directory                                      |
 | `max_size: n MB`          | File field — max size (`KB`/`MB`/`GB`)                             |
-| `rows: n`                 | `textarea`/`richtext` — widget height                              |
+| `rows: n`                 | `textarea` / `richtext` / `json` — widget height                   |
 | `enum(EnumName)`          | Binds the field to an enum declared in `enums:`                    |
 | `renamed_from: "x"`       | Renames the column (see below)                                     |
 | `skip`                    | Excluded from generated forms                                      |
@@ -431,7 +438,8 @@ relations: {
 key. It produces both the SQL constraint and the SeaORM relation:
 
 - **`target`** is the module of the target entity — the file `target.rs` in `src/entities/` — or
-  a framework table (`eihwaz_users`, …). The key references that model's **real table and real
+  a framework table (`eihwaz_users`, …). The model's PascalCase name is accepted too: `Cour`
+  becomes `cour`. The key references that model's **real table and real
   primary key**, whatever its name (`pk: code => i32` included). An unresolved target is a
   `makemigrations` error.
 - **`column`** must be a declared field of the model (preferably `Pk`, see above).
@@ -539,6 +547,8 @@ meta: {
 | `indexes`             | `[(col1, col2)]`      | Multi-column simple index                     |
 | `verbose_name`        | `"string"`            | Singular name in the admin interface          |
 | `verbose_name_plural` | `"string"`            | Plural name in the admin interface            |
+| `owner`               | `field`               | Column of the row's owner: a `belongs_to` to `eihwaz_users` (checked at compile time). Opens the `can_update_own` / `can_delete_own` rights, and the admin imposes it on create |
+| `label`               | `field`               | Column a row is named by in the admin history (its key otherwise) |
 
 ---
 

@@ -32,11 +32,13 @@ pub async fn signup(mut request: Request) -> AppResult<Response> {
     let validated = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated,
         Err(form) => {
-            context_update!(request => {
-                "title" => "Inscription",
-                "signup_form" => &form,
-                "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
-            });
+            context_update!(request => { "title" => "Inscription", "signup_form" => &form });
+            // Premier affichage (GET) : pas soumis, pas de message d'erreur
+            if form.is_submitted() {
+                context_update!(request => {
+                    "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
+                });
+            }
             return request.render("signup.html");
         }
     };
@@ -85,6 +87,9 @@ Ces variables sont automatiquement disponibles dans tous les templates :
 | `csp_nonce` | `String` | Nonce CSP pour les scripts/styles inline |
 | `messages` | `Vec<FlashMessage>` | Messages flash de la session précédente |
 | `debug` | `bool` | Mode debug actif ou non |
+| `dev` | `bool` | `true` avec `RUNIQUE_ENV=dev` |
+| `current_user` | objet | Compte connecté (`username`, `id`, rang…), absent pour un visiteur anonyme |
+| `current_path` | `String` | Chemin de l'URL courante, sans query string |
 
 ---
 

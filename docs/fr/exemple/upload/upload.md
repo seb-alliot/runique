@@ -63,13 +63,13 @@ MEDIA_ROOT=media/
 ```rust
 MediaField::image("img")     // jpg jpeg png gif webp avif
 FileField::document("doc")  // pdf doc docx txt odt
-FileField::any("f")         // toute extension, sauf .svg
+FileField::any("f")         // toute extension, sauf les actives (.svg, .html, .js…)
 
 // Extensions personnalisées :
 FileField::any("data").allowed_extensions(vec!["csv", "json"])
 ```
 
-`FileField::any` ne filtre pas le contenu. Le framework refuse seulement `.svg`. Ce que le fichier est, et comment il est servi, est à la charge de l'application. Pour une liste fermée, utiliser `image()`, `document()`, ou `allowed_extensions`.
+`FileField::any` ne filtre pas le contenu. Le framework refuse toujours les extensions actives, qu'un navigateur exécute : `.svg`, `.svgz`, `.html`, `.htm`, `.xhtml`, `.xht`, `.shtml`, `.xml`, `.js`, `.mjs`. Ce que le fichier est, et comment il est servi, est à la charge de l'application. Pour une liste fermée, utiliser `image()`, `document()`, ou `allowed_extensions`.
 
 ---
 
@@ -80,14 +80,27 @@ pub async fn upload_image(mut request: Request) -> AppResult<Response> {
     let form: ImageForm = request.form("upload");
     let template = "forms/upload_image.html";
 
-    if let Err(form) = ValidationForm::try_form(form, &request).await {
-        context_update!(request => {
-            "title" => "Envoyer une image",
-            "image_form" => &form,
-        });
+    let validated = match ValidationForm::try_form(form, &request).await {
+        Ok(validated) => validated,
+        Err(form) => {
+            context_update!(request => { "title" => "Envoyer une image", "image_form" => &form });
+            return request.render(template);
+        }
+    };
+
+    // Formulaire sans modèle : pas de `save()`, donc le fichier est publié ici.
+    // Validé, il est encore dans le dossier temporaire de la requête, supprimé
+    // à la fin de celle-ci.
+    let mut form = validated.into_form();
+    let chemin = form.cleaned::<String>("image").unwrap_or_default(); // relatif à MEDIA_ROOT
+    if let Err(erreur) = form.forms_mut().publish_uploads().await {
+        form.forms_mut().errors.push(erreur);
+        context_update!(request => { "title" => "Envoyer une image", "image_form" => &form });
         return request.render(template);
     }
+    form.forms_mut().complete_uploads().await;
 
+    // `chemin` : à enregistrer là où l'application en a besoin.
     success!(request.notices => "Fichier uploadé avec succès !");
     Ok(Redirect::to("/").into_response())
 }

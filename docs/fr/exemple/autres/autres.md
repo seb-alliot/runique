@@ -23,7 +23,7 @@ context_update!(request => {
 request.render("page.html")
 ```
 
-`{% messages %}` affiche les deux sortes.
+`{% messages %}` affiche la clé `messages` du contexte : les messages de session arrivés avec la requête, ou ceux de `flash_now!` si vous la remplacez. Remplacée, elle perd les messages de session de cette requête.
 
 ---
 
@@ -42,8 +42,8 @@ pub fn routes() -> Routes {
 ### Handler API JSON
 
 ```rust
-use axum::Json;
-use serde_json::json;
+use runique::prelude::*;
+use runique::prelude::serde_json::json;
 
 pub async fn api_list_articles(request: Request) -> AppResult<Response> {
     let articles = article::Entity::find()
@@ -59,7 +59,7 @@ pub async fn api_list_articles(request: Request) -> AppResult<Response> {
 
 `data` sérialise chaque colonne du modèle. Ne faites jamais ça sur une table qui contient un secret (les comptes : hash du mot de passe) : sélectionnez les colonnes à exposer, ou passez par une struct dédiée.
 
-Un POST d'API sans formulaire Runique doit vérifier `request.prisme.csrf_valid` lui-même, comme la déconnexion (voir [Formulaires](/docs/fr/exemple/formulaires)).
+Un POST JSON est refusé en 403 par le middleware CSRF sans en-tête `X-CSRF-Token` valide. Un POST de formulaire HTML que la vue traite sans `request.form` (déconnexion, action) doit vérifier `request.prisme.csrf_valid` lui-même (voir [Formulaires](/docs/fr/exemple/formulaires)).
 
 ---
 

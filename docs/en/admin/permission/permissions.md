@@ -48,7 +48,7 @@ Groups are for **lambda accounts**: public site roles, and rights on the **devel
 
 ### Immediate revocation
 
-The account (active, rank), its groups and rights are read from the database on every admin request: the session only keeps the user's identity. Removing a right or a group, deactivating an account or lowering its rank takes effect on its next request, whatever path made the change (admin, CLI, SQL, another instance). A deactivated account, or one that lost admin access, has its session closed.
+The account (active, rank), its groups and rights are read from the database on every admin request: the session only keeps the user's identity. Removing a right or a group, deactivating an account or lowering its rank takes effect on its next request, whatever path made the change (admin, CLI, SQL, another instance). A deleted or deactivated account has its session closed. An account that only loses admin access (rank lowered, staff group removed) keeps its session on the site: the admin sends it to `/`.
 
 ---
 
@@ -63,10 +63,12 @@ One exception: a lambda reading a row linked to an account (through a foreign ke
 ## Access logic
 
 ```text
-signed in, active and activated?
-  └─ no  → redirect /admin/login
-  └─ yes → can_access_admin()? (rank ≥ admin, or member of a staff group)
-               └─ no  → redirect /admin/login
+signed in?
+  └─ no  → the admin's sign-in page
+  └─ yes → account still there, active and activated?
+             └─ no  → session closed, sign-in page
+             └─ yes → can_access_admin()? (rank ≥ admin, or member of a staff group)
+               └─ no  → back to the site (/) with a message; the session stays open
                └─ yes → rights_on(resource)
                           superuser → everything, bypass included
                           dirigeant → everything

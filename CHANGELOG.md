@@ -81,6 +81,9 @@ All notable changes to this project will be documented in this file.
 
 #### Added
 
+* **Missing admin page template caught at boot**: in development (`RUNIQUE_ENV=dev`) or with `DEBUG=true`, a replaced page (`with_list`, `ModelAdmin::templates(|t| t.page(…))`…) whose template doesn't exist refuses the boot, naming the page and the path. It used to fail only on its first display. Production is unchanged.
+* **"← Back to the site" link on the admin sign-in page**: below the sign-in button, to `.view_site_url(…)` or `/`. Translated key `admin.login.back_to_site` (9 languages).
+* **`add_value` sets a column that is no field**: `save()` writes the value the code gives through `add_value` to a column of the entity the form lacks (an author, the article of a comment), read as the column's type; a name that is no column is ignored. The visitor cannot send it. Same rules as a field (key, secret columns, rights).
 * **Per-page size selector on the admin lists**: a selector (10 / 25 / 50 / 100) at the top right, kept across sort, search and filters. Only those values are accepted from the URL; a free size is ignored.
 * **Paged filter panel**: each filter group has its arrows, and a single selector (10 / 25 / 50 / 100), under the panel's title, sets the number of values of all groups. `.filter_size(n)` sets the default on `AdminStaging` and in `.list(|l| …)`, on the model of `page_size` / `per_page`. Replaces the fixed cap of 100 values, past which the next ones weren't offered.
 * **Several values per filter, and deselecting**: `filter_x=a&filter_x=b` keeps the rows holding `a` or `b`; several columns combine. Clicking an active value turns it off alone. The values stay bound by the gate's scope, and a column accepts at most 100 from the URL.
@@ -92,6 +95,11 @@ All notable changes to this project will be documented in this file.
 
 #### Fixed
 
+* **`decimal` with a single bound**: `.min()` alone or `.max()` alone (or `min: 0.0` alone in `model!{}`) made every value refused, the missing bound not converting to a `Decimal`. A bound that is not set is no longer compared.
+* **Out-of-range `f32`**: on a `float` (32-bit) column, a value past `f32::MAX` passed validation, then was refused on write with "value unconvertible". The field is now bounded to the column's range and shows the bound error.
+* **JSON made of spaces**: accepted as empty on validation, it was refused on write. It is now empty on both sides.
+* **Integer bounds past 2^53**: `[min: n]` / `[max: n]` on a `bigint` went through an `f64` in the generated form and were rounded. New methods `NumericField::min_i64` / `max_i64`, used by the generated code.
+* **ACME certificate never renewed**: the certificate was only read at startup; a process running past 90 days served an expired certificate. It is now checked every 12 hours, renewed after 60 days and reloaded without a restart; on failure, the current certificate is kept.
 * **Text fields' protocol filter**: `javascript:`, `data:`, `file:`… were removed anywhere, even inside a word ("profile:" became "pro", "metadata:" became "meta"). They are now removed only at the start of the text or after a character no protocol name can hold.
 * **`with_cors` with credentials**: a listed origin with `allow_credentials(true)`, the documented example, panicked at startup (tower-http refuses the `*` wildcard with credentials). The preflight's method and headers are now echoed back, for the listed origins only.
 * **Rich text in a `<textarea>`**: the value lost one level of escaping at each edit (`&lt;b&gt;` turned bold). It is escaped once, exact on the way back.

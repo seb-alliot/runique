@@ -32,7 +32,7 @@ Rend automatiquement : tous les champs, les labels, les erreurs de validation, l
 
 ---
 
-Le **premier** champ rendu ainsi emporte avec lui les champs cachés du formulaire (jeton CSRF et nom du formulaire). Rendez-les tous, ou au moins le premier champ déclaré : sans lui, l'envoi est refusé (CSRF) ou ignoré (nom absent).
+Le **premier champ déclaré** du formulaire emporte avec lui les champs cachés (jeton CSRF et nom du formulaire), où qu'il soit placé dans le template. Rendez-les tous, ou au moins ce premier champ : sans lui, l'envoi est refusé (CSRF) ou ignoré (nom absent).
 
 ---
 
@@ -55,7 +55,7 @@ Le **premier** champ rendu ainsi emporte avec lui les champs cachés du formulai
 
 ## Données de champ en JSON
 
-Les formulaires sérialisent automatiquement `errors`, `form_errors`, `html`, `rendered_fields`, `fields` et `js_files`.
+Les formulaires sérialisent automatiquement `errors`, `form_errors`, `html`, `rendered_fields`, `fields`, `js_files`, `rendered_js` (le bloc `<script>` déjà rendu, avec le nonce CSP) et `honeypot_html` (le champ piège de l'anti-bot, vide sans lui).
 
 ---
 

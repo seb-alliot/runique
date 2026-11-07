@@ -112,7 +112,7 @@ L'UI envoie l'**index** de l'action (`a0`, `a1`…), jamais la valeur brute. La 
 Contraintes (validées au boot) :
 
 - colonne writable à l'édition
-- pas de secret, pas d'owner, pas de drapeaux de rang comptes
+- pas de secret, pas d'owner ; sur la table des comptes, pas de drapeau de rang ni `is_active`
 
 ## Pagination
 

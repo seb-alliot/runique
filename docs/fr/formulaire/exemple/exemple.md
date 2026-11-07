@@ -115,13 +115,20 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
 
 ## Formulaire d'édition — mode PATCH
 
-En mode `PATCH`, `fill()` relâche automatiquement le `required` sur les champs `Password`. Cela permet de proposer un formulaire d'édition où le mot de passe est optionnel : s'il est laissé vide, l'ancien hash est conservé.
+Sur une requête `PATCH` ou `PUT`, `fill()` relâche automatiquement le `required` des champs `Password`. Cela permet un formulaire d'édition où le mot de passe est optionnel : s'il est laissé vide, l'ancien hash est conservé.
+
+Un formulaire HTML n'envoie que `GET` ou `POST` : ce mode concerne une requête envoyée en `PATCH` / `PUT` par JavaScript (`fetch`). Pour un formulaire classique en `POST`, déclarez le champ sans `.required()`.
 
 ```rust
 pub async fn modifier_profil(mut request: Request) -> AppResult<Response> {
     let form: EditProfileForm = request.form("my_form");
     let template = "profile/edit.html";
-    let user = get_current_user(&request).await?;
+    let Some(current) = request.user.clone() else {
+        return Ok(Redirect::to("/login").into_response());
+    };
+    let Some(user) = users::Entity::find_by_id(current.id).one(request.db()).await? else {
+        return Ok(Redirect::to("/login").into_response());
+    };
 
     let validated = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated,
@@ -151,7 +158,7 @@ pub async fn modifier_profil(mut request: Request) -> AppResult<Response> {
 }
 ```
 
-> **💡** Le mode PATCH est détecté automatiquement par `fill()` via la méthode HTTP. Aucune configuration supplémentaire n'est nécessaire.
+> **💡** `fill()` lit la méthode HTTP de la requête : rien d'autre à configurer pour une requête `PATCH` / `PUT`.
 
 ---
 
@@ -175,9 +182,11 @@ context_update!(request => {
 ### 2. Valider sans nommer le formulaire
 
 ```rust
-// À éviter : is_valid() direct ne sait pas quel formulaire a été envoyé,
-// et un formulaire jamais nommé échoue au rendu de {% form.x %}.
-let mut form: MyForm = request.form("my");
+// À éviter : is_valid() direct saute les contrôles de try_form. Il ne vérifie pas
+// que la requête renvoie le nom du formulaire (un add_value suffit à le croire
+// envoyé), ignore allow_get / allow_post, et ne donne pas de ValidationForm :
+// pas de save() ni de delete() derrière.
+let mut form: MyForm = request.form("my_form");
 if form.is_valid().await { /* ... */ }
 
 // Correct : request.form("nom") nomme le formulaire, try_form ne valide que celui envoyé

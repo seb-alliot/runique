@@ -49,7 +49,7 @@ Vérifié le 5 novembre 2026 dans [le guide](https://cot.rs/guide/latest/) et [l
 | Validation personnalisée | `context.add_error(FormErrorTarget::Field("title"), ...)` | `clean()` async, avec accès à la base |
 | Rendu HTML | `{{ form }}` ou `form.fields()` | `{% form.nom_form %}` ou `{% form.nom_form.champ %}` |
 | CSRF intégré | — | automatique, injecté avant le premier champ |
-| Fichiers | `form/fields/files.rs` | `FileField` et `MediaField` : type, taille, magic bytes pour les images |
+| Fichiers | `form/fields/files.rs` | `FileField` et `MediaField` : type, taille, signature du contenu pour les images, l'audio et la vidéo |
 
 ## Templates
 

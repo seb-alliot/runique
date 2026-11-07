@@ -33,7 +33,7 @@ SMTP_STARTTLS=true              # optionnel, défaut = true
 ### Manuellement
 
 ```rust
-use runique::prelude::MailerConfig;
+use runique::utils::MailerConfig;
 
 RuniqueApp::builder(config)
     .with_mailer(MailerConfig {
@@ -65,7 +65,7 @@ En dev, `EMAIL_BACKEND=console` évite d'avoir un serveur SMTP local. L'email co
 ### Raccourci — texte brut
 
 ```rust
-use runique::prelude::dispatch_email;
+use runique::prelude::*;
 
 dispatch_email("user@example.com", "Bienvenue", "Votre compte a été créé.").await?;
 ```
@@ -129,32 +129,35 @@ Le template est un fichier Tera standard dans ton dossier `templates/` :
 ## Utilisation dans un handler
 
 ```rust
-use runique::prelude::dispatch_email;
+use runique::prelude::*;
 
 pub async fn register(mut request: Request) -> AppResult<Response> {
-    let mut form: RegisterForm = request.form("register");
-
-    if form.is_valid().await {
-        let email = form.cleaned::<String>("email").unwrap_or_default();
-        let username = form.cleaned::<String>("username").unwrap_or_default();
-
-        // ... sauvegarder en DB ...
-
-        if let Err(e) = dispatch_email(
-            &email,
-            "Bienvenue !",
-            &format!("Bonjour {username}, votre compte est actif."),
-        )
-        .await
-        {
-            tracing::warn!("Erreur email : {e}");
+    let form: RegisterForm = request.form("register");
+    let form = match ValidationForm::try_form(form, &request).await {
+        Ok(validated) => validated,
+        Err(form) => {
+            context_update!(request => { "register_form" => &form });
+            return request.render("register.html");
         }
+    };
 
-        return Ok(Redirect::to("/").into_response());
+    let email = form.cleaned::<String>("email").unwrap_or_default();
+    let username = form.cleaned::<String>("username").unwrap_or_default();
+
+    // ... sauvegarder en DB ...
+
+    // L'échec d'envoi n'annule pas l'inscription : il est seulement journalisé.
+    if let Err(e) = dispatch_email(
+        &email,
+        "Bienvenue !",
+        &format!("Bonjour {username}, votre compte est actif."),
+    )
+    .await
+    {
+        tracing::warn!("Erreur email : {e}");
     }
 
-    context_update!(request => { "form" => &form });
-    request.render("register.html")
+    Ok(Redirect::to("/").into_response())
 }
 ```
 

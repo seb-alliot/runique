@@ -85,7 +85,9 @@ La liste, le total et les valeurs de filtre tournent dans le même flux de page.
 La sidebar s'appuie sur `resource.display.list_filter` et `filter_values` :
 
 ```html
-{% for col, label in resource.display.list_filter %}
+{% for filter_entry in resource.display.list_filter %}
+  {% set col = filter_entry[0] %}
+  {% set label = filter_entry[1] %}
   {% set values = filter_values[col] %}
   {% if values %}
     <!-- groupe visible -->
@@ -101,12 +103,12 @@ Les filtres actifs sont aussi exposés via `active_filters` et `filter_qs` pour 
 
 ## Étape 6 — Repli par groupe
 
-Chaque groupe peut être replié individuellement. L'état est sauvegardé dans `localStorage` par ressource + colonne :
+Chaque groupe peut être replié individuellement. Les groupes sont **repliés par défaut** ; l'état est sauvegardé dans `sessionStorage` par ressource + colonne :
 
 ```
 clé : runique_fg_doc_page_lang
-      → '1' = ouvert
-      → '0' = replié
+      → '1'            = ouvert
+      → autre ou absent = replié
 ```
 
 Au chargement, chaque groupe restaure son état. Au clic sur le titre, le corps est caché/montré et l'état est sauvegardé.
@@ -121,4 +123,4 @@ Au chargement, chaque groupe restaure son état. Au clic sur le titre, le corps 
 | Validation au boot                 | Génération de code           | Pas de `src/admins/`, pas de daemon  |
 | Valeurs distinctes SQL             | Charger toute la table       | Scalable                             |
 | Whitelist `.filter([...])`         | Accepter tout `filter_*`     | Pas d'injection de nom de colonne    |
-| `localStorage` par ressource+colonne | État global                | Deux ressources indépendantes        |
+| `sessionStorage` par ressource+colonne | État global              | Deux ressources indépendantes        |

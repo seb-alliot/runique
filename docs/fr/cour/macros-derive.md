@@ -286,4 +286,4 @@ struct RegisterForm {
 }
 ```
 
-C'est exactement comme ça que `derive_form` fonctionne dans Runique pour générer la validation des formulaires.
+Runique génère ses formulaires sur le même principe, avec la macro attribut `#[form]` (crate `derive_form`) plutôt qu'une derive.

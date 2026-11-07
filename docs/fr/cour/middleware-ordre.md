@@ -56,9 +56,10 @@ Au lieu de dépendre de l'ordre de déclaration, Runique attribue un **slot num�
 
 ```
 Slots d'exécution (requête entrante) :
-Extensions(0) → Compression(5) → ErrorHandler(10) → HostValidation(15) → HttpsRedirect(17) → Custom(20+)
-→ CSP/Headers(30) → Cache(40) → Session(50) → SessionUpgrade(55)
-→ CSRF(60) → Handler
+Extensions(0) → TrustedProxies(2) → Compression(5) → CORS(8) → ErrorHandler(10)
+→ HostValidation(15) → HttpsRedirect(17) → Custom(20+) → OpenRedirect(25)
+→ CSP/Headers(30) → Cache(40) → Session(50) → SessionUpgrade(55) → Auth(57)
+→ CSRF(60) → AntiBot(65) → Handler
 ```
 
 ```rust
@@ -158,14 +159,13 @@ def ma_vue(request):
 
 ### Solution Runique — le relais typé (`request.form("nom")`)
 
-Runique ne bufferise pas. Le body n'est lu **qu'une seule fois**, directement dans le handler via `request.form("nom")`. Les middlewares en amont ne touchent jamais au body.
+Le body n'est lu **qu'une seule fois**, par l'extracteur `Request` : c'est pour cela que `Request` est le dernier paramètre du handler. Il est analysé une fois dans `request.prisme` (données internes au framework : on les lit par `request.form("nom")`, ou `request.prisme.checked_data()` qui exige un jeton CSRF valide) ; `request.form("nom")` construit et remplit le formulaire depuis ces données, sans relire le flux. Les middlewares en amont ne touchent jamais au body.
 
 ```rust
-// ✅ request.form("nom") consomme le body une seule fois, au bon endroit
-pub async fn login_user(mut request: Request) -> AppResult<Response> {
-    let form: LoginForm = request.form("login"); // lecture unique ici
-    // form contient les données parsées
-    // Aucun middleware n'a touché au body avant
+// ✅ le body a été lu une fois par l'extracteur Request
+pub async fn login_user(request: Request) -> AppResult<Response> {
+    let form: LoginForm = request.form("login"); // rempli depuis les données déjà analysées
+    // ...
 }
 ```
 
@@ -173,14 +173,13 @@ Les données dont les middlewares auraient besoin sont transmises via le systèm
 
 ### Conséquence sur les champs password
 
-`Forms::fill()` ne peut pas remplir les champs `password` automatiquement — ils ne transitent pas par le système de relais (pour des raisons de sécurité). Ils s'utilisent via `add_value()` directement depuis les données extraites par `request.form("nom")`.
+En GET, le remplissage ignore les champs `password` : un mot de passe n'est jamais réaffiché. En POST, PUT et PATCH, `request.form("nom")` les remplit comme les autres champs ; rien à faire à la main.
+
+`add_value(nom, valeur)` sert à poser une valeur depuis le code (pré-remplissage, colonne que le visiteur ne choisit pas) :
 
 ```rust
-// ✅ Champs normaux
-form.fill(&model);
-
-// ✅ Champs password — directement depuis les données du formulaire
-form.add_value("password", &value);
+let mut form: LoginForm = request.form("login"); // password inclus en POST
+form.add_value("username", &valeur);             // valeur posée par le code
 ```
 
 ---
@@ -210,7 +209,7 @@ Le GET sert à :
 ```rust
 // ✅ Pattern correct — GET pour afficher, POST pour traiter
 pub async fn login_page(mut request: Request) -> AppResult<Response> {
-    let form = LoginForm::new();
+    let form: LoginForm = request.form("login"); // vide : pas encore soumis
     context_update!(request => { "form" => &form });
     request.render("auth/login.html")
 }
@@ -230,7 +229,7 @@ pub async fn login_user(mut request: Request) -> AppResult<Response> {
 Dans Runique, les middlewares configurés via le builder s'appliquent à **toutes les routes** de l'application. Il n'y a pas de middleware conditionnel par groupe de routes dans le builder.
 
 ```rust
-// Le rate limiter s'applique à TOUTES les routes
+// Tout middleware déclaré dans le builder s'applique à TOUTES les routes
 RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_session_memory_limit(...)
@@ -285,11 +284,13 @@ Requête → AuthAdmin (redirige si non auth) → Router (jamais atteint)
 Le middleware admin ne doit intercepter que les routes `/admin/*`, pas toutes les routes. La solution est de l'appliquer uniquement sur le groupe de routes admin via `route_layer`, et non comme middleware global.
 
 ```rust
-// ✅ Middleware admin isolé sur son périmètre
+// ✅ Middleware admin isolé sur son périmètre (syntaxe Axum 0.8 : {*path})
 let admin_router = Router::new()
-    .route("/admin/*path", view!(admin_handler))
-    .route_layer(middleware::from_fn(auth_admin_middleware));
+    .route("/admin/{*path}", get(admin_handler))
+    .route_layer(middleware::from_fn(garde_admin));
 ```
+
+> Ce bug date de l'ancien admin. Dans l'admin actuel, la garde est `declared_route_access`, posée en `route_layer` sur les seules routes de l'admin (`runique/src/admin/router/admin_router.rs`).
 
 Les routes publiques ne sont plus interceptées, les 404 remontent correctement vers l'ErrorHandler.
 
@@ -320,11 +321,13 @@ return request.render("forms/login.html"); // render direct, pas de redirect
 
 ### La solution — flash_now
 
-Runique introduit `flash_now` pour injecter un message directement dans le contexte du render courant, sans passer par la session.
+Runique fournit `flash_now!` : il construit les messages (`Vec<FlashMessage>`) à placer dans le contexte du render courant, sans passer par la session.
 
 ```rust
-// ✅ flash_now — affiché immédiatement dans le render
-flash_now!(request => warning "Formulaire invalide.");
+// ✅ flash_now! — affiché immédiatement dans le render
+context_update!(request => {
+    "messages" => flash_now!(warning => "Formulaire invalide."),
+});
 return request.render("forms/login.html");
 ```
 

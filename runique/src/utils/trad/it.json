@@ -273,6 +273,7 @@
       "label_username": "Nome utente",
       "label_password": "Password",
       "btn_submit": "Accedi",
+      "back_to_site": "← Torna al sito",
       "error_session": "Errore durante l'apertura della sessione.",
       "error_credentials": "Credenziali errate o diritti insufficienti.",
       "error_locked": "Troppi tentativi. Account temporaneamente bloccato. Riprova tra {} secondi."

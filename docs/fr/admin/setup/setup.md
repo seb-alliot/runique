@@ -59,7 +59,7 @@ fn articles() -> ModelAdmin<article::Entity> {
 Points importants :
 
 - `accounts_users(...)` remplace l'admin des comptes du framework par le vôtre, construit sur votre `extend!` de `eihwaz_users`. C'est la seule façon de le remplacer : enregistrer un modèle sous la clé des comptes refuse le démarrage.
-- `register(...)` ajoute un modèle métier. **Enregistrez tous vos `model!{}`** : au démarrage, les droits de groupe qui visent un modèle non enregistré sont supprimés de la base.
+- `register(...)` ajoute un modèle métier. **Enregistrez tous vos `model!{}`** : au démarrage, les droits qui visent un modèle non enregistré (ceux des groupes comme les grilles des admins) sont **supprimés définitivement** de la base.
 - Comptes et groupes existent déjà côté framework ; tu n'as pas à les recréer
 
 ## Étape 2 — Déclarer le module
@@ -133,7 +133,7 @@ admin
 | `.with_login_guard(...)` | Verrouillage après N échecs |
 | `.templates(…)` | Surcharge des templates, voir [Templates](/docs/fr/admin/template-surcharge) |
 | `.resource_order([…])` | Ordre des modèles dans le menu (clés non listées à la fin) |
-| `.view_site_url("…")` | Lien « retour au site » quand le site public est servi ailleurs (par défaut : `with_public_url`, sinon `/`) |
+| `.view_site_url("…")` | Lien « retour au site » quand le site public est servi ailleurs (par défaut : `/`) |
 | `.sitemap("https://…")` | Directive Sitemap dans `/robots.txt` |
 | `.no_robots_txt()` | Désactive le robots.txt auto |
 | `.disable()` / `.enable()` | Coupe ou active le panel |

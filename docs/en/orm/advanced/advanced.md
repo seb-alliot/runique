@@ -88,15 +88,38 @@ if let Some(user) = user {
 
 ### Many-to-Many
 
-```rust
-let user = users::Entity::objects.get_optional(&db, 1).await?;
+Runique creates neither the pivot table nor an access method: `many_to_many` only generates the SeaORM navigation (`find_related`), through a **pivot model you declare yourself**, with its two `belongs_to`:
 
-if let Some(user) = user {
-    let roles = user.find_related(roles::Entity)
-        .all(&db)
-        .await?;
+```rust
+// src/entities/user_role.rs — the pivot table, an ordinary model
+model! {
+    UserRole,
+    table: "user_role",
+    pk: id => Pk,
+    {
+        user_id: Pk [required],
+        role_id: Pk [required],
+    },
+    relations: {
+        belongs_to: users via user_id [cascade],
+        belongs_to: roles via role_id [cascade],
+    },
+    meta: { unique_together: [(user_id, role_id)] }
+}
+
+// in the users model:
+relations: {
+    many_to_many: roles through user_role via user_id,
 }
 ```
+
+```rust
+if let Some(user) = users::Entity::objects.get_optional(&db, 1).await? {
+    let roles = user.find_related(roles::Entity).all(&db).await?;
+}
+```
+
+Adding or removing a role means inserting or deleting a `user_role` row. The admin does not manage these relations yet (see [Limits](/docs/en/limites)).
 
 ---
 
@@ -105,6 +128,7 @@ if let Some(user) = user {
 ```rust
 use demo_app::entities::users;
 use runique::prelude::*;
+use runique::prelude::serde_json::json;
 use axum::extract::Path;
 
 async fn list_users(request: Request) -> AppResult<Response> {
@@ -125,17 +149,19 @@ async fn get_user(
     }
 }
 
+// A JSON API reads the body with `Json`: no `Request` on top (both would read
+// the body). The database comes from the engine. The POST must carry the
+// X-CSRF-Token header (see Extractors).
 async fn create_user(
+    Extension(engine): Extension<AEngine>,
     Json(payload): Json<CreateUserRequest>,
-    mut request: Request,  // Request must be last
 ) -> AppResult<Response> {
     let user = users::ActiveModel {
         email: Set(payload.email),
         username: Set(payload.username),
         ..Default::default()
-    }.insert(request.db()).await?;
+    }.insert(&engine.db).await?;
 
-    success!(request.notices => "User created!");
     Ok((StatusCode::CREATED, Json(json!({ "user": user }))).into_response())
 }
 

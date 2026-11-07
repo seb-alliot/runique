@@ -281,7 +281,7 @@ Internally fetches at most 2 rows to detect the ambiguous case without a full sc
 // Returns Err if more than one active admin exists
 let admin = search!(users::Entity => IsStaff eq true, Username eq "alice")
     .one(&*db)
-    .await?; // Result<Option<users::Model>, DbErr>
+    .await?; // Option<users::Model>
 ```
 
 Use `.first()` instead when you only want the first row of a potentially multi-row result without erroring.
@@ -299,15 +299,10 @@ let difficulties: Vec<String> = search!(course::Entity => Lang eq "en")
     .column(course::Column::Difficulty)
     .distinct()
     .into_tuple::<String>()
-    .all(db.as_ref())  // ← .as_ref() required here
+    .all(&*db)
     .await?;
 ```
 
-> **Note — `.as_ref()` required:** once outside `RuniqueQueryBuilder`, SeaORM methods use a
-> generic bound `C: ConnectionTrait`. `Arc<DatabaseConnection>` does not satisfy this bound
-> directly — `db.as_ref()` explicitly converts to `&DatabaseConnection`.
-> `RuniqueQueryBuilder` methods (`.all()`, `.first()`, etc.) do not have this issue
-> because they take `&DatabaseConnection` as a concrete parameter.
 
 ### Via `@Form` — FormEntity
 
@@ -389,7 +384,7 @@ let result = users::Entity::delete_many()
 
 Returns a `sea_orm::Condition` to inject into an existing query builder, instead of creating a new one.
 
-Every arm takes the `&DatabaseConnection` as its first argument (even the two `?Col in`/`not_in` arms that don't use it internally) — `all_columns`/`or(...)` need it to pick the right `CAST` type per engine (`CHAR` on MariaDB/MySQL, `TEXT` elsewhere, via `text_cast_type`), and a macro can't have arms with differing signatures without parsing ambiguity.
+Every arm takes the connection, `&ADb` (`request.db()`), as its first argument (even the two `?Col in`/`not_in` arms that don't use it internally) — `all_columns`/`or(...)` need it to pick the right `CAST` type per engine (`CHAR` on MariaDB/MySQL, `TEXT` elsewhere, via `text_cast_type`), and a macro can't have arms with differing signatures without parsing ambiguity.
 
 | Syntax | Result |
 | ------ | ------ |

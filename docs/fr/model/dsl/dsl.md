@@ -138,7 +138,7 @@ Le type Rust indiqué est celui d'une colonne NOT NULL ; une colonne `nullable` 
 | `f32`              | `f32`                     | `FLOAT`                         |
 | `float`            | `f64`                     | `DOUBLE`                        |
 | `percent`          | `f64`                     | `DOUBLE` — formulaire borné à 0–100 |
-| `decimal`          | `Decimal`                 | `DECIMAL`                       |
+| `decimal`          | `Decimal`                 | `DECIMAL(p, s)` — exige `max_digits` et `decimal_places` |
 | `bool`             | `bool`                    | `BOOLEAN`                       |
 | `date`             | `NaiveDate`                | `DATE`                          |
 | `time`             | `NaiveTime`                | `TIME`                          |
@@ -175,9 +175,14 @@ active : `i8` et `u32` sous Postgres, `u64` sous Postgres et SQLite (la valeur n
 relue dans le type Rust). Sous MySQL/MariaDB, `binary` est une colonne à **longueur fixe**,
 complétée par des `0x00` : utilisez `var_binary` pour relire exactement les octets écrits.
 
-> **Non disponible** : `decimal(precision, scale)` inline (ex. `decimal(10, 2)`) n'a pas
-> d'équivalent actuel — seul `decimal` sans paramètres est supporté. Contournement : appliquer
-> la précision/l'échelle côté validation applicative plutôt que dans le schéma.
+> **`decimal` exige sa précision et son échelle** : `max_digits` (tous les chiffres) et
+> `decimal_places` (ceux après la virgule), sinon erreur de compilation. Sans elles,
+> MySQL/MariaDB créeraient `DECIMAL(10, 0)` et arrondiraient chaque valeur à l'entier.
+> Bornes : `1 ≤ max_digits ≤ 65`, `decimal_places ≤ 30` et `≤ max_digits`.
+>
+> ```rust
+> prix: decimal [required, max_digits: 10, decimal_places: 2],   // jusqu'à 99999999.99
+> ```
 
 ---
 
@@ -196,8 +201,10 @@ username: text [required, max_length: 150, unique],
 | `unique`                 | Contrainte `UNIQUE`                                              |
 | `max_length: n`          | Longueur max : validation **et** taille de colonne (`VARCHAR(n)`, `BINARY(n)`, `VARBINARY(n)`) |
 | `min_length: n`          | Longueur min (validation)                                        |
-| `min: n` / `max: n`      | Bornes entières (validation)                                     |
-| `min: n.0` / `max: n.0`  | Bornes flottantes (validation)                                   |
+| `min: n` / `max: n`      | Bornes entières (validation) — types entiers seulement           |
+| `min: n.0` / `max: n.0`  | Bornes flottantes (validation) — `float`, `f32`, `decimal` ; une seule borne suffit |
+| `max_digits: n`          | `decimal` uniquement — nombre total de chiffres (obligatoire)     |
+| `decimal_places: n`      | `decimal` uniquement — chiffres après la virgule (obligatoire)    |
 | `default: valeur`        | Valeur par défaut SQL (`true`, `0`, `"draft"`, etc.)             |
 | `auto_now`               | Rempli à la création — exclu des formulaires                    |
 | `auto_now_update`        | Rempli à chaque enregistrement — exclu des formulaires          |
@@ -205,7 +212,7 @@ username: text [required, max_length: 150, unique],
 | `label: "str"`           | Libellé personnalisé dans les formulaires                        |
 | `upload_to: "path"`      | Champ fichier — dossier d'upload                                 |
 | `max_size: n MB`         | Champ fichier — taille max (`KB`/`MB`/`GB`)                      |
-| `rows: n`                | `textarea`/`richtext` — hauteur du widget                        |
+| `rows: n`                | `textarea` / `richtext` / `json` — hauteur du widget             |
 | `enum(NomEnum)`          | Lie le champ à un enum déclaré dans `enums:`                     |
 | `renamed_from: "x"`      | Renomme la colonne (voir plus bas)                                |
 | `skip`                   | Exclu des formulaires générés                                    |
@@ -437,7 +444,8 @@ relations: {
 clé étrangère. Elle produit à la fois la contrainte SQL et la relation SeaORM :
 
 - **`cible`** est le module de l'entité visée — le fichier `cible.rs` de `src/entities/` — ou une
-  table du framework (`eihwaz_users`, …). La clé vise la **vraie table et la vraie clé
+  table du framework (`eihwaz_users`, …). Le nom du modèle en PascalCase est accepté aussi :
+  `Cour` est converti en `cour`. La clé vise la **vraie table et la vraie clé
   primaire** de ce modèle, quel que soit son nom (`pk: code => i32` compris). Une cible
   introuvable est une erreur de `makemigrations`.
 - **`colonne`** doit être un champ déclaré du modèle (de préférence `Pk`, voir plus haut).
@@ -546,6 +554,8 @@ meta: {
 | `indexes`             | `[(col1, col2)]`      | Index simple multi-colonnes                 |
 | `verbose_name`        | `"chaîne"`            | Nom singulier dans l'interface admin        |
 | `verbose_name_plural` | `"chaîne"`            | Nom pluriel dans l'interface admin          |
+| `owner`               | `champ`               | Colonne du propriétaire de la ligne : un `belongs_to` vers `eihwaz_users` (vérifié à la compilation). Ouvre les droits `can_update_own` / `can_delete_own`, et l'admin l'impose à la création |
+| `label`               | `champ`               | Colonne par laquelle une ligne est nommée dans l'historique de l'admin (sinon sa clé) |
 
 ---
 
@@ -629,6 +639,10 @@ fn user_profiles() -> ModelAdmin<user_profile::Entity> {
         })
         .form(|f| f.fields([Bio, Avatar, Website, Phone, BirthDate, IsVerified]))
 }
+
+// dans site() : l'extension des comptes passe par accounts_users, pas par register
+// (enregistrer un modèle sous la clé des comptes refuse le démarrage)
+site.accounts_users(user_profiles())
 ```
 
 ### Ce qui est généré

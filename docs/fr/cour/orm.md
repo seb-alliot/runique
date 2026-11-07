@@ -367,7 +367,7 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
 
 ```
     // Méthode terminale (consomme self)
-    pub async fn all(self, db: &DatabaseConnection)
+    pub async fn all(self, db: &ADb)
         -> Result<Vec<E::Model>, DbErr>
     {
         //    ^^^^ Consomme self (pas de chaînage après)
@@ -413,8 +413,8 @@ macro_rules! impl_objects {
 ```
 
 ```
-            pub const objects: $crate::orm::Objects<Self>
-                = $crate::orm::Objects::new();
+            pub const objects: $crate::macros::bdd::objects::Objects<Self>
+                = $crate::macros::bdd::objects::Objects::new();
             //  ^^^^^^
             //  Nom, Type générique, Création const
         }
@@ -427,8 +427,8 @@ impl_objects!(Entity);
 ```
 // Se transforme en :
 impl Entity {
-    pub const objects: rusti::orm::Objects<Self>
-        = rusti::orm::Objects::new();
+    pub const objects: runique::macros::bdd::objects::Objects<Self>
+        = runique::macros::bdd::objects::Objects::new();
 ```
 
 ```
@@ -488,7 +488,7 @@ Une fois configuré, voici comment utiliser l'API :
 
 ```
 // 1. Dans ton entité SeaORM
-use rusti::impl_objects;
+use runique::prelude::*; // impl_objects! fait partie du prelude
 ```
 
 ```
@@ -522,17 +522,17 @@ impl_objects!(Entity);
 
 ```
 // Tous les utilisateurs
-let users = User::objects.all().all(&db).await?;
+let users = user::Entity::objects.all().all(&db).await?;
 ```
 
 ```
 // Filtrer
-let adults = User::objects
+let adults = user::Entity::objects
     .filter(user::Column::Age.gte(18))
     .all(&db)
     .await?;
 // Exclure
-let active = User::objects
+let active = user::Entity::objects
     .exclude(user::Column::Status.eq("banned"))
     .all(&db)
     .await?;
@@ -540,14 +540,14 @@ let active = User::objects
 
 ```
 // Get par ID
-let user = User::objects.get(&db, 1).await?;
+let user = user::Entity::objects.get(&db, 1).await?;
 // Compter
-let count = User::objects.count(&db).await?;
+let count = user::Entity::objects.count(&db).await?;
 ```
 
 ```
 // Query complexe avec chaînage
-let results = User::objects
+let results = user::Entity::objects
     .filter(user::Column::Age.gte(18))
     .exclude(user::Column::Status.eq("banned"))
     .order_by_desc(user::Column::CreatedAt)
@@ -570,7 +570,7 @@ Ajoute une méthode `first()` qui retourne le premier résultat.
 ```
 
 ```
-pub async fn first(&self, db: &DatabaseConnection)
+pub async fn first(&self, db: &ADb)
     -> Result<Option<E::Model>, DbErr>
 {
 ```
@@ -582,7 +582,7 @@ pub async fn first(&self, db: &DatabaseConnection)
 
 ```
 // Utilisation :
-let premier = User::objects.first(&db).await?;
+let premier = user::Entity::objects.first(&db).await?;
 ```
 
 ## Exercice 2 : Ajouter exists()
@@ -593,7 +593,7 @@ Crée une méthode `exists()` qui vérifie si des résultats existent.
 // Dans query.rs
 ```
 
-- **`pub async fn exists(self, db: &DatabaseConnection) -> Result<bool, DbErr>`** 
+- **`pub async fn exists(self, db: &ADb) -> Result<bool, DbErr>`** 
 
 ```
 {
@@ -604,7 +604,7 @@ Crée une méthode `exists()` qui vérifie si des résultats existent.
 
 ```
 // Utilisation :
-let existe = User::objects
+let existe = user::Entity::objects
     .filter(user::Column::Username.eq("alice"))
     .exists(&db)
     .await?;

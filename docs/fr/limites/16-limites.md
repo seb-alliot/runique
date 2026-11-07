@@ -1,6 +1,6 @@
 # Limites connues
 
-Ce que Runique 4.0 ne fait pas encore, ou fait avec une restriction. Chaque ligne renvoie à la page qui explique la limite et ce qu'il faut faire en attendant. Les constats de sécurité ouverts sont tenus à part, dans `faille.md` à la racine du dépôt.
+Ce que Runique 4.0 ne fait pas encore, ou fait avec une restriction. Chaque ligne renvoie à la page qui explique la limite et ce qu'il faut faire en attendant. La politique de sécurité et les failles corrigées sont décrites dans [`SECURITY.fr.md`](https://github.com/seb-alliot/runique/blob/main/SECURITY.fr.md).
 
 ---
 
@@ -27,6 +27,8 @@ Ce que Runique 4.0 ne fait pas encore, ou fait avec une restriction. Chaque lign
 | `LoginGuard` bloque par nom d'utilisateur : quelqu'un peut bloquer un compte dont il connaît le nom | [LoginGuard](/docs/fr/auth/login-guard) |
 | Le store de sessions mémoire appartient à un processus | [Store de sessions](/docs/fr/session/store) |
 | Un store personnalisé (`with_session_store`) ne peut pas être parcouru par utilisateur : un reset de mot de passe ne ferme pas ses sessions | [Session](/docs/fr/auth/session) |
+| Durée de session : une seule pour tous les comptes connectés ; « se souvenir de moi » (durée par session) n'est pas encore possible | [Sessions](/docs/fr/middleware/sessions) |
+| Au plus 5 middlewares personnalisés (le 6ᵉ fait paniquer le démarrage) ; ils tournent avant la session, sans accès au compte connecté | [Stack middleware](/docs/fr/architecture/middleware) |
 | Mode `Delegated` : aucun fournisseur externe (OAuth, LDAP, SAML) n'est implémenté | [Mots de passe](/docs/fr/configuration/password) |
 | ACME : un seul site par machine (port 80 exclusif) | [Réseau](/docs/fr/installation/network) |
 
@@ -35,7 +37,7 @@ Ce que Runique 4.0 ne fait pas encore, ou fait avec une restriction. Chaque lign
 | Limite | Détail |
 | --- | --- |
 | `.links`, `.search_help`, `.empty_value` acceptés mais sans effet sur l'affichage | [Builder ModelAdmin](/docs/fr/admin/declaration-macro) |
-| Pas de feuille de thème globale (contournement par un bloc)<br>`.with_htmx` est global, pas de fragment de liste par modèle<br>Un template de page ou une feuille de style absents ne sont signalés qu'à l'affichage | [Surcharge](/docs/fr/admin/template-surcharge) |
+| Pas de feuille de thème globale (contournement par un bloc)<br>`.with_htmx` est global, pas de fragment de liste par modèle<br>En production, un template de page absent n'est signalé qu'à l'affichage (refus du démarrage en dev ou avec `DEBUG=true`) ; une feuille de style absente ne l'est jamais | [Surcharge](/docs/fr/admin/template-surcharge) |
 | Pas d'interface de gestion des sessions | — |
 | Many-to-many : déclaré dans le DSL par une table pivot, sans gestion dans l'admin | [Évolutions](/docs/fr/admin/evolution) |
 

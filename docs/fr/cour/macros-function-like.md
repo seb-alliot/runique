@@ -235,4 +235,4 @@ En pratique dans l'écosystème :
 | Validation à la compilation | Function-like |
 | Génération de code depuis données externes | Function-like |
 
-Dans Runique, `derive_form` est une **derive macro** — elle génère les méthodes de formulaire depuis la définition de struct. `model!`, `view!`, `urlpatterns!` sont des **`macro_rules!`** classiques. L'admin, lui, n'est plus une macro : c'est le builder typé `ModelAdmin`.
+Dans Runique, la crate `derive_form` fournit des macros procédurales : `model!{}` et `extend!{}` sont des macros **function-like**, `#[form]` est une macro **attribut** qui génère les méthodes de formulaire depuis la struct. `view!`, `urlpatterns!` et `context!` sont des **`macro_rules!`** classiques. L'admin, lui, n'est plus une macro : c'est le builder typé `ModelAdmin`.

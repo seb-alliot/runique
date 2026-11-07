@@ -27,7 +27,7 @@ Le déchiffrement n'a lieu qu'à la restauration après un redémarrage. Une ses
 | `Duration::minutes(30)` | Sessions courtes (sécurité) |
 | `Duration::hours(2)` | Usage standard |
 | `Duration::hours(24)` | Défaut Runique |
-| `Duration::days(7)` | "Se souvenir de moi" |
+| `Duration::days(7)` | Sessions longues, pour tous les comptes |
 
 ---
 
@@ -39,7 +39,7 @@ La durée d'une session **authentifiée** se règle **uniquement via le builder*
 `SESSION_COOKIE_AGE` de Django.
 
 ```rust
-use tower_sessions::cookie::time::Duration;
+use runique::tower_sessions::cookie::time::Duration;
 
 // Durée de session personnalisée
 let app = RuniqueApp::builder(config)
@@ -63,22 +63,14 @@ Cette valeur s'applique **partout et de façon cohérente** :
 > la session, un formulaire public resté ouvert plus longtemps voit son token expirer —
 > voir [Protection CSRF](/docs/fr/middleware/csrf), section "Expiration du token & rafraîchissement automatique".
 
-### « Se souvenir de moi » (durée par session)
+### « Se souvenir de moi » — pas encore possible
 
-Le défaut global ci-dessus convient à la majorité des cas. Pour une durée **différente sur
-une session précise** (ex. case « se souvenir de moi » → 30 jours), garde le défaut global
-et appelle `set_expiry` sur la session concernée, au login :
+Une durée différente sur une session précise (case « se souvenir de moi » → 30 jours) **ne tient pas aujourd'hui** :
 
-```rust
-use tower_sessions::{Expiry, cookie::time::Duration};
+- `login()` pose lui-même l'expiration de la session à la durée globale : un `set_expiry` fait avant lui est écrasé ;
+- après la connexion, le middleware `session_ttl_upgrade` remet la durée globale à **chaque** requête d'une session connectée : un `set_expiry` posé après `login` ne dure que jusqu'à la requête suivante.
 
-if remember_me {
-    request.session.set_expiry(Some(Expiry::OnInactivity(Duration::days(30))));
-}
-```
-
-`expires_at` étant stocké **par ligne** dans `eihwaz_sessions`, aucune modification de schéma
-n'est nécessaire : seule cette session-là sera prolongée.
+La seule durée qui s'applique est celle de `with_session_duration`, la même pour toutes les sessions connectées.
 
 ### Store personnalisé (production)
 

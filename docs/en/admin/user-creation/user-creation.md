@@ -101,7 +101,7 @@ The email address is never put in the link: the reset page checks it against the
 {public_url}/{reset_route}/{token}
 ```
 
-`public_url` comes from `.with_public_url(…)`; `reset_route` is the one of `with_password_reset()` (`/reset-password` by default). In production, the app refuses to boot without a public address when the admin or the reset is enabled. In debug only, the address is built from the request's `Host` header.
+`public_url` comes from `.with_public_url(…)`; `reset_route` is the one of `with_password_reset()` (`/reset-password` by default). In production, the app refuses to boot without a public address when the admin or the reset is enabled. In development (`RUNIQUE_ENV=dev`), the address is always `http://127.0.0.1:{PORT}`, never the request's `Host` header.
 
 ---
 

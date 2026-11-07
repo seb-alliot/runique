@@ -110,7 +110,7 @@ The UI sends the action **index** (`a0`, `a1`…), never the raw value. The valu
 Boot constraints:
 
 - column writable on edit
-- no secret, no owner, no account rank flags
+- no secret, no owner; on the accounts table, no rank flag nor `is_active`
 
 ## Pagination
 

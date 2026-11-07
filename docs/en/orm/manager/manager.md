@@ -84,10 +84,12 @@ let suggestion = MyForm::objects
 
 ```rust
 use sea_orm::Order;
+use sea_orm::sea_query::{Expr, Func};
 
+// Sort by title length (typed SQL function, no raw SQL)
 let results = MyForm::objects
     .all()
-    .order_by_expr(sea_query::Expr::cust("LENGTH(title)"), Order::Desc)
+    .order_by_expr(Func::char_length(Expr::col(my_entity::Column::Title)), Order::Desc)
     .all(&db)
     .await?;
 ```
@@ -102,7 +104,7 @@ let unique = MyForm::objects
     .all()
     .filter(my_entity::Column::Email.eq("user@example.com"))
     .one(&db)
-    .await?;
+    .await; // Result<Option<Model>, DbErr>: no `?`, the match reads the error
 
 match unique {
     Ok(Some(model)) => { /* found, unique */ }

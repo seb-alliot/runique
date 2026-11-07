@@ -158,7 +158,7 @@ Version du workspace (source de vérité) : **4.0.0**.
 - `runique new <name>`
 - `runique create-superuser`
 - `runique test [file] [test]`
-- `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
+- `runique makemigrations --entities src/entities --migrations migration/src [--force]`
 - `runique migration up | down [-n N] | status` (lance le crate `migration/` du projet par `cargo run`, sans `sea-orm-cli`)
 
 Pas de `runique start` : l'app est un binaire Rust normal (`cargo run`). L'admin est du Rust plain (`ModelAdmin` + `.with_admin(...)`), sans génération de code.

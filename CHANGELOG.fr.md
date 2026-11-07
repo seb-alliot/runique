@@ -81,6 +81,9 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 #### Ajouté
 
+* **Template de page admin absent détecté au démarrage** : en développement (`RUNIQUE_ENV=dev`) ou avec `DEBUG=true`, une page surchargée (`with_list`, `ModelAdmin::templates(|t| t.page(…))`…) dont le template n'existe pas refuse le démarrage, en nommant la page et le chemin. Avant, l'erreur n'arrivait qu'au premier affichage. En production, rien ne change.
+* **Lien « ← Retour au site » sur la page de connexion de l'admin** : sous le bouton de connexion, vers `.view_site_url(…)` ou `/`. Clé traduite `admin.login.back_to_site` (9 langues).
+* **`add_value` pose une colonne qui n'est pas un champ** : `save()` écrit la valeur qu'un code donne par `add_value` à une colonne de l'entité absente du formulaire (un auteur, l'article d'un commentaire), convertie au type de la colonne ; un nom qui n'est pas une colonne est ignoré. Le visiteur ne peut pas l'envoyer. Mêmes règles qu'un champ (clé, colonnes secrètes, droits).
 * **Choix du nombre de lignes par page dans les listes de l'admin** : un sélecteur (10 / 25 / 50 / 100) en haut à droite, conservé avec le tri, la recherche et les filtres. Seules ces valeurs sont acceptées depuis l'URL ; une taille libre est ignorée.
 * **Panneau de filtres paginé** : chaque groupe de filtre a ses flèches, et un seul sélecteur (10 / 25 / 50 / 100), sous le titre du panneau, règle le nombre de valeurs de tous les groupes. `.filter_size(n)` fixe le défaut sur `AdminStaging` et dans `.list(|l| …)`, sur le modèle de `page_size` / `per_page`. Remplace le plafond fixe de 100 valeurs, au-delà duquel les suivantes n'étaient pas proposées.
 * **Plusieurs valeurs par filtre, et désélection** : `filter_x=a&filter_x=b` garde les lignes valant `a` ou `b` ; plusieurs colonnes se cumulent. Cliquer sur une valeur active la retire seule. Les valeurs restent limitées par le périmètre de la porte, et une colonne en accepte au plus 100 depuis l'URL.
@@ -92,6 +95,11 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 #### Corrigé
 
+* **`decimal` avec une seule borne** : `.min()` seul ou `.max()` seul (ou `min: 0.0` seul dans `model!{}`) faisait refuser toutes les valeurs, la borne absente ne se convertissant pas en `Decimal`. Une borne non posée n'est plus comparée.
+* **`f32` hors plage** : sur une colonne `float` (32 bits), une valeur au-delà de `f32::MAX` passait la validation puis était refusée à l'écriture avec « valeur inconvertible ». Le champ est désormais borné à la plage de la colonne et affiche l'erreur de borne.
+* **JSON fait d'espaces** : accepté comme vide à la validation, il était refusé à l'écriture. Il est maintenant vide des deux côtés.
+* **Bornes entières au-delà de 2^53** : `[min: n]` / `[max: n]` d'un `bigint` passaient par un `f64` dans le formulaire généré et étaient arrondies. Nouvelles méthodes `NumericField::min_i64` / `max_i64`, utilisées par le code généré.
+* **Certificat ACME jamais renouvelé** : le certificat n'était relu qu'au démarrage ; un processus tournant plus de 90 jours servait un certificat expiré. Il est vérifié toutes les 12 heures, renouvelé après 60 jours et rechargé sans redémarrage ; en cas d'échec, le certificat courant est gardé.
 * **Filtre de protocoles des champs texte** : `javascript:`, `data:`, `file:`… étaient retirés n'importe où, même au milieu d'un mot (« profile: » devenait « pro », « metadata: » devenait « meta »). Ils ne le sont plus qu'en début de texte ou après un caractère qui ne peut pas appartenir à un nom de protocole.
 * **`with_cors` avec identifiants** : une origine listée avec `allow_credentials(true)`, l'exemple de la doc, faisait paniquer le démarrage (tower-http refuse le joker `*` avec les identifiants). La méthode et les en-têtes de la requête préliminaire sont maintenant renvoyés tels quels, pour les seules origines listées.
 * **Texte riche dans un `<textarea>`** : la valeur perdait un niveau d'échappement à chaque réédition (`&lt;b&gt;` devenait du gras). Elle est échappée une fois, exacte au retour.

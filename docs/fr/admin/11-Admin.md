@@ -2,7 +2,7 @@
 
 L'administration Runique construit un CRUD complet à partir d'un **builder typé** (`ModelAdmin`). Plus de macro `admin!`, plus de génération de fichiers : tu déclares des colonnes SeaORM, le framework sert les routes, la liste, les formulaires et les permissions.
 
-Les colonnes sont des enums (`blog::Column::Title`) — le compilateur refuse une colonne inexistante, un secret exposé ou une action incohérente.
+Les colonnes sont des enums (`blog::Column::Title`) : le compilateur refuse une colonne inexistante, et le démarrage refuse un secret exposé ou une action incohérente.
 
 ## À savoir avant de commencer
 
@@ -12,8 +12,8 @@ Les colonnes sont des enums (`blog::Column::Title`) — le compilateur refuse un
   runique = { version = "4.0.0", features = ["postgres", "admin"] }
   ```
 
-- **`with_public_url` est obligatoire en production** quand l'admin est actif : sans elle, le démarrage est refusé (les liens envoyés par mail seraient construits depuis l'en-tête `Host` de la requête, que n'importe qui peut forger). En debug, le `Host` de la requête la remplace.
-- **Tout `model!{}` du projet doit être enregistré** dans l'admin (`register`, ou `accounts_users` pour l'extension des comptes). Au démarrage, les droits de groupe qui visent un modèle non enregistré sont supprimés de la base.
+- **`with_public_url` est obligatoire en production** quand l'admin est actif : sans elle, le démarrage est refusé (les liens envoyés par mail ne sont jamais construits depuis l'en-tête `Host` de la requête, que n'importe qui peut forger). En développement (`RUNIQUE_ENV=dev`), l'adresse est toujours `http://127.0.0.1:{PORT}`.
+- **Tout `model!{}` du projet doit être enregistré** dans l'admin (`register`, ou `accounts_users` pour l'extension des comptes). Au démarrage, les droits qui visent un modèle non enregistré (ceux des groupes comme les grilles des admins) sont **supprimés définitivement** de la base.
 - Les comptes, groupes et droits du framework sont fournis : vous ne les déclarez pas.
 
 ## Exemple minimal
@@ -48,7 +48,7 @@ fn articles() -> ModelAdmin<article::Entity> {
 Puis dans `main` :
 
 ```rust
-builder::new(config)
+RuniqueApp::builder(config)
     .routes(url::routes())
     .with_database(db)
     .with_admin(admin::config)

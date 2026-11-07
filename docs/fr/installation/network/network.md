@@ -50,6 +50,8 @@ ACME_CERTS_DIR=/chemin/absolu/vers/certs   # défaut : ./certs
 > Si `ACME_ENABLED=true` mais que la feature `acme` n'est pas compilée, Runique
 > affiche un avertissement au démarrage.
 
+**Renouvellement.** Le certificat (90 jours) est vérifié au démarrage, puis toutes les 12 heures. Après 60 jours, Runique en demande un nouveau, l'écrit dans `ACME_CERTS_DIR` et le recharge sans redémarrer le serveur. Si la demande échoue, le certificat en cours est gardé et l'échec est journalisé : la tentative suivante a lieu 12 heures plus tard.
+
 ### Limitation — un seul site par machine
 
 ACME requiert l'**exclusivité du port 80**. Si plusieurs applications tournent sur le même serveur, une seule peut utiliser ACME — les autres ne peuvent pas obtenir leurs certificats simultanément.

@@ -142,7 +142,7 @@ Cela garantit que les scripts inline sans nonce sont bloqués, même si `'unsafe
 
 ```text
 # Header généré avec nonce actif :
-Content-Security-Policy: default-src 'none'; script-src 'self' 'nonce-abc123'; style-src 'self' 'unsafe-inline' 'nonce-abc123'; ...
+Content-Security-Policy: default-src 'none'; script-src 'self' 'nonce-abc123'; style-src 'self' 'nonce-abc123'; ...
 ```
 
 ---

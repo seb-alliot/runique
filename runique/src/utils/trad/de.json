@@ -273,6 +273,7 @@
       "label_username": "Benutzername",
       "label_password": "Passwort",
       "btn_submit": "Anmelden",
+      "back_to_site": "← Zurück zur Website",
       "error_session": "Fehler beim Öffnen der Sitzung.",
       "error_credentials": "Falsche Anmeldedaten oder unzureichende Rechte.",
       "error_locked": "Zu viele Versuche. Konto vorübergehend gesperrt. Versuchen Sie es in {} Sekunden erneut."

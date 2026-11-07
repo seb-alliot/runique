@@ -84,11 +84,12 @@ let suggestion = MonForm::objects
 
 ```rust
 use sea_orm::Order;
+use sea_orm::sea_query::{Expr, Func};
 
-// Tri par longueur de titre
+// Tri par longueur de titre (fonction SQL typée, pas de SQL brut)
 let results = MonForm::objects
     .all()
-    .order_by_expr(sea_query::Expr::cust("LENGTH(titre)"), Order::Desc)
+    .order_by_expr(Func::char_length(Expr::col(mon_entity::Column::Titre)), Order::Desc)
     .all(&db)
     .await?;
 ```
@@ -103,7 +104,7 @@ let unique = MonForm::objects
     .all()
     .filter(mon_entity::Column::Email.eq("user@example.com"))
     .one(&db)
-    .await?;
+    .await; // Result<Option<Model>, DbErr> : pas de `?`, le match lit l'erreur
 
 match unique {
     Ok(Some(model)) => { /* trouvé, unique */ }

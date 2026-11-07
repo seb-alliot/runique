@@ -605,9 +605,9 @@ fn main() {
 
 ### `effective_key` dans le LoginGuard
 
-Le `LoginGuard` de Runique utilise `Cow<'_, str>` pour sa clé d'identification :
-si un nom d'utilisateur est fourni, on l'emprunte directement ; sinon, on construit
-une clé dynamique avec l'IP.
+Le `LoginGuard` de Runique renvoie un `Cow<'_, str>` pour sa clé d'identification.
+Voici d'abord le principe du `Cow`, en version simplifiée : on emprunte le nom
+d'utilisateur quand il est fourni, on construit une clé avec l'IP sinon.
 
 ```rust
 use std::borrow::Cow;
@@ -628,6 +628,22 @@ fn main() {
 
     let cle2 = effective_key("", "192.168.1.10");
     println!("{cle2}"); // "anonym:192.168.1.10" — Owned
+}
+```
+
+La vraie fonction (`runique/src/auth/guard.rs`) normalise le nom avant de s'en
+servir : `trim()` puis `to_lowercase()`. `admin`, `Admin` et `admin ` partagent ainsi
+un seul compteur de tentatives ; sans cela, changer la casse contournerait le
+blocage. La normalisation alloue, donc elle renvoie toujours `Cow::Owned` :
+
+```rust
+pub fn effective_key<'a>(username: &'a str, ip: &str) -> Cow<'a, str> {
+    let username = username.trim();
+    if username.is_empty() {
+        Cow::Owned(format!("anonym:{ip}"))
+    } else {
+        Cow::Owned(username.to_lowercase())
+    }
 }
 ```
 

@@ -63,13 +63,13 @@ MEDIA_ROOT=media/
 ```rust
 MediaField::image("img")     // jpg jpeg png gif webp avif
 FileField::document("doc")  // pdf doc docx txt odt
-FileField::any("f")         // any extension, except .svg
+FileField::any("f")         // any extension, except active ones (.svg, .html, .js…)
 
 // Custom extensions:
 FileField::any("data").allowed_extensions(vec!["csv", "json"])
 ```
 
-`FileField::any` does not check the content. The framework only rejects `.svg`. What the file is, and how it is served, is the application's responsibility. For a closed list, use `image()`, `document()`, or `allowed_extensions`.
+`FileField::any` does not check the content. The framework always refuses the active extensions a browser runs: `.svg`, `.svgz`, `.html`, `.htm`, `.xhtml`, `.xht`, `.shtml`, `.xml`, `.js`, `.mjs`. What the file is, and how it is served, is the application's responsibility. For a closed list, use `image()`, `document()`, or `allowed_extensions`.
 
 ---
 
@@ -80,14 +80,27 @@ pub async fn upload_image(mut request: Request) -> AppResult<Response> {
     let form: ImageForm = request.form("upload");
     let template = "forms/upload_image.html";
 
-    if let Err(form) = ValidationForm::try_form(form, &request).await {
-        context_update!(request => {
-            "title" => "Upload an image",
-            "image_form" => &form,
-        });
+    let validated = match ValidationForm::try_form(form, &request).await {
+        Ok(validated) => validated,
+        Err(form) => {
+            context_update!(request => { "title" => "Upload an image", "image_form" => &form });
+            return request.render(template);
+        }
+    };
+
+    // A form without a model: no `save()`, so the file is published here.
+    // Once validated, it still sits in the request's staging folder, removed
+    // when the request ends.
+    let mut form = validated.into_form();
+    let path = form.cleaned::<String>("image").unwrap_or_default(); // relative to MEDIA_ROOT
+    if let Err(error) = form.forms_mut().publish_uploads().await {
+        form.forms_mut().errors.push(error);
+        context_update!(request => { "title" => "Upload an image", "image_form" => &form });
         return request.render(template);
     }
+    form.forms_mut().complete_uploads().await;
 
+    // `path`: store it wherever the application needs it.
     success!(request.notices => "File uploaded successfully!");
     Ok(Redirect::to("/").into_response())
 }

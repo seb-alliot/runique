@@ -101,7 +101,7 @@ L'adresse email n'est jamais mise dans le lien : la page de réinitialisation la
 {public_url}/{reset_route}/{token}
 ```
 
-`public_url` vient de `.with_public_url(…)` ; `reset_route` est celle de `with_password_reset()` (`/reset-password` par défaut). En production, l'application refuse de démarrer sans adresse publique quand l'admin ou la réinitialisation sont actifs. En debug seulement, l'adresse est construite depuis l'en-tête `Host` de la requête.
+`public_url` vient de `.with_public_url(…)` ; `reset_route` est celle de `with_password_reset()` (`/reset-password` par défaut). En production, l'application refuse de démarrer sans adresse publique quand l'admin ou la réinitialisation sont actifs. En développement (`RUNIQUE_ENV=dev`), l'adresse est toujours `http://127.0.0.1:{PORT}`, jamais l'en-tête `Host` de la requête.
 
 ---
 

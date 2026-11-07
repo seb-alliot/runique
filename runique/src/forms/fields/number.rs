@@ -192,6 +192,25 @@ impl NumericField {
         self
     }
 
+    /// `min` with an integer bound, kept exact on an integer field: through
+    /// `f64`, a bound past 2^53 would be rounded.
+    pub fn min_i64(self, val: i64, msg: &str) -> Self {
+        let mut field = self.min(val as f64, msg);
+        if let NumericConfig::Integer { min, .. } = &mut field.config {
+            *min = Some(val);
+        }
+        field
+    }
+
+    /// `max` with an integer bound, kept exact on an integer field.
+    pub fn max_i64(self, val: i64, msg: &str) -> Self {
+        let mut field = self.max(val as f64, msg);
+        if let NumericConfig::Integer { max, .. } = &mut field.config {
+            *max = Some(val);
+        }
+        field
+    }
+
     /// Step increment for range sliders.
     pub fn step(mut self, s: f64) -> Self {
         if let NumericConfig::Range { step, .. } = &mut self.config {
@@ -244,6 +263,19 @@ impl FormField for NumericField {
         }
         if let C::Decimal(Some((max_digits, decimal_places))) = column {
             self.tighten_decimal_len(*max_digits, *decimal_places);
+        }
+        // An `f32` column turns anything past `f32::MAX` into an infinity it
+        // refuses: bounded here, the field says so instead of the write failing.
+        if let C::Float = column
+            && let NumericConfig::Float { value } = &mut self.config
+        {
+            let limit = f64::from(f32::MAX);
+            let range = value.get_or_insert(Range {
+                min: f64::MIN,
+                max: f64::MAX,
+            });
+            range.min = range.min.max(-limit);
+            range.max = range.max.min(limit);
         }
         self.base.column_type = Some(column.clone());
     }
@@ -382,19 +414,32 @@ impl FormField for NumericField {
                 }
                 if let Some(f) = value.as_ref() {
                     if let Some(v) = decimal_value {
-                        let min = rust_decimal::Decimal::from_str_exact(&f.min.to_string());
-                        let max = rust_decimal::Decimal::from_str_exact(&f.max.to_string());
-                        let (Ok(min), Ok(max)) = (min, max) else {
+                        // `min` alone leaves `max` at `f64::MAX` (and the
+                        // reverse), which no `Decimal` holds: an unset bound
+                        // is no bound, never a value to convert.
+                        let bound = |b: f64, unset: f64| {
+                            if b == unset {
+                                Ok(None)
+                            } else {
+                                rust_decimal::Decimal::from_str_exact(&b.to_string()).map(Some)
+                            }
+                        };
+                        let (Ok(min), Ok(max)) = (bound(f.min, f64::MIN), bound(f.max, f64::MAX))
+                        else {
                             self.set_error(t("forms.number_invalid").to_string());
                             return false;
                         };
-                        if v < min {
+                        if let Some(min) = min
+                            && v < min
+                        {
                             let msg = self
                                 .bound_message("min_message", || tf("forms.min_value", &[&f.min]));
                             self.set_error(msg);
                             return false;
                         }
-                        if v > max {
+                        if let Some(max) = max
+                            && v > max
+                        {
                             let msg = self
                                 .bound_message("max_message", || tf("forms.max_value", &[&f.max]));
                             self.set_error(msg);

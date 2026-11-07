@@ -273,6 +273,7 @@
       "label_username": "Nom d'utilisateur",
       "label_password": "Mot de passe",
       "btn_submit": "Se connecter",
+      "back_to_site": "← Retour au site",
       "error_session": "Erreur lors de l'ouverture de session.",
       "error_credentials": "Identifiants incorrects ou droits insuffisants.",
       "error_locked": "Trop de tentatives. Compte temporairement verrouillé. Réessayez dans {} secondes."

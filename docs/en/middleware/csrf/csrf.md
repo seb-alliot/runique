@@ -5,7 +5,7 @@
 - Token generated **automatically** for each session
 - **Session-side synchronizer token** pattern: the token is stored server-side in the session, exposed only through a hidden field or the `X-CSRF-Token` header — no separate JS-readable cookie (the session cookie itself is `HttpOnly`)
 - Verified on POST, PUT, PATCH, DELETE requests
-- Ignored on GET, HEAD, OPTIONS requests
+- Ignored on GET and HEAD; required on every other method (POST, PUT, PATCH, DELETE, but also OPTIONS and TRACE). With `with_cors`, every OPTIONS request gets the CORS response directly (slot 8) and reaches neither CSRF nor the handler
 
 ---
 

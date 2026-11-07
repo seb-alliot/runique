@@ -7,7 +7,7 @@
 `request.form("name")` is a method built into `Request` that orchestrates a full pipeline behind the scenes:
 
 1. **Aegis** — Single body extraction (multipart, urlencoded, json) normalized into a `HashMap`, within the request size limit. For a multipart body, no file is written before a valid CSRF token (`X-CSRF-Token` header, or a `csrf_token` field placed before the files).
-2. **CSRF** — The pipeline records whether the token is valid. It does not reject the request for that: `request.form("name")` marks the form invalid (`csrf.invalid_or_missing`) and `try_form` will not validate it.
+2. **CSRF** — The pipeline records whether the `csrf_token` field's token is valid. It does not reject the request for that: `request.form("name")` marks the form invalid (`csrf.invalid_or_missing`) and `try_form` will not validate it. Upstream, the CSRF middleware has already refused with a 403 a wrong `X-CSRF-Token` header, a body that is not a form (JSON…) without the header, and a form posted from another site.
 3. **Construction** — Builds the form `T` and fills its fields. Validation runs afterwards, in `ValidationForm::try_form`, and only when the request sends back the name given to the form.
 
 ```rust

@@ -63,13 +63,16 @@ fn forms_mut(&mut self) -> &mut Forms {
 ```text
 register_fields()            → déclare les champs
         ↓
-req.form("nom")                   → construit l'instance
+req.form("nom")              → construit l'instance, la remplit si la requête renvoie son nom
+        ↓
+ValidationForm::try_form()   → register_dynamic_fields(), puis is_valid()
         ↓
 is_valid()                   → pipeline de validation
     ↓  validate() par champ  (requis, format, longueur…)
-    ↓  clean_field(name)     [optionnel — règle métier unitaire]
-    ↓  clean()               [optionnel — validation croisée]
-    ↓  finalize()            (hash Argon2, transformations finales)
+    ↓  clean_field(name)     [optionnel] pour CHAQUE champ, même invalide
+    ↓  clean()               [optionnel] seulement si tout est valide jusque-là
+    ↓  finalize()            (hachage selon la PasswordConfig, chemins d'upload)
+    ↓  contrôle de type      chaque valeur doit se lire au type de sa colonne
         ↓
 form.save(&db) / delete(&db)  → écriture, sur le formulaire validé
         ↓
@@ -86,9 +89,9 @@ clear()                      → [optionnel] vide le formulaire après traitemen
 
 **`forms()` / `forms_mut()`** — Accesseurs de bas niveau vers le `Forms` interne (utile pour le rendu ou la configuration dynamique des champs). Ne pas utiliser pour extraire les données.
 
-**`clean_field(name)`** *(optionnel)* — Validation métier par champ individuel. Retourne `bool`. Appelée après `validate()` pour chaque champ.
+**`clean_field(name)`** *(optionnel)* — Validation métier par champ individuel. Retourne `bool`. Appelée pour **chaque** champ après les `validate()`, y compris pour un champ dont la validation standard a échoué (vide, mauvais format) : testez la valeur avant de poser une erreur, sinon vous remplacez le message standard.
 
-**`clean()`** *(optionnel)* — Validation croisée entre plusieurs champs. Retourne `Result<(), StrMap>`. Appelée une fois que tous les champs sont valides.
+**`clean()`** *(optionnel)* — Validation croisée entre plusieurs champs. Retourne `Result<(), StrMap>`. Appelée seulement si tous les champs sont valides **et** si chaque `clean_field` a renvoyé `true`. Elle voit encore les mots de passe en clair : `finalize()` vient après.
 
 **`is_valid()`** — Orchestre le pipeline complet. Peut être appelé sur GET comme sur POST : retourne `false` sans poser d'erreurs si aucune donnée n'a été soumise (premier affichage), valide normalement sinon.
 
@@ -112,7 +115,7 @@ self.cleaned::<bool>("active")          // Option<bool>
 // … voir la page Helpers pour la liste complète
 ```
 
-Ces méthodes sont **whitelistées** : elles retournent `None` si le champ n'est pas déclaré dans `register_fields()`. Elles couvrent aussi les paramètres de route et de query string.
+Ces méthodes sont **whitelistées** : elles retournent `None` si le champ n'est pas déclaré dans `register_fields()`. Quand le champ est **vide**, elles se rabattent sur un paramètre de route, puis de query string, de même nom : cette valeur-là n'est pas passée par la validation du champ. `save()` ne l'utilise jamais (il écrit la valeur validée du champ).
 
 > **`cleaned::<String>` retourne `Option<String>`**. Pour obtenir une `String` vide par défaut : `self.cleaned::<String>("x").unwrap_or_default()`.
 
@@ -141,9 +144,12 @@ Le modèle peut déclarer un plafond immuable via `.max_size()` dans `register_f
 // Dans register_fields — plafond modèle fixé à 5 MB
 form.field(&MediaField::image("photo").max_size(FileSize::mb(5)));
 
-// Dans le handler — surcharge autorisée si ≤ plafond
-form.max_size("photo", FileSize::mb(3))?;   // Ok
-form.max_size("photo", FileSize::mb(6))?;   // Err — dépasse le plafond du modèle
+// Dans le handler (`let mut form`) — surcharge autorisée si ≤ plafond.
+// `max_size` renvoie `Result<_, String>` : à traiter, pas de `?` dans un handler.
+form.max_size("photo", FileSize::mb(3)).ok();       // Ok
+if let Err(msg) = form.max_size("photo", FileSize::mb(6)) {
+    // dépasse le plafond du modèle : `msg` l'explique, la limite reste 5 MB
+}
 ```
 
 > **Séparation des responsabilités** : le modèle contrôle la contrainte maximale, le formulaire peut l'affiner vers le bas. Même principe que Django `ModelForm` pour les `max_length`.
@@ -212,25 +218,26 @@ pub async fn search(mut request: Request) -> AppResult<Response> {
 
 ## Pipeline de validation `is_valid()`
 
-L'appel `form.is_valid().await` déclenche **4 étapes dans l'ordre** (uniquement si le formulaire est soumis) :
+L'appel `form.is_valid().await` déclenche **5 étapes dans l'ordre** (uniquement si le formulaire est soumis) :
 
 1. **Validation des champs** — Chaque champ exécute son `validate()` : requis, longueur, format (email via `validator`, URL via `validator`, JSON via `serde_json`, UUID via `uuid`, IP via `std::net::IpAddr`…)
-2. **`clean_field(name)`** — Validation métier par champ, appelée pour chaque champ après l'étape 1 (uniquement si la validation standard a réussi)
-3. **`clean()`** — Validation croisée sur l'ensemble du formulaire (ex: `mdp1 == mdp2`) ; les mots de passe sont encore en clair à cette étape
-4. **`finalize()`** — Transformations finales (hachage automatique des champs `Password` si la config globale est en mode `Auto`)
+2. **`clean_field(name)`** — Validation métier par champ, appelée pour **chaque** champ après l'étape 1, même pour un champ dont la validation standard a échoué
+3. **`clean()`** — Validation croisée sur l'ensemble du formulaire (ex: `mdp1 == mdp2`), seulement si les étapes 1 et 2 ont tout accepté ; les mots de passe sont encore en clair à cette étape
+4. **`finalize()`** — Transformations finales (hachage automatique des champs `Password` si la config globale est en mode `Auto`, préparation des chemins d'upload)
+5. **Contrôle de type** — Chaque champ relié à une colonne doit se lire au type de cette colonne : un formulaire valide est un formulaire que l'écriture ne peut pas refuser sur un type
 
 ---
 
 ## `clean_field` — validation métier par champ
 
-`clean_field` est appelée pour chaque champ après sa validation standard. Elle permet d'implémenter une règle métier sur un champ précis (unicité, format personnalisé, valeur interdite…).
+`clean_field` est appelée pour chaque champ après les validations standard, que celles-ci aient réussi ou non. Elle permet d'implémenter une règle métier sur un champ précis (unicité, format personnalisé, valeur interdite…).
 
 - Retourne `true` si le champ est valide, `false` sinon
 - En cas d'échec, poser l'erreur manuellement sur le champ via `set_error()`
-- **N'est pas invoquée** si le champ requis est déjà vide (la validation standard échoue d'abord)
+- **Est invoquée même** si le champ a déjà échoué (vide, format) : vérifiez la valeur avant de poser une erreur, sinon vous écrasez le message standard
 
 ```rust
-#[async_trait::async_trait]
+#[async_trait]
 impl RuniqueForm for UsernameForm {
     // ...
 
@@ -263,7 +270,7 @@ impl RuniqueForm for UsernameForm {
 - Retourne `Err(StrMap)` avec une map `{ "nom_du_champ" => "message d'erreur" }` en cas d'échec
 
 ```rust
-#[async_trait::async_trait]
+#[async_trait]
 impl RuniqueForm for RegisterForm {
     // ...
 
@@ -328,13 +335,14 @@ Avec une clé, `save` met à jour cette ligne ; `delete` exige une clé. Une cl�
 
 ### Ce qui est écrit
 
-- **Hors admin** : SeaORM écrit (`insert` en création, `ActiveModel::save()` en mise à jour) ; le comportement du modèle (`ActiveModelBehavior::before_save` / `after_save`, `auto_now`) s'exécute. Tous les champs déclarés par le formulaire sont écrits, colonnes secrètes comprises : un champ mot de passe ne l'est que sous la forme de son hash (jamais le texte saisi, jamais un champ `.no_hash()`), et laissé vide en mise à jour, il garde l'ancienne valeur. Les champs verrouillés (`readonly`, `disabled`) ne sont jamais écrits. Un champ verrouillé n'est pas non plus rempli depuis la requête : `cleaned()` renvoie la valeur posée par le code, jamais celle qu'un visiteur aurait renvoyée. Vérifier que l'utilisateur a le droit de toucher la ligne est le rôle du handler, comme pour `search!`.
+- **Hors admin** : SeaORM écrit (`insert` en création, `ActiveModel::save()` en mise à jour) ; le comportement du modèle (`ActiveModelBehavior::before_save` / `after_save`, `auto_now`) s'exécute. Tous les champs déclarés par le formulaire sont écrits, colonnes secrètes comprises : un champ mot de passe ne l'est que sous la forme de son hash (jamais le texte saisi, jamais un champ `.no_hash()`), et laissé vide en mise à jour, il garde l'ancienne valeur. Les champs verrouillés (`readonly`, `disabled`) ne sont jamais écrits. Une colonne qui n'est pas un champ est écrite seulement si le code lui a donné une valeur par `add_value`. Un champ verrouillé n'est pas non plus rempli depuis la requête : `cleaned()` renvoie la valeur posée par le code, jamais celle qu'un visiteur aurait renvoyée. Vérifier que l'utilisateur a le droit de toucher la ligne est le rôle du handler, comme pour `search!`.
 - **Dans l'admin** (panneau et routes déclarées `admin`) : la porte écrit, au nom du compte vérifié — droits, propriétaire, historique, dans une transaction. Les colonnes secrètes n'y sont jamais écrites.
 
 ### Où placer la logique métier
 
 - Valeurs à vérifier ou ajuster : `clean_field`, `clean`.
-- Valeurs venues de la requête (compte connecté, choix) : `register_dynamic_fields`.
+- Valeurs imposées par le code (compte connecté, ligne parente) : `add_value` avant `try_form`, sur une colonne qui n'est pas un champ — voir [Colonnes posées par le code](/docs/fr/formulaire/helpers).
+- Champs ou choix qui dépendent de la requête : `register_dynamic_fields`. Il tourne dans `try_form`, **après** le remplissage : un champ qu'il ajoute ne reçoit pas les données envoyées (seul un `add_value` fait dans le hook lui donne une valeur).
 - Effets extérieurs (email, cache) et écritures dans d'autres tables : dans le handler, après un `save` réussi.
 
 ---
@@ -348,12 +356,15 @@ Accessible partout où `self` est `&mut Self` — dans un handler ou dans une m�
 ### Depuis un handler
 
 ```rust
-if form.is_valid().await {
-    let path = form.cleaned::<String>("image").unwrap_or_default(); // 1. lire avant clear
-    // sauvegarder en DB...
+if let Ok(validated) = ValidationForm::try_form(form, &request).await {
+    let mut form = validated.into_form();
+    let title = form.cleaned::<String>("title").unwrap_or_default(); // 1. lire avant clear
+    // enregistrer...
     form.clear();                            // 2. vider
-    success!(request.notices => "Fichier uploadé !");
-    context_update!(request => { "image_form" => &form });
+    context_update!(request => {
+        "note_form" => &form,
+        "messages" => flash_now!(success => "Enregistré !"), // rendu direct
+    });
     return request.render(template);         // 3. re-rendre avec formulaire vide
 }
 ```

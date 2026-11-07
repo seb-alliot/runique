@@ -28,7 +28,7 @@ slot  0  Extensions          → Injection Engine, Tera, Config (toujours actif)
 slot  2  TrustedProxies      → IP client réelle depuis X-Forwarded-For (toujours actif)
 slot  5  Compression         → Compression des réponses (toujours actif)
 slot  8  CORS                → Cross-Origin Resource Sharing (si with_cors() configuré)
-slot 10  ErrorHandler        → Capture et rendu des erreurs (toujours actif)
+slot 10  ErrorHandler        → Capture et rendu des erreurs (actif par défaut, retiré par .with_debug_errors(false))
 slot 15  HostValidation      → Validation des hosts autorisés (si with_allowed_hosts() configuré)
 slot 17  HttpsRedirect       → Redirection HTTPS derrière un proxy (si ENFORCE_HTTPS, jamais avec ACME)
 slot 20+ Custom              → Vos middlewares personnalisés

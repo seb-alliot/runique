@@ -22,7 +22,8 @@ pub struct LoginForm {
 impl FormAccess for LoginForm {
     fn register_fields(form: &mut Forms) {
         form.field(&TextField::text("username").label("Username").required());
-        form.field(&TextField::password("password").label("Password").required());
+        // `no_hash`: compared as typed by `authenticate_user`, never stored.
+        form.field(&TextField::password("password").label("Password").no_hash().required());
     }
     impl_form_access!();
 }
@@ -124,16 +125,20 @@ impl SignupForm {
             created_at: Set(Some(now)),
             updated_at: Set(Some(now)),
             ..Default::default()
-        }
-        .insert(db)
-        .await?;
+        };
+        // Created and activated in one transaction: an activation that fails
+        // takes the row back, and no inactive account keeps the name and email.
+        let txn = db.begin().await?; // use runique::sea_orm::TransactionTrait;
+        let user = user.insert(&txn).await?;
 
-        // An account is created inactive. Activating it is a business
-        // decision: here at once; to confirm the email first, send a link and
-        // call `activate_account` when it's opened.
-        BuiltinUserEntity::activate_account(db, user.id)
+        // An account is created inactive. Activating it is a business decision:
+        // here at once; to confirm the email first, send a link and call
+        // `activate_account` when it's opened.
+        let user = BuiltinUserEntity::activate_account(&txn, user.id)
             .await?
-            .ok_or_else(|| DbErr::Custom("account already activated".into()))
+            .ok_or_else(|| DbErr::Custom("the new account was already activated".into()))?;
+        txn.commit().await?;
+        Ok(user)
     }
 }
 ```

@@ -70,7 +70,7 @@ A form is handled in two steps.
 
 1. creates an instance of the form with its fields;
 2. fills it with the submitted data;
-3. marks it invalid when the method needs a CSRF token (POST, PUT, PATCH, DELETE) and the token is missing or wrong.
+3. marks it invalid when the method needs a CSRF token (every method but GET and HEAD) and the token is missing or wrong.
 
 **`ValidationForm::try_form(form, &request)` decides whether to validate, and validates.** The form got its name from `request.form("name")` (rendered as a hidden field); it is only filled, then validated, when the request sends **that same name** back. That's what allows **several forms on one page**: only the one submitted is filled and validated, the others stay blank, with no field error, even when they share a field name. It returns `Ok(validated)` or `Err(form)` with its errors, ready to be rendered again.
 

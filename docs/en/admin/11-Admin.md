@@ -2,7 +2,7 @@
 
 Runique's admin builds a full CRUD UI from a **typed builder** (`ModelAdmin`). No `admin!` macro, no generated files: you declare SeaORM columns, the framework serves routes, list views, forms and permissions.
 
-Columns are enums (`blog::Column::Title`) — the compiler rejects a missing column, an exposed secret, or an inconsistent action.
+Columns are enums (`blog::Column::Title`): the compiler rejects a missing column, and the boot rejects an exposed secret or an inconsistent action.
 
 ## Before you start
 
@@ -12,8 +12,8 @@ Columns are enums (`blog::Column::Title`) — the compiler rejects a missing col
   runique = { version = "4.0.0", features = ["postgres", "admin"] }
   ```
 
-- **`with_public_url` is required in production** when the admin is enabled: without it, the boot is refused (links sent by email would be built from the request's `Host` header, which anyone can forge). In debug, the request's `Host` stands in for it.
-- **Every `model!{}` of the project must be registered** in the admin (`register`, or `accounts_users` for the accounts' extension). At boot, group rights targeting an unregistered model are deleted from the database.
+- **`with_public_url` is required in production** when the admin is enabled: without it, the boot is refused (links sent by email are never built from the request's `Host` header, which anyone can forge). In development (`RUNIQUE_ENV=dev`), the address is always `http://127.0.0.1:{PORT}`.
+- **Every `model!{}` of the project must be registered** in the admin (`register`, or `accounts_users` for the accounts' extension). At boot, the rights targeting an unregistered model (the groups' as well as the admins' grids) are **permanently deleted** from the database.
 - The framework's accounts, groups and rights are provided: you don't declare them.
 
 ## Minimal example
@@ -48,7 +48,7 @@ fn articles() -> ModelAdmin<article::Entity> {
 Then in `main`:
 
 ```rust
-builder::new(config)
+RuniqueApp::builder(config)
     .routes(url::routes())
     .with_database(db)
     .with_admin(admin::config)

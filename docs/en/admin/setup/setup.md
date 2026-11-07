@@ -59,7 +59,7 @@ fn articles() -> ModelAdmin<article::Entity> {
 Notes:
 
 - `accounts_users(...)` replaces the framework's accounts admin with yours, built on your `extend!` of `eihwaz_users`. It is the only way to replace it: registering a model under the accounts' key refuses the boot.
-- `register(...)` adds a business model. **Register every `model!{}`**: at boot, group rights targeting an unregistered model are deleted from the database.
+- `register(...)` adds a business model. **Register every `model!{}`**: at boot, the rights targeting an unregistered model (the groups' as well as the admins' grids) are **permanently deleted** from the database.
 - Accounts and groups already exist in the framework; you do not recreate them
 
 ## Step 2 — Declare the module
@@ -125,7 +125,7 @@ Two separate knobs:
 | `.with_login_guard(...)` | Lockout after N failures |
 | `.templates(…)` | Template overrides, see [Templates](/docs/en/admin/template-surcharge) |
 | `.resource_order([…])` | Order of the models in the menu (unlisted keys last) |
-| `.view_site_url("…")` | "Back to the site" link when the public site is served elsewhere (default: `with_public_url`, else `/`) |
+| `.view_site_url("…")` | "Back to the site" link when the public site is served elsewhere (default: `/`) |
 | `.sitemap("https://…")` | Sitemap directive in `/robots.txt` |
 | `.no_robots_txt()` | Disable auto robots.txt |
 | `.disable()` / `.enable()` | Turn the panel off or on |

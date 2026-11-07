@@ -40,22 +40,28 @@ is_protected(record) = true if:
 ## Use case — protecting a shopping cart
 
 ```rust
-pub async fn add_to_cart(request: Request, item: Item) -> AppResult<Response> {
-    // Add item to cart
+use runique::prelude::*;
+
+pub async fn add_to_cart(request: Request) -> AppResult<Response> {
+    // The item comes from the URL: /cart/add?item=42
+    let mut cart: Vec<String> = request.session.get("cart").await?.unwrap_or_default();
+    if let Some(item) = request.get_query("item") {
+        cart.push(item.to_string());
+    }
     request.session.insert("cart", &cart).await?;
 
-    // Protect the session for 2 hours against emergency cleanup
+    // Protect the session for 2h against emergency cleanup
     protect_session(&request.session, 60 * 60 * 2).await?;
 
-    Ok(redirect("/cart"))
+    Ok(Redirect::to("/cart").into_response())
 }
 
 pub async fn checkout_complete(request: Request) -> AppResult<Response> {
-    // Clear cart and remove protection
-    request.session.remove::<Cart>("cart").await?;
+    // Empty the cart and remove the protection
+    request.session.remove::<Vec<String>>("cart").await?;
     unprotect_session(&request.session).await?;
 
-    Ok(redirect("/confirmation"))
+    Ok(Redirect::to("/confirmation").into_response())
 }
 ```
 

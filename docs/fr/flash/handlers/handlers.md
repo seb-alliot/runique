@@ -9,12 +9,14 @@ pub async fn sign_up(mut request: Request) -> AppResult<Response> {
     let validated = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated,
         Err(form) => {
-            // ❌ Validation échouée → message immédiat (pas de redirect)
-            context_update!(request => {
-                "title" => "Erreur de validation",
-                "signup_form" => &form,
-                "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
-            });
+            context_update!(request => { "title" => "Inscription", "signup_form" => &form });
+            // ❌ Envoyé mais invalide → message immédiat (pas de redirect).
+            // Au premier affichage (GET), rien n'a été envoyé : pas de message.
+            if form.is_submitted() {
+                context_update!(request => {
+                    "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
+                });
+            }
             return request.render("signup.html");
         }
     };
@@ -41,25 +43,35 @@ pub async fn sign_up(mut request: Request) -> AppResult<Response> {
 
 ## Plusieurs types de messages
 
+Pour la page affichée par ce handler, `flash_now!` (sans session) :
+
 ```rust
 pub async fn about(mut request: Request) -> AppResult<Response> {
-    success!(request.notices => "Ceci est un message de succès.");
-    info!(request.notices => "Ceci est un message d'information.");
-    warning!(request.notices => "Ceci est un message d'avertissement.");
-    error!(request.notices => "Ceci est un message d'erreur.");
-
     context_update!(request => {
         "title" => "À propos",
+        "messages" => flash_now!(info => "Ceci est un message d'information.", "Et un second."),
     });
     request.render("about.html")
 }
 ```
 
+Pour la page suivante, les macros de session, puis une redirection :
+
+```rust
+pub async fn publier(request: Request) -> AppResult<Response> {
+    success!(request.notices => "Ceci est un message de succès.");
+    warning!(request.notices => "Ceci est un message d'avertissement.");
+    Ok(Redirect::to("/articles").into_response())
+}
+```
+
+> `success!` suivi d'un `render` dans la même requête n'affiche rien maintenant : les messages de session sont lus **au début** de la requête, avant le handler. Ils apparaîtraient à la requête suivante, sur une autre page.
+
 ---
 
 ## Comportement flash (une seule lecture)
 
-Les messages flash stockés en session sont **consommés automatiquement** lors de l'affichage :
+Les messages flash stockés en session sont **lus puis retirés** au début de la requête suivante (à l'extraction de `Request`), qu'ils soient affichés ou non :
 
 ```
 1. POST /signup
@@ -67,9 +79,8 @@ Les messages flash stockés en session sont **consommés automatiquement** lors 
    → Redirect::to("/")
 
 2. GET /
-   → Les messages sont lus depuis la session
-   → Affichés dans le template
-   → Supprimés de la session
+   → Les messages sont lus depuis la session et supprimés
+   → Placés dans le contexte (`messages`), affichés par {% messages %}
 
 3. GET / (reload)
    → Plus de messages (déjà consommés)

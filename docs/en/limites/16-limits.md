@@ -1,6 +1,6 @@
 # Known limits
 
-What Runique 4.0 doesn't do yet, or does with a restriction. Each line points to the page explaining the limit and what to do meanwhile. Open security findings are kept apart, in `faille.md` at the repository root.
+What Runique 4.0 doesn't do yet, or does with a restriction. Each line points to the page explaining the limit and what to do meanwhile. The security policy and the fixed vulnerabilities are described in [`SECURITY.md`](https://github.com/seb-alliot/runique/blob/main/SECURITY.md).
 
 ---
 
@@ -27,6 +27,8 @@ What Runique 4.0 doesn't do yet, or does with a restriction. Each line points to
 | `LoginGuard` locks by username: someone can lock an account whose name they know | [LoginGuard](/docs/en/auth/login-guard) |
 | The in-memory session store belongs to one process | [Session store](/docs/en/session/store) |
 | A custom store (`with_session_store`) can't be walked per user: a password reset doesn't close its sessions | [Session](/docs/en/auth/session) |
+| Session duration: one for every signed-in account; "remember me" (a duration per session) is not possible yet | [Sessions](/docs/en/middleware/sessions) |
+| At most 5 custom middlewares (a 6th makes startup panic); they run before the session, without the signed-in account | [Middleware stack](/docs/en/architecture/middleware) |
 | `Delegated` mode: no external provider (OAuth, LDAP, SAML) is implemented | [Passwords](/docs/en/configuration/password) |
 | ACME: one site per machine (port 80 exclusive) | [Network](/docs/en/installation/network) |
 
@@ -35,7 +37,7 @@ What Runique 4.0 doesn't do yet, or does with a restriction. Each line points to
 | Limit | Details |
 | --- | --- |
 | `.links`, `.search_help`, `.empty_value` accepted but with no effect on the display | [ModelAdmin builder](/docs/en/admin/declaration-macro) |
-| No global theme stylesheet (workaround through a block)<br>`.with_htmx` is global, no per-model list fragment<br>A missing page template or stylesheet is only reported when shown | [Template override](/docs/en/admin/template-surcharge) |
+| No global theme stylesheet (workaround through a block)<br>`.with_htmx` is global, no per-model list fragment<br>In production, a missing page template is only reported when shown (boot refused in dev or with `DEBUG=true`); a missing stylesheet never is | [Template override](/docs/en/admin/template-surcharge) |
 | No session management interface | — |
 | Many-to-many: declared in the DSL through a pivot table, not managed in the admin | [Roadmap](/docs/en/admin/evolution) |
 

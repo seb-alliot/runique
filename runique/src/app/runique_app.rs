@@ -105,6 +105,49 @@ async fn cert_needs_renewal(expires_path: &std::path::Path) -> bool {
     chrono::Utc::now() >= renew_after
 }
 
+/// Runs `renew` when the certificate's renewal date has passed. Returns
+/// whether it ran.
+#[cfg(feature = "acme")]
+async fn renew_if_due<F, Fut>(expires_path: &std::path::Path, renew: F) -> bool
+where
+    F: FnOnce() -> Fut,
+    Fut: std::future::Future<Output = ()>,
+{
+    if !cert_needs_renewal(expires_path).await {
+        return false;
+    }
+    renew().await;
+    true
+}
+
+/// Obtains a certificate from Let's Encrypt and stores it in `certs_dir`
+/// with its renewal date (90-day certificates, renewed after 60).
+#[cfg(feature = "acme")]
+async fn obtain_and_store(
+    domain: &str,
+    email: &str,
+    challenge_store: crate::utils::acme::ChallengeStore,
+    certs_dir: &str,
+) -> Result<(Vec<u8>, Vec<u8>), Box<dyn std::error::Error>> {
+    let (cert, key) = crate::utils::acme::obtain_certificate(
+        domain,
+        email,
+        challenge_store,
+        false, // production — use true for testing
+    )
+    .await?;
+    tokio::fs::create_dir_all(certs_dir).await?;
+    tokio::fs::write(format!("{certs_dir}/cert.pem"), &cert).await?;
+    crate::utils::private_file::write(std::path::Path::new(&format!("{certs_dir}/key.pem")), &key)?;
+    let renew_after = chrono::Utc::now() + chrono::Duration::days(60);
+    tokio::fs::write(format!("{certs_dir}/expires.txt"), renew_after.to_rfc3339()).await?;
+    tracing::info!(
+        "Certificate will be renewed after {}",
+        renew_after.format("%Y-%m-%d")
+    );
+    Ok((cert, key))
+}
+
 impl RuniqueApp {
     /// HTTPS server with automatic Let's Encrypt certificate (ACME HTTP-01).
     ///
@@ -117,7 +160,7 @@ impl RuniqueApp {
         // Err = un provider crypto est déjà installé (idiome rustls) → bénin, pas une
         // erreur avalée : l'objectif (un provider par défaut présent) est atteint.
         let _ = rustls::crypto::ring::default_provider().install_default();
-        use crate::utils::acme::{ChallengeStore, obtain_certificate};
+        use crate::utils::acme::ChallengeStore;
         use axum::{
             extract::{Path, State},
             response::Redirect,
@@ -199,31 +242,8 @@ impl RuniqueApp {
                 tokio::fs::read(key_path).await?,
             )
         } else {
-            match obtain_certificate(
-                &domain,
-                &email,
-                challenge_store,
-                false, // production — use true for testing
-            )
-            .await
-            {
-                Ok((cert, key)) => {
-                    // Persist to disk for future restarts
-                    tokio::fs::create_dir_all(certs_dir).await?;
-                    tokio::fs::write(&cert_path, &cert).await?;
-                    // A few bytes once at startup: written in place, owner-only.
-                    crate::utils::private_file::write(key_path, &key)?;
-
-                    // Store renewal date: Let's Encrypt certs last 90 days, renew after 60
-                    let renew_after = chrono::Utc::now() + chrono::Duration::days(60);
-                    tokio::fs::write(expires_path, renew_after.to_rfc3339()).await?;
-                    tracing::info!(
-                        "Certificate will be renewed after {}",
-                        renew_after.format("%Y-%m-%d")
-                    );
-
-                    (cert, key)
-                }
+            match obtain_and_store(&domain, &email, challenge_store.clone(), certs_dir).await {
+                Ok(pems) => pems,
                 Err(e) => {
                     // ACME failed (rate-limit, network issue, etc.)
                     // Fall back to the existing cert on disk if available
@@ -246,6 +266,40 @@ impl RuniqueApp {
         // Start HTTPS server on port 443
         let https_addr = format!("{ip}:443");
         let tls_config = axum_server::tls_rustls::RustlsConfig::from_pem(cert_pem, key_pem).await?;
+
+        // The certificate is checked again every 12 hours: a process running
+        // past its renewal date gets the new one without a restart.
+        let renewal = (
+            domain.clone(),
+            email,
+            challenge_store,
+            certs_dir.clone(),
+            tls_config.clone(),
+        );
+        tokio::spawn(async move {
+            let (domain, email, store, certs_dir, tls) = renewal;
+            let expires = std::path::PathBuf::from(format!("{certs_dir}/expires.txt"));
+            let mut ticker = tokio::time::interval(std::time::Duration::from_secs(12 * 3600));
+            ticker.tick().await;
+            loop {
+                ticker.tick().await;
+                renew_if_due(&expires, || async {
+                    let obtained = obtain_and_store(&domain, &email, store.clone(), &certs_dir)
+                        .await
+                        .map_err(|e| e.to_string());
+                    match obtained {
+                        Ok((cert, key)) => match tls.reload_from_pem(cert, key).await {
+                            Ok(()) => tracing::info!("TLS certificate renewed and reloaded"),
+                            Err(e) => tracing::warn!(error = %e, "Renewed certificate not loaded — keeping the current one"),
+                        },
+                        Err(e) => {
+                            tracing::warn!(error = %e, "ACME renewal failed — keeping the current certificate");
+                        }
+                    }
+                })
+                .await;
+            }
+        });
 
         println!("   {}", t("server.operational"));
         println!(
@@ -299,6 +353,31 @@ mod cert_renewal_tests {
         assert!(!cert_needs_renewal(&path).await, "still valid");
         write(chrono::Utc::now() - chrono::Duration::seconds(1));
         assert!(cert_needs_renewal(&path).await, "date passed");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn the_renewal_runs_once_its_date_is_past_and_never_before() {
+        use super::renew_if_due;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let dir = std::env::temp_dir().join(format!("rq_acme_{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("expires.txt");
+        let runs = AtomicUsize::new(0);
+        let renew = || async {
+            runs.fetch_add(1, Ordering::SeqCst);
+        };
+
+        std::fs::write(&path, (chrono::Utc::now() + chrono::Duration::days(1)).to_rfc3339())
+            .unwrap();
+        assert!(!renew_if_due(&path, renew).await);
+        assert_eq!(runs.load(Ordering::SeqCst), 0, "not due yet");
+
+        std::fs::write(&path, (chrono::Utc::now() - chrono::Duration::seconds(1)).to_rfc3339())
+            .unwrap();
+        assert!(renew_if_due(&path, renew).await);
+        assert_eq!(runs.load(Ordering::SeqCst), 1, "due: renewed once");
 
         let _ = std::fs::remove_dir_all(&dir);
     }

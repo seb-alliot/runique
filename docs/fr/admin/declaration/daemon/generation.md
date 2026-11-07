@@ -59,7 +59,7 @@ fn every_registered_model_passes_the_boot_checks() {
 
 - les surcharges de templates (voir [Surcharge](/docs/fr/admin/template-surcharge)) ;
 - en production, `with_public_url` est obligatoire quand l'admin est actif ;
-- les droits de groupe qui visent un modèle non enregistré sont supprimés de la base (seulement si le projet a enregistré au moins un de ses modèles).
+- les droits qui visent un modèle non enregistré (ceux des groupes comme les grilles des admins) sont **supprimés définitivement** de la base (seulement si le projet a enregistré au moins un de ses modèles).
 
 ## Défauts appliqués
 

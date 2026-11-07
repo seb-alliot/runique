@@ -12,6 +12,20 @@ Runique pre-processes templates to transform Django-like syntax into standard Te
 
 **Transformed into:** `{{ "css/main.css" | static }}` → `/static/css/main.css`
 
+In production, the tag also adds the file's fingerprint: `integrity="sha384-…" crossorigin="anonymous"`, computed at startup from the content of `STATICFILES_DIRS`. In development (`RUNIQUE_ENV=dev`), no fingerprint: a changed file is served without a restart.
+
+> The tag must sit **inside the attribute's quotes** (`href='{% static "…" %}'`): those quotes are part of the replacement rule. Written outside an attribute, it is not transformed.
+
+---
+
+## {% runique_static %} — Runique's static files
+
+```html
+<link rel="stylesheet" href='{% runique_static "css/auth.css" %}'>
+```
+
+Like `{% static %}`, but for the files Runique provides (admin, authentication pages, `js/csrf.js`): the fingerprint is read from Runique's static folder.
+
 ---
 
 ## {% media %} — Media files (uploads)

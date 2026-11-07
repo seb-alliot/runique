@@ -19,6 +19,7 @@ Runique inclut un modèle utilisateur prêt à l'emploi, sans aucune configurati
 | `created_at` | datetime | Date de création |
 | `updated_at` | datetime | Date de mise à jour |
 | `activated_at` | datetime | Activation par le propriétaire (vide tant que le compte est en attente) |
+| `session_version` | `i32` | Augmentée pour fermer toutes les sessions du compte (`close_user_sessions`, reset réussi) : une session ouverte avec une version plus ancienne prend fin |
 
 Pour créer le premier superutilisateur :
 
@@ -66,7 +67,7 @@ Deux colonnes décrivent l'état d'un compte : `is_active` (est-il actif ?) et `
 - Pour annuler une invitation (compte en attente), supprimer le compte.
 
 La garantie « pas de `is_active` sans `activated_at` » est posée **en base** : une contrainte
-`CHECK` créée avec la table `eihwaz_users`, sur les trois moteurs. Elle s'applique aussi au SQL brut.
+`CHECK` créée avec la table `eihwaz_users`, sur les trois moteurs. Elle s'applique aussi au SQL brut. Une seconde contrainte `CHECK` refuse qu'un compte porte plus d'un rang à la fois (`is_superuser`, `is_dirigeant`, `is_admin`).
 
 Côté code, le modèle implémente le trait `RuniqueUser` :
 
