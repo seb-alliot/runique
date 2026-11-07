@@ -9,6 +9,7 @@ use quote::quote;
 pub fn generate_schema(model: &ModelInput) -> TokenStream2 {
     let name = &model.name;
     let table = &model.table;
+    let pk_name = model.pk.name.to_string();
     let pk = generate_pk(&model.pk);
     let columns: Vec<TokenStream2> = model
         .fields
@@ -19,6 +20,8 @@ pub fn generate_schema(model: &ModelInput) -> TokenStream2 {
     let meta = generate_meta(model);
 
     quote! {
+        /// The primary key's column: the database sets it, `#[form]` refuses it.
+        pub const PRIMARY_KEY: &str = #pk_name;
         pub fn schema() -> ::runique::migration::schema::ModelSchema {
             ::runique::migration::ModelSchema::new(stringify!(#name))
                 .table_name(#table)

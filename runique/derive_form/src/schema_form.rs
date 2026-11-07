@@ -114,7 +114,17 @@ pub(crate) fn model_schema(attr: TokenStream, item: TokenStream) -> TokenStream 
         variant.set_span(field.span());
         quote_spanned! { field.span()=> let _ = #schema_path::Column::#variant; }
     });
-    let column_check = quote! { const _: () = { #(#checks)* }; };
+    // The key is the database's to set: listed in `fields`, refused here.
+    let key_checks = fields.iter().flatten().map(|field| {
+        let name = field.to_string();
+        let message = format!(
+            "#[form]: `{name}` is the primary key; the database sets it, it is never a form field"
+        );
+        quote_spanned! { field.span()=>
+            assert!(!::runique::forms::__same_name(#schema_path::PRIMARY_KEY, #name), #message);
+        }
+    });
+    let column_check = quote! { const _: () = { #(#checks)* #(#key_checks)* }; };
 
     let fields_expr = ident_list_to_expr(fields);
     let exclude_expr = ident_list_to_expr(exclude);

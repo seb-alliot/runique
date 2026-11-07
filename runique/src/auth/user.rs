@@ -331,6 +331,8 @@ pub async fn authenticate_admin(db: &ADb, username: &str, password: &str) -> Opt
 
 // ─── Form Schema ────────────────────────────────────────────────────────
 
+pub const PRIMARY_KEY: &str = "id";
+
 /// Returns the `ModelSchema` of the `eihwaz_users` table.
 /// Used by `#[form(schema = runique_users)]` — no need to declare the entity locally.
 pub fn schema() -> crate::migration::schema::ModelSchema {
