@@ -196,7 +196,7 @@ Référence complète : [Variables d'environnement](https://runique.io/docs/en/e
 
 ## État du projet
 
-Pour le rapport d'état détaillé et continuellement mis à jour, voir [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.en.md).
+Pour l'avancement du chantier `makemigrations`, voir [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/PROJECT_STATUS.md). Pour les limites connues, voir [la page dédiée](https://runique.io/docs/fr/limites).
 
 ## Ressources
 

@@ -24,16 +24,17 @@ documentation (fr/en) et le CHANGELOG sont à jour.
 - **Correctifs de sécurité (4.0.x)** : plafonner le nombre de clés gardées en mémoire par
   `RateLimiter` et `LoginGuard`, et tester la protection contre les open redirects avec des
   charges connues de contournement d'URL.
-- **makemigrations** : générer toutes les opérations de schéma sans étape manuelle : suppression
+- **4.1, makemigrations** : générer toutes les opérations de schéma sans étape manuelle : suppression
   de tables, création et suppression des tables de relation, respect de cascade, restrict et
   set_null, vrai `ALTER` lors d'un changement de type, détection des changements de valeur par
   défaut, et colonnes à la fois renommées et modifiées. Les noms de contraintes sont lus en base,
   et les changements destructeurs indiquent ce qu'ils touchent.
-- **Relations many-to-many** : générer la table pivot et sa migration depuis le DSL du modèle,
-  avec des méthodes d'accès. Une table pivot écrite à la main, avec des colonnes en plus, reste
-  possible.
-- **Conditions imbriquées dans `search!`** : permettre des groupes ET dans un OU, et la négation
-  d'une condition ou d'un groupe, à toute profondeur, toujours avec des requêtes typées.
+  La table pivot du many-to-many est générée depuis le DSL du modèle ; une table écrite à la main,
+  avec des colonnes en plus, reste possible.
+- **4.2, base de données** : `get_or_create`, `update_or_create`, `exists()`, `last()`,
+  chargement des relations en une requête,
+  méthodes d'accès du many-to-many et sa gestion dans l'admin. `search!` accepte aussi des groupes
+  ET dans un OU, et la négation d'une condition ou d'un groupe, toujours avec des requêtes typées.
 - **Tracing** : finir la sortie fichier avec rotation, ajouter un identifiant de requête et ne
   laisser aucune erreur ignorée en silence. Les clés de traduction manquantes seront journalisées.
 - **Langues ajoutées par un projet** : permettre à un projet de fournir une langue absente de

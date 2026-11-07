@@ -119,8 +119,15 @@ Vérifié à nouveau sur un `Cargo.lock` local le 2026-11-07 ; ce fichier n'est 
 | 3.0.2 | Corps de requête urlencoded / JSON sans limite de taille | Moyenne |
 | 3.0.2 | Réinitialisation de mot de passe de l'admin accessible depuis une ressource qui n'est pas un compte | Faible |
 | 3.0.2 | Admin acceptant le jeton CSRF brut (masquage par réponse contourné) | Durcissement |
+| 2.1.17 | Tokens de reset : mémoire → DB (hashés, single-use, durcis IDOR) | Durcissement |
+| 2.1.15 | Énumération d'utilisateurs via timing attack au login | Moyenne |
+| 2.1.15 | Contrôle d'accès manquant sur l'action admin reset-password | Moyenne |
+| 2.1.9 | Injection SQL dans les filtres de liste admin | Élevée |
+| 2.1.9 | Fixation de session au login (cycle_id manquant) | Moyenne |
+| 2.1.9 | Granularité droits write admin (create/update/delete indistincts) | Moyenne |
+| 2.1.9 | IDOR — can_update_own/can_delete_own non appliqués | Faible |
 
-Les principaux correctifs de la 4.0 sont décrits plus haut, dans « Failles en cours (corrigées en 4.0) ». Détails dans le CHANGELOG : [3.0.3](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md#303---2026-10-10), [3.0.2](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md#302---2026-10-09). Les correctifs plus anciens (2.1.x) sont listés dans [PROJECT_STATUS](https://github.com/seb-alliot/runique/blob/main/docs/fr/PROJECT_STATUS.md).
+Les principaux correctifs de la 4.0 sont décrits plus haut, dans « Failles en cours (corrigées en 4.0) ». Détails dans le CHANGELOG : [3.0.3](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md#303---2026-10-10), [3.0.2](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md#302---2026-10-09).
 
 ## Signaler une vulnérabilité
 
