@@ -4,7 +4,7 @@ use quote::quote;
 
 // ── ActiveModel ───────────────────────────────────────────────
 pub fn generate_active_model(model: &ModelInput) -> TokenStream2 {
-    let behavior = generate_active_model_behavior(&model.fields);
+    let behavior = generate_active_model_behavior(&model.fields, None);
     quote! {
         #behavior
         ::runique::impl_objects!(Entity);
@@ -14,8 +14,12 @@ pub fn generate_active_model(model: &ModelInput) -> TokenStream2 {
 /// `ActiveModelBehavior` for a model's entity: fills its `auto_now` columns on
 /// insert (unless the row already sets them) and its `auto_now_update` columns
 /// on every save — in SeaORM, the same on every engine, instead of a database
-/// trigger only some engines had.
-pub fn generate_active_model_behavior(fields: &[FieldDef]) -> TokenStream2 {
+/// trigger only some engines had. `extra` runs in the same hook, for the
+/// columns an `extend!{}` inherits instead of declaring.
+pub fn generate_active_model_behavior(
+    fields: &[FieldDef],
+    extra: Option<TokenStream2>,
+) -> TokenStream2 {
     let stamped = |field: &FieldDef, wanted: fn(&FieldOption) -> bool| {
         field
             .options
@@ -46,7 +50,7 @@ pub fn generate_active_model_behavior(fields: &[FieldDef]) -> TokenStream2 {
         })
         .collect();
 
-    if on_insert.is_empty() && on_save.is_empty() {
+    if on_insert.is_empty() && on_save.is_empty() && extra.is_none() {
         return quote! { impl ::sea_orm::ActiveModelBehavior for ActiveModel {} };
     }
     quote! {
@@ -62,6 +66,7 @@ pub fn generate_active_model_behavior(fields: &[FieldDef]) -> TokenStream2 {
             {
                 #(#on_insert)*
                 #(#on_save)*
+                #extra
                 ::std::result::Result::Ok(self)
             }
         }

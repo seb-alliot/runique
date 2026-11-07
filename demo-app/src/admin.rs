@@ -284,11 +284,11 @@ fn page_doc_link() -> ModelAdmin<page_doc_link::Entity> {
 fn roadmap_entry() -> ModelAdmin<roadmap_entry::Entity> {
     use roadmap_entry::Column::*;
     ModelAdmin::new().title("Roadmap").list(|l| {
-        l.display([Title, Status, SortOrder])
+        l.display([Title, Lang, Status, SortOrder])
             .links([Title])
             .ordering([(SortOrder, Order::Asc)])
             .search([Title])
-            .filter([Status])
+            .filter([Lang, Status])
             .action(Status, "Active", "Activer")
             .action(Status, "Planned", "Planifier")
             .action(Status, "Future", "Reporter")

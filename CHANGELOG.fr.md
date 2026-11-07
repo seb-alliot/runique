@@ -77,6 +77,7 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 #### Corrigé
 
+* **Comptes créés dans l'admin sans date** : `created_at` et `updated_at` n'étaient écrits que par la CLI ou le formulaire d'un projet. L'entité des comptes et un `extend!` de `eihwaz_users` les remplissent maintenant à l'enregistrement, en gardant une date écrite par le code.
 * **Champs d'une fiche de l'admin dans un ordre aléatoire** : la page suivait la map du template, qui ne garde pas l'ordre. Elle montre maintenant les colonnes de la liste dans leur ordre, puis celles du formulaire, avec la nouvelle clé `detail_columns`, et les dates et heures en dernier. Une liste automatique les met aussi à la fin ; un `display` déclaré garde son ordre.
 * **`session_version` sur la fiche d'un compte dans l'admin** : le compteur qui révoque les sessions s'affichait parmi les champs quand la ressource des comptes ne déclare pas de `.form()`. Il n'y est plus lu.
 * **Dates de l'admin affichées en ISO brut** : les listes et les fiches montraient `2026-11-06T14:58:32.907849`. Les dates-heures et les heures s'affichent maintenant comme dans l'historique, depuis une seule fonction (`2026-11-06 14:58:32`), avec le nouveau filtre `display_time`.

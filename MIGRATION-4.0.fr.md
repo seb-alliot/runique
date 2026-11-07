@@ -406,3 +406,4 @@ Voir [la doc CSRF](https://runique.io/docs/fr/middleware/csrf).
 
 - En production, `with_password_reset()` sans mailer arrête le démarrage.
 - `AdminConfig.reset_route` devient `reset_link`, posé par le builder.
+- Le lien ne porte plus d'e-mail chiffré : retirez `encrypted_email` du `{% link "reset_password" ... %}` de vos templates surchargés, qui ne s'afficheraient plus.

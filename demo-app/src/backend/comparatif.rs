@@ -41,7 +41,7 @@ pub async fn comparatif_page(request: &mut Request) -> AppResult<Response> {
     let cot = doc_blocks(lang, "comparatif", "cot", request).await;
     let django = doc_blocks(lang, "comparatif", "index", request).await;
     let limits = doc_blocks(lang, "limites", "index", request).await;
-    let roadmap = fetch_roadmap(&request.engine.db).await;
+    let roadmap = fetch_roadmap(&request.engine.db, lang).await;
     context_update!(request => {
         "title"   => if lang == "fr" { "Comparatif" } else { "Comparison" },
         "loco"    => &loco,

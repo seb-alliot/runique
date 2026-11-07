@@ -118,8 +118,8 @@ pub async fn fetch_known_issues(db: &ADb) -> Vec<CardSection> {
     sections
 }
 
-pub async fn fetch_roadmap(db: &ADb) -> Vec<CardSection> {
-    let all = search!(RoadmapEntryEntity => asc SortOrder)
+pub async fn fetch_roadmap(db: &ADb, lang: &str) -> Vec<CardSection> {
+    let all = search!(RoadmapEntryEntity => Lang eq lang, asc SortOrder)
         .all(db)
         .await
         .unwrap_or_default();

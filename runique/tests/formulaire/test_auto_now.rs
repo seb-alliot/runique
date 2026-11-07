@@ -119,3 +119,59 @@ async fn auto_now_alone_stamps_a_timestamp_tz() {
         .expect("stamped");
     assert!(row.tz >= before - chrono::Duration::seconds(1));
 }
+
+mod accounts_ext {
+    use runique::prelude::*;
+
+    extend! {
+        table: "eihwaz_users",
+        fields: {
+            signature: text [nullable],
+        }
+    }
+}
+
+macro_rules! account_dates_tests {
+    ($module:ident, $model:path) => {
+        mod $module {
+            use super::old;
+            use crate::helpers::db;
+            use runique::sea_orm::{ActiveModelBehavior, ActiveValue};
+
+            type Account = $model;
+
+            #[tokio::test]
+            async fn a_created_account_gets_both_dates() {
+                let conn = db::fresh_db().await;
+                let row = Account::default().before_save(&conn, true).await.unwrap();
+                assert!(row.created_at.is_set() && row.updated_at.is_set());
+            }
+
+            #[tokio::test]
+            async fn dates_the_writer_sets_are_kept() {
+                let conn = db::fresh_db().await;
+                let row = Account {
+                    created_at: ActiveValue::Set(Some(old())),
+                    updated_at: ActiveValue::Set(Some(old())),
+                    ..Default::default()
+                }
+                .before_save(&conn, true)
+                .await
+                .unwrap();
+                assert_eq!(row.created_at, ActiveValue::Set(Some(old())));
+                assert_eq!(row.updated_at, ActiveValue::Set(Some(old())));
+            }
+
+            #[tokio::test]
+            async fn an_update_only_touches_updated_at() {
+                let conn = db::fresh_db().await;
+                let row = Account::default().before_save(&conn, false).await.unwrap();
+                assert!(row.updated_at.is_set());
+                assert!(row.created_at.is_not_set());
+            }
+        }
+    };
+}
+
+account_dates_tests!(builtin_accounts, runique::auth::user::ActiveModel);
+account_dates_tests!(extended_accounts, super::accounts_ext::ActiveModel);
