@@ -117,7 +117,7 @@ psql -U runique_user -d mon_projet -h localhost
 
 ## Limites actuelles
 
-- **Un moteur par compilation.** Une application ne peut pas parler à deux moteurs différents en même temps (sauf `all-databases`, réservé aux outils).
+- **Un moteur par compilation.** L'ORM (SeaORM) ne parle qu'à un moteur à la fois (sauf `all-databases`, réservé aux outils). Rien n'empêche d'attacher **en plus** une base externe — Redis, MongoDB, un PostgreSQL de rab : clin d'œil à [`with_custom_db`](/docs/fr/configuration/builder).
 - **SQLite n'accepte qu'un écrivain à la fois** sur toute la base : sous forte charge en écriture, une requête peut attendre puis échouer (`SQLITE_BUSY`). C'est le moteur de développement ; préférez PostgreSQL en production.
 - **Les migrations générées sont communes à tous les moteurs** : ce qui ne concerne qu'un moteur (type natif `CREATE TYPE` des enums sous PostgreSQL, clés étrangères d'un cycle) est choisi à l'exécution, dans le fichier. Changer de moteur ne demande pas de régénérer les migrations, mais une **base neuve** : les données ne sont pas transférées d'un moteur à l'autre.
 

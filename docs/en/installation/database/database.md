@@ -117,7 +117,7 @@ psql -U runique_user -d my_project -h localhost
 
 ## Current limits
 
-- **One engine per build.** An app can't talk to two different engines at once (except `all-databases`, meant for tools).
+- **One engine per build.** The ORM (SeaORM) talks to a single engine at a time (except `all-databases`, meant for tools). Nothing stops you from attaching **another** external database — Redis, MongoDB, a spare PostgreSQL: a nod to [`with_custom_db`](/docs/en/configuration/builder).
 - **SQLite accepts one writer at a time** over the whole database: under heavy write load, a query may wait, then fail (`SQLITE_BUSY`). It is the development engine; prefer PostgreSQL in production.
 - **The generated migrations are shared by every engine**: what concerns one engine only (PostgreSQL's native `CREATE TYPE` for enums, the foreign keys of a cycle) is chosen at run time, in the file. Switching engines needs no new migrations, but a **fresh database**: data isn't carried from one engine to another.
 
