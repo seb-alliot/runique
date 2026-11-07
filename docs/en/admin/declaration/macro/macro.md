@@ -71,7 +71,7 @@ Keep `use …::Column::*` **inside** the model function so two models with a `Ti
 Boot rules:
 
 - action column must be **writable** on edit (in `fields`, not `readonly` / `create_only`)
-- forbidden on secrets, owner, and account rank flags (`is_superuser`, `is_dirigeant`, `is_admin`, `is_active`)
+- forbidden on secrets and the owner, and, on the accounts table only, on the rank flags and the activation (`is_superuser`, `is_dirigeant`, `is_admin`, `is_active`)
 
 ## Form — `FormConfig`
 

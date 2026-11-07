@@ -29,6 +29,7 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     "admin.login.label_username",
     "admin.login.label_password",
     "admin.login.btn_submit",
+    "admin.login.back_to_site",
     "admin.login.error_session",
     "admin.login.error_credentials",
     "admin.login.error_locked",

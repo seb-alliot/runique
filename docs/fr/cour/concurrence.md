@@ -450,16 +450,17 @@ pub fn is_debug() -> bool {
     *DEBUG
 }
 
+// Jeton de cache des fichiers statiques (?v=...), calculé une seule fois :
+// une empreinte du contenu de tous les .css/.js du projet et de Runique.
+// Il change dès qu'un de ces fichiers change ; "1000" si aucun n'est trouvé.
+static CSS_TOKEN: LazyLock<String> = LazyLock::new(|| {
+    let static_dir = std::env::var("STATICFILES_DIRS").unwrap_or_else(|_| "static".to_string());
+    let runique_dir = crate::config::StaticConfig::from_env().static_runique_path;
+    asset_token(&[&static_dir, &runique_dir])
+});
+
 pub fn css_token() -> String {
-    static TOKEN: LazyLock<String> = LazyLock::new(|| {
-        use std::time::{SystemTime, UNIX_EPOCH};
-        let ts = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .subsec_millis();
-        format!("{:04}", ts % 10_000)
-    });
-    TOKEN.clone()
+    CSS_TOKEN.clone()
 }
 ```
 

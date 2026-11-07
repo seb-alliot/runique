@@ -16,7 +16,8 @@ pub async fn handler(request: Request) -> AppResult<Response> {
     // Remove a key
     request.session.remove::<i32>("cart_id").await?;
 
-    // Destroy the entire session
+    // Empty the whole session (to sign out, prefer `logout`, which also
+    // deletes the database row and renews the id)
     request.session.flush().await?;
 
     request.render("page.html")
@@ -57,7 +58,7 @@ These defaults are set automatically by the builder and cannot be overridden wit
 ```rust
 let app = RuniqueApp::builder(config)
     // Session lifetime (available directly on the builder)
-    .with_session_duration(time::Duration::hours(2))
+    .with_session_duration(runique::tower_sessions::cookie::time::Duration::hours(2))
     // Watermarks and cleanup interval (via .middleware())
     .middleware(|m| {
         m.with_session_memory_limit(64 * 1024 * 1024, 128 * 1024 * 1024)

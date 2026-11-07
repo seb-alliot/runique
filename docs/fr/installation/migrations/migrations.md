@@ -126,7 +126,7 @@ Cinq migrations du framework sont placées en tête de `lib.rs`, sans rien à d�
 
 | Migration | Crée | Ordre |
 | --- | --- | --- |
-| `EihwazUsersMigration` | `eihwaz_users` (id, username, email, password, is_active, is_superuser, is_dirigeant, is_admin, activated_at, created_at, updated_at) | 1er |
+| `EihwazUsersMigration` | `eihwaz_users` (id, username, email, password, is_active, is_superuser, is_dirigeant, is_admin, session_version, activated_at, created_at, updated_at) | 1er |
 | `EihwazSessionsMigration` | `eihwaz_sessions` (sessions authentifiées persistées) | 2e |
 | `AdminTableMigration` | `eihwaz_groupes`, `eihwaz_groupes_droits`, `eihwaz_users_groupes` | 3e |
 | `EihwazHistoryMigration` | `eihwaz_history` (historique des modifications de l'admin) | 4e |
@@ -144,9 +144,9 @@ use runique::prelude::*;
 extend! {
     table: "eihwaz_users",
     fields: {
-        avatar: image [upload_to: "avatars/"],
-        bio: textarea,
-        website: url [required],
+        avatar: image [nullable, upload_to: "avatars/"],
+        bio: textarea [nullable],
+        website: url [nullable],
     }
 }
 ```

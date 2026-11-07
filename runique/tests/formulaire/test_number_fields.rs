@@ -438,3 +438,86 @@ fn test_numeric_render_uses_its_template() {
     let html = field.render(&std::sync::Arc::new(tera)).unwrap();
     assert_eq!(html, r#"<input name="age">"#);
 }
+
+// ═══════════════════════════════════════════════════════════════
+// One bound only, f32 width, integer bounds past 2^53
+// ═══════════════════════════════════════════════════════════════
+
+#[tokio::test]
+async fn a_decimal_with_only_a_max_accepts_up_to_it_and_refuses_above() {
+    let mut field = NumericField::decimal("m").max(0.1, "");
+    for (value, valid) in [("0.05", true), ("-1000", true), ("0.1", true), ("0.11", false)] {
+        field.set_value(value);
+        assert_eq!(field.validate().await, valid, "{value}");
+    }
+}
+
+#[tokio::test]
+async fn a_decimal_with_only_a_min_accepts_from_it_and_refuses_below() {
+    let mut field = NumericField::decimal("m").min(0.5, "");
+    for (value, valid) in [("0.5", true), ("12.50", true), ("99999999", true), ("0.4", false)] {
+        field.set_value(value);
+        assert_eq!(field.validate().await, valid, "{value}");
+    }
+}
+
+#[tokio::test]
+async fn a_float_on_an_f32_column_refuses_what_the_column_cannot_hold() {
+    use runique::sea_orm::sea_query::ColumnType;
+    let mut field = NumericField::float("w");
+    field.apply_column_type(&ColumnType::Float);
+    for (value, valid) in [
+        ("3.4e38", true),
+        ("-3.4e38", true),
+        ("0", true),
+        ("3.5e38", false),
+        ("-3.5e38", false),
+    ] {
+        field.set_value(value);
+        assert_eq!(field.validate().await, valid, "{value}");
+    }
+}
+
+#[tokio::test]
+async fn an_f32_column_keeps_a_tighter_bound_already_set() {
+    use runique::sea_orm::sea_query::ColumnType;
+    let mut field = NumericField::float("w").max(10.0, "");
+    field.apply_column_type(&ColumnType::Float);
+    field.set_value("10");
+    assert!(field.validate().await);
+    field.set_value("10.5");
+    assert!(!field.validate().await);
+}
+
+#[tokio::test]
+async fn a_double_column_is_not_narrowed_to_f32() {
+    use runique::sea_orm::sea_query::ColumnType;
+    let mut field = NumericField::float("w");
+    field.apply_column_type(&ColumnType::Double);
+    field.set_value("3.5e38");
+    assert!(field.validate().await);
+}
+
+#[tokio::test]
+async fn an_integer_bound_past_two_to_the_53_stays_exact() {
+    let mut field = NumericField::integer("n").min_i64(9_007_199_254_740_993, "");
+    field.set_value("9007199254740992");
+    assert!(!field.validate().await, "one below the bound");
+    field.set_value("9007199254740993");
+    assert!(field.validate().await, "the bound itself");
+
+    let mut field = NumericField::integer("n").max_i64(9_007_199_254_740_993, "");
+    field.set_value("9007199254740993");
+    assert!(field.validate().await);
+    field.set_value("9007199254740994");
+    assert!(!field.validate().await, "one above the bound");
+}
+
+#[tokio::test]
+async fn an_integer_bound_on_a_decimal_field_still_applies() {
+    let mut field = NumericField::decimal("m").min_i64(0, "");
+    field.set_value("0");
+    assert!(field.validate().await);
+    field.set_value("-0.01");
+    assert!(!field.validate().await);
+}

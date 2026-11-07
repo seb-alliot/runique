@@ -71,7 +71,7 @@ Le `use …::Column::*` reste **dans** la fonction du modèle : deux modèles av
 Règles au boot :
 
 - la colonne d'action doit être **writable** à l'édition (dans `fields`, pas `readonly` / `create_only`)
-- interdites sur les secrets, le owner, et les drapeaux de rang comptes (`is_superuser`, `is_dirigeant`, `is_admin`, `is_active`)
+- interdites sur les secrets et le owner, et, sur la table des comptes seulement, sur les drapeaux de rang et l'activation (`is_superuser`, `is_dirigeant`, `is_admin`, `is_active`)
 
 ## Formulaire — `FormConfig`
 

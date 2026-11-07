@@ -30,11 +30,11 @@ pub fn schema() -> runique::migration::schema::ModelSchema {
 ### Methods used by forms
 
 - `fill_form(form, fields, exclude)`: fills a `#[form(schema = ...)]` form from the schema;
-- `enforce_limits(form)`: called after `customize`, checks the form didn't loosen what the model declares (`min_length`, `max_length`, `min`, `max`, integer type, password field) — panics otherwise.
+- `enforce_limits(form)`: called after `customize`, checks the form didn't loosen what the model declares (`min_length`, `max_length`, `min`, `max`, a `decimal`'s digits, integer type, password field) — panics otherwise. It runs every time the form is built: the error shows on the first request that uses it, not at startup. Tightening a limit stays allowed.
 
 ### `fill_form` behavior
 
-- the PK is always excluded,
+- the PK is never a field: it is not one of the schema's columns. Listing it in `fields = [...]` compiles, but makes building the form panic ("field does not exist in the schema"),
 - if `fields` is provided: whitelist takes priority (order preserved),
 - otherwise `exclude` is used as a blacklist.
 

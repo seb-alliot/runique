@@ -117,11 +117,14 @@ pub async fn login_get(mut request: Request) -> AppResult<Response> {
 }
 
 pub async fn login_post(mut request: Request) -> AppResult<Response> {
-    let mut form: LoginForm = request.form("login");
-    if form.is_valid().await {
-        // ...
+    let form: LoginForm = request.form("login");
+    match ValidationForm::try_form(form, &request).await {
+        Ok(validated) => { /* ... */ request.render("login.html") }
+        Err(form) => {
+            context_update!(request => { "login_form" => &form });
+            request.render("login.html")
+        }
     }
-    request.render("login.html")
 }
 ```
 
@@ -163,15 +166,21 @@ pub async fn contact_form(mut request: Request) -> AppResult<Response> {
 
 // POST /contact — validate and process the submission
 pub async fn contact_submit(mut request: Request) -> AppResult<Response> {
-    let mut form: ContactForm = request.form("contact");
-    if form.is_valid().await {
-        // send the email, flash success, redirect…
-        return Ok(Redirect::to("/contact").into_response());
+    let form: ContactForm = request.form("contact");
+    match ValidationForm::try_form(form, &request).await {
+        Ok(validated) => {
+            // send the email, flash success, redirect…
+            Ok(Redirect::to("/contact").into_response())
+        }
+        Err(form) => {
+            context_update!(request => { "contact_form" => &form });
+            request.render("contact.html")
+        }
     }
-    context_update!(request => { "contact_form" => &form });
-    request.render("contact.html")
 }
 ```
+
+> **Same name in both handlers.** The GET and the POST build the form with the **same** name (`"contact"` here): the form shown carries that name in a hidden field, and the POST only fills and validates the form whose name comes back. With two different names, the POST shows again empty, without any error.
 
 > Simple rule: use `view!` when a single handler serves several methods (internal dispatch), and the `get`/`post`/… combinators when each method deserves its own handler or when you want to restrict the allowed methods.
 

@@ -31,6 +31,8 @@ Outgoing response (middlewares in reverse order)
 
 > **Important**: With Axum, the last `.layer()` applied is executed first. The Intelligent Builder manages this order automatically.
 
+> **Custom middlewares**: they take slots 20, 21… in registration order, so **before** Session (50), Auth (57) and CSRF (60). They see neither the session nor the signed-in account (`CurrentUser`). At most **5**: a 6th would land on OpenRedirect's slot 25, and startup stops on a panic (slot collision).
+
 ---
 
 ## Dependency Injection

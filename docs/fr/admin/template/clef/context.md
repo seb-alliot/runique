@@ -56,7 +56,9 @@ Chaque page reçoit les traductions de sa section, sous la forme `admin.<section
 | `admin_prefix` | Le formulaire poste sur `{{ admin_prefix }}/login` |
 | `csrf_token` | À renvoyer dans le champ caché `csrf_token` |
 | `error` | Message d'échec (identifiants, CSRF, compte bloqué, session), absent sinon |
-| `site_title`, `site_url`, `lang`, `stylesheets` | — |
+| `site_url` | Adresse du lien « retour au site » sous le bouton de connexion : `.view_site_url(…)`, sinon `/` |
+| `admin_login_back_to_site` | Texte traduit de ce lien (« ← Retour au site ») |
+| `site_title`, `lang`, `stylesheets` | — |
 
 Champs attendus par le POST : `username`, `password`, `csrf_token`.
 

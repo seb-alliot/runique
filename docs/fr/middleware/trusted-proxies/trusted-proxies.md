@@ -82,7 +82,7 @@ Pour désactiver complètement le traitement XFF (serveur direct, sans proxy) :
 
 | Méthode | Description |
 | --- | --- |
-| `.private_networks()` | Réinitialiser au preset RFC 1918 + loopback (le défaut) |
+| `.private_networks()` | Ajouter les plages RFC 1918 + loopback (le défaut), sans retirer les autres |
 | `.proxy("1.2.3.4")` | Faire confiance à une IP exacte |
 | `.cidr("10.0.0.0/8")` | Faire confiance à une plage CIDR |
 | `.none()` | Vider la liste (XFF ignoré) |
@@ -96,12 +96,12 @@ Les méthodes sont cumulatives. `.none()` vide la liste ; les appels suivants aj
 ```rust
 use axum::Extension;
 use runique::middleware::ClientIp;
+use runique::prelude::*;
 
 pub async fn ma_vue(
     Extension(client_ip): Extension<ClientIp>,
-    engine: Arc<RuniqueEngine>,
-    req: Request,
-) -> Response {
+    request: Request,
+) -> AppResult<Response> {
     let ip = client_ip.0; // IpAddr
     // ...
 }

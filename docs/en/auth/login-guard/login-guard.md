@@ -12,7 +12,7 @@ Unlike IP rate limiting, there are no false positives from NAT or shared proxies
 
 `effective_key` automatically determines the right key based on whether a username was submitted:
 
-- Username submitted → key by account (targeted protection)
+- Username submitted → key by account (targeted protection), trimmed and lowercased: `admin`, `Admin` and `admin ` share one counter
 - Empty username → `"anonym:{ip}"` (per-IP protection, independent counters)
 
 ```rust
@@ -31,6 +31,9 @@ pub async fn sign_in(
     client_ip: Option<Extension<ClientIp>>,
     mut request: Request,
 ) -> AppResult<Response> {
+    // LoginForm's password field is declared `.no_hash()`: compared as typed by
+    // `authenticate_user`, never stored. Without it, validation hashes it and
+    // `cleaned("password")` returns that hash: signing in always fails.
     let form: LoginForm = request.form("login");
     let validated = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated,
@@ -44,7 +47,7 @@ pub async fn sign_in(
     // The real client IP, resolved by the trusted proxies middleware
     let ip = client_ip.map(|Extension(ClientIp(ip))| ip.to_string()).unwrap_or_default();
 
-    // username submitted → "alice"  |  empty username → "anonym:1.2.3.4"
+    // username " Alice" → "alice"  |  empty username → "anonym:1.2.3.4"
     let key = LoginGuard::effective_key(&username, &ip);
 
     if GUARD.is_locked(&key) {
@@ -113,7 +116,7 @@ Lockout duration in seconds.
 
 Returns the key to use based on context:
 
-- Non-empty username → key by username (targeted account protection)
+- Non-empty username → key by username, `trim()`ed then lowercased (targeted account protection; a database comparing names without case, like MySQL/MariaDB, opens the same account for `admin` and `Admin`)
 - Empty or missing username → `"anonym:{ip}"` (anonymous protection per IP)
 
 Guarantees that two different anonymous IPs have independent counters — locking `"anonym:1.2.3.4"` does not affect `"anonym:5.6.7.8"`.
@@ -130,7 +133,7 @@ Resets the counter. Call after a successful login.
 
 ### `is_locked(key) -> bool`
 
-Returns `true` if the failure count exceeds `max_attempts` and the lockout duration has not elapsed.
+Returns `true` if the failure count **reaches** `max_attempts` and the lockout duration has not elapsed. The lockout runs from the **last** failure; the counter itself is cleared `lockout_secs` after the last failure, even below the threshold.
 An expired entry is removed when accessed. Periodic cleanup removes entries that are no longer accessed.
 
 ### `attempts(key) -> u32`
@@ -143,7 +146,7 @@ Seconds remaining until unlock. `None` if not locked.
 
 ### Periodic cleanup
 
-The admin builder automatically starts cleanup for its configured `LoginGuard`. For standalone use, call `spawn_cleanup` once while a Tokio runtime is active; the effective period is clamped between 1 and 60 seconds. This purge limits retention of expired entries but does not impose a strict entry-count cap.
+The admin builder automatically starts cleanup for its configured `LoginGuard`, at a cadence clamped between 1 and 60 seconds. For standalone use, call `spawn_cleanup(period)` once while a Tokio runtime is active; the period is at least 1 second. This purge limits retention of expired entries but does not impose a strict entry-count cap.
 
 ---
 

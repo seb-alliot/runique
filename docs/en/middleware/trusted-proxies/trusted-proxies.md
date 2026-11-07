@@ -82,7 +82,7 @@ To disable XFF processing entirely (direct server, no proxy):
 
 | Method | Description |
 | --- | --- |
-| `.private_networks()` | Reset to RFC 1918 + loopback (the default) |
+| `.private_networks()` | Add the RFC 1918 + loopback ranges (the default), keeping the others |
 | `.proxy("1.2.3.4")` | Trust an exact IP |
 | `.cidr("10.0.0.0/8")` | Trust a CIDR range |
 | `.none()` | Clear all trusted entries (XFF ignored) |
@@ -96,12 +96,12 @@ Methods are cumulative. `.none()` clears the list; subsequent calls add to the e
 ```rust
 use axum::Extension;
 use runique::middleware::ClientIp;
+use runique::prelude::*;
 
 pub async fn my_handler(
     Extension(client_ip): Extension<ClientIp>,
-    engine: Arc<RuniqueEngine>,
-    req: Request,
-) -> Response {
+    request: Request,
+) -> AppResult<Response> {
     let ip = client_ip.0; // IpAddr
     // ...
 }

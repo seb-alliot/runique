@@ -9,7 +9,7 @@ Runique propose trois profils prédéfinis, utilisables via `.policy(...)` dans 
 | Directive | `default()` | `strict()` | `permissive()` |
 | --- | :-----------: | :----------: | :--------------: |
 | `default-src` | `'none'` | `'none'` | `'none'` |
-| `script-src` | `'self'` + nonce | `'self'` + nonce | `'self'` + `'unsafe-inline'` + `'unsafe-eval'` |
+| `script-src` | `'self'` + nonce | `'self'` + nonce | `'self'` + `'unsafe-inline'`² + `'unsafe-eval'` |
 | `style-src` | `'self'` + nonce¹ | `'self'` + nonce | `'self'` + `'unsafe-inline'` |
 | `img-src` | `'self'` | `'self'` | `'self'` + `data:` + `https:` |
 | `font-src` | `'self'` | `'self'` | `'self'` + `data:` |
@@ -21,9 +21,11 @@ Runique propose trois profils prédéfinis, utilisables via `.policy(...)` dans 
 | `base-uri` | `'self'` | `'self'` | `'self'` |
 | `form-action` | `'self'` | `'self'` | `'self'` |
 | `upgrade-insecure-requests` | ❌ | ✅ | ❌ |
-| Nonce | ✅ actif | ✅ actif | ❌ désactivé |
+| Nonce | ✅ actif | ✅ actif | ✅ actif² |
 
 ¹ `default()` inclut `'unsafe-inline'` dans `style-src` pour la compatibilité htmx. Quand le nonce est actif, `'unsafe-inline'` est retiré dynamiquement et remplacé par `'nonce-{val}'`.
+
+² Le nonce est généré pour chaque requête, quel que soit le profil (`runique/src/middleware/security/csp.rs`) ; dès qu'il est présent, `'unsafe-inline'` est retiré de `script-src` et `style-src`. Avec `permissive()`, seul `'unsafe-eval'` reste effectif.
 
 ---
 
@@ -63,8 +65,8 @@ RuniqueApp::builder(config)
 
 Politique relâchée pour le développement ou les intégrations legacy. **Ne pas utiliser en production.**
 
-- `'unsafe-inline'` et `'unsafe-eval'` activés → CSP ne protège plus contre le XSS
-- Nonce désactivé
+- `'unsafe-eval'` activé sur `script-src` : `eval()` et `new Function()` sont permis, la CSP protège moins contre le XSS
+- `'unsafe-inline'` est déclaré, mais retiré à l'émission comme pour les autres profils : le nonce reste exigé pour les scripts et styles inline
 - `data:` et `https:` autorisés pour les images et polices
 - `frame-ancestors 'self'` au lieu de `'none'`
 

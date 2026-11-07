@@ -136,7 +136,7 @@ Cas d'usage : protéger une route de login contre le brute force sur les soumiss
 
 ### `.spawn_cleanup(period: Duration)`
 
-Lance une tâche de nettoyage en arrière-plan qui purge périodiquement les entrées expirées. Pour une intégration manuelle dans un handler ou un middleware, appelez-la une fois pendant qu'un runtime Tokio est actif. La période effective est bornée entre 1 et 60 secondes.
+Lance une tâche de nettoyage en arrière-plan qui purge périodiquement les entrées expirées. Pour une intégration manuelle dans un handler ou un middleware, appelez-la une fois pendant qu'un runtime Tokio est actif. La période effective vaut au moins 1 seconde. L'intégration automatique (`.rate_limit(...)` sur les routes, admin) choisit elle-même la cadence d'après la fenêtre, bornée entre 1 et 60 secondes.
 
 ```rust
 let limiter = RateLimiter::new().max_requests(5).retry_after(60);

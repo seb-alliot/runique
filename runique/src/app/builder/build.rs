@@ -144,6 +144,19 @@ impl<P> RuniqueAppBuilder<P> {
         #[cfg_attr(not(feature = "admin"), allow(unused_variables))]
         let (tera, integrity) = TemplateLoader::init_with_integrity(&config, url_registry.clone())
             .map_err(|e| BuildError::template(e.to_string()))?;
+        // A replaced admin page is only looked up when rendered: in development
+        // or debug, a missing one refuses the boot instead of failing on its
+        // first request.
+        #[cfg(feature = "admin")]
+        if self.admin.enabled && (config.dev || config.debug) {
+            let loaded: std::collections::HashSet<&str> = tera.get_template_names().collect();
+            crate::admin::template::assemble::missing_pages(
+                &self.admin.config.templates,
+                &self.admin.site.model_templates(),
+                |path| loaded.contains(path),
+            )
+            .map_err(BuildError::template)?;
+        }
         let tera = new(tera);
 
         let config = new(config);

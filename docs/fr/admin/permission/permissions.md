@@ -48,7 +48,7 @@ Les groupes servent aux **comptes lambda** : rôles du site public, et droits su
 
 ### Révocation immédiate
 
-Le compte (actif, rang), ses groupes et ses droits sont relus en base à chaque requête admin : la session ne garde que l'identité de l'utilisateur. Retirer un droit ou un groupe, désactiver un compte ou baisser son rang prend donc effet à sa requête suivante, quel que soit le chemin de la modification (admin, CLI, SQL, autre instance). Un compte désactivé ou qui n'a plus accès à l'admin voit sa session fermée.
+Le compte (actif, rang), ses groupes et ses droits sont relus en base à chaque requête admin : la session ne garde que l'identité de l'utilisateur. Retirer un droit ou un groupe, désactiver un compte ou baisser son rang prend donc effet à sa requête suivante, quel que soit le chemin de la modification (admin, CLI, SQL, autre instance). Un compte supprimé ou désactivé voit sa session fermée. Un compte qui perd seulement l'accès à l'admin (rang baissé, groupe staff retiré) garde sa session sur le site : l'admin le renvoie vers `/`.
 
 ---
 
@@ -63,10 +63,12 @@ Seule exception : un lambda qui lit une ligne liée à un compte (par une clé �
 ## Logique d'accès
 
 ```text
-authentifié, actif et activé ?
-  └─ non → redirection /admin/login
-  └─ oui → can_access_admin() ? (rang ≥ admin, ou membre d'un groupe staff)
-               └─ non → redirection /admin/login
+connecté ?
+  └─ non → page de connexion de l'admin
+  └─ oui → compte encore présent, actif et activé ?
+             └─ non → session fermée, page de connexion
+             └─ oui → can_access_admin() ? (rang ≥ admin, ou membre d'un groupe staff)
+               └─ non → retour au site (/) avec un message ; la session reste ouverte
                └─ oui → rights_on(ressource)
                           superuser → tout, contournement compris
                           dirigeant → tout

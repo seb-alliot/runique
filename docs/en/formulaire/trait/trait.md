@@ -65,13 +65,16 @@ fn forms_mut(&mut self) -> &mut Forms {
 ```text
 FormAccess::register_fields() → declare fields
         ↓
-req.form("name")                   → build the instance
+req.form("name")             → build the instance, fill it if the request sends its name back
+        ↓
+ValidationForm::try_form()   → register_dynamic_fields(), then is_valid()
         ↓
 is_valid()                   → validation pipeline
     ↓  validate() per field  (required, format, length…)
-    ↓  clean_field(name)     [optional — per-field business rule]
-    ↓  clean()               [optional — cross-field validation]
-    ↓  finalize()            (Argon2 hashing, final transforms)
+    ↓  clean_field(name)     [optional] for EVERY field, even an invalid one
+    ↓  clean()               [optional] only if everything is valid so far
+    ↓  finalize()            (hashing per the PasswordConfig, upload paths)
+    ↓  type check            each value must read as its column's type
         ↓
 form.save(&db) / delete(&db)  → write, on the validated form
         ↓
@@ -88,9 +91,9 @@ clear()                      → [optional] empty the form after processing
 
 **`forms()` / `forms_mut()`** (`FormAccess`) — Low-level accessors for the internal `Forms` (useful for rendering or dynamic field configuration). Do not use for data extraction.
 
-**`clean_field(name)`** *(optional)* — Per-field business validation. Returns `bool`. Called after `validate()` for each field.
+**`clean_field(name)`** *(optional)* — Per-field business validation. Returns `bool`. Called for **every** field after the `validate()` calls, including a field whose standard validation failed (empty, wrong format): test the value before setting an error, otherwise you replace the standard message.
 
-**`clean()`** *(optional)* — Cross-field validation. Returns `Result<(), StrMap>`. Called once all fields are valid.
+**`clean()`** *(optional)* — Cross-field validation. Returns `Result<(), StrMap>`. Called only if every field is valid **and** every `clean_field` returned `true`. It still sees passwords in clear: `finalize()` comes after.
 
 **`is_valid()`** — Orchestrates the full pipeline. Safe to call on both GET and POST: returns `false` without setting field errors if no data has been submitted (first page load), validates normally otherwise.
 
@@ -114,7 +117,7 @@ self.cleaned::<bool>("active")          // Option<bool>
 // … see the Helpers page for the full list
 ```
 
-These methods are **whitelisted**: they return `None` if the field is not declared in `register_fields()`. They also cover route parameters and query string parameters.
+These methods are **whitelisted**: they return `None` if the field is not declared in `register_fields()`. When the field is **empty**, they fall back on a route parameter, then a query string parameter, of the same name: that value has not gone through the field's validation. `save()` never uses it (it writes the field's validated value).
 
 > **`cleaned::<String>` returns `Option<String>`**. For an empty string default: `self.cleaned::<String>("x").unwrap_or_default()`.
 
@@ -143,9 +146,12 @@ The model can declare an immutable ceiling via `.max_size()` in `register_fields
 // In register_fields — model ceiling set to 5 MB
 form.field(&MediaField::image("photo").max_size(FileSize::mb(5)));
 
-// In the handler — override allowed if ≤ ceiling
-form.max_size("photo", FileSize::mb(3))?;   // Ok
-form.max_size("photo", FileSize::mb(6))?;   // Err — exceeds model ceiling
+// In the handler (`let mut form`) — override allowed if ≤ ceiling.
+// `max_size` returns `Result<_, String>`: handle it, no `?` in a handler.
+form.max_size("photo", FileSize::mb(3)).ok();       // Ok
+if let Err(msg) = form.max_size("photo", FileSize::mb(6)) {
+    // exceeds the model ceiling: `msg` explains it, the limit stays 5 MB
+}
 ```
 
 > **Separation of concerns**: the model owns the maximum constraint, the form can narrow it down. Same principle as Django's `ModelForm` for `max_length`.
@@ -214,25 +220,26 @@ pub async fn search(mut request: Request) -> AppResult<Response> {
 
 ## `is_valid()` validation pipeline
 
-Calling `form.is_valid().await` triggers **4 steps in order** (only if the form is submitted):
+Calling `form.is_valid().await` triggers **5 steps in order** (only if the form is submitted):
 
 1. **Field validation** — Each field runs `validate()`: required, length, format (email via `validator`, URL via `validator`, JSON via `serde_json`, UUID via `uuid`, IP via `std::net::IpAddr`, …)
-2. **`clean_field(name)`** — Per-field business validation, called for each field after step 1 (only if standard validation passed)
-3. **`clean()`** — Cross-field validation (e.g. `pwd1 == pwd2`); passwords are still plain text at this step
-4. **`finalize()`** — Final transformations (automatic hashing for `Password` fields if the global config is in `Auto` mode)
+2. **`clean_field(name)`** — Per-field business validation, called for **every** field after step 1, even a field whose standard validation failed
+3. **`clean()`** — Cross-field validation (e.g. `pwd1 == pwd2`), only if steps 1 and 2 accepted everything; passwords are still plain text at this step
+4. **`finalize()`** — Final transformations (automatic hashing for `Password` fields if the global config is in `Auto` mode, upload paths prepared)
+5. **Type check** — Each field bound to a column must read as that column's type: a valid form is one the write can't refuse on a type
 
 ---
 
 ## `clean_field` — per-field business validation
 
-`clean_field` is called for each field after its standard validation. Use it to implement a business rule on a specific field (reserved value, custom format, lightweight uniqueness check…).
+`clean_field` is called for each field after the standard validations, whether they passed or not. Use it to implement a business rule on a specific field (reserved value, custom format, lightweight uniqueness check…).
 
 - Returns `true` if the field is valid, `false` otherwise
 - On failure, set the error manually on the field via `set_error()`
-- **Not called** if the required field is already empty (standard validation fails first)
+- **Called even** if the field already failed (empty, format): check the value before setting an error, otherwise you overwrite the standard message
 
 ```rust
-#[async_trait::async_trait]
+#[async_trait]
 impl RuniqueForm for UsernameForm {
     // ...
 
@@ -265,7 +272,7 @@ impl RuniqueForm for UsernameForm {
 - Returns `Err(StrMap)` with a map `{ "field_name" => "error message" }` on failure
 
 ```rust
-#[async_trait::async_trait]
+#[async_trait]
 impl RuniqueForm for RegisterForm {
     // ...
 
@@ -330,13 +337,14 @@ With a key, `save` updates that row; `delete` needs one. A key that doesn't read
 
 ### What is written
 
-- **Outside the admin**: SeaORM writes (`insert` on a create, `ActiveModel::save()` on an update); the model's behavior (`ActiveModelBehavior::before_save` / `after_save`, `auto_now`) runs. Every field the form declares is written, secret columns included: a password field only as its hash (never the text typed in, never a `.no_hash()` field), and left empty on an update, it keeps the old value. Locked fields (`readonly`, `disabled`) are never written. A locked field isn't filled from the request either: `cleaned()` returns the value set by code, never one a visitor sent back. Checking that the user may touch the row is the handler's job, as with `search!`.
+- **Outside the admin**: SeaORM writes (`insert` on a create, `ActiveModel::save()` on an update); the model's behavior (`ActiveModelBehavior::before_save` / `after_save`, `auto_now`) runs. Every field the form declares is written, secret columns included: a password field only as its hash (never the text typed in, never a `.no_hash()` field), and left empty on an update, it keeps the old value. Locked fields (`readonly`, `disabled`) are never written. A column that is no field is written only if the code gave it a value through `add_value`. A locked field isn't filled from the request either: `cleaned()` returns the value set by code, never one a visitor sent back. Checking that the user may touch the row is the handler's job, as with `search!`.
 - **Inside the admin** (panel and routes declared `admin`): the gate writes, as the checked account — rights, owner, history, in one transaction. Secret columns are never written there.
 
 ### Where business logic goes
 
 - Values to check or adjust: `clean_field`, `clean`.
-- Values from the request (signed-in account, choices): `register_dynamic_fields`.
+- Values imposed by the code (signed-in account, parent row): `add_value` before `try_form`, on a column that is no field — see [Columns set by the code](/docs/en/formulaire/helpers).
+- Fields or choices that depend on the request: `register_dynamic_fields`. It runs inside `try_form`, **after** the form is filled: a field it adds does not get the data sent (only an `add_value` made in the hook gives it a value).
 - Outside effects (email, cache) and writes to other tables: in the handler, after a successful `save`.
 
 ---
@@ -350,12 +358,15 @@ Available anywhere `self` is `&mut Self` — from a handler or from a method on 
 ### From a handler
 
 ```rust
-if form.is_valid().await {
-    let path = form.cleaned::<String>("image").unwrap_or_default(); // 1. read before clear
-    // save to DB...
+if let Ok(validated) = ValidationForm::try_form(form, &request).await {
+    let mut form = validated.into_form();
+    let title = form.cleaned::<String>("title").unwrap_or_default(); // 1. read before clear
+    // save...
     form.clear();                            // 2. empty
-    success!(request.notices => "File uploaded!");
-    context_update!(request => { "image_form" => &form });
+    context_update!(request => {
+        "note_form" => &form,
+        "messages" => flash_now!(success => "Saved!"), // direct render
+    });
     return request.render(template);         // 3. re-render with empty form
 }
 ```

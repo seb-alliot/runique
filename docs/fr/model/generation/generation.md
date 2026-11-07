@@ -30,11 +30,11 @@ pub fn schema() -> runique::migration::schema::ModelSchema {
 ### Méthodes utilisées par les formulaires
 
 - `fill_form(form, fields, exclude)` : remplit un formulaire `#[form(schema = ...)]` à partir du schéma ;
-- `enforce_limits(form)` : appelée après `customize`, vérifie que le formulaire n'a pas desserré ce que le modèle déclare (`min_length`, `max_length`, `min`, `max`, type entier, champ mot de passe) — sinon panic.
+- `enforce_limits(form)` : appelée après `customize`, vérifie que le formulaire n'a pas desserré ce que le modèle déclare (`min_length`, `max_length`, `min`, `max`, chiffres d'un `decimal`, type entier, champ mot de passe) — sinon panic. Elle tourne à chaque construction du formulaire : l'erreur apparaît à la première requête qui l'utilise, pas au démarrage. Resserrer une limite reste permis.
 
 ### Comportement de `fill_form`
 
-- la PK est toujours exclue,
+- la PK n'est jamais un champ : elle ne fait pas partie des colonnes du schéma. La citer dans `fields = [...]` compile, mais fait paniquer la construction du formulaire (« field does not exist in the schema »),
 - si `fields` est fourni : whitelist prioritaire (ordre conservé),
 - sinon `exclude` sert de blacklist.
 

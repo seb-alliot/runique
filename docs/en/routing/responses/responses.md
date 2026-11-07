@@ -30,7 +30,7 @@ async fn after_submit(request: Request) -> AppResult<Response> {
 
 ```rust
 use axum::Json;
-use serde_json::json;
+use runique::prelude::serde_json::json;
 
 async fn api_list() -> Json<serde_json::Value> {
     Json(json!({
@@ -91,8 +91,11 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
 }
 
 pub async fn about(mut request: Request) -> AppResult<Response> {
-    success!(request.notices => "Welcome!");
-    context_update!(request => { "title" => "About" });
+    // Direct render: flash_now! (success! would only show on the next request)
+    context_update!(request => {
+        "title" => "About",
+        "messages" => flash_now!(success => "Welcome!"),
+    });
     request.render("about.html")
 }
 

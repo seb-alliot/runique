@@ -41,7 +41,7 @@ Une page qui étend `admin_base.html` (ou `admin/admin_template.html`) peut red�
 Écrits directement dans `admin/admin_template.html`, aucune surcharge ne les retire (sauf une page qui n'étend rien) :
 
 - `<meta name="csrf-token" content="{{ csrf_token }}">` et `<meta name="robots" content="noindex, nofollow">` dans `<head>`
-- `<script src="{% runique_static "js/csrf.js" %}" defer></script>` avant `</body>`
+- `<script {% csp %} src="{% runique_static "js/csrf.js" %}" defer></script>` avant `</body>`
 - la fenêtre modale de confirmation
 
 ---

@@ -37,7 +37,7 @@ match login(&session, &user, None, false).await {
 
 ### Activate, then sign in
 
-`BuiltinUserEntity::activate_account` activates a pending account (`is_active` + `activated_at`) and returns the updated account, ready for `login`. An account activated before, or deactivated since by the staff, is left untouched (`None`): reactivation stays the staff's decision.
+`BuiltinUserEntity::activate_account` activates a pending account (`is_active` + `activated_at`) and returns the updated account, ready for `login`. An account activated before, or deactivated since by the staff, is left untouched (`None`): reactivation stays the staff's decision. An unknown id returns an error (`DbErr::RecordNotFound`).
 
 ```rust
 if let Some(user) = BuiltinUserEntity::activate_account(&db, id).await? {
@@ -47,17 +47,19 @@ if let Some(user) = BuiltinUserEntity::activate_account(&db, id).await? {
 
 ### Exclusive login
 
-To allow only one active session per user at a time, pass `exclusive: true`:
-
-```rust
-login(&session, &user, Some(&store), true).await?;
-```
-
-Or enable globally via the builder:
+To allow only one signed-in device at a time, the simplest is the builder:
 
 ```rust
 RuniqueApp::builder(config)
     .middleware(|m| m.with_exclusive_login(true))
+```
+
+The default session store then closes the account's other sessions as soon as it signs in, whatever the `login` call (even `login(&session, &user, None, false)`). With a store plugged in through `with_session_store()`, this setting has no effect.
+
+By hand, `exclusive: true` only acts with a database store passed to `login`; with `None`, it is ignored without error:
+
+```rust
+login(&session, &user, Some(&store), true).await?;
 ```
 
 ---
@@ -71,7 +73,7 @@ logout(&session, None).await?;
 logout(&session, Some(&store)).await?;
 ```
 
-`logout()` clears the **whole** session (flash messages included) and gives it a new id: a flash message meant for the next page is added **after** the call.
+For a signed-in session, `logout()` clears the **whole** session (flash messages included) and gives it a new id: a flash message meant for the next page is added **after** the call. On an anonymous session it does nothing: the session, its CSRF token and its messages stay.
 
 When the deletion fails (database down), `logout()` returns the error and the session stays **whole**, cookie included: the user can try again. Don't show "signed out" then. Likewise, `login` as another account first closes the previous session; when it can't, the new sign-in is refused (`LoginError::Session`).
 
@@ -98,7 +100,8 @@ To revoke only the **other** devices while keeping the current session, use `inv
 ## Checks
 
 ```rust
-// Is the user authenticated?
+// Is an account written in the session? (reads the session only: does not check
+// that the account still exists or is active — prefer `request.user`)
 if is_authenticated(&session).await {
     // ...
 }

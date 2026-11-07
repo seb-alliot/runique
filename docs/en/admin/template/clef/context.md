@@ -56,7 +56,9 @@ Each page gets its section's translations, as `admin.<section>.<key>` → `{{ ad
 | `admin_prefix` | The form posts to `{{ admin_prefix }}/login` |
 | `csrf_token` | To send back in the hidden `csrf_token` field |
 | `error` | Failure message (credentials, CSRF, locked account, session), absent otherwise |
-| `site_title`, `site_url`, `lang`, `stylesheets` | — |
+| `site_url` | Address of the "back to the site" link below the sign-in button: `.view_site_url(…)`, else `/` |
+| `admin_login_back_to_site` | Translated text of that link ("← Back to the site") |
+| `site_title`, `lang`, `stylesheets` | — |
 
 Fields the POST expects: `username`, `password`, `csrf_token`.
 

@@ -22,9 +22,8 @@ pub struct AdminConfig {
     /// that sets nothing follows the active language instead of a hardcoded string.
     pub site_title: String,
 
-    /// The "view site" link of the admin's header. `None` follows the app's
-    /// public URL (`.with_public_url()`), else `/`. Only set it when the public
-    /// site is served by another project than the admin.
+    /// The "view site" link of the admin's header. `None` gives `/`. Only set
+    /// it when the public site is served by another project than the admin.
     pub view_site_url: Option<String>,
 
     /// Entirely enables or disables the `AdminPanel`
@@ -198,7 +197,7 @@ impl AdminConfig {
     }
 
     /// Tera template for the password reset email from the admin.
-    /// Context: `username`, `email`, `reset_url`
+    /// Context: `username`, `reset_url` and the `t_*` texts.
     pub fn reset_password_email_template(mut self, path: &str) -> Self {
         self.reset_password_email_template = Some(path.to_string());
         self

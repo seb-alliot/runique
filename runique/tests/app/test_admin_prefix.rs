@@ -326,3 +326,87 @@ async fn test_url_nommee_admin_est_la_base_publique() {
         Some("/secret/site-admin")
     );
 }
+
+/// The login page served by an admin built with `view_site_url` (or not).
+async fn login_page(view_site_url: Option<&str>) -> String {
+    use axum::body::to_bytes;
+    use axum::http::Request;
+    use tower::ServiceExt;
+
+    let db = Database::connect("sqlite::memory:").await.unwrap();
+    let mut config = RuniqueConfig::from_env();
+    config.dev = true;
+    let app = RuniqueApp::builder(config)
+        .with_database(db)
+        .routes(Router::new().route("/", get(|| async { "ok" })))
+        .static_files(|s| s.enabled(false))
+        .with_admin(|a| {
+            let a = a.prefix("secret").path("/site-admin");
+            match view_site_url {
+                Some(url) => a.view_site_url(url),
+                None => a,
+            }
+        })
+        .build()
+        .await
+        .unwrap();
+    let req = Request::builder()
+        .uri("/secret/site-admin/login")
+        .body(axum::body::Body::empty())
+        .unwrap();
+    let resp = app.router.oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), axum::http::StatusCode::OK);
+    String::from_utf8(to_bytes(resp.into_body(), usize::MAX).await.unwrap().to_vec()).unwrap()
+}
+
+/// Below the sign-in button, a link back to the site: `view_site_url` when
+/// set, else `/` — never the admin's own prefix.
+#[tokio::test]
+#[serial]
+async fn the_login_page_links_back_to_the_site() {
+    let page = login_page(Some("https://site.example")).await;
+    assert!(
+        page.contains(r#"<a class="login-back" href="https://site.example">"#),
+        "{page}"
+    );
+    let page = login_page(None).await;
+    assert!(page.contains(r#"<a class="login-back" href="/">"#), "{page}");
+    assert!(!page.contains(r#"class="login-back" href="/secret"#));
+    let label = runique::utils::trad::t("admin.login.back_to_site").into_owned();
+    assert!(!label.is_empty() && label != "admin.login.back_to_site");
+    assert!(page.contains(&label), "{page}");
+}
+
+/// Builds an admin whose list page is replaced by a template that doesn't
+/// exist, with `dev` and `debug` as given.
+async fn build_with_missing_page(dev: bool, debug: bool) -> Result<(), String> {
+    let db = Database::connect("sqlite::memory:").await.unwrap();
+    let mut config = RuniqueConfig::from_env();
+    config.dev = dev;
+    config.debug = debug;
+    // A valid production setup: only the missing page may refuse the boot.
+    config.server.secret_key = "a-test-secret-key-of-at-least-32-chars".to_string();
+    config.server.public_url = Some("https://example.test".to_string());
+    RuniqueApp::builder(config)
+        .with_database(db)
+        .routes(Router::new().route("/", get(|| async { "ok" })))
+        .static_files(|s| s.enabled(false))
+        .with_admin(|a| a.templates(|t| t.with_list("nowhere/list.html")))
+        .build()
+        .await
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
+/// A replaced admin page Tera never loaded refuses the boot in development or
+/// debug, naming it; in production it is left to the first render.
+#[tokio::test]
+#[serial]
+async fn a_missing_replaced_page_refuses_the_boot_in_dev_or_debug_only() {
+    for (dev, debug) in [(true, false), (false, true), (true, true)] {
+        let err = build_with_missing_page(dev, debug).await.unwrap_err();
+        assert!(err.contains("nowhere/list.html"), "dev={dev} debug={debug}: {err}");
+    }
+    let prod = build_with_missing_page(false, false).await;
+    assert!(prod.is_ok(), "production builds anyway: {prod:?}");
+}

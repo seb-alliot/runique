@@ -72,6 +72,8 @@ context_update!(request => {
 });
 ```
 
+> **Watch out:** the `messages` key already holds the session messages read at the start of the request (those set before a redirect). Replacing it with `flash_now!` drops them from this page: they are shown nowhere. On a page that can receive both, inject `flash_now!` only where no redirect has just set any.
+
 ---
 
 > **Current limit:** the redirect macros ignore a failed session write. When the session can't be saved (database down with the database store), the message is lost with no error. The action itself isn't affected.

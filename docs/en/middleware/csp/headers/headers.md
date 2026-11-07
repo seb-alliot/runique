@@ -73,7 +73,7 @@ Static files no longer carry the header themselves: HSTS is *host-scoped*, so on
 
 **`Permissions-Policy` — default preset** (source: `PermissionsPolicy::default`). All of these features are **denied** (`=()`): `accelerometer`, `ambient-light-sensor`, `bluetooth`, `camera`, `gyroscope`, `hid`, `magnetometer`, `microphone`, `midi`, `serial`, `usb`, `geolocation`, `idle-detection`, `display-capture`, `payment`, `interest-cohort`, `local-fonts`, `sync-xhr`, `xr-spatial-tracking`, `window-management`. **Allowed same-origin** (`=(self)`): `publickey-credentials-create`, `publickey-credentials-get` (WebAuthn / passkeys), `fullscreen`, `picture-in-picture`. Customizable via `.with_permissions_policy(|p| …)`.
 
-**COEP (`Cross-Origin-Embedder-Policy: require-corp`)** — Required to use `SharedArrayBuffer` and certain high-performance APIs. It may block loading of cross-origin resources (images, scripts, fonts) that do not return the `Cross-Origin-Resource-Policy` header. If you load resources from third-party CDNs, verify their compatibility or disable COEP via a custom `SecurityPolicy`.
+**COEP (`Cross-Origin-Embedder-Policy: require-corp`)** — Required to use `SharedArrayBuffer` and certain high-performance APIs. It may block loading of cross-origin resources (images, scripts, fonts) that do not return the `Cross-Origin-Resource-Policy` header. If you load resources from third-party CDNs, check that they send `Cross-Origin-Resource-Policy`, or serve those resources from your own origin: COEP cannot be turned off in Runique.
 
 **`X-XSS-Protection`** — Legacy header, ignored by modern browsers (Chrome, Firefox). Kept for compatibility with older browsers.
 

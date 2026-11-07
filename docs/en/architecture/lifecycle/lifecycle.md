@@ -7,9 +7,12 @@
 2. The middlewares run in slot order (see Middleware stack):
    Engine/Tera/Config injected, client IP, host checked, security headers…
 3. The session is loaded, then the signed-in account read from the database (request.user)
-4. CSRF: a token sent as a header (X-CSRF-Token) is checked here; a form
-   token (csrf_token field) is checked by Prisme in the next step
-5. The handler receives Request: the body is read (Prisme), request.form("name")
+4. CSRF (methods other than GET/HEAD): a token sent as a header (X-CSRF-Token)
+   is checked here; a body that is not a form without the header, or a form
+   posted from another site, is refused (403). A form's token (csrf_token
+   field) is checked by Prisme in the next step
+5. The handler receives Request: the body is read (Prisme), the session's flash
+   messages are read and removed, request.form("name")
    builds the form, ValidationForm::try_form validates it
 6. The handler returns AppResult<Response>
 7. The middlewares run in reverse order (the session is saved)

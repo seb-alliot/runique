@@ -40,22 +40,28 @@ is_protected(record) = true si :
 ## Cas d'usage — protection d'un panier
 
 ```rust
-pub async fn add_to_cart(request: Request, item: Item) -> AppResult<Response> {
-    // Ajouter l'article au panier
+use runique::prelude::*;
+
+pub async fn add_to_cart(request: Request) -> AppResult<Response> {
+    // L'article vient de l'URL : /cart/add?item=42
+    let mut cart: Vec<String> = request.session.get("cart").await?.unwrap_or_default();
+    if let Some(item) = request.get_query("item") {
+        cart.push(item.to_string());
+    }
     request.session.insert("cart", &cart).await?;
 
     // Protéger la session 2h contre le cleanup d'urgence
     protect_session(&request.session, 60 * 60 * 2).await?;
 
-    Ok(redirect("/cart"))
+    Ok(Redirect::to("/cart").into_response())
 }
 
 pub async fn checkout_complete(request: Request) -> AppResult<Response> {
     // Vider le panier et retirer la protection
-    request.session.remove::<Cart>("cart").await?;
+    request.session.remove::<Vec<String>>("cart").await?;
     unprotect_session(&request.session).await?;
 
-    Ok(redirect("/confirmation"))
+    Ok(Redirect::to("/confirmation").into_response())
 }
 ```
 

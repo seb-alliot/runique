@@ -4,7 +4,7 @@ Comparé à Django 6.1, vérifié le 5 novembre 2026 dans [sa documentation](htt
 
 ## CLI
 
-Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `new`, `create-superuser`, `test`, `makemigrations`, `migration up`. Pas de `runique start` — l'admin est du Rust plain, `cargo run` suffit. Annuler / lister les migrations passe par SeaORM, pas par un sous-commande Runique.
+Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `new`, `create-superuser`, `test`, `makemigrations`, `migration up | down | status`. Pas de `runique start` — l'admin est du Rust plain, `cargo run` suffit.
 
 | Commande | Django | Runique |
 |----------|--------|---------|
@@ -64,7 +64,7 @@ Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `n
 | Accès aux données | `form.cleaned_data['clé']` | `validated.cleaned::<String>("clé")`, `validated.cleaned::<i32>(...)`, etc. |
 | Validation async | non | oui (accès DB dans `clean()`) |
 | Validation croisée | `clean()` | `clean()` async |
-| Fichiers | `FileField` (pas de validation de contenu par défaut) | `FileField` multipart natif — validation type/taille, **magic bytes** pour les images, SVG rejeté, écriture en **staging** seulement après le jeton CSRF, puis commit après validation (nom **UUID**, pas de path traversal) |
+| Fichiers | `FileField` (pas de validation de contenu par défaut) | `FileField` / `MediaField` multipart natif — validation type/taille, **signature du contenu** pour les images, l'audio et la vidéo, extensions actives (`.svg`, `.html`, `.js`…) rejetées, écriture en **staging** seulement après le jeton CSRF, puis commit après validation (nom **UUID**, pas de path traversal) |
 | Sanitisation HTML | non (à la main) | `sanitize_rich` / `sanitize_strict` appliquées aux champs `richtext` |
 
 ---
@@ -91,7 +91,7 @@ Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `n
 | ORM | Django ORM natif | SeaORM (Rust async) |
 | Définition modèle | `class User(models.Model)` | macro `model!{}` (types sémantiques) |
 | Migrations auto | oui (détection changements) | `runique makemigrations` |
-| QuerySet chaînable | `User.objects.filter(...).order_by(...)` | `User::objects.filter(...).order_by(...)` |
+| QuerySet chaînable | `User.objects.filter(...).order_by(...)` | `User::objects.filter(...).order_by_asc(Col)` |
 | `.get()` strict | lève `MultipleObjectsReturned` | `.one()` — retourne `Err` si plusieurs lignes |
 | Tri aléatoire | `order_by('?')` | `.order_by_random()` |
 | Tri par expression | `order_by(Lower("titre").desc())` | `.order_by_expr(expr, order)` |
@@ -173,7 +173,7 @@ Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `n
 | Fonctionnalité | Django | Runique |
 |----------------|--------|---------|
 | Envoi email | `send_mail()` natif | `Email::new().send()` natif |
-| Templates email | natif | templates Tera via `.template("emails/mon.html")` |
+| Templates email | natif | templates Tera via `.template(&tera, "emails/mon.html", ctx.into())` |
 | Backend SMTP | configurable | configuration via `.env` |
 | Backend dev (console) | `EMAIL_BACKEND = 'console'` | `EMAIL_BACKEND=console` dans `.env` |
 

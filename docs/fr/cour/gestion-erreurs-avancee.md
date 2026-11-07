@@ -417,66 +417,49 @@ async fn demarrer_app() -> Result<()> {
 
 ## 8. Erreurs dans les handlers Runique
 
-Dans Runique, les handlers Axum retournent `Result<Response, AppError>`. Le type `AppError` est défini avec `thiserror` et convertit ses variants en réponses HTTP.
+Dans Runique, un handler retourne `AppResult<Response>`, c'est-à-dire `Result<Response, Box<AppError>>`. `AppError` n'est pas un enum : c'est une struct qui porte un `ErrorContext` (code HTTP, titre, message, trace pour la page de debug).
 
 ```rust
-use thiserror::Error;
-use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
-
-#[derive(Error, Debug)]
-pub enum AppError {
-    #[error("Ressource introuvable")]
-    NotFound,
-
-    #[error("Non autorisé")]
-    Unauthorized,
-
-    #[error("Requête invalide : {0}")]
-    BadRequest(String),
-
-    #[error("Erreur interne")]
-    Internal(#[from] sea_orm::DbErr),
+// runique/src/context/template.rs
+pub struct AppError {
+    pub context: ErrorContext,
 }
 
-impl IntoResponse for AppError {
-    fn into_response(self) -> Response {
-        let status = match &self {
-            AppError::NotFound      => StatusCode::NOT_FOUND,
-            AppError::Unauthorized  => StatusCode::UNAUTHORIZED,
-            AppError::BadRequest(_) => StatusCode::BAD_REQUEST,
-            AppError::Internal(_)   => StatusCode::INTERNAL_SERVER_ERROR,
-        };
+// runique/src/utils/aliases/definition.rs
+pub type AppResult<T> = Result<T, Box<AppError>>;
+```
 
-        (status, self.to_string()).into_response()
-    }
+Les erreurs courantes se convertissent déjà : `DbErr`, `anyhow::Error` et les erreurs de session passent par `?` sans rien écrire. Pour une erreur choisie par le handler, on construit l'`ErrorContext` voulu :
+
+```rust
+use runique::prelude::*;
+
+pub async fn detail_article(request: Request) -> AppResult<Response> {
+    let id = request.get_path_as::<Pk>("id").unwrap_or_default();
+    let Some(article) = article::Entity::find_by_id(id)
+        .one(request.db())
+        .await?                                    // DbErr → AppError (500) automatiquement
+    else {
+        return Err(Box::new(AppError::new(ErrorContext::not_found(&format!("/articles/{id}")))));
+    };
+    // ...
 }
 ```
 
 ### La macro `impl_from_error!` de Runique
 
-Runique fournit la macro `impl_from_error!` pour brancher des types d'erreurs externes sur `AppError` sans écrire les `impl From` manuellement :
+`impl_from_error!` génère, pour chaque type d'erreur, `From<X> for AppError` et `From<X> for Box<AppError>`, en passant par une méthode de `ErrorContext`. Runique l'utilise pour ses propres conversions :
 
 ```rust
-// Dans runique, cette macro génère les impl From<X> for AppError
+// runique/src/context/template.rs
 impl_from_error!(
-    AppError,
-    [(sea_orm::DbErr, AppError::Internal)]
+    anyhow::Error => from_anyhow,
+    DbErr => database,
+    tower_sessions::session::Error => database
 );
-
-// Ce qui permet d'utiliser ? directement depuis les handlers :
-pub async fn detail_article(
-    State(db): State<DatabaseConnection>,
-    Path(id): Path<i32>,
-) -> Result<Json<article::Model>, AppError> {
-    let article = Article::find_by_id(id)
-        .one(&db)
-        .await?                                    // DbErr → AppError::Internal auto
-        .ok_or(AppError::NotFound)?;               // None → 404
-
-    Ok(Json(article))
-}
 ```
+
+La syntaxe est `Type => méthode_de_ErrorContext`, une entrée par type, séparées par des virgules.
 
 ### Pattern : enrichir l'erreur avec du contexte
 

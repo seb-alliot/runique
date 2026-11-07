@@ -7,9 +7,12 @@
 2. Les middlewares sont traversés dans l'ordre des slots (voir Stack middleware) :
    Engine/Tera/Config injectés, IP cliente, hôte vérifié, en-têtes de sécurité…
 3. La session est chargée, puis le compte connecté relu en base (request.user)
-4. CSRF : un jeton envoyé en en-tête (X-CSRF-Token) est vérifié ici ; un jeton
-   de formulaire (champ csrf_token) est vérifié par Prisme à l'étape suivante
-5. Le handler reçoit Request : le corps est lu (Prisme), request.form("nom") construit
+4. CSRF (méthodes autres que GET/HEAD) : un jeton envoyé en en-tête (X-CSRF-Token)
+   est vérifié ici ; un corps qui n'est pas un formulaire sans en-tête, ou un
+   formulaire posté depuis un autre site, est refusé (403). Le jeton d'un
+   formulaire (champ csrf_token) est vérifié par Prisme à l'étape suivante
+5. Le handler reçoit Request : le corps est lu (Prisme), les messages flash de la
+   session sont lus et retirés, request.form("nom") construit
    le formulaire, ValidationForm::try_form le valide
 6. Le handler retourne AppResult<Response>
 7. Les middlewares sont traversés en sens inverse (la session est enregistrée)

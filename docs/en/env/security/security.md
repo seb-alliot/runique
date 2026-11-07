@@ -15,6 +15,8 @@ No middleware is configured through `.env`. In development (`RUNIQUE_ENV=dev`), 
 |----------|---------|-------------|
 | `ENFORCE_HTTPS` | `false` | Redirects HTTP to HTTPS behind a proxy (see [Forced HTTPS](/docs/en/middleware/csp)) |
 | `HSTS_MAX_AGE` | `31536000` (1 year) | Duration of the `Strict-Transport-Security` header, in seconds |
+| `HSTS_INCLUDE_SUBDOMAINS` | `true` | Adds `includeSubDomains` to the HSTS header |
+| `HSTS_PRELOAD` | `false` | Adds `preload`. Browsers only accept it with `includeSubDomains` and `HSTS_MAX_AGE` ≥ 31536000; otherwise, a warning at startup. Near-irreversible once the domain is listed |
 | `ACME_ENABLED` | `false` | Let's Encrypt certificates handled by Runique (`acme` feature) |
 | `ACME_DOMAIN`, `ACME_EMAIL` | — | Required when `ACME_ENABLED=true` |
 | `ACME_CERTS_DIR` | `./certs` | Certificate folder — an absolute path in production |

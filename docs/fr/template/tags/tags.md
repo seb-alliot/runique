@@ -12,6 +12,20 @@ Runique pré-traite les templates pour transformer une syntaxe Django-like en sy
 
 **Transformé en :** `{{ "css/main.css" | static }}` → `/static/css/main.css`
 
+En production, la balise ajoute aussi l'empreinte du fichier : `integrity="sha384-…" crossorigin="anonymous"`, calculée au démarrage sur le contenu de `STATICFILES_DIRS`. En développement (`RUNIQUE_ENV=dev`), pas d'empreinte : un fichier modifié est servi sans redémarrer.
+
+> La balise doit se trouver **entre les guillemets** de l'attribut (`href='{% static "…" %}'`) : ces guillemets font partie de la règle de remplacement. Écrite hors d'un attribut, elle n'est pas transformée.
+
+---
+
+## {% runique_static %} — Fichiers statiques de Runique
+
+```html
+<link rel="stylesheet" href='{% runique_static "css/auth.css" %}'>
+```
+
+Comme `{% static %}`, mais pour les fichiers fournis par Runique (admin, pages d'authentification, `js/csrf.js`) : l'empreinte est lue dans le dossier statique de Runique.
+
 ---
 
 ## {% media %} — Fichiers médias (uploads)

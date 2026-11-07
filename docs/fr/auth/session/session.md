@@ -37,7 +37,7 @@ match login(&session, &user, None, false).await {
 
 ### Activer puis connecter
 
-`BuiltinUserEntity::activate_account` active un compte en attente (`is_active` + `activated_at`) et renvoie le compte à jour, prêt pour `login`. Un compte déjà activé, ou désactivé depuis par le staff, n'est pas touché (`None`) : la réactivation reste une décision du staff.
+`BuiltinUserEntity::activate_account` active un compte en attente (`is_active` + `activated_at`) et renvoie le compte à jour, prêt pour `login`. Un compte déjà activé, ou désactivé depuis par le staff, n'est pas touché (`None`) : la réactivation reste une décision du staff. Un id inconnu renvoie une erreur (`DbErr::RecordNotFound`).
 
 ```rust
 if let Some(user) = BuiltinUserEntity::activate_account(&db, id).await? {
@@ -47,17 +47,19 @@ if let Some(user) = BuiltinUserEntity::activate_account(&db, id).await? {
 
 ### Connexion exclusive
 
-Pour n'autoriser qu'un seul appareil connecté à la fois, passer `exclusive: true` :
-
-```rust
-login(&session, &user, Some(&store), true).await?;
-```
-
-Ou via le builder pour activer globalement :
+Pour n'autoriser qu'un seul appareil connecté à la fois, le plus simple est le builder :
 
 ```rust
 RuniqueApp::builder(config)
     .middleware(|m| m.with_exclusive_login(true))
+```
+
+Le store de sessions par défaut ferme alors les autres sessions du compte dès qu'il se connecte, quel que soit l'appel à `login` (même `login(&session, &user, None, false)`). Avec un store branché par `with_session_store()`, ce réglage n'a pas d'effet.
+
+À la main, `exclusive: true` n'agit qu'avec un store en base passé à `login` ; avec `None`, il est ignoré sans erreur :
+
+```rust
+login(&session, &user, Some(&store), true).await?;
 ```
 
 ---
@@ -71,7 +73,7 @@ logout(&session, None).await?;
 logout(&session, Some(&store)).await?;
 ```
 
-`logout()` vide **toute** la session (messages flash compris) et lui donne un nouvel identifiant : un message flash destiné à la page suivante s'ajoute **après** l'appel.
+Pour une session connectée, `logout()` vide **toute** la session (messages flash compris) et lui donne un nouvel identifiant : un message flash destiné à la page suivante s'ajoute **après** l'appel. Sur une session anonyme, il ne fait rien : la session, son jeton CSRF et ses messages restent.
 
 Si la suppression échoue (base indisponible), `logout()` renvoie l'erreur et la session reste **entière**, cookie compris : l'utilisateur peut réessayer. Ne montrez pas « déconnecté » dans ce cas. De même, `login` sous un autre compte ferme d'abord la session précédente ; s'il n'y parvient pas, la nouvelle connexion est refusée (`LoginError::Session`).
 
@@ -98,7 +100,8 @@ Pour ne révoquer que les **autres** appareils en gardant la session courante, u
 ## Vérifications
 
 ```rust
-// L'utilisateur est-il connecté ?
+// Un compte est-il inscrit dans la session ? (lit la session seule : ne vérifie
+// pas que le compte existe encore ni qu'il est actif — préférez `request.user`)
 if is_authenticated(&session).await {
     // ...
 }

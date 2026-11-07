@@ -281,7 +281,7 @@ Charge au plus 2 lignes en interne pour détecter le cas ambigu sans scan comple
 // Retourne Err si plusieurs admins actifs correspondent
 let admin = search!(users::Entity => IsStaff eq true, Username eq "alice")
     .one(&*db)
-    .await?; // Result<Option<users::Model>, DbErr>
+    .await?; // Option<users::Model>
 ```
 
 Utilisez `.first()` à la place si vous voulez seulement la première ligne d'un résultat potentiellement multiple, sans erreur.
@@ -299,15 +299,10 @@ let difficultes: Vec<String> = search!(cour::Entity => Lang eq "fr")
     .column(cour::Column::Difficulte)
     .distinct()
     .into_tuple::<String>()
-    .all(db.as_ref())  // ← .as_ref() obligatoire ici
+    .all(&*db)
     .await?;
 ```
 
-> **Note — `.as_ref()` requis :** une fois sorti du `RuniqueQueryBuilder`, les méthodes SeaORM
-> utilisent un bound générique `C: ConnectionTrait`. `Arc<DatabaseConnection>` ne satisfait pas
-> ce bound directement — `db.as_ref()` convertit explicitement en `&DatabaseConnection`.
-> Les méthodes du `RuniqueQueryBuilder` (`.all()`, `.first()`, etc.) n'ont pas ce problème
-> car elles prennent `&DatabaseConnection` en paramètre concret.
 
 ### Via `@Form` — FormEntity
 
@@ -389,7 +384,7 @@ let result = users::Entity::delete_many()
 
 Retourne une `sea_orm::Condition` à injecter dans un query builder existant, au lieu de créer un nouveau builder.
 
-Chaque forme prend la connexion `&DatabaseConnection` en premier argument (même les deux formes `?Col in`/`not_in` qui ne l'utilisent pas en interne) — `all_columns`/`or(...)` en ont besoin pour choisir le type de `CAST` correct selon le moteur (`CHAR` sur MariaDB/MySQL, `TEXT` ailleurs, via `text_cast_type`), et une macro ne peut pas avoir des arms avec des signatures différentes sans ambiguïté de parsing.
+Chaque forme prend la connexion `&ADb` (`request.db()`) en premier argument (même les deux formes `?Col in`/`not_in` qui ne l'utilisent pas en interne) — `all_columns`/`or(...)` en ont besoin pour choisir le type de `CAST` correct selon le moteur (`CHAR` sur MariaDB/MySQL, `TEXT` ailleurs, via `text_cast_type`), et une macro ne peut pas avoir des arms avec des signatures différentes sans ambiguïté de parsing.
 
 | Syntaxe | Résultat |
 | ------- | -------- |

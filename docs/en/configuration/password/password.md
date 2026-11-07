@@ -9,19 +9,31 @@
 ## Initialization in `main.rs`
 
 ```rust
-use runique::prelude::{password_init, PasswordConfig, Manual};
+use runique::prelude::*;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Argon2 automatic mode (recommended default)
     password_init(PasswordConfig::auto());
 
+    let config = RuniqueConfig::from_env();
+
     RuniqueApp::builder(config)
         // ...
+        .build()
+        .await?
         .run()
-        .await;
+        .await?;
+    Ok(())
 }
 ```
+
+> **Call order.** `password_init` only counts **once**: the first call wins, later ones are ignored (logged only with the `auth.password_init` log). Call it **first** in `main`, before `build()` and before any `hash()` / `verify()`:
+>
+> - a `hash()` or `verify()` called earlier freezes the default configuration (`auto`);
+> - `build()` itself calls `password_init(config.password)`: a call made **after** `build()` is ignored.
+>
+> Also keep `config.password` equal to what you pass to `password_init`: the built-in reset page hashes with `config.password`.
 
 > If `password_init()` is not called, Argon2 is used by default.
 
@@ -65,7 +77,8 @@ No local password is managed by Runique: `verify()` always answers `false`, `has
 > **This mode doesn't provide the external authentication itself yet.** The providers below are only names: Runique implements today neither the OAuth flow (redirect, code exchange, profile reading), nor LDAP, nor SAML. `Delegated` is there to switch local passwords off cleanly when **your app** handles sign-in by other means (an OAuth library, an authentication proxy), then opens the session with `login(&request.session, &user, None, false)` once the user is identified. Full provider integration is a planned evolution.
 
 ```rust
-use runique::prelude::External;
+use runique::prelude::*;
+use runique::utils::password::External;
 
 password_init(PasswordConfig::Delegated(External::GoogleOAuth));
 password_init(PasswordConfig::Delegated(External::Microsoft));
@@ -79,7 +92,8 @@ Available providers: `GoogleOAuth`, `Microsoft`, `Apple`, `Ldap(url)`, `Saml(url
 Implement the `PasswordHandler` trait to plug in your own hashing/verification logic.
 
 ```rust
-use runique::prelude::{PasswordHandler, PasswordConfig};
+use runique::prelude::{PasswordConfig, password_init};
+use runique::utils::password::PasswordHandler;
 
 #[derive(Clone)] // required: PasswordHandler is cloned with the config
 struct MyHasher;

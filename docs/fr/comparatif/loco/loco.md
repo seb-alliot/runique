@@ -42,7 +42,7 @@ Vérifié le 5 novembre 2026 dans [la documentation](https://loco.rs/docs/) et [
 | Réponse JSON | `format::json(res)` | `Json` d'Axum |
 | Redirection | `format::redirect("/url")` | `Redirect::to("/url")` |
 | Messages flash | — | macros `success!`, `error!`, `info!`, `warning!` |
-| Connexions secondaires | `MultiDbInitializer`, connexions nommées | `.with_custom_db::<T>()` |
+| Connexions secondaires | `MultiDbInitializer`, connexions nommées | `.with_custom_db(client)` |
 
 ## Formulaires
 
@@ -54,7 +54,7 @@ Vérifié le 5 novembre 2026 dans [la documentation](https://loco.rs/docs/) et [
 | CSRF intégré | — | automatique, injecté avant le premier champ |
 | Sauvegarde | code du modèle (SeaORM) | `validated.save(&db).await`, le formulaire porte son entité (`FormEntity`) |
 | Validation croisée | `ValidatorTrait` | `clean()` async, avec accès à la base |
-| Fichiers | `Multipart` d'Axum, stockage configurable | `FileField` et `MediaField` : type, taille, magic bytes pour les images |
+| Fichiers | `Multipart` d'Axum, stockage configurable | `FileField` et `MediaField` : type, taille, signature du contenu pour les images, l'audio et la vidéo |
 | Stockage | disque, mémoire, S3, GCP, Azure | dossier `MEDIA_ROOT` |
 
 ## Templates
@@ -133,7 +133,7 @@ Vérifié le 5 novembre 2026 dans [la documentation](https://loco.rs/docs/) et [
 | Fonctionnalité | Loco | Runique |
 |----------------|------|---------|
 | Envoi | mailers envoyés par un worker | `Email::new().send()` |
-| Templates | `subject.t`, `html.t`, `text.t` (Tera) | templates Tera via `.template("emails/mon.html")` |
+| Templates | `subject.t`, `html.t`, `text.t` (Tera) | templates Tera via `.template(&tera, "emails/mon.html", ctx.into())` |
 | Backend SMTP | fichiers `config/*.yaml` | `.env` |
 | Backend dev (console) | — | `EMAIL_BACKEND=console` |
 

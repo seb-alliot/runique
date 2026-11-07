@@ -2,7 +2,7 @@
 
 ## Ce que ça fait
 
-Intercepte toutes les réponses 3xx et valide l'en-tête `Location`.
+Intercepte toutes les réponses 3xx et valide l'en-tête `Location`, ainsi que l'en-tête `Refresh` de **toute** réponse (`Refresh: 5; url=…` redirige aussi le navigateur, quel que soit le code).
 Si la destination de la redirection est un hôte externe absent de la liste autorisée, le middleware retourne HTTP 400.
 
 Protège contre les attaques de phishing où un attaquant forge un lien du type
@@ -43,6 +43,8 @@ Le middleware open redirect est **toujours actif** et utilise la même liste d'h
 
 Les URLs commençant par `//` (ex : `//evil.com/chemin`) sont traitées comme absolues et soumises à la même vérification.
 Elles sont bloquées sauf si l'hôte est dans la liste autorisée.
+
+La destination est lue comme un navigateur la lit (parseur d'URL WHATWG) : `\` compte pour `/`, les tabulations et retours à la ligne sont retirés, les identifiants (`user@hôte`) séparés de l'hôte. `/\evil.com` ou `/\t/evil.com` mènent donc bien à `evil.com`, et sont bloqués. Un schéma autre que `http` / `https` (`javascript:`, `data:`) est toujours refusé.
 
 ---
 

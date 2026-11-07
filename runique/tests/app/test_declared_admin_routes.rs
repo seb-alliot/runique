@@ -603,6 +603,36 @@ async fn probe_write(req: Request) -> String {
     }
 }
 
+/// `probe_notes` with `title` as its only field: `body` and `code` are set by
+/// the code alone.
+#[form(schema = probe, fields = [title])]
+pub struct ProbeTitleForm;
+
+impl RuniqueForm for ProbeTitleForm {
+    fn allow_get(&self, _request: &Request) -> bool {
+        true
+    }
+}
+
+/// `probe_write` with values the code gives to columns that are no field:
+/// `body` always, `code` from `?by_code=`, and `ghost`, which is no column.
+async fn probe_write_by_code(req: Request) -> String {
+    let mut form = req.form::<ProbeTitleForm>("probe");
+    form.add_value("body", "by code");
+    form.add_value("ghost", "never a column");
+    if let Some(code) = req.query_params.get("by_code") {
+        form.add_value("code", code);
+    }
+    let form = match ValidationForm::try_form(form, &req).await {
+        Ok(form) => form,
+        Err(form) => return format!("invalid: {:?}", form.forms().errors()),
+    };
+    match form.save(&req.engine.db).await {
+        Ok(_) => "written".to_string(),
+        Err(form) => format!("refused: {:?}", form.forms().errors()),
+    }
+}
+
 /// The notes' titles by id, comma-separated.
 async fn probe_rows(req: Request) -> String {
     probe::Entity::find()
@@ -830,6 +860,11 @@ fn probe_routes() -> Routes {
         "/probe/trace-account" => get(probe_trace_account), name = "declared_test_probe_trace_account",
         "/open/probe" => get(probe_write), name = "declared_test_probe_open_new",
         "/open/probe/{id}" => get(probe_write), name = "declared_test_probe_open_row",
+        "/open/probe-code" => get(probe_write_by_code), name = "declared_test_probe_code_new",
+        "/open/probe-code/{id}" => get(probe_write_by_code), name = "declared_test_probe_code_row",
+        admin "/gated/probe-code" => get(probe_write_by_code),
+            name = "declared_test_probe_code_gated_new",
+            for_model = probe::Entity,
         admin "/gated/probe" => get(probe_write),
             name = "declared_test_probe_gated_new",
             for_model = probe::Entity,
@@ -925,6 +960,87 @@ async fn outside_the_constraint_the_same_handler_writes_without_the_gate() {
         "written"
     );
     assert_eq!(rows(&anonymous, &base).await, "new");
+}
+
+/// A column that is no field takes the value the code gives it, whatever the
+/// visitor sends under its name; a column the code leaves alone keeps its
+/// value; a name that is no column is ignored.
+#[tokio::test]
+#[serial]
+async fn the_code_writes_a_column_that_is_no_field_and_the_visitor_cannot() {
+    let base = spawn_with("", probe_routes()).await;
+    let anonymous = client();
+    let forged = "&body=forged&code=forged&flag=forged&ghost=forged&id=9";
+    assert_eq!(
+        text(
+            &anonymous,
+            format!("{base}/open/probe-code?{}{forged}&by_code=C2", sent("new"))
+        )
+        .await,
+        "written"
+    );
+    assert_eq!(rows(&anonymous, &base).await, "seed,new");
+    assert_eq!(
+        text(&anonymous, format!("{base}/probe/row/2")).await,
+        "new|by code|C2|-"
+    );
+
+    assert_eq!(
+        text(
+            &anonymous,
+            format!("{base}/open/probe-code/1?{}{forged}", sent("changed"))
+        )
+        .await,
+        "written"
+    );
+    assert_eq!(
+        text(&anonymous, format!("{base}/probe/row/1")).await,
+        "changed|by code|C1|-",
+        "code not given by the code: kept, never the forged one"
+    );
+}
+
+/// An empty value from the code empties a nullable column.
+#[tokio::test]
+#[serial]
+async fn an_empty_value_from_the_code_sets_a_nullable_column_to_null() {
+    let base = spawn_with("", probe_routes()).await;
+    let anonymous = client();
+    assert_eq!(
+        text(
+            &anonymous,
+            format!("{base}/open/probe-code/1?{}&by_code=", sent("changed"))
+        )
+        .await,
+        "written"
+    );
+    assert_eq!(
+        text(&anonymous, format!("{base}/probe/row/1")).await,
+        "changed|by code|-|-"
+    );
+}
+
+/// Through the gate too, the code's value is written and the visitor's not.
+#[tokio::test]
+#[serial]
+async fn through_the_gate_the_code_writes_a_column_that_is_no_field() {
+    let base = spawn_with("", probe_routes()).await;
+    let client = signed_in(&base, SUPERUSER).await;
+    assert_eq!(
+        text(
+            &client,
+            format!(
+                "{base}/gated/probe-code?{}&code=forged&flag=forged&by_code=C3",
+                sent("new")
+            )
+        )
+        .await,
+        "written"
+    );
+    assert_eq!(
+        text(&client, format!("{base}/probe/row/2")).await,
+        "new|by code|C3|-"
+    );
 }
 
 /// An account refused at the boundary never reaches the handler: nothing written.

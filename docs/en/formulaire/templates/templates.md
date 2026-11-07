@@ -32,7 +32,7 @@ Automatically renders: all fields, labels, validation errors, CSRF token, and JS
 
 ---
 
-The **first** field rendered this way carries the form's hidden fields along (CSRF token and form name). Render them all, or at least the first declared field: without it, the submission is refused (CSRF) or ignored (no name).
+The form's **first declared field** carries the hidden fields along (CSRF token and form name), wherever it sits in the template. Render them all, or at least that first field: without it, the submission is refused (CSRF) or ignored (no name).
 
 ---
 
@@ -55,7 +55,7 @@ The **first** field rendered this way carries the form's hidden fields along (CS
 
 ## Field data as JSON
 
-Forms automatically serialize `errors`, `form_errors`, `html`, `rendered_fields`, `fields` and `js_files`.
+Forms automatically serialize `errors`, `form_errors`, `html`, `rendered_fields`, `fields`, `js_files`, `rendered_js` (the `<script>` block already rendered, with the CSP nonce) and `honeypot_html` (the anti-bot trap field, empty without it).
 
 ---
 

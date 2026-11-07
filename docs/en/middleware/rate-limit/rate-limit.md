@@ -135,7 +135,7 @@ Use case: protect a login route against brute force on POST submissions only, wh
 
 ### `.spawn_cleanup(period: Duration)`
 
-Spawns a background task that periodically purges expired entries. For a manual handler or middleware integration, call it once while a Tokio runtime is active. The effective period is clamped between 1 and 60 seconds.
+Spawns a background task that periodically purges expired entries. For a manual handler or middleware integration, call it once while a Tokio runtime is active. The effective period is at least 1 second. The automatic integration (`.rate_limit(...)` on routes, admin) picks its own cadence from the window, clamped between 1 and 60 seconds.
 
 ```rust
 let limiter = RateLimiter::new().max_requests(5).retry_after(60);

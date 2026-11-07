@@ -23,7 +23,7 @@ context_update!(request => {
 request.render("page.html")
 ```
 
-`{% messages %}` shows both kinds.
+`{% messages %}` shows the context's `messages` key: the session messages that came with the request, or `flash_now!`'s if you replace it. Replaced, it loses this request's session messages.
 
 ---
 
@@ -42,8 +42,8 @@ pub fn routes() -> Routes {
 ### JSON API handler
 
 ```rust
-use axum::Json;
-use serde_json::json;
+use runique::prelude::*;
+use runique::prelude::serde_json::json;
 
 pub async fn api_list_articles(request: Request) -> AppResult<Response> {
     let articles = article::Entity::find()
@@ -59,7 +59,7 @@ pub async fn api_list_articles(request: Request) -> AppResult<Response> {
 
 `data` serializes every column of the model. Never do it on a table holding a secret (the accounts: password hash): select the columns to expose, or go through a dedicated struct.
 
-An API POST without a Runique form must check `request.prisme.csrf_valid` itself, like sign-out (see [Forms](/docs/en/exemple/forms)).
+A JSON POST is refused with a 403 by the CSRF middleware without a valid `X-CSRF-Token` header. An HTML form POST that the view handles without `request.form` (sign-out, an action) must check `request.prisme.csrf_valid` itself (see [Forms](/docs/en/exemple/forms)).
 
 ---
 

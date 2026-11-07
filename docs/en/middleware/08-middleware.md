@@ -28,7 +28,7 @@ slot  0  Extensions          → Inject Engine, Tera, Config (always active)
 slot  2  TrustedProxies      → Real client IP from X-Forwarded-For (always active)
 slot  5  Compression         → Response compression (always active)
 slot  8  CORS                → Cross-Origin Resource Sharing (if with_cors() configured)
-slot 10  ErrorHandler        → Capture and render errors (always active)
+slot 10  ErrorHandler        → Capture and render errors (on by default, removed by .with_debug_errors(false))
 slot 15  HostValidation      → Allowed host validation (if with_allowed_hosts() configured)
 slot 17  HttpsRedirect       → HTTPS redirect behind a proxy (if ENFORCE_HTTPS, never with ACME)
 slot 20+ Custom              → Your custom middlewares

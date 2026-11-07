@@ -70,7 +70,7 @@ Le traitement d'un formulaire se fait en deux temps.
 
 1. crée une instance du formulaire avec ses champs ;
 2. la remplit avec les données envoyées ;
-3. la marque invalide si la méthode exige un jeton CSRF (POST, PUT, PATCH, DELETE) et que celui-ci manque ou est faux.
+3. la marque invalide si la méthode exige un jeton CSRF (toute méthode sauf GET et HEAD) et que celui-ci manque ou est faux.
 
 **`ValidationForm::try_form(form, &request)` décide s'il faut valider, et valide.** Le formulaire a reçu son nom de `request.form("nom")` (rendu en champ caché) ; il n'est rempli, puis validé, que si la requête renvoie **ce même nom**. C'est ce qui permet **plusieurs formulaires sur une même page** : seul celui qui a été envoyé est rempli et validé, les autres restent vierges, sans erreur de champ, même s'ils ont un champ du même nom. Il renvoie `Ok(validé)` ou `Err(form)` avec ses erreurs, prêt à être réaffiché.
 

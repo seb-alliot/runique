@@ -567,7 +567,7 @@ for request in requests {
 ```
 # Dans Cargo.toml
 [dependencies]
-axum = "0.7"
+axum = "0.8"
 tokio = { version = "1", features = ["full"] }
 # Code
 use axum::{
@@ -635,7 +635,7 @@ async fn get_user(Path(id): Path<u64>) -> Json<User> {
 async fn main() {
     let app = Router::new()
         .route("/users", post(create_user))
-        .route("/users/:id", get(get_user));
+        .route("/users/{id}", get(get_user)); // Axum 0.8 : {id}, plus :id
 ```
 
 ```

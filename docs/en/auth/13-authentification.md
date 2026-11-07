@@ -6,7 +6,7 @@ Runique provides a complete and extensible session-based authentication system.
 
 | Module | Description |
 | --- | --- |
-| [User Model](/docs/en/auth/model) | `RuniqueUser`, built-in, custom trait |
+| [User Model](/docs/en/auth/model) | `eihwaz_users`, account states, `RuniqueUser` |
 | [Session Helpers](/docs/en/auth/session) | `login`, `logout`, `is_authenticated` |
 | [Protection Middlewares](/docs/en/auth/middleware) | `request.user`, `load_user_rights`, inline `is_authenticated` pattern |
 | [Complete Example](/docs/en/auth/example) | Complete Login / Logout handlers |

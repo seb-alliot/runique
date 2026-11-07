@@ -27,7 +27,7 @@ Decryption only happens when restoring after a restart. A session still in memor
 | `Duration::minutes(30)` | Short sessions (security) |
 | `Duration::hours(2)` | Standard usage |
 | `Duration::hours(24)` | Runique default |
-| `Duration::days(7)` | "Remember me" |
+| `Duration::days(7)` | Long sessions, for every account |
 
 ---
 
@@ -38,7 +38,7 @@ The duration of an **authenticated** session is set **only via the builder**
 **single source** of truth). It is the equivalent of Django's `SESSION_COOKIE_AGE`.
 
 ```rust
-use tower_sessions::cookie::time::Duration;
+use runique::tower_sessions::cookie::time::Duration;
 
 // Custom session duration
 let app = RuniqueApp::builder(config)
@@ -61,22 +61,14 @@ diverge**. If `with_session_duration` is never called, the default is **24h** (8
 > session, so a public form left open longer than that will have its token expire — see
 > [CSRF Protection](/docs/en/middleware/csrf), "Token expiry & automatic refresh" section.
 
-### "Remember me" (per-session duration)
+### "Remember me" — not possible yet
 
-The global default above fits most cases. For a **different duration on a specific session**
-(e.g. a "remember me" checkbox → 30 days), keep the global default and call `set_expiry` on
-that session at login:
+A different duration on one session ("remember me" box → 30 days) **does not hold today**:
 
-```rust
-use tower_sessions::{Expiry, cookie::time::Duration};
+- `login()` itself sets the session's expiry to the global duration: a `set_expiry` made before it is overwritten;
+- after sign-in, the `session_ttl_upgrade` middleware sets the global duration again on **every** request of a signed-in session: a `set_expiry` made after `login` only lasts until the next request.
 
-if remember_me {
-    request.session.set_expiry(Some(Expiry::OnInactivity(Duration::days(30))));
-}
-```
-
-Since `expires_at` is stored **per row** in `eihwaz_sessions`, no schema change is needed:
-only that one session is extended.
+The only duration that applies is `with_session_duration`'s, the same for every signed-in session.
 
 ### Custom store (production)
 

@@ -87,9 +87,9 @@ if !ok {
 }
 ```
 
-> `finalize()` appelle `is_already_hashed()` avant de hacher : si la valeur est déjà un hash reconnu (Argon2 : `$argon2id$`/`$argon2i$`/`$argon2d$`, bcrypt : `$2`, scrypt : `$scrypt$`), le hachage est ignoré. Cela couvre le cas de l'édition admin où un hash existant est rechargé dans le formulaire.
+> Une valeur **saisie** par le visiteur est toujours hachée par `finalize()`, même si elle ressemble à un hash : stockée telle quelle, elle imposerait des paramètres de coût choisis par lui. Seule une valeur posée par le code (`add_value`, `set_value`) et déjà reconnue comme un hash (Argon2 `$argon2id$`/`$argon2i$`/`$argon2d$`, bcrypt `$2`, scrypt `$scrypt$`) est gardée telle quelle.
 >
-> Dans un formulaire de **connexion**, la valeur soumise est toujours du texte brut — `is_already_hashed()` retourne `false` et `finalize()` hacherait le mot de passe avant la comparaison, ce qui ferait échouer `verify()`. C'est pourquoi `.no_hash()` est obligatoire sur les champs password d'un formulaire de connexion. Appelez `is_valid()` normalement (validation des champs requis), puis vérifiez le mot de passe séparément via `verify()` après avoir récupéré l'utilisateur en base.
+> Dans un formulaire de **connexion**, `finalize()` hacherait donc le mot de passe saisi avant la comparaison, et la connexion échouerait toujours. C'est pourquoi `.no_hash()` est obligatoire sur le champ password d'un formulaire de connexion. Validez avec `try_form`, puis passez le mot de passe à `authenticate_user` (qui le vérifie en temps constant, même pour un nom inconnu).
 >
 > Voir → [Configuration des mots de passe](/docs/fr/configuration/password) pour tous les modes (`Auto`, `Manual`, `Delegated`, `Custom`) et la configuration dans `main.rs`.
 
@@ -129,7 +129,7 @@ form.field(
 );
 ```
 
-**Options :** `.min(val, msg)`, `.max(val, msg)`, `.step(val)` (Type `range` uniquement), `.digits(min, max)`, `.label(l)`, `.placeholder(p)`
+**Options :** `.min(val, msg)`, `.max(val, msg)`, `.min_i64(val, msg)` / `.max_i64(val, msg)` (borne entière exacte, utile au-delà de 2^53), `.step(val)` (Type `range` uniquement), `.digits(min, max)`, `.label(l)`, `.placeholder(p)`
 
 ---
 
@@ -334,7 +334,7 @@ form.field(
 );
 ```
 
-> **Note :** `.max_size()` est une validation côté formulaire uniquement. Si le champ est défini dans un `model!{}` avec `max_size(5 MB)`, la limite du modèle et celle du formulaire sont deux valeurs indépendantes — elles ne sont pas automatiquement synchronisées. Pour un formulaire manuel, il faut les aligner à la main.
+> **Note :** `.max_size()` sur le champ fixe son plafond. Pour un formulaire tiré d'un modèle (`#[form(schema = …)]`, formulaire généré par `model!{}`), le `max_size` du modèle est réappliqué après `customize()` : le formulaire peut le resserrer, jamais le dépasser. Pour un formulaire manuel, c'est la valeur de `.max_size()` du champ ; `form.max_size(nom, taille)` dans le handler ne peut que descendre en dessous (voir [Trait RuniqueForm](/docs/fr/formulaire/trait)).
 
 **Destination des fichiers :**
 
@@ -470,7 +470,7 @@ form.field(
 
 | Struct           | Constructeurs                                                              | Validation spéciale                                           |
 | ---------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `TextField`      | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()`     | Email/URL via `validator`, Argon2, sanitisation XSS, `.rows(n)` |
+| `TextField`      | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()`, `phone()` | Email/URL via `validator`, hachage selon la `PasswordConfig`, sanitisation XSS, `.rows(n)` |
 | `NumericField`   | `integer()`, `float()`, `decimal()`, `percent()`, `range()`                | Bornes min/max, précision décimale, `.step(n)` (range uniquement) |
 | `BooleanField`   | `new()`, `radio()`                                                         | `required` = doit être cochée ; seule sa valeur est acceptée |
 | `ChoiceField`    | `new()` + `.multiple()`                                                    | Valeur dans les choix déclarés                                |
@@ -480,8 +480,8 @@ form.field(
 | `TimeField`      | `new()`                                                                    | Format `HH:MM`, bornes min/max                                |
 | `DateTimeField`  | `new()`                                                                    | Format `YYYY-MM-DDTHH:MM`, bornes min/max                     |
 | `DurationField`  | `new()`                                                                    | Secondes, bornes min/max                                      |
-| `MediaField`     | `image()`, `audio()`, `video()`                                            | Extensions, taille, signature du contenu, dimensions (image), anti-SVG |
-| `FileField`      | `document()`, `any()`                                                      | Extensions, taille, anti-SVG                                  |
+| `MediaField`     | `image()`, `audio()`, `video()`                                            | Extensions, taille, signature du contenu, dimensions (image), extensions actives refusées |
+| `FileField`      | `document()`, `any()`                                                      | Extensions, taille, extensions actives refusées (`.svg`, `.html`, `.js`…) |
 | `ColorField`     | `new()`                                                                    | Format `#RRGGBB` ou `#RGB`                                    |
 | `SlugField`      | `new()`                                                                    | ASCII/unicode, pas de tiret en début/fin                      |
 | `UUIDField`      | `new()`                                                                    | Format UUID valide                                            |

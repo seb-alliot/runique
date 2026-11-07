@@ -31,6 +31,8 @@ Réponse sortante (middlewares en sens inverse)
 
 > **Important** : Avec Axum, le dernier `.layer()` appliqué est le premier exécuté. Le Builder Intelligent gère cet ordre automatiquement.
 
+> **Middlewares personnalisés** : ils prennent les slots 20, 21… dans leur ordre d'enregistrement, donc **avant** Session (50), Auth (57) et CSRF (60). Ils ne voient ni la session ni le compte connecté (`CurrentUser`). Au plus **5** : le 6ᵉ tomberait sur le slot 25 d'OpenRedirect, et le démarrage s'arrête sur une panique (collision de slots).
+
 ---
 
 ## Injection de dépendances

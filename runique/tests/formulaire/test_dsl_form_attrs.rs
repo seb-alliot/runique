@@ -143,3 +143,39 @@ fn an_enum_is_read_back_from_its_label_and_shown_with_it() {
     assert_eq!(row["mode"], "Décoré");
     assert_eq!(row["title"], "Fancy", "only the enum column is relabelled");
 }
+
+mod bounds {
+    use runique::prelude::*;
+
+    model! {
+        Bound,
+        table: "dsl_bounds",
+        pk: id => i32,
+        {
+            big: bigint [nullable, min: 9007199254740993],
+            price: decimal [nullable, max_digits: 10, decimal_places: 2, min: 0.0],
+        }
+    }
+}
+
+/// The generated form's field `name`, given `value`, validated.
+async fn generated_accepts(name: &str, value: &str) -> bool {
+    let mut form = Forms::new("csrf");
+    bounds::BoundModelForm::register_fields(&mut form);
+    let field = form.fields.get_mut(name).unwrap();
+    field.set_value(value);
+    field.validate().await
+}
+
+#[tokio::test]
+async fn a_generated_integer_bound_past_two_to_the_53_stays_exact() {
+    assert!(!generated_accepts("big", "9007199254740992").await);
+    assert!(generated_accepts("big", "9007199254740993").await);
+}
+
+#[tokio::test]
+async fn a_generated_decimal_with_only_a_min_accepts_a_normal_price() {
+    assert!(generated_accepts("price", "12.50").await);
+    assert!(generated_accepts("price", "0").await);
+    assert!(!generated_accepts("price", "-1").await);
+}

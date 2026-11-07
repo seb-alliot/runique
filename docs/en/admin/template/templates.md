@@ -41,7 +41,7 @@ A page extending `admin_base.html` (or `admin/admin_template.html`) can redefine
 Written directly in `admin/admin_template.html`, no override removes them (except a page extending nothing):
 
 - `<meta name="csrf-token" content="{{ csrf_token }}">` and `<meta name="robots" content="noindex, nofollow">` in `<head>`
-- `<script src="{% runique_static "js/csrf.js" %}" defer></script>` before `</body>`
+- `<script {% csp %} src="{% runique_static "js/csrf.js" %}" defer></script>` before `</body>`
 - the confirmation modal
 
 ---

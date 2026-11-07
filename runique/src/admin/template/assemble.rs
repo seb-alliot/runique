@@ -113,6 +113,40 @@ pub(crate) fn dispatch(
     Ok(out)
 }
 
+/// Every page the developer replaced, globally or for a model, that Tera did
+/// not load. A block's template is checked by Tera itself (it is an
+/// `include`); a page is only named at render time, so a missing one would
+/// fail on its first request instead.
+pub(crate) fn missing_pages(
+    templates: &AdminTemplate,
+    models: &[(&'static str, &ModelTemplates)],
+    loaded: impl Fn(&str) -> bool,
+) -> Result<(), String> {
+    let mut missing = Vec::new();
+    for page in Page::ALL {
+        if let Some(path) = templates.page_template(page).and_then(|t| t.dev.as_deref())
+            && !loaded(path)
+        {
+            missing.push(format!("{page:?} page: `{path}`"));
+        }
+    }
+    for (key, t) in models {
+        for (page, path) in &t.pages {
+            if !loaded(path.as_str()) {
+                missing.push(format!("model `{key}`, {page:?} page: `{path}`"));
+            }
+        }
+    }
+    if missing.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "admin template override not found in the templates folder: {}",
+            missing.join(", ")
+        ))
+    }
+}
+
 /// A model's view is served by its own page or by a route replacing it,
 /// never both: the route would win, the page never render.
 pub(crate) fn check_replaced_views(
@@ -137,6 +171,31 @@ mod tests {
     use super::*;
 
     const TABLE: &str = "admin/blocks/list/table.html";
+
+    #[test]
+    fn a_replaced_page_found_in_the_templates_passes() {
+        let global = AdminTemplate::new().with_list("theme/list.html");
+        let notes = ModelTemplates::default().page(Page::Detail, "notes/detail.html");
+        let loaded = |p: &str| matches!(p, "theme/list.html" | "notes/detail.html");
+        assert!(missing_pages(&global, &[("notes", &notes)], loaded).is_ok());
+        assert!(missing_pages(&AdminTemplate::new(), &[], |_| false).is_ok(), "nothing replaced");
+    }
+
+    #[test]
+    fn a_missing_global_or_model_page_is_named() {
+        let global = AdminTemplate::new().with_list("theme/list.html");
+        let err = missing_pages(&global, &[], |_| false).unwrap_err();
+        assert!(err.contains("List page: `theme/list.html`"), "{err}");
+
+        let notes = ModelTemplates::default().page(Page::Detail, "notes/detail.html");
+        let err = missing_pages(&AdminTemplate::new(), &[("notes", &notes)], |_| false).unwrap_err();
+        assert!(err.contains("model `notes`, Detail page: `notes/detail.html`"), "{err}");
+
+        // Only the missing one is listed.
+        let err = missing_pages(&global, &[("notes", &notes)], |p| p == "theme/list.html")
+            .unwrap_err();
+        assert!(!err.contains("theme/list.html") && err.contains("notes/detail.html"), "{err}");
+    }
 
     #[test]
     fn nothing_replaced_dispatches_nothing() {

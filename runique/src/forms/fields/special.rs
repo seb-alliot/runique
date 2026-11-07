@@ -391,7 +391,7 @@ impl FormField for JSONField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
         crate::forms::column_value::read_field(
             &self.base,
-            &self.base.value,
+            self.base.value.trim(),
             sea_orm::sea_query::ColumnType::Json,
         )
     }

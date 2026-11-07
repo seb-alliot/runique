@@ -119,11 +119,14 @@ pub async fn login_get(mut request: Request) -> AppResult<Response> {
 }
 
 pub async fn login_post(mut request: Request) -> AppResult<Response> {
-    let mut form: LoginForm = request.form("login");
-    if form.is_valid().await {
-        // ...
+    let form: LoginForm = request.form("login");
+    match ValidationForm::try_form(form, &request).await {
+        Ok(validated) => { /* ... */ request.render("login.html") }
+        Err(form) => {
+            context_update!(request => { "login_form" => &form });
+            request.render("login.html")
+        }
     }
-    request.render("login.html")
 }
 ```
 
@@ -165,15 +168,21 @@ pub async fn contact_form(mut request: Request) -> AppResult<Response> {
 
 // POST /contact — valide et traite l'envoi
 pub async fn contact_submit(mut request: Request) -> AppResult<Response> {
-    let mut form: ContactForm = request.form("contact");
-    if form.is_valid().await {
-        // envoi de l'email, flash de succès, redirection…
-        return Ok(Redirect::to("/contact").into_response());
+    let form: ContactForm = request.form("contact");
+    match ValidationForm::try_form(form, &request).await {
+        Ok(validated) => {
+            // envoi de l'email, flash de succès, redirection…
+            Ok(Redirect::to("/contact").into_response())
+        }
+        Err(form) => {
+            context_update!(request => { "contact_form" => &form });
+            request.render("contact.html")
+        }
     }
-    context_update!(request => { "contact_form" => &form });
-    request.render("contact.html")
 }
 ```
+
+> **Même nom dans les deux handlers.** Le GET et le POST construisent le formulaire avec le **même** nom (`"contact"` ici) : le formulaire affiché porte ce nom dans un champ caché, et le POST ne remplit et ne valide que le formulaire dont le nom revient. Avec deux noms différents, le POST se réaffiche vide, sans aucune erreur.
 
 > Règle simple : `view!` quand un même handler gère plusieurs méthodes (dispatch interne), les combinateurs `get`/`post`/… quand chaque méthode mérite son propre handler ou que tu veux restreindre les méthodes autorisées.
 

@@ -115,13 +115,20 @@ pub async fn register(mut request: Request) -> AppResult<Response> {
 
 ## Edit form — PATCH mode
 
-In `PATCH` mode, `fill()` automatically relaxes the `required` constraint on `Password` fields. This allows an edit form where the password is optional: if left empty, the existing hash is preserved.
+On a `PATCH` or `PUT` request, `fill()` automatically relaxes the `required` constraint on `Password` fields. This allows an edit form where the password is optional: if left empty, the existing hash is preserved.
+
+An HTML form only sends `GET` or `POST`: this mode applies to a request sent as `PATCH` / `PUT` by JavaScript (`fetch`). For a regular `POST` form, declare the field without `.required()`.
 
 ```rust
 pub async fn edit_profile(mut request: Request) -> AppResult<Response> {
     let form: EditProfileForm = request.form("my_form");
     let template = "profile/edit.html";
-    let user = get_current_user(&request).await?;
+    let Some(current) = request.user.clone() else {
+        return Ok(Redirect::to("/login").into_response());
+    };
+    let Some(user) = users::Entity::find_by_id(current.id).one(request.db()).await? else {
+        return Ok(Redirect::to("/login").into_response());
+    };
 
     let validated = match ValidationForm::try_form(form, &request).await {
         Ok(validated) => validated,
@@ -151,7 +158,7 @@ pub async fn edit_profile(mut request: Request) -> AppResult<Response> {
 }
 ```
 
-> **💡** PATCH mode is detected automatically by `fill()` via the HTTP method. No additional configuration is needed.
+> **💡** `fill()` reads the request's HTTP method: nothing else to configure for a `PATCH` / `PUT` request.
 
 ---
 
@@ -175,9 +182,11 @@ context_update!(request => {
 ### 2. Validating without naming the form
 
 ```rust
-// Avoid: is_valid() alone can't tell which form was submitted,
-// and a form never named fails to render with {% form.x %}.
-let mut form: MyForm = request.form("my");
+// Avoid: is_valid() alone skips try_form's checks. It does not check that the
+// request sends the form's name back (an add_value is enough to make it look
+// sent), ignores allow_get / allow_post, and gives no ValidationForm: no save()
+// or delete() after it.
+let mut form: MyForm = request.form("my_form");
 if form.is_valid().await { /* ... */ }
 
 // Correct: request.form("name") names the form, try_form only validates the one submitted

@@ -19,6 +19,7 @@ Runique includes a ready-to-use user model that requires no configuration.
 | `created_at` | datetime | Creation timestamp |
 | `updated_at` | datetime | Last update timestamp |
 | `activated_at` | datetime | Activation by the owner (empty while the account is pending) |
+| `session_version` | `i32` | Raised to close every session of the account (`close_user_sessions`, a successful reset): a session opened with an older version ends |
 
 To create the first superuser:
 
@@ -61,13 +62,12 @@ did its owner activate it, through the emailed link?).
 - The **first activation** belongs to the email's owner: an admin can't tick `is_active` on a
   pending account.
 - **Deactivating and reactivating** an account activated before is done from the admin, by an account allowed to.
-  (`can_update` on `users`).
 - Changing the password **never reactivates** a deactivated account.
 - The "forgot password" page answers the same whatever the account's state or existence.
 - To cancel an invitation (pending account), delete the account.
 
 The guarantee "no `is_active` without `activated_at`" is set **in the database**: a `CHECK`
-constraint created with the `eihwaz_users` table, on all three engines. It applies to raw SQL too.
+constraint created with the `eihwaz_users` table, on all three engines. It applies to raw SQL too. A second `CHECK` constraint refuses an account holding more than one rank at a time (`is_superuser`, `is_dirigeant`, `is_admin`).
 
 In code, the model implements the `RuniqueUser` trait:
 

@@ -104,21 +104,28 @@
 
 ---
 
-## Tera macros (inside templates)
+## Components (instead of macros)
+
+Tera 2 has no `{% macro %}` anymore: it replaces them with **components**. A component is defined once, in any loaded template, and used from all the others:
 
 ```html
-{% macro render_user(user) %}
+{# templates/components/user_card.html #}
+{% component user_card(user: map, badge: string = "") %}
     <div class="user-card">
-        <h3>{{ user.name }}</h3>
+        <h3>{{ user.name }} {{ badge }}</h3>
         <p>{{ user.email }}</p>
     </div>
-{% endmacro %}
+{% endcomponent user_card %}
+```
 
-<!-- Usage: -->
+```html
+{# any template #}
 {% for u in users %}
-    {{ self::render_user(user=u) }}
+    {{ <user_card user={u} badge="★"/> }}
 {% endfor %}
 ```
+
+Arguments are named; an expression (variable, number) goes between braces (`user={u}`), a literal string between quotes. An argument without a default is required.
 
 ---
 

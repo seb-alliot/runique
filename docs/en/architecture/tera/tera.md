@@ -4,7 +4,8 @@
 
 | Tag | Transformed into | Description |
 | --- | ------------- | ----------- |
-| `{% static "..." %}` | `{{ "..." \| static }}` | Static file URL |
+| `{% static "..." %}` | `{{ "..." \| static }}` (+ `integrity` / `crossorigin` in production) | Static file URL, with its SRI fingerprint outside dev |
+| `{% runique_static "..." %}` | same, Runique's static folder | Files Runique provides (admin, auth, `js/csrf.js`) |
 | `{% media "..." %}` | `{{ "..." \| media }}` | Media file URL |
 | `{% csrf %}` | `{% include "csrf.html" %}` | Hidden CSRF field |
 | `{% messages %}` | `{% include "message.html" %}` | Display flash messages |

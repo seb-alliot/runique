@@ -61,6 +61,7 @@ Both conditions are required — accessing with `RUNIQUE_ENV=dev` through a diff
 ```http
 Cache-Control: no-cache, no-store, must-revalidate
 Pragma: no-cache
+Expires: 0
 ```
 
 ### Production mode (`RUNIQUE_ENV=prod`)
