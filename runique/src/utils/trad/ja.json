@@ -92,7 +92,8 @@
     "delete_linked": "削除できません：他のレコードがまだ使用しています。",
     "text_field_too_large": "テキストフィールドが大きすぎます（最大1MB）",
     "upload_too_large": "ファイルが大きすぎます（最大{}MB）",
-    "upload_failed": "ファイルを保存できませんでした。もう一度お試しください。"
+    "upload_failed": "ファイルを保存できませんでした。もう一度お試しください。",
+    "max_size_above_model": "指定された最大サイズ（{} MB）がモデルの上限（{} MB）を超えています。"
   },
   "csrf": {
     "missing": "CSRFトークンがありません",

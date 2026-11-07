@@ -32,8 +32,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 >
 > - un `hash()` ou un `verify()` appelé avant fige la configuration par défaut (`auto`) ;
 > - `build()` appelle lui-même `password_init(config.password)` : un appel fait **après** `build()` est ignoré.
->
-> Gardez aussi `config.password` égal à ce que vous passez à `password_init` : la page de réinitialisation intégrée hache avec `config.password`.
 
 > Si `password_init()` n'est pas appelé, Argon2 est utilisé par défaut.
 

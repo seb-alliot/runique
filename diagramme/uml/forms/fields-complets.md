@@ -14,7 +14,10 @@ classDiagram
         text/email/password/url/textarea/richtext/slug…
     }
     class SpecialFormat { <<enum>> Email/Password/Url/… }
-    class NumericField { +NumericConfig (Integer/Float/Decimal/Percent/Range) }
+    class NumericField {
+        +NumericConfig (Integer/Float/Decimal/Percent/Range)
+        +min / max (f64) · min_i64 / max_i64 (entiers exacts)
+    }
     class BooleanField
     class ChoiceField { +Vec~ChoiceOption~ }
     class RadioField { +Vec~ChoiceOption~ }
@@ -77,7 +80,13 @@ classDiagram
 ```
 
 `FileField` et `MediaField` partagent `UploadMedia` : quota, extension, taille, déplacement et
-retour arrière. `MediaField` vérifie en plus le contenu : signature (`has_av_signature` pour
+retour arrière. Quelle que soit la liste d'extensions (`any()` compris), `ACTIVE_CONTENT`
+est toujours refusé : `.svg`, `.svgz`, `.html`, `.htm`, `.xhtml`, `.xht`, `.shtml`, `.xml`,
+`.js`, `.mjs` — ce qu'un navigateur ouvre comme document du site une fois servi depuis
+`MEDIA_ROOT` (la CSP des médias ajoute `form-action 'none'`). Un upload qui ne peut pas
+s'écrire montre au visiteur `upload_failed` (phrase traduite), le chemin et l'erreur OS
+restant dans le journal. Un plafond de form au-delà de celui du modèle est refusé par un
+message traduit (`forms.max_size_above_model`). `MediaField` vérifie en plus le contenu : signature (`has_av_signature` pour
 l'audio et la vidéo, signature et `max_dimensions` pour l'image). `FileField::image()` n'existe
 plus. DSL : `image`, `audio`, `video` donnent `MediaField` ; `document`, `file` donnent `FileField`.
 
@@ -99,7 +108,7 @@ classDiagram
     class LengthConstraint { +u32 value +String message }
     class BoolChoice { +bool choice }
     class TextConfig { +Option~LengthConstraint~ max_length / min_length }
-    class NumericConfig { <<enum>> Integer(min,max)/Float/Decimal/Percent/Range }
+    class NumericConfig { <<enum>> Integer(min,max i64)/Float/Decimal/Percent/Range }
     class ValidationError {
         <<enum>> Required / TooLong / TooShort / Invalid / OutOfRange …
     }
@@ -107,6 +116,20 @@ classDiagram
     FieldConfig *-- BoolChoice
     TextConfig *-- LengthConstraint
 ```
+
+Bornes numériques :
+- `Integer` garde des bornes `i64` exactes (`min_i64` / `max_i64`, utilisées par le code
+  généré d'un `bigint`) : au-delà de 2^53 un `f64` les arrondissait.
+- `Decimal` : une borne non posée n'est plus comparée (`.min()` seul ou `.max()` seul).
+- Colonne `float` (32 bits) : `apply_column_type` borne le champ à `±f32::MAX`, l'erreur
+  tombe à la validation et non à l'écriture.
+- `JSONField` : une valeur faite d'espaces est vide à la validation comme à l'écriture.
+- Champ non fichier : un fichier envoyé sous son nom (valeur = chemin de staging,
+  `is_staged_path`) est ignoré avec un `warn`, jamais pris pour la saisie ni réaffiché.
+- `TextField` : un `password` venu de la requête est
+  haché même s'il a la forme d'un hash ; le texte riche d'un `<textarea>` est échappé une
+  seule fois ; le filtre de protocoles (`javascript:`, `data:`…) n'agit qu'en début de texte
+  ou après un séparateur.
 
 ## Anomalies / flux suspects
 

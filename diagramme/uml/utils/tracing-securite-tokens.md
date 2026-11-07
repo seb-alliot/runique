@@ -86,6 +86,13 @@ clé jamais affichée par `Debug` (voir [../middleware/sessions.md](../middlewar
 - `reset_token/entity` : Model `eihwaz_reset_tokens` (cf. [merise](../../merise/modele-donnees.md) + [auth](../auth/authentification.md)).
 - `constante/`, `aliases/`, `config/{env,integrity,pk,url_params}`, `resolve_ogimage/`,
   `init_error/` : constantes, alias de types, helpers — pas de modèle de données propre.
+- `config/env` : `is_dev()` (`RUNIQUE_ENV=dev`, `dev_from`, `runique_env_is_known`) et
+  `is_debug()` (`DEBUG`, pages d'erreur seules), lus une fois après le `.env`
+  (`read_after_dotenv`) ; `css_token()` = jeton `?v=` des statiques, calculé sur les
+  fichiers du projet **et** ceux de Runique (un SRI nouveau sur une URL inchangée bloquait
+  l'ancien fichier gardé en cache).
+- `private_file::write(path, bytes)` : fichier secret en `0600` (Unix), qu'il soit nouveau
+  ou déjà là — `.env` de `runique new`, `key.pem` d'ACME.
 
 ## Anomalies / flux suspects
 

@@ -34,7 +34,7 @@ sequenceDiagram
             F-->>H: form rempli
         end
         H->>V: try_form(form, &request)
-        Note over V: register_dynamic_fields, keep_submitted_if(sent)<br/>allow_get/allow_post puis is_valid()
+        Note over V: keep_submitted_if(sent)<br/>allow_get/allow_post puis is_valid()
         V-->>H: Ok(validé) ou Err(form)
     end
 ```
@@ -49,6 +49,7 @@ sequenceDiagram
     participant FS as Fichiers (staging puis MEDIA_ROOT)
 
     H->>V: save(&db), db = connexion ou transaction du handler
+    Note over V: changes() : par colonne, champ non verrouillé → to_value,<br/>sinon code_values (add_value hors champ), sinon NotSet
     alt route déclarée admin
         Note over V: gated_write : as_adb() ou refus InTransaction, puis save_as (porte)
     else hors admin

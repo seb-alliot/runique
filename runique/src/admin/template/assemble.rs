@@ -130,6 +130,11 @@ pub(crate) fn missing_pages(
             missing.push(format!("{page:?} page: `{path}`"));
         }
     }
+    if let Some(path) = templates.htmx.dev.as_deref()
+        && !loaded(path)
+    {
+        missing.push(format!("List fragment (htmx): `{path}`"));
+    }
     for (key, t) in models {
         for (page, path) in &t.pages {
             if !loaded(path.as_str()) {
@@ -143,6 +148,210 @@ pub(crate) fn missing_pages(
         Err(format!(
             "admin template override not found in the templates folder: {}",
             missing.join(", ")
+        ))
+    }
+}
+
+/// The template Runique renders for `page`, as it ships.
+fn runique_page(templates: &AdminTemplate, page: Page) -> &'static str {
+    match templates.page_template(page) {
+        Some(template) => template.runique,
+        None if page == Page::Rights => "admin/rights.html",
+        None => "admin/transfer.html",
+    }
+}
+
+/// What every admin page's request puts in its context, whatever the page.
+const REQUEST_KEYS: &[&str] = &[
+    "admin_prefix",
+    "csp_nonce",
+    "csrf_token",
+    "current_path",
+    "current_user",
+    "debug",
+    "dev",
+    "messages",
+    "static_runique",
+];
+
+/// The translation sections `insert_admin_messages` gives `page`.
+fn message_sections(page: Page) -> &'static [&'static str] {
+    match page {
+        Page::Login => &["login"],
+        Page::Dashboard => &["dashboard", "base"],
+        Page::List => &["list", "base"],
+        Page::Create => &["create", "base"],
+        Page::Edit => &["edit", "base"],
+        Page::Detail => &["detail", "list", "base"],
+        Page::Delete => &["delete", "base"],
+        Page::History | Page::HistoryDiff => &["history", "base"],
+        Page::Rights | Page::Transfer => &["base"],
+    }
+}
+
+/// Keys a page's context holds that Runique's own templates for it may not
+/// read. Kept exact by `every_key_an_admin_page_provides_is_allowed`, which
+/// reads the live pages' contexts.
+fn provided_unread(page: Page) -> Vec<String> {
+    let mut keys: Vec<String> = REQUEST_KEYS.iter().map(|k| k.to_string()).collect();
+    for section in message_sections(page) {
+        let prefix = format!("admin.{section}.");
+        keys.extend(
+            crate::utils::ADMIN_MESSAGE_KEYS
+                .iter()
+                .filter(|k| k.starts_with(&prefix))
+                .map(|k| k.replace('.', "_")),
+        );
+    }
+    match page {
+        Page::List => keys.push("page".to_string()),
+        Page::Create | Page::Edit | Page::Delete | Page::Rights => {
+            keys.push("resource_key".to_string());
+        }
+        _ => {}
+    }
+    keys
+}
+
+/// Tera's own variable: the whole context, for debugging a template.
+const TERA_CONTEXT: &str = "__tera_context";
+
+/// The keys a template replacing `page`, or one of its blocks, may read: those
+/// Runique's own templates for that page read (`pristine` holds them without
+/// any replacement), plus the ones its context holds unread.
+fn allowed_keys(
+    pristine: &tera::Tera,
+    templates: &AdminTemplate,
+    page: Page,
+) -> Result<std::collections::HashSet<String>, String> {
+    let mut keys: std::collections::HashSet<String> = pristine
+        .get_template_variables(runique_page(templates, page))
+        .map_err(|e| e.to_string())?
+        .into_iter()
+        .map(str::to_string)
+        .collect();
+    keys.extend(provided_unread(page));
+    keys.insert(TERA_CONTEXT.to_string());
+    Ok(keys)
+}
+
+/// The closest of `known` to `name`, when close enough to be a typo.
+fn closest<'a>(name: &str, known: &'a std::collections::HashSet<String>) -> Option<&'a str> {
+    fn distance(a: &str, b: &str) -> usize {
+        let b: Vec<char> = b.chars().collect();
+        let mut row: Vec<usize> = (0..=b.len()).collect();
+        for (i, ca) in a.chars().enumerate() {
+            let mut previous = row[0];
+            row[0] = i + 1;
+            for (j, cb) in b.iter().enumerate() {
+                let current = row[j + 1];
+                row[j + 1] = if ca == *cb {
+                    previous
+                } else {
+                    1 + previous.min(row[j]).min(current)
+                };
+                previous = current;
+            }
+        }
+        row[b.len()]
+    }
+    known
+        .iter()
+        .map(|k| (distance(name, k), k.as_str()))
+        .filter(|(d, _)| *d <= 2)
+        .min()
+        .map(|(_, k)| k)
+}
+
+/// Every variable a replaced admin page or block reads that its context never
+/// holds: a typo the page would only reveal on render, refused at boot.
+/// `loaded` holds the developer's templates, `pristine` Runique's own without
+/// any replacement. A block shown on several pages may read what any of them
+/// holds.
+pub(crate) fn unknown_variables(
+    pristine: &tera::Tera,
+    loaded: &tera::Tera,
+    templates: &AdminTemplate,
+    models: &[(&'static str, &ModelTemplates)],
+) -> Result<(), String> {
+    let mut problems = Vec::new();
+    let mut check = |label: String, path: &str, allowed: &std::collections::HashSet<String>| {
+        let Ok(vars) = loaded.get_template_variables(path) else {
+            return;
+        };
+        let mut unknown: Vec<&str> = vars.into_iter().filter(|v| !allowed.contains(*v)).collect();
+        unknown.sort_unstable();
+        for name in unknown {
+            match closest(name, allowed) {
+                Some(hint) => problems.push(format!(
+                    "{label} `{path}`: `{name}` (did you mean `{hint}`?)"
+                )),
+                None => problems.push(format!("{label} `{path}`: `{name}`")),
+            }
+        }
+    };
+
+    let mut pages = Vec::new();
+    for page in Page::ALL {
+        pages.push((page, allowed_keys(pristine, templates, page)?));
+    }
+    let allowed_of = |page: Page| &pages.iter().find(|(p, _)| *p == page).unwrap().1;
+
+    for page in Page::ALL {
+        if let Some(path) = templates.page_template(page).and_then(|t| t.dev.as_deref()) {
+            check(format!("{page:?} page"), path, allowed_of(page));
+        }
+    }
+    if let Some(path) = templates.htmx.dev.as_deref() {
+        check(
+            "List fragment (htmx)".to_string(),
+            path,
+            allowed_of(Page::List),
+        );
+    }
+    for (key, t) in models {
+        for (page, path) in &t.pages {
+            check(
+                format!("model `{key}`, {page:?} page"),
+                path.as_str(),
+                allowed_of(*page),
+            );
+        }
+    }
+
+    let union_of = |shown_on: &dyn Fn(Page) -> bool| {
+        let mut keys = std::collections::HashSet::new();
+        for (page, allowed) in &pages {
+            if shown_on(*page) {
+                keys.extend(allowed.iter().cloned());
+            }
+        }
+        keys
+    };
+    for block in Block::ALL {
+        let allowed = union_of(&|p: Page| p.blocks().contains(&block));
+        if let Some(path) = templates.blocks.html_of(block) {
+            check(format!("{block:?} block"), path, &allowed);
+        }
+        for (key, t) in models {
+            if let Some(path) = t.blocks.html_of(block) {
+                check(format!("model `{key}`, {block:?} block"), path, &allowed);
+            }
+        }
+    }
+    for block in GlobalBlock::ALL {
+        let allowed = union_of(&|p: Page| p.global_blocks().contains(&block));
+        if let Some(path) = templates.global_blocks.html_of(block) {
+            check(format!("{block:?} block"), path, &allowed);
+        }
+    }
+
+    if problems.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "admin template override reads a variable its page never provides: {}",
+            problems.join("; ")
         ))
     }
 }
@@ -178,7 +387,10 @@ mod tests {
         let notes = ModelTemplates::default().page(Page::Detail, "notes/detail.html");
         let loaded = |p: &str| matches!(p, "theme/list.html" | "notes/detail.html");
         assert!(missing_pages(&global, &[("notes", &notes)], loaded).is_ok());
-        assert!(missing_pages(&AdminTemplate::new(), &[], |_| false).is_ok(), "nothing replaced");
+        assert!(
+            missing_pages(&AdminTemplate::new(), &[], |_| false).is_ok(),
+            "nothing replaced"
+        );
     }
 
     #[test]
@@ -188,13 +400,20 @@ mod tests {
         assert!(err.contains("List page: `theme/list.html`"), "{err}");
 
         let notes = ModelTemplates::default().page(Page::Detail, "notes/detail.html");
-        let err = missing_pages(&AdminTemplate::new(), &[("notes", &notes)], |_| false).unwrap_err();
-        assert!(err.contains("model `notes`, Detail page: `notes/detail.html`"), "{err}");
+        let err =
+            missing_pages(&AdminTemplate::new(), &[("notes", &notes)], |_| false).unwrap_err();
+        assert!(
+            err.contains("model `notes`, Detail page: `notes/detail.html`"),
+            "{err}"
+        );
 
         // Only the missing one is listed.
-        let err = missing_pages(&global, &[("notes", &notes)], |p| p == "theme/list.html")
-            .unwrap_err();
-        assert!(!err.contains("theme/list.html") && err.contains("notes/detail.html"), "{err}");
+        let err =
+            missing_pages(&global, &[("notes", &notes)], |p| p == "theme/list.html").unwrap_err();
+        assert!(
+            !err.contains("theme/list.html") && err.contains("notes/detail.html"),
+            "{err}"
+        );
     }
 
     #[test]

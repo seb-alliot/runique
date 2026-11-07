@@ -446,7 +446,12 @@ fn test_numeric_render_uses_its_template() {
 #[tokio::test]
 async fn a_decimal_with_only_a_max_accepts_up_to_it_and_refuses_above() {
     let mut field = NumericField::decimal("m").max(0.1, "");
-    for (value, valid) in [("0.05", true), ("-1000", true), ("0.1", true), ("0.11", false)] {
+    for (value, valid) in [
+        ("0.05", true),
+        ("-1000", true),
+        ("0.1", true),
+        ("0.11", false),
+    ] {
         field.set_value(value);
         assert_eq!(field.validate().await, valid, "{value}");
     }
@@ -455,7 +460,12 @@ async fn a_decimal_with_only_a_max_accepts_up_to_it_and_refuses_above() {
 #[tokio::test]
 async fn a_decimal_with_only_a_min_accepts_from_it_and_refuses_below() {
     let mut field = NumericField::decimal("m").min(0.5, "");
-    for (value, valid) in [("0.5", true), ("12.50", true), ("99999999", true), ("0.4", false)] {
+    for (value, valid) in [
+        ("0.5", true),
+        ("12.50", true),
+        ("99999999", true),
+        ("0.4", false),
+    ] {
         field.set_value(value);
         assert_eq!(field.validate().await, valid, "{value}");
     }

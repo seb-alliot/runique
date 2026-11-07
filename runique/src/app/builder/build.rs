@@ -144,16 +144,30 @@ impl<P> RuniqueAppBuilder<P> {
         #[cfg_attr(not(feature = "admin"), allow(unused_variables))]
         let (tera, integrity) = TemplateLoader::init_with_integrity(&config, url_registry.clone())
             .map_err(|e| BuildError::template(e.to_string()))?;
-        // A replaced admin page is only looked up when rendered: in development
-        // or debug, a missing one refuses the boot instead of failing on its
-        // first request.
+        // A replaced admin page is only looked up when rendered: a missing one
+        // refuses the boot instead of failing on its first request.
         #[cfg(feature = "admin")]
-        if self.admin.enabled && (config.dev || config.debug) {
+        if self.admin.enabled {
             let loaded: std::collections::HashSet<&str> = tera.get_template_names().collect();
             crate::admin::template::assemble::missing_pages(
                 &self.admin.config.templates,
                 &self.admin.site.model_templates(),
                 |path| loaded.contains(path),
+            )
+            .map_err(BuildError::template)?;
+        }
+        // Every variable a replaced admin page or block reads must be one its
+        // page provides: a typo is refused here, whatever the environment,
+        // instead of failing on render.
+        #[cfg(feature = "admin")]
+        if self.admin.enabled {
+            let pristine = TemplateLoader::load_without_replacements(&config, url_registry.clone())
+                .map_err(|e| BuildError::template(e.to_string()))?;
+            crate::admin::template::assemble::unknown_variables(
+                &pristine,
+                &tera,
+                &self.admin.config.templates,
+                &self.admin.site.model_templates(),
             )
             .map_err(BuildError::template)?;
         }

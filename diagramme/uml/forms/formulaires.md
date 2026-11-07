@@ -20,6 +20,7 @@ classDiagram
         -Option~String~ honeypot_field_name
         -SaveComportement save_comportement
         -Option~str~ name
+        -StrMap code_values  « add_value hors champ »
         +field_label(name, v) &mut Self
         +field_placeholder(name, v) &mut Self
         +field_required/readonly/disabled(name, b) &mut Self
@@ -81,7 +82,6 @@ classDiagram
     class RuniqueForm {
         <<trait, async_trait>>
         +customize(form) [défaut no-op, statique]
-        +register_dynamic_fields(request) [async, défaut no-op]
         +allow_get(request) bool [défaut false — sécurité, opt-in]
         +allow_post(request) bool [défaut is_submitted()]
         +label/placeholder/required/readonly/disabled/attr(name,..)
@@ -132,7 +132,6 @@ Flux de construction d'un `#[form(schema=…)]` :
 
 Flux `ValidationForm<F>::try_form(form, request)` (remplace le boilerplate
 `if request.is_post() && form.is_valid() {...} else {...}` désormais **supprimé**) :
-`register_dynamic_fields(request).await` (champs dépendants de la requête) →
 `sent_by(request)` puis `keep_submitted_if(sent)` → dispatch `allow_get`/`allow_post` selon
 `request.method.is_safe()` → si le nom n'est pas revenu ou si le dispatch répond `false`, retour
 `Err(form)` **sans validation** (pas d'erreur de champ posée) → sinon `form.is_valid().await` →
@@ -146,6 +145,14 @@ Une route `admin` passe par `save_as` (la porte) et refuse une transaction
 (`RefusalReason::InTransaction`). Séquence : [../../flux/requete-csrf-upload.md](../../flux/requete-csrf-upload.md).
 
 `cleaned::<T>(nom)` lit la valeur par la colonne du champ quand il en a une, sinon par `T`.
+Sans champ de ce nom, il se rabat sur les paramètres de chemin puis de requête, jamais sur le modèle.
+
+Valeurs posées par le code : `add_value(nom, v)` sur un **champ** remplit le champ ; sur un
+nom qui **n'est pas un champ**, la valeur va dans `code_values`. `save` (via `changes`) écrit
+une `code_values` quand son nom est une colonne de l'entité, convertie au type de la colonne
+(`""` = NULL) ; sinon elle est ignorée. Le visiteur ne peut jamais l'envoyer, ce n'est pas un
+champ. Un champ verrouillé (`readonly` / `disabled`) n'est plus rempli depuis la requête :
+il garde la valeur du code et n'est jamais écrit.
 
 ## Anomalies / flux suspects
 
@@ -165,8 +172,9 @@ override possible vers le bas, jamais au-dessus du plafond. Pas de divergence.
 ### 🟠 F3 — `force_invalid` / honeypot : ordre vs `fill`/`validate` — ✅ VÉRIFIÉ clean
 **Vérifié (2.1.21).** `force_invalid` est posé à la construction du form (honeypot + CSRF)
 **avant** `fill()` (qui n'y touche jamais) ; `is_valid()` court-circuite dessus avant toute
-validation, et `is_save_allowed()` double-garde. Honeypot POST-only mais la garde CSRF couvre
-toutes les méthodes mutantes. Pas de contournement possible.
+validation, et `is_save_allowed()` double-garde. Le honeypot est vérifié sur les mêmes méthodes
+que la CSRF (`csrf_required` : tout sauf GET et HEAD), dans `Request::form`. Pas de
+contournement possible.
 
 ### 🟠 F4 — `readonly` / `disabled` jamais posés sur 9 champs sur 18
 **Corrigé (2.2.0).** Les templates `base_datetime`, `base_file`, `base_special`, `base_string` et

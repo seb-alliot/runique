@@ -369,13 +369,19 @@ mod cert_renewal_tests {
             runs.fetch_add(1, Ordering::SeqCst);
         };
 
-        std::fs::write(&path, (chrono::Utc::now() + chrono::Duration::days(1)).to_rfc3339())
-            .unwrap();
+        std::fs::write(
+            &path,
+            (chrono::Utc::now() + chrono::Duration::days(1)).to_rfc3339(),
+        )
+        .unwrap();
         assert!(!renew_if_due(&path, renew).await);
         assert_eq!(runs.load(Ordering::SeqCst), 0, "not due yet");
 
-        std::fs::write(&path, (chrono::Utc::now() - chrono::Duration::seconds(1)).to_rfc3339())
-            .unwrap();
+        std::fs::write(
+            &path,
+            (chrono::Utc::now() - chrono::Duration::seconds(1)).to_rfc3339(),
+        )
+        .unwrap();
         assert!(renew_if_due(&path, renew).await);
         assert_eq!(runs.load(Ordering::SeqCst), 1, "due: renewed once");
 

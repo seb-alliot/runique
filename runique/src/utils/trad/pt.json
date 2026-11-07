@@ -92,7 +92,8 @@
     "delete_linked": "Não é possível excluir: outros registros ainda o utilizam.",
     "text_field_too_large": "Campo de texto muito grande (max 1 MB)",
     "upload_too_large": "Upload muito grande (max {}MB)",
-    "upload_failed": "Não foi possível salvar o arquivo. Tente novamente."
+    "upload_failed": "Não foi possível salvar o arquivo. Tente novamente.",
+    "max_size_above_model": "O tamanho máximo pedido ({} MB) excede o limite do modelo ({} MB)."
   },
   "csrf": {
     "missing": "Token CSRF ausente",

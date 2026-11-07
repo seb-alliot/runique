@@ -51,7 +51,6 @@ All options are optional — the defaults work without any changes.
     .forgot_template("auth/forgot.html")        // default: auth/forgot_password.html
     .reset_template("auth/reset.html")          // default: auth/reset_password.html
     .email_template("emails/reset.html")        // default: built-in template
-    .success_redirect("/login")                 // stored, not used yet (see the flow)
     .token_ttl(Duration::from_secs(1800))       // default: 1h (std::time::Duration)
 )
 ```
@@ -140,8 +139,7 @@ A `<form>` without `action` posts to the page's address, `/reset-password/{token
    - Validates the form and checks the typed email against the account bound to the token
    - Consumes the token (single-use), updates the password and activates the
      account if it was pending, closes its sessions — in one transaction
-   - Renders the page again with reset_done = true (no redirect:
-     success_redirect is not read yet)
+   - Renders the page again with reset_done = true (no redirect)
 ```
 
 > **Active sessions after reset:** once the new password is saved, **every session of the account is closed**, on every device — a stolen one included —, and the session of the browser that did the reset. All of it happens in the password change's transaction: when the database refuses, nothing changes and the link stays usable. One link is live per account: a new request replaces the previous one. The user signs in again with the new password. Other accounts are left alone. Only Runique's stores are covered: a store plugged in with `with_session_store()` (Redis…) can't be searched by user — see [Revoking sessions](/docs/en/auth/session#revoking-sessions).

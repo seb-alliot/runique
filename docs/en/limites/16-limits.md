@@ -37,7 +37,7 @@ What Runique 4.0 doesn't do yet, or does with a restriction. Each line points to
 | Limit | Details |
 | --- | --- |
 | `.links`, `.search_help`, `.empty_value` accepted but with no effect on the display | [ModelAdmin builder](/docs/en/admin/declaration-macro) |
-| No global theme stylesheet (workaround through a block)<br>`.with_htmx` is global, no per-model list fragment<br>In production, a missing page template is only reported when shown (boot refused in dev or with `DEBUG=true`); a missing stylesheet never is | [Template override](/docs/en/admin/template-surcharge) |
+| No global theme stylesheet (workaround through a block)<br>`.with_htmx` is global, no per-model list fragment<br>A missing stylesheet isn't reported | [Template override](/docs/en/admin/template-surcharge) |
 | No session management interface | — |
 | Many-to-many: declared in the DSL through a pivot table, not managed in the admin | [Roadmap](/docs/en/admin/evolution) |
 

@@ -23,6 +23,7 @@ classDiagram
         +register(ModelAdmin) Self
         +accounts_users(ModelAdmin) Self
         +path / prefix / resource_order / templates…
+        +page_size / filter_size / search_max_len
         +validate() CheckReport
     }
     class AdminSite {
@@ -80,10 +81,11 @@ classDiagram
     class ListConfig~E~ {
         -Vec~Column~ display / links / sortable / filter / search
         -Vec~(Column,Order)~ ordering
-        -Option~u64~ per_page
+        -Option~u64~ per_page / filter_size
         -Vec~Action~ actions
         +display / links / sortable / ordering / search / filter
-        +per_page / action / empty_value / search_help
+        +per_page / filter_size / action / empty_value / search_help
+        -page_size(query, site) / filter_page_size(query, site)
         +validate() / select(proof) / resolve_*
     }
     class Action~E~ {
@@ -94,8 +96,10 @@ classDiagram
     class ListQuery {
         +u64 page
         +Option sort_by / sort_dir / search
-        +Vec~(col,value)~ filters
-        +from_params(StrMap, max_len)
+        +Vec~(col,value)~ filters  « plusieurs valeurs par colonne »
+        +Option~u64~ per_page / filter_size  « ∈ PER_PAGE_OPTIONS »
+        +Vec~(col,u64)~ filter_pages  « fpage_col »
+        +from_params(Vec~(k,v)~, max_len)
     }
     class FormConfig~E~ {
         -Vec~Column~ fields / readonly / create_only
@@ -110,7 +114,14 @@ classDiagram
         +Vec~ListFilter~ filters
         +Vec~OfferedAction~ actions
     }
+    class ListFilter {
+        +&str column
+        +Vec~String~ values
+        +u64 page / size
+        +bool has_next
+    }
     ListConfig --> Action
+    ListPage *-- "*" ListFilter
     ListConfig ..> ListQuery : résout
     ModelAdmin *-- ListConfig
     ModelAdmin *-- FormConfig
@@ -118,7 +129,12 @@ classDiagram
 ```
 
 Rien de l'URL n'est crédible : `ListQuery` ne fait que parser ; `ListConfig` décide
-quelles colonnes un nom peut atteindre (tri, filtre, recherche). Les secrets
+quelles colonnes un nom peut atteindre (tri, filtre, recherche). Bornes de l'URL :
+taille de page et de filtre ∈ `PER_PAGE_OPTIONS` (10/25/50/100), au plus
+`FILTER_CHOSEN_MAX` (100) valeurs par filtre, offset de page plafonné à `i64::MAX`,
+recherche de moins de `SEARCH_MIN_LEN` (3) caractères ignorée. Plusieurs valeurs d'une
+colonne = OU, plusieurs colonnes = ET. Taille effective : URL > `.list(|l| l.per_page(n))`
+> `AdminStaging::page_size` ; même chaîne pour `filter_size` (défaut 10). Les secrets
 (`ModelMeta::SECRET`) et les flags de rang (`is_superuser` / `is_dirigeant` /
 `is_admin`) sont refusés dès `ModelAdmin::validate()`.
 
@@ -296,12 +312,16 @@ sequenceDiagram
     MW->>MW: load_admin_user + can_access_admin
     MW->>MW: insert AdminConstraint(user)
     H->>S: model(resource)
-    H->>M: list(db, user, ListQuery, page_size)
+    H->>M: list(db, user, ListQuery, page_size, filter_size)
     M->>G: authorize_list → Authorized~List,E~
     G-->>M: proof + Scope + ReadableColumns
     M->>DB: SELECT filtré (conditions du proof)
+    M->>DB: une page de valeurs par filtre (scope du proof)
     M-->>H: ListPage
-    H->>H: chrome + template list
+    opt table des comptes
+        H->>DB: account_summaries(ids) — rang + groupes
+    end
+    H->>H: Pager / FilterOption + chrome + template list
 ```
 
 ## Anomalies / flux suspects

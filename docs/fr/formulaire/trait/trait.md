@@ -65,7 +65,7 @@ register_fields()            → déclare les champs
         ↓
 req.form("nom")              → construit l'instance, la remplit si la requête renvoie son nom
         ↓
-ValidationForm::try_form()   → register_dynamic_fields(), puis is_valid()
+ValidationForm::try_form()   → allow_get() / allow_post(), puis is_valid()
         ↓
 is_valid()                   → pipeline de validation
     ↓  validate() par champ  (requis, format, longueur…)
@@ -342,7 +342,6 @@ Avec une clé, `save` met à jour cette ligne ; `delete` exige une clé. Une cl�
 
 - Valeurs à vérifier ou ajuster : `clean_field`, `clean`.
 - Valeurs imposées par le code (compte connecté, ligne parente) : `add_value` avant `try_form`, sur une colonne qui n'est pas un champ — voir [Colonnes posées par le code](/docs/fr/formulaire/helpers).
-- Champs ou choix qui dépendent de la requête : `register_dynamic_fields`. Il tourne dans `try_form`, **après** le remplissage : un champ qu'il ajoute ne reçoit pas les données envoyées (seul un `add_value` fait dans le hook lui donne une valeur).
 - Effets extérieurs (email, cache) et écritures dans d'autres tables : dans le handler, après un `save` réussi.
 
 ---

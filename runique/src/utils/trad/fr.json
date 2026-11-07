@@ -92,7 +92,8 @@
     "delete_linked": "Impossible de supprimer : d'autres enregistrements l'utilisent encore.",
     "text_field_too_large": "Champ texte trop volumineux (max 1 Mo)",
     "upload_too_large": "Fichier trop volumineux (max {}Mo)",
-    "upload_failed": "Le fichier n'a pas pu être enregistré. Réessayez."
+    "upload_failed": "Le fichier n'a pas pu être enregistré. Réessayez.",
+    "max_size_above_model": "La taille maximale demandée ({} Mo) dépasse la limite du modèle ({} Mo)."
   },
   "csrf": {
     "missing": "Token CSRF manquant",

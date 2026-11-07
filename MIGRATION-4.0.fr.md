@@ -290,6 +290,7 @@ PRAGMA foreign_keys = ON;
 - Une route personnalisée ne passe plus par `.extra_routes()` : elle se déclare dans `urlpatterns!` avec le mot-clé `admin`.
 - `urlpatterns!` renvoie un `Routes` : une fonction `routes() -> Router` devient `routes() -> Routes`.
 - `AdminTemplate::with_base` et `with_bulk_edit` sont retirés.
+- `AdminConfig::user_resource` et `user_resource_with_template` sont retirés : rien ne les lisait. La création d'un compte depuis l'admin envoie déjà son lien de bienvenue, sans déclaration.
 - Sentinel et `GuardRules` sont retirés : le contrôle d'accès par rang ou groupe passe par les routes `admin`.
 - Un template de liste surchargé lit `list_pager`, `filter_pagers` et `filter_size_pager` au lieu de `has_prev`, `has_next`, `prev_page`, `next_page` et `page_size_options` ; `filter_values` devient une liste de `{ value, active, qs }`, et `active_filters` associe chaque colonne à une liste de valeurs.
 
@@ -352,7 +353,7 @@ match validated.save(&request.engine.db).await {
 }
 ```
 
-La logique métier passe dans `clean_field`, `clean` ou `register_dynamic_fields` ; les emails et les écritures dans d'autres tables, dans le handler après un `save` réussi.
+La logique métier passe dans `clean_field` ou `clean` ; les emails et les écritures dans d'autres tables, dans le handler après un `save` réussi.
 
 Autres changements :
 
@@ -364,6 +365,7 @@ Autres changements :
 | `impl_form_access!(model)` | à retirer : `#[form(schema = …)]` génère `FormAccess` |
 | `#[form(schema = …, model = …)]` | retirer `model = …` |
 | `#id_{champ}` en CSS ou JS | `#id_{formulaire}-{champ}` |
+| `register_dynamic_fields(&mut self, request)` | retiré : un champ qu'il ajoutait ne recevait jamais les données envoyées. Choix chargés depuis la base : `form.forms_mut().field_choices(…)` dans le handler, avant `try_form` |
 
 ---
 
@@ -411,5 +413,6 @@ Voir [la doc CSRF](https://runique.io/docs/fr/middleware/csrf).
 ## Réinitialisation du mot de passe
 
 - En production, `with_password_reset()` sans mailer arrête le démarrage.
+- `PasswordResetConfig::success_redirect` est retiré : rien ne le lisait, la page se réaffiche avec `reset_done = true` après un reset réussi.
 - `AdminConfig.reset_route` devient `reset_link`, posé par le builder.
 - Le lien ne porte plus d'e-mail chiffré : retirez `encrypted_email` du `{% link "reset_password" ... %}` de vos templates surchargés, qui ne s'afficheraient plus.

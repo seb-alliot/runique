@@ -127,6 +127,7 @@ classDiagram
         +max_attempts / lockout_secs
         +record_failure / is_locked / reset
         +spawn_cleanup
+        -key(username, ip)  « nom trim + minuscules »
     }
     class LoginError {
         <<enum>>
@@ -137,15 +138,26 @@ classDiagram
 
 TTL session : source unique builder (`OnceLock`, défaut 24h) — **AM3** corrigé.
 Lockout / rate-limit restent process-local → limite multi-instance (roadmap).
+La clé du `LoginGuard` est le nom sans espaces autour et en minuscules : une base qui
+compare sans casse (MySQL/MariaDB) ouvre le même compte pour `admin`, `Admin`, `admin `,
+qui partagent donc un seul compteur. La déconnexion de l'admin exige un jeton CSRF valide.
 
 ## Reset password
 
 ```mermaid
 classDiagram
     class PasswordResetConfig {
-        +routes + templates
-        +token_ttl / rate
-        +base_url / success_redirect
+        +String forgot_route / reset_route
+        +String forgot_template / reset_template
+        +Option~String~ email_template
+        +u64 max_requests / retry_after
+        +Duration token_ttl
+        +Option~ExtraContextFn~ extra_context
+    }
+    class ResetLinkConfig {
+        +String reset_route
+        +Duration token_ttl
+        +minutes() u64
     }
     class ForgotPasswordForm
     class PasswordResetForm
@@ -157,6 +169,7 @@ classDiagram
     }
     class handle_forgot_password
     class handle_password_reset
+    PasswordResetConfig ..> ResetLinkConfig : partagé site + admin
     PasswordResetConfig --> ForgotPasswordForm
     PasswordResetConfig --> PasswordResetForm
     handle_forgot_password ..> ResetToken
@@ -166,7 +179,13 @@ classDiagram
 
 Token brut uniquement dans le mail ; DB = hash. `consume` single-use
 (`rows_affected == 1`). `user_id` vient du token, jamais de l'URL → IDOR-safe.
-Réponse forgot identique si email inconnu (anti-énumération).
+Réponse forgot identique si email inconnu (anti-énumération). Route reset :
+`{reset_route}/{token}` (jeton dans le chemin), servie en `no-store`. Le nouveau mot de
+passe est haché par `PasswordService::new(password_get())` : la stratégie déclarée par
+`password_init` (les champs du formulaire sont `.no_hash()` pour comparer les deux saisies).
+E-mails intégrés (`builtin_reset_body`, `builtin_blocked_body`) : nom et lien échappés,
+`{` compris (`tf` remplirait sinon un `{}` injecté). `success_redirect` n'existe plus :
+la page se réaffiche avec `reset_done = true`.
 
 Un reset réussi écrit dans **une seule transaction** : mot de passe, activation éventuelle,
 `session_version + 1`, suppression des sessions du compte. Détail :

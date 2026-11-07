@@ -21,6 +21,13 @@ classDiagram
     class ErrorType {
         <<enum>> Template / NotFound / Internal / Database / Validation / BadRequest
     }
+    class RuniqueError {
+        <<enum>>
+        Build / Internal / Forbidden / NotFound
+        Validation(String) / Database(String)
+        Template « message + Option~usize~ line »
+        +template(&tera::Error) Self
+    }
     class StackFrame {
         +usize level
         +String message
@@ -28,13 +35,19 @@ classDiagram
     }
     class TemplateInfo { +name +source +line_number +available_templates }
     class RequestInfo { +method +path +query +headers }
-    class EnvironmentInfo { +debug_mode +rust_version }
+    class EnvironmentInfo { +debug_mode +rust_version « build.rs » +runique_version }
     ErrorContext *-- ErrorType
     ErrorContext *-- "*" StackFrame
     ErrorContext *-- "0..1" TemplateInfo
     ErrorContext *-- "0..1" RequestInfo
     ErrorContext *-- EnvironmentInfo
 ```
+
+`RuniqueError::Template` lit sa ligne dans le span de l'erreur Tera (`tera_error_line`),
+plus par regex sur le texte. `rust_version` est relevé à la compilation (`build.rs`), pas
+par `rustc --version` à l'exécution. La version de l'application vient de
+`app_package(base_dir)` (lecture du `Cargo.toml` du projet, page de debug seulement) et
+arrive dans le contexte (`app_name`, `app_version`).
 
 `debug_repr`/`stack_trace`/`request_info` ne doivent être exposés qu'en `debug_mode`
 (le rendu HTML d'erreur masque ces champs en prod — à vérifier côté template d'erreur).
@@ -104,8 +117,24 @@ classDiagram
         +hash(password, algo) Result
         +verify(password, hash) bool
     }
+    class PasswordConfig {
+        <<enum>>
+        Delegated(External)
+        Auto(AutoConfig)
+        Manual(Manual)
+        Custom(Box~dyn PasswordHandler~)
+    }
+    PasswordService --> PasswordConfig
     note for PasswordService "dummy_hash pour timing-constant (anti user-enumeration)"
 ```
+
+Configuration globale : `password_init(config)` (`OnceLock`, le premier appel gagne,
+`build()` l'appelle avec `config.password`) puis `password_get()` partout — la
+réinitialisation intégrée comprise. Le hachage automatique (`Auto`) ne touche qu'une
+valeur venue de la requête : elle est hachée même si elle a la forme d'un hash ; seule
+une valeur posée par le code peut en être un. À la vérification, un hash demandant un
+coût au-delà des plafonds est refusé avant tout calcul : argon2 `m ≤ 64 Mio, t ≤ 8,
+p ≤ 4`, scrypt `log_n ≤ 17, r ≤ 8, p ≤ 4`, bcrypt `cost ≤ 14`.
 
 ## i18n — `Lang`
 

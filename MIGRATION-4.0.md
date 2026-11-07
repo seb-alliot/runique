@@ -290,6 +290,7 @@ PRAGMA foreign_keys = ON;
 - A custom route no longer goes through `.extra_routes()`: it is declared in `urlpatterns!` with the `admin` keyword.
 - `urlpatterns!` returns a `Routes`: a `routes() -> Router` function becomes `routes() -> Routes`.
 - `AdminTemplate::with_base` and `with_bulk_edit` are removed.
+- `AdminConfig::user_resource` and `user_resource_with_template` are removed: nothing read them. Creating an account from the admin already sends its welcome link, with no declaration.
 - Sentinel and `GuardRules` are removed: access control by rank or group goes through `admin` routes.
 - An overridden list template reads `list_pager`, `filter_pagers` and `filter_size_pager` instead of `has_prev`, `has_next`, `prev_page`, `next_page` and `page_size_options`; `filter_values` becomes a list of `{ value, active, qs }`, and `active_filters` maps each column to a list of values.
 
@@ -352,7 +353,7 @@ match validated.save(&request.engine.db).await {
 }
 ```
 
-Business logic goes into `clean_field`, `clean` or `register_dynamic_fields`; emails and writes to other tables go in the handler after a successful `save`.
+Business logic goes into `clean_field` or `clean`; emails and writes to other tables go in the handler after a successful `save`.
 
 Other changes:
 
@@ -364,6 +365,7 @@ Other changes:
 | `impl_form_access!(model)` | remove it: `#[form(schema = …)]` generates `FormAccess` |
 | `#[form(schema = …, model = …)]` | remove `model = …` |
 | `#id_{field}` in CSS or JS | `#id_{form}-{field}` |
+| `register_dynamic_fields(&mut self, request)` | removed: a field it added never got the data sent. Choices loaded from the DB: `form.forms_mut().field_choices(…)` in the handler, before `try_form` |
 
 ---
 
@@ -411,5 +413,6 @@ See [the CSRF docs](https://runique.io/docs/en/middleware/csrf).
 ## Password reset
 
 - In production, `with_password_reset()` without a mailer stops the boot.
+- `PasswordResetConfig::success_redirect` is removed: nothing read it, the page renders again with `reset_done = true` after a successful reset.
 - `AdminConfig.reset_route` becomes `reset_link`, set by the builder.
 - The link no longer carries an encrypted email: remove `encrypted_email` from the `{% link "reset_password" ... %}` of your overridden templates, which would no longer render.

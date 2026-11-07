@@ -50,6 +50,18 @@ impl TemplateLoader {
         Self::init_with_integrity(config, url_registry).map(|(tera, _)| tera)
     }
 
+    /// Runique's templates and the developer's, with no admin block replaced:
+    /// what Runique's own admin pages read, for the override check.
+    #[cfg(feature = "admin")]
+    pub(crate) fn load_without_replacements(
+        config: &RuniqueConfig,
+        url_registry: ARlockmap,
+    ) -> Result<Tera, Box<dyn std::error::Error>> {
+        let mut config = config.clone();
+        config.block_dispatch.clear();
+        Self::load(&config, url_registry, &Integrity::default())
+    }
+
     /// The boot's `init`: the hashes are always computed, in development too,
     /// for the admin to refuse a stylesheet that isn't a file of the static
     /// folder. Its pages only carry them in production.

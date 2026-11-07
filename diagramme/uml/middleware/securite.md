@@ -40,7 +40,17 @@ classDiagram
 ```
 
 Middlewares correspondants (slots) : TrustedProxies(2), CORS(8), HostValidation(15),
-OpenRedirect(25), SecurityHeaders(30)/CSP(31), CSRF(60), AntiBot(65).
+HttpsRedirect(17), OpenRedirect(25), SecurityHeaders + CSP(30), CSRF(60), AntiBot(65).
+
+- `TrustedProxies` : toutes les lignes `X-Forwarded-For` sont lues, dans l'ordre, celle du
+  proxy en dernier — un proxy qui ajoute sa propre ligne ne fait plus passer la ligne forgée
+  par le client pour l'adresse réelle.
+- `HostValidation` (`with_allowed_hosts`) : active en production dès qu'un hôte est listé,
+  inactive en développement ; `.enabled(…)` a le dernier mot.
+- CORS avec `allow_credentials(true)` : méthodes et en-têtes du préliminaire reflétés au lieu
+  du joker `*` (refusé par tower-http avec les identifiants, qui faisait paniquer le boot).
+- AntiBot : le nom du honeypot est posé par le middleware ; le champ est vérifié par
+  `Request::form` sur les méthodes de `csrf_required` (tout sauf GET et HEAD), plus seulement POST.
 `open_redirect::is_safe_redirect` valide les `Location` de redirection contre les hôtes autorisés.
 
 CSRF (`csrf_middleware`) : un formulaire sans `X-CSRF-Token` que le navigateur annonce `cross-site`

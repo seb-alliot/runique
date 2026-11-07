@@ -362,8 +362,9 @@ fn test_override_exceeds_limit_err() {
     let result = f.set_max_size_bounded(FileSize::mb(6));
     assert!(result.is_err());
     let msg = result.unwrap_err();
-    assert!(msg.contains("6.0MB"), "message attendu: {msg}");
-    assert!(msg.contains("5.0MB"), "message attendu: {msg}");
+    // Translated: the sizes, not the unit, are what every language shows.
+    assert!(msg.contains("6.0"), "message attendu: {msg}");
+    assert!(msg.contains("5.0"), "message attendu: {msg}");
     // plafond modèle inchangé
     assert_eq!(f.upload.model_max_size, Some(5 * 1024 * 1024));
     // valeur effective inchangée (rollback implicite)

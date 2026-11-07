@@ -47,10 +47,6 @@ pub struct AdminConfig {
     /// serves no reset page, the admin sends no link.
     pub reset_link: Option<crate::auth::password::ResetLinkConfig>,
 
-    /// "User" resources: resource key → optional email template.
-    /// Enable via `.user_resource("users")`.
-    /// Upon creation, generates a random hashed password and sends a reset email.
-    pub user_resources: std::collections::HashMap<String, Option<String>>,
 
     /// Tera template for the password reset email from the admin.
     /// Default: "admin/reset_password_email.html"
@@ -81,7 +77,6 @@ impl Clone for AdminConfig {
             filter_size: self.filter_size,
             search_max_len: self.search_max_len,
             reset_link: self.reset_link.clone(),
-            user_resources: self.user_resources.clone(),
             reset_password_email_template: self.reset_password_email_template.clone(),
             resource_order: self.resource_order.clone(),
             rate_limiter: self.rate_limiter.clone(),
@@ -119,7 +114,6 @@ impl AdminConfig {
             filter_size: crate::admin::builder::list::FILTER_PAGE_SIZE,
             search_max_len: 150,
             reset_link: None,
-            user_resources: std::collections::HashMap::new(),
             reset_password_email_template: None,
             resource_order: Vec::new(),
             rate_limiter: None,
@@ -184,18 +178,6 @@ impl AdminConfig {
         self
     }
 
-    /// Declares a resource as a "user".
-    /// Upon creation: random hashed password + reset email sent automatically.
-    /// The form's email field must be named "email".
-    ///
-    /// ```rust,ignore
-    /// AdminConfig::new().user_resource("users")
-    /// ```
-    pub fn user_resource(mut self, resource_key: &str) -> Self {
-        self.user_resources.insert(resource_key.to_string(), None);
-        self
-    }
-
     /// Tera template for the password reset email from the admin.
     /// Context: `username`, `reset_url` and the `t_*` texts.
     pub fn reset_password_email_template(mut self, path: &str) -> Self {
@@ -203,16 +185,6 @@ impl AdminConfig {
         self
     }
 
-    /// Like `user_resource` but with a custom email template.
-    ///
-    /// ```rust,ignore
-    /// AdminConfig::new().user_resource_with_template("users", "emails/welcome.html")
-    /// ```
-    pub fn user_resource_with_template(mut self, resource_key: &str, email_template: &str) -> Self {
-        self.user_resources
-            .insert(resource_key.to_string(), Some(email_template.to_string()));
-        self
-    }
 
     /// Enables rate limiting on the admin login route.
     ///

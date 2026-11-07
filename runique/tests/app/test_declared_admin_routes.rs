@@ -4069,3 +4069,182 @@ async fn a_group_name_is_escaped_on_the_accounts_pages() {
     assert!(!html.contains("<b>x</b>"));
     assert!(html.contains("&lt;b&gt;x&lt;"));
 }
+
+/// The keys between `<keys>` and `</keys>` in `page`.
+fn dumped_keys(page: &str) -> std::collections::BTreeSet<String> {
+    let mut keys = std::collections::BTreeSet::new();
+    for chunk in page.split("<keys>").skip(1) {
+        let body = chunk.split("</keys>").next().unwrap_or("");
+        for key in body.split(['[', ']']).filter(|k| !k.is_empty()) {
+            keys.insert(key.to_string());
+        }
+    }
+    keys
+}
+
+/// Every key the admin really hands a page is one a template replacing that
+/// page may read: the boot check, built from Runique's own templates, never
+/// refuses a key the page provides. The keys are taken from the live pages
+/// (account, group and a project model), then each page is replaced by a
+/// template reading all of them, which must boot.
+#[tokio::test]
+#[serial]
+async fn every_key_an_admin_page_provides_is_allowed() {
+    use runique::admin::template::{AdminTemplate, GlobalBlock};
+    use std::collections::{BTreeMap, BTreeSet};
+    const DUMP: &str = "<keys>{% for key, value in __tera_context %}[{{ key }}]{% endfor %}</keys>";
+
+    let dir = theme_dir(&[("dump/keys.html", DUMP)]);
+    let base = spawn_themed(
+        dir,
+        |t| {
+            t.global_block(GlobalBlock::Topbar, "dump/keys.html")
+                .with_login("dump/keys.html")
+        },
+        |t| t,
+    )
+    .await
+    .expect("dump app");
+
+    let mut keys: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
+    let anonymous = client();
+    keys.entry("login").or_default().extend(dumped_keys(
+        &text(&anonymous, format!("{base}/secret-admin/login")).await,
+    ));
+
+    let admin = signed_in(&base, SUPERUSER).await;
+    text(&admin, format!("{base}/probe/trace-account")).await;
+    let account = pk(ADMIN);
+    let pages: Vec<(&str, String)> = vec![
+        ("dashboard", "/secret-admin/".into()),
+        ("list", "/secret-admin/probe_notes/list".into()),
+        ("list", "/secret-admin/users/list".into()),
+        ("list", "/secret-admin/groupes/list".into()),
+        ("create", "/secret-admin/probe_notes/create".into()),
+        ("create", "/secret-admin/users/create".into()),
+        ("create", "/secret-admin/groupes/create".into()),
+        ("edit", "/secret-admin/probe_notes/1/edit".into()),
+        ("edit", format!("/secret-admin/users/{account}/edit")),
+        ("edit", "/secret-admin/groupes/1/edit".into()),
+        ("detail", "/secret-admin/probe_notes/1/detail".into()),
+        ("detail", format!("/secret-admin/users/{account}/detail")),
+        ("detail", "/secret-admin/groupes/1/detail".into()),
+        ("delete", "/secret-admin/probe_notes/1/delete".into()),
+        ("delete", format!("/secret-admin/users/{account}/delete")),
+        ("delete", "/secret-admin/groupes/1/delete".into()),
+        ("history", "/secret-admin/history".into()),
+        ("history_diff", "/secret-admin/history/1".into()),
+        ("rights", "/secret-admin/groupes/1/rights".into()),
+        // The transfer page needs receivers to render; it only shows the
+        // layout blocks, whose keys the other pages already cover.
+    ];
+    for (page, path) in &pages {
+        let found = dumped_keys(&text(&admin, format!("{base}{path}")).await);
+        assert!(
+            !found.is_empty(),
+            "{path}: no key dumped, the page didn't render the topbar"
+        );
+        keys.entry(page).or_default().extend(found);
+    }
+
+    // Each page replaced by a template reading every key it was handed.
+    let reader = |page_keys: &BTreeSet<String>| -> String {
+        page_keys.iter().map(|k| format!("{{{{ {k} }}}}")).collect()
+    };
+    type Global = fn(AdminTemplate) -> AdminTemplate;
+    let replaced: [(&str, Global); 10] = [
+        ("login", |t| t.with_login("read/page.html")),
+        ("dashboard", |t| t.with_dashboard("read/page.html")),
+        ("list", |t| t.with_list("read/page.html")),
+        ("create", |t| t.with_create("read/page.html")),
+        ("edit", |t| t.with_edit("read/page.html")),
+        ("detail", |t| t.with_detail("read/page.html")),
+        ("delete", |t| t.with_delete("read/page.html")),
+        ("history", |t| t.with_history("read/page.html")),
+        ("history_diff", |t| t.with_history_diff("read/page.html")),
+        ("rights", |t| {
+            t.global_block(GlobalBlock::RightsTable, "read/page.html")
+        }),
+    ];
+    let mut refused = Vec::new();
+    for (page, global) in replaced {
+        let page_keys = &keys[page];
+        let dir = theme_dir(&[("read/page.html", &reader(page_keys))]);
+        if let Err(e) = spawn_themed(dir, global, |t| t).await {
+            refused.push(format!("{page}: {e}"));
+        }
+    }
+    assert!(
+        refused.is_empty(),
+        "keys a page provides are refused:\n{}",
+        refused.join("\n")
+    );
+}
+
+/// A replaced page, block or model page reading a variable its page never
+/// provides refuses the boot, naming it with the closest real key; reading
+/// real keys boots.
+#[tokio::test]
+#[serial]
+async fn an_admin_override_reading_an_unknown_variable_refuses_the_boot() {
+    use runique::admin::template::{Block, GlobalBlock, Page};
+    let dir = theme_dir(&[
+        (
+            "ok/page.html",
+            "{{ resource.title }}{{ entries }}{{ admin_prefix }}",
+        ),
+        ("ok/block.html", "{{ entries }}{{ resource.key }}"),
+        ("ok/sidebar.html", "{{ nav.site }}{{ current_user }}"),
+        ("typo/page.html", "{{ resourse.title }}"),
+        ("typo/block.html", "{{ entriez }}"),
+        ("typo/unrelated.html", "{{ totally_made_up_key }}"),
+    ]);
+
+    assert!(
+        spawn_themed(
+            dir.clone(),
+            |t| t
+                .with_list("ok/page.html")
+                .block(Block::ListTable, "ok/block.html")
+                .global_block(GlobalBlock::Sidebar, "ok/sidebar.html"),
+            |t| t.page(Page::List, "ok/page.html"),
+        )
+        .await
+        .is_ok(),
+        "real keys boot"
+    );
+
+    let err = spawn_themed(dir.clone(), |t| t.with_list("typo/page.html"), |t| t)
+        .await
+        .unwrap_err();
+    assert!(
+        err.contains("`resourse` (did you mean `resource`?)"),
+        "{err}"
+    );
+
+    let err = spawn_themed(
+        dir.clone(),
+        |t| t.block(Block::ListTable, "typo/block.html"),
+        |t| t,
+    )
+    .await
+    .unwrap_err();
+    assert!(
+        err.contains("ListTable block") && err.contains("`entriez` (did you mean `entries`?)"),
+        "{err}"
+    );
+
+    let err = spawn_themed(
+        dir.clone(),
+        |t| t,
+        |t| t.page(Page::Detail, "typo/unrelated.html"),
+    )
+    .await
+    .unwrap_err();
+    assert!(
+        err.contains("model `probe_notes`, Detail page")
+            && err.contains("`totally_made_up_key`")
+            && !err.contains("did you mean"),
+        "{err}"
+    );
+}

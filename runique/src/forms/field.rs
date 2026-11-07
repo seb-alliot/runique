@@ -194,12 +194,6 @@ pub trait RuniqueForm: FormAccess {
         Ok(())
     }
 
-    /// Hook to add fields that depend on the request (e.g. choices loaded from
-    /// the DB) after extraction but before validation. Default: no-op.
-    /// Called by [`ValidationForm::try_form`](crate::forms::ValidationForm::try_form)
-    /// before dispatching to `allow_get`/`allow_post`.
-    async fn register_dynamic_fields(&mut self, _request: &Request) {}
-
     /// Whether this form has been submitted — `true` once a POST-class request
     /// is reached, `true` for a GET-class request only once its fields
     /// actually carry data. After [`ValidationForm::try_form`](crate::forms::ValidationForm::try_form),

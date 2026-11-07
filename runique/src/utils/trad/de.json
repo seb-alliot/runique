@@ -92,7 +92,8 @@
     "delete_linked": "Löschen nicht möglich: andere Einträge verwenden ihn noch.",
     "text_field_too_large": "Textfeld zu gross (max 1 MB)",
     "upload_too_large": "Datei-Upload zu gross (max {}MB)",
-    "upload_failed": "Die Datei konnte nicht gespeichert werden. Bitte erneut versuchen."
+    "upload_failed": "Die Datei konnte nicht gespeichert werden. Bitte erneut versuchen.",
+    "max_size_above_model": "Die angeforderte Maximalgröße ({} MB) überschreitet das Limit des Modells ({} MB)."
   },
   "csrf": {
     "missing": "CSRF-Token fehlt",
