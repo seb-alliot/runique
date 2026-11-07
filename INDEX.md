@@ -160,7 +160,7 @@ runique/
 
 ## Tests (`runique/tests/`)
 
-**2429 integration tests passing** (3 ignored: `render_admin_pages` + 2 `migration up` against a live database — run them with `-- --ignored`). Package `runique`: **3308 passing**, 110 ignored (823 unit + 2429 integration + 56 documentation).
+**2454 integration tests passing** (3 ignored: `render_admin_pages` + 2 `migration up` against a live database — run them with `-- --ignored`). Package `runique`: **3308 passing**, 110 ignored (823 unit + 2429 integration + 56 documentation).
 
 ```
 tests/

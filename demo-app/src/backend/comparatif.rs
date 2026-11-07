@@ -1,7 +1,7 @@
 //! The comparison page: Loco, Cot and Django in tabs, then the known limits and
 //! what's coming. The Django comparison and the limits are read from the
-//! documentation, so each has a single source.
-use crate::backend::{fetch_roadmap, inject_globals, lang::visitor_lang};
+//! documentation and what's coming from the roadmap files, so each has a single source.
+use crate::backend::{inject_globals, lang::visitor_lang, split_markdown_sections};
 use crate::entities::{doc_block, doc_page, doc_section};
 use runique::prelude::*;
 
@@ -41,7 +41,11 @@ pub async fn comparatif_page(request: &mut Request) -> AppResult<Response> {
     let cot = doc_blocks(lang, "comparatif", "cot", request).await;
     let django = doc_blocks(lang, "comparatif", "index", request).await;
     let limits = doc_blocks(lang, "limites", "index", request).await;
-    let roadmap = fetch_roadmap(&request.engine.db, lang).await;
+    let roadmap = split_markdown_sections(if lang == "fr" {
+        include_str!("../../../ROADMAP.fr.md")
+    } else {
+        include_str!("../../../ROADMAP.md")
+    });
     context_update!(request => {
         "title"   => if lang == "fr" { "Comparatif" } else { "Comparison" },
         "loco"    => &loco,

@@ -9,7 +9,7 @@ use crate::backend::{
     doc::{doc_index, doc_page, doc_section_index},
     fetch_known_issues,
     forms::{extract_helpers_data, get_field_groups, handle_upload_image},
-    inject_globals, split_changelog,
+    inject_globals, split_markdown_sections,
 };
 use crate::formulaire::{
     BlogForm, ContributionForm, ImageForm, LoginForm, RegisterForm, SearchDemoForm,
@@ -230,7 +230,11 @@ pub async fn rust_django_framework(mut request: Request) -> AppResult<Response> 
     request.render("seo/rust_django_framework.html")
 }
 
-pub async fn changelog(mut request: Request) -> AppResult<Response> {
+pub async fn changelog() -> Redirect {
+    Redirect::permanent("/releases")
+}
+
+pub async fn releases(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
     let lang = visitor_lang(&request.headers);
     let content = if lang == "fr" {
@@ -238,16 +242,16 @@ pub async fn changelog(mut request: Request) -> AppResult<Response> {
     } else {
         include_str!("../../CHANGELOG.md")
     };
-    let versions = split_changelog(content);
+    let versions = split_markdown_sections(content);
     let index = request
         .get_query("version")
-        .and_then(|wanted| versions.iter().position(|v| v.version == wanted))
+        .and_then(|wanted| versions.iter().position(|v| v.key == wanted))
         .unwrap_or(0);
     let newer = index
         .checked_sub(1)
         .and_then(|i| versions.get(i))
-        .map(|v| &v.version);
-    let older = versions.get(index + 1).map(|v| &v.version);
+        .map(|v| &v.key);
+    let older = versions.get(index + 1).map(|v| &v.key);
     context_update!(request => {
         "title"    => if lang == "fr" { "Journal des modifications" } else { "Changelog" },
         "versions" => &versions,
@@ -256,6 +260,41 @@ pub async fn changelog(mut request: Request) -> AppResult<Response> {
         "older"    => older,
     });
     request.render("info/changelog.html")
+}
+
+pub async fn releases_security(mut request: Request) -> AppResult<Response> {
+    inject_globals(&mut request).await;
+    let lang = visitor_lang(&request.headers);
+    let sections = split_markdown_sections(if lang == "fr" {
+        include_str!("../../SECURITY.fr.md")
+    } else {
+        include_str!("../../SECURITY.md")
+    });
+    context_update!(request => {
+        "title"       => if lang == "fr" { "Politique de sécurité" } else { "Security policy" },
+        "sections"    => &sections,
+        "release_tab" => "security",
+    });
+    request.render("info/release_document.html")
+}
+
+pub async fn releases_status(mut request: Request) -> AppResult<Response> {
+    inject_globals(&mut request).await;
+    let lang = visitor_lang(&request.headers);
+    let content = if lang == "fr" {
+        include_str!("../../docs/fr/PROJECT_STATUS.md")
+    } else {
+        include_str!("../../docs/en/PROJECT_STATUS.en.md")
+    };
+    // The `markdown` filter has no task lists: `[x]` would show as plain text.
+    let content = content.replace("- [x] ", "- ✓ ").replace("- [ ] ", "- ☐ ");
+    let sections = split_markdown_sections(&content);
+    context_update!(request => {
+        "title"       => if lang == "fr" { "État du projet" } else { "Project status" },
+        "sections"    => &sections,
+        "release_tab" => "status",
+    });
+    request.render("info/release_document.html")
 }
 
 pub async fn probleme_connu(mut request: Request) -> AppResult<Response> {
@@ -527,7 +566,7 @@ pub async fn force_to_many_requests(_: Request) -> Response {
 
 pub async fn security_txt() -> &'static str {
     "Contact: mailto:alliotsebastien04@gmail.com\n\
-        Expires: 2027-01-01T00:00:00.000Z\n\
+        Expires: 2027-12-31T23:59:59.000Z\n\
         Preferred-Languages: fr, en\n\
         Canonical: https://runique.io/.well-known/security.txt\n"
 }

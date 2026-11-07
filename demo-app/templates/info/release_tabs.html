@@ -1,0 +1,6 @@
+<h1>{% if ui_lang == "fr" %}Versions et sécurité{% else %}Releases and security{% endif %}</h1>
+<nav class="release-tabs" aria-label="{% if ui_lang == "fr" %}Versions et sécurité{% else %}Releases and security{% endif %}">
+    <a class="hero-tab{% if release_tab == "changelog" %} active{% endif %}" href="{% link "releases" %}"{% if release_tab == "changelog" %} aria-current="page"{% endif %}>{% if ui_lang == "fr" %}Journal des modifications{% else %}Changelog{% endif %}</a>
+    <a class="hero-tab{% if release_tab == "security" %} active{% endif %}" href="{% link "releases_security" %}"{% if release_tab == "security" %} aria-current="page"{% endif %}>{% if ui_lang == "fr" %}Sécurité{% else %}Security{% endif %}</a>
+    <a class="hero-tab{% if release_tab == "status" %} active{% endif %}" href="{% link "releases_status" %}"{% if release_tab == "status" %} aria-current="page"{% endif %}>{% if ui_lang == "fr" %}État du projet{% else %}Project status{% endif %}</a>
+</nav>

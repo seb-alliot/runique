@@ -8,10 +8,10 @@ use crate::views::{
     llms_txt, login_user, macros_demo, middleware_csp, middleware_csrf, middleware_hosts,
     middleware_https, middleware_hub, middleware_login_guard, middleware_rate_limit,
     migrations_demo, model_demo, orm_demo, probleme_connu, profil, propos_template_error,
-    readme_en, readme_fr, rgpd, roadmap, router_demo, rust_django_framework, security_txt,
-    session_demo, set_language, sitemap_xml, soumission_inscription, surcharge_exemple,
-    template_demo, test_csrf, test_fields, upload_image_submit, view_cours_detail,
-    view_cours_index,
+    readme_en, readme_fr, releases, releases_security, releases_status, rgpd, roadmap, router_demo,
+    rust_django_framework, security_txt, session_demo, set_language, sitemap_xml,
+    soumission_inscription, surcharge_exemple, template_demo, test_csrf, test_fields,
+    upload_image_submit, view_cours_detail, view_cours_index,
 };
 
 use runique::prelude::*;
@@ -60,6 +60,9 @@ pub fn routes() -> Routes {
         "/modeles"                       => view! { model_demo },             name = "model_demo",
         "/roadmap"                       => view! { roadmap },                name = "roadmap",
         "/changelog"                     => view! { changelog },              name = "changelog",
+        "/releases"                      => view! { releases },               name = "releases",
+        "/releases/security"             => view! { releases_security },      name = "releases_security",
+        "/releases/status"               => view! { releases_status },        name = "releases_status",
         "/problemes-connus"              => view! { probleme_connu },         name = "problemes_connus",
         "/rgpd"                          => view! { rgpd },                   name = "rgpd",
         "/test-csrf"                     => view! { test_csrf },              name = "test_csrf",

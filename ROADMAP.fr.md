@@ -2,181 +2,54 @@
 
 # Runique — Feuille de route
 
-Peu de chantiers à la fois, chacun livré fini. La carte s'agrandira quand ceux-ci seront
-terminés. Ce qui est déjà livré est dans le [CHANGELOG](CHANGELOG.fr.md).
+Peu de chantiers à la fois, chacun livré fini. Ce qui est déjà livré est dans le
+[CHANGELOG](CHANGELOG.fr.md).
 
-> Cette feuille de route n'est pas figée. Des oublis sont possibles, et des correctifs seront
-> nécessaires : un bug ou une faille découverts passent avant les chantiers prévus, et peuvent
-> donner lieu à une version corrective à tout moment.
+Cette feuille de route ne donne ni date ni engagement. Un bug ou une faille découverts passent
+avant les chantiers prévus, et peuvent donner lieu à une version corrective à tout moment.
 
-## Ce que « fini » veut dire
+**Ce que « fini » veut dire** : une fonctionnalité n'entre dans une version publiée que si elle
+est testée des deux côtés (cas accepté et cas refusé, limite comprise), si une passe
+`cargo mutants --in-diff` a traité chaque survivant, si ses contrôles de sécurité ont lieu avant
+l'effet, si elle a été vérifiée sur demo-app et sur un projet créé par `runique new`, et si la
+documentation (fr/en) et le CHANGELOG sont à jour.
 
-Une fonctionnalité n'entre dans une version publiée que si :
+## En cours
 
-- elle est testée des deux côtés : le cas accepté et le cas refusé, limite comprise ;
-- une passe `cargo mutants --in-diff` sur le code modifié est faite et chaque survivant est traité ;
-- les contrôles de sécurité ont lieu **avant** l'effet (écriture, redirection, requête) ;
-- elle a été vérifiée en vrai sur demo-app et sur un projet créé par `runique new` ;
-- la documentation (fr/en) et le CHANGELOG sont à jour.
+- **Publication de la 4.0** : finalisation avant la mise en ligne sur crates.io, avec des tests
+  sur des comptes à faibles droits et des groupes, et une revue OWASP complète.
 
----
+## Prévu
 
-## État actuel — 4.0.0 (non publiée)
+- **Correctifs de sécurité (4.0.x)** : plafonner le nombre de clés gardées en mémoire par
+  `RateLimiter` et `LoginGuard`, et tester la protection contre les open redirects avec des
+  charges connues de contournement d'URL.
+- **makemigrations** : générer toutes les opérations de schéma sans étape manuelle : suppression
+  de tables, création et suppression des tables de relation, respect de cascade, restrict et
+  set_null, vrai `ALTER` lors d'un changement de type, détection des changements de valeur par
+  défaut, et colonnes à la fois renommées et modifiées. Les noms de contraintes sont lus en base,
+  et les changements destructeurs indiquent ce qu'ils touchent.
+- **Relations many-to-many** : générer la table pivot et sa migration depuis le DSL du modèle,
+  avec des méthodes d'accès. Une table pivot écrite à la main, avec des colonnes en plus, reste
+  possible.
+- **Conditions imbriquées dans `search!`** : permettre des groupes ET dans un OU, et la négation
+  d'une condition ou d'un groupe, à toute profondeur, toujours avec des requêtes typées.
+- **Tracing** : finir la sortie fichier avec rotation, ajouter un identifiant de requête et ne
+  laisser aucune erreur ignorée en silence. Les clés de traduction manquantes seront journalisées.
+- **Langues ajoutées par un projet** : permettre à un projet de fournir une langue absente de
+  Runique, enregistrée par le builder.
+- **Admin** : filtres par date et par clé étrangère, navigation par date, `fieldsets`, champs en
+  lecture seule, autocomplétion, édition inline, actions de groupe en Rust, export CSV/JSON et
+  « enregistrer et continuer ».
 
-Workspace en `4.0.0`. Le code de rupture est dans l'arbre ; la publication crates.io n'a pas
-encore eu lieu.
+## Plus tard
 
-### Livré dans cette branche
+Sans engagement : ces pistes remonteront quand un chantier se terminera.
 
-- [x] **Refonte de l'admin : builder `ModelAdmin<Entity>` typé** — remplace `admin!{}` et le
-  code généré par le daemon. Colonnes typées, listes blanches, invariants au démarrage.
-  Déclaration dans `src/admin.rs`, câblage `.with_admin(admin::config)`, `cargo run` suffit
-  (plus de `runique start`, plus de `src/admins/`).
-- [x] **Documentation alignée 4.0** — guides fr/en, README, migration, SECURITY, demo-app
-  (`seed.sql`, templates hub/surcharge), INDEX et PROJECT_STATUS : l'API courante est
-  `ModelAdmin`, pas l'ancien générateur. Le CHANGELOG historique 3.0.x garde les mentions
-  « régénérez l'admin » là où c'était vrai à l'époque.
-- [x] **Correctifs sécu déjà dans le CHANGELOG 4.0** — timing forgot-password, message générique
-  sur superuser, `csrf.js` same-origin only, `password`/`is_active` hors formulaires `extend!`,
-  page debug bornée à `templates/`, erreurs globales de formulaire échappées,
-  `session_data` chiffré, formulaires d'un autre site refusés, `add_js` avec SRI et nonce.
-- [x] **Formulaires** — `request.form("nom")` (seul le formulaire envoyé est rempli et validé),
-  `cleaned::<T>` lu par la colonne, `save`/`delete` dans une transaction (`db_atomic`), fichier
-  déplacé entre l'écriture et le commit, `MediaField` (image, audio, vidéo).
-
-- [x] **`RUNIQUE_ENV` et `DEBUG` séparés** — `RUNIQUE_ENV` (`dev` / `prod`) règle le comportement (cookie de session, contrôles au
-  démarrage, URL publique, hôtes autorisés, cache, SRI) ; `DEBUG` n'affiche que les pages d'erreur détaillées. En dev, le CSS
-  modifié se recharge sans redémarrer.
-- [x] **demo-app** — visuel refait en mobile first, bouton de langue, page comparatif (Loco, Cot, Django, limites, à venir).
-
-### Ruptures réglées pour la 4.0
-
-- [x] **Action de suppression obligatoire** — un `belongs_to` sans action `ON DELETE` ne compile
-  plus, comme `on_delete` dans Django ; `[no_action]` reste permis s'il est écrit.
-
-Le détail du cycle de publication est dans [CONTRIBUTING](CONTRIBUTING.fr.md#versions-et-publication).
-
----
-
-## Entretien et sécurité — en continu
-
-Ce travail n'a pas de fin : il passe avant les chantiers ci-dessous.
-
-- **Contrôles de sécurité réguliers** sur l'existant : relecture des parcours sensibles (de
-  l'entrée à l'effet), entrées hostiles, `cargo mutants` sur le code concerné.
-- **Audit des dépendances** : `cargo audit` à chaque push, bloquant en CI.
-- **Corrections de bugs**, chacune avec un test qui échoue sans elle.
-- Correctifs regroupés en **patch** (`4.0.x` tant que la ligne 4.0 est supportée). Une faille
-  grave est publiée sans attendre.
-
-### Correctifs identifiés (prochaine patch 4.0.x)
-
-**Ordre de travail imposé** — ces items partent **avant** toute mineure 4.x (M2M, makemigrations,
-tracing, langues). Une faille grave peut sauter la file ; sinon on suit la numérotation. Chaque
-item a son test de non-régression avant d'être coché.
-
-1. [x] **Réinitialisation du mot de passe sans email dans le lien** — l'email était chiffré avec
-   une clé tirée du jeton, présent dans le même lien : cela ne protégeait rien. Comparer l'email
-   saisi à celui du compte en base et retirer l'email du lien. Les helpers maison
-   `encrypt_email` / `decrypt_email` sont supprimés. Les tests vérifient les liens token-only et
-   qu'un email incorrect ne consomme pas le jeton de reset.
-2. [x] **Fichiers en transit d'un formulaire refusé** — supprimés avant le renvoi de la page quand
-   le formulaire n'atteint pas `finalize` (jeton, autre champ, `clean()`). La requête supprime
-   ensuite le dossier `.staging-*` qu'elle a créé, donc aussi quand le handler ne valide pas. Un
-   dossier encore tenu par un processus vivant reste, quelle que soit la durée de l'envoi. Le
-   multipart suivant retire celui qu'un processus mort a laissé. Les tests couvrent le champ
-   voisin, le jeton forcé invalide, un formulaire non soumis, et un envoi accepté que la fin de
-   requête ne retire pas.
-3. [ ] **Compteurs en mémoire plafonnés** — `RateLimiter` et `LoginGuard` bornent leur nombre de
-   clés entre deux purges.
-4. [x] **Sessions d'un superutilisateur** — sans objet : le superuser est un compte de démarrage, supprimé
-   une fois un dirigeant nommé ; ses sessions se ferment quand un reset de mot de passe est validé (nouveau mot
-   de passe enregistré, tous les appareils) ou par la suppression du compte (`ON DELETE CASCADE`).
-5. [ ] **Tests d'open redirect** — passer les charges utiles de l'antisèche PortSwigger
-   (*URL validation bypass*).
-6. [x] **Suppression refusée par une clé étrangère** — l'admin affiche « Impossible de supprimer :
-   d'autres enregistrements l'utilisent encore. » La phrase est la même quel que soit le droit de
-   lecture : aucun nom de table, aucun nombre. Le détail du moteur reste dans le journal. Un
-   `belongs_to` déclare son action depuis la 4.0 : jamais de cascade implicite.
-
-Sortie typique : une ou plusieurs versions **patch** `4.0.x` (ex. `4.0.1`) tant que la ligne 4.0
-est supportée. Pas de feature mineure mélangée dans ces patchs.
-
----
-
-## Après 4.0 — mineures sans rupture (4.x)
-
-**Prérequis** : la file des correctifs sécu / entretien `4.0.x` ci-dessus est traitée (ou une
-faille urgente a déjà forcé un patch). Ensuite seulement : une fonctionnalité à la fois.
-
-Un projet déjà en 4.0 se met à jour sans toucher son code. Une fonctionnalité à la fois, dans
-cet ordre : chacune sort en mineure (4.**x**.0), passe un contrôle de sécurité ciblé, puis la
-suivante commence.
-
-- [ ] **Relations many-to-many** — la table pivot est générée à partir du DSL (`through` garde
-  une table pivot écrite à la main, avec ses colonnes en plus), migration comprise, et le modèle
-  gagne ses méthodes d'accès. *(L'admin gère déjà du M2M via table de jonction déclarée ; il
-  manque la génération DSL + migration.)*
-- [ ] **makemigrations finalisé** — plus bloqué par la refonte admin (livrée). Trous constatés
-  le 2026-10-10 en migrant un vrai projet (Campanile) vers la 3.0 :
-  - une colonne **renommée et modifiée** en même temps (`renamed_from` + `NOT NULL` / défaut)
-    ne reçoit que le renommage ; la modification est perdue, et l'instantané l'enregistre comme
-    faite — un nouveau `makemigrations` ne la verra jamais ;
-  - les noms de contraintes sont **supposés** (`{table}_{colonne}_{cible}_fkey`) au lieu d'être
-    **lus en base** : une base créée avec une autre convention fait échouer la migration ;
-  - une colonne qui passe en `NOT NULL` avec une valeur par défaut doit voir ses `NULL`
-    existants remplis avant la contrainte (aujourd'hui : refus, à faire à la main) ;
-  - la limite de longueur des identifiants doit dépendre du moteur (63 pour Postgres, 64 pour
-    MariaDB/MySQL) — aujourd'hui 63 partout, avec un message qui annonce 64 ;
-  - vrai `ALTER` lors d'un changement de type ; table pivot du many-to-many ;
-  - **une table supprimée** (prévu pour la 4.1) : un instantané sans modèle ne génère rien aujourd'hui.
-    Refus sans `--force`, `DROP TABLE` dans `up`, recréation dans `down`, instantané retiré dans le
-    même plan. Un modèle renommé ressemble à une suppression plus une création : le message doit le dire.
-- [ ] **Tracing** — finir la sortie fichier (rotation) et l'identifiant de requête ; terminer le
-  balayage « zéro erreur avalée ». Les replis de traduction deviennent visibles : une clé absente
-  de la langue courante (repli sur l'anglais) et une clé absente partout sont tracées.
-- [ ] **Langues ajoutées par un projet** — un trait pour fournir une langue que Runique ne
-  propose pas, enregistré via le builder, sans modifier l'enum `Lang`.
-
-### Construit sur le builder : parité avec l'admin Django
-
-Chaque point deviendra une méthode typée du builder (mineures 4.x, sans nouvelle rupture si
-l'API reste additive).
-
-- **Liste** — filtres par date (aujourd'hui, cette semaine…), filtres à travers une clé étrangère,
-  `date_hierarchy`, `list_display_links`, `list_editable`, tri par défaut par ressource,
-  `empty_value_display`
-- **Formulaires** — `fieldsets`, `readonly_fields`, `prepopulated_fields`, `autocomplete_fields`,
-  « Enregistrer comme nouveau », lien vers la vue publique, redirection après enregistrement
-  configurable
-- **Actions** — actions de groupe avec une logique Rust, formulaire complémentaire d'action
-- **Filtres et recherche** — filtres personnalisés, recherche à travers les tables liées, index
-  générés pour les colonnes filtrées ou cherchées
-- **Personnalisation** — requête de base par ressource, configuration par requête, assets
-  CSS/JS par ressource
-- **Inlines** — édition des objets liés dans le formulaire du parent (FK et many-to-many)
-- **Divers** — export CSV/JSON, « Enregistrer et continuer », confirmation par `<dialog>`,
-  plusieurs sites d'admin
-- **Visuel admin** — consolidation mobile-first / CSS (déjà amorcée ; à peaufiner)
-
----
-
-## Ensuite — sans engagement
-
-Ces pistes remonteront quand un chantier se terminera.
-
-- **DSL et migrations** — paliers et bornes numériques (`step`, `min`, `max`), index déclarés,
-  clés étrangères cycliques
-- **ORM** — hooks/signals (`before_save`, `after_save`…), agrégats dans `search!`,
-  `.first()` qui renvoie `Option<T>`, plusieurs valeurs pour un même champ dans `search!`
-- **Framework** — redirections typées (`redirect("nom_de_route")`, `redirect_external(url)` limité aux hôtes autorisés, `?next=` vérifié contre les routes déclarées), `crud!{}` pour les vues publiques, surcharge des champs `#[form]`, plusieurs
-  connexions de types différents (TypeMap), middleware de détection de la langue, accès à
-  `path_params` / `query_params` par des getters
-- **Stockage** — un point d'extension `StorageBackend` (disque local par défaut, S3/R2 ou autre
-  service en option) partagé par les médias, les uploads en transit et les futurs exports.
-  En attendant, un stockage externe monté comme dossier (`s3fs`, `rclone mount`, NFS) sert
-  de `MEDIA_ROOT`
-- **Authentification** — protection contre la force brute à deux niveaux, sans rupture : blocage par nom d'utilisateur + IP (le vrai utilisateur, ailleurs, peut toujours se connecter), et ralentissement par nom d'utilisateur toutes adresses confondues (contre les attaques réparties sur beaucoup d'IP) ; une seule fonction partagée, appelée par `LoginGuard` et par la connexion à l'admin. Puis OAuth/OIDC, JWT et clés d'API, journal des connexions, rapports de
-  violation CSP
-- **Outils** — client de test intégré, fixtures, commandes personnalisées, sitemap et RSS,
-  redimensionnement d'images, documentation complète de l'API publique
+- **Authentification** : protection à deux niveaux contre la force brute, puis OAuth/OIDC, JWT,
+  clés d'API, journal des connexions et rapports de violation CSP.
+- **ORM et DSL** : hooks de modèle, agrégats dans `search!`, index déclarés, bornes et paliers
+  numériques.
+- **Outils et stockage** : vues CRUD publiques, client de test intégré, fixtures, commandes
+  personnalisées, sitemap et RSS, redimensionnement d'images, et point d'extension de stockage
+  pour les services compatibles S3.

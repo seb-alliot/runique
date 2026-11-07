@@ -8,14 +8,14 @@
 
 {% block content %}
 <div class="compare-page">
-    <h1>{{ title }}</h1>
+    {% set release_tab = "changelog" %}{% include "info/release_tabs.html" %}
 
     <div class="compare-layout changelog-layout">
-        <form class="changelog-picker" method="get" action="{% link "changelog" %}">
+        <form class="changelog-picker" method="get" action="{% link "releases" %}">
             <label for="changelog-version">Version</label>
             <select id="changelog-version" name="version">
                 {% for v in versions %}
-                <option value="{{ v.version }}"{% if v.version == current.version %} selected{% endif %}>{{ v.heading }}</option>
+                <option value="{{ v.key }}"{% if v.key == current.key %} selected{% endif %}>{{ v.heading }}</option>
                 {% endfor %}
             </select>
             <noscript><button type="submit" class="btn btn-secondary">{% if ui_lang == "fr" %}Afficher{% else %}Show{% endif %}</button></noscript>
@@ -31,12 +31,12 @@
 
             <div class="pagination-nav">
                 {% if newer %}
-                <a href="{% link "changelog" %}?version={{ newer }}" class="btn btn-outline-secondary">{% if ui_lang == "fr" %}← Plus récent{% else %}← Newer{% endif %}</a>
+                <a href="{% link "releases" %}?version={{ newer }}" class="btn btn-outline-secondary">{% if ui_lang == "fr" %}← Plus récent{% else %}← Newer{% endif %}</a>
                 {% else %}
                 <span class="btn btn-outline-secondary disabled">{% if ui_lang == "fr" %}← Plus récent{% else %}← Newer{% endif %}</span>
                 {% endif %}
                 {% if older %}
-                <a href="{% link "changelog" %}?version={{ older }}" class="btn btn-outline-secondary">{% if ui_lang == "fr" %}Plus ancien →{% else %}Older →{% endif %}</a>
+                <a href="{% link "releases" %}?version={{ older }}" class="btn btn-outline-secondary">{% if ui_lang == "fr" %}Plus ancien →{% else %}Older →{% endif %}</a>
                 {% else %}
                 <span class="btn btn-outline-secondary disabled">{% if ui_lang == "fr" %}Plus ancien →{% else %}Older →{% endif %}</span>
                 {% endif %}

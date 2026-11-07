@@ -68,10 +68,10 @@
         {% if runique_release %}<span class="site-nav-version">v{{ runique_release.version }}</span>{% endif %}
         <div class="site-nav-links">
             <a href="/docs/{% if ui_lang == "fr" %}fr{% else %}en{% endif %}">Documentation</a>
-            <a href="/cours">{% if ui_lang == "fr" %}Cours{% else %}Courses{% endif %}</a>
             <a href="{% link "comparatif" %}">{% if ui_lang == "fr" %}Comparatif{% else %}Comparison{% endif %}</a>
-            <a href="{% link "changelog" %}">Changelog</a>
+            <a href="{% link "releases" %}">{% if ui_lang == "fr" %}Versions{% else %}Releases{% endif %}</a>
             <a href="{% link "contribution_list" %}">{% if ui_lang == "fr" %}Contribuer{% else %}Contribute{% endif %}</a>
+            <a href="/cours">{% if ui_lang == "fr" %}Cours{% else %}Courses{% endif %}</a>
         </div>
         <div class="site-nav-actions">
             {% if user %}
@@ -98,7 +98,7 @@
         <a href="/docs/{% if ui_lang == "fr" %}fr{% else %}en{% endif %}">Documentation</a>
         <a href="/cours">{% if ui_lang == "fr" %}Cours{% else %}Courses{% endif %}</a>
         <a href="{% link "comparatif" %}">{% if ui_lang == "fr" %}Comparatif{% else %}Comparison{% endif %}</a>
-        <a href="{% link "changelog" %}">Changelog</a>
+        <a href="{% link "releases" %}">{% if ui_lang == "fr" %}Versions{% else %}Releases{% endif %}</a>
         <a href="{% link "contribution_list" %}">{% if ui_lang == "fr" %}Contribuer{% else %}Contribute{% endif %}</a>
         {% if user %}
             {% if user.rang != "Lambda" %}
