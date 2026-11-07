@@ -93,35 +93,61 @@ impl RuniqueApp {
     }
 }
 
-/// Returns true if the certificate should be renewed (missing or past renewal date).
+/// Whether the certificate at `cert_path` must be replaced: missing,
+/// unreadable, not issued for `domain`, or with less than a third of its
+/// lifetime left (Let's Encrypt's advice, whatever the lifetime).
 #[cfg(feature = "acme")]
-async fn cert_needs_renewal(expires_path: &std::path::Path) -> bool {
-    let Ok(content) = tokio::fs::read_to_string(expires_path).await else {
+async fn cert_needs_renewal(cert_path: &std::path::Path, domain: &str) -> bool {
+    let Ok(bytes) = tokio::fs::read(cert_path).await else {
+        tracing::info!("Certificate for {domain} is missing or unreadable");
         return true;
     };
-    let Ok(renew_after) = content.trim().parse::<chrono::DateTime<chrono::Utc>>() else {
+    let Ok((_, perm)) = x509_parser::pem::parse_x509_pem(&bytes) else {
+        tracing::info!("Certificate for {domain} is not a valid PEM");
         return true;
     };
-    chrono::Utc::now() >= renew_after
+    let Ok(cert) = perm.parse_x509() else {
+        tracing::info!("Certificate for {domain} is not a valid X.509 certificate");
+        return true;
+    };
+    let covers_domain = cert
+        .subject_alternative_name()
+        .ok()
+        .flatten()
+        .is_some_and(|san| {
+            san.value.general_names.iter().any(|name| {
+                matches!(name, x509_parser::extensions::GeneralName::DNSName(d)
+                    if d.eq_ignore_ascii_case(domain))
+            })
+        });
+    if !covers_domain {
+        tracing::info!("Certificate for {domain} does not cover the domain");
+        return true;
+    }
+    let validity = cert.validity();
+    let not_before = validity.not_before.timestamp();
+    let not_after = validity.not_after.timestamp();
+    let re_new_from = not_after - (not_after - not_before) / 3;
+    chrono::Utc::now().timestamp() >= re_new_from
 }
 
-/// Runs `renew` when the certificate's renewal date has passed. Returns
-/// whether it ran.
+/// Runs `renew` when the certificate at `cert_path` must be replaced (see
+/// [`cert_needs_renewal`]). Returns whether it ran.
 #[cfg(feature = "acme")]
-async fn renew_if_due<F, Fut>(expires_path: &std::path::Path, renew: F) -> bool
+async fn renew_if_due<F, Fut>(cert_path: &std::path::Path, domain: &str, renew: F) -> bool
 where
     F: FnOnce() -> Fut,
     Fut: std::future::Future<Output = ()>,
 {
-    if !cert_needs_renewal(expires_path).await {
+    if !cert_needs_renewal(cert_path, domain).await {
         return false;
     }
     renew().await;
     true
 }
 
-/// Obtains a certificate from Let's Encrypt and stores it in `certs_dir`
-/// with its renewal date (90-day certificates, renewed after 60).
+/// Obtains a certificate from Let's Encrypt and stores it in `certs_dir`.
+/// Its own dates decide when it is renewed ([`cert_needs_renewal`]).
 #[cfg(feature = "acme")]
 async fn obtain_and_store(
     domain: &str,
@@ -139,12 +165,7 @@ async fn obtain_and_store(
     tokio::fs::create_dir_all(certs_dir).await?;
     tokio::fs::write(format!("{certs_dir}/cert.pem"), &cert).await?;
     crate::utils::private_file::write(std::path::Path::new(&format!("{certs_dir}/key.pem")), &key)?;
-    let renew_after = chrono::Utc::now() + chrono::Duration::days(60);
-    tokio::fs::write(format!("{certs_dir}/expires.txt"), renew_after.to_rfc3339()).await?;
-    tracing::info!(
-        "Certificate will be renewed after {}",
-        renew_after.format("%Y-%m-%d")
-    );
+    tracing::info!(domain, "Certificate obtained and stored");
     Ok((cert, key))
 }
 
@@ -227,13 +248,10 @@ impl RuniqueApp {
         let certs_dir = &self.engine.config.security.acme_certs_dir;
         let cert_str = format!("{certs_dir}/cert.pem");
         let key_str = format!("{certs_dir}/key.pem");
-        let expires_str = format!("{certs_dir}/expires.txt");
         let cert_path = FsPath::new(&cert_str);
         let key_path = FsPath::new(&key_str);
-        let expires_path = FsPath::new(&expires_str);
 
-        let needs_renewal =
-            !cert_path.exists() || !key_path.exists() || cert_needs_renewal(expires_path).await;
+        let needs_renewal = !key_path.exists() || cert_needs_renewal(cert_path, &domain).await;
 
         let (cert_pem, key_pem) = if !needs_renewal {
             tracing::info!(certs_dir, "Loading existing TLS certificate");
@@ -278,12 +296,12 @@ impl RuniqueApp {
         );
         tokio::spawn(async move {
             let (domain, email, store, certs_dir, tls) = renewal;
-            let expires = std::path::PathBuf::from(format!("{certs_dir}/expires.txt"));
+            let cert_path = std::path::PathBuf::from(format!("{certs_dir}/cert.pem"));
             let mut ticker = tokio::time::interval(std::time::Duration::from_secs(12 * 3600));
             ticker.tick().await;
             loop {
                 ticker.tick().await;
-                renew_if_due(&expires, || async {
+                renew_if_due(&cert_path, &domain, || async {
                     let obtained = obtain_and_store(&domain, &email, store.clone(), &certs_dir)
                         .await
                         .map_err(|e| e.to_string());
@@ -322,7 +340,7 @@ impl RuniqueApp {
         // ConnectInfo must be propagated so `trusted_proxies` sees the real peer IP.
         // Without it, conn_ip defaults to loopback (trusted) and X-Forwarded-For
         // becomes spoofable in standalone-TLS mode (no reverse proxy).
-        axum_server::bind_rustls(https_addr.parse()?, tls_config)
+        axum_server::bind_rustls(https_addr.parse::<std::net::SocketAddr>()?, tls_config)
             .serve(
                 self.router
                     .into_make_service_with_connect_info::<std::net::SocketAddr>(),
@@ -333,58 +351,110 @@ impl RuniqueApp {
     }
 }
 
-/// Written from cargo-mutants survivors (2026-10-02).
 #[cfg(all(test, feature = "acme"))]
 mod cert_renewal_tests {
-    use super::cert_needs_renewal;
+    use super::{cert_needs_renewal, renew_if_due};
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
-    #[tokio::test]
-    async fn a_certificate_is_renewed_once_its_date_is_past_or_unreadable() {
+    const DAY: time::Duration = time::Duration::days(1);
+
+    /// A self-signed certificate for `domain`, valid from `before` ago to
+    /// `after` from now, written to `path`.
+    fn write_cert(
+        path: &std::path::Path,
+        domain: &str,
+        before: time::Duration,
+        after: time::Duration,
+    ) {
+        let mut params = rcgen::CertificateParams::new(vec![domain.to_string()]).unwrap();
+        let now = time::OffsetDateTime::now_utc();
+        params.not_before = now - before;
+        params.not_after = now + after;
+        let key = rcgen::KeyPair::generate().unwrap();
+        std::fs::write(path, params.self_signed(&key).unwrap().pem()).unwrap();
+    }
+
+    fn temp_cert() -> (std::path::PathBuf, std::path::PathBuf) {
         let dir = std::env::temp_dir().join(format!("rq_acme_{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
-        let path = dir.join("expires.txt");
-        let write =
-            |when: chrono::DateTime<chrono::Utc>| std::fs::write(&path, when.to_rfc3339()).unwrap();
+        let path = dir.join("cert.pem");
+        (dir, path)
+    }
 
-        assert!(cert_needs_renewal(&path).await, "no renewal date on disk");
-        std::fs::write(&path, "not a date").unwrap();
-        assert!(cert_needs_renewal(&path).await, "unreadable date");
-        write(chrono::Utc::now() + chrono::Duration::days(30));
-        assert!(!cert_needs_renewal(&path).await, "still valid");
-        write(chrono::Utc::now() - chrono::Duration::seconds(1));
-        assert!(cert_needs_renewal(&path).await, "date passed");
-
+    #[tokio::test]
+    async fn a_certificate_missing_unreadable_or_for_another_domain_is_renewed() {
+        let (dir, path) = temp_cert();
+        assert!(cert_needs_renewal(&path, "example.test").await, "missing");
+        std::fs::write(&path, "not a certificate").unwrap();
+        assert!(
+            cert_needs_renewal(&path, "example.test").await,
+            "unreadable"
+        );
+        write_cert(&path, "other.test", 10 * DAY, 80 * DAY);
+        assert!(
+            cert_needs_renewal(&path, "example.test").await,
+            "another domain"
+        );
+        write_cert(&path, "example.test", 10 * DAY, 80 * DAY);
+        assert!(
+            !cert_needs_renewal(&path, "example.test").await,
+            "its domain"
+        );
+        assert!(
+            !cert_needs_renewal(&path, "EXAMPLE.test").await,
+            "DNS names ignore case"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[tokio::test]
-    async fn the_renewal_runs_once_its_date_is_past_and_never_before() {
-        use super::renew_if_due;
-        use std::sync::atomic::{AtomicUsize, Ordering};
-        let dir = std::env::temp_dir().join(format!("rq_acme_{}", uuid::Uuid::new_v4()));
-        std::fs::create_dir_all(&dir).unwrap();
-        let path = dir.join("expires.txt");
+    async fn a_certificate_is_renewed_once_a_third_of_its_life_is_left() {
+        let (dir, path) = temp_cert();
+        // 90 days: renewed from 30 days left.
+        write_cert(
+            &path,
+            "example.test",
+            60 * DAY,
+            30 * DAY + time::Duration::minutes(2),
+        );
+        assert!(
+            !cert_needs_renewal(&path, "example.test").await,
+            "just over a third left"
+        );
+        write_cert(&path, "example.test", 60 * DAY, 30 * DAY);
+        assert!(
+            cert_needs_renewal(&path, "example.test").await,
+            "a third left"
+        );
+        // 45 days: the rule follows the lifetime, renewed from 15 days left.
+        write_cert(&path, "example.test", 20 * DAY, 25 * DAY);
+        assert!(
+            !cert_needs_renewal(&path, "example.test").await,
+            "45 days, 25 left"
+        );
+        write_cert(&path, "example.test", 35 * DAY, 10 * DAY);
+        assert!(
+            cert_needs_renewal(&path, "example.test").await,
+            "45 days, 10 left"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn the_renewal_runs_once_due_and_never_before() {
+        let (dir, path) = temp_cert();
         let runs = AtomicUsize::new(0);
         let renew = || async {
             runs.fetch_add(1, Ordering::SeqCst);
         };
 
-        std::fs::write(
-            &path,
-            (chrono::Utc::now() + chrono::Duration::days(1)).to_rfc3339(),
-        )
-        .unwrap();
-        assert!(!renew_if_due(&path, renew).await);
+        write_cert(&path, "example.test", 10 * DAY, 80 * DAY);
+        assert!(!renew_if_due(&path, "example.test", renew).await);
         assert_eq!(runs.load(Ordering::SeqCst), 0, "not due yet");
 
-        std::fs::write(
-            &path,
-            (chrono::Utc::now() - chrono::Duration::seconds(1)).to_rfc3339(),
-        )
-        .unwrap();
-        assert!(renew_if_due(&path, renew).await);
+        write_cert(&path, "example.test", 80 * DAY, 10 * DAY);
+        assert!(renew_if_due(&path, "example.test", renew).await);
         assert_eq!(runs.load(Ordering::SeqCst), 1, "due: renewed once");
-
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

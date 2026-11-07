@@ -414,6 +414,9 @@ async fn build_with_missing_page(dev: bool, debug: bool) -> Result<(), String> {
 async fn a_missing_replaced_page_refuses_the_boot_in_every_mode() {
     for (dev, debug) in [(true, false), (false, true), (true, true), (false, false)] {
         let err = build_with_missing_page(dev, debug).await.unwrap_err();
-        assert!(err.contains("nowhere/list.html"), "dev={dev} debug={debug}: {err}");
+        assert!(
+            err.contains("nowhere/list.html"),
+            "dev={dev} debug={debug}: {err}"
+        );
     }
 }
