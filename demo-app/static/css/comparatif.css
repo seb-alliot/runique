@@ -407,3 +407,43 @@
     .compare-section { margin-top: 6.5rem; }
     .compare-section > h2 { font-size: 1.875rem; }
 }
+
+.changelog-layout {
+    margin-top: 1.5rem;
+}
+
+.changelog-layout .compare-section {
+    margin-top: 0;
+}
+
+.changelog-picker {
+    display: grid;
+    gap: 0.5rem;
+    font-weight: 600;
+}
+
+.changelog-picker select {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0 0.75rem;
+    color: inherit;
+    font-weight: 400;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+}
+
+@media (min-width: 64rem) {
+    .changelog-picker {
+        position: sticky;
+        top: 5rem;
+    }
+}
+
+.changelog-layout .doc-block-content li p {
+    margin: 0;
+}
+
+.changelog-layout .doc-block-content li + li {
+    margin-top: 1rem;
+}

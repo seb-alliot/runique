@@ -1,4 +1,4 @@
-use crate::backend::lang::msg;
+use crate::backend::lang::{msg, visitor_lang};
 use crate::backend::{
     auth::{get_profile_user, handle_activate, handle_inscription, handle_login},
     blog::{get_article, handle_blog_save, list_articles},
@@ -7,9 +7,9 @@ use crate::backend::{
     cours::{ExerciceInput, cours_detail, cours_exercice, cours_index},
     demo_code_page,
     doc::{doc_index, doc_page, doc_section_index},
-    fetch_changelog_paged, fetch_known_issues,
+    fetch_known_issues,
     forms::{extract_helpers_data, get_field_groups, handle_upload_image},
-    inject_globals,
+    inject_globals, split_changelog,
 };
 use crate::formulaire::{
     BlogForm, ContributionForm, ImageForm, LoginForm, RegisterForm, SearchDemoForm,
@@ -232,34 +232,30 @@ pub async fn rust_django_framework(mut request: Request) -> AppResult<Response> 
 
 pub async fn changelog(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    let page: usize = request
-        .get_query("page")
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(1);
-    let (sections, current_page, total_pages) =
-        fetch_changelog_paged(&request.engine.db, page).await;
-    let prev_page = if current_page > 1 {
-        Some(current_page - 1)
+    let lang = visitor_lang(&request.headers);
+    let content = if lang == "fr" {
+        include_str!("../../CHANGELOG.fr.md")
     } else {
-        None
+        include_str!("../../CHANGELOG.md")
     };
-    let next_page = if current_page < total_pages {
-        Some(current_page + 1)
-    } else {
-        None
-    };
+    let versions = split_changelog(content);
+    let index = request
+        .get_query("version")
+        .and_then(|wanted| versions.iter().position(|v| v.version == wanted))
+        .unwrap_or(0);
+    let newer = index
+        .checked_sub(1)
+        .and_then(|i| versions.get(i))
+        .map(|v| &v.version);
+    let older = versions.get(index + 1).map(|v| &v.version);
     context_update!(request => {
-        "title"          => "Changelog",
-        "sections"       => &sections,
-        "current_page"   => current_page,
-        "total_pages"    => total_pages,
-        "prev_page"      => prev_page,
-        "next_page"      => next_page,
-        "changelog_links" => true,
-        "ext_link_label" => "Full CHANGELOG",
-        "ext_link_url"   => "https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md",
+        "title"    => if lang == "fr" { "Journal des modifications" } else { "Changelog" },
+        "versions" => &versions,
+        "current"  => versions.get(index),
+        "newer"    => newer,
+        "older"    => older,
     });
-    request.render("info/cards.html")
+    request.render("info/changelog.html")
 }
 
 pub async fn probleme_connu(mut request: Request) -> AppResult<Response> {
