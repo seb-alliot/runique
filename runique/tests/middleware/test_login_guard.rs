@@ -96,6 +96,17 @@ fn test_effective_key_with_username() {
     assert_eq!(key, "alice");
 }
 
+/// One account, one counter: the variants a case-insensitive database opens
+/// the same account with share it; another account keeps its own.
+#[test]
+fn spellings_of_one_account_share_its_lock() {
+    let guard = LoginGuard::new().max_attempts(2).lockout_secs(60);
+    guard.record_failure(&LoginGuard::effective_key("Admin", "1.2.3.4"));
+    guard.record_failure(&LoginGuard::effective_key("ADMIN ", "5.6.7.8"));
+    assert!(guard.is_locked(&LoginGuard::effective_key("admin", "9.9.9.9")));
+    assert!(!guard.is_locked(&LoginGuard::effective_key("bob", "1.2.3.4")));
+}
+
 #[test]
 fn test_effective_key_empty_username_uses_ip() {
     let key = LoginGuard::effective_key("", "1.2.3.4");

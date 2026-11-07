@@ -41,19 +41,19 @@ macro_rules! search_apply_op {
         $crate::db::sql_dialect::ci_like($col, &$val.to_string(), true)
     };
     ($col:expr, contains,   $val:expr) => {
-        $col.like(format!("%{}%", $val))
+        $crate::db::sql_dialect::like_term($col, "%", &$val.to_string(), "%")
     };
     ($col:expr, icontains,  $val:expr) => {
-        $crate::db::sql_dialect::ci_like($col, &format!("%{}%", $val), false)
+        $crate::db::sql_dialect::ci_like_term($col, "%", &$val.to_string(), "%")
     };
     ($col:expr, startswith, $val:expr) => {
-        $col.like(format!("{}%", $val))
+        $crate::db::sql_dialect::like_term($col, "", &$val.to_string(), "%")
     };
     ($col:expr, endswith,   $val:expr) => {
-        $col.like(format!("%{}", $val))
+        $crate::db::sql_dialect::like_term($col, "%", &$val.to_string(), "")
     };
     ($col:expr, iexact,     $val:expr) => {
-        $crate::db::sql_dialect::ci_like($col, &$val.to_string(), false)
+        $crate::db::sql_dialect::eq_ci($col, &$val.to_string())
     };
 }
 
@@ -484,7 +484,7 @@ macro_rules! search_cond {
         // hence the runtime lookup via `text_cast_type` (CHAR on MySQL/MariaDB,
         // TEXT elsewhere).
         let __cast_ty = $crate::db::sql_dialect::text_cast_type($db);
-        let __val = format!("%{}%", $val.to_lowercase());
+        let __val = $crate::db::sql_dialect::like_pattern("%", &$val.to_lowercase(), "%");
         let mut __cond = sea_orm::Condition::any();
         for col in <$entity as EntityTrait>::Column::iter() {
             __cond = __cond.add(
@@ -505,7 +505,7 @@ macro_rules! search_cond {
         let mut __cond = sea_orm::Condition::any();
         $(
             {
-                let __v = format!("%{}%", $val.to_lowercase());
+                let __v = $crate::db::sql_dialect::like_pattern("%", &$val.to_lowercase(), "%");
                 __cond = __cond.add(
                     sea_orm::sea_query::Expr::expr(sea_orm::sea_query::Func::lower(
                         sea_orm::sea_query::Expr::col(sea_orm::sea_query::Alias::new($col))

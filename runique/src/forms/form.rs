@@ -409,6 +409,12 @@ impl Forms {
             if key == FORM_NAME_KEY {
                 continue;
             }
+            // Readonly or disabled: the value set by code stays. A readonly field
+            // is still sent by the browser, so a visitor could change it; it is
+            // never written, and now never read through `cleaned` either.
+            if field.is_locked() {
+                continue;
+            }
             // `is_password()` et non `field_type() == "password"` : un champ portant
             // un secret sans être de type password (clé d'API, jeton) hérite ainsi
             // du même saut en GET et du même relâchement de contrainte en édition.
@@ -443,6 +449,7 @@ impl Forms {
         if allow_password {
             for field in self.fields.values_mut() {
                 if matches!(field.field_type(), "checkbox" | "radio")
+                    && !field.is_locked()
                     && !data.contains_key(field.name())
                 {
                     if let Some(level) = crate::utils::runique_log::get_log()

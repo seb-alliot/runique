@@ -2,6 +2,7 @@
 //! Regression: it had its own conversion, which put a `String` into every
 //! field it didn't know (`i16`, `f32`, `timestamp`, `timestamp_tz`…), so an
 //! `extend!{}` using one of them didn't compile; its integers had no bounds.
+use crate::helpers::pk::pk;
 use runique::forms::Forms;
 use runique::forms::field::FormAccess;
 use runique::utils::aliases::StrMap;
@@ -42,6 +43,25 @@ fn extend_converts_every_declared_type() {
     assert_eq!(model.rank.clone().unwrap(), 12i16);
     assert_eq!(model.weight.clone().unwrap(), Some(1.5f32));
     assert!(model.seen_tz.clone().unwrap().is_some());
+}
+
+/// A boolean column of the extended table reads like a `model!` one: a forged
+/// value is refused, never taken for `false`; a checkbox spelling is read.
+#[test]
+fn an_extend_boolean_refuses_a_forged_value() {
+    let mut data = StrMap::new();
+    data.insert("rank".into(), "1".into());
+    data.insert("is_staff".into(), "banana".into());
+    assert!(matches!(
+        groups::admin_from_form(&data, None),
+        Err(runique::forms::FormDataError::Invalid(ref name)) if name == "is_staff"
+    ));
+    assert!(groups::admin_partial_update(&data, pk(1)).is_err());
+    data.insert("is_staff".into(), "on".into());
+    let model = groups::admin_from_form(&data, None).unwrap();
+    assert!(model.is_staff.clone().unwrap());
+    let model = groups::admin_partial_update(&StrMap::new(), pk(1)).unwrap();
+    assert!(model.is_staff.is_not_set());
 }
 
 // The admin code generated for a resource calls these on every model, an

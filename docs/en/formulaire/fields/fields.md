@@ -267,7 +267,7 @@ Two fields share the same upload mechanism (staging folder, move between the wri
 | `MediaField::audio` | mp3, ogg, oga, wav, m4a, flac, aac | signature (MP3, Ogg, WAV, FLAC, MP4/M4A, AAC) |
 | `MediaField::video` | mp4, webm, mov, ogv | signature (MP4/MOV, WebM, Ogg) |
 | `FileField::document` | pdf, doc, docx, txt, odt | no |
-| `FileField::any` | all but `.svg` | no |
+| `FileField::any` | all but active extensions (`.svg`, `.html`, `.js`…) | no |
 
 The default maximum size is 10 MB for all; for audio and video, set `.max_size()`. The request body's global limit (`RUNIQUE_MAX_UPLOAD_MB`) applies too.
 
@@ -321,7 +321,7 @@ form.field(
         .max_size(FileSize::mb(10)),
 );
 
-// Any extension except .svg. Content is not checked:
+// Any extension except those a browser runs (.svg, .html, .js…). Content is not checked:
 // what the file is, and how it is served, is the application's responsibility.
 form.field(
     &FileField::any("attachments")
@@ -364,7 +364,7 @@ match form.save(&request.engine.db).await {
 
 > **Current limit**: the disk takes no part in the transaction. A hard stop of the process between moving the file and the database commit, or a commit failure that can't be caught, can leave an orphan file under `MEDIA_ROOT` — never a row pointing at a missing file.
 
-> **Security**: `.svg` files are **always rejected** (XSS risk). `FileField::any` accepts every other extension and does not read the content: the security of that field is the application's responsibility. For a `MediaField`, validation checks the real format by reading the file's signature (not just the extension): image, audio or video. With `max_dimensions`, the `image` crate measures the file: if the measurement fails, the file is refused, for every format. Without that measurement, the width and height limits would not apply. Empty submissions (no file selected) are handled correctly — the `required` constraint works as expected.
+> **Security**: extensions a browser opens as a page of the site are **always rejected: `.svg`, `.svgz`, `.html`, `.htm`, `.xhtml`, `.xht`, `.shtml`, `.xml`, `.js`, `.mjs`** (XSS risk), whatever the field's list. `FileField::any` accepts every other extension and does not read the content: the security of that field is the application's responsibility. For a `MediaField`, validation checks the real format by reading the file's signature (not just the extension): image, audio or video. With `max_dimensions`, the `image` crate measures the file: if the measurement fails, the file is refused, for every format. Without that measurement, the width and height limits would not apply. Empty submissions (no file selected) are handled correctly — the `required` constraint works as expected.
 
 ### Associated JS files
 

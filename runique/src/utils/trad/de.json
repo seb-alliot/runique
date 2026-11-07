@@ -91,7 +91,8 @@
     "db_check": "Dieser Wert wird nicht akzeptiert.",
     "delete_linked": "Löschen nicht möglich: andere Einträge verwenden ihn noch.",
     "text_field_too_large": "Textfeld zu gross (max 1 MB)",
-    "upload_too_large": "Datei-Upload zu gross (max {}MB)"
+    "upload_too_large": "Datei-Upload zu gross (max {}MB)",
+    "upload_failed": "Die Datei konnte nicht gespeichert werden. Bitte erneut versuchen."
   },
   "csrf": {
     "missing": "CSRF-Token fehlt",

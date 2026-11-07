@@ -9,7 +9,7 @@ use super::{
 use crate::auth::current_user::CurrentUser;
 use crate::auth::{
     gate::{
-        Delete, GateCtx, PkOf, Refusal, ResetPassword, Update,
+        Delete, GateCtx, Guarded, PkOf, Refusal, ResetPassword, Update,
         check::{authorize_create, authorize_list, authorize_row, authorize_view},
         refusal::RefusalReason,
         rights::{CrudAction, ReadableColumns},
@@ -382,17 +382,28 @@ where
             return Err(not_found());
         }
         let key = id.parse::<PkOf<E>>().map_err(|_| not_found())?;
-        authorize_row::<ResetPassword, E>(
+        let proof = authorize_row::<ResetPassword, E>(
             &GateCtx {
                 db: &req.engine.db,
                 user,
             },
-            key,
+            key.clone(),
         )
         .await?;
         let form = req.form::<ConfirmForm<E>>(admin_form::RESET_PASSWORD);
         if ValidationForm::try_form(form, req).await.is_err() {
             return Ok(None);
+        }
+        use sea_orm::QueryFilter;
+        // The rank rule is in the proof's conditions, not checked beforehand:
+        // the account is read under them, one above the user's rank reads as missing.
+        let target = E::find_by_id(key)
+            .filter(proof.conditions())
+            .one(&*req.engine.db)
+            .await
+            .map_err(AdminError::Db)?;
+        if target.is_none() {
+            return Err(not_found());
         }
         // The accounts' table keys its rows by `Pk`: the same text reads as one.
         id.parse::<crate::utils::pk::Pk>()

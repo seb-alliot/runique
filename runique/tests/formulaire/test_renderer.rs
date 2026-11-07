@@ -540,3 +540,43 @@ fn test_render_js_sans_nonce_pas_d_attribut() {
     );
     assert!(html.contains("form.js"));
 }
+
+/// Text in a `<textarea>` is decoded once by the browser: the value is escaped
+/// once, so the editor gets back exactly what was stored, `&lt;` included.
+#[test]
+fn a_richtext_value_comes_back_in_its_textarea_exactly() {
+    let mut tera = Tera::default();
+    tera.autoescape_on(vec!["html", "xml"]);
+    runique::context::register_asset_filters(
+        &mut tera,
+        "/static".to_string(),
+        "/media".to_string(),
+        "/runique/static".to_string(),
+        "/runique/media".to_string(),
+        runique::utils::aliases::new_registry(),
+    );
+    tera.add_raw_template(
+        "base_string.html",
+        &runique::app::templates::preprocess(include_str!(
+            "../../templates/field_html/base_string.html"
+        )),
+    )
+    .unwrap();
+    let render = |value: &str| {
+        use runique::forms::base::FormField;
+        let mut field = runique::forms::fields::TextField::richtext("body");
+        field.set_value(value);
+        let mut ctx = tera::Context::new();
+        ctx.insert("form", &serde_json::json!({ "name": "f" }));
+        ctx.insert("field", &field.base);
+        ctx.insert("input_type", "richtext");
+        tera.render("base_string.html", &ctx).unwrap()
+    };
+
+    let html = render("<p>&lt;b&gt;x</p>");
+    assert!(html.contains(">&lt;p&gt;&amp;lt;b&amp;gt;x&lt;"), "{html}");
+    assert!(!html.contains("<p>&lt;b&gt;x</p>"), "{html}");
+
+    let html = render("<p>bonjour</p>");
+    assert!(html.contains(">&lt;p&gt;bonjour&lt;"), "{html}");
+}

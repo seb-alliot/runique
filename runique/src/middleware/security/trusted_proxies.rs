@@ -155,17 +155,18 @@ impl TrustedProxies {
             return conn_ip_value;
         }
 
+        // Every `X-Forwarded-For` line, in order: a proxy that adds its own line
+        // instead of extending the client's leaves the client's first, and
+        // reading that one alone would take the forged address for the client.
         let xff: Vec<IpAddr> = req
             .headers()
-            .get("x-forwarded-for")
-            .and_then(|v| v.to_str().ok())
-            .map(|s| {
-                s.split(',')
-                    .filter_map(|ip| ip.trim().parse::<IpAddr>().ok())
-                    .map(canonicalize_ip)
-                    .collect()
-            })
-            .unwrap_or_default();
+            .get_all("x-forwarded-for")
+            .iter()
+            .filter_map(|v| v.to_str().ok())
+            .flat_map(|s| s.split(','))
+            .filter_map(|ip| ip.trim().parse::<IpAddr>().ok())
+            .map(canonicalize_ip)
+            .collect();
 
         if xff.is_empty() {
             return conn_ip_value;
@@ -222,6 +223,38 @@ mod tests {
             b = b.header("x-forwarded-for", v);
         }
         b.body(Body::empty()).unwrap()
+    }
+
+    /// A proxy that appends its own `X-Forwarded-For` line keeps the client's
+    /// forged one first: every line is read, the proxy's last.
+    #[test]
+    fn a_forged_first_line_never_wins_over_the_proxys_own_line() {
+        let tp = TrustedProxies::default_for_edge(false);
+        let req = Request::builder()
+            .header("x-forwarded-for", "9.9.9.9")
+            .header("x-forwarded-for", "203.0.113.7")
+            .body(Body::empty())
+            .unwrap();
+        assert_eq!(
+            tp.extract_client_ip(&req, Some(ip("10.0.0.1"))),
+            ip("203.0.113.7")
+        );
+        // One line extended by the proxy: unchanged.
+        let req = req_with_xff(Some("9.9.9.9, 10.0.0.2"));
+        assert_eq!(
+            tp.extract_client_ip(&req, Some(ip("10.0.0.1"))),
+            ip("9.9.9.9")
+        );
+        // Every address trusted: the peer.
+        let req = Request::builder()
+            .header("x-forwarded-for", "10.0.0.3")
+            .header("x-forwarded-for", "10.0.0.2")
+            .body(Body::empty())
+            .unwrap();
+        assert_eq!(
+            tp.extract_client_ip(&req, Some(ip("10.0.0.1"))),
+            ip("10.0.0.1")
+        );
     }
 
     // ── default_for_edge (SEC2 — edge-aware default) ─────────────────

@@ -396,7 +396,13 @@ Voir [la doc CSRF](https://runique.io/docs/fr/middleware/csrf).
 
 ---
 
+## Recherche
+
+**`search!` prend la valeur littéralement.** `contains`, `icontains`, `startswith` et `endswith` ne laissent plus `%` ni `_` agir comme jokers, et `iexact` devient une égalité (`LOWER(col) = LOWER(val)`). Pour un motif avec jokers, écrivez-le vous-même avec `like` ou `ilike`.
+
 ## Fichiers
+
+**Extensions actives toujours refusées.** En plus de `.svg`, un champ fichier refuse désormais `.svgz`, `.html`, `.htm`, `.xhtml`, `.xht`, `.shtml`, `.xml`, `.js` et `.mjs`, même si sa liste les nomme. Un projet qui acceptait ces fichiers doit les recevoir autrement (archive, ou service hors du domaine du site).
 
 **Runique ne supprime plus le fichier remplacé par un upload.** Si votre projet comptait sur cette suppression, le nettoyage de l'ancien fichier est maintenant à sa charge.
 

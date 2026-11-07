@@ -92,22 +92,29 @@ fn phantom_active_model_field(col: &PhantomColumn, partial: bool) -> Option<Toke
                 ::runique::forms::form_data::unknown_password(#name_str)?
             ),
         }),
+        // Read like a `model!` boolean: a forged value (`banana`) is refused,
+        // never taken for `false`.
         FormWidget::Bool => {
             if partial {
                 Some(quote! {
-                    #name: match __data.get(#name_str) {
-                        Some(v) => ::sea_orm::ActiveValue::Set({
-                            let s = v.as_str(); s == "true" || s == "1" || s == "on"
-                        }),
+                    #name: match ::runique::forms::form_data::read(
+                        __data,
+                        #name_str,
+                        |v: &str| ::runique::forms::column_value::parse_bool(v),
+                    )? {
+                        Some(v) => ::sea_orm::ActiveValue::Set(v),
                         None => ::sea_orm::ActiveValue::NotSet,
                     },
                 })
             } else {
                 Some(quote! {
                     #name: ::sea_orm::ActiveValue::Set(
-                        __data.get(#name_str)
-                            .map(|v| { let s = v.as_str(); s == "true" || s == "1" || s == "on" })
-                            .unwrap_or(false)
+                        ::runique::forms::form_data::read(
+                            __data,
+                            #name_str,
+                            |v: &str| ::runique::forms::column_value::parse_bool(v),
+                        )?
+                        .unwrap_or(false)
                     ),
                 })
             }

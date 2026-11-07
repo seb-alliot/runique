@@ -161,14 +161,18 @@ impl LoginGuard {
 
     /// Returns the effective key to use with `LoginGuard`.
     ///
-    /// - Non-empty username → key by username (targeted account protection)
+    /// - Non-empty username → key by username (targeted account protection),
+    ///   trimmed and lowercased: a database comparing names without case or
+    ///   trailing spaces (MySQL/MariaDB collations) opens the same account for
+    ///   `admin`, `Admin` and `admin `, which must share one counter.
     /// - Empty or absent username → `"anonym:{ip}"` (anonymous protection by IP)
     #[must_use]
     pub fn effective_key<'a>(username: &'a str, ip: &str) -> std::borrow::Cow<'a, str> {
-        if username.trim().is_empty() {
+        let username = username.trim();
+        if username.is_empty() {
             std::borrow::Cow::Owned(format!("anonym:{ip}"))
         } else {
-            std::borrow::Cow::Borrowed(username)
+            std::borrow::Cow::Owned(username.to_lowercase())
         }
     }
 

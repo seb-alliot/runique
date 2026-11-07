@@ -330,7 +330,7 @@ With a key, `save` updates that row; `delete` needs one. A key that doesn't read
 
 ### What is written
 
-- **Outside the admin**: SeaORM writes (`insert` on a create, `ActiveModel::save()` on an update); the model's behavior (`ActiveModelBehavior::before_save` / `after_save`, `auto_now`) runs. Every field the form declares is written, secret columns included: a password field only as its hash (never the text typed in, never a `.no_hash()` field), and left empty on an update, it keeps the old value. Locked fields (`readonly`, `disabled`) are never written. Checking that the user may touch the row is the handler's job, as with `search!`.
+- **Outside the admin**: SeaORM writes (`insert` on a create, `ActiveModel::save()` on an update); the model's behavior (`ActiveModelBehavior::before_save` / `after_save`, `auto_now`) runs. Every field the form declares is written, secret columns included: a password field only as its hash (never the text typed in, never a `.no_hash()` field), and left empty on an update, it keeps the old value. Locked fields (`readonly`, `disabled`) are never written. A locked field isn't filled from the request either: `cleaned()` returns the value set by code, never one a visitor sent back. Checking that the user may touch the row is the handler's job, as with `search!`.
 - **Inside the admin** (panel and routes declared `admin`): the gate writes, as the checked account — rights, owner, history, in one transaction. Secret columns are never written there.
 
 ### Where business logic goes

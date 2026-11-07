@@ -140,3 +140,25 @@ async fn only_pending_and_active_accounts_get_a_link_and_the_page_never_tells() 
         "same answer for every address: {answers:?}"
     );
 }
+
+/// The page is styled by a file, never inline: the default CSP refuses inline
+/// styles, which would leave it bare. The reset page shows its messages once.
+#[tokio::test]
+#[serial]
+async fn the_reset_pages_are_styled_without_inline_css() {
+    let (base, _db) = spawn().await;
+    let page = reqwest::get(format!("{base}/forgot-password"))
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap();
+    assert!(page.contains("css/auth.css"), "{page}");
+    assert!(
+        !page.contains("<style") && !page.contains("style=\""),
+        "{page}"
+    );
+    let reset = include_str!("../../templates/auth/reset_password.html");
+    assert!(!reset.contains("<style") && !reset.contains("style=\""));
+    assert_eq!(reset.matches("{% messages %}").count(), 1);
+}

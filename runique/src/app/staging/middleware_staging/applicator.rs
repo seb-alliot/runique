@@ -150,7 +150,7 @@ impl MiddlewareStaging {
         if let Some(cors) = self.cors_config {
             use axum::http::HeaderValue;
             use std::time::Duration as StdDuration;
-            use tower_http::cors::{AllowOrigin, CorsLayer};
+            use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
 
             let max_age = StdDuration::from_secs(if cors.max_age_secs > 0 {
                 cors.max_age_secs
@@ -170,10 +170,24 @@ impl MiddlewareStaging {
                     .iter()
                     .filter_map(|o| HeaderValue::from_str(o).ok())
                     .collect();
+                // With credentials, the CORS rules forbid the `*` wildcard (tower-http
+                // refuses it at startup): the preflight's own method and headers are
+                // echoed back instead, still for the listed origins only.
+                let (methods, headers) = if cors.allow_credentials {
+                    (
+                        AllowMethods::mirror_request(),
+                        AllowHeaders::mirror_request(),
+                    )
+                } else {
+                    (
+                        AllowMethods::from(tower_http::cors::Any),
+                        AllowHeaders::from(tower_http::cors::Any),
+                    )
+                };
                 CorsLayer::new()
                     .allow_origin(AllowOrigin::list(origins))
-                    .allow_methods(tower_http::cors::Any)
-                    .allow_headers(tower_http::cors::Any)
+                    .allow_methods(methods)
+                    .allow_headers(headers)
                     .allow_credentials(cors.allow_credentials)
                     .max_age(max_age)
             };

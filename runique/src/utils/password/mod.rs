@@ -46,6 +46,38 @@ pub struct BaseHash;
 /// malformed stored hash must not answer faster than a well-formed one with the wrong
 /// password, or timing leaks which stored hashes are well-formed (same principle as
 /// `dummy_hash()` for user enumeration, applied to the parse step of each algorithm).
+// A hash names its own cost, read again at each verification. One asking for
+// more than these, beyond the defaults Runique hashes with, is refused before
+// running: a crafted one would make a single sign-in spend unbounded memory or time.
+const MAX_ARGON2_M_COST_KIB: u32 = 64 * 1024;
+const MAX_ARGON2_T_COST: u32 = 8;
+const MAX_ARGON2_P_COST: u32 = 4;
+const MAX_SCRYPT_LOG_N: u8 = 17;
+const MAX_SCRYPT_R: u32 = 8;
+const MAX_SCRYPT_P: u32 = 4;
+const MAX_BCRYPT_COST: u32 = 14;
+
+fn argon2_cost_allowed(hash: &PasswordHash) -> bool {
+    argon2::Params::try_from(hash).is_ok_and(|p| {
+        p.m_cost() <= MAX_ARGON2_M_COST_KIB
+            && p.t_cost() <= MAX_ARGON2_T_COST
+            && p.p_cost() <= MAX_ARGON2_P_COST
+    })
+}
+
+fn scrypt_cost_allowed(hash: &PasswordHash) -> bool {
+    scrypt::Params::try_from(hash).is_ok_and(|p| {
+        p.log_n() <= MAX_SCRYPT_LOG_N && p.r() <= MAX_SCRYPT_R && p.p() <= MAX_SCRYPT_P
+    })
+}
+
+/// `$2b$12$…`: the cost is the two digits after the version.
+fn bcrypt_cost_allowed(hash: &str) -> bool {
+    hash.get(4..6)
+        .and_then(|cost| cost.parse::<u32>().ok())
+        .is_some_and(|cost| cost <= MAX_BCRYPT_COST)
+}
+
 fn verify_constant_time<E>(
     verify_once: impl Fn(&str) -> Result<bool, E>,
     hash: &str,
@@ -128,11 +160,13 @@ impl BaseHash {
     fn verify_argon2(&self, password: &str, hash: &str) -> bool {
         verify_constant_time(
             |h| {
-                PasswordHash::new(h).map(|p| {
-                    Argon2::default()
-                        .verify_password(password.as_bytes(), &p)
-                        .is_ok()
-                })
+                let p = PasswordHash::new(h).map_err(|_| ())?;
+                if !argon2_cost_allowed(&p) {
+                    return Err(());
+                }
+                Ok(Argon2::default()
+                    .verify_password(password.as_bytes(), &p)
+                    .is_ok())
             },
             hash,
             dummy_hash(),
@@ -151,7 +185,16 @@ impl BaseHash {
         // `bcrypt::verify` ne renvoie `Err` que si le hash ne parse pas (`split_hash`) —
         // jamais pour "mot de passe faux", qui donne `Ok(false)`. Même traitement que
         // les autres algorithmes : brûler le même temps sur un hash mal formé.
-        verify_constant_time(|h| bcrypt_verify(password, h), hash, &DUMMY_HASH_BCRYPT)
+        verify_constant_time(
+            |h| {
+                if !bcrypt_cost_allowed(h) {
+                    return Err(());
+                }
+                bcrypt_verify(password, h).map_err(|_| ())
+            },
+            hash,
+            &DUMMY_HASH_BCRYPT,
+        )
     }
 
     fn hash_scrypt(&self, password: &str) -> Result<String, String> {
@@ -169,11 +212,13 @@ impl BaseHash {
     fn verify_scrypt(&self, password: &str, hash: &str) -> bool {
         verify_constant_time(
             |h| {
-                PasswordHash::new(h).map(|p| {
-                    Scrypt::default()
-                        .verify_password(password.as_bytes(), &p)
-                        .is_ok()
-                })
+                let p = PasswordHash::new(h).map_err(|_| ())?;
+                if !scrypt_cost_allowed(&p) {
+                    return Err(());
+                }
+                Ok(Scrypt::default()
+                    .verify_password(password.as_bytes(), &p)
+                    .is_ok())
             },
             hash,
             &DUMMY_HASH_SCRYPT,

@@ -49,7 +49,13 @@ pub(crate) async fn list_view(
     let filter_qs: String = query
         .filters
         .iter()
-        .map(|(col, value)| format!("&filter_{col}={}", urlencoding::encode(value)))
+        .map(|(col, value)| {
+            format!(
+                "&filter_{}={}",
+                urlencoding::encode(col),
+                urlencoding::encode(value)
+            )
+        })
         .collect();
     let mut active_filters: std::collections::HashMap<String, Vec<String>> =
         std::collections::HashMap::new();

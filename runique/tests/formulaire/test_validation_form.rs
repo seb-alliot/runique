@@ -251,6 +251,29 @@ async fn honeypot_filled_on_post_forces_invalid() {
     );
 }
 
+/// Every method that writes checks the trap, not only POST.
+#[tokio::test]
+async fn honeypot_is_checked_on_every_writing_method() {
+    for method in [Method::PUT, Method::PATCH, Method::DELETE] {
+        let engine = build_engine().await;
+        let mut data = HashMap::new();
+        data.insert("q".to_string(), "rust".to_string());
+        data.insert("hp_trap".to_string(), "i_am_a_bot".to_string());
+        let mut request = build_handler_req(engine, None, named(data), method.clone()).await;
+        request.honeypot_field_name = Some("hp_trap".to_string());
+        let mut form: SearchForm = request.form(NAME);
+        assert!(!form.is_valid().await, "filled trap on {method}");
+
+        let engine = build_engine().await;
+        let mut data = HashMap::new();
+        data.insert("q".to_string(), "rust".to_string());
+        let mut request = build_handler_req(engine, None, named(data), method.clone()).await;
+        request.honeypot_field_name = Some("hp_trap".to_string());
+        let mut form: SearchForm = request.form(NAME);
+        assert!(form.is_valid().await, "empty trap on {method}");
+    }
+}
+
 #[tokio::test]
 async fn honeypot_empty_on_post_does_not_force_invalid() {
     let engine = build_engine().await;
@@ -503,4 +526,42 @@ async fn a_first_display_is_not_filled_and_keeps_its_prefill() {
     };
     assert_eq!(form.forms().fields["q"].value(), "prefilled");
     assert!(!form.is_submitted(), "a prefill isn't a submission");
+}
+
+struct PriceForm {
+    form: Forms,
+}
+
+impl FormAccess for PriceForm {
+    fn register_fields(form: &mut Forms) {
+        form.field(&TextField::text("prix"));
+        form.field(&TextField::text("note"));
+        form.field_readonly("prix", true);
+        form.add_value("prix", "10");
+    }
+    fn from_form(form: Forms) -> Self {
+        Self { form }
+    }
+    fn forms(&self) -> &Forms {
+        &self.form
+    }
+    fn forms_mut(&mut self) -> &mut Forms {
+        &mut self.form
+    }
+}
+
+impl RuniqueForm for PriceForm {}
+
+/// A readonly field keeps the value set by code: the one the visitor sends
+/// back is never read, while a free field takes it.
+#[tokio::test]
+async fn a_readonly_field_keeps_its_value_whatever_is_sent() {
+    let engine = build_engine().await;
+    let mut data = HashMap::new();
+    data.insert("prix".to_string(), "0".to_string());
+    data.insert("note".to_string(), "hello".to_string());
+    let request = build_handler_req(engine, None, named(data), Method::POST).await;
+    let form: PriceForm = request.form(NAME);
+    assert_eq!(form.cleaned::<String>("prix").as_deref(), Some("10"));
+    assert_eq!(form.cleaned::<String>("note").as_deref(), Some("hello"));
 }

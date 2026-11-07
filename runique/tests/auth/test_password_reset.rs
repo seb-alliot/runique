@@ -187,3 +187,36 @@ fn test_config_email_template_ttl_and_hook_are_kept() {
     assert_eq!(config.token_ttl, std::time::Duration::from_secs(90));
     assert!(config.extra_context.is_some());
 }
+
+/// The reset routes answer `no-store` whatever happens behind (the page, an
+/// error, a refusal): their responses carry a token. A route merged next to
+/// them keeps its own headers.
+#[tokio::test]
+async fn the_reset_routes_are_never_cached_and_only_them() {
+    use axum::body::Body;
+    use axum::http::Request;
+    use tower::ServiceExt;
+
+    let router =
+        runique::auth::password::build_router(std::sync::Arc::new(PasswordResetConfig::new()))
+            .merge(axum::Router::new().route("/other", axum::routing::get(|| async { "ok" })));
+    for path in ["/forgot-password", "/reset-password/some-token"] {
+        let resp = router
+            .clone()
+            .oneshot(Request::get(path).body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(
+            resp.headers()
+                .get("cache-control")
+                .map(|v| v.to_str().unwrap()),
+            Some("no-store"),
+            "{path}"
+        );
+    }
+    let resp = router
+        .oneshot(Request::get("/other").body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+    assert!(resp.headers().get("cache-control").is_none());
+}

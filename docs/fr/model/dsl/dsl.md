@@ -406,7 +406,7 @@ model! {
 | `audio`   | `mp3 ogg oga wav m4a flac aac`     | `MediaField::audio` — contenu vérifié     |
 | `video`   | `mp4 webm mov ogv`                 | `MediaField::video` — contenu vérifié     |
 | `document`| `pdf doc docx txt odt`             | `FileField::document`                     |
-| `file`    | aucun filtre (sauf `.svg`)         | `FileField::any`                          |
+| `file`    | aucun filtre (sauf extensions actives : `.svg`, `.html`, `.js`…) | `FileField::any`                          |
 
 `upload_to:` est obligatoire pour ces cinq types. Le chemin est relatif à `MEDIA_ROOT`. Voir [Champs](/docs/fr/formulaire/champs) pour le contrôle du contenu.
 

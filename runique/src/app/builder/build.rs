@@ -48,7 +48,7 @@ async fn default_index(
 
 /// Policy of every media response: no script, no plugin, whatever the file
 /// claims to be (an uploaded `.html` or `.xhtml` is otherwise a page of the site).
-const MEDIA_CSP: &str = "script-src 'none'; object-src 'none'; base-uri 'none'";
+const MEDIA_CSP: &str = "script-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
 
 /// 404 for any path segment starting with a dot, decoded first (`%2E` is a
 /// dot to `ServeDir`): uploads wait in `.staging-*` folders under the media

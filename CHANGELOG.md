@@ -10,6 +10,21 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
+* **Locked field read from the request**: a `readonly` field is sent back by the browser; never written, its forged value was still returned by `cleaned()`. A locked field is no longer filled from the request and keeps the value set by code.
+* **`extend!{}` booleans**: `admin_from_form` / `admin_partial_update` read any unknown value as `false`; they now refuse a forged value, as for `model!{}`.
+* **Password typed as a hash**: a typed value starting with `$argon2`, `$2` or `$scrypt$` was stored unhashed, with cost parameters chosen by the visitor and read again at each sign-in: a sign-up then a single sign-in attempt could exhaust or stop the server. A typed value is now always treated as a password (refused when shaped like a hash), and verification refuses, before computing, a stored hash whose cost exceeds a bound (argon2 64 MiB / 8 passes / 4 lanes, scrypt `ln` 17, bcrypt 14).
+* **Admin reset of a higher-ranked account**: an admin with the `update` right on accounts could trigger a reset for a dirigeant or the superuser (pending link overwritten, unsolicited emails). The account is now read under the gate's rank rule: a higher rank is not found, no token, no email, no trace.
+* **Built-in reset emails**: the account name went unescaped into the email's HTML (a third party's link or text in a genuine email from the site). It is escaped, like the link's address.
+* **`search!`: wildcards in the value**: `contains`, `icontains`, `startswith`, `endswith` let `%` and `_` act as wildcards, and `iexact` was a `LIKE`. They are now taken literally, and `iexact` is an equality; `like` / `ilike` keep the pattern the developer writes. `search_cond!` follows the same rule.
+* **Active files refused**: `.html`, `.htm`, `.xhtml`, `.xht`, `.shtml`, `.xml`, `.js`, `.mjs`, `.svgz` join `.svg`: never accepted by a file field, whatever its list. The media CSP adds `form-action 'none'`.
+* **`X-Forwarded-For` over several lines**: only the first line was read; behind a proxy that adds its own, the client's forged address passed for its own (rate limits bypassed). Every line is read, in order.
+* **`LoginGuard`**: the counter follows the name without case or surrounding spaces, like a database comparing without case (MySQL/MariaDB): `admin`, `Admin` and `admin ` share one lock.
+* **Admin sign-out**: refused without a valid CSRF token (another site no longer signs out the user of an older browser).
+* **Anti-bot trap**: checked on every writing method (PUT, PATCH, DELETE), not only POST.
+* **No copy outliving the session**: admin lists keep no snapshot in the browser's storage (htmx history cache), and the reset pages are served with `Cache-Control: no-store`.
+* **Secret files in `0600`**: the `.env` of `runique new` and ACME's TLS private key are no longer readable by the machine's other users.
+* **Failed upload**: the visitor reads a translated sentence, no longer the server path or the system error (kept in the log).
+
 * **"Forgot password" answered faster for an unknown address**: the page wrote the reset token, and waited for it, only when the address belonged to an account, so its response time told whether an account existed. The account's lookup, the token and the email now all run in the background: the page answers the same, in the same time, for every address.
 * **Admin — refusal on a superuser's account**: the message shown ("Only a superuser can change a superuser's account") told a staff member that the targeted account was a superuser. It is now generic ("Action not allowed", 9 languages); the rule itself is unchanged.
 * **CSRF token sent to other sites by `csrf.js`**: the script wraps `fetch` to add `X-CSRF-Token` to `POST`/`PUT`/`PATCH`/`DELETE` requests, without looking at where they go. A `POST` fetch to another domain, made from a page that loads the script (third-party script, project code), carried the session's token to that domain, and another site's response could replace the page's token. The token is now added, and its rotation accepted, only for requests to the page's own origin. **Restart the application** after updating: the static file changes.
@@ -76,6 +91,12 @@ All notable changes to this project will be documented in this file.
 * **`csrf.js` loaded by itself**: `request.render()` adds a single tag per page as soon as it holds a `csrf_token` field, however many forms it has, and none if the page already loads the script.
 
 #### Fixed
+
+* **Text fields' protocol filter**: `javascript:`, `data:`, `file:`… were removed anywhere, even inside a word ("profile:" became "pro", "metadata:" became "meta"). They are now removed only at the start of the text or after a character no protocol name can hold.
+* **`with_cors` with credentials**: a listed origin with `allow_credentials(true)`, the documented example, panicked at startup (tower-http refuses the `*` wildcard with credentials). The preflight's method and headers are now echoed back, for the listed origins only.
+* **Rich text in a `<textarea>`**: the value lost one level of escaping at each edit (`&lt;b&gt;` turned bold). It is escaped once, exact on the way back.
+* **Runique's reset pages**: their styles were inline, refused by the default CSP; they now come from a file (`css/auth.css`). The "new password" page no longer shows its messages twice.
+* **Admin list links**: a filter name made up in the URL is encoded again, it no longer adds a parameter to the page's links.
 
 * **A file and the row of the same `save` could disagree**: the file is now moved inside the transaction, between the write and the commit. A refused write no longer leaves a published file, nor a missing file behind a written row. One case remains: a successful move then a lost commit leaves an orphan file, never a row without its file.
 * **A forged boolean was read as `false`**: a checkbox field accepted any value, and anything other than `true`/`1`/`on` was stored as `false` — a request sending `is_active=banana` deactivated the account without anyone sending `false`. A checkbox now only accepts what it sends: its own value (`"true"` by default, `.checked_value("on")` for a hand-written template whose box sends something else) or nothing (unchecked, which `fill()` still turns into `false`). Anything else is a form error under the field, and is traced (`forms.validate`, field name only — never the value received). Below the field, where a column or the code `model!{}` generates for the admin reads a boolean, six spellings are accepted in any case (`true`/`1`/`on`, `false`/`0`/`off`) and anything else is an error (one shared `parse_bool`).

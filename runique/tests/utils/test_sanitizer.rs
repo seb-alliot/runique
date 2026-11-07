@@ -53,13 +53,28 @@ fn test_strict_caractere_qui_change_de_longueur_en_minuscule() {
     assert_eq!(out, "\u{130}\u{130}x");
 }
 
+/// Removed where a scheme can start; one left exposed by the removal goes too.
 #[test]
-fn test_strict_protocole_reconstruit_apres_suppression() {
+fn test_strict_protocole_en_tete_retire_meme_repete() {
     assert_eq!(
-        sanitize_strict("javajavascript:script:alert(1)"),
+        sanitize_strict("javascript:javascript:alert(1)"),
         "alert(1)"
     );
-    assert_eq!(sanitize_strict("dadata:ta:x"), "x");
+    assert_eq!(sanitize_strict("voir javascript:alert(1)"), "voir alert(1)");
+    assert_eq!(sanitize_strict("x,data:text/html"), "x,text/html");
+}
+
+/// Inside a word the protocol is text: no browser reads `javajavascript:` or
+/// `profile:` as `javascript:` or `file:`, and the visitor's text is kept.
+#[test]
+fn test_strict_protocole_dans_un_mot_est_du_texte() {
+    assert_eq!(sanitize_strict("Mon profile: dev"), "Mon profile: dev");
+    assert_eq!(sanitize_strict("metadata: x"), "metadata: x");
+    assert_eq!(
+        sanitize_strict("javajavascript:script:alert(1)"),
+        "javajavascript:script:alert(1)"
+    );
+    assert_eq!(sanitize_strict("dadata:ta:x"), "dadata:ta:x");
 }
 
 #[test]

@@ -148,7 +148,7 @@ let with_bio = search!(users::Entity => Bio not_null).all(&*db).await?;
 
 ### contains / icontains / startswith / endswith / iexact
 
-These operators handle `%` wildcards automatically.
+These operators place their own wildcards: the value is taken **literally**, a `%` or `_` it holds (a visitor's input, say) does not act as a wildcard. `iexact` is a case-insensitive equality. For a pattern with wildcards, write it with `like` or `ilike`.
 
 ```rust
 let rust    = search!(posts::Entity => Title contains "rust").all(&*db).await?;

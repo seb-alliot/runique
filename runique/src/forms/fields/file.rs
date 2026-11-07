@@ -307,35 +307,46 @@ impl AllowedExtensions {
         Self::new(vec!["pdf", "doc", "docx", "txt", "odt"])
     }
 
-    /// No extension filter. Every extension is accepted except `.svg`.
+    /// No extension filter. Every extension is accepted except those a browser
+    /// runs as a page (`.svg`, `.html`, `.js`…, see [`is_allowed`](Self::is_allowed)).
     /// The content is not inspected: that check belongs to the caller.
     pub fn any() -> Self {
         Self { extensions: vec![] }
     }
 
     /// Returns whether `filename`'s extension passes this whitelist.
-    /// Always rejects `.svg` regardless of the list; an empty list allows
-    /// any other extension.
+    /// Always rejects what a browser runs as a page of the site once served
+    /// from the media root ([`ACTIVE_CONTENT`]), whatever the list; an empty
+    /// list allows any other extension.
     pub fn is_allowed(&self, filename: &str) -> bool {
-        if filename.to_lowercase().ends_with(".svg") {
+        let ext = Path::new(filename)
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(str::to_lowercase);
+        if ext
+            .as_deref()
+            .is_some_and(|ext| ACTIVE_CONTENT.contains(&ext))
+        {
             return false;
         }
         if self.extensions.is_empty() {
             return true;
         }
-
-        Path::new(filename)
-            .extension()
-            .and_then(|ext| ext.to_str())
-            .map(|ext_str| {
-                let ext_lower = ext_str.to_lowercase();
-                self.extensions
-                    .iter()
-                    .any(|allowed| allowed.to_lowercase() == ext_lower)
-            })
-            .unwrap_or(false)
+        ext.is_some_and(|ext| {
+            self.extensions
+                .iter()
+                .any(|allowed| allowed.to_lowercase() == ext)
+        })
     }
 }
+
+/// Extensions a browser opens as a document of the site's origin (scripts,
+/// forms, redirects): never accepted by a file field, whatever its list says.
+pub const ACTIVE_CONTENT: [&str; 10] = [
+    "svg", "svgz", "html", "htm", "xhtml", "xht", "shtml", "xml", "js", "mjs",
+];
+
+impl AllowedExtensions {}
 
 pub type UploadPathFn = Option<Arc<dyn Fn(&str) -> String + Send + Sync>>;
 
@@ -465,7 +476,8 @@ impl FileField {
         Self::create(name, "file", FileFieldType::Document)
     }
 
-    /// Generic upload field. Every extension is accepted except `.svg`.
+    /// Generic upload field. Every extension is accepted except those a browser
+    /// runs as a page ([`ACTIVE_CONTENT`]: `.svg`, `.html`, `.js`…).
     /// The framework does not inspect the content: what the file is, and how
     /// it is served, is the application's responsibility. Use [`image`](Self::image),
     /// [`document`](Self::document), or [`allowed_extensions`](Self::allowed_extensions)
@@ -593,11 +605,17 @@ impl FormField for FileField {
     }
 
     async fn finalize(&mut self) -> Result<(), String> {
-        self.upload.finalize(&mut self.base).await
+        self.upload
+            .finalize(&mut self.base)
+            .await
+            .map_err(super::media::upload_failed)
     }
 
     async fn publish_uploads(&mut self) -> Result<(), String> {
-        self.upload.publish().await
+        self.upload
+            .publish()
+            .await
+            .map_err(super::media::upload_failed)
     }
 
     async fn rollback_uploads(&mut self) {
@@ -708,6 +726,33 @@ mod finalize_tests {
             "published under media_root"
         );
         assert!(!staged.exists(), "staged link removed after publication");
+
+        crate::config::static_files::restore_media_root();
+        let _ = fs::remove_dir_all(&media);
+    }
+
+    /// A publication that fails (here a file where the folder should be) tells
+    /// the visitor a plain sentence: no server path, no OS error.
+    #[tokio::test]
+    async fn a_failed_publication_shows_no_server_detail() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = unique_dir("media");
+        let staging = media.join(format!(".staging-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&staging).unwrap();
+        let staged = staging.join("photo.png");
+        fs::write(&staged, b"data").unwrap();
+        unsafe {
+            std::env::set_var("MEDIA_ROOT", media.to_str().unwrap());
+        }
+        fs::write(media.join("avatar"), b"not a folder").unwrap();
+        let mut f = FileField::any("avatar").upload_to_env();
+        f.base.value = staged.to_string_lossy().to_string();
+        let error = match f.finalize().await {
+            Err(error) => error,
+            Ok(()) => f.publish_uploads().await.unwrap_err(),
+        };
+        assert_eq!(error, crate::utils::trad::t("forms.upload_failed"));
+        assert!(!error.contains(media.to_str().unwrap()), "{error}");
 
         crate::config::static_files::restore_media_root();
         let _ = fs::remove_dir_all(&media);

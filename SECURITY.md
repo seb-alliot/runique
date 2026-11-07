@@ -92,6 +92,16 @@ Re-checked against a local `Cargo.lock` on 2026-11-07; that file isn't committed
 
 | Version | Issue | Severity |
 | ------- | ----- | -------- |
+| 4.0 | Password typed as a hash stored unhashed, its cost read again at each sign-in (server exhaustion) | High |
+| 4.0 | Admin reset of a higher-ranked account (rank rule not replayed) | Medium |
+| 4.0 | Account name unescaped in the built-in reset emails | Medium |
+| 4.0 | Active files (`.html`, `.js`, `.xml`…) accepted by a file field and served from the site's origin | Medium |
+| 4.0 | `X-Forwarded-For` read on its first line only (rate limits bypassed behind some proxies) | Medium |
+| 4.0 | `search!` operators letting `%` and `_` in the value act as wildcards | Low |
+| 4.0 | `LoginGuard` counting case variants of one account apart (MySQL/MariaDB) | Low |
+| 4.0 | Secret files (`.env`, TLS key) readable by the machine's other users | Low |
+| 4.0 | Server path shown to the visitor when an upload fails | Low |
+| 4.0 | Admin sign-out without CSRF token; anti-bot trap on POST only; admin lists kept in the browser; reset pages cacheable | Hardening |
 | 4.0 | `extend!{}` of the accounts table putting `password` and `is_active` in its admin form | High |
 | 4.0 | CSRF token sent by `csrf.js` with `fetch` requests to other origins | Medium |
 | 4.0 | Form global errors rendered without escaping (XSS) | Medium |

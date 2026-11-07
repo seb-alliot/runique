@@ -11,6 +11,13 @@ use crate::config::static_files::resolve_media_root;
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use crate::utils::aliases::ATera;
 use crate::utils::trad::{t, tf};
+
+/// What the visitor reads when an upload can't be written: the detail (a
+/// server path, an OS error) goes to the log only.
+pub(crate) fn upload_failed(detail: String) -> String {
+    tracing::warn!(error = %detail, "upload not written");
+    t("forms.upload_failed").into_owned()
+}
 use std::path::{Path, PathBuf};
 
 /// A staged upload and where `publish` moves it.
@@ -623,11 +630,14 @@ impl FormField for MediaField {
     }
 
     async fn finalize(&mut self) -> Result<(), String> {
-        self.upload.finalize(&mut self.base).await
+        self.upload
+            .finalize(&mut self.base)
+            .await
+            .map_err(upload_failed)
     }
 
     async fn publish_uploads(&mut self) -> Result<(), String> {
-        self.upload.publish().await
+        self.upload.publish().await.map_err(upload_failed)
     }
 
     async fn rollback_uploads(&mut self) {

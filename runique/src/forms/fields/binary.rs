@@ -161,7 +161,7 @@ impl FormField for BinaryField {
         }
         let bytes = tokio::fs::read(&val)
             .await
-            .map_err(|e| format!("read upload '{val}': {e}"))?;
+            .map_err(|e| super::media::upload_failed(format!("read upload '{val}': {e}")))?;
         if let Err(e) = tokio::fs::remove_file(&val).await {
             tracing::warn!(path = %val, error = %e, "binary field: staged upload removal failed");
         }
