@@ -485,3 +485,55 @@ async fn dev_and_production_differ_where_they_should() {
         assert_eq!(header(&preflight, "access-control-max-age"), "3600");
     }
 }
+
+/// A listed origin with credentials, the documented example, starts and answers
+/// its preflight; another origin gets no permission.
+#[tokio::test]
+#[serial]
+async fn cors_with_credentials_starts_and_answers_only_its_origin() {
+    let db = Database::connect("sqlite::memory:").await.unwrap();
+    let mut config = RuniqueConfig::from_env();
+    config.dev = true;
+    let app = RuniqueApp::builder(config)
+        .with_database(db)
+        .routes(Router::new().route("/", get(|| async { "ok" })))
+        .static_files(|s| s.enabled(false))
+        .middleware(|m| {
+            m.with_cors(|c| c.origin("https://app.example").allow_credentials(true))
+                .with_trusted_proxies(|t| t.none())
+        })
+        .build()
+        .await
+        .unwrap();
+    let preflight = |origin: &'static str| {
+        axum::http::Request::builder()
+            .method("OPTIONS")
+            .uri("/")
+            .header("origin", origin)
+            .header("access-control-request-method", "PUT")
+            .header("access-control-request-headers", "x-csrf-token")
+            .body(axum::body::Body::empty())
+            .unwrap()
+    };
+    use tower::ServiceExt;
+    let resp = app
+        .router
+        .clone()
+        .oneshot(preflight("https://app.example"))
+        .await
+        .unwrap();
+    let h = resp.headers();
+    assert_eq!(
+        h.get("access-control-allow-origin").unwrap(),
+        "https://app.example"
+    );
+    assert_eq!(h.get("access-control-allow-credentials").unwrap(), "true");
+    assert_eq!(h.get("access-control-allow-methods").unwrap(), "PUT");
+
+    let resp = app
+        .router
+        .oneshot(preflight("https://evil.example"))
+        .await
+        .unwrap();
+    assert!(resp.headers().get("access-control-allow-origin").is_none());
+}

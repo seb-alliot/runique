@@ -370,14 +370,10 @@ pub async fn send_reset_link(
                 .template(&engine.tera, &name, ctx)
                 .map_err(ResetLinkError::Render)?
         }
-        ResetMail::Builtin { subject } => email.subject(subject).html(tf(
-            "reset.email_body",
-            &[
-                account.username.clone(),
-                link.minutes().to_string(),
-                reset_url.clone(),
-                reset_url,
-            ],
+        ResetMail::Builtin { subject } => email.subject(subject).html(builtin_reset_body(
+            &account.username,
+            link.minutes(),
+            &reset_url,
         )),
     };
     email.send().await.map_err(ResetLinkError::Send)
@@ -455,7 +451,7 @@ pub async fn handle_forgot_password(
                 crate::utils::Email::new()
                     .to(email)
                     .subject(t("reset.blocked_subject").to_string())
-                    .html(tf("reset.blocked_body", &[user.username()]).to_string())
+                    .html(builtin_blocked_body(user.username()))
                     .send()
                     .await
                     .trace_or(
@@ -781,7 +777,23 @@ pub fn build_router(config: Arc<PasswordResetConfig>) -> Router {
             rate_limit_middleware,
         ));
 
-    forgot_route.merge(reset_route)
+    forgot_route
+        .merge(reset_route)
+        .layer(middleware::from_fn(no_store))
+}
+
+/// The reset pages carry a token (in the path, and the form's CSRF token):
+/// never kept by a cache between the browser and the site.
+async fn no_store(
+    request: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    let mut response = next.run(request).await;
+    response.headers_mut().insert(
+        axum::http::header::CACHE_CONTROL,
+        axum::http::HeaderValue::from_static("no-store"),
+    );
+    response
 }
 
 /// Staging stored in the builder before construction.
@@ -851,5 +863,67 @@ mod public_link_base_tests {
     #[test]
     fn no_configured_base_means_no_link() {
         assert_eq!(public_link_base(None), None);
+    }
+}
+
+/// A value going into the HTML of a built-in email: that HTML is assembled from
+/// a translation, not rendered by Tera, so nothing escapes it on the way. `{` is
+/// escaped too: `tf` fills the next placeholder at the first `{}` it meets.
+fn email_text(value: &str) -> String {
+    html_escape::encode_text(value).replace('{', "&#123;")
+}
+
+/// The built-in reset email: the account's name, then the link.
+fn builtin_reset_body(username: &str, minutes: impl std::fmt::Display, url: &str) -> String {
+    tf(
+        "reset.email_body",
+        &[
+            email_text(username),
+            minutes.to_string(),
+            html_escape::encode_double_quoted_attribute(url).replace('{', "&#123;"),
+            email_text(url),
+        ],
+    )
+}
+
+/// The built-in email of a blocked account asking for a reset.
+fn builtin_blocked_body(username: &str) -> String {
+    tf("reset.blocked_body", &[email_text(username)])
+}
+
+#[cfg(test)]
+mod builtin_email_tests {
+    use super::{builtin_blocked_body, builtin_reset_body};
+
+    const NAME: &str = r#"<a href="https://x.test">Votre compte est compromis</a>{}"#;
+
+    #[test]
+    fn a_name_carrying_html_is_shown_as_text_in_the_reset_email() {
+        let body = builtin_reset_body(NAME, 30, "https://site.test/reset/T");
+        assert!(!body.contains(r#"<a href="https://x.test""#), "{body}");
+        assert!(body.contains("&lt;a href="), "{body}");
+        assert!(
+            body.contains(r#"<a href="https://site.test/reset/T">"#),
+            "{body}"
+        );
+        assert!(body.contains("30"), "{body}");
+    }
+
+    #[test]
+    fn a_plain_name_and_the_link_come_out_unchanged() {
+        let body = builtin_reset_body("alice", 30, "https://site.test/reset/T");
+        assert!(body.contains("alice"), "{body}");
+        assert!(
+            body.contains(r#"href="https://site.test/reset/T""#),
+            "{body}"
+        );
+    }
+
+    #[test]
+    fn a_name_carrying_html_is_shown_as_text_in_the_blocked_email() {
+        let body = builtin_blocked_body(NAME);
+        assert!(!body.contains(r#"<a href="https://x.test""#), "{body}");
+        assert!(body.contains("&lt;a href="), "{body}");
+        assert!(builtin_blocked_body("alice").contains("alice"));
     }
 }

@@ -47,6 +47,22 @@ fn test_is_allowed_svg_always_blocked() {
 }
 
 #[test]
+fn what_a_browser_runs_as_a_page_is_refused_whatever_the_list() {
+    let any = AllowedExtensions::any();
+    for name in [
+        "x.html", "x.HTM", "x.xhtml", "x.js", "x.mjs", "x.xml", "x.svgz", "x.shtml",
+    ] {
+        assert!(!any.is_allowed(name), "{name}");
+    }
+    // Even a list that names one keeps it out.
+    let listed = AllowedExtensions::new(vec!["html", "pdf"]);
+    assert!(!listed.is_allowed("page.html"));
+    assert!(listed.is_allowed("doc.pdf"));
+    // A name that only contains the word is not the extension.
+    assert!(any.is_allowed("html-notes.txt"));
+}
+
+#[test]
 fn test_is_allowed_empty_list_allows_all() {
     let ext = AllowedExtensions::any();
     assert!(ext.is_allowed("file.jpg"));

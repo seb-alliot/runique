@@ -81,8 +81,41 @@ pub fn text_eq_ci(db: &ADb, col: &str, val: &str) -> Expr {
     .eq(Func::lower(Expr::val(val)))
 }
 
-/// Case-insensitive `LIKE` of `search!`'s `ilike` / `icontains` / `iexact`
-/// (`not_ilike` when `negate`) on every engine: sea-query renders `ILIKE` on
+/// `before`, then `term` with its `%` and `_` matched literally, then `after`:
+/// the pattern of `search!`'s `contains`, `startswith`, `endswith`, where the
+/// wildcards are the operator's, never the value's.
+pub fn like_pattern(before: &str, term: &str, after: &str) -> LikeExpr {
+    LikeExpr::new(format!("{before}{}{after}", escape_like(term))).escape(LIKE_ESCAPE)
+}
+
+/// `search!`'s `contains` / `startswith` / `endswith`: `col LIKE` the escaped
+/// `term` between the operator's own wildcards.
+pub fn like_term<C: sea_orm::ColumnTrait>(col: C, before: &str, term: &str, after: &str) -> Expr {
+    Expr::col(col.as_column_ref()).like(like_pattern(before, term, after))
+}
+
+/// `search!`'s `icontains`: [`like_term`], case-insensitive on every engine.
+pub fn ci_like_term<C: sea_orm::ColumnTrait>(
+    col: C,
+    before: &str,
+    term: &str,
+    after: &str,
+) -> Expr {
+    Expr::expr(Func::lower(Expr::col(col.as_column_ref()))).like(like_pattern(
+        before,
+        &term.to_lowercase(),
+        after,
+    ))
+}
+
+/// `search!`'s `iexact`: `LOWER(col) = LOWER(val)`, an equality, so `%` and `_`
+/// in the value are plain characters.
+pub fn eq_ci<C: sea_orm::ColumnTrait>(col: C, val: &str) -> Expr {
+    Expr::expr(Func::lower(Expr::col(col.as_column_ref()))).eq(Func::lower(Expr::val(val)))
+}
+
+/// Case-insensitive `LIKE` of `search!`'s `ilike` / `not_ilike`
+/// (`not_ilike` when `negate`), the pattern written by the developer, on every engine: sea-query renders `ILIKE` on
 /// Postgres only and panics on MySQL/MariaDB and SQLite. `LOWER(col) LIKE`
 /// with the pattern lowered here, like `search_cond!`.
 pub fn ci_like<C: sea_orm::ColumnTrait>(col: C, pattern: &str, negate: bool) -> Expr {
@@ -138,6 +171,72 @@ mod tests {
         let sql = sql(DbBackend::Sqlite, &[Column::OwnerId], "ABC");
         assert!(sql.contains(r#"LOWER(CAST("notes"."owner_id" AS"#), "{sql}");
         assert!(sql.contains("LIKE '%abc%' ESCAPE '!'"), "{sql}");
+    }
+
+    fn built(expr: sea_query::Expr) -> String {
+        Entity::find()
+            .filter(expr)
+            .build(DbBackend::Sqlite)
+            .to_string()
+    }
+
+    #[test]
+    fn search_operators_take_the_values_wildcards_literally() {
+        let contains = built(super::like_term(Column::OwnerId, "%", "a_c%", "%"));
+        assert!(
+            contains.contains("LIKE '%a!_c!%%' ESCAPE '!'"),
+            "{contains}"
+        );
+        let starts = built(super::like_term(Column::OwnerId, "", "ab", "%"));
+        assert!(starts.contains("LIKE 'ab%' ESCAPE '!'"), "{starts}");
+        let icontains = built(super::ci_like_term(Column::OwnerId, "%", "A%", "%"));
+        assert!(
+            icontains.contains("LOWER(\"notes\".\"owner_id\") LIKE '%a!%%' ESCAPE '!'"),
+            "{icontains}"
+        );
+    }
+
+    #[test]
+    fn the_search_macro_operators_go_through_the_escaped_helpers() {
+        let value = "a_c%";
+        for (sql, expected) in [
+            (
+                built(crate::search_apply_op!(Column::OwnerId, contains, value)),
+                "LIKE '%a!_c!%%' ESCAPE '!'",
+            ),
+            (
+                built(crate::search_apply_op!(Column::OwnerId, icontains, value)),
+                "LIKE '%a!_c!%%' ESCAPE '!'",
+            ),
+            (
+                built(crate::search_apply_op!(Column::OwnerId, startswith, value)),
+                "LIKE 'a!_c!%%' ESCAPE '!'",
+            ),
+            (
+                built(crate::search_apply_op!(Column::OwnerId, endswith, value)),
+                "LIKE '%a!_c!%' ESCAPE '!'",
+            ),
+            (
+                built(crate::search_apply_op!(Column::OwnerId, iexact, value)),
+                "= LOWER('a_c%')",
+            ),
+        ] {
+            assert!(sql.contains(expected), "{sql}");
+        }
+    }
+
+    #[test]
+    fn iexact_is_an_equality_never_a_pattern() {
+        let sql = built(super::eq_ci(Column::OwnerId, "a_min%"));
+        assert!(sql.contains("= LOWER('a_min%')"), "{sql}");
+        assert!(!sql.contains("LIKE"), "{sql}");
+    }
+
+    #[test]
+    fn a_developers_ilike_pattern_keeps_its_wildcards() {
+        let sql = built(super::ci_like(Column::OwnerId, "a_c%", false));
+        assert!(sql.contains("LIKE 'a_c%'"), "{sql}");
+        assert!(!sql.contains("ESCAPE"), "{sql}");
     }
 
     #[test]

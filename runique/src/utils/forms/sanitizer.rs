@@ -66,7 +66,10 @@ pub fn sanitize_strict(input: &str) -> String {
 }
 
 /// Removes `javascript:`, `vbscript:`, `data:` and `file:`, ASCII
-/// case-insensitively — the way browsers read a URL scheme.
+/// case-insensitively — the way browsers read a URL scheme — where a scheme can
+/// start: at the beginning, or after a character no scheme name holds. Inside
+/// a word (`profile:`, `metadata:`) it is text, and kept: a browser never
+/// reads `profile:` as `file:`.
 ///
 /// Matched on the input itself: offsets taken from a `to_lowercase()` copy
 /// don't line up with the original once a character changes byte length
@@ -79,13 +82,20 @@ fn strip_protocols(input: &str) -> String {
         let mut out = String::with_capacity(current.len());
         let mut rest = current.as_str();
         let mut removed = false;
+        // A scheme name is ASCII letters, digits, `+`, `-`, `.`: after one of
+        // those, the protocol is the end of a longer word.
+        let mut prev: Option<char> = None;
         while !rest.is_empty() {
+            let at_scheme_start =
+                prev.is_none_or(|c| !(c.is_ascii_alphanumeric() || matches!(c, '+' | '-' | '.')));
             // Protocols are ASCII: a match ends on a char boundary.
-            if let Some(proto) = PROTOCOLS.iter().find(|p| {
-                rest.as_bytes()
-                    .get(..p.len())
-                    .is_some_and(|head| head.eq_ignore_ascii_case(p.as_bytes()))
-            }) {
+            if at_scheme_start
+                && let Some(proto) = PROTOCOLS.iter().find(|p| {
+                    rest.as_bytes()
+                        .get(..p.len())
+                        .is_some_and(|head| head.eq_ignore_ascii_case(p.as_bytes()))
+                })
+            {
                 rest = &rest[proto.len()..];
                 removed = true;
                 continue;
@@ -93,6 +103,7 @@ fn strip_protocols(input: &str) -> String {
             let mut chars = rest.chars();
             if let Some(ch) = chars.next() {
                 out.push(ch);
+                prev = Some(ch);
             }
             rest = chars.as_str();
         }

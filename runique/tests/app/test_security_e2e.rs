@@ -322,9 +322,14 @@ async fn build(opts: Opts) -> Router {
             let mut a = a.path("/secret-admin").site(|s| {
                 s.register(
                     runique::admin::builder::admin_builder::ModelAdmin::<probe::Entity>::new()
-                        .list(|l| l.display([probe::Column::Title]).sortable([probe::Column::Title])),
+                        .list(|l| {
+                            l.display([probe::Column::Title])
+                                .sortable([probe::Column::Title])
+                        }),
                 )
-                .register(runique::admin::builder::admin_builder::ModelAdmin::<bare::Entity>::new())
+                .register(runique::admin::builder::admin_builder::ModelAdmin::<
+                    bare::Entity,
+                >::new())
             });
             if let Some(limiter) = opts.rate_limiter {
                 a = a.with_rate_limiter(limiter);
@@ -661,6 +666,31 @@ async fn a_closed_session_opens_nothing_any_more() {
     assert_eq!(location(&resp), "/secret-admin/login");
 }
 
+/// The list keeps no page snapshot in the browser's storage (htmx history).
+#[tokio::test]
+#[serial]
+async fn an_admin_list_keeps_no_copy_in_the_browser() {
+    let app = build(Opts::seeded()).await;
+    let (mut admin, _token) = admin_client(&app, ADMIN).await;
+    let page = admin.text("/secret-admin/probe_notes/list").await;
+    assert!(page.contains(r#""historyCacheSize":0"#), "{page}");
+}
+
+#[tokio::test]
+#[serial]
+async fn a_logout_without_the_token_signs_nobody_out() {
+    let app = build(Opts::seeded()).await;
+    let (mut admin, _token) = admin_client(&app, ADMIN).await;
+    let out = admin.post_form("/secret-admin/logout", &[], &[]).await;
+    assert_eq!(out.status(), StatusCode::SEE_OTHER);
+    assert_ne!(location(&out), "/secret-admin/login?from=logout");
+    assert_eq!(
+        admin.get("/secret-admin/").await.status(),
+        StatusCode::OK,
+        "still signed in"
+    );
+}
+
 #[tokio::test]
 #[serial]
 async fn the_session_cookie_is_http_only_strict_and_secure_in_production() {
@@ -726,7 +756,10 @@ async fn a_post_without_a_token_or_with_another_sessions_token_writes_nothing() 
     let garbage = admin
         .post_form(
             "/secret-admin/probe_notes/1/delete",
-            &[("csrf_token", "not-a-token"), ("runique_form", "admin_delete")],
+            &[
+                ("csrf_token", "not-a-token"),
+                ("runique_form", "admin_delete"),
+            ],
             &[],
         )
         .await;
@@ -809,7 +842,11 @@ async fn a_non_form_post_needs_the_sessions_token_in_its_header() {
             &[("x-csrf-token", &other_token)],
         )
         .await;
-    assert_eq!(resp.status(), StatusCode::FORBIDDEN, "another session's token");
+    assert_eq!(
+        resp.status(),
+        StatusCode::FORBIDDEN,
+        "another session's token"
+    );
 
     let resp = client
         .post_raw(
@@ -958,10 +995,17 @@ async fn hsts_is_sent_only_when_https_is_enforced() {
     assert!(hsts.starts_with("max-age="), "{hsts}");
 
     let resp = Client::new(&https)
-        .get_with("/whoami", &[("x-forwarded-proto", "http"), ("host", "site.test")])
+        .get_with(
+            "/whoami",
+            &[("x-forwarded-proto", "http"), ("host", "site.test")],
+        )
         .await;
     assert!(resp.status().is_redirection(), "forwarded over http");
-    assert!(location(&resp).starts_with("https://site.test"), "{}", location(&resp));
+    assert!(
+        location(&resp).starts_with("https://site.test"),
+        "{}",
+        location(&resp)
+    );
 }
 
 #[tokio::test]
@@ -1008,7 +1052,10 @@ async fn the_rate_limiter_answers_429_past_its_ceiling() {
     let resp = client.post_form("/secret-admin/login", &fields, &[]).await;
     assert_eq!(resp.status(), StatusCode::TOO_MANY_REQUESTS);
     let retry = header_of(&resp, "retry-after");
-    assert!(retry.parse::<u64>().is_ok_and(|s| s > 0 && s <= 60), "{retry}");
+    assert!(
+        retry.parse::<u64>().is_ok_and(|s| s > 0 && s <= 60),
+        "{retry}"
+    );
 
     assert_eq!(
         client.get("/secret-admin/login").await.status(),
@@ -1049,7 +1096,11 @@ async fn the_login_guard_locks_the_account_after_n_failures() {
         assert_eq!(resp.status(), StatusCode::OK, "login page shown again");
     }
     let resp = login_attempt(&mut client, PASSWORD).await;
-    assert_eq!(resp.status(), StatusCode::SEE_OTHER, "two failures: still open");
+    assert_eq!(
+        resp.status(),
+        StatusCode::SEE_OTHER,
+        "two failures: still open"
+    );
     assert_eq!(location(&resp), "/secret-admin/");
     assert_eq!(client.text("/whoami").await, "alice");
 
@@ -1145,7 +1196,10 @@ async fn dot_dot_segments_never_leave_the_static_or_media_folders() {
         assert!(!text.contains("pub mod"), "{uri}");
     }
     assert_eq!(client.get("/static/app.css").await.status(), StatusCode::OK);
-    assert_eq!(client.get("/media/photo.txt").await.status(), StatusCode::OK);
+    assert_eq!(
+        client.get("/media/photo.txt").await.status(),
+        StatusCode::OK
+    );
     let _ = std::fs::remove_dir_all(root);
 }
 
@@ -1179,12 +1233,21 @@ async fn an_html_or_svg_file_disguised_as_an_image_is_refused() {
     let app = build(Opts::seeded()).await;
     let mut client = Client::new(&app);
     let png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\x0dIHDR".to_vec();
-    assert_eq!(upload_named(&mut client, "photo.png", &png).await, "accepted");
+    assert_eq!(
+        upload_named(&mut client, "photo.png", &png).await,
+        "accepted"
+    );
 
     for (name, content) in [
         ("page.png", &b"<html><script>alert(1)</script></html>"[..]),
-        ("logo.png", &b"<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script></svg>"[..]),
-        ("logo.svg", &b"<svg xmlns=\"http://www.w3.org/2000/svg\"/>"[..]),
+        (
+            "logo.png",
+            &b"<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script></svg>"[..],
+        ),
+        (
+            "logo.svg",
+            &b"<svg xmlns=\"http://www.w3.org/2000/svg\"/>"[..],
+        ),
         ("page.html", &b"<html></html>"[..]),
         ("tiny.png", &b"\x89PN"[..]),
         ("real-png.svg", &png[..]),

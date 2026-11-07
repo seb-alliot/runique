@@ -328,7 +328,7 @@ Avec une clé, `save` met à jour cette ligne ; `delete` exige une clé. Une cl�
 
 ### Ce qui est écrit
 
-- **Hors admin** : SeaORM écrit (`insert` en création, `ActiveModel::save()` en mise à jour) ; le comportement du modèle (`ActiveModelBehavior::before_save` / `after_save`, `auto_now`) s'exécute. Tous les champs déclarés par le formulaire sont écrits, colonnes secrètes comprises : un champ mot de passe ne l'est que sous la forme de son hash (jamais le texte saisi, jamais un champ `.no_hash()`), et laissé vide en mise à jour, il garde l'ancienne valeur. Les champs verrouillés (`readonly`, `disabled`) ne sont jamais écrits. Vérifier que l'utilisateur a le droit de toucher la ligne est le rôle du handler, comme pour `search!`.
+- **Hors admin** : SeaORM écrit (`insert` en création, `ActiveModel::save()` en mise à jour) ; le comportement du modèle (`ActiveModelBehavior::before_save` / `after_save`, `auto_now`) s'exécute. Tous les champs déclarés par le formulaire sont écrits, colonnes secrètes comprises : un champ mot de passe ne l'est que sous la forme de son hash (jamais le texte saisi, jamais un champ `.no_hash()`), et laissé vide en mise à jour, il garde l'ancienne valeur. Les champs verrouillés (`readonly`, `disabled`) ne sont jamais écrits. Un champ verrouillé n'est pas non plus rempli depuis la requête : `cleaned()` renvoie la valeur posée par le code, jamais celle qu'un visiteur aurait renvoyée. Vérifier que l'utilisateur a le droit de toucher la ligne est le rôle du handler, comme pour `search!`.
 - **Dans l'admin** (panneau et routes déclarées `admin`) : la porte écrit, au nom du compte vérifié — droits, propriétaire, historique, dans une transaction. Les colonnes secrètes n'y sont jamais écrites.
 
 ### Où placer la logique métier

@@ -92,6 +92,16 @@ Vérifié à nouveau sur un `Cargo.lock` local le 2026-11-07 ; ce fichier n'est 
 
 | Version | Problème | Gravité |
 | ------- | -------- | ------- |
+| 4.0 | Mot de passe saisi au format d'un hash stocké sans hachage, son coût relu à chaque connexion (saturation du serveur) | Élevée |
+| 4.0 | Réinitialisation d'un compte de rang supérieur dans l'admin (règle de rang non rejouée) | Moyenne |
+| 4.0 | Nom du compte non échappé dans les e-mails de réinitialisation intégrés | Moyenne |
+| 4.0 | Fichiers actifs (`.html`, `.js`, `.xml`…) acceptés par un champ fichier et servis depuis l'origine du site | Moyenne |
+| 4.0 | `X-Forwarded-For` lu sur sa première ligne seulement (limites de débit contournées derrière certains proxys) | Moyenne |
+| 4.0 | Opérateurs de `search!` laissant `%` et `_` de la valeur agir comme jokers | Faible |
+| 4.0 | `LoginGuard` comptant à part les variantes de casse d'un même compte (MySQL/MariaDB) | Faible |
+| 4.0 | Fichiers secrets (`.env`, clé TLS) lisibles par les autres utilisateurs de la machine | Faible |
+| 4.0 | Chemin du serveur affiché au visiteur quand un upload échoue | Faible |
+| 4.0 | Déconnexion de l'admin sans jeton CSRF ; piège anti-bot en POST seul ; listes de l'admin gardées dans le navigateur ; pages de réinitialisation cachables | Durcissement |
 | 4.0 | `extend!{}` de la table des comptes mettant `password` et `is_active` dans son formulaire d'admin | Élevée |
 | 4.0 | Jeton CSRF envoyé par `csrf.js` avec les requêtes `fetch` vers d'autres origines | Moyenne |
 | 4.0 | Erreurs globales de formulaire affichées sans échappement (XSS) | Moyenne |

@@ -279,3 +279,28 @@ fn test_top_level_hash_and_verify() {
     assert!(runique::utils::password::verify("testpwd", &h));
     assert!(!runique::utils::password::verify("wrongpwd", &h));
 }
+
+#[tokio::test]
+async fn a_typed_value_that_looks_like_a_hash_is_refused_never_stored() {
+    password_init(PasswordConfig::auto());
+    // Paramètres choisis par le visiteur : stockée telle quelle, la valeur
+    // imposerait 4 Gio de mémoire à chaque vérification.
+    let typed = "$argon2id$v=19$m=4194304,t=1,p=1$c2FsdHNhbHRzYWx0c2FsdA$aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGFzaGhhc2g";
+    let mut field = TextField::password("password");
+    field.set_submitted_value(typed);
+    assert!(field.finalize().await.is_err());
+    assert_eq!(field.to_value(), Ok(None));
+}
+
+#[tokio::test]
+async fn a_hash_set_by_code_is_kept_and_written() {
+    password_init(PasswordConfig::auto());
+    let hash = PasswordService::new(PasswordConfig::auto())
+        .hash("monpassword")
+        .unwrap();
+    let mut field = TextField::password("password");
+    field.set_value(&hash);
+    field.finalize().await.unwrap();
+    assert_eq!(field.value(), hash);
+    assert!(field.to_value().unwrap().is_some());
+}

@@ -10,6 +10,21 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ### Sécurité
 
+* **Champ verrouillé lu depuis la requête** : un champ `readonly` est renvoyé par le navigateur ; jamais écrit, sa valeur forgée était pourtant rendue par `cleaned()`. Un champ verrouillé n'est plus rempli depuis la requête et garde la valeur posée par le code.
+* **Booléens d'`extend!{}`** : `admin_from_form` / `admin_partial_update` lisaient toute valeur inconnue comme `false` ; ils refusent désormais une valeur forgée, comme pour `model!{}`.
+* **Mot de passe saisi au format d'un hash** : une valeur saisie commençant par `$argon2`, `$2` ou `$scrypt$` était enregistrée sans être hachée, avec les paramètres de coût choisis par le visiteur, relus à chaque connexion : une inscription puis une seule tentative de connexion pouvaient saturer ou arrêter le serveur. Une valeur saisie est désormais toujours traitée comme un mot de passe (refusée si elle a la forme d'un hash), et la vérification refuse avant de calculer un hash stocké dont le coût dépasse une borne (argon2 64 Mio / 8 passes / 4 fils, scrypt `ln` 17, bcrypt 14).
+* **Réinitialisation d'un compte de rang supérieur dans l'admin** : un admin ayant le droit `update` sur les comptes pouvait déclencher la réinitialisation d'un dirigeant ou du superutilisateur (lien écrasé, e-mails non sollicités). Le compte est maintenant lu sous la règle de rang de la porte : un rang supérieur est introuvable, aucun jeton, aucun e-mail, aucune trace.
+* **E-mails de réinitialisation intégrés** : le nom du compte était inséré sans échappement dans le HTML de l'e-mail (lien ou texte d'un tiers dans un vrai e-mail du site). Il est échappé, comme l'adresse du lien.
+* **`search!` : jokers de la valeur** : `contains`, `icontains`, `startswith`, `endswith` laissaient `%` et `_` agir comme jokers, et `iexact` était un `LIKE`. Ils sont désormais pris littéralement, et `iexact` est une égalité ; `like` / `ilike` gardent le motif écrit par le développeur. `search_cond!` suit la même règle.
+* **Fichiers actifs refusés** : `.html`, `.htm`, `.xhtml`, `.xht`, `.shtml`, `.xml`, `.js`, `.mjs`, `.svgz` rejoignent `.svg` : jamais acceptés par un champ fichier, quelle que soit sa liste. La CSP des médias ajoute `form-action 'none'`.
+* **`X-Forwarded-For` sur plusieurs lignes** : seule la première ligne était lue ; derrière un proxy qui ajoute la sienne, l'adresse forgée par le client passait pour la sienne (limites de débit contournées). Toutes les lignes sont lues, dans l'ordre.
+* **`LoginGuard`** : le compteur suit le nom sans casse ni espaces autour, comme une base qui compare sans casse (MySQL/MariaDB) : `admin`, `Admin` et `admin ` partagent un seul verrou.
+* **Déconnexion de l'admin** : refusée sans jeton CSRF valide (un autre site ne déconnecte plus l'utilisateur d'un navigateur ancien).
+* **Piège anti-bot** : vérifié sur toute méthode qui écrit (PUT, PATCH, DELETE), plus seulement POST.
+* **Pas de copie hors session** : les listes de l'admin ne gardent plus d'instantané dans le stockage du navigateur (cache d'historique htmx), et les pages de réinitialisation sont servies en `Cache-Control: no-store`.
+* **Fichiers secrets en `0600`** : le `.env` de `runique new` et la clé privée TLS d'ACME ne sont plus lisibles par les autres utilisateurs de la machine.
+* **Upload en échec** : le visiteur lit une phrase traduite, plus le chemin du serveur ni l'erreur système (gardés dans le journal).
+
 * **« Mot de passe oublié » répondait plus vite pour une adresse inconnue** : la page écrivait le jeton de reset, et l'attendait, seulement quand l'adresse correspondait à un compte ; son temps de réponse révélait donc si un compte existait. La recherche du compte, le jeton et l'email partent désormais tous en tâche de fond : la page répond pareil, et dans le même temps, pour toutes les adresses.
 * **Admin — refus sur le compte d'un superutilisateur** : le message affiché (« Seul un superutilisateur peut modifier le compte d'un superutilisateur ») confirmait à un membre du staff que le compte visé était un superutilisateur. Il devient générique (« Action non autorisée », 9 langues), sans changer la règle.
 * **Jeton CSRF envoyé à d'autres sites par `csrf.js`** : le script remplace `fetch` pour ajouter `X-CSRF-Token` aux requêtes `POST`/`PUT`/`PATCH`/`DELETE`, sans regarder leur destination. Un `fetch` en `POST` vers un autre domaine, lancé depuis une page qui charge le script (script tiers, code du projet), emportait le jeton de session vers ce domaine, et la réponse d'un autre site pouvait remplacer le jeton de la page. Le jeton n'est désormais ajouté, et sa rotation acceptée, que pour une requête vers l'origine de la page. **Redémarrez l'application** après la mise à jour : le fichier statique change.
@@ -76,6 +91,12 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 * **`csrf.js` chargé tout seul** : `request.render()` ajoute une seule balise par page dès qu'elle contient un champ `csrf_token`, quel que soit le nombre de formulaires, et aucune si la page charge déjà le script.
 
 #### Corrigé
+
+* **Filtre de protocoles des champs texte** : `javascript:`, `data:`, `file:`… étaient retirés n'importe où, même au milieu d'un mot (« profile: » devenait « pro », « metadata: » devenait « meta »). Ils ne le sont plus qu'en début de texte ou après un caractère qui ne peut pas appartenir à un nom de protocole.
+* **`with_cors` avec identifiants** : une origine listée avec `allow_credentials(true)`, l'exemple de la doc, faisait paniquer le démarrage (tower-http refuse le joker `*` avec les identifiants). La méthode et les en-têtes de la requête préliminaire sont maintenant renvoyés tels quels, pour les seules origines listées.
+* **Texte riche dans un `<textarea>`** : la valeur perdait un niveau d'échappement à chaque réédition (`&lt;b&gt;` devenait du gras). Elle est échappée une fois, exacte au retour.
+* **Pages de réinitialisation de Runique** : leurs styles étaient en ligne, refusés par la CSP par défaut ; ils viennent d'un fichier (`css/auth.css`). Les messages de la page « nouveau mot de passe » ne s'affichent plus deux fois.
+* **Liens de la liste admin** : un nom de filtre inventé dans l'URL est réencodé, il n'ajoute plus de paramètre aux liens de la page.
 
 * **Comptes créés dans l'admin sans date** : `created_at` et `updated_at` n'étaient écrits que par la CLI ou le formulaire d'un projet. L'entité des comptes et un `extend!` de `eihwaz_users` les remplissent maintenant à l'enregistrement, en gardant une date écrite par le code.
 * **Champs d'une fiche de l'admin dans un ordre aléatoire** : la page suivait la map du template, qui ne garde pas l'ordre. Elle montre maintenant les colonnes de la liste dans leur ordre, puis celles du formulaire, avec la nouvelle clé `detail_columns`, et les dates et heures en dernier. Une liste automatique les met aussi à la fin ; un `display` déclaré garde son ordre.

@@ -415,3 +415,38 @@ mod guarantees {
         assert_eq!(service.hash("pw").unwrap(), "plain:pw");
     }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Coût lu dans le hash stocké : borné avant la vérification
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn an_argon2_hash_at_runiques_cost_verifies_one_asking_for_more_is_refused() {
+    let bh = BaseHash::new();
+    let hash = bh.hash("secret", &Manual::Argon2).unwrap();
+    assert!(bh.verify("secret", &hash));
+    // 4 Gio de mémoire : vérifiée, elle ferait tomber le processus.
+    let crafted = hash.replacen("m=19456", "m=4194304", 1);
+    assert_ne!(crafted, hash);
+    assert!(!bh.verify("secret", &crafted));
+}
+
+#[test]
+fn a_scrypt_hash_at_runiques_cost_verifies_one_asking_for_more_is_refused() {
+    let bh = BaseHash::new();
+    let hash = bh.hash("secret", &Manual::Scrypt).unwrap();
+    assert!(bh.verify("secret", &hash));
+    let crafted = hash.replacen("ln=17", "ln=30", 1);
+    assert_ne!(crafted, hash);
+    assert!(!bh.verify("secret", &crafted));
+}
+
+#[test]
+fn a_bcrypt_hash_at_runiques_cost_verifies_one_asking_for_more_is_refused() {
+    let bh = BaseHash::new();
+    let hash = bh.hash("secret", &Manual::Bcrypt).unwrap();
+    assert!(bh.verify("secret", &hash));
+    // Coût 31 : 2^31 tours, des heures pour une seule vérification.
+    let crafted = format!("$2b$31${}", &hash[7..]);
+    assert!(!bh.verify("secret", &crafted));
+}

@@ -283,7 +283,7 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
     let secret_key: String = generate_secret_key();
     let env_file =
         include_str!("../composant-bin/config/secret").replace("your_secret_key_here", &secret_key);
-    fs::write(project_dir.join(".env"), env_file)?;
+    crate::utils::private_file::write(&project_dir.join(".env"), env_file.as_bytes())?;
 
     Ok(())
 }
@@ -386,6 +386,29 @@ mod generated_files_tests {
             "the migration crate depends on runique"
         );
         assert!(migration.contains(&format!(r#"version = "{SEA_ORM_MIGRATION_REQ}""#)));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn the_generated_env_is_readable_by_its_owner_only() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = std::env::temp_dir().join(format!("rq_new_{}", uuid::Uuid::new_v4()));
+        create_project_dirs(&dir).unwrap();
+        write_project_files(&dir, "shop", "9.8.7").unwrap();
+        let mode = |file: &str| {
+            std::fs::metadata(dir.join(file))
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777
+        };
+        assert_eq!(mode(".env"), 0o600, "it holds SECRET_KEY");
+        assert_ne!(
+            mode("Cargo.toml"),
+            0o600,
+            "an ordinary file is left as it was"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 

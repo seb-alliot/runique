@@ -400,7 +400,7 @@ model! {
 | `audio`   | `mp3 ogg oga wav m4a flac aac`     | `MediaField::audio` — content checked     |
 | `video`   | `mp4 webm mov ogv`                 | `MediaField::video` — content checked     |
 | `document`| `pdf doc docx txt odt`             | `FileField::document`                     |
-| `file`    | no filter (except `.svg`)          | `FileField::any`                          |
+| `file`    | no filter (except active extensions: `.svg`, `.html`, `.js`…) | `FileField::any`                          |
 
 `upload_to:` is required for these five types. The path is relative to `MEDIA_ROOT`. See [Fields](/docs/en/formulaire/fields) for the content check.
 

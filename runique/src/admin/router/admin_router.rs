@@ -603,6 +603,11 @@ async fn admin_logout(
     Extension(admin): Extension<Arc<AdminState>>,
     req: Request,
 ) -> AppResult<Response> {
+    // A form sent from another site without the token (an older browser sends
+    // no `Sec-Fetch-Site`) must not sign the user out.
+    if !req.prisme.csrf_valid {
+        return Ok(Redirect::to(&admin.paths.dashboard).into_response());
+    }
     let session = &req.session;
     let db_store = req
         .engine

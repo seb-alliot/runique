@@ -8,10 +8,10 @@ pub mod test_prune_orphan_rights;
 pub mod test_reset_link_base;
 #[cfg(feature = "admin")]
 pub mod test_robots_txt;
-#[cfg(feature = "admin")]
-pub mod test_security_e2e;
 pub mod test_routes_ext;
 pub mod test_runique_app;
 pub mod test_security_builders;
+#[cfg(feature = "admin")]
+pub mod test_security_e2e;
 pub mod test_staging_builders;
 pub mod test_static_serving;

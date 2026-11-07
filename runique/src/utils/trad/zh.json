@@ -91,7 +91,8 @@
     "db_check": "该值不被接受。",
     "delete_linked": "无法删除：仍有其他记录在使用它。",
     "text_field_too_large": "文本字段过大（最大1MB）",
-    "upload_too_large": "文件上传过大（最大{}MB）"
+    "upload_too_large": "文件上传过大（最大{}MB）",
+    "upload_failed": "无法保存文件，请重试。"
   },
   "csrf": {
     "missing": "缺少 CSRF 令牌",

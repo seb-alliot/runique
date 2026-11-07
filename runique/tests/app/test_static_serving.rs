@@ -129,7 +129,7 @@ async fn media_responses_forbid_scripts() {
     let media = fetch(app.unwrap(), "/media/photo.txt").await;
     assert_eq!(
         header(&media, "content-security-policy"),
-        "script-src 'none'; object-src 'none'; base-uri 'none'"
+        "script-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
     );
     let _ = std::fs::remove_dir_all(root);
 }

@@ -211,7 +211,8 @@ impl RuniqueApp {
                     // Persist to disk for future restarts
                     tokio::fs::create_dir_all(certs_dir).await?;
                     tokio::fs::write(&cert_path, &cert).await?;
-                    tokio::fs::write(&key_path, &key).await?;
+                    // A few bytes once at startup: written in place, owner-only.
+                    crate::utils::private_file::write(key_path, &key)?;
 
                     // Store renewal date: Let's Encrypt certs last 90 days, renew after 60
                     let renew_after = chrono::Utc::now() + chrono::Duration::days(60);

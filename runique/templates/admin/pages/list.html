@@ -49,7 +49,9 @@
 
 {% block extra_css %}
 {{ super() }}
-<meta name="htmx-config" content='{"allowEval":false}'>
+{# No page snapshot kept in the browser's storage: an admin list (accounts,
+   e-mails) must not outlive the session on the machine. #}
+<meta name="htmx-config" content='{"allowEval":false,"historyCacheSize":0,"refreshOnHistoryMiss":true}'>
 {% endblock %}
 
 {% block extra_js %}

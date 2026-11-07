@@ -22,6 +22,10 @@ pub struct TextField {
     pub config: TextConfig,
     pub format: SpecialFormat,
     pub hash_password: bool, // true by default
+    /// The value came from the request: a password is then hashed whatever it
+    /// looks like. Only a value set by code may already be a hash.
+    #[serde(skip)]
+    submitted: bool,
 }
 
 /// Validation format applied to a [`TextField`].
@@ -54,6 +58,7 @@ impl TextField {
             config: TextConfig::default(),
             format,
             hash_password: true,
+            submitted: false,
         }
     }
     /// Disables automatic password hashing (helper)
@@ -174,6 +179,7 @@ impl FormField for TextField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
         if self.base.is_password() {
             let hashed = self.hash_password
+                && !self.submitted
                 && PasswordService::new(crate::utils::password::password_get())
                     .is_already_hashed(&self.base.value);
             if !hashed {
@@ -205,6 +211,16 @@ impl FormField for TextField {
             _ => crate::utils::sanitizer::sanitize_strict(value),
         };
         self.base.value = cleaned;
+        self.submitted = false;
+    }
+
+    fn set_submitted_value(&mut self, value: &str) {
+        if crate::forms::base::is_staged_path(value) {
+            tracing::warn!(field = %self.base.name, "a file was sent for a field that takes none, ignored");
+            return;
+        }
+        self.set_value(value);
+        self.submitted = true;
     }
     async fn validate(&mut self) -> bool {
         // Initial trim
@@ -296,10 +312,13 @@ impl FormField for TextField {
             let config = crate::utils::password::password_get();
             if let PasswordConfig::Auto(_) = config {
                 let service = PasswordService::new(config);
-                if !service.is_already_hashed(&self.base.value) {
+                // A typed value is hashed even when it looks like a hash: stored
+                // as is, it would carry cost parameters of the visitor's choosing.
+                if self.submitted || !service.is_already_hashed(&self.base.value) {
                     self.base.value = service
                         .hash(&self.base.value)
                         .map_err(|e| tf("forms.hash_error", &[&e.to_string()]).to_string())?;
+                    self.submitted = false;
                 }
             }
         }

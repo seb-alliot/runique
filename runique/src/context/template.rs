@@ -492,7 +492,7 @@ impl Request {
         let forms = form.forms_mut();
 
         if let Some(ref hp_name) = self.honeypot_field_name
-            && self.method == Method::POST
+            && csrf_required(&self.method)
             && self.prisme.data.get(hp_name).is_some_and(|v| !v.is_empty())
         {
             forms.force_invalid = true;

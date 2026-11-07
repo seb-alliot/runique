@@ -148,7 +148,7 @@ let avec_bio = search!(users::Entity => Bio not_null).all(&*db).await?;
 
 ### contains / icontains / startswith / endswith / iexact
 
-Ces opérateurs gèrent les `%` automatiquement.
+Ces opérateurs placent eux-mêmes leurs jokers : la valeur est prise **littéralement**, un `%` ou un `_` qu'elle contient (une saisie du visiteur, par exemple) ne joue pas le rôle de joker. `iexact` est une égalité sans casse. Pour un motif avec jokers, écrivez-le avec `like` ou `ilike`.
 
 ```rust
 let rust  = search!(posts::Entity => Title contains "rust").all(&*db).await?;

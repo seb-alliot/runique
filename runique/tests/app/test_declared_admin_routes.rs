@@ -653,6 +653,26 @@ async fn probe_history(req: Request) -> String {
         .join("\n")
 }
 
+/// The admin gets the update right on the accounts' table: the rank rule,
+/// not a missing right, must then be what refuses a reset above him.
+async fn probe_grant_users_update(req: Request) -> &'static str {
+    use runique::sea_orm::{ConnectionTrait, Statement};
+    let db = &req.engine.db;
+    db.execute_raw(Statement::from_string(
+        db.get_database_backend(),
+        format!(
+            "INSERT INTO eihwaz_groupes_droits \
+             (groupe_id, user_id, resource_key, colonne, can_create, can_read, can_update, can_delete) VALUES \
+             (NULL, {admin}, 'users', '', 0, 1, 1, 0), \
+             (NULL, {admin}, 'users', 'username', 0, 1, 1, 0)",
+            admin = pk_sql_literal(ADMIN)
+        ),
+    ))
+    .await
+    .unwrap();
+    "ok"
+}
+
 /// The accounts holding a reset token, by key, comma-separated and sorted.
 async fn probe_reset_token_owners(req: Request) -> String {
     use runique::sea_orm::{ConnectionTrait, Statement};
@@ -802,6 +822,7 @@ fn probe_routes() -> Routes {
         "/probe/history" => get(probe_history), name = "declared_test_probe_history",
         "/probe/reset-tokens" => get(probe_reset_tokens), name = "declared_test_probe_reset_tokens",
         "/probe/reset-token-owners" => get(probe_reset_token_owners), name = "declared_test_probe_reset_token_owners",
+        "/probe/grant-users-update" => get(probe_grant_users_update), name = "declared_test_probe_grant_users_update",
         "/probe/notes/add/{n}" => get(probe_add_notes), name = "declared_test_probe_add_notes",
         "/probe/block/{n}" => get(probe_block), name = "declared_test_probe_block",
         "/probe/groups" => get(probe_groups), name = "declared_test_probe_groups",
@@ -1966,6 +1987,53 @@ async fn a_reset_follows_the_rank_rule_and_the_accounts_table() {
         Some("/secret-admin/"),
         "no password on a note"
     );
+}
+
+/// The rank rule holds even with the update right on the accounts: an admin
+/// sends no link to a superuser, makes no token for him and traces nothing;
+/// a lambda account below him still gets one.
+#[tokio::test]
+#[serial]
+async fn a_reset_above_the_admins_rank_is_refused_even_with_the_right() {
+    console_mailer();
+    let base = spawn_with("", probe_routes()).await;
+    let admin = signed_in(&base, ADMIN).await;
+    assert_eq!(
+        text(&admin, format!("{base}/probe/grant-users-update")).await,
+        "ok"
+    );
+    let owners = format!("{base}/probe/reset-token-owners");
+
+    let resp = press_reset(&admin, &base, SUPERUSER, true).await;
+    assert_eq!(
+        location(&resp),
+        Some("/secret-admin/"),
+        "refused by the rank"
+    );
+    assert_eq!(text(&admin, owners.clone()).await, "", "no token made");
+
+    let resp = press_reset(&admin, &base, MEMBER, true).await;
+    let detail = format!("/secret-admin/users/{}/detail", pk(MEMBER));
+    assert_eq!(location(&resp), Some(detail.as_str()));
+    assert_eq!(text(&admin, owners).await, pk(MEMBER).to_string());
+}
+
+/// A filter name made up in the URL is sent back encoded: it never adds a
+/// parameter of its own to the page's links.
+#[tokio::test]
+#[serial]
+async fn a_made_up_filter_name_stays_one_parameter_in_the_links() {
+    let base = spawn_with("", probe_routes()).await;
+    let client = signed_in(&base, SUPERUSER).await;
+    let page = text(
+        &client,
+        format!("{base}/secret-admin/probe_notes/list?filter_x%26sort_by%3Dpwned=1"),
+    )
+    .await;
+    // In a link the name stays encoded; in a hidden input it is an escaped
+    // attribute, sent back by the browser as one field name.
+    assert!(!page.contains("sort_by=pwned=1"), "{page}");
+    assert!(page.contains("filter_x%26sort_by%3Dpwned=1"), "{page}");
 }
 
 /// Without the CSRF token no link is sent, and nothing is traced.

@@ -91,7 +91,8 @@
     "db_check": "Este valor no se acepta.",
     "delete_linked": "No se puede eliminar: otros registros aún lo utilizan.",
     "text_field_too_large": "Campo de texto demasiado grande (max 1 MB)",
-    "upload_too_large": "Archivo demasiado grande (max {}MB)"
+    "upload_too_large": "Archivo demasiado grande (max {}MB)",
+    "upload_failed": "No se pudo guardar el archivo. Inténtelo de nuevo."
   },
   "csrf": {
     "missing": "Token CSRF faltante",
