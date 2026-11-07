@@ -1,0 +1,53 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href="{% static "css/doc.css" %}">
+    <link rel="stylesheet" href="{% static "css/comparatif.css" %}">
+{% endblock %}
+
+{% block content %}
+<div class="compare-page">
+    <h1>{{ title }}</h1>
+
+    <div class="compare-layout changelog-layout">
+        <form class="changelog-picker" method="get" action="{% link "changelog" %}">
+            <label for="changelog-version">Version</label>
+            <select id="changelog-version" name="version">
+                {% for v in versions %}
+                <option value="{{ v.version }}"{% if v.version == current.version %} selected{% endif %}>{{ v.heading }}</option>
+                {% endfor %}
+            </select>
+            <noscript><button type="submit" class="btn btn-secondary">{% if ui_lang == "fr" %}Afficher{% else %}Show{% endif %}</button></noscript>
+        </form>
+
+        <div class="compare-main">
+            <section class="compare-section">
+                <h2>{{ current.heading }}</h2>
+                <div class="doc-block-content">
+                    {{ current.content | markdown }}
+                </div>
+            </section>
+
+            <div class="pagination-nav">
+                {% if newer %}
+                <a href="{% link "changelog" %}?version={{ newer }}" class="btn btn-outline-secondary">{% if ui_lang == "fr" %}← Plus récent{% else %}← Newer{% endif %}</a>
+                {% else %}
+                <span class="btn btn-outline-secondary disabled">{% if ui_lang == "fr" %}← Plus récent{% else %}← Newer{% endif %}</span>
+                {% endif %}
+                {% if older %}
+                <a href="{% link "changelog" %}?version={{ older }}" class="btn btn-outline-secondary">{% if ui_lang == "fr" %}Plus ancien →{% else %}Older →{% endif %}</a>
+                {% else %}
+                <span class="btn btn-outline-secondary disabled">{% if ui_lang == "fr" %}Plus ancien →{% else %}Older →{% endif %}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+<a class="compare-top" href="#top" aria-label="{% if ui_lang == "fr" %}Remonter en haut de la page{% else %}Back to top{% endif %}"></a>
+{% endblock %}
+
+{% block scripts %}
+<script {% csp %} src="{% static "js/comparatif.js" %}"></script>
+<script {% csp %} src="{% static "js/changelog.js" %}"></script>
+{% endblock %}

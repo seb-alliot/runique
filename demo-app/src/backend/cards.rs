@@ -1,4 +1,3 @@
-use crate::entities::changelog_entry::Entity as ChangelogEntryEntity;
 use crate::entities::known_issue::Entity as KnownIssueEntity;
 use crate::entities::roadmap_entry::{Entity as RoadmapEntryEntity, RoadmapStatus};
 use runique::prelude::*;
@@ -21,61 +20,31 @@ pub struct CardSection {
     pub entries: Vec<CardEntry>,
 }
 
-pub async fn fetch_changelog_paged(db: &ADb, page: usize) -> (Vec<CardSection>, usize, usize) {
-    let all = fetch_changelog(db).await;
-    let total = all.len();
-    let page = page.max(1).min(total.max(1));
-    let sections = all.into_iter().skip(page - 1).take(1).collect();
-    (sections, page, total)
+#[derive(serde::Serialize)]
+pub struct ChangelogVersion {
+    pub version: String,
+    pub heading: String,
+    pub content: String,
 }
 
-pub async fn fetch_changelog(db: &ADb) -> Vec<CardSection> {
-    // `desc Id` orders releases newest-first (id tracks insertion chronology — the
-    // version string can't be sorted reliably: "2.1.9" would land above "2.1.18").
-    // We then group by version in Rust so that `sort_order` controls the order WITHIN
-    // each release. A single SQL `ORDER BY id DESC, sort_order ASC` cannot do this:
-    // id is unique, so it fully dominates and sort_order never breaks a tie.
-    let all = search!(ChangelogEntryEntity => desc Id)
-        .all(db)
-        .await
-        .unwrap_or_default();
-
-    let mut order: Vec<String> = Vec::new();
-    let mut groups: std::collections::HashMap<String, (String, Vec<(i32, CardEntry)>)> =
-        std::collections::HashMap::new();
-
-    for entry in all {
-        let group = groups.entry(entry.version.clone()).or_insert_with(|| {
-            // First time we see this version (highest id, i.e. newest) → keep its rank.
-            order.push(entry.version.clone());
-            (entry.release_date.clone(), Vec::new())
-        });
-        group.1.push((
-            entry.sort_order,
-            CardEntry {
-                subtitle: Some(entry.category.to_string()),
-                title: entry.title.clone(),
-                description: entry.description.clone(),
-                link_url: None,
-                link_label: None,
-                link_url_2: None,
-                link_label_2: None,
-            },
-        ));
+/// Splits a Keep a Changelog file on its `## ` headings. What precedes the first
+/// one (title, links to the other language) belongs to the file, not to the page.
+pub fn split_changelog(markdown: &str) -> Vec<ChangelogVersion> {
+    let mut versions: Vec<ChangelogVersion> = Vec::new();
+    for line in markdown.lines() {
+        if let Some(heading) = line.strip_prefix("## ") {
+            let heading = heading.replace(['[', ']'], "");
+            versions.push(ChangelogVersion {
+                version: heading.split(" - ").next().unwrap_or_default().to_string(),
+                heading,
+                content: String::new(),
+            });
+        } else if let Some(current) = versions.last_mut() {
+            current.content.push_str(line);
+            current.content.push('\n');
+        }
     }
-
-    order
-        .into_iter()
-        .map(|version| {
-            let (release_date, mut items) = groups.remove(&version).unwrap_or_default();
-            items.sort_by_key(|(sort_order, _)| *sort_order);
-            CardSection {
-                heading: format!("v{} — {}", version, release_date),
-                heading_class: "roadmap-active".into(),
-                entries: items.into_iter().map(|(_, entry)| entry).collect(),
-            }
-        })
-        .collect()
+    versions
 }
 
 pub async fn fetch_known_issues(db: &ADb) -> Vec<CardSection> {
@@ -156,4 +125,28 @@ pub async fn fetch_roadmap(db: &ADb, lang: &str) -> Vec<CardSection> {
             })
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn each_version_keeps_its_own_content_in_file_order() {
+        let versions = split_changelog(
+            "# Title\n\nIntro\n\n## [4.0.0] - unreleased\n\n### Fixed\n\n- a\n\n## [3.0.3] - 2026-10-10\n\n- b\n",
+        );
+        assert_eq!(versions.len(), 2);
+        assert_eq!(versions[0].version, "4.0.0");
+        assert_eq!(versions[0].heading, "4.0.0 - unreleased");
+        assert_eq!(versions[0].content, "\n### Fixed\n\n- a\n\n");
+        assert_eq!(versions[1].version, "3.0.3");
+        assert_eq!(versions[1].heading, "3.0.3 - 2026-10-10");
+        assert_eq!(versions[1].content, "\n- b\n");
+    }
+
+    #[test]
+    fn a_text_without_version_gives_nothing() {
+        assert!(split_changelog("# Title\n\n### Fixed\n\nREADME not found.").is_empty());
+    }
 }
