@@ -40,3 +40,4 @@ evaluation_encapsulation_formulaire.md
 # cargo-mutants reports
 mutants.out/
 mutants.out.old/
+audit_securite_*.md

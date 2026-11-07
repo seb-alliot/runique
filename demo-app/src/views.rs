@@ -254,6 +254,11 @@ pub async fn releases(mut request: Request) -> AppResult<Response> {
     let older = versions.get(index + 1).map(|v| &v.key);
     context_update!(request => {
         "title"    => if lang == "fr" { "Journal des modifications" } else { "Changelog" },
+        "description" => if lang == "fr" {
+            "Journal des modifications de Runique, version par version : nouveautés, ruptures et correctifs."
+        } else {
+            "Runique's changelog, version by version: new features, breaking changes and fixes."
+        },
         "versions" => &versions,
         "current"  => versions.get(index),
         "newer"    => newer,
@@ -272,6 +277,11 @@ pub async fn releases_security(mut request: Request) -> AppResult<Response> {
     });
     context_update!(request => {
         "title"       => if lang == "fr" { "Politique de sécurité" } else { "Security policy" },
+        "description" => if lang == "fr" {
+            "Politique de sécurité de Runique : versions prises en charge, failles corrigées et signalement d'une vulnérabilité."
+        } else {
+            "Runique's security policy: supported versions, fixed vulnerabilities and how to report one."
+        },
         "sections"    => &sections,
         "release_tab" => "security",
     });
@@ -289,6 +299,11 @@ pub async fn releases_status(mut request: Request) -> AppResult<Response> {
     let sections = split_markdown_sections(content);
     context_update!(request => {
         "title"       => if lang == "fr" { "État du projet" } else { "Project status" },
+        "description" => if lang == "fr" {
+            "Avancement des prochaines versions de Runique : makemigrations, base de données et admin."
+        } else {
+            "Progress of Runique's next versions: makemigrations, database and admin."
+        },
         "sections"    => &sections,
         "release_tab" => "status",
     });
