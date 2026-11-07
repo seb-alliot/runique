@@ -14,6 +14,7 @@ const TOKEN = 'page-token';
 // the network, with the headers it carried.
 function page({ responseToken = null } = {}) {
     const sent = [];
+    const listeners = [];
     const input = { value: TOKEN };
     const ctx = {
         URL,
@@ -27,6 +28,9 @@ function page({ responseToken = null } = {}) {
             querySelectorAll: (sel) => (sel === 'input[name="csrf_token"]' ? [input] : []),
             addEventListener: () => {},
         },
+        addEventListener: (type, listener) => {
+            if (type === 'submit') listeners.push(listener);
+        },
         fetch: async (req, init = {}) => {
             sent.push({ url: req instanceof Request ? req.url : String(req), headers: new Headers(init.headers || {}) });
             const headers = responseToken ? { 'X-CSRF-Token': responseToken } : {};
@@ -35,7 +39,23 @@ function page({ responseToken = null } = {}) {
     };
     ctx.window = ctx;
     vm.runInNewContext(SCRIPT, ctx);
-    return { win: ctx, sent, input };
+    return { win: ctx, sent, input, listeners };
+}
+
+// Sends a submit event through csrf.js. `prevented` is a handler having already
+// called `preventDefault()`. Returns what the browser would have done.
+async function submit({ listeners, win }, { prevented = false, hasToken = true } = {}) {
+    let submitted = 0;
+    const form = new win.HTMLFormElement();
+    form.querySelector = () => (hasToken ? {} : null);
+    form.submit = () => { submitted += 1; };
+    const event = {
+        target: form,
+        defaultPrevented: prevented,
+        preventDefault() { this.defaultPrevented = true; },
+    };
+    await Promise.all(listeners.map((listener) => listener(event)));
+    return { submitted, stopped: event.defaultPrevented };
 }
 
 test('a POST to the same origin carries the token', async () => {
@@ -77,4 +97,28 @@ test("only the page's own origin may rotate the token", async () => {
     const own = page({ responseToken: 'rotated' });
     await own.win.fetch('/plats', { method: 'POST' });
     assert.equal(own.input.value, 'rotated', 'the server rotates it as before');
+});
+
+test('a form is sent once, after the token refresh', async () => {
+    const p = page();
+    const { submitted, stopped } = await submit(p);
+    assert.equal(p.sent.length, 1);
+    assert.equal(p.sent[0].url, `${ORIGIN}/plats/1/edit`);
+    assert.equal(submitted, 1);
+    assert.equal(stopped, true);
+});
+
+test('a form another handler stopped is never sent', async () => {
+    const p = page();
+    const { submitted } = await submit(p, { prevented: true });
+    assert.equal(submitted, 0);
+    assert.equal(p.sent.length, 0);
+});
+
+test('a form without a token is left to the browser', async () => {
+    const p = page();
+    const { submitted, stopped } = await submit(p, { hasToken: false });
+    assert.equal(submitted, 0);
+    assert.equal(stopped, false);
+    assert.equal(p.sent.length, 0);
 });

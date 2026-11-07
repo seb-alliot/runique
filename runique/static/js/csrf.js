@@ -63,7 +63,12 @@ if (!window.rustiCsrfInitialized) {
     // issues a new one, and the real submission that follows is consistent
     // with it. `form.submit()` (not `.requestSubmit()`) is used deliberately
     // to bypass this same listener on the second, real submission.
-    document.addEventListener('submit', async (e) => {
+    //
+    // On `window`, the end of the bubbling, whatever order the scripts load in:
+    // a handler that called `preventDefault()` (a form sent by fetch, a failed
+    // check, a refused confirmation) has already run, and its form stays unsent.
+    window.addEventListener('submit', async (e) => {
+        if (e.defaultPrevented) return;
         const form = e.target;
         if (!(form instanceof HTMLFormElement)) return;
         if (!form.querySelector('input[name="csrf_token"]')) return;

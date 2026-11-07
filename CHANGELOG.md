@@ -83,6 +83,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+* **Forms sent despite `preventDefault()`**: `csrf.js` intercepted every submission and always sent the form again. A form sent by `fetch` therefore left twice (the second request could answer "duplicate" after the first had saved), and a check or a confirmation stopping the submission in the browser had no effect. The script now listens on `window`, after the others, and leaves a stopped form alone. **Restart the application** after upgrading: the static file changes.
+
 * **Accounts created in the admin had no dates**: `created_at` and `updated_at` were only written by the CLI or a project's own form. The accounts' entity and an `extend!` of `eihwaz_users` now fill them on save, keeping a date the writer sets.
 * **Fields of an admin detail page in random order**: the page followed the template's map, whose order isn't kept. It now shows the list's columns in their order, then the form's, through the new `detail_columns` key, with dates and times last. An automatic list also shows them last; a declared `display` keeps its order.
 * **`session_version` on an account's admin page**: the counter that revokes sessions showed among the fields when the account resource declares no `.form()`. It is no longer read there.

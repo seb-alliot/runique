@@ -73,6 +73,8 @@ Runique handles this at two levels:
   submits — works even if the session fully expired (the server just issues a new one).
   The user never loses what they typed, and only sees the CSRF failure if the network is
   down at the moment of submission.
+  A form stopped by `preventDefault()` (sent by `fetch`, a check, a confirmation) is never sent
+  again by this script.
 
 Runique **adds this script itself**: `request.render()` inserts a single tag before `</body>`, with the request's CSP nonce, into every page that carries a CSRF field, whatever wrote it (a Runique form, `{% csrf %}`, the `csrf_field` filter or the `csrf_token` function). A page with several forms gets one tag. Nothing is added to a page without a CSRF field, to a page already loading `js/csrf.js`, or to a fragment without `</body>` (HTMX response).
 
