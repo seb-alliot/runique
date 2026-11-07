@@ -6,9 +6,8 @@
 //! then names them alone, and two models' columns of the same name
 //! (`Email`, `Title`…) never meet.
 use crate::entities::{
-    blog, chapitre, code_example, contribution, demo_category, demo_page,
-    demo_section, doc_block, doc_page, doc_section, known_issue, page_doc_link,
-    runique_release, user_profile,
+    blog, chapitre, code_example, contribution, demo_category, demo_page, demo_section, doc_block,
+    doc_page, doc_section, known_issue, page_doc_link, runique_release, user_profile,
 };
 use runique::admin::{AdminSite, ModelAdmin};
 use runique::app::staging::AdminStaging;
@@ -91,7 +90,6 @@ fn blog() -> ModelAdmin<blog::Entity> {
                 .readonly([ViewCount])
         })
 }
-
 
 fn known_issue() -> ModelAdmin<known_issue::Entity> {
     use known_issue::Column::*;

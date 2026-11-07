@@ -10,7 +10,7 @@
 
 Déclarez un modèle une fois, et vous récupérez la table en base, la migration, un formulaire type-safe et un panel admin complet — sans câblage supplémentaire. Runique apporte la productivité de Django à Rust sans vous demander de renoncer à sa sécurité ni à ses performances. Construit sur Axum, SeaORM et Tera, il s'efface une fois le code répétitif écarté.
 
-> **Statut, sans détour :** développement actif. Le crate du framework (`runique`) fait foi ; `demo-app` est une vraie application testée contre lui, pas une démo jetable. Le panel admin est en **bêta**. Rien ci-dessous n'est enjolivé — voir l'[état du projet](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.en.md) pour la version sans filtre.
+> **Statut, sans détour :** développement actif. Le crate du framework (`runique`) fait foi ; `demo-app` est une vraie application testée contre lui, pas une démo jetable. Le panel admin est en **bêta**. Rien ci-dessous n'est enjolivé — voir les [limites connues](https://runique.io/docs/fr/limites) pour la version sans filtre.
 
 🌍 **Langues** : [English](https://runique.io/readme/en) | Français
 
@@ -229,7 +229,7 @@ Détail complet par fichier : [docs/couverture_test.md](docs/couverture_test.md)
 
 ## État du projet & ressources
 
-- [État du projet](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.en.md) — tenu à jour au fil de l'avancement
+- [État du projet](https://github.com/seb-alliot/runique/blob/main/docs/fr/PROJECT_STATUS.md) — avancement du chantier `makemigrations`
 - [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md)
 - [Passer de la 3.0 à la 4.0](https://github.com/seb-alliot/runique/blob/main/MIGRATION-4.0.fr.md)
 - [Runique vs Django — comparatif des fonctionnalités](https://runique.io/comparatif#django)

@@ -23,14 +23,16 @@ been checked on demo-app and on a project created by `runique new`, and when the
 
 - **Security fixes (4.0.x)**: cap the number of keys held in memory by `RateLimiter` and
   `LoginGuard`, and test open redirect protection against known URL validation bypass payloads.
-- **makemigrations**: generate every schema operation with no manual step: dropping tables,
+- **4.1, makemigrations**: generate every schema operation with no manual step: dropping tables,
   creating and dropping relation tables, honouring cascade, restrict and set_null, a real `ALTER`
   on a type change, detecting default value changes, and columns both renamed and modified.
   Constraint names are read from the database, and destructive changes state what they affect.
-- **Many-to-many relations**: generate the pivot table and its migration from the model DSL, with
-  access methods on the model. A hand-written pivot table with extra columns remains possible.
-- **Nested conditions in `search!`**: allow AND groups inside OR, and the negation of a condition
-  or a group, at any depth, still through typed queries.
+  The many-to-many pivot table is generated from the model DSL; a hand-written table with extra
+  columns remains possible.
+- **4.2, database**: `get_or_create`, `update_or_create`, `exists()`, `last()`,
+  loading relations in one query, many-to-many access methods
+  and its management in the admin. `search!` also accepts AND groups inside OR, and the negation of
+  a condition or a group, still through typed queries.
 - **Tracing**: finish file output with rotation, add a request identifier, and leave no error
   silently ignored. Missing translation keys will be logged.
 - **Languages added by a project**: let a project provide a language Runique does not ship,

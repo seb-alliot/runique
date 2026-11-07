@@ -286,9 +286,7 @@ pub async fn releases_status(mut request: Request) -> AppResult<Response> {
     } else {
         include_str!("../../docs/en/PROJECT_STATUS.en.md")
     };
-    // The `markdown` filter has no task lists: `[x]` would show as plain text.
-    let content = content.replace("- [x] ", "- ✓ ").replace("- [ ] ", "- ☐ ");
-    let sections = split_markdown_sections(&content);
+    let sections = split_markdown_sections(content);
     context_update!(request => {
         "title"       => if lang == "fr" { "État du projet" } else { "Project status" },
         "sections"    => &sections,

@@ -119,8 +119,15 @@ Re-checked against a local `Cargo.lock` on 2026-11-07; that file isn't committed
 | 3.0.2 | urlencoded / JSON request bodies with no size limit | Medium |
 | 3.0.2 | Admin password reset reachable from a resource that isn't an account | Low |
 | 3.0.2 | Admin accepted the raw CSRF token (per-response masking bypassed) | Hardening |
+| 2.1.17 | Reset tokens: in-memory → DB (hashed, single-use, IDOR-hardened) | Hardening |
+| 2.1.15 | User enumeration via login timing attack | Medium |
+| 2.1.15 | Missing authorization on admin reset-password action | Medium |
+| 2.1.9 | SQL injection in admin list filters | High |
+| 2.1.9 | Session fixation on login (missing cycle_id) | Medium |
+| 2.1.9 | Admin write permission granularity (create/update/delete indistinct) | Medium |
+| 2.1.9 | IDOR — can_update_own/can_delete_own not enforced | Low |
 
-The main 4.0 fixes are described under "Active Advisories (fixed in 4.0)" above. Details in the CHANGELOG: [3.0.3](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md#303---2026-10-10), [3.0.2](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md#302---2026-10-09). Earlier fixes (2.1.x) are listed in [PROJECT_STATUS](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.en.md).
+The main 4.0 fixes are described under "Active Advisories (fixed in 4.0)" above. Details in the CHANGELOG: [3.0.3](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md#303---2026-10-10), [3.0.2](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md#302---2026-10-09).
 
 ## Reporting a Vulnerability
 
