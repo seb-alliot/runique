@@ -6,8 +6,8 @@
 //! then names them alone, and two models' columns of the same name
 //! (`Email`, `Title`…) never meet.
 use crate::entities::{
-    blog, changelog_entry, chapitre, code_example, contribution, demo_category, demo_page,
-    demo_section, doc_block, doc_page, doc_section, known_issue, page_doc_link, roadmap_entry,
+    blog, chapitre, code_example, contribution, demo_category, demo_page,
+    demo_section, doc_block, doc_page, doc_section, known_issue, page_doc_link,
     runique_release, user_profile,
 };
 use runique::admin::{AdminSite, ModelAdmin};
@@ -39,8 +39,6 @@ pub fn config(admin: AdminStaging) -> AdminStaging {
             "users",
             "groupes",
             "blog",
-            "changelog_entry",
-            "roadmap_entry",
             "runique_release",
             "known_issue",
             "contribution",
@@ -94,38 +92,6 @@ fn blog() -> ModelAdmin<blog::Entity> {
         })
 }
 
-fn changelog_entry() -> ModelAdmin<changelog_entry::Entity> {
-    use changelog_entry::Column::*;
-    ModelAdmin::new()
-        .title("Changelog")
-        .list(|l| {
-            l.display([Version, ReleaseDate, Category, Title])
-                .links([Title])
-                .sortable([Version, ReleaseDate])
-                .ordering([(SortOrder, Order::Asc)])
-                .search([Title, Version])
-                .search_help("Titre ou numéro de version")
-                .filter([Category, Version])
-                .per_page(15)
-                // One version per release: 5 at a time, then the arrows.
-                .filter_size(5)
-        })
-        .form(|f| {
-            f.fields([
-                Version,
-                ReleaseDate,
-                Category,
-                Title,
-                Description,
-                SortOrder,
-            ])
-            .labels([
-                (ReleaseDate, "Date de sortie"),
-                (Category, "Catégorie"),
-                (SortOrder, "Ordre d'affichage"),
-            ])
-        })
-}
 
 fn known_issue() -> ModelAdmin<known_issue::Entity> {
     use known_issue::Column::*;
@@ -281,20 +247,6 @@ fn page_doc_link() -> ModelAdmin<page_doc_link::Entity> {
     })
 }
 
-fn roadmap_entry() -> ModelAdmin<roadmap_entry::Entity> {
-    use roadmap_entry::Column::*;
-    ModelAdmin::new().title("Roadmap").list(|l| {
-        l.display([Title, Lang, Status, SortOrder])
-            .links([Title])
-            .ordering([(SortOrder, Order::Asc)])
-            .search([Title])
-            .filter([Lang, Status])
-            .action(Status, "Active", "Activer")
-            .action(Status, "Planned", "Planifier")
-            .action(Status, "Future", "Reporter")
-    })
-}
-
 fn runique_release() -> ModelAdmin<runique_release::Entity> {
     use runique_release::Column::*;
     ModelAdmin::new().title("Releases").list(|l| {
@@ -309,7 +261,6 @@ fn runique_release() -> ModelAdmin<runique_release::Entity> {
 pub fn site(site: AdminSite) -> AdminSite {
     site.accounts_users(accounts())
         .register(blog())
-        .register(changelog_entry())
         .register(chapitre())
         .register(code_example())
         .register(contribution())
@@ -321,7 +272,6 @@ pub fn site(site: AdminSite) -> AdminSite {
         .register(doc_section())
         .register(known_issue())
         .register(page_doc_link())
-        .register(roadmap_entry())
         .register(runique_release())
 }
 

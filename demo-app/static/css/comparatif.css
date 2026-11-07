@@ -447,3 +447,44 @@
 .changelog-layout .doc-block-content li + li {
     margin-top: 1rem;
 }
+
+.changelog-layout .compare-section + .compare-section {
+    margin-top: 3rem;
+}
+
+.release-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.release-tabs a {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+/* Dans cette page, la barre suit la largeur du contenu au lieu de toucher les bords. */
+.changelog-layout .compare-toc {
+    margin-inline: 0;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+}
+
+.changelog-picker label {
+    line-height: 1.5rem;
+}
+
+/* Départ sous le titre de section : sa hauteur + sa marge. Le libellé du menu (1.5rem + 0.5rem d'écart)
+   remonte à côté du titre pour que le select lui-même s'aligne sur le premier bloc. */
+@media (min-width: 64rem) {
+    .changelog-layout .compare-toc {
+        margin-top: calc(1.875rem * 1.25 + 1.5rem);
+    }
+
+    .changelog-layout .changelog-picker {
+        margin-top: calc(1.875rem * 1.25 + 1.5rem - 2rem);
+    }
+}

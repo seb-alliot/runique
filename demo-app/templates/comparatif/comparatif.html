@@ -85,39 +85,19 @@
 
     <section class="compare-section" id="a-venir">
         <h2>{% if ui_lang == "fr" %}À venir{% else %}What's coming{% endif %}</h2>
-        {% if not roadmap %}
-        <p class="compare-source"><a href="https://github.com/seb-alliot/runique/blob/main/{% if ui_lang == "fr" %}ROADMAP.fr.md{% else %}ROADMAP.md{% endif %}" target="_blank" rel="noopener">{% if ui_lang == "fr" %}Lire la feuille de route complète{% else %}Read the full roadmap{% endif %}</a></p>
-        {% else %}
+        <p class="compare-source">{% if ui_lang == "fr" %}Sans date ni engagement : un bug ou une faille découverts passent avant les chantiers prévus.{% else %}No dates, no commitment: a bug or a security flaw comes before planned work.{% endif %}</p>
         <div class="compare-tabs" data-tabs="local">
             <div class="hero-code-tabs" role="tablist">
                 {% for section in roadmap %}
-                <button class="hero-tab{% if loop.first %} active{% endif %}" data-tab="{{ section.heading_class }}" role="tab" type="button">
-                    {% if section.heading_class == "roadmap-active" %}{% if ui_lang == "fr" %}En cours{% else %}In progress{% endif %}
-                    {% elif section.heading_class == "roadmap-planned" %}{% if ui_lang == "fr" %}Prévu{% else %}Planned{% endif %}
-                    {% else %}{% if ui_lang == "fr" %}Plus tard{% else %}Later{% endif %}{% endif %}
-                </button>
+                <button class="hero-tab{% if loop.first %} active{% endif %}" data-tab="roadmap-{{ loop.index }}" role="tab" type="button">{{ section.heading }}</button>
                 {% endfor %}
             </div>
             {% for section in roadmap %}
-            <div class="hero-tab-panel{% if loop.first %} active{% endif %}" data-panel="{{ section.heading_class }}">
-                <div class="roadmap-grid">
-                    {% for entry in section.entries %}
-                    <div class="roadmap-card">
-                        <h3>{{ entry.title }}</h3>
-                        <p>{{ entry.description | sanitize }}</p>
-                        {% if entry.link_url %}
-                        <a href="{{ entry.link_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary">{{ entry.link_label }}</a>
-                        {% endif %}
-                        {% if entry.link_url_2 %}
-                        <a href="{{ entry.link_url_2 }}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary">{{ entry.link_label_2 }}</a>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-                </div>
+            <div class="hero-tab-panel doc-block-content{% if loop.first %} active{% endif %}" data-panel="roadmap-{{ loop.index }}">
+                {{ section.content | markdown }}
             </div>
             {% endfor %}
         </div>
-        {% endif %}
     </section>
 
     <p class="compare-known-issues" id="problemes-connus">

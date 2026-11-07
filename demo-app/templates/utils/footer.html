@@ -10,7 +10,8 @@
             <h4>{% if ui_lang == "fr" %}Projet{% else %}Project{% endif %}</h4>
             <a href="{% link "rust_django_framework" %}">{% if ui_lang == "fr" %}À propos de Runique{% else %}About Runique{% endif %}</a>
             <a href="{% link "comparatif" %}">{% if ui_lang == "fr" %}Comparatif{% else %}Comparison{% endif %}</a>
-            <a href="{% link "changelog" %}">Changelog</a>
+            <a href="{% link "releases" %}">{% if ui_lang == "fr" %}Versions{% else %}Releases{% endif %}</a>
+            <a href="{% link "releases_status" %}">{% if ui_lang == "fr" %}État du projet{% else %}Project status{% endif %}</a>
         </div>
         <div>
             <h4>{% if ui_lang == "fr" %}Communauté{% else %}Community{% endif %}</h4>

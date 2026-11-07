@@ -9,13 +9,13 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ---
 
-## Snapshot (au 4 novembre 2026)
+## Snapshot (au 7 novembre 2026)
 
-- **Version workspace** : `4.0.0` (**non publiée** sur crates.io — code + doc dans l'arbre)
+- **Version workspace** : `4.0.0` (**pas encore publiée** sur crates.io)
 - **derive_form** : `4.0.0`
 - **runique_dsl** : `0.2.0`
 - **Licence** : MIT
-- **Branche** : `fix-bug`
+- **Branche** : `main`
 - **Stack** : Axum 0.8.9 + SeaORM 2.0.4 + Tera 2.4 · Rust edition 2024 · Rust 1.94
 - **Chantier principal livré** : admin `ModelAdmin` + documentation alignée 4.0
 
@@ -60,6 +60,8 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - `OWNER` sur `ModelMeta` (meta `model!`) : vérification d'appartenance pour `can_update_own`/`can_delete_own`
 - Historique des actions admin (log, batch_id, diff old/new)
 - Templates surchargeables par bloc (HTML, CSS ou les deux) ou par page, pour tous les modèles ou pour un seul
+- Comptes : `created_at` et `updated_at` remplis à l'enregistrement, y compris pour un compte créé dans l'admin
+- Filtre `display_time` : dates et heures au même format dans les listes, les fiches et l'historique
 
 ### Sécurité
 - CSRF masqué (protection BREACH), token lié à la session, comparaison `subtle::ct_eq`
@@ -91,6 +93,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - Générateur de migrations durci multi-moteurs (2026-09-01) : gardes runtime pour `CREATE TYPE`/triggers `updated_at` (au lieu d'un choix figé à la génération), casse d'identifiant Postgres corrigée sur `ALTER TYPE`, ordre `TYPE`/`USING` invalide corrigé, `modify_column` sauté sous SQLite (panique sea-query) ; FK toujours inline en `CREATE TABLE`
 - `makemigrations` crée le crate `migration/` s'il manque et branche les tables du framework même sans aucun modèle propre au projet ; un changement de type de colonne n'est pas migré (avertissement après `--force`) — cf. [Migrations](/docs/fr/installation/migrations)
 - Recherche/filtres portables multi-moteurs (2026-09-02) : `CAST(col AS TEXT)` invalide sur MySQL/MariaDB (exige `CHAR`) — corrigé via des helpers `text_cast_type`/`text_eq`/`ilike` détectant le moteur à l'exécution (`db.get_database_backend()`). `search_cond!` prend désormais la connexion `db` en premier argument sur ses 4 formes — cf. [Requêtes](/docs/fr/orm/requetes)
+- Fichiers envoyés : écriture vidée sur le disque (`flush`) avant de considérer l'envoi comme terminé
 
 ### I18n
 - 9 langues (en, fr, de, es, it, pt, ja, zh, ru), stockage `AtomicU8`, `RUNIQUE_LANG`
@@ -126,20 +129,23 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 | 3.0.2 | Corps urlencoded/JSON sans limite de taille | Moyenne |
 | 3.0.2 | Reset-password admin possible depuis une ressource hors comptes | Faible |
 | 3.0.2 | Admin : jeton CSRF brut accepté (masquage BREACH contourné) | Durcissement |
-| 4.0.0 | Timing « mot de passe oublié » (réponse plus rapide pour adresse inconnue) | Moyenne |
+| 4.0.0 | Timing « mot de passe oublié » (réponse plus rapide pour adresse inconnue) | Faible |
 | 4.0.0 | Message admin superuser trop révélateur | Faible |
-| 4.0.0 | `csrf.js` envoyait le jeton CSRF hors origine | Élevée |
+| 4.0.0 | `csrf.js` envoyait le jeton CSRF hors origine | Moyenne |
 | 4.0.0 | `password` / `is_active` exposés dans les formulaires `extend!` | Élevée |
-| 4.0.0 | Page debug template : lecture hors `templates/` | Élevée |
+| 4.0.0 | Page debug template : lecture hors `templates/` | Moyenne |
 | 4.0.0 | Erreurs globales de formulaire non échappées (XSS) | Moyenne |
 | 4.0.0 | Contenu des sessions stocké en clair en base | Moyenne |
-| 4.0.0 | Reset laissant valides les autres sessions d'un store personnalisé (#15) | Moyenne |
+| 4.0.0 | Reset laissant valides les autres sessions d'un store personnalisé | Moyenne |
 | 4.0.0 | Formulaire d'un autre site atteignant un handler qui ne vérifie pas le jeton | Moyenne |
-| 4.0.0 | Une erreur de suppression en base pouvait laisser une session réutilisable ; révocation des sessions hors de la transaction du reset (faille.md #12) | Moyenne |
-| 4.0.0 | Remplacement non atomique du jeton de reset : deux jetons valides en concurrence (#13) | Moyenne |
-| 4.0.0 | Hash au préfixe non reconnu : vérification plus rapide, donc mesurable (#3) | Faible |
-| 4.0.0 | Jeton CSRF en double dans un corps de formulaire (#10, partie corrigée) | Faible |
-| 4.0.0 | Alias d'enum chaîne ambigus interprétés comme une autre variante (#26) | Faible |
+| 4.0.0 | Une erreur de suppression en base pouvait laisser une session réutilisable ; révocation des sessions hors de la transaction du reset | Moyenne |
+| 4.0.0 | Remplacement non atomique du jeton de reset : deux jetons valides en concurrence | Moyenne |
+| 4.0.0 | Hash au préfixe non reconnu : vérification plus rapide, donc mesurable | Faible |
+| 4.0.0 | Jeton CSRF en double dans un corps de formulaire (partie corrigée) | Faible |
+| 4.0.0 | Alias d'enum chaîne ambigus interprétés comme une autre variante | Faible |
+| 4.0.0 | Fichiers validés avant d'être entièrement écrits : un fichier au-delà de la limite d'un champ pouvait passer | Moyenne |
+| 4.0.0 | Compte créé sans son activation dans un projet généré par `runique new` | Faible |
+| 4.0.0 | Scripts `add_js` sans hash SRI ni nonce CSP | Durcissement |
 
 ---
 
@@ -152,42 +158,35 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ---
 
-## Correctifs à apporter / roadmap
+## Suite du projet
 
-Source de vérité détaillée : [ROADMAP.fr.md](https://github.com/seb-alliot/runique/blob/main/ROADMAP.fr.md).
+Ordre et contenu des prochaines versions : [ROADMAP.fr.md](https://github.com/seb-alliot/runique/blob/main/ROADMAP.fr.md).
 
-### Réglé (vérifié le 29 octobre 2026)
-- **Filtres admin et injection SQL** : listes blanches + valeurs liées ; comptes intégrés ignorent les filtres URL
-- **Tests de non-régression sécurité** : rotation session/CSRF, contrôles par opération, correctifs 3.0.2 (mutation)
-- **Refonte de l'admin** : `ModelAdmin<Entity>` livré — plus de `admin!{}` / `src/admins/` / `runique start`
-- **Documentation 4.0** : guides fr/en, README, migration, SECURITY, demo-app, INDEX alignés sur `ModelAdmin`
+Couverture de tests au 7 novembre 2026 : 92,57 % des lignes, détail par fichier dans [couverture_test.md](https://github.com/seb-alliot/runique/blob/main/docs/couverture_test.md).
 
-### Ouvert — 4.0.0 (avant ou juste après publication)
-- Action de suppression obligatoire sur `belongs_to` (`cascade` / `set_null` / `restrict`)
-- Uploads typés (`StagedFile`, hors valeurs texte)
+Non planifié pour l'instant : uploads typés (`StagedFile`, hors valeurs texte).
 
-### Prochain chantier (ordre figé)
+---
 
-1. **Patchs sécu / entretien `4.0.x`** — file numérotée ci-dessous, **avant** toute mineure feature.
-2. **Mineures `4.x`** — seulement après : M2M DSL → `makemigrations` → tracing → langues projet → parité admin additive.
+## Chantier makemigrations
 
-Détail et critères de « fini » : [ROADMAP.fr.md](https://github.com/seb-alliot/runique/blob/main/ROADMAP.fr.md).
+### Déjà en place
+- [x] Plan, validation, commit ou rollback atomique, snapshots
+- [x] Renommage simple d'une colonne (`renamed_from`)
+- [x] Refus sans `--force` des opérations destructives : `DROP COLUMN`, changement de type, nullable vers `NOT NULL`, longueur ou décimale réduite, `DROP FK`, nouvelle FK `CASCADE`
 
-### Ouvert — patch 4.0.x (sécu / entretien, dans cet ordre)
-1. Plafond des compteurs `RateLimiter` / `LoginGuard`
-2. Batterie de tests open-redirect (PortSwigger)
-
-→ Sortie attendue : `4.0.1` (et suivants si besoin). Pas de feature mineure dans ces patchs.
-
-### Ouvert — mineures 4.x (sans rupture, après la file 4.0.x)
-1. Many-to-many généré par le DSL + migration, puis dans l'admin
-2. `makemigrations` finalisé (rename+modify, noms de contraintes lus en base, backfill NOT NULL, limites d'identifiants par moteur, ALTER de type)
-3. Tracing (rotation fichier, request id, replis i18n visibles)
-4. Langues fournies par le projet (trait + builder)
-5. Parité admin Django additive (fieldsets, inlines, actions bulk, exports…)
-
-### Priorité basse
-- **Couverture** : détail par fichier dans [couverture_test.md](https://github.com/seb-alliot/runique/blob/main/docs/couverture_test.md) (8 octobre : `migrate.rs` 79 %, `engine/core.rs` 92 %, `forms/fields/file.rs` 96 %)
+### À faire
+- [ ] Suppression de table quand le modèle disparaît : refus sans `--force`, `DROP TABLE` dans `up`, recréation dans `down`, snapshot retiré, ordre inverse des FK
+- [ ] Changements destructeurs : indiquer ce qu'ils touchent, relations comprises
+- [ ] Vrai `ALTER` lors d'un changement de type (`USING` sur PostgreSQL et MySQL, snapshot fidèle ; reconstruction de table sous SQLite en option)
+- [ ] Passage de nullable à `NOT NULL` avec défaut : remplir les `NULL` existants avant la contrainte
+- [ ] Colonne à la fois renommée et modifiée (aujourd'hui seul le renommage est appliqué, et le snapshot enregistre la modification comme faite)
+- [ ] Détection d'un changement de valeur par défaut
+- [ ] Noms de contraintes lus en base au lieu d'être supposés
+- [ ] Limite de longueur des identifiants selon le moteur (63 pour PostgreSQL, 64 pour MariaDB/MySQL)
+- [ ] Création et suppression automatiques des tables de relation du many-to-many (DSL, migrations, macro)
+- [ ] Respect de `cascade`, `restrict` et `set_null` sur ces tables
+- [ ] Renommage de table (`renamed_from`), et message explicite pour un modèle renommé
 
 ---
 
@@ -200,5 +199,5 @@ Détail et critères de « fini » : [ROADMAP.fr.md](https://github.com/seb-alli
 
 ---
 
-**Dernière mise à jour** : 2 novembre 2026
-**Statut global** : ✅ Framework stable · 🟡 Admin bêta mature (`ModelAdmin`) · 🔒 Sécurité : tokens reset en DB, auth temps constant, correctifs 4.0 dans l'arbre · 📖 Doc 4.0 alignée · 📦 crates.io 4.0.0 encore non publiée · ➡️ Prochain : file patch sécu `4.0.x` (puis mineures 4.x)
+**Dernière mise à jour** : 7 novembre 2026
+**Statut global** : ✅ Framework stable · 🟡 Admin bêta mature (`ModelAdmin`) · 🔒 Sécurité : tokens reset en DB, auth temps constant, correctifs 4.0 inclus · 📖 Doc 4.0 alignée · 📦 crates.io 4.0.0 encore non publiée · ➡️ Prochain : file patch sécu `4.0.x` (puis mineures 4.x)

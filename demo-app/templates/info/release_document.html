@@ -1,0 +1,40 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href="{% static "css/doc.css" %}">
+    <link rel="stylesheet" href="{% static "css/comparatif.css" %}">
+{% endblock %}
+
+{% block content %}
+<div class="compare-page">
+    {% include "info/release_tabs.html" %}
+
+    <div class="compare-layout changelog-layout">
+        <details class="compare-toc">
+            <summary>{% if ui_lang == "fr" %}Sommaire{% else %}Contents{% endif %}</summary>
+            <nav class="compare-toc-list" aria-label="{% if ui_lang == "fr" %}Sommaire{% else %}Contents{% endif %}">
+                <div class="compare-toc-group">
+                    {% for section in sections %}<a href="#{{ section.heading | slugify }}">{{ section.heading }}</a>{% endfor %}
+                </div>
+            </nav>
+        </details>
+
+        <div class="compare-main">
+            {% for section in sections %}
+            <section class="compare-section" id="{{ section.heading | slugify }}">
+                <h2>{{ section.heading }}</h2>
+                <div class="doc-block-content">
+                    {{ section.content | markdown }}
+                </div>
+            </section>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+<a class="compare-top" href="#top" aria-label="{% if ui_lang == "fr" %}Remonter en haut de la page{% else %}Back to top{% endif %}"></a>
+{% endblock %}
+
+{% block scripts %}
+<script {% csp %} src="{% static "js/comparatif.js" %}"></script>
+{% endblock %}

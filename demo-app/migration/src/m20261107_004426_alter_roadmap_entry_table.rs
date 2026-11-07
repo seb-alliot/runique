@@ -10,7 +10,12 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(Alias::new("roadmap_entry"))
-                    .add_column(ColumnDef::new(Alias::new("lang")).string().not_null().default("en"))
+                    .add_column(
+                        ColumnDef::new(Alias::new("lang"))
+                            .string()
+                            .not_null()
+                            .default("en"),
+                    )
                     .to_owned(),
             )
             .await?;
