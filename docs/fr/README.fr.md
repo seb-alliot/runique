@@ -10,7 +10,7 @@
 
 Déclarez un modèle une fois, et vous récupérez la table en base, la migration, un formulaire type-safe et un panel admin complet — sans câblage supplémentaire. Runique apporte la productivité de Django à Rust sans vous demander de renoncer à sa sécurité ni à ses performances. Construit sur Axum, SeaORM et Tera, il s'efface une fois le code répétitif écarté.
 
-> **Statut, sans détour :** développement actif. Le crate du framework (`runique`) fait foi ; `demo-app` est une vraie application testée contre lui, pas une démo jetable. Le panel admin est en **bêta**. Rien ci-dessous n'est enjolivé — voir les [limites connues](https://runique.io/docs/fr/limites) pour la version sans filtre.
+> **Statut, sans détour :** développement actif. Le crate du framework (`runique`) fait foi ; `demo-app` est une vraie application testée contre lui, pas une démo jetable. Le panel admin est en **aperçu**. Rien ci-dessous n'est enjolivé — voir les [limites connues](https://runique.io/docs/fr/limites) pour la version sans filtre.
 
 🌍 **Langues** : [English](https://runique.io/readme/en) | Français
 
@@ -100,7 +100,7 @@ cargo run            # votre app est un binaire Rust normal
 
 > Préférez un simple `cargo run`. Câblez l'admin avec `.with_admin(...)` et le
 > builder typé `ModelAdmin` dans `src/admin.rs` — pas d'étape de génération
-> (voir [Admin (bêta)](#admin-beta)).
+> (voir [Admin (aperçu)](#admin-aperçu)).
 
 Un `main.rs` allégé (version complète dans `demo-app/src/main.rs`) :
 
@@ -165,7 +165,7 @@ Pas de `runique start` : l'app est un binaire Rust normal (`cargo run`). L'admin
 
 ---
 
-## Admin (bêta)
+## Admin (aperçu)
 
 L'admin est un builder typé — pas de macro, pas de fichiers générés sous `src/admins/`.
 
@@ -221,7 +221,7 @@ Détail complet par fichier : [docs/couverture_test.md](docs/couverture_test.md)
 - [Middlewares](https://runique.io/docs/fr/middleware)
 - [Messages flash](https://runique.io/docs/fr/flash)
 - [Exemples](https://runique.io/docs/fr/exemple)
-- [Admin bêta](https://runique.io/docs/fr/admin)
+- [Admin aperçu](https://runique.io/docs/fr/admin)
 - [Sessions](https://runique.io/docs/fr/session)
 - [Variables d'environnement](https://runique.io/docs/fr/env)
 

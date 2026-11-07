@@ -10,7 +10,7 @@
 
 Declare a model once, and you get the database table, the migration, a type-safe form, and a full admin panel — no extra wiring. Runique brings Django's productivity to Rust without asking you to give up Rust's safety or performance. It's built on Axum, SeaORM and Tera, and it stays out of your way once the boilerplate is gone.
 
-> **Status, plainly:** active development. The framework crate (`runique`) is the source of truth; `demo-app` is a real application exercised against it, not a toy. The admin panel is in **beta**. Nothing below is dressed up — see the [known limits](https://runique.io/docs/en/limites) for the unfiltered version.
+> **Status, plainly:** active development. The framework crate (`runique`) is the source of truth; `demo-app` is a real application exercised against it, not a toy. The admin panel is in **preview**. Nothing below is dressed up — see the [known limits](https://runique.io/docs/en/limites) for the unfiltered version.
 
 🌍 **Languages**: English | [Français](https://runique.io/readme/fr)
 
@@ -100,7 +100,7 @@ cargo run            # your app is a normal Rust binary
 
 > Prefer plain `cargo run`. Wire the admin with `.with_admin(...)` and the
 > typed `ModelAdmin` builder in `src/admin.rs` — no code generation step
-> (see [Admin (beta)](#admin-beta)).
+> (see [Admin (preview)](#admin-preview)).
 
 A trimmed-down `main.rs` (the full version lives in `demo-app/src/main.rs`):
 
@@ -165,7 +165,7 @@ There is no `runique start`: the app is a normal Rust binary (`cargo run`). Admi
 
 ---
 
-## Admin (beta)
+## Admin (preview)
 
 Admin is a typed builder — no macro, no generated files under `src/admins/`.
 
@@ -221,7 +221,7 @@ Full per-file breakdown: [docs/couverture_test.md](docs/couverture_test.md)
 - [Middlewares](https://runique.io/docs/en/middleware)
 - [Flash Messages](https://runique.io/docs/en/flash)
 - [Examples](https://runique.io/docs/en/exemple)
-- [Admin beta](https://runique.io/docs/en/admin)
+- [Admin preview](https://runique.io/docs/en/admin)
 - [Sessions](https://runique.io/docs/en/session)
 - [Environment variables](https://runique.io/docs/en/env)
 

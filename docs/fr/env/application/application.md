@@ -64,6 +64,8 @@
 
 Pour attacher une connexion additionnelle (pool Redis, PostgreSQL secondaire, client MongoDB, etc.), utilisez `.with_custom_db()` sur le builder. La valeur est stockée dans une `HashMap<TypeId, Arc<dyn Any>>` interne à `RuniqueEngine` — **pas** injectée comme `Extension` Axum. Accès dans les handlers via `engine.custom_db::<T>()` (ou son alias `engine.extension::<T>()`), qui retourne `Option<Arc<T>>`.
 
+> **`with_custom_db` ne remplace pas la base de l'ORM.** La connexion SeaORM — entités, `search!`, `save`, l'admin et les migrations — reste celle de `with_database` / `with_database_config`. Les valeurs passées à `with_custom_db` ne sont accessibles **que manuellement** via `engine.custom_db::<T>()` ; l'ORM ne les utilise jamais. Pour changer le moteur de l'ORM, voir [Base de données](/docs/fr/installation/base-de-donnees).
+
 ```rust
 // main.rs
 let redis = redis::Client::open("redis://127.0.0.1/")?;

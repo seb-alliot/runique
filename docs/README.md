@@ -36,7 +36,7 @@ Version du workspace (source de vérité) : **4.0.0**.
 - Middlewares de sécurité (CSRF, CSP, hôtes autorisés, assainissement, auth/session)
 - Intégration SeaORM + outillage de migrations
 - Système de messages flash
-- Admin bêta (builder typé `ModelAdmin` + `AdminSite`, sans génération de code)
+- Admin aperçu (builder typé `ModelAdmin` + `AdminSite`, sans génération de code)
 
 Les principaux modules publics sont exposés depuis `runique/src/lib.rs`.
 
@@ -100,7 +100,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 Pas de `runique start` : l'app est un binaire Rust normal (`cargo run`). L'admin est du Rust plain (`ModelAdmin` + `.with_admin(...)`), sans génération de code.
 
-## État de l'admin bêta
+## État de l'admin aperçu
 
 L'admin est un builder typé — pas de macro, pas de fichiers générés sous `src/admins/`.
 
@@ -188,7 +188,7 @@ Référence complète : [Variables d'environnement](https://runique.io/docs/en/e
 - [Middlewares](https://runique.io/docs/en/middleware)
 - [Messages Flash](https://runique.io/docs/en/flash)
 - [Exemples](https://runique.io/docs/en/exemple)
-- [Admin bêta](https://runique.io/docs/en/admin)
+- [Admin aperçu](https://runique.io/docs/en/admin)
 - [Sessions](https://runique.io/docs/en/session)
 - [Variables d'environnement](https://runique.io/docs/en/env)
 

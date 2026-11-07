@@ -64,7 +64,7 @@ let app = RuniqueApp::builder(config)
 
 ```rust
 let app = RuniqueApp::builder(config)
-    .middleware(|m| m.with_debug_errors(true))  // Mounts the error handler (default: true)
+    .middleware(|m| m.with_debug_errors(false))  // Removes the error handler (mounted by default)
     .routes(router)
     .build()
     .await?;
@@ -83,7 +83,7 @@ let app = RuniqueApp::builder(config)
         m.with_csp(|c| c)              // CSP is always active — customize it here
          .with_allowed_hosts(|h| h.host("mydomain.com"))      // Enable host validation
          .with_cache(true)              // Keep the HTTP cache in dev (no no-cache headers)
-         .with_debug_errors(true)       // Enable detailed errors
+         .with_debug_errors(true)       // Mounts the error handler (DEBUG controls the content)
     })
     .build()
     .await?;
@@ -214,6 +214,8 @@ Attaches any `Any + Send + Sync + 'static` value into the `RuniqueEngine`.
 Useful for connecting MongoDB, Redis, or any other external source.
 Can be called multiple times with different types.
 
+> **`with_custom_db` does not replace the ORM's database.** The SeaORM connection — entities, `search!`, `save`, the admin and migrations — stays the one from `with_database` / `with_database_config`. Values passed to `with_custom_db` are reachable **only manually** via `engine.custom_db::<T>()`; the ORM never uses them. To change the ORM engine, see [Database](/docs/en/installation/database).
+
 ```rust
 let mongo = mongodb::Client::with_uri_str("mongodb://localhost:27017").await?;
 let redis = redis::Client::open("redis://localhost")?;
@@ -240,6 +242,60 @@ async fn my_handler(req: Request) -> Response {
 ```
 
 `engine.custom_db::<T>()` is kept as a backward-compatible alias — both methods are equivalent.
+
+#### Full example — MongoDB (as in Campanile)
+
+A helper centralises access to the client and the database, with a clear error when the client was not registered:
+
+```rust
+use runique::prelude::*;
+
+pub async fn get_mongo(request: &Request) -> Result<mongodb::Database, mongodb::error::Error> {
+    let client = request
+        .engine
+        .custom_db::<mongodb::Client>()
+        .ok_or_else(|| mongodb::error::Error::custom("MongoDB client not initialized"))?;
+    Ok(client.database("campanile"))
+}
+```
+
+The client is registered once in `main.rs`:
+
+```rust
+let mongo = mongodb::Client::with_uri_str(
+    std::env::var("MONGO_URI").unwrap_or_else(|_| "mongodb://localhost:27017".into()),
+)
+.await?;
+
+let app = RuniqueApp::builder(config)
+    .with_database(db)
+    .with_custom_db(mongo)
+    .routes(url::routes())
+    .build()
+    .await?;
+```
+
+A handler then writes into a collection — here a view counter via upsert:
+
+```rust
+use mongodb::bson::{DateTime as BsonDateTime, doc};
+
+pub async fn track_view(request: &Request, plat_id: i32, title: &str) -> Result<(), mongodb::error::Error> {
+    let db = get_mongo(request).await?;
+    let views = db.collection::<mongodb::bson::Document>("plat_views");
+    views
+        .update_one(
+            doc! { "plat_id": plat_id },
+            doc! {
+                "$inc": { "views": 1 },
+                "$set": { "title": title, "last_seen": BsonDateTime::now() },
+            },
+        )
+        .upsert(true)
+        .await?;
+    Ok(())
+}
+```
 
 ### Administration
 
