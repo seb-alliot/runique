@@ -83,6 +83,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+* **Accounts created in the admin had no dates**: `created_at` and `updated_at` were only written by the CLI or a project's own form. The accounts' entity and an `extend!` of `eihwaz_users` now fill them on save, keeping a date the writer sets.
 * **Fields of an admin detail page in random order**: the page followed the template's map, whose order isn't kept. It now shows the list's columns in their order, then the form's, through the new `detail_columns` key, with dates and times last. An automatic list also shows them last; a declared `display` keeps its order.
 * **`session_version` on an account's admin page**: the counter that revokes sessions showed among the fields when the account resource declares no `.form()`. It is no longer read there.
 * **Admin dates shown in raw ISO**: lists and detail pages showed `2026-11-06T14:58:32.907849`. Date-times and times now read like the history page, from a single function (`2026-11-06 14:58:32`), through the new `display_time` filter.

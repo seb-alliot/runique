@@ -8,6 +8,7 @@ model! {
         RoadmapStatus: [Active="Active", Planned="Planned", Future="Future"],
     },
     {
+        lang:         text [default: "en", required],
         status:       choice [enum(RoadmapStatus), required],
         title:        text [required],
         description:  richtext [rows: 5, required],

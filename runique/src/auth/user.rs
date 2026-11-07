@@ -69,7 +69,8 @@ impl Related<crate::middleware::session::session_db::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {
     /// A UUID key comes from the application, never from the database: an
     /// account inserted without one gets it here, whoever inserts it (admin,
-    /// CLI, a project's own registration form).
+    /// CLI, a project's own registration form). Its dates too: a date the
+    /// writer sets itself is kept.
     async fn before_save<C>(mut self, _db: &C, insert: bool) -> Result<Self, DbErr>
     where
         C: ConnectionTrait,
@@ -78,8 +79,13 @@ impl ActiveModelBehavior for ActiveModel {
         if insert && self.id.is_not_set() {
             self.id = Set(uuid::Uuid::now_v7());
         }
-        #[cfg(not(feature = "pk-uuid"))]
-        let _ = insert;
+        let now = chrono::Utc::now().naive_utc();
+        if insert && !self.created_at.is_set() {
+            self.created_at = Set(Some(now));
+        }
+        if !self.updated_at.is_set() {
+            self.updated_at = Set(Some(now));
+        }
         Ok(self)
     }
 }

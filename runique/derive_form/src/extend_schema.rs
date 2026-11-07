@@ -182,7 +182,20 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
     // Extended columns go through the same generators as `model!{}` fields:
     // same Rust type, same conversion, same form field.
     let extended_defs: Vec<FieldDef> = dsl.fields.iter().map(form_field_to_field_def).collect();
-    let behavior = crate::model::utils::generate_active_model_behavior(&extended_defs);
+    // Same dates as the accounts' own entity: its `before_save` doesn't run here.
+    let account_dates = (table == "eihwaz_users").then(|| {
+        quote! {
+            let now = ::chrono::Utc::now().naive_utc();
+            if insert && !self.created_at.is_set() {
+                self.created_at = ::sea_orm::ActiveValue::Set(::std::option::Option::Some(now));
+            }
+            if !self.updated_at.is_set() {
+                self.updated_at = ::sea_orm::ActiveValue::Set(::std::option::Option::Some(now));
+            }
+        }
+    });
+    let behavior =
+        crate::model::utils::generate_active_model_behavior(&extended_defs, account_dates);
     let extended_fields: Vec<TokenStream2> =
         extended_defs.iter().map(generate_model_field).collect();
 
