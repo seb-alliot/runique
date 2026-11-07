@@ -158,3 +158,6 @@ Bénins classés (pas des avalages) : `write!(String,…)` (generator/parsers), 
 | **ER1** | Ligne d'erreur Tera jamais surlignée ; version de Rust lue à l'exécution | ✅ span de l'erreur ; `build.rs` |
 | **JS1** | `csrf.js` renvoyait un formulaire malgré `preventDefault()` (double envoi) | ✅ corrigé |
 | **DC1** | Code mort : `user_resource(_with_template)`, `success_redirect` | ✅ retirés (ruptures notées) |
+| **F20** | Clé primaire listée dans `#[form(fields = […])]` : compilait puis panique à chaque requête | ✅ refusée à la compilation (`PRIMARY_KEY` + assertion `const`) |
+| **AC2** | ACME : renouvellement décidé sur `expires.txt` (+60 j), aveugle à un certificat plus court, remplacé ou d'un autre domaine | ✅ décidé sur le certificat (domaine couvert, tiers de vie restant) ; `expires.txt` abandonné |
+| **T1** | Tests des modes `Delegated` / `Manual` du reset faussés par la config globale (`OnceLock`) d'un binaire partagé | ✅ un binaire par mode, qui vérifie que `password_get()` est le sien |

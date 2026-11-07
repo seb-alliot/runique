@@ -258,3 +258,34 @@ Mis à jour d'après le code (40 commits depuis la passe du 04 + lot non commit�
   (`changes()`), `uml/middleware/securite`, `uml/macros/macros` (`search!` littéral),
   `uml/context/extensions-et-middleware-config` (`display_time`).
 - `anomalies.md` : tableau « Passe du 2026-11-05 au 2026-11-07 ».
+
+Complément du même jour (après CI verte) : `uml/derive_form/proc-macro.md` et `uml/forms/formulaires.md`
+(refus de la PK à la compilation, `PRIMARY_KEY`, `__same_name`), `uml/app/builder-staging.md`
+(ACME décidé sur le certificat), `anomalies.md` (F20, AC2, T1).
+
+## Session 2026-11-07 (soir) — validation empirique + code livré
+
+Code livré cette session, CI verte (confirmée par Sébastien) :
+- Refus de la PK à la compilation dans `#[form(fields=[...])]` (`PRIMARY_KEY` généré par
+  `model!`/`extend!`, écrit à la main dans `auth/user.rs`, `__same_name` const, doctest
+  `compile_fail,E0080`). Diagrammes déjà à jour (voir complément ci-dessus).
+- ACME : renouvellement décidé sur le certificat lui-même (`x509-parser`, domaine couvert +
+  tiers de vie restant), `expires.txt` abandonné ; correction `axum-server` 0.9
+  (`parse::<SocketAddr>()`). Diagramme `uml/app/builder-staging` à jour.
+- Tests des modes de reset (`Delegated`/`Manual`) sortis en deux binaires
+  (`tests/reset_delegated.rs`, `reset_manual.rs`) à cause du `password_init` global par
+  processus. Pas d'impact diagramme.
+
+Pentest local (demo-app sur 127.0.0.1, Postgres local) — VALIDE les diagrammes `uml/admin/*`,
+`uml/auth/*` et `anomalies.md` contre l'app réelle :
+- Aucune faille : pas d'élévation de rang (plafonds admin/dirigeant tenus en POST direct),
+  pas de mass-assignment (colonnes interdites ignorées), pas de bypass, pas d'injection
+  SQL/XSS, CSRF/open-redirect/traversal refusés. En-têtes (CSP, HSTS, XFO), rate limiter et
+  cookie (HttpOnly, SameSite=Strict) conformes.
+- Grille d'admin volontairement incohérente neutralisée : `_own` sans colonne propriétaire
+  refusé, colonne `can_read=f` masquée, écriture table `eihwaz_*` refusée.
+- COMPORTEMENT VOULU confirmé (pas une anomalie) : un droit `read` au niveau table SANS
+  aucune colonne lisible → `authorize_list` refuse avec `NoReadableColumn` (`gate/check.rs:97`,
+  « a page of bare keys shows nothing »). Le menu montre la ressource (`visible_to` sur le
+  droit table) alors que la liste refuse — attendu. Candidat à documenter dans le diagramme
+  de la porte si on veut tracer cette règle.
