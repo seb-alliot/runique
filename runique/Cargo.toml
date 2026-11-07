@@ -31,6 +31,7 @@ toml = "1"
 [dependencies]
 # Reads the app's own Cargo.toml for the debug page (name, version).
 toml = "1"
+
 # Web framework
 axum.workspace = true
 tower.workspace = true
@@ -134,7 +135,8 @@ runique_dsl.workspace = true
 
 # ACME / TLS (feature acme)
 instant-acme = { version = "0.8.5", features = ["rcgen"], optional = true }
-axum-server = { version = "0.7", features = ["tls-rustls"], optional = true }
+x509-parser = { version = "0.18", optional = true }
+axum-server = { version = "0.9", features = ["tls-rustls"], optional = true }
 rustls = { version = "0.23", features = ["ring"], optional = true }
 
 # CLI
@@ -145,10 +147,11 @@ dialoguer.workspace = true
 
 
 [dev-dependencies]
-serial_test = "3"
+serial_test = "4.0.1"
 reqwest = { version = "0.13.2", features = ["json", "rustls", "cookies", "form"] }
 tracing-test = "0.2"
 syn.workspace = true
+rcgen = "0.14"
 
 [features]
 # `orm` est le plancher minimal : les sessions (middleware/session/session_db.rs)
@@ -166,7 +169,7 @@ mariadb = ["mysql"]
 all-databases = ["sqlite", "postgres", "mysql", "derive_form/all-databases"]
 big-pk = ["derive_form/big-pk", "runique_dsl/big-pk"]
 pk-uuid = ["derive_form/pk-uuid", "runique_dsl/pk-uuid", "sea-orm/with-uuid"]
-acme = ["dep:instant-acme", "dep:axum-server", "dep:rustls"]
+acme = ["dep:instant-acme", "dep:axum-server", "dep:rustls", "dep:x509-parser"]
 # The admin panel: module, routes, templates, `.with_admin`. Off by default:
 # without it, none of it is compiled. With it, the admin is still only served
 # once `.with_admin(…)` is called. The gate and `ModelMeta` (in `auth`) don't

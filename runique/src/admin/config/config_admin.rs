@@ -47,7 +47,6 @@ pub struct AdminConfig {
     /// serves no reset page, the admin sends no link.
     pub reset_link: Option<crate::auth::password::ResetLinkConfig>,
 
-
     /// Tera template for the password reset email from the admin.
     /// Default: "admin/reset_password_email.html"
     /// Available context: `username`, `email`, `reset_url`
@@ -184,7 +183,6 @@ impl AdminConfig {
         self.reset_password_email_template = Some(path.to_string());
         self
     }
-
 
     /// Enables rate limiting on the admin login route.
     ///

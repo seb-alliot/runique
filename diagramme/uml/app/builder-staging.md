@@ -89,16 +89,16 @@ sequenceDiagram
     participant LE as Let's Encrypt
     participant TLS as RustlsConfig
 
-    R->>R: cert.pem + key.pem + expires.txt sur disque ?
-    alt absent ou échéance passée
+    R->>R: key.pem présent et cert_needs_renewal(cert.pem, domaine) faux ?
+    alt absent, illisible, autre domaine ou moins d'un tiers de vie
         R->>O: obtain_and_store(domain, email, store, certs_dir)
         O->>LE: HTTP-01
-        O->>O: écrit cert.pem et expires.txt (now + 60 j), key.pem en 0600 par private_file
+        O->>O: écrit cert.pem, key.pem en 0600 par private_file
     end
     R->>TLS: from_pem
     loop toutes les 12 h
-        R->>R: renew_if_due(expires.txt)
-        opt échéance passée
+        R->>R: renew_if_due(cert.pem, domaine)
+        opt à renouveler
             R->>O: obtain_and_store
             O-->>TLS: reload_from_pem (sans redémarrage)
             Note over R: échec → warn, certificat courant gardé
