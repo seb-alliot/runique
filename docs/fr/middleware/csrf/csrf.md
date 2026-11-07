@@ -88,6 +88,8 @@ Runique gère ça à deux niveaux :
   champ, puis soumet — fonctionne même si la session a totalement expiré (le serveur en
   recrée une). L'utilisateur ne perd jamais sa saisie et ne voit l'échec CSRF que si le
   réseau est indisponible au moment de soumettre.
+  Un formulaire stoppé par `preventDefault()` (envoi en `fetch`, contrôle, confirmation) n'est
+  jamais renvoyé par ce script.
 
 Runique **ajoute ce script lui-même** : `request.render()` insère une seule balise avant `</body>`, avec le nonce CSP de la requête, dans toute page qui contient un champ CSRF, quelle qu'en soit l'origine (un formulaire Runique, `{% csrf %}`, le filtre `csrf_field` ou la fonction `csrf_token`). Une page à plusieurs formulaires reçoit une seule balise. Rien n'est ajouté à une page sans champ CSRF, à une page qui charge déjà `js/csrf.js`, ni à un fragment sans `</body>` (réponse HTMX).
 
