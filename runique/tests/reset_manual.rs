@@ -28,7 +28,11 @@ async fn manual_password_reset_hashes_with_its_algorithm() {
 
     let stored = support::stored_password(&db).await;
     assert_ne!(stored, support::NEW_PASSWORD, "never stored in plaintext");
-    assert_ne!(stored, support::SEEDED_HASH, "the reset wrote a new password");
+    assert_ne!(
+        stored,
+        support::SEEDED_HASH,
+        "the reset wrote a new password"
+    );
     assert!(
         PasswordService::new(config).verify(support::NEW_PASSWORD, &stored),
         "hashed by the Manual algorithm"
