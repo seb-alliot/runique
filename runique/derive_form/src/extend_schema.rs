@@ -394,6 +394,11 @@ fn generate_model_meta(table: &str) -> TokenStream2 {
 /// Generates `pub fn schema() -> ModelSchema { ... }` from the parsed DSL.
 pub(crate) fn generate_schema_fn(dsl: &ExtendDsl) -> TokenStream2 {
     let table = &dsl.table;
+    let pk_name = crate::registry::phantom_columns(table)
+        .iter()
+        .find(|c| matches!(c.pk, crate::registry::PkKind::Auto))
+        .map_or("id", |c| c.name);
+
     let col_defs: Vec<TokenStream2> = dsl
         .fields
         .iter()
@@ -401,6 +406,8 @@ pub(crate) fn generate_schema_fn(dsl: &ExtendDsl) -> TokenStream2 {
         .collect();
 
     quote! {
+        /// The primary key's column: the database sets it, `#[form]` refuses it.
+        pub const PRIMARY_KEY: &str = #pk_name;
         pub fn schema() -> ::runique::migration::schema::ModelSchema {
             ::runique::migration::schema::ModelSchema::new(#table)
                 .table_name(#table)

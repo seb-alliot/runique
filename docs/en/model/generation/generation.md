@@ -9,7 +9,8 @@ From the DSL read by `runique_dsl`, the macro generates, among others:
 - one Rust enum per entry of the `enums:` block;
 - the model's form (`{Model}ModelForm`, alias `Form`) and the functions the admin uses;
 - for each list field (`multichoice` / `checkbox`), the entity of its table and the methods `field()`, `set_field()`, `load_field()`;
-- a `schema() -> ModelSchema` function.
+- a `schema() -> ModelSchema` function;
+- a `PRIMARY_KEY` constant, the primary key's name (`#[form]` refuses that name in `fields`).
 
 ```rust
 pub fn schema() -> runique::migration::schema::ModelSchema {

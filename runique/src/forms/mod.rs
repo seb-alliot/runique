@@ -147,6 +147,16 @@ pub use validator::*;
 /// impl RuniqueForm for AccountForm {}
 /// ```
 ///
+/// Nor with its primary key: the database sets it.
+///
+/// ```compile_fail,E0080
+/// use runique::prelude::*;
+///
+/// #[form(schema = runique_users, fields = [id, username])]
+/// pub struct AccountForm;
+/// impl RuniqueForm for AccountForm {}
+/// ```
+///
 /// The three declarations that do:
 ///
 /// ```
@@ -166,4 +176,23 @@ pub use validator::*;
 /// ```
 pub trait FormEntity {
     type Entity: crate::auth::meta::ModelMeta;
+}
+
+/// Whether two names are the same, in a constant: `==` on `&str` isn't usable
+/// there. `#[form]` refuses the primary key at compile time with it.
+#[doc(hidden)]
+#[must_use]
+pub const fn __same_name(a: &str, b: &str) -> bool {
+    let (a, b) = (a.as_bytes(), b.as_bytes());
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut i = 0;
+    while i < a.len() {
+        if a[i] != b[i] {
+            return false;
+        }
+        i += 1;
+    }
+    true
 }

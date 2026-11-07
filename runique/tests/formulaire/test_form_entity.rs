@@ -69,6 +69,24 @@ impl runique::forms::RuniqueForm for SchemaForm {}
 pub struct PartialSchemaForm;
 impl runique::forms::RuniqueForm for PartialSchemaForm {}
 
+mod numbered {
+    use runique::prelude::*;
+
+    model! {
+        Ticket,
+        table: "fe_tickets",
+        pk: numero => i32,
+        {
+            title: text [required],
+        }
+    }
+}
+
+// A key named otherwise than `id`: the form that leaves it out compiles.
+#[runique::prelude::form(schema = numbered, fields = [title])]
+pub struct TicketForm;
+impl runique::forms::RuniqueForm for TicketForm {}
+
 fn entity_of<F: FormEntity<Entity = E>, E>() {}
 
 fn is_entity<F: FormEntity, E: 'static>() -> bool
@@ -247,4 +265,26 @@ async fn cleaned_reads_through_the_field_column() {
     );
     assert_eq!(form.cleaned::<i32>("views"), Some(7));
     assert_eq!(form.cleaned::<i64>("views"), None);
+}
+
+#[test]
+fn every_schema_names_its_primary_key() {
+    assert_eq!(blog::PRIMARY_KEY, "id");
+    assert_eq!(numbered::PRIMARY_KEY, "numero");
+    assert_eq!(groups::PRIMARY_KEY, "id");
+    assert_eq!(runique::prelude::runique_users::PRIMARY_KEY, "id");
+}
+
+#[test]
+fn the_names_compare_exactly() {
+    use runique::forms::__same_name;
+    assert!(__same_name("id", "id"));
+    assert!(__same_name("", ""));
+    assert!(
+        !__same_name("id", "ID"),
+        "a column name is matched as written"
+    );
+    assert!(!__same_name("id", "ids"), "a longer name");
+    assert!(!__same_name("ids", "id"), "a shorter name");
+    assert!(!__same_name("id", "ix"), "same length, another letter");
 }
