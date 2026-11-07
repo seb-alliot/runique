@@ -113,22 +113,6 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 | Version | Faille | Sévérité |
 |---------|--------|----------|
-| 2.1.9 | Injection SQL dans les filtres de liste admin | Élevée |
-| 2.1.9 | Fixation de session au login (cycle_id manquant) | Moyenne |
-| 2.1.9 | Granularité droits write admin (create/update/delete indistincts) | Moyenne |
-| 2.1.9 | IDOR — can_update_own/can_delete_own non appliqués | Faible |
-| 2.1.15 | Énumération d'utilisateurs via timing attack au login | Moyenne |
-| 2.1.15 | Contrôle d'accès manquant sur l'action admin reset-password | Moyenne |
-| 2.1.17 | Tokens de reset : mémoire → DB (hashés, single-use, durcis IDOR) | Durcissement |
-| 3.0.3 | `bulk_create` : le seul droit de création permettait de modifier des lignes existantes | Élevée |
-| 3.0.3 | Un membre du staff pouvait prendre le compte d'un superutilisateur (changement d'email + réinitialisation) | Élevée |
-| 3.0.3 | Open redirect via une tabulation, un `Location` non ASCII ou l'en-tête `Refresh` | Moyenne |
-| 3.0.2 | XSS stockée via un upload en staging (chemin réaffiché, dossier servi sans CSP) | Élevée |
-| 3.0.2 | Fichiers écrits sur disque avant la vérification CSRF (multipart) | Moyenne |
-| 3.0.2 | Open redirect via identifiant dans l'URL (`site.com:x@evil.com`) | Moyenne |
-| 3.0.2 | Corps urlencoded/JSON sans limite de taille | Moyenne |
-| 3.0.2 | Reset-password admin possible depuis une ressource hors comptes | Faible |
-| 3.0.2 | Admin : jeton CSRF brut accepté (masquage BREACH contourné) | Durcissement |
 | 4.0.0 | Timing « mot de passe oublié » (réponse plus rapide pour adresse inconnue) | Faible |
 | 4.0.0 | Message admin superuser trop révélateur | Faible |
 | 4.0.0 | `csrf.js` envoyait le jeton CSRF hors origine | Moyenne |
@@ -146,6 +130,22 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 | 4.0.0 | Fichiers validés avant d'être entièrement écrits : un fichier au-delà de la limite d'un champ pouvait passer | Moyenne |
 | 4.0.0 | Compte créé sans son activation dans un projet généré par `runique new` | Faible |
 | 4.0.0 | Scripts `add_js` sans hash SRI ni nonce CSP | Durcissement |
+| 3.0.3 | `bulk_create` : le seul droit de création permettait de modifier des lignes existantes | Élevée |
+| 3.0.3 | Un membre du staff pouvait prendre le compte d'un superutilisateur (changement d'email + réinitialisation) | Élevée |
+| 3.0.3 | Open redirect via une tabulation, un `Location` non ASCII ou l'en-tête `Refresh` | Moyenne |
+| 3.0.2 | XSS stockée via un upload en staging (chemin réaffiché, dossier servi sans CSP) | Élevée |
+| 3.0.2 | Fichiers écrits sur disque avant la vérification CSRF (multipart) | Moyenne |
+| 3.0.2 | Open redirect via identifiant dans l'URL (`site.com:x@evil.com`) | Moyenne |
+| 3.0.2 | Corps urlencoded/JSON sans limite de taille | Moyenne |
+| 3.0.2 | Reset-password admin possible depuis une ressource hors comptes | Faible |
+| 3.0.2 | Admin : jeton CSRF brut accepté (masquage BREACH contourné) | Durcissement |
+| 2.1.17 | Tokens de reset : mémoire → DB (hashés, single-use, durcis IDOR) | Durcissement |
+| 2.1.15 | Énumération d'utilisateurs via timing attack au login | Moyenne |
+| 2.1.15 | Contrôle d'accès manquant sur l'action admin reset-password | Moyenne |
+| 2.1.9 | Injection SQL dans les filtres de liste admin | Élevée |
+| 2.1.9 | Fixation de session au login (cycle_id manquant) | Moyenne |
+| 2.1.9 | Granularité droits write admin (create/update/delete indistincts) | Moyenne |
+| 2.1.9 | IDOR — can_update_own/can_delete_own non appliqués | Faible |
 
 ---
 
