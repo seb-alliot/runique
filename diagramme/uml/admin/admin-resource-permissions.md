@@ -201,6 +201,13 @@ Trois niveaux, dans l'ordre (tout « non » → même `Refusal`) :
 2. **Droits du compte** — rang ou groupes (`CrudAction` / `ColumnRights`) ;
 3. **Règles métier du projet** — ne peuvent que restreindre.
 
+Lire une ressource demande une colonne lisible : `authorize_list` / `authorize_view`
+appellent `readable_columns` (`gate/check.rs`), qui refuse (`NoReadableColumn`) quand aucune
+colonne hors clé n'est lisible — « a page of bare keys shows nothing ». Un droit `can_read`
+posé au **niveau table sans aucune colonne** cochée donne donc une liste **refusée** : la
+ressource reste dans la nav (`visible_to` passe sur le droit table), mais la liste et le détail
+sont refusés. Comportement voulu, pas une anomalie.
+
 `Authorized` n'est ni `Clone` ni `Copy` : une écriture le consomme. Son
 constructeur est `pub(in crate::auth::gate)` — un court-circuit hors du module
 apparaît comme un changement de visibilité en revue.
@@ -333,6 +340,7 @@ sequenceDiagram
 | **A7** (pas de `get_queryset`) | Toujours ouvert côté design : le gate accepte des règles métier restrictives, pas encore d'API publique « queryset » arbitraire type Django | 🟡 backlog |
 | **Gate** | Preuve non clonable + `WHERE` rejoué à l'écriture → TOCTOU d'une ligne concurrente = refus (0 row), pas d'écriture fantôme | design voulu |
 | **can_read_own** | Colonne présente en base ; résolution rang/grille opérationnelle. Vérifier la couverture UI grille si un admin doit la cocher | à surveiller |
+| **NoReadableColumn** | Droit `read` table sans colonne lisible → liste/détail refusés, ressource visible en nav | voulu (doc permissions) |
 
 Voir aussi [admin-complements.md](admin-complements.md) (templates, history, middleware)
 et [../auth/authentification.md](../auth/authentification.md).

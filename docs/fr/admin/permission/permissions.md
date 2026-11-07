@@ -75,9 +75,12 @@ connecté ?
                           admin     → sa grille (table × colonne)
                           lambda    → union de ses groupes, jamais une table du framework
                         └─ can_read ? non → ressource absente de la nav
-                                      oui → liste, colonnes cochées seulement
-                                            can_create / can_update / can_delete
-                                            (_own : ses propres lignes)
+                                      oui → ressource dans la nav
+                                            au moins une colonne lisible ?
+                                              non → liste refusée (rien à montrer)
+                                              oui → liste, colonnes cochées seulement
+                                                    can_create / can_update / can_delete
+                                                    (_own : ses propres lignes)
 ```
 
 ---
@@ -95,6 +98,7 @@ Le filtre de rang limite les lignes qu'une preuve peut toucher, selon le rang d�
 - `ModelAdmin` ne déclare pas de permissions : la configuration est entièrement en base.
 - Pour un lambda, les droits sont l'union (OU logique) de ses groupes, recalculée à chaque requête.
 - Un utilisateur peut avoir `can_read` sans `can_create` — il voit la liste mais ne peut pas créer.
+- Cocher `can_read` sur une table **sans cocher aucune colonne** rend la liste inaccessible : il n'y a rien à montrer (une page de clés nues), donc elle est refusée. La ressource apparaît quand même dans le menu. Il faut cocher au moins une colonne en lecture.
 - Les colonnes secrètes et les rangs restent hors formulaire, y compris pour un superuser (refus au boot). Le détail des drapeaux est au-dessus.
 
 ---

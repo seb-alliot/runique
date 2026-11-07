@@ -128,6 +128,11 @@ Flux de construction d'un `#[form(schema=…)]` :
 **`Self::customize(form)`** → `enforce_limits` (`apply_column_type` en dernier) →
 `set_name` + nonce + paramètres d'URL → `fill(raw)` seulement si le nom revient → `validate`.
 
+La clé primaire n'est jamais un champ : exclue par `fill_form` sans liste blanche, refusée à la
+compilation dans `fields = [...]` (via `Schema::PRIMARY_KEY`, voir
+[../derive_form/proc-macro.md](../derive_form/proc-macro.md)) — avant, elle compilait puis
+`fill_form` paniquait à chaque requête.
+
 `FormAccess` est généré par `#[form]`. `build`/`build_with_data` n'existent plus ; en test : `build_form_for_test(tera, token, nom)`.
 
 Flux `ValidationForm<F>::try_form(form, request)` (remplace le boilerplate

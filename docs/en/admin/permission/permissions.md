@@ -75,9 +75,12 @@ signed in?
                           admin     → its grid (table × column)
                           lambda    → union of its groups, never a framework table
                         └─ can_read? no  → resource missing from the nav
-                                     yes → list, ticked columns only
-                                           can_create / can_update / can_delete
-                                           (_own: own rows)
+                                     yes → resource in the nav
+                                           at least one readable column?
+                                             no  → list refused (nothing to show)
+                                             yes → list, ticked columns only
+                                                   can_create / can_update / can_delete
+                                                   (_own: own rows)
 ```
 
 ---
@@ -95,6 +98,7 @@ The rank filter limits which rows a proof may touch, from the rank already store
 - `ModelAdmin` does not declare permissions: configuration is entirely in the database.
 - Permissions are aggregated with logical OR across all of the user's groups.
 - A user can have `can_read` without `can_create` — they see the list but cannot create.
+- Ticking `can_read` on a table **without ticking any column** makes the list unreachable: there is nothing to show (a page of bare keys), so it is refused. The resource still appears in the menu. Tick at least one column for reading.
 - Secret columns and ranks stay out of forms, including for a superuser (refused at boot). The rank-flag detail is above.
 
 ---

@@ -132,6 +132,14 @@ primaire de la cible (lue sur son entité, `PrimaryKey::iter()`), avec ses actio
 `#[form(schema=Path)]` délègue à `Schema::schema()` au **runtime**. Le registre fantôme ne
 couvre que les tables builtin `eihwaz_*`.
 
+À la **compilation**, `#[form]` vérifie chaque nom de `fields` / `exclude` (`Path::Column::Variant`)
+et refuse la clé primaire dans `fields` : `model!{}`, `extend!{}` et `runique_users` exposent
+`pub const PRIMARY_KEY: &str`, et `#[form]` émet pour chaque nom
+`assert!(!__same_name(Path::PRIMARY_KEY, "nom"), "…")` dans un `const _` (erreur E0080 sur le
+nom). Le refus suit le nom réel de la PK (`pk: numero => i32` refuse `numero`). `__same_name`
+(`forms/mod.rs`, `doc(hidden)`) compare deux `&str` en `const`, `==` n'y étant pas utilisable.
+C'est la piste « `const` émise par `model!{}` + `const assert!` » de DF1, appliquée à la PK.
+
 ## Anomalies / flux suspects
 
 ### 🟡 DF1 — Validation des bornes d'override impossible à l'expansion cross-macro
