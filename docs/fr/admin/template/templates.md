@@ -60,7 +60,7 @@ Une page qui étend `admin_base.html` (ou `admin/admin_template.html`) peut red�
 | [Mise en place](/docs/fr/admin/setup) | Câbler l'admin dans un projet existant, créer un superuser |
 | [Déclaration](/docs/fr/admin/declaration) | Workflow `AdminStaging`, `AdminSite`, `ModelAdmin` |
 | [Permissions](/docs/fr/admin/permission) | Rangs, droits par compte et par groupe, vérification à chaque requête |
-| [Évolutions](/docs/fr/admin/evolution) | Axes d'évolution et état bêta |
+| [Évolutions](/docs/fr/admin/evolution) | Axes d'évolution et état aperçu |
 
 ## Revenir au menu
 

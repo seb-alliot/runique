@@ -46,7 +46,7 @@ RuniqueApp::builder(config)
 
 ## `SecurityPolicy::strict()`
 
-Plus restrictif que `default()` : ajoute `upgrade-insecure-requests` et force le nonce. À utiliser en production pour une sécurité maximale.
+Plus restrictif que `default()` : ajoute `upgrade-insecure-requests` et retire `'unsafe-inline'` de la base de `style-src` (styles nonce-only). Le nonce, lui, est déjà actif sur tous les profils — `strict()` ne le change pas. À utiliser en production pour une sécurité maximale.
 
 ```rust,ignore
 RuniqueApp::builder(config)

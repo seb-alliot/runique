@@ -45,7 +45,7 @@
                 </a>
 
                 <a href="{% link "admin_surcharge" %}" class="feature-card">
-                    <h3>{% if ui_lang == "fr" %}Surcharge de templates{% else %}Template override{% endif %} <span>(beta)</span></h3>
+                    <h3>{% if ui_lang == "fr" %}Surcharge de templates{% else %}Template override{% endif %} <span>({% if ui_lang == "fr" %}aperçu{% else %}preview{% endif %})</span></h3>
                     <p>{% if ui_lang == "fr" %}Personnaliser les templates de l'admin : tableau de bord, liste, formulaire{% else %}Customize admin templates: dashboard, list, form{% endif %}</p>
                 </a>
 

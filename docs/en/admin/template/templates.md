@@ -60,7 +60,7 @@ Written directly in `admin/admin_template.html`, no override removes them (excep
 | [Setup](/docs/en/admin/setup) | Wire the admin into an existing project, create a superuser |
 | [Declaration](/docs/en/admin/declaration) | `AdminStaging`, `AdminSite`, `ModelAdmin` workflow |
 | [Permissions](/docs/en/admin/permission) | Ranks, rights per account and per group, checked on every request |
-| [Roadmap](/docs/en/admin/evolution) | Planned features and beta status |
+| [Roadmap](/docs/en/admin/evolution) | Planned features and preview status |
 
 ## Back to menu
 
