@@ -13,7 +13,8 @@ use crate::backend::{
     inject_globals, split_markdown_sections,
 };
 use crate::formulaire::{
-    BlogForm, ContributionForm, DeleteAccountForm, ImageForm, LoginForm, RegisterForm, SearchDemoForm,
+    BlogForm, ContributionForm, DeleteAccountForm, ImageForm, LoginForm, RegisterForm,
+    SearchDemoForm,
 };
 use runique::prelude::*;
 

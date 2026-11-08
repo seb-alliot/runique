@@ -65,7 +65,11 @@ pub async fn handle_delete_account(
         .await
         .filter(|account| account.id == user_id);
     let Some(account) = account else {
-        let error = msg(&request.headers, "Wrong password: your account was not deleted.", "Mot de passe incorrect : votre compte n'a pas été supprimé.");
+        let error = msg(
+            &request.headers,
+            "Wrong password: your account was not deleted.",
+            "Mot de passe incorrect : votre compte n'a pas été supprimé.",
+        );
         if let Some(field) = form.forms_mut().fields.get_mut("password") {
             field.set_error(error.to_string());
         }
@@ -74,7 +78,11 @@ pub async fn handle_delete_account(
     // A ranked account goes through the rank management: the site must keep a
     // dirigeant while admins remain.
     if !matches!(Rang::from(&account), Rang::Lambda) {
-        let error = msg(&request.headers, "A team account cannot delete itself: ask a dirigeant.", "Un compte de l'équipe ne peut pas se supprimer lui-même : adressez-vous à un dirigeant.");
+        let error = msg(
+            &request.headers,
+            "A team account cannot delete itself: ask a dirigeant.",
+            "Un compte de l'équipe ne peut pas se supprimer lui-même : adressez-vous à un dirigeant.",
+        );
         form.forms_mut().errors.push(error.to_string());
         return render_profile(request, form, true).await;
     }
@@ -91,7 +99,11 @@ pub async fn handle_delete_account(
     match deleted {
         Ok(result) if result.rows_affected == 1 => {}
         Ok(_) => {
-            let error = msg(&request.headers, "Your account could not be deleted, try again later.", "Votre compte n'a pas pu être supprimé, réessayez plus tard.");
+            let error = msg(
+                &request.headers,
+                "Your account could not be deleted, try again later.",
+                "Votre compte n'a pas pu être supprimé, réessayez plus tard.",
+            );
             form.forms_mut().errors.push(error.to_string());
             return render_profile(request, form, true).await;
         }
