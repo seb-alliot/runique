@@ -50,7 +50,7 @@
     {% endif %}
 
     <div class="back-link">
-        <a href="{% if ui_lang == "fr" %}https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md{% else %}https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md{% endif %}" target="_blank" rel="noopener" class="btn btn-secondary">Documentation</a>
+        <a href="{% if ui_lang == "fr" %}/docs/fr/orm{% else %}/docs/en/orm{% endif %}" class="btn btn-secondary">Documentation</a>
         <a href="{% link "index" %}">{% if ui_lang == "fr" %}← Retour à l'accueil{% else %}← Back to home{% endif %}</a>
     </div>
 </div>

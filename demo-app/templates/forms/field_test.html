@@ -51,7 +51,7 @@
     {% endif %}
 
     <div class="back-link">
-        <a href="{% if ui_lang == "fr" %}https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/champs/champs.md{% else %}https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/fields/fields.md{% endif %}" target="_blank" rel="noopener" class="btn btn-secondary">Documentation</a>
+        <a href="{% if ui_lang == "fr" %}/docs/fr/formulaire/champs{% else %}/docs/en/formulaire/fields{% endif %}" class="btn btn-secondary">Documentation</a>
         <a href="{% link "formulaires_champs" %}">← Back to declaration</a>
     </div>
 </div>

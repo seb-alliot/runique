@@ -8,7 +8,7 @@ use crate::views::{
     llms_full_txt, llms_txt, login_user, macros_demo, middleware_csp, middleware_csrf,
     middleware_hosts, middleware_https, middleware_hub, middleware_login_guard,
     middleware_rate_limit, migrations_demo, model_demo, orm_demo, probleme_connu, profil,
-    propos_template_error, readme_en, readme_fr, releases, releases_security, releases_status,
+    propos_template_error, readme_en, supprimer_compte, readme_fr, releases, releases_security, releases_status,
     rgpd, roadmap, router_demo, rust_django_framework, security_txt, session_demo, set_language,
     sitemap_xml, soumission_inscription, surcharge_exemple, template_demo, test_csrf, test_fields,
     upload_image_submit, view_cours_detail, view_cours_index,
@@ -123,4 +123,5 @@ pub fn routes() -> Routes {
     .rate_limit("/upload-image",  "upload_image",  view!(upload_image_submit),   5,  60,  vec![Method::POST])
     .rate_limit("/inscription",   "inscription",   view!(soumission_inscription), 5, 300, vec![Method::POST])
     .rate_limit("/login",         "login",         view!(login_user),             10,  60, vec![Method::POST])
+    .rate_limit("/profil/supprimer", "supprimer_compte", view!(supprimer_compte), 3, 300, vec![Method::POST])
 }

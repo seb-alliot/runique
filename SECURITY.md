@@ -144,7 +144,7 @@ The main 4.0 fixes are described under "Active Advisories (fixed in 4.0)" above.
 If you discover a security vulnerability in Runique itself (not dependencies), please:
 
 1. **Do NOT** open a public issue
-2. Email: alliotsebastien04@gmail.com
+2. Email: runique.framework.web@gmail.com
 3. Include:
    - Description of the vulnerability
    - Steps to reproduce
