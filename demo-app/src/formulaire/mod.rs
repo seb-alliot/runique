@@ -18,4 +18,3 @@ pub use contribution::ContributionForm;
 
 pub mod search_demo;
 pub use search_demo::SearchDemoForm;
-
