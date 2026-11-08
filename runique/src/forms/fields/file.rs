@@ -1717,7 +1717,10 @@ mod guarantees {
             let error = error.expect("refused").clone();
             assert!(!error.contains(&root), "no MEDIA_ROOT: {error}");
             assert!(!error.contains(".staging-"), "no staging folder: {error}");
-            assert!(!error.contains(name), "the reason only, no file name: {error}");
+            assert!(
+                !error.contains(name),
+                "the reason only, no file name: {error}"
+            );
         };
 
         // Content refused (not a video).

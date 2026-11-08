@@ -148,10 +148,7 @@ impl UploadMedia {
             if !self.allowed_extensions.is_allowed(filename) {
                 let exts = self.allowed_extensions.extensions.join(", ");
                 cleanup_files(&files).await;
-                return UploadCheck::Refused(tf(
-                    "forms.file_extension_blocked",
-                    &[exts.as_str()],
-                ));
+                return UploadCheck::Refused(tf("forms.file_extension_blocked", &[exts.as_str()]));
             }
             // A path already stored (`plats/x.png`, no file at that path, kept
             // as is by `finalize`) has nothing to measure; a real file or an
