@@ -13,6 +13,9 @@ pub use image::ImageForm;
 pub mod login;
 pub use login::LoginForm;
 
+pub mod delete_account;
+pub use delete_account::DeleteAccountForm;
+
 pub mod contribution;
 pub use contribution::ContributionForm;
 

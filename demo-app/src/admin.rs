@@ -23,8 +23,10 @@ pub fn config(admin: AdminStaging) -> AdminStaging {
         .sitemap("https://runique.io/sitemap.xml")
         .path("/admin-runique/")
         .prefix("/prefix-test")
-        // Where the top bar's "← Site" link leads (default: `/`).
-        .view_site_url("https://runique.io")
+        // Where the "← Site" links lead, in the top bar and on the sign-in
+        // page shown after a sign-out (default: `/`). A relative path works
+        // locally and in production alike.
+        .view_site_url("/")
         .with_rate_limiter(RateLimiter::new().max_requests(20).retry_after(3600))
         .with_login_guard(LoginGuard::new().max_attempts(20).lockout_secs(300))
         .page_size(15)

@@ -144,7 +144,7 @@ Les principaux correctifs de la 4.0 sont décrits plus haut, dans « Failles en 
 Si vous découvrez une vulnérabilité dans Runique lui-même (pas dans ses dépendances) :
 
 1. **N'ouvrez pas** d'issue publique
-2. Écrivez à : alliotsebastien04@gmail.com
+2. Écrivez à : runique.framework.web@gmail.com
 3. Indiquez :
    - la description de la vulnérabilité
    - les étapes pour la reproduire

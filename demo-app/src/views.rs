@@ -1,6 +1,7 @@
 use crate::backend::lang::{msg, visitor_lang};
 use crate::backend::{
-    auth::{get_profile_user, handle_activate, handle_inscription, handle_login},
+    account::{handle_delete_account, render_profile},
+    auth::{handle_activate, handle_inscription, handle_login},
     blog::{get_article, handle_blog_save, list_articles},
     comparatif::{comparatif_detail_page, comparatif_page},
     contribution::{handle_contribution_submit, list_contributions},
@@ -12,7 +13,7 @@ use crate::backend::{
     inject_globals, split_markdown_sections,
 };
 use crate::formulaire::{
-    BlogForm, ContributionForm, ImageForm, LoginForm, RegisterForm, SearchDemoForm,
+    BlogForm, ContributionForm, DeleteAccountForm, ImageForm, LoginForm, RegisterForm, SearchDemoForm,
 };
 use runique::prelude::*;
 
@@ -68,24 +69,23 @@ pub async fn deconnexion(request: Request) -> AppResult<Response> {
     Ok(Redirect::to("/").into_response())
 }
 
+pub async fn supprimer_compte(mut request: Request) -> AppResult<Response> {
+    if !is_authenticated(&request.session).await {
+        return Ok(Redirect::to("/login").into_response());
+    }
+    let form: DeleteAccountForm = request.form("delete_account");
+    let form = form.in_language(&request.headers);
+    handle_delete_account(&mut request, form).await
+}
+
 pub async fn profil(mut request: Request) -> AppResult<Response> {
-    inject_globals(&mut request).await;
     if !is_authenticated(&request.session).await {
         warning!(request.notices => msg(&request.headers, "Please log in to access your profile.", "Connectez-vous pour accéder à votre profil."));
         return Ok(Redirect::to("/login").into_response());
     }
-    let user_id = request.user.as_ref().map(|user| user.id);
-    let username = request.user.as_ref().map(|user| user.username.clone());
-    let (user_opt, user_by_username) =
-        get_profile_user(user_id, username.as_deref(), &request.engine.db).await;
-    context_update!(request => {
-        "title"        => "My profile",
-        "username"     => &username,
-        "profile_user" => &user_opt,
-        "profile_user_by_username" => &user_by_username,
-        "connected"    => &true,
-    });
-    request.render("profile/profile.html")
+    let delete_form: DeleteAccountForm = request.form("delete_account");
+    let delete_form = delete_form.in_language(&request.headers);
+    render_profile(&mut request, delete_form, false).await
 }
 
 // ─── Blog ─────────────────────────────────────────────────────────────────────
@@ -585,7 +585,7 @@ pub async fn force_to_many_requests(_: Request) -> Response {
 }
 
 pub async fn security_txt() -> &'static str {
-    "Contact: mailto:alliotsebastien04@gmail.com\n\
+    "Contact: mailto:runique.framework.web@gmail.com\n\
         Expires: 2027-12-31T23:59:59.000Z\n\
         Preferred-Languages: fr, en\n\
         Canonical: https://runique.io/.well-known/security.txt\n"

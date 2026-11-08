@@ -45,8 +45,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 5rem;
-    height: 5rem;
+    width: 7em;
+    height: 7em;
     border: 1px solid var(--border);
     border-radius: 50%;
     background: var(--accent-active);
@@ -134,6 +134,68 @@
     display: contents;
 }
 
+/* Account deletion: folded by default, under the actions. */
+.profile-delete {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+}
+
+.profile-delete summary {
+    cursor: pointer;
+    color: var(--msg-error-text);
+}
+
+.profile-delete p {
+    margin: 0.75rem 0;
+}
+
+.profile-delete-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* The field rendered by `{% form.delete_form %}`: label above, full width,
+   same look as the site's other forms (inscription.css). */
+.profile-delete-form label {
+    display: block;
+    margin-bottom: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-nav);
+}
+
+.profile-delete-form input[type="password"] {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    color: var(--text-main);
+    font: inherit;
+    transition: border-color 0.15s;
+}
+
+.profile-delete-form input[type="password"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-active);
+}
+
+.profile-delete-form .error input,
+.profile-delete-form input.is-invalid {
+    border-color: var(--error-color);
+}
+
+.profile-delete-form .error-message,
+.profile-delete-form .invalid-feedback {
+    margin-top: 0.25rem;
+    font-size: 0.8125rem;
+    color: var(--msg-error-text);
+}
+
 @media (min-width: 40rem) {
     .profile-card { padding: 2rem; }
 
@@ -152,3 +214,40 @@
 
     .profile-actions .btn { width: auto; }
 }
+
+/* Account deletion confirmation (profil.js). */
+.profile-dialog {
+    /* The site's reset drops the browser's `margin: auto` that centres a
+       modal dialog: put it back, both axes. */
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    height: fit-content;
+    max-width: 26rem;
+    width: calc(100% - 2rem);
+    padding: 1.5rem;
+    background: var(--bg-surface);
+    color: var(--text-main);
+    border: 1px solid var(--error-color);
+    border-radius: 0.5rem;
+}
+
+.profile-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.profile-dialog h2 {
+    margin: 0 0 0.75rem;
+    font-size: 1.125rem;
+}
+
+.profile-dialog p {
+    margin: 0 0 1.25rem;
+}
+
+.profile-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+

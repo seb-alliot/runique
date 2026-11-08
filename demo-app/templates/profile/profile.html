@@ -64,13 +64,40 @@
         <div class="profile-actions">
             <a href='{% link "blog_info" %}' class="btn btn-primary">{% if ui_lang == "fr" %}Écrire un article{% else %}Write an article{% endif %}</a>
             <a href='{% link "index" %}' class="btn btn-secondary">{% if ui_lang == "fr" %}Retour à l'accueil{% else %}Back to home{% endif %}</a>
-            <a href="{% if ui_lang == "fr" %}https://github.com/seb-alliot/runique/blob/main/docs/fr/session/14-sessions.md{% else %}https://github.com/seb-alliot/runique/blob/main/docs/en/session/14-sessions.md{% endif %}" target="_blank" rel="noopener" class="btn btn-secondary">Documentation</a>
+            <a href="{% if ui_lang == "fr" %}/docs/fr/session{% else %}/docs/en/session{% endif %}" class="btn btn-secondary">Documentation</a>
             {# Strict CSP: use class="form-inline", not an inline style="display:inline" #}
             <form method="post" action='{% link "logout" %}' class="form-inline">
-                {% csrf %}
                 <button type="submit" class="btn btn-danger">{% if ui_lang == "fr" %}Se déconnecter{% else %}Sign out{% endif %}</button>
             </form>
         </div>
+
+        {% if profile_user %}
+        <details class="profile-delete"{% if delete_open %} open{% endif %}>
+            <summary>{% if ui_lang == "fr" %}Supprimer mon compte{% else %}Delete my account{% endif %}</summary>
+            <p>
+                {% if ui_lang == "fr" %}Votre compte et vos contributions seront supprimés définitivement. Confirmez avec votre mot de passe.{% else %}Your account and your contributions will be deleted for good. Confirm with your password.{% endif %}
+            </p>
+            <form id="delete_account_form" method="post" action='{% link "supprimer_compte" %}' class="profile-delete-form">
+                {% form.delete_form %}
+                <button type="submit" class="btn btn-danger">{% if ui_lang == "fr" %}Supprimer définitivement{% else %}Delete for good{% endif %}</button>
+            </form>
+        </details>
+
+        {# Last confirmation, opened by profil.js; without JavaScript the form
+           posts straight away, the password being the confirmation. #}
+        <dialog id="delete_account_dialog" class="profile-dialog" aria-labelledby="delete_account_dialog_title">
+            <h2 id="delete_account_dialog_title">{% if ui_lang == "fr" %}Supprimer votre compte ?{% else %}Delete your account?{% endif %}</h2>
+            <p>{% if ui_lang == "fr" %}Cette action est irréversible : votre compte et vos contributions seront effacés.{% else %}This cannot be undone: your account and your contributions will be erased.{% endif %}</p>
+            <div class="profile-dialog-actions">
+                <button type="button" class="btn btn-secondary" data-dialog-cancel>{% if ui_lang == "fr" %}Annuler{% else %}Cancel{% endif %}</button>
+                <button type="button" class="btn btn-danger" data-dialog-confirm>{% if ui_lang == "fr" %}Oui, supprimer{% else %}Yes, delete{% endif %}</button>
+            </div>
+        </dialog>
+        {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script {% csp %} src="{% static "js/profil.js" %}"></script>
 {% endblock %}
