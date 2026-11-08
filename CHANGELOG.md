@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [4.0.0] - unreleased
+## [4.0.0] - 2026-11-08
 
 ### Security
 

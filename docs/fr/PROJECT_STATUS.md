@@ -2,9 +2,9 @@
 
 Ce qui reste à faire pour que `makemigrations` génère toutes les opérations de schéma. La suite du projet est dans la [feuille de route](https://github.com/seb-alliot/runique/blob/main/ROADMAP.fr.md).
 
-**Dernière mise à jour** : 7 novembre 2026
+**Dernière mise à jour** : 8 novembre 2026
 
-## 4.1 : makemigrations complet (prochain chantier)
+## 4.1 : makemigrations complet (en cours)
 
 | État | Étape |
 |:---:|---|
