@@ -10,10 +10,9 @@ use crate::backend::{
     fetch_known_issues,
     forms::{extract_helpers_data, get_field_groups, handle_upload_image},
     inject_globals, split_markdown_sections,
-    upload_media::handle_upload_media,
 };
 use crate::formulaire::{
-    BlogForm, ContributionForm, ImageForm, LoginForm, MediaForm, RegisterForm, SearchDemoForm,
+    BlogForm, ContributionForm, ImageForm, LoginForm, RegisterForm, SearchDemoForm,
 };
 use runique::prelude::*;
 
@@ -141,16 +140,6 @@ pub async fn upload_image_submit(mut request: Request) -> AppResult<Response> {
         return Ok(Redirect::to("/login").into_response());
     }
     handle_upload_image(&mut request, form).await
-}
-
-pub async fn upload_media(mut request: Request) -> AppResult<Response> {
-    let form: MediaForm = request.form("media");
-    let form = form.in_language(&request.headers);
-    if !is_authenticated(&request.session).await {
-        warning!(request.notices => msg(&request.headers, "Please log in to access your profile.", "Connectez-vous pour accéder à votre profil."));
-        return Ok(Redirect::to("/login").into_response());
-    }
-    handle_upload_media(&mut request, form).await
 }
 
 pub async fn test_fields(mut request: Request) -> AppResult<Response> {

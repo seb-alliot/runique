@@ -450,14 +450,17 @@ async fn test_image_one_pixel_too_wide_or_too_tall_is_refused() {
 }
 
 #[tokio::test]
-async fn test_file_too_large_reports_both_sizes_in_mb() {
+async fn test_file_too_large_reports_the_maximum_size() {
     let (_big, path) = temp_path("big.pdf");
     std::fs::write(&path, vec![0u8; 5 * 512 * 1024]).unwrap(); // 2.5 MB
     let mut f = FileField::document("doc").max_size(FileSize::mb(1));
     f.set_value(&path);
     assert!(!f.validate().await);
     let err = f.error().cloned().unwrap_or_default();
-    assert!(err.contains("2.5") && err.contains("1.0"), "{err}");
+    // A generic message with the limit: the stored name is a random UUID,
+    // which tells the visitor nothing.
+    assert!(err.contains("1.0"), "the maximum size: {err}");
+    assert!(!err.contains("big"), "no file name: {err}");
 
     // The other side: a file under the limit passes.
     let (_small, small) = temp_path("small.pdf");

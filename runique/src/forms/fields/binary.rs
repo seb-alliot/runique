@@ -133,17 +133,11 @@ impl FormField for BinaryField {
         if let Some(max) = self.max_size
             && size > max
         {
-            let mb = |bytes: u64| format!("{:.1}", bytes as f64 / (1024.0 * 1024.0));
-            let name = std::path::Path::new(&val)
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or_default()
-                .to_string();
             let _ = tokio::fs::remove_file(&val).await;
             self.base.value.clear();
             self.set_error(tf(
                 "forms.file_too_large",
-                &[name.as_str(), mb(size).as_str(), mb(max).as_str()],
+                &[format!("{:.1}", max as f64 / (1024.0 * 1024.0))],
             ));
             return false;
         }

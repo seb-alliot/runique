@@ -1704,8 +1704,9 @@ mod guarantees {
 
     // ── Messages never show the server's folders ───────────────────────────
 
-    /// A refused upload's message names the file, never the staging path:
-    /// `MEDIA_ROOT` and the folders above it stay off the visitor's page.
+    /// A refused upload's message gives the reason only: no staging path
+    /// (`MEDIA_ROOT` and the folders above it stay off the visitor's page),
+    /// and no file name either — the stored name is a random UUID.
     #[tokio::test]
     async fn a_refused_upload_message_never_shows_the_server_path() {
         let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
@@ -1716,7 +1717,7 @@ mod guarantees {
             let error = error.expect("refused").clone();
             assert!(!error.contains(&root), "no MEDIA_ROOT: {error}");
             assert!(!error.contains(".staging-"), "no staging folder: {error}");
-            assert!(error.contains(name), "the file is named: {error}");
+            assert!(!error.contains(name), "the reason only, no file name: {error}");
         };
 
         // Content refused (not a video).
@@ -1725,11 +1726,14 @@ mod guarantees {
         assert!(!video.validate().await);
         check(video.error(), "clip.mp4");
 
-        // Size refused.
+        // Size refused: a generic message, no name and no path at all.
         let mut doc = FileField::any("doc").max_size(FileSize::bytes(4));
         doc.set_value(&media.staged("big.txt", b"too long"));
         assert!(!doc.validate().await);
-        check(doc.error(), "big.txt");
+        let error = doc.error().expect("refused").clone();
+        assert!(!error.contains(&root), "no MEDIA_ROOT: {error}");
+        assert!(!error.contains(".staging-"), "no staging folder: {error}");
+        assert!(!error.contains("big.txt"), "no file name: {error}");
 
         // Extension refused.
         let mut pdf = FileField::document("cv");

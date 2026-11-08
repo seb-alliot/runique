@@ -11,7 +11,7 @@ use crate::views::{
     propos_template_error, readme_en, readme_fr, releases, releases_security, releases_status,
     rgpd, roadmap, router_demo, rust_django_framework, security_txt, session_demo, set_language,
     sitemap_xml, soumission_inscription, surcharge_exemple, template_demo, test_csrf, test_fields,
-    upload_image_submit, upload_media, view_cours_detail, view_cours_index,
+    upload_image_submit, view_cours_detail, view_cours_index,
 };
 
 use runique::prelude::*;
@@ -119,9 +119,6 @@ pub fn routes() -> Routes {
         // Contributions
         "/contribution"                  => view! { contribution_submit },    name = "contribution",
         "/contributions"                 => view! { contribution_list },      name = "contribution_list",
-
-        // Test en cour
-        "/upload-media"                  => view! { upload_media },           name = "upload_media",
     }
     .rate_limit("/upload-image",  "upload_image",  view!(upload_image_submit),   5,  60,  vec![Method::POST])
     .rate_limit("/inscription",   "inscription",   view!(soumission_inscription), 5, 300, vec![Method::POST])
