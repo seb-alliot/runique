@@ -93,6 +93,8 @@ It deletes the account's sessions from the database (`eihwaz_sessions`), then th
 
 > **Custom store:** a store plugged in with `with_session_store()` (Redis…) can't be searched by user. Its sessions close anyway: `close_user_sessions` and a completed reset increase `session_version` on the account, and a session opened under an older version ends at its next request.
 
+> **This fallback assumes the `RuniqueUser` model returns the version.** The built-in model does; a custom model must implement `fn session_version(&self) -> i32` (reading the account's column). Without it, the trait default is `0`, so the version never changes as far as the check is concerned, and revocation **in a custom store never fires**. The default store is unaffected: it deletes the `eihwaz_sessions` rows by `user_id`, whatever the version.
+
 To revoke only the **other** devices while keeping the current session, use `invalidate_other_sessions(user_id, &cookie_id)` on the DB store — this is exactly what [exclusive login](#login) does.
 
 ---
