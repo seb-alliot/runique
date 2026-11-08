@@ -93,6 +93,8 @@ Elle supprime les sessions du compte en base (`eihwaz_sessions`), puis leurs cop
 
 > **Store personnalisé :** un store branché avec `with_session_store()` (Redis…) ne peut pas être parcouru par utilisateur. Ses sessions se ferment quand même : `close_user_sessions` et un reset réussi augmentent `session_version` sur le compte, et une session ouverte avec une version plus ancienne prend fin à sa requête suivante.
 
+> **Ce repli suppose que le modèle `RuniqueUser` renvoie la version.** Le modèle intégré le fait ; un modèle personnalisé doit implémenter `fn session_version(&self) -> i32` (lire la colonne du compte). Sans ça, la valeur par défaut du trait est `0`, la version ne change donc jamais du point de vue du contrôle, et la révocation **dans un store personnalisé ne se déclenche pas**. Le store par défaut n'est pas concerné : il supprime les lignes `eihwaz_sessions` par `user_id`, quelle que soit la version.
+
 Pour ne révoquer que les **autres** appareils en gardant la session courante, utilisez `invalidate_other_sessions(user_id, &cookie_id)` côté DB — c'est exactement ce que fait la [connexion exclusive](#connexion).
 
 ---
