@@ -18,6 +18,10 @@
 {% endblock %}
 
 {% block style %}
+    {# htmx locked down: same-origin requests only, no script run from swapped
+       content, no eval (strict CSP), no inline style, no page copy kept in
+       localStorage. Read by htmx from this meta: no inline script. #}
+    <meta name="htmx-config" content='{"selfRequestsOnly":true,"allowScriptTags":false,"allowEval":false,"includeIndicatorStyles":false,"historyCacheSize":0,"refreshOnHistoryMiss":true}'>
     {{ super() }}
     <link rel="stylesheet" href="{% static "css/doc.css" %}">
     <link rel="stylesheet" href="{% static "css/comparatif.css" %}">
@@ -26,22 +30,20 @@
 
 {% block content %}
 <div class="compare-page">
-    <h1>{% if ui_lang == "fr" %}Comparatif{% else %}Comparison{% endif %}</h1>
-    <p class="compare-lead">{% if ui_lang == "fr" %}Runique face à Loco, Cot et Django, ses limites connues et ce qui arrive.{% else %}Runique next to Loco, Cot and Django, its known limits and what's coming.{% endif %}</p>
+    <section class="compare-section compare-intro">
+        <h2>{% if ui_lang == "fr" %}Comparaisons détaillées{% else %}Detailed comparisons{% endif %}</h2>
+        <nav class="hero-code-tabs compare-links" aria-label="{% if ui_lang == "fr" %}Comparaisons{% else %}Comparisons{% endif %}"
+         hx-boost="true" hx-target=".compare-page" hx-select=".compare-page" hx-swap="outerHTML show:window:top">
+            {% for r in rivals %}
+            <a class="hero-tab" href="/comparatif/{{ r[0] }}">Runique vs {{ r[1] }}</a>
+            {% endfor %}
+        </nav>
+    </section>
 
-    <div class="compare-layout">
+    <div class="compare-layout compare-hub">
     <details class="compare-toc">
         <summary>{% if ui_lang == "fr" %}Sommaire{% else %}Contents{% endif %}</summary>
         <nav class="compare-toc-list" aria-label="{% if ui_lang == "fr" %}Sommaire{% else %}Contents{% endif %}">
-            <div class="compare-toc-group" data-for="loco">
-                {% for block in loco %}{% if block.heading %}<a href="#loco-{{ block.heading | slugify }}">{{ block.heading }}</a>{% endif %}{% endfor %}
-            </div>
-            <div class="compare-toc-group" data-for="cot">
-                {% for block in cot %}{% if block.heading %}<a href="#cot-{{ block.heading | slugify }}">{{ block.heading }}</a>{% endif %}{% endfor %}
-            </div>
-            <div class="compare-toc-group" data-for="django">
-                {% for block in django %}{% if block.heading %}<a href="#django-{{ block.heading | slugify }}">{{ block.heading }}</a>{% endif %}{% endfor %}
-            </div>
             <a class="compare-toc-page" href="#limites">{% if ui_lang == "fr" %}Limites connues{% else %}Known limits{% endif %}</a>
             <div class="compare-toc-group">
                 {% for block in limits %}{% if block.heading %}<a href="#limites-{{ block.heading | slugify }}">{{ block.heading }}</a>{% endif %}{% endfor %}
@@ -50,28 +52,7 @@
             <a class="compare-toc-page" href="#problemes-connus">{% if ui_lang == "fr" %}Problèmes connus{% else %}Known issues{% endif %}</a>
         </nav>
     </details>
-    <div class="compare-main">
-    <section class="compare-tabs" data-tabs="hash">
-        <div class="hero-code-tabs" role="tablist">
-            <button class="hero-tab active" data-tab="loco" role="tab" type="button">Loco</button>
-            <button class="hero-tab" data-tab="cot" role="tab" type="button">Cot</button>
-            <button class="hero-tab" data-tab="django" role="tab" type="button">Django</button>
-        </div>
-
-        {% if loco and cot %}
-        {% set panel_blocks = loco %}{% set panel_prefix = "loco" %}{% set panel_title = "Runique / Loco" %}
-        {% include "comparatif/panel.html" %}
-        {% set panel_blocks = cot %}{% set panel_prefix = "cot" %}{% set panel_title = "Runique / Cot" %}
-        {% include "comparatif/panel.html" %}
-        {% elif ui_lang == "fr" %}
-            {% include "comparatif/tables_fr.html" %}
-        {% else %}
-            {% include "comparatif/tables_en.html" %}
-        {% endif %}
-
-        {% set panel_blocks = django %}{% set panel_prefix = "django" %}{% set panel_title = "Runique / Django" %}
-        {% include "comparatif/panel.html" %}
-    </section>
+    <div class="compare-main" hx-disable>
 
     <section class="compare-section" id="limites">
         <h2>{% if ui_lang == "fr" %}Limites connues{% else %}Known limits{% endif %}</h2>
@@ -114,4 +95,5 @@
 <script {% csp %} src="{% static "js/highlight_init.js" %}"></script>
 <script {% csp %} src="{% static "js/doc_copy.js" %}"></script>
 <script {% csp %} src="{% static "js/comparatif.js" %}"></script>
+<script {% csp %} defer src="{% static "js/htmx.min.js" %}"></script>
 {% endblock %}

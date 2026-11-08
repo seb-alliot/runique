@@ -1,0 +1,54 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {# htmx locked down: same-origin requests only, no script run from swapped
+       content, no eval (strict CSP), no inline style, no page copy kept in
+       localStorage. Read by htmx from this meta: no inline script. #}
+    <meta name="htmx-config" content='{"selfRequestsOnly":true,"allowScriptTags":false,"allowEval":false,"includeIndicatorStyles":false,"historyCacheSize":0,"refreshOnHistoryMiss":true}'>
+    {{ super() }}
+    <link rel="stylesheet" href="{% static "css/doc.css" %}">
+    <link rel="stylesheet" href="{% static "css/comparatif.css" %}">
+    <link rel="stylesheet" href="{% static "css/highlight-github-dark.min.css" %}">
+{% endblock %}
+
+{% block content %}
+<div class="compare-page">
+    <p class="compare-source"><a href="{% link "comparatif" %}">{% if ui_lang == "fr" %}← Comparatif{% else %}← Comparison{% endif %}</a></p>
+    <h1>Runique vs {{ rival }}</h1>
+
+    <nav class="hero-code-tabs compare-links" aria-label="{% if ui_lang == "fr" %}Comparaisons{% else %}Comparisons{% endif %}"
+         hx-boost="true" hx-target=".compare-page" hx-select=".compare-page" hx-swap="outerHTML show:window:top">
+        {% for r in rivals %}
+        <a class="hero-tab{% if r[0] == rival_slug %} active{% endif %}" href="/comparatif/{{ r[0] }}">{{ r[1] }}</a>
+        {% endfor %}
+    </nav>
+
+    <div class="compare-layout">
+    <details class="compare-toc">
+        <summary>{% if ui_lang == "fr" %}Sommaire{% else %}Contents{% endif %}</summary>
+        <nav class="compare-toc-list" aria-label="{% if ui_lang == "fr" %}Sommaire{% else %}Contents{% endif %}">
+            {% for block in blocks %}{% if block.heading %}<a href="#{{ block.heading | slugify }}">{{ block.heading }}</a>{% endif %}{% endfor %}
+        </nav>
+    </details>
+    <div class="compare-main doc-block-content" hx-disable>
+        {% for block in blocks %}
+        {% if block.heading %}<h2 id="{{ block.heading | slugify }}">{{ block.heading }}</h2>{% endif %}
+        {{ block.content | markdown }}
+        {% endfor %}
+
+        <p class="compare-known-issues">
+            <a href="{% link "comparatif" %}#a-venir">{% if ui_lang == "fr" %}Ce qui arrive dans Runique{% else %}What's coming in Runique{% endif %}</a>
+        </p>
+    </div>
+    </div>
+</div>
+<a class="compare-top" href="#top" aria-label="{% if ui_lang == "fr" %}Remonter en haut de la page{% else %}Back to top{% endif %}"></a>
+{% endblock %}
+
+{% block scripts %}
+<script {% csp %} src="{% static "js/highlight.min.js" %}"></script>
+<script {% csp %} src="{% static "js/highlight_init.js" %}"></script>
+<script {% csp %} src="{% static "js/doc_copy.js" %}"></script>
+<script {% csp %} src="{% static "js/comparatif.js" %}"></script>
+<script {% csp %} defer src="{% static "js/htmx.min.js" %}"></script>
+{% endblock %}

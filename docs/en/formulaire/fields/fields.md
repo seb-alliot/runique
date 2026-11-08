@@ -273,7 +273,7 @@ Two fields share the same upload mechanism (staging folder, move between the wri
 | `FileField::document` | pdf, doc, docx, txt, odt | no |
 | `FileField::any` | all but active extensions (`.svg`, `.html`, `.js`…) | no |
 
-The default maximum size is 10 MB for all; for audio and video, set `.max_size()`. The request body's global limit (`RUNIQUE_MAX_UPLOAD_MB`) applies too.
+The default maximum size is 10 MB for all; for audio and video, set `.max_size()`. Two global limits apply too, and win over `.max_size()`: `RUNIQUE_MAX_UPLOAD_MB` per file and `RUNIQUE_MAX_BODY_MB` for the whole request, all files together (100 MB by default each). Values, combinations and what happens when exceeded: [Assets & Media](/docs/en/env/assets).
 
 ```rust
 // Image with full constraints — explicit directory
@@ -314,7 +314,7 @@ form.field(
     &MediaField::video("trailer")
         .label("Trailer")
         .upload_to("videos")
-        .max_size(FileSize::mb(200)),
+        .max_size(FileSize::mb(200)), // over 100 MB: RUNIQUE_MAX_UPLOAD_MB=200 in the .env
 );
 
 // Document

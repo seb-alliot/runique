@@ -26,8 +26,8 @@
 //! ```
 
 use runique::sea_orm::{
-    ConnectionTrait, Database, DatabaseConnection,
-    sea_query::{Alias, Asterisk, Expr, Func, Query},
+    ConnectionTrait, Database, DatabaseConnection, TransactionTrait,
+    sea_query::{Alias, Asterisk, Expr, ExprTrait, Func, Query},
 };
 
 /// Charge `.env.test` si présent, puis retourne une connexion MariaDB.
@@ -84,4 +84,55 @@ pub async fn assert_count(db: &DatabaseConnection, table: &str, expected: i64) {
         n, expected,
         "assert_count(mariadb:{table}) : attendu {expected} ligne(s), reçu {n}"
     );
+}
+
+/// Drops `eihwaz_users` and every table holding a foreign key onto it.
+///
+/// The test databases are shared across runs and feature sets: other tests
+/// leave tables pointing at `eihwaz_users` (`eihwaz_reset_tokens`,
+/// `eihwaz_sessions`, `contributions`…), their key typed by that run's
+/// primary key. MariaDB keeps such a key when the parent is dropped with
+/// checks off, then refuses to recreate the parent under another key type
+/// (`int` → `bigint` → `binary(16)`): errno 150. Postgres has `CASCADE`.
+///
+/// `FOREIGN_KEY_CHECKS` is per connection and the pool hands out several:
+/// the transaction keeps every statement on one.
+pub async fn drop_users_and_dependents(db: &DatabaseConnection) {
+    let txn = db.begin().await.expect("begin");
+    txn.execute_unprepared("SET FOREIGN_KEY_CHECKS = 0")
+        .await
+        .expect("fk off");
+    let referencing = Query::select()
+        .distinct()
+        .column(Alias::new("TABLE_NAME"))
+        .from((
+            Alias::new("information_schema"),
+            Alias::new("KEY_COLUMN_USAGE"),
+        ))
+        .and_where(Expr::col(Alias::new("TABLE_SCHEMA")).eq(Expr::cust("DATABASE()")))
+        .and_where(Expr::col(Alias::new("REFERENCED_TABLE_NAME")).eq("eihwaz_users"))
+        .to_owned();
+    let rows = txn
+        .query_all(&referencing)
+        .await
+        .expect("tables referencing eihwaz_users");
+    let mut tables: Vec<String> = rows
+        .iter()
+        .map(|row| row.try_get::<String>("", "TABLE_NAME").expect("table name"))
+        .collect();
+    tables.push("eihwaz_users".to_string());
+    for table in tables {
+        // Names read from the schema, quoted, and held to plain identifiers.
+        assert!(
+            table.chars().all(|c| c.is_ascii_alphanumeric() || c == '_'),
+            "unexpected table name: {table}"
+        );
+        txn.execute_unprepared(&format!("DROP TABLE IF EXISTS `{table}`"))
+            .await
+            .expect("drop");
+    }
+    txn.execute_unprepared("SET FOREIGN_KEY_CHECKS = 1")
+        .await
+        .expect("fk on");
+    txn.commit().await.expect("commit");
 }

@@ -92,6 +92,7 @@
     "delete_linked": "Cannot delete: other records still use it.",
     "text_field_too_large": "Text field too large (max 1 MB)",
     "upload_too_large": "File upload too large (max {}MB)",
+    "body_too_large": "Request too large",
     "upload_failed": "The file could not be saved. Please try again.",
     "max_size_above_model": "The requested maximum size ({} MB) exceeds the model's limit ({} MB)."
   },
@@ -180,11 +181,12 @@
   "html": {
     "400_title": "400",
     "400_text": "Bad request: the address parameters are not valid.",
+    "413_title": "413",
+    "413_text": "Upload too large: reduce its size and try again.",
     "404_title": "404",
     "404_text": "Page not found",
     "500_title": "500",
     "500_text": "Internal server error",
-    "500_notice": "Our teams have been notified and are working on it.",
     "429_title": "429",
     "429_text": "Too many requests. Please wait a moment before trying again.",
     "503_title": "503",

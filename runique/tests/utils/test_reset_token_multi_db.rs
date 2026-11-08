@@ -14,7 +14,7 @@ use runique::auth::migrations_table::create_eihwaz_reset_tokens_table;
 use runique::auth::user;
 use runique::sea_orm::{
     ActiveModelTrait, ActiveValue::Set, ConnectionTrait, DatabaseConnection, DbBackend, Schema,
-    Statement, TransactionTrait,
+    Statement,
 };
 use runique::utils::reset_token::{generate, peek};
 use serial_test::serial;
@@ -34,19 +34,8 @@ async fn recreate_tables(db: &DatabaseConnection) {
             }
         }
         DbBackend::MySql => {
-            let txn = db.begin().await.expect("begin");
-            txn.execute_unprepared("SET FOREIGN_KEY_CHECKS=0")
-                .await
-                .expect("fk off");
-            for table in ["eihwaz_reset_tokens", "eihwaz_users"] {
-                txn.execute_unprepared(&format!("DROP TABLE IF EXISTS {table}"))
-                    .await
-                    .expect("drop");
-            }
-            txn.execute_unprepared("SET FOREIGN_KEY_CHECKS=1")
-                .await
-                .expect("fk on");
-            txn.commit().await.expect("commit");
+            // `eihwaz_reset_tokens` is among the tables pointing at `eihwaz_users`.
+            crate::helpers::db_mariadb::drop_users_and_dependents(db).await;
         }
         other => unimplemented!("engine not covered here: {other:?}"),
     }

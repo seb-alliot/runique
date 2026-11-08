@@ -163,7 +163,7 @@ When using Runique in production:
 4. **Enable host validation** in the builder: `.middleware(|m| m.with_allowed_hosts(|h| h.host("mysite.com")))`
 5. **Use the strict CSP preset** (`.with_csp(|c| c.policy(SecurityPolicy::strict()))`) — CSP itself is always active by default
 6. **Protect the admin sign-in against brute force**: `.with_admin(|a| a.with_login_guard(LoginGuard::new()))` — it's opt-in
-7. **Size uploads explicitly**: `RUNIQUE_MAX_UPLOAD_MB` (unset, a request is capped at 2 MB)
+7. **Size uploads**: `RUNIQUE_MAX_UPLOAD_MB` per file and `RUNIQUE_MAX_BODY_MB` per request (100 MB by default each); lower them if your app doesn't need that much, and rate-limit the upload routes
 8. **In a hand-written upload form, put `{% csrf %}` before the file inputs**: no file is written to disk before a valid token
 9. **Keep dependencies updated**: `cargo update`
 10. **Run security audits**: `cargo audit`

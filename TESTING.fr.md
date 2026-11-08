@@ -161,7 +161,7 @@ Clés facultatives :
 | --- | --- |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `SMTP_STARTTLS` | L'envoi d'emails (activation de compte, réinitialisation du mot de passe). Sans elles, l'admin indique que c'est indisponible : le lien n'est jamais montré au staff |
 | `GROQ_API_KEY` | Le retour de l'IA sur les exercices des cours (`/cours/…/exercice`) |
-| `RUNIQUE_MAX_UPLOAD_MB` | Les uploads de plus de 2 Mo |
+| `RUNIQUE_MAX_UPLOAD_MB`, `RUNIQUE_MAX_BODY_MB` | Les uploads de plus de 100 Mo, par fichier ou par requête |
 
 **3. Appliquer les migrations**
 

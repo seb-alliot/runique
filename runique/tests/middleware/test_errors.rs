@@ -256,6 +256,10 @@ async fn build_templated_error_app(debug: bool) -> Router {
             "/api_400",
             get(|| async { (StatusCode::BAD_REQUEST, "{\"error\":\"api\"}") }),
         )
+        .route(
+            "/api_413",
+            get(|| async { (StatusCode::PAYLOAD_TOO_LARGE, "{\"error\":\"big\"}") }),
+        )
         .layer(middleware::from_fn(error_handler_middleware))
         .layer(Extension(tera))
         .layer(Extension(Arc::new(config)))
@@ -320,6 +324,17 @@ async fn test_bad_request_without_template_uses_the_fallback_page() {
     let html = String::from_utf8_lossy(&body);
     assert!(html.contains("<h1>400</h1>"), "{html}");
     assert!(!html.contains("invalid digit"), "{html}");
+}
+
+/// Only a 413 Runique built gets the `413.html` page: a handler's own 413
+/// (an API's limit) keeps its body, in production as in debug.
+#[tokio::test]
+async fn test_an_api_413_body_is_left_untouched() {
+    for debug in [false, true] {
+        let (status, body) = get_page(debug, "/api_413").await;
+        assert_eq!(status, 413);
+        assert_eq!(body, r#"{"error":"big"}"#);
+    }
 }
 
 #[tokio::test]

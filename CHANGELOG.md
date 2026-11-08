@@ -23,6 +23,7 @@ All notable changes to this project will be documented in this file.
 * **Anti-bot trap**: checked on every writing method (PUT, PATCH, DELETE), not only POST.
 * **No copy outliving the session**: admin lists keep no snapshot in the browser's storage (htmx history cache), and the reset pages are served with `Cache-Control: no-store`.
 * **Secret files in `0600`**: the `.env` of `runique new` and ACME's TLS private key are no longer readable by the machine's other users.
+* **Server path in upload errors**: a file refused by a field (extension, size, content, dimensions) was named in the message by its full staging path (`/var/www/site/media/.staging-…/…`), shown to the visitor under the field: it disclosed the server's folders and `MEDIA_ROOT`. The message now names the file only; the path stays in the log.
 * **Failed upload**: the visitor reads a translated sentence, no longer the server path or the system error (kept in the log).
 
 * **"Forgot password" answered faster for an unknown address**: the page wrote the reset token, and waited for it, only when the address belonged to an account, so its response time told whether an account existed. The account's lookup, the token and the email now all run in the background: the page answers the same, in the same time, for every address.
@@ -41,6 +42,7 @@ All notable changes to this project will be documented in this file.
 
 ### Breaking changes
 
+* **Upload size: 100 MB by default, and a variable for the whole request**: without `RUNIQUE_MAX_UPLOAD_MB`, a request stayed at axum's 2 MB, so a 3 MB image under its `.max_size()` was cut off mid-upload. The two limits are now separate and always on: `RUNIQUE_MAX_UPLOAD_MB` per file (100 MB by default) and the new `RUNIQUE_MAX_BODY_MB` for the whole request, all files together (100 MB by default, never under `RUNIQUE_MAX_UPLOAD_MB`, + 1 MB of text fields): several files fit in one form without raising the per-file cap. A file field never accepts more than the server reads: its `.max_size()` is brought down to it, and the hint under the field shows the real limit. A body without files (urlencoded, JSON) read by Runique stays at 2 MB, since it's read into memory. An upload over a limit is refused with a 413 and the `413.html` page (overridable like `404.html`), no longer "Multipart stream error" (400). `StaticConfig::max_body_mb` goes from `Option<u64>` to `u64`, and `StaticConfig::default()` carries the documented limits (100 MB, 1024 KB, 100 MB) instead of 0. See [Assets & Media](https://runique.io/docs/en/env/assets).
 * **`AdminTemplate::with_base` and `with_bulk_edit` removed**: the first changed nothing (every admin page extends `admin_base.html` itself), the second named a page no route served (the old admin's bulk edit, its template and script removed with it). A layout is replaced through its blocks (`global_block`), a page through `with_*` or `ModelTemplates::page`.
 * **`utils::constante::admin_key::admin_context` removed**: the old admin's template context keys, no longer read by any page. A page's keys are now the fields of its context (`ListContext`, `DetailContext`…), every page rendered by a test.
 * **Production refuses a password reset without a mailer**: `with_password_reset()` without `with_mailer()` / `with_mailer_from_env()` (with its `SMTP_*` set) stops the boot, like a missing public URL: the page could never send its link. Debug still boots, and the page then answers every address with the same "not available right now" notice. A reset token is no longer made when no email can carry it.
@@ -97,6 +99,8 @@ All notable changes to this project will be documented in this file.
 * **`csrf.js` loaded by itself**: `request.render()` adds a single tag per page as soon as it holds a `csrf_token` field, however many forms it has, and none if the page already loads the script.
 
 #### Fixed
+
+* **`get_or_404` showed a 500 error page for a missing row**: `404.html` was rendered without the texts it expects, so the render failed (Tera 2 refuses a missing variable), and a page that did render went out with status 200. `get_or_404` (on `objects` as on `search!`) now returns a real 404, and a real 500 on a database error, both rendered by the error middleware; in debug, the debug page shows the message passed.
 
 * **The reset follows `password_init`'s strategy**: the built-in reset page hashed with the builder's `config.password`, not with the configuration declared by `password_init`. A project in `Custom` (no hashing included) or `Delegated` mode got an Argon2 hash imposed, and the account could no longer sign in after a reset.
 * **`decimal` with a single bound**: `.min()` alone or `.max()` alone (or `min: 0.0` alone in `model!{}`) made every value refused, the missing bound not converting to a `Decimal`. A bound that is not set is no longer compared.

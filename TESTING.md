@@ -159,7 +159,7 @@ Optional keys:
 | --- | --- |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `SMTP_STARTTLS` | Sending emails (account activation, password reset). Without them, the admin says it's unavailable: the link is never shown to the staff |
 | `GROQ_API_KEY` | The AI feedback on course exercises (`/cours/…/exercice`) |
-| `RUNIQUE_MAX_UPLOAD_MB` | Uploads above 2 MB |
+| `RUNIQUE_MAX_UPLOAD_MB`, `RUNIQUE_MAX_BODY_MB` | Uploads above 100 MB, per file or per request |
 
 **3. Apply the migrations**
 

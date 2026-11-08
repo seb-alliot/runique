@@ -59,9 +59,10 @@
 /// ```
 use super::query::RuniqueQueryBuilder;
 use crate::context::template::Request;
+use crate::errors::error::{ErrorContext, ErrorType};
 use crate::utils::aliases::ADb;
+use crate::utils::trad::t;
 use axum::http::StatusCode;
-use axum::response::IntoResponse;
 use axum::response::Response;
 use sea_orm::{ColumnTrait, Condition, DbErr, EntityTrait};
 use std::marker::PhantomData;
@@ -174,35 +175,21 @@ impl<E: EntityTrait> Objects<E> {
         &self,
         db: &ADb,
         id: impl Into<<E::PrimaryKey as sea_orm::PrimaryKeyTrait>::ValueType>,
-        ctx: &Request,
+        _ctx: &Request,
         error_msg: &str,
     ) -> Result<E::Model, Response> {
         match self.get_optional(db, id).await {
             Ok(Some(entity)) => Ok(entity),
-            Ok(None) => {
-                let mut context = ctx.context.clone();
-                context.insert("title", "Page not found");
-                context.insert("error_message", error_msg);
-                match ctx.engine.tera.render("404.html", &context) {
-                    Ok(html) => Err(axum::response::Html(html).into_response()),
-                    Err(e) => {
-                        tracing::error!("Tera render 404 error: {}", e);
-                        Err((StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response())
-                    }
-                }
-            }
-            Err(_) => {
-                let mut context = ctx.context.clone();
-                context.insert("title", "Server error");
-                context.insert("error_message", "Database error");
-                match ctx.engine.tera.render("500.html", &context) {
-                    Ok(html) => Err(axum::response::Html(html).into_response()),
-                    Err(e) => {
-                        tracing::error!("Tera render 500 error: {}", e);
-                        Err((StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response())
-                    }
-                }
-            }
+            // Bare statuses carrying their context: the error middleware renders
+            // the page (`404.html` / `500.html`, or the debug page with the reason).
+            Ok(None) => Err(ErrorContext::new(
+                ErrorType::NotFound,
+                StatusCode::NOT_FOUND,
+                &t("error.title.not_found"),
+                error_msg,
+            )
+            .into_error_response()),
+            Err(e) => Err(ErrorContext::database(e).into_error_response()),
         }
     }
 }

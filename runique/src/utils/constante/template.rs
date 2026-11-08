@@ -8,11 +8,14 @@ use crate::tpls;
 pub const SIMPLE_TEMPLATES: &[(&str, &str)] = tpls![
     ("base_index.html", "runique_index/base_index.html"),
     ("message.html", "message/message.html"),
-    ("400.html", "errors/400.html"),
-    ("404.html", "errors/404.html"),
-    ("429.html", "errors/429.html"),
-    ("500.html", "errors/500.html"),
-    ("503.html", "errors/503.html"),
+    // One page for every status: the names stay apart so a project can
+    // replace one status's page with its own `404.html`.
+    ("400.html", "errors/status.html"),
+    ("404.html", "errors/status.html"),
+    ("413.html", "errors/status.html"),
+    ("429.html", "errors/status.html"),
+    ("500.html", "errors/status.html"),
+    ("503.html", "errors/status.html"),
     ("debug.html", "errors/debug_error.html"),
     ("csrf.html", "csrf/csrf.html"),
     ("csrf_js.html", "csrf/csrf_js.html"),

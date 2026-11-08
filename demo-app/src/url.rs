@@ -1,17 +1,17 @@
 use crate::views::{
     about, activate_account, admin_declaration, admin_hub, admin_setup, admin_surcharge,
-    blog_detail, blog_list, blog_save, changelog, comparatif, configuration_demo,
-    contribution_list, contribution_submit, database_demo, deconnexion, docs_index_en,
-    docs_index_fr, docs_page, docs_section, erreur_502, force_not_found, force_server_error,
-    force_to_many_requests, formulaires_champs, formulaires_helpers, formulaires_hub,
-    formulaires_templates, google_verify, i18n_demo, index, installation_demo, llms_full_txt,
-    llms_txt, login_user, macros_demo, middleware_csp, middleware_csrf, middleware_hosts,
-    middleware_https, middleware_hub, middleware_login_guard, middleware_rate_limit,
-    migrations_demo, model_demo, orm_demo, probleme_connu, profil, propos_template_error,
-    readme_en, readme_fr, releases, releases_security, releases_status, rgpd, roadmap, router_demo,
-    rust_django_framework, security_txt, session_demo, set_language, sitemap_xml,
-    soumission_inscription, surcharge_exemple, template_demo, test_csrf, test_fields,
-    upload_image_submit, view_cours_detail, view_cours_index,
+    blog_detail, blog_list, blog_save, changelog, comparatif, comparatif_detail,
+    configuration_demo, contribution_list, contribution_submit, database_demo, deconnexion,
+    docs_index_en, docs_index_fr, docs_page, docs_section, erreur_502, force_not_found,
+    force_server_error, force_to_many_requests, formulaires_champs, formulaires_helpers,
+    formulaires_hub, formulaires_templates, google_verify, i18n_demo, index, installation_demo,
+    llms_full_txt, llms_txt, login_user, macros_demo, middleware_csp, middleware_csrf,
+    middleware_hosts, middleware_https, middleware_hub, middleware_login_guard,
+    middleware_rate_limit, migrations_demo, model_demo, orm_demo, probleme_connu, profil,
+    propos_template_error, readme_en, readme_fr, releases, releases_security, releases_status,
+    rgpd, roadmap, router_demo, rust_django_framework, security_txt, session_demo, set_language,
+    sitemap_xml, soumission_inscription, surcharge_exemple, template_demo, test_csrf, test_fields,
+    upload_image_submit, upload_media, view_cours_detail, view_cours_index,
 };
 
 use runique::prelude::*;
@@ -20,16 +20,17 @@ use crate::test_deux_formulaires::deux_formulaires;
 
 pub fn routes() -> Routes {
     urlpatterns! {
-        "/"                              => view!{ index },                   name = "index",
+        "/"                              => view! { index },                  name = "index",
         "/lang/{code}"                   => view! { set_language },           name = "set_language",
+        "/comparatif/{slug}"             => view! { comparatif_detail },      name = "comparatif_detail",
 
         // TEMPORAIRE — à supprimer avec src/test_deux_formulaires.rs.
         "/test/deux-formulaires"         => view! { deux_formulaires },       name = "test_deux_formulaires",
 
         // Auth
         // POST only, with the page's CSRF token: a GET could be triggered by another site.
-        "/logout"                        => post(deconnexion),                name = "logout",
-        "/activate/{token}"             => view! { activate_account },       name = "activate_account",
+        "/logout"                        => view !{ deconnexion },            name = "logout",
+        "/activate/{token}"              => view! { activate_account },       name = "activate_account",
 
         // Profil
         "/profil"                        => view! { profil },                 name = "profil",
@@ -38,6 +39,7 @@ pub fn routes() -> Routes {
         "/blog/liste"                    => view! { blog_list },              name = "blog_list",
         "/blog/nouveau"                  => view! { blog_save },              name = "blog_info",
         "/blog/{id}"                     => view! { blog_detail },            name = "blog_detail",
+
         // Tools & Demo
         "/about"                         => view! { about },                  name = "about",
         "/rust-django-framework"         => view! { rust_django_framework },  name = "rust_django_framework",
@@ -118,7 +120,8 @@ pub fn routes() -> Routes {
         "/contribution"                  => view! { contribution_submit },    name = "contribution",
         "/contributions"                 => view! { contribution_list },      name = "contribution_list",
 
-
+        // Test en cour
+        "/upload-media"                  => view! { upload_media },           name = "upload_media",
     }
     .rate_limit("/upload-image",  "upload_image",  view!(upload_image_submit),   5,  60,  vec![Method::POST])
     .rate_limit("/inscription",   "inscription",   view!(soumission_inscription), 5, 300, vec![Method::POST])

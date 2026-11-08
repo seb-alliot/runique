@@ -162,11 +162,7 @@ async fn production_static_files_keep_the_long_cache_by_default() {
     let _ = std::fs::remove_dir_all(root);
 }
 
-async fn build_with_upload_limit(max_upload_mb: u64) -> Router {
-    build_with_body_limit(max_upload_mb, Some(max_upload_mb)).await
-}
-
-async fn build_with_body_limit(max_upload_mb: u64, max_body_mb: Option<u64>) -> Router {
+async fn build_with_body_limit(max_upload_mb: u64, max_body_mb: u64) -> Router {
     // GET too: `app_with_session` reads the token a first page hands out.
     let mut config = RuniqueConfig::from_env();
     config.dev = true;
@@ -203,34 +199,15 @@ async fn post_form(app: Router, bytes: usize) -> StatusCode {
     .status()
 }
 
-// The body limit is RUNIQUE_MAX_UPLOAD_MB plus 1 MB for the text fields —
-// axum alone stops at 2 MB, and a raw `collect()` had no limit at all.
-#[tokio::test]
-#[serial]
-async fn the_body_limit_follows_the_upload_setting() {
-    const MB: usize = 1024 * 1024;
-    let three_mb = 3 * MB;
-    assert_eq!(
-        post_form(build_with_upload_limit(4).await, three_mb).await,
-        StatusCode::OK,
-        "under 5 MB"
-    );
-    assert_ne!(
-        post_form(build_with_upload_limit(1).await, three_mb).await,
-        StatusCode::OK,
-        "over 2 MB"
-    );
-    assert_eq!(
-        post_form(build_with_upload_limit(1).await, 2 * MB - 1024).await,
-        StatusCode::OK,
-        "just under the limit"
-    );
-}
-
 /// A built app whose `/form` route reads the body through `Request`, and the
 /// session cookie + masked CSRF token a first GET hands out.
 async fn app_with_session() -> (Router, String, String) {
-    let app = build_with_upload_limit(10).await;
+    app_with_session_limits(10, 10).await
+}
+
+/// [`app_with_session`] with its own per-file and request limits (MB).
+async fn app_with_session_limits(max_upload_mb: u64, max_body_mb: u64) -> (Router, String, String) {
+    let app = build_with_body_limit(max_upload_mb, max_body_mb).await;
     let resp = fetch(app.clone(), "/form").await;
     let cookie = resp
         .headers()
@@ -315,16 +292,146 @@ async fn a_multipart_body_over_the_limit_is_refused_not_cut_short() {
     );
 }
 
-// RUNIQUE_MAX_UPLOAD_MB unset: axum's own 2 MB stay the limit.
+// A body read into memory (urlencoded) stays at 2 MB, whatever the multipart
+// limit: 100 MB of RAM per request would be open to any visitor.
 #[tokio::test]
 #[serial]
-async fn without_the_setting_axum_keeps_its_two_megabytes() {
+async fn a_form_body_stays_at_two_megabytes() {
     const MB: usize = 1024 * 1024;
-    let app = build_with_body_limit(100, None).await;
+    let app = build_with_body_limit(100, 100).await;
     assert_eq!(
-        post_form(app.clone(), MB + MB / 2).await,
+        post_form(app.clone(), 2 * MB - 1024).await,
         StatusCode::OK,
-        "1.5 MB"
+        "just under"
     );
-    assert_ne!(post_form(app, 3 * MB).await, StatusCode::OK, "3 MB");
+    assert_eq!(
+        post_form(app, 2 * MB + 1024).await,
+        StatusCode::PAYLOAD_TOO_LARGE,
+        "just over"
+    );
+}
+
+/// One multipart POST to `/form`: the CSRF token, then one PDF per entry of
+/// `sizes` (exact sizes in bytes). `announced`, when given, is sent as the
+/// request's `Content-Length` whatever the body really weighs.
+async fn post_files(
+    app: Router,
+    cookie: &str,
+    token: &str,
+    sizes: &[usize],
+    announced: Option<u64>,
+) -> axum::response::Response {
+    let b = "BNDRY";
+    let mut body =
+        format!("--{b}\r\nContent-Disposition: form-data; name=\"csrf_token\"\r\n\r\n{token}\r\n");
+    for (i, size) in sizes.iter().enumerate() {
+        body.push_str(&format!(
+            "--{b}\r\nContent-Disposition: form-data; name=\"doc{i}\"; filename=\"{i}.pdf\"\r\n\r\n%PDF{}\r\n",
+            "a".repeat(size - 4)
+        ));
+    }
+    body.push_str(&format!("--{b}--\r\n"));
+    let mut req = Request::builder()
+        .method("POST")
+        .uri("/form")
+        .header("cookie", cookie)
+        .header("content-type", format!("multipart/form-data; boundary={b}"));
+    if let Some(len) = announced {
+        req = req.header("content-length", len);
+    }
+    app.oneshot(req.body(Body::from(body)).unwrap())
+        .await
+        .unwrap()
+}
+
+const KB: usize = 1024;
+const MB_BYTES: usize = 1024 * 1024;
+
+// Each file is held to the per-file limit, one byte included.
+#[tokio::test]
+#[serial]
+async fn a_file_is_held_to_the_per_file_limit() {
+    let (app, cookie, token) = app_with_session_limits(1, 5).await;
+    assert_eq!(
+        post_files(app.clone(), &cookie, &token, &[MB_BYTES], None)
+            .await
+            .status(),
+        StatusCode::OK,
+        "exactly 1 MB"
+    );
+    assert_eq!(
+        post_files(app, &cookie, &token, &[MB_BYTES + 1], None)
+            .await
+            .status(),
+        StatusCode::PAYLOAD_TOO_LARGE,
+        "one byte more"
+    );
+}
+
+// Several files each under the per-file limit pass while their sum fits the
+// request limit, and are refused past it.
+#[tokio::test]
+#[serial]
+async fn the_request_limit_holds_the_sum_of_the_files() {
+    // 1 MB per file, 2 MB (+ 1 MB of text fields) per request.
+    let (app, cookie, token) = app_with_session_limits(1, 2).await;
+    assert_eq!(
+        post_files(app.clone(), &cookie, &token, &[900 * KB; 3], None)
+            .await
+            .status(),
+        StatusCode::OK,
+        "3 x 900 KB: 2.7 MB, under 3 MB"
+    );
+    assert_eq!(
+        post_files(app, &cookie, &token, &[900 * KB; 4], None)
+            .await
+            .status(),
+        StatusCode::PAYLOAD_TOO_LARGE,
+        "4 x 900 KB: 3.6 MB, over 3 MB"
+    );
+}
+
+// A request announcing a size over the limit is refused on its headers: the
+// tiny body it really carries proves nothing was read to decide.
+#[tokio::test]
+#[serial]
+async fn a_request_announced_over_the_limit_is_refused_before_reading() {
+    let (app, cookie, token) = app_with_session_limits(1, 1).await;
+    let limit = 2 * 1024 * 1024; // 1 MB + 1 MB of text fields
+    assert_eq!(
+        post_files(app.clone(), &cookie, &token, &[10], Some(limit))
+            .await
+            .status(),
+        StatusCode::OK,
+        "announced exactly at the limit"
+    );
+    assert_eq!(
+        post_files(app, &cookie, &token, &[10], Some(limit + 1))
+            .await
+            .status(),
+        StatusCode::PAYLOAD_TOO_LARGE,
+        "announced one byte over"
+    );
+}
+
+// Runique's own 413 is the `413.html` page, with the reason in the visitor's
+// language, not a bare text.
+#[tokio::test]
+#[serial]
+async fn a_refused_upload_shows_the_413_page_with_its_reason() {
+    use http_body_util::BodyExt;
+    let (app, cookie, token) = app_with_session_limits(1, 1).await;
+    let resp = post_files(app, &cookie, &token, &[10], Some(10 * 1024 * 1024)).await;
+    assert_eq!(resp.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    assert!(
+        header(&resp, "content-type").starts_with("text/html"),
+        "a page, not a bare text"
+    );
+    let body = resp.into_body().collect().await.unwrap().to_bytes();
+    let html = String::from_utf8_lossy(&body);
+    assert!(html.contains("<h1"), "{html}");
+    assert!(
+        html.contains(runique::utils::trad::t("forms.body_too_large").as_ref()),
+        "the reason of this 413: {html}"
+    );
 }

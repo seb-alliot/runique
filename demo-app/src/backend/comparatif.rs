@@ -1,9 +1,25 @@
-//! The comparison page: Loco, Cot and Django in tabs, then the known limits and
-//! what's coming. The Django comparison and the limits are read from the
-//! documentation and what's coming from the roadmap files, so each has a single source.
+//! The comparison pages. The hub (`/comparatif`) links to one page per
+//! framework, then shows the known limits and what's coming. Each comparison
+//! has its own URL, title and description (`/comparatif/runique-vs-django`…),
+//! what a search for "runique vs django" lands on. The comparisons and the
+//! limits are read from the documentation and what's coming from the roadmap
+//! files, so each has a single source.
 use crate::backend::{inject_globals, lang::visitor_lang, split_markdown_sections};
 use crate::entities::{doc_block, doc_page, doc_section};
 use runique::prelude::*;
+
+/// The comparisons that have a page of their own: slug in the URL, the other
+/// framework's name, its page in the documentation (`comparatif-{page}`).
+const RIVALS: [(&str, &str, &str); 3] = [
+    ("runique-vs-django", "Django", "index"),
+    ("runique-vs-loco", "Loco", "loco"),
+    ("runique-vs-cot", "Cot", "cot"),
+];
+
+/// Slug and name of each comparison, for the links between the pages.
+fn comparative_links() -> Vec<(&'static str, &'static str)> {
+    RIVALS.iter().map(|r| (r.0, r.1)).collect()
+}
 
 async fn doc_blocks(
     lang: &str,
@@ -34,12 +50,10 @@ async fn doc_blocks(
         .collect()
 }
 
+/// The hub: links to the comparisons, the known limits, what's coming.
 pub async fn comparatif_page(request: &mut Request) -> AppResult<Response> {
     inject_globals(request).await;
     let lang = visitor_lang(&request.headers);
-    let loco = doc_blocks(lang, "comparatif", "loco", request).await;
-    let cot = doc_blocks(lang, "comparatif", "cot", request).await;
-    let django = doc_blocks(lang, "comparatif", "index", request).await;
     let limits = doc_blocks(lang, "limites", "index", request).await;
     let roadmap = split_markdown_sections(if lang == "fr" {
         include_str!("../../../ROADMAP.fr.md")
@@ -48,11 +62,40 @@ pub async fn comparatif_page(request: &mut Request) -> AppResult<Response> {
     });
     context_update!(request => {
         "title"   => if lang == "fr" { "Comparatif" } else { "Comparison" },
-        "loco"    => &loco,
-        "cot"     => &cot,
-        "django"  => &django,
+        "rivals"  => &comparative_links(),
         "limits"  => &limits,
         "roadmap" => &roadmap,
     });
     request.render("comparatif/comparatif.html")
+}
+
+/// One comparison on its own page. An unknown slug, or a comparison missing
+/// from the documentation, is a 404: no empty page indexed under its name.
+pub async fn comparatif_detail_page(slug: &str, request: &mut Request) -> AppResult<Response> {
+    let Some(&(slug, rival, page)) = RIVALS.iter().find(|r| r.0 == slug) else {
+        return Ok(StatusCode::NOT_FOUND.into_response());
+    };
+    inject_globals(request).await;
+    let lang = visitor_lang(&request.headers);
+    let blocks = doc_blocks(lang, "comparatif", page, request).await;
+    if blocks.is_empty() {
+        return Ok(StatusCode::NOT_FOUND.into_response());
+    }
+    let description = if lang == "fr" {
+        format!("Runique et {rival} côte à côte : fonctionnalités, choix de conception et limites.")
+    } else {
+        format!("Runique and {rival} side by side: features, design choices and limits.")
+    };
+    let title = format!("Runique vs {rival}");
+    let canonical = format!("/comparatif/{slug}");
+    context_update!(request => {
+        "title"       => &title,
+        "description" => &description,
+        "canonical"   => &canonical,
+        "rival"       => rival,
+        "rival_slug"  => slug,
+        "rivals"      => &comparative_links(),
+        "blocks"      => &blocks,
+    });
+    request.render("comparatif/detail.html")
 }

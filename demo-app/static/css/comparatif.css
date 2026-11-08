@@ -95,9 +95,9 @@
     position: sticky;
     top: var(--compare-nav-height);
     z-index: 10;
-    margin-inline: calc(-1 * var(--gutter));
     background: var(--bg-surface);
-    border-block: 1px solid var(--border);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
     font-size: 0.875rem;
 }
 
@@ -148,17 +148,6 @@
 }
 
 .compare-toc-group {
-    display: contents;
-}
-
-/* Rubriques de l'onglet ouvert seulement ; sans JS, toutes restent listées. */
-.compare-page:has(.compare-tabs.is-ready) .compare-toc-group[data-for] {
-    display: none;
-}
-
-.compare-page:has(#loco.active) .compare-toc-group[data-for="loco"],
-.compare-page:has(#cot.active) .compare-toc-group[data-for="cot"],
-.compare-page:has(#django.active) .compare-toc-group[data-for="django"] {
     display: contents;
 }
 
@@ -274,6 +263,38 @@
         border-top: 0;
     }
 
+    /* Known limits: the first cell is several lines of prose, not a short
+       label: normal weight and airier lines, as on desktop. */
+    #limites .doc-block-content table.compare-cards td:first-child {
+        font-weight: 400;
+        line-height: 1.65;
+    }
+
+    /* Known limits stay two columns on a phone, the limit and its pages,
+       with their header, rather than stacked cards. */
+    #limites .doc-block-content table.compare-cards thead {
+        display: block;
+    }
+
+    #limites .doc-block-content table.compare-cards tr {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    }
+
+    #limites .doc-block-content table.compare-cards th,
+    #limites .doc-block-content table.compare-cards td {
+        width: auto;
+    }
+
+    #limites .doc-block-content table.compare-cards td:not(:first-child) {
+        border-top: 0;
+        border-left: 1px solid var(--border);
+    }
+
+    #limites table.compare-cards td[data-label]:not(:first-child)::before {
+        content: none;
+    }
+
     table.compare-cards td[data-label]:not(:first-child)::before {
         content: attr(data-label);
         display: block;
@@ -299,12 +320,9 @@
     .compare-toc {
         top: 5rem;
         z-index: auto;
-        margin-inline: 0;
         padding: 1rem;
         max-height: calc(100vh - 6rem);
         overflow: hidden auto;
-        border: 1px solid var(--border);
-        border-radius: 0.5rem;
     }
 
     /* Ouvert en permanence par le script : plus rien à replier. */
@@ -352,6 +370,12 @@
         width: 24%;
     }
 
+    /* Known limits: two columns, the limit carries the text, the detail only
+       links to the pages, so the limit gets most of the width. */
+    #limites .doc-block-content th:first-child {
+        width: 70%;
+    }
+
     .compare-page .doc-block-content td {
         overflow-wrap: anywhere;
     }
@@ -396,6 +420,22 @@
     text-align: center;
 }
 
+/* The links to the comparison pages: centred under their title, like the tabs. */
+.compare-links {
+    justify-content: center;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+    /* Centred content that overflows is cut on both sides, its start out of
+       reach: the links go to a new line instead of scrolling. */
+    flex-wrap: wrap;
+    overflow: visible;
+}
+
+/* The first section starts level with the table of contents. */
+.compare-main > .compare-section:first-child {
+    margin-top: 0;
+}
+
 .compare-known-issues {
     margin-top: 3rem;
     text-align: center;
@@ -407,6 +447,19 @@
     .compare-section { margin-top: 6.5rem; }
     .compare-section > h2 { font-size: 1.875rem; }
 }
+
+/* The hub's links to the comparison pages, a header above the two columns. */
+.compare-section.compare-intro {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+}
+
+@media (min-width: 64rem) {
+    .compare-section.compare-intro {
+        margin-bottom: 3rem;
+    }
+}
+
 
 .changelog-layout {
     margin-top: 1.5rem;
@@ -466,13 +519,6 @@
     text-decoration: none;
 }
 
-/* Dans cette page, la barre suit la largeur du contenu au lieu de toucher les bords. */
-.changelog-layout .compare-toc {
-    margin-inline: 0;
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
-}
-
 .changelog-picker label {
     line-height: 1.5rem;
 }
@@ -480,7 +526,10 @@
 /* Départ sous le titre de section : sa hauteur + sa marge. Le libellé du menu (1.5rem + 0.5rem d'écart)
    remonte à côté du titre pour que le select lui-même s'aligne sur le premier bloc. */
 @media (min-width: 64rem) {
-    .changelog-layout .compare-toc {
+    /* The hub's too: it starts level with the first block under "Known limits",
+       then stays in view while scrolling. */
+    .changelog-layout .compare-toc,
+    .compare-hub .compare-toc {
         margin-top: calc(1.875rem * 1.25 + 1.5rem);
     }
 

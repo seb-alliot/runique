@@ -1,11 +1,11 @@
 //! Aegis: extraction and normalization of the request body (multipart, urlencoded, JSON, GET).
+use crate::middleware::errors::error::too_large;
 use crate::utils::{
     aliases::{ARuniqueConfig, StrMap, StrVecMap},
     parse_html::parse_multipart_guarded,
     trad::{t, tf},
 };
 use axum::{
-    RequestExt,
     body::Body,
     extract::{FromRequest, Multipart},
     http::{Method, Request, StatusCode},
@@ -15,6 +15,10 @@ use form_urlencoded;
 use http_body_util::BodyExt;
 use std::collections::HashMap;
 use tracing::warn;
+
+/// Largest body read into memory (urlencoded, JSON): the multipart limit is
+/// streamed to disk, these would be held in RAM.
+const FORM_BODY_LIMIT: usize = 2 * 1024 * 1024;
 
 /// Aegis: unique extraction of the body (multipart/urlencoded/json) and normalization.
 /// On GET/HEAD, data is read from query params (including CSRF token).
@@ -59,6 +63,24 @@ where
         return Ok((parsed, None));
     }
 
+    // A body announced over the limit is refused before a byte is read: no
+    // upload staged to disk to be deleted. The size a client announces can
+    // lie, so the limit still holds while reading (DefaultBodyLimit).
+    let body_limit = config
+        .static_files
+        .max_body_mb
+        .saturating_add(1)
+        .saturating_mul(1024 * 1024);
+    if let Some(len) = req
+        .headers()
+        .get(axum::http::header::CONTENT_LENGTH)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.parse::<u64>().ok())
+        && len > body_limit
+    {
+        return Err(too_large(t("forms.body_too_large").into_owned()));
+    }
+
     let mut staging = None;
     if content_type.starts_with("multipart/form-data") {
         let multipart = Multipart::from_request(req, state).await.map_err(|_e| {
@@ -81,15 +103,19 @@ where
         parsed = body;
         staging = dir;
     } else {
-        // Bounded like the multipart body (`DefaultBodyLimit`, set at build):
-        // a raw `collect()` would read a body of any size into memory.
-        let bytes = req
-            .with_limited_body()
-            .into_body()
+        // Held to FORM_BODY_LIMIT, not to `DefaultBodyLimit`: that one is sized
+        // for multipart bodies streamed to disk, this one is read into memory.
+        let bytes = http_body_util::Limited::new(req.into_body(), FORM_BODY_LIMIT)
             .collect()
             .await
-            .map_err(|_e| {
-                (StatusCode::BAD_REQUEST, t("forms.body_error").into_owned()).into_response()
+            .map_err(|e| {
+                if e.downcast_ref::<http_body_util::LengthLimitError>()
+                    .is_some()
+                {
+                    too_large(t("forms.body_too_large").into_owned())
+                } else {
+                    (StatusCode::BAD_REQUEST, t("forms.body_error").into_owned()).into_response()
+                }
             })?
             .to_bytes();
 

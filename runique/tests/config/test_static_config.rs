@@ -141,21 +141,74 @@ fn test_static_config_default_derive_vide() {
     assert!(cfg.base_dir.is_empty());
 }
 
-// The body limit follows RUNIQUE_MAX_UPLOAD_MB only when it's set: unset,
-// axum's own default stays.
+// The body limit has its own key. Unset, it is 100 MB, or the per-file limit
+// when that is larger: one file at the per-file limit always fits.
 #[test]
 #[serial]
-fn the_body_limit_is_set_only_by_the_env_key() {
+fn the_body_limit_defaults_to_100_or_the_per_file_limit() {
     del_env("RUNIQUE_MAX_UPLOAD_MB");
+    del_env("RUNIQUE_MAX_BODY_MB");
     let unset = StaticConfig::from_env();
-    assert_eq!(unset.max_body_mb, None);
+    assert_eq!((unset.max_upload_mb, unset.max_body_mb), (100, 100));
+
+    set_env("RUNIQUE_MAX_UPLOAD_MB", "500");
+    let big_file = StaticConfig::from_env();
     assert_eq!(
-        unset.max_upload_mb, 100,
-        "the per-file limit keeps its default"
+        big_file.max_body_mb, 500,
+        "follows a per-file limit above 100"
     );
 
-    set_env("RUNIQUE_MAX_UPLOAD_MB", "20");
-    let set = StaticConfig::from_env();
+    set_env("RUNIQUE_MAX_UPLOAD_MB", "10");
+    let small_file = StaticConfig::from_env();
+    assert_eq!(small_file.max_body_mb, 100, "stays at 100 under it");
+
+    set_env("RUNIQUE_MAX_BODY_MB", "30");
+    let both = StaticConfig::from_env();
+
+    // A body set under the per-file limit is raised to it, never left below.
+    set_env("RUNIQUE_MAX_UPLOAD_MB", "200");
+    set_env("RUNIQUE_MAX_BODY_MB", "50");
+    let body_below = StaticConfig::from_env();
     del_env("RUNIQUE_MAX_UPLOAD_MB");
-    assert_eq!((set.max_body_mb, set.max_upload_mb), (Some(20), 20));
+    del_env("RUNIQUE_MAX_BODY_MB");
+    assert_eq!(
+        (both.max_upload_mb, both.max_body_mb),
+        (10, 30),
+        "each key its own value"
+    );
+    assert_eq!(body_below.max_body_mb, 200, "raised to the per-file limit");
+}
+
+// A value that isn't a number is ignored: the default applies, and the body
+// still never goes under the per-file limit.
+#[test]
+#[serial]
+fn a_non_numeric_upload_limit_falls_back_to_the_default() {
+    set_env("RUNIQUE_MAX_UPLOAD_MB", "lots");
+    set_env("RUNIQUE_MAX_BODY_MB", "-5");
+    let both_bad = StaticConfig::from_env();
+
+    set_env("RUNIQUE_MAX_UPLOAD_MB", "300");
+    set_env("RUNIQUE_MAX_BODY_MB", "abc");
+    let bad_body = StaticConfig::from_env();
+    del_env("RUNIQUE_MAX_UPLOAD_MB");
+    del_env("RUNIQUE_MAX_BODY_MB");
+
+    assert_eq!((both_bad.max_upload_mb, both_bad.max_body_mb), (100, 100));
+    assert_eq!(
+        (bad_body.max_upload_mb, bad_body.max_body_mb),
+        (300, 300),
+        "body default raised to the per-file limit"
+    );
+}
+
+// A config built by `Default` (tests, hand-built engines) carries the same
+// limits as an unset `.env`, never 0 MB: file fields are held to them.
+#[test]
+fn the_default_config_carries_the_documented_upload_limits() {
+    let cfg = StaticConfig::default();
+    assert_eq!(
+        (cfg.max_upload_mb, cfg.max_text_field_kb, cfg.max_body_mb),
+        (100, 1024, 100)
+    );
 }
