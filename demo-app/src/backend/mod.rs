@@ -9,7 +9,6 @@ pub mod forms;
 pub mod lang;
 mod pages;
 pub mod seeds;
-pub mod upload_media;
 
 pub use cards::*;
 pub use pages::*;

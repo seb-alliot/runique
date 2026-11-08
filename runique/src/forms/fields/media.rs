@@ -20,16 +20,6 @@ pub(crate) fn upload_failed(detail: String) -> String {
 }
 use std::path::{Path, PathBuf};
 
-/// The name an upload is shown under in an error message: its file name,
-/// never the staging path, which would disclose the server's folders
-/// (`MEDIA_ROOT`, the account running the app). The path stays in the logs.
-fn shown_name(path: &str) -> &str {
-    Path::new(path)
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or_default()
-}
-
 /// A staged upload and where `publish` moves it.
 #[derive(Clone, Debug)]
 struct PendingUpload {
@@ -160,7 +150,7 @@ impl UploadMedia {
                 cleanup_files(&files).await;
                 return UploadCheck::Refused(tf(
                     "forms.file_extension_blocked",
-                    &[shown_name(filename), exts.as_str()],
+                    &[exts.as_str()],
                 ));
             }
             // A path already stored (`plats/x.png`, no file at that path, kept
@@ -181,14 +171,11 @@ impl UploadMedia {
                     }
                 };
                 if file_size > max_bytes {
-                    let size_mb = file_size as f64 / (1024.0 * 1024.0);
                     let max_mb = max_bytes as f64 / (1024.0 * 1024.0);
-                    let size_str = format!("{:.1}", size_mb);
-                    let max_mb_str = format!("{:.1}", max_mb);
                     cleanup_files(&files).await;
                     return UploadCheck::Refused(tf(
                         "forms.file_too_large",
-                        &[shown_name(filename), size_str.as_str(), max_mb_str.as_str()],
+                        &[format!("{max_mb:.1}")],
                     ));
                 }
             }
@@ -477,7 +464,7 @@ impl MediaField {
     /// the message to show.
     async fn check_image(&self, filename: &str) -> Result<(), String> {
         if !is_valid_image_content(filename).await {
-            return Err(tf("forms.file_invalid_image", &[shown_name(filename)]));
+            return Err(t("forms.file_invalid_image").into_owned());
         }
         // Refused when in doubt, for every format: an unreadable
         // measurement would skip the width and height limits.
@@ -507,25 +494,17 @@ impl MediaField {
             }
         };
         let Some((w, h)) = dims else {
-            return Err(tf("forms.file_invalid_image", &[shown_name(filename)]));
+            return Err(t("forms.file_invalid_image").into_owned());
         };
         if let Some(max_w) = self.max_width
             && w > max_w
         {
-            let (w_s, mw_s) = (w.to_string(), max_w.to_string());
-            return Err(tf(
-                "forms.image_too_wide",
-                &[shown_name(filename), w_s.as_str(), mw_s.as_str()],
-            ));
+            return Err(tf("forms.image_too_wide", &[max_w]));
         }
         if let Some(max_h) = self.max_height
             && h > max_h
         {
-            let (h_s, mh_s) = (h.to_string(), max_h.to_string());
-            return Err(tf(
-                "forms.image_too_tall",
-                &[shown_name(filename), h_s.as_str(), mh_s.as_str()],
-            ));
+            return Err(tf("forms.image_too_tall", &[max_h]));
         }
         Ok(())
     }
@@ -623,9 +602,9 @@ impl FormField for MediaField {
             let refused = match self.kind {
                 MediaKind::Image => self.check_image(filename).await.err(),
                 MediaKind::Audio => (!has_av_signature(filename, MediaKind::Audio).await)
-                    .then(|| tf("forms.file_invalid_audio", &[shown_name(filename)])),
+                    .then(|| t("forms.file_invalid_audio").into_owned()),
                 MediaKind::Video => (!has_av_signature(filename, MediaKind::Video).await)
-                    .then(|| tf("forms.file_invalid_video", &[shown_name(filename)])),
+                    .then(|| t("forms.file_invalid_video").into_owned()),
             };
             if let Some(msg) = refused {
                 cleanup_files(&files).await;
@@ -808,8 +787,8 @@ mod tests {
         assert!(!field.validate().await);
         assert_eq!(
             field.error(),
-            Some(&tf("forms.file_invalid_audio", &["fake.mp3"])),
-            "the file is named, never its staging path"
+            Some(&t("forms.file_invalid_audio").into_owned()),
+            "the reason only: no name, no staging path"
         );
         assert_eq!(field.value(), "", "the refused value is cleared");
         assert!(
@@ -833,8 +812,8 @@ mod tests {
         assert!(!field.validate().await);
         assert_eq!(
             field.error(),
-            Some(&tf("forms.file_invalid_video", &["song.mp4"])),
-            "the file is named, never its staging path"
+            Some(&t("forms.file_invalid_video").into_owned()),
+            "the reason only: no name, no staging path"
         );
     }
 

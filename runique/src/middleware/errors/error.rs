@@ -1,4 +1,4 @@
-//! HTTP error management middleware: contextual HTML or JSON rendering based on Accept header.
+//! HTTP error management middleware: renders the HTML error pages (`{code}.html`, the debug page).
 use crate::utils::{
     aliases::{ARuniqueConfig, ATera, StrMap},
     error_key::DEBUG_MESSAGE_KEYS,

@@ -157,10 +157,7 @@ async fn audio_and_video_are_media_fields_checked_by_their_kind() {
         assert!(!video.validate().await);
         assert_eq!(
             video.error().cloned(),
-            Some(runique::utils::trad::tf(
-                "forms.file_invalid_video",
-                &["clip.mp4"]
-            ))
+            Some(runique::utils::trad::t("forms.file_invalid_video").into_owned())
         );
     }
 }
