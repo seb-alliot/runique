@@ -1,7 +1,0 @@
-<div class="hero-tab-panel{% if panel_prefix == "loco" %} active{% endif %} doc-block-content" data-panel="{{ panel_prefix }}" id="{{ panel_prefix }}">
-    <h2 class="compare-panel-title">{{ panel_title }}</h2>
-    {% for block in panel_blocks %}
-    {% if block.heading %}<h3 id="{{ panel_prefix }}-{{ block.heading | slugify }}">{{ block.heading }}</h3>{% endif %}
-    {{ block.content | markdown }}
-    {% endfor %}
-</div>

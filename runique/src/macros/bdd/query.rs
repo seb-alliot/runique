@@ -1,5 +1,6 @@
 //! `RuniqueQueryBuilder<E>` — Django-style query builder: filter, exclude, order_by, limit, all, get, count…
 use crate::auth::gate::{Authorized, Guarded, List};
+use crate::errors::error::{ErrorContext, ErrorType};
 /// Django-inspired query builder for SeaORM
 ///
 /// This struct wraps SeaORM's `Select<E>` and provides convenient,
@@ -57,7 +58,8 @@ use crate::auth::gate::{Authorized, Guarded, List};
 /// tokio::runtime::Runtime::new().unwrap().block_on(sqlite_query_example());
 /// ```
 use crate::utils::aliases::ADb;
-use axum::response::IntoResponse;
+use crate::utils::trad::t;
+use axum::http::StatusCode;
 use sea_orm::{
     ColumnTrait, Condition, DbErr, EntityTrait, ExprTrait, JoinType, QueryFilter, QueryOrder,
     QuerySelect, Select,
@@ -269,45 +271,21 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
     pub async fn get_or_404(
         self,
         db: &ADb,
-        ctx: &crate::context::template::Request,
+        _ctx: &crate::context::template::Request,
         error_msg: &str,
     ) -> Result<E::Model, axum::response::Response> {
         match self.first(db).await {
             Ok(Some(entity)) => Ok(entity),
-            Ok(None) => {
-                let mut context = ctx.context.clone();
-                context.insert("title", "Page not found");
-                context.insert("error_message", error_msg);
-
-                match ctx.engine.tera.render("404.html", &context) {
-                    Ok(html) => Err(axum::response::Html(html).into_response()),
-                    Err(e) => {
-                        tracing::error!("Tera render 404 error: {}", e);
-                        Err((
-                            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                            "Internal error",
-                        )
-                            .into_response())
-                    }
-                }
-            }
-            Err(_) => {
-                let mut context = ctx.context.clone();
-                context.insert("title", "Server error");
-                context.insert("error_message", "Database error");
-
-                match ctx.engine.tera.render("500.html", &context) {
-                    Ok(html) => Err(axum::response::Html(html).into_response()),
-                    Err(e) => {
-                        tracing::error!("Tera render 500 error: {}", e);
-                        Err((
-                            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                            "Internal error",
-                        )
-                            .into_response())
-                    }
-                }
-            }
+            // Bare statuses carrying their context: the error middleware renders
+            // the page (`404.html` / `500.html`, or the debug page with the reason).
+            Ok(None) => Err(ErrorContext::new(
+                ErrorType::NotFound,
+                StatusCode::NOT_FOUND,
+                &t("error.title.not_found"),
+                error_msg,
+            )
+            .into_error_response()),
+            Err(e) => Err(ErrorContext::database(e).into_error_response()),
         }
     }
 }

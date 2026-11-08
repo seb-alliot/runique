@@ -58,6 +58,9 @@ pub struct Forms {
     /// Values `add_value` gave to names that are not fields: `save` writes the
     /// ones naming a column of the entity, never filled from the request.
     pub(crate) code_values: StrMap,
+    /// The largest file the server reads (bytes), set by `req.form()`: no
+    /// file field may accept more, even raised by `field_max_size`.
+    pub(crate) server_upload_cap: Option<u64>,
 }
 
 /// `write` runs the form's writes in a transaction it hands back uncommitted;
@@ -298,6 +301,17 @@ impl Forms {
             save_comportement: SaveComportement::Open,
             name: None,
             code_values: StrMap::new(),
+            server_upload_cap: None,
+        }
+    }
+
+    /// Lowers every file field to `bytes`, the largest file the server reads:
+    /// a field allowing more would promise a size the request never brings
+    /// (cut before `validate`), and show it in its hint.
+    pub(crate) fn cap_uploads_to_server(&mut self, bytes: u64) {
+        self.server_upload_cap = Some(bytes);
+        for field in self.fields.values_mut() {
+            field.cap_max_size(bytes);
         }
     }
 
@@ -531,6 +545,9 @@ impl Forms {
     ) -> Result<&mut Self, String> {
         if let Some(f) = self.fields.get_mut(name) {
             f.set_max_size_bounded(size)?;
+            if let Some(cap) = self.server_upload_cap {
+                f.cap_max_size(cap);
+            }
         }
         Ok(self)
     }

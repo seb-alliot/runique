@@ -1,8 +1,15 @@
 //! Static files, media, and templates configuration.
 use serde::{Deserialize, Serialize};
 
+/// Largest uploaded file (MB) when `RUNIQUE_MAX_UPLOAD_MB` is unset.
+const DEFAULT_MAX_UPLOAD_MB: u64 = 100;
+/// Largest multipart text field (KB) when `RUNIQUE_MAX_TEXT_FIELD_KB` is unset.
+const DEFAULT_MAX_TEXT_FIELD_KB: usize = 1024;
+/// Largest request (MB, + 1 MB of text fields) when `RUNIQUE_MAX_BODY_MB` is unset.
+const DEFAULT_MAX_BODY_MB: u64 = 100;
+
 /// Paths and URLs for framework and user project assets.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StaticConfig {
     // Runique internal
     pub base_dir: String,
@@ -26,10 +33,37 @@ pub struct StaticConfig {
     pub max_upload_mb: u64,
     /// Maximum size of a multipart text field in KB (env: RUNIQUE_MAX_TEXT_FIELD_KB, default: 1024).
     pub max_text_field_kb: usize,
-    /// Largest request body in MB, when RUNIQUE_MAX_UPLOAD_MB is set: that
-    /// value, plus 1 MB for the form's text fields. `None` keeps axum's own
-    /// default (2 MB).
-    pub max_body_mb: Option<u64>,
+    /// Largest request body in MB, all files and text fields of one request
+    /// (env: RUNIQUE_MAX_BODY_MB). Unset: 100. Never under `max_upload_mb`,
+    /// set or not: one file at the per-file limit always fits, so a file a
+    /// field refuses is read whole and its error shown in the form. 1 MB is
+    /// added for the text fields.
+    pub max_body_mb: u64,
+}
+
+/// Empty paths, and the documented limits: a derived `Default` gave 0 MB,
+/// which refuses every upload once file fields are held to the server limit.
+impl Default for StaticConfig {
+    fn default() -> Self {
+        Self {
+            base_dir: String::new(),
+            static_runique_path: String::new(),
+            static_runique_url: String::new(),
+            media_runique_path: String::new(),
+            media_runique: String::new(),
+            templates_runique: String::new(),
+            templates_dir: Vec::new(),
+            staticfiles_dirs: String::new(),
+            media_root: String::new(),
+            static_url: String::new(),
+            media_url: String::new(),
+            staticfiles: String::new(),
+            og_image: String::new(),
+            max_upload_mb: DEFAULT_MAX_UPLOAD_MB,
+            max_text_field_kb: DEFAULT_MAX_TEXT_FIELD_KB,
+            max_body_mb: DEFAULT_MAX_BODY_MB,
+        }
+    }
 }
 
 /// Returns the current working directory as a string, cross-platform.
@@ -116,12 +150,18 @@ impl StaticConfig {
         let upload_mb_env = std::env::var("RUNIQUE_MAX_UPLOAD_MB")
             .ok()
             .and_then(|v| v.parse::<u64>().ok());
-        let max_upload_mb = upload_mb_env.unwrap_or(100);
+        let max_upload_mb = upload_mb_env.unwrap_or(DEFAULT_MAX_UPLOAD_MB);
 
         let max_text_field_kb = std::env::var("RUNIQUE_MAX_TEXT_FIELD_KB")
             .ok()
             .and_then(|v| v.parse::<usize>().ok())
-            .unwrap_or(1024);
+            .unwrap_or(DEFAULT_MAX_TEXT_FIELD_KB);
+
+        let max_body_mb = std::env::var("RUNIQUE_MAX_BODY_MB")
+            .ok()
+            .and_then(|v| v.parse::<u64>().ok())
+            .unwrap_or(DEFAULT_MAX_BODY_MB)
+            .max(max_upload_mb);
 
         Self {
             base_dir,
@@ -139,7 +179,7 @@ impl StaticConfig {
             staticfiles,
             max_upload_mb,
             max_text_field_kb,
-            max_body_mb: upload_mb_env,
+            max_body_mb,
         }
     }
 }

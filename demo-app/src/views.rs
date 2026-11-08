@@ -2,7 +2,7 @@ use crate::backend::lang::{msg, visitor_lang};
 use crate::backend::{
     auth::{get_profile_user, handle_activate, handle_inscription, handle_login},
     blog::{get_article, handle_blog_save, list_articles},
-    comparatif::comparatif_page,
+    comparatif::{comparatif_detail_page, comparatif_page},
     contribution::{handle_contribution_submit, list_contributions},
     cours::{ExerciceInput, cours_detail, cours_exercice, cours_index},
     demo_code_page,
@@ -10,9 +10,10 @@ use crate::backend::{
     fetch_known_issues,
     forms::{extract_helpers_data, get_field_groups, handle_upload_image},
     inject_globals, split_markdown_sections,
+    upload_media::handle_upload_media,
 };
 use crate::formulaire::{
-    BlogForm, ContributionForm, ImageForm, LoginForm, RegisterForm, SearchDemoForm,
+    BlogForm, ContributionForm, ImageForm, LoginForm, MediaForm, RegisterForm, SearchDemoForm,
 };
 use runique::prelude::*;
 
@@ -140,6 +141,16 @@ pub async fn upload_image_submit(mut request: Request) -> AppResult<Response> {
         return Ok(Redirect::to("/login").into_response());
     }
     handle_upload_image(&mut request, form).await
+}
+
+pub async fn upload_media(mut request: Request) -> AppResult<Response> {
+    let form: MediaForm = request.form("media");
+    let form = form.in_language(&request.headers);
+    if !is_authenticated(&request.session).await {
+        warning!(request.notices => msg(&request.headers, "Please log in to access your profile.", "Connectez-vous pour accéder à votre profil."));
+        return Ok(Redirect::to("/login").into_response());
+    }
+    handle_upload_media(&mut request, form).await
 }
 
 pub async fn test_fields(mut request: Request) -> AppResult<Response> {
@@ -518,6 +529,13 @@ pub async fn migrations_demo(mut request: Request) -> AppResult<Response> {
 
 pub async fn comparatif(mut request: Request) -> AppResult<Response> {
     comparatif_page(&mut request).await
+}
+
+pub async fn comparatif_detail(
+    Path(slug): Path<String>,
+    mut request: Request,
+) -> AppResult<Response> {
+    comparatif_detail_page(&slug, &mut request).await
 }
 
 pub async fn orm_demo(mut request: Request) -> AppResult<Response> {

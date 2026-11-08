@@ -285,6 +285,17 @@ pub struct EnvironmentInfo {
 }
 
 impl ErrorContext {
+    /// A bare response of this context's status, carrying the context: the
+    /// error middleware renders the page (`{code}.html` in production, the
+    /// debug page with the reason in debug).
+    pub(crate) fn into_error_response(self) -> Response {
+        let status =
+            StatusCode::from_u16(self.status_code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+        let mut response = status.into_response();
+        response.extensions_mut().insert(Arc::new(self));
+        response
+    }
+
     /// Creates an error context with basic information.
     pub fn new(error_type: ErrorType, status_code: StatusCode, title: &str, message: &str) -> Self {
         Self {

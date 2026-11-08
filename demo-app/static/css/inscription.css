@@ -195,3 +195,10 @@ form button:active { opacity: 0.8; }
 
     form button { min-height: 2.5rem; }
 }
+
+/* Uploaded audio and video, shown back on the media upload page. */
+.media-preview {
+    display: block;
+    width: 100%;
+    margin-top: 0.75rem;
+}

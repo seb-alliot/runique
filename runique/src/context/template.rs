@@ -471,6 +471,13 @@ impl Request {
         let forms = form.forms_mut();
         forms.set_name(name);
         forms.set_url_params(&self.path_params, &self.query_params);
+        let statics = &self.engine.config.static_files;
+        forms.cap_uploads_to_server(
+            statics
+                .max_upload_mb
+                .min(statics.max_body_mb)
+                .saturating_mul(1024 * 1024),
+        );
         if let Some(nonce) = self.context.get("csp_nonce").and_then(|v| v.as_str())
             && !nonce.is_empty()
         {

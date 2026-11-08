@@ -1701,4 +1701,40 @@ mod guarantees {
         assert_eq!(fs::read(media.root.join("hello.txt")).unwrap(), b"hello");
         assert_eq!(form.forms().fields.get("note").unwrap().value(), "a, b");
     }
+
+    // ── Messages never show the server's folders ───────────────────────────
+
+    /// A refused upload's message names the file, never the staging path:
+    /// `MEDIA_ROOT` and the folders above it stay off the visitor's page.
+    #[tokio::test]
+    async fn a_refused_upload_message_never_shows_the_server_path() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let root = media.root.to_string_lossy().into_owned();
+
+        let check = |error: Option<&String>, name: &str| {
+            let error = error.expect("refused").clone();
+            assert!(!error.contains(&root), "no MEDIA_ROOT: {error}");
+            assert!(!error.contains(".staging-"), "no staging folder: {error}");
+            assert!(error.contains(name), "the file is named: {error}");
+        };
+
+        // Content refused (not a video).
+        let mut video = MediaField::video("clip");
+        video.set_value(&media.staged("clip.mp4", b"not a video"));
+        assert!(!video.validate().await);
+        check(video.error(), "clip.mp4");
+
+        // Size refused.
+        let mut doc = FileField::any("doc").max_size(FileSize::bytes(4));
+        doc.set_value(&media.staged("big.txt", b"too long"));
+        assert!(!doc.validate().await);
+        check(doc.error(), "big.txt");
+
+        // Extension refused.
+        let mut pdf = FileField::document("cv");
+        pdf.set_value(&media.staged("cv.exe", b"MZ"));
+        assert!(!pdf.validate().await);
+        check(pdf.error(), "cv.exe");
+    }
 }

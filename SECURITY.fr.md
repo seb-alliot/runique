@@ -163,7 +163,7 @@ Pour utiliser Runique en production :
 4. **Activez la validation des hôtes** dans le builder : `.middleware(|m| m.with_allowed_hosts(|h| h.host("mysite.com")))`
 5. **Utilisez le préréglage CSP strict** (`.with_csp(|c| c.policy(SecurityPolicy::strict()))`) : la CSP elle-même est toujours active par défaut
 6. **Protégez la connexion à l'admin contre la force brute** : `.with_admin(|a| a.with_login_guard(LoginGuard::new()))`, à activer vous-même
-7. **Dimensionnez explicitement les envois de fichiers** : `RUNIQUE_MAX_UPLOAD_MB` (sans valeur, une requête est limitée à 2 Mo)
+7. **Dimensionnez les envois de fichiers** : `RUNIQUE_MAX_UPLOAD_MB` par fichier et `RUNIQUE_MAX_BODY_MB` par requête (100 Mo par défaut chacune) ; baissez-les si votre application n'en a pas besoin, et limitez le débit des routes d'envoi
 8. **Dans un formulaire d'envoi écrit à la main, placez `{% csrf %}` avant les champs de fichier** : aucun fichier n'est écrit sur disque avant un jeton valide
 9. **Gardez les dépendances à jour** : `cargo update`
 10. **Lancez des audits de sécurité** : `cargo audit`

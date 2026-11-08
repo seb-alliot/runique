@@ -1,6 +1,7 @@
 //! Multipart request parsing — text field extraction and file uploads to disk.
 use crate::{
     errors::error::ErrorContext,
+    middleware::errors::error::too_large,
     utils::aliases::StrVecMap,
     utils::constante::session_key::session::CSRF_TOKEN_KEY,
     utils::trad::{t, tf},
@@ -346,9 +347,7 @@ pub(crate) async fn parse_multipart_guarded(
                 if let Some(lease) = tmp_dir.take() {
                     lease.discard();
                 }
-                return Err(
-                    (e.status(), t("forms.multipart_stream_error").into_owned()).into_response()
-                );
+                return Err(multipart_error(e));
             }
         };
         let name = match field.name() {
@@ -428,20 +427,11 @@ pub(crate) async fn parse_multipart_guarded(
 
                 let mut written: u64 = 0;
                 while let Some(chunk) = field.next().await {
-                    let bytes = chunk.map_err(|_| {
-                        (
-                            StatusCode::BAD_REQUEST,
-                            t("forms.multipart_stream_error").to_string(),
-                        )
-                            .into_response()
-                    })?;
+                    let bytes = chunk.map_err(multipart_error)?;
+
                     written = written.saturating_add(bytes.len() as u64);
                     if written > max_file_bytes {
-                        return Err((
-                            StatusCode::PAYLOAD_TOO_LARGE,
-                            tf("forms.upload_too_large", &[&max_upload_mb]).clone(),
-                        )
-                            .into_response());
+                        return Err(too_large(tf("forms.upload_too_large", &[&max_upload_mb])));
                     }
                     file.write_all(&bytes).await.map_err(|_| {
                         (
@@ -483,19 +473,10 @@ pub(crate) async fn parse_multipart_guarded(
             let text_result: Result<String, Response> = async {
                 let mut bytes: Vec<u8> = Vec::new();
                 while let Some(chunk) = field.next().await {
-                    let b = chunk.map_err(|_| {
-                        (
-                            StatusCode::BAD_REQUEST,
-                            t("forms.multipart_stream_error").to_string(),
-                        )
-                            .into_response()
-                    })?;
+                    let b = chunk.map_err(multipart_error)?;
+
                     if bytes.len().saturating_add(b.len()) > max_text_bytes {
-                        return Err((
-                            StatusCode::PAYLOAD_TOO_LARGE,
-                            t("forms.text_field_too_large").to_string(),
-                        )
-                            .into_response());
+                        return Err(too_large(t("forms.text_field_too_large").into_owned()));
                     }
                     bytes.extend_from_slice(&b);
                 }
@@ -644,6 +625,16 @@ fn sanitize_filename(filename: &str) -> String {
     } else {
         format!("{uuid}.{ext}")
     }
+}
+
+/// A multipart error as a response: the body over its limit (413, from axum),
+/// or anything else (a cut connection, a malformed body).
+fn multipart_error(e: axum::extract::multipart::MultipartError) -> Response {
+    let status = e.status();
+    if status == StatusCode::PAYLOAD_TOO_LARGE {
+        return too_large(t("forms.body_too_large").into_owned());
+    }
+    (status, t("forms.multipart_stream_error").into_owned()).into_response()
 }
 
 #[cfg(test)]

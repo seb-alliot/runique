@@ -92,6 +92,7 @@
     "delete_linked": "Impossible de supprimer : d'autres enregistrements l'utilisent encore.",
     "text_field_too_large": "Champ texte trop volumineux (max 1 Mo)",
     "upload_too_large": "Fichier trop volumineux (max {}Mo)",
+    "body_too_large": "Requête trop volumineuse",
     "upload_failed": "Le fichier n'a pas pu être enregistré. Réessayez.",
     "max_size_above_model": "La taille maximale demandée ({} Mo) dépasse la limite du modèle ({} Mo)."
   },
@@ -180,11 +181,12 @@
   "html": {
     "400_title": "400",
     "400_text": "Requête invalide : les paramètres de l'adresse ne sont pas valides.",
+    "413_title": "413",
+    "413_text": "Envoi trop volumineux : réduisez sa taille et réessayez.",
     "404_title": "404",
     "404_text": "Page non trouvée",
     "500_title": "500",
     "500_text": "Une erreur est survenue sur le serveur",
-    "500_notice": "Nos équipes ont été notifiées et travaillent sur le problème.",
     "429_title": "429",
     "429_text": "Trop de requêtes. Veuillez patienter un moment avant de réessayer.",
     "503_title": "503",

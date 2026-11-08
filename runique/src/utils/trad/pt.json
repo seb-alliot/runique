@@ -92,6 +92,7 @@
     "delete_linked": "Não é possível excluir: outros registros ainda o utilizam.",
     "text_field_too_large": "Campo de texto muito grande (max 1 MB)",
     "upload_too_large": "Upload muito grande (max {}MB)",
+    "body_too_large": "Requisição muito grande",
     "upload_failed": "Não foi possível salvar o arquivo. Tente novamente.",
     "max_size_above_model": "O tamanho máximo pedido ({} MB) excede o limite do modelo ({} MB)."
   },
@@ -180,11 +181,12 @@
   "html": {
     "400_title": "400",
     "400_text": "Pedido inválido: os parâmetros do endereço não são válidos.",
+    "413_title": "413",
+    "413_text": "Envio muito grande: reduza o tamanho e tente novamente.",
     "404_title": "404",
     "404_text": "Página não encontrada",
     "500_title": "500",
     "500_text": "Erro interno do servidor",
-    "500_notice": "Nossa equipe foi notificada e está trabalhando no problema.",
     "429_title": "429",
     "429_text": "Muitas requisições. Por favor aguarde um momento antes de tentar novamente.",
     "503_title": "503",

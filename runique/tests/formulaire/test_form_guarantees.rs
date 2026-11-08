@@ -6,8 +6,8 @@ use axum::http::Method;
 use runique::forms::base::{CommonFieldConfig, FormField};
 use runique::forms::field::{FormAccess, RuniqueForm};
 use runique::forms::fields::{
-    BooleanField, CheckboxField, ChoiceField, DateField, DateTimeField, DurationField,
-    HoneypotField, RadioField, TextField, TimeField,
+    BooleanField, CheckboxField, ChoiceField, DateField, DateTimeField, DurationField, FileField,
+    FileSize, HoneypotField, RadioField, TextField, TimeField,
 };
 use runique::forms::generic::GenericField;
 use runique::forms::{FormRenderer, Forms};
@@ -496,5 +496,101 @@ fn the_whole_form_is_rebuilt_from_its_fields_with_the_trap() {
     assert!(
         out.contains("<NAME>") && out.contains("<EMAIL>") && out.ends_with("<TRAP>"),
         "{out}"
+    );
+}
+
+// ── File fields never accept more than the server reads ─────────────────────
+
+const MB: u64 = 1024 * 1024;
+
+/// One file field declared at 10 MB.
+struct DocForm {
+    form: Forms,
+}
+
+impl FormAccess for DocForm {
+    fn register_fields(form: &mut Forms) {
+        form.field(&FileField::any("doc").max_size(FileSize::mb(10)));
+    }
+    fn from_form(form: Forms) -> Self {
+        Self { form }
+    }
+    fn forms(&self) -> &Forms {
+        &self.form
+    }
+    fn forms_mut(&mut self) -> &mut Forms {
+        &mut self.form
+    }
+}
+
+impl RuniqueForm for DocForm {}
+
+/// The limit (bytes) the `doc` field of a form from `request.form` keeps, as
+/// its template reads it, with the server's limits set to `max_upload_mb` /
+/// `max_body_mb` and an optional `form.max_size` from the handler.
+async fn doc_limit(max_upload_mb: u64, max_body_mb: u64, handler_size: Option<FileSize>) -> u64 {
+    let mut engine = build_engine().await;
+    let statics = &mut Arc::get_mut(&mut engine)
+        .expect("fresh engine")
+        .config
+        .static_files;
+    statics.max_upload_mb = max_upload_mb;
+    statics.max_body_mb = max_body_mb;
+    let request = build_handler_req(engine, None, HashMap::new(), Method::GET).await;
+    let mut form: DocForm = request.form("d");
+    if let Some(size) = handler_size {
+        form.max_size("doc", size).unwrap();
+    }
+    let tera = tera(&[("base_file.html", "{{ max_size }}")]);
+    form.forms()
+        .fields
+        .get("doc")
+        .unwrap()
+        .render(&tera)
+        .unwrap()
+        .parse()
+        .unwrap()
+}
+
+#[tokio::test]
+async fn a_file_field_above_the_server_limit_is_brought_down_to_it() {
+    assert_eq!(
+        doc_limit(5, 5, None).await,
+        5 * MB,
+        "10 MB field, 5 MB server"
+    );
+}
+
+#[tokio::test]
+async fn a_file_field_under_or_at_the_server_limit_keeps_its_own() {
+    assert_eq!(doc_limit(100, 100, None).await, 10 * MB, "under");
+    assert_eq!(doc_limit(10, 10, None).await, 10 * MB, "at the limit");
+    assert_eq!(doc_limit(11, 11, None).await, 10 * MB, "one MB over");
+}
+
+// The cap is the lower of the two server limits, whichever it is.
+#[tokio::test]
+async fn the_cap_is_the_lower_of_the_per_file_and_request_limits() {
+    assert_eq!(doc_limit(20, 5, None).await, 5 * MB, "the request is lower");
+    assert_eq!(doc_limit(5, 20, None).await, 5 * MB, "the file is lower");
+}
+
+// A handler's `form.max_size` can lower the field, never raise it past the server.
+#[tokio::test]
+async fn a_handler_override_is_held_to_the_server_limit_too() {
+    assert_eq!(
+        doc_limit(5, 5, Some(FileSize::mb(8))).await,
+        5 * MB,
+        "raised past the server: brought back"
+    );
+    assert_eq!(
+        doc_limit(5, 5, Some(FileSize::mb(3))).await,
+        3 * MB,
+        "under the server: kept"
+    );
+    assert_eq!(
+        doc_limit(5, 5, Some(FileSize::mb(5))).await,
+        5 * MB,
+        "at the server limit: kept"
     );
 }

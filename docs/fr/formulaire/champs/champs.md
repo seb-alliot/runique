@@ -273,7 +273,7 @@ Deux champs partagent le même mécanisme d'upload (dossier temporaire, déplace
 | `FileField::document` | pdf, doc, docx, txt, odt | non |
 | `FileField::any` | toutes sauf les extensions actives (`.svg`, `.html`, `.js`…) | non |
 
-La taille maximale par défaut est de 10 Mo pour tous ; pour l'audio et la vidéo, réglez `.max_size()`. La limite globale du corps de la requête (`RUNIQUE_MAX_UPLOAD_MB`) s'applique aussi.
+La taille maximale par défaut est de 10 Mo pour tous ; pour l'audio et la vidéo, réglez `.max_size()`. Deux limites globales s'appliquent aussi, et l'emportent sur `.max_size()` : `RUNIQUE_MAX_UPLOAD_MB` par fichier et `RUNIQUE_MAX_BODY_MB` pour la requête entière, tous fichiers cumulés (100 Mo par défaut chacune). Valeurs, combinaisons et comportement au dépassement : [Assets & médias](/docs/fr/env/assets).
 
 ```rust
 // Image avec contraintes complètes — dossier explicite
@@ -314,7 +314,7 @@ form.field(
     &MediaField::video("bande_annonce")
         .label("Bande-annonce")
         .upload_to("videos")
-        .max_size(FileSize::mb(200)),
+        .max_size(FileSize::mb(200)), // au-delà de 100 Mo : RUNIQUE_MAX_UPLOAD_MB=200 dans le .env
 );
 
 // Document

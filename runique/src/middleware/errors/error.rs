@@ -127,6 +127,14 @@ pub async fn error_handler_middleware(
             .get::<Arc<ErrorContext>>()
             .is_some_and(|ctx| matches!(ctx.error_type, ErrorType::BadRequest));
 
+    // A 413 Runique built (an upload or a form over its limit): direct
+    // rendering, like the 429. The debug page would add nothing to it.
+    if status == StatusCode::PAYLOAD_TOO_LARGE
+        && let Some(FrameworkTooLarge(reason)) = response.extensions().get::<FrameworkTooLarge>()
+    {
+        return render_status_page(&tera, &config, csrf_token, status, Some(reason.as_str()));
+    }
+
     // --- Error handling ---
     if status.is_server_error()
         || status == StatusCode::NOT_FOUND
@@ -140,12 +148,22 @@ pub async fn error_handler_middleware(
                 .headers()
                 .get(axum::http::header::RETRY_AFTER)
                 .cloned();
-            return render_429(&tera, &config, csrf_token, retry_after);
+            let mut page = render_status_page(&tera, &config, csrf_token, status, None);
+            if let Some(value) = retry_after {
+                page.headers_mut()
+                    .insert(axum::http::header::RETRY_AFTER, value);
+            }
+            return page;
         }
 
         // 503: capacity/overload — direct rendering with Retry-After, no debug page
         if status == StatusCode::SERVICE_UNAVAILABLE {
-            return render_503(&tera, &config, csrf_token);
+            let mut page = render_status_page(&tera, &config, csrf_token, status, None);
+            page.headers_mut().insert(
+                axum::http::header::RETRY_AFTER,
+                HeaderValue::from(SERVICE_UNAVAILABLE_RETRY_AFTER_SECS),
+            );
+            return page;
         }
 
         let error_ctx = build_error_context(&response, &request_helper, &tera);
@@ -155,9 +173,19 @@ pub async fn error_handler_middleware(
             return render_debug_error_from_context(&tera, &config, &error_ctx, csrf_token);
         } else {
             return match error_ctx.error_type {
-                ErrorType::NotFound => render_404(&tera, &config, csrf_token),
-                ErrorType::BadRequest => render_400(&tera, &config, csrf_token),
-                _ => render_500(&tera, &config, csrf_token),
+                ErrorType::NotFound => {
+                    render_status_page(&tera, &config, csrf_token, StatusCode::NOT_FOUND, None)
+                }
+                ErrorType::BadRequest => {
+                    render_status_page(&tera, &config, csrf_token, StatusCode::BAD_REQUEST, None)
+                }
+                _ => render_status_page(
+                    &tera,
+                    &config,
+                    csrf_token,
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    None,
+                ),
             };
         }
     }
@@ -276,127 +304,59 @@ fn inject_security_headers(headers: &mut axum::http::HeaderMap, config: &Runique
 
 // --- Render Helpers ---
 
-fn render_400(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {
-    let mut context = Context::new();
-    inject_global_vars(&mut context, config, csrf_token);
-    context.insert("error_title", &t("html.400_title"));
-    context.insert("error_text", &t("html.400_text"));
-    context.insert("back_home", &t("html.back_home"));
+/// Marks a 413 Runique built itself (a body over one of its limits), with
+/// its translated reason: only those get `413.html`, which shows the reason;
+/// an API's own 413 keeps its body.
+#[derive(Clone)]
+pub(crate) struct FrameworkTooLarge(String);
 
-    let rendered = tera
-        .render("400.html", &context)
-        .or_else(|_| tera.render("400.html", &context));
-    let mut response = match rendered {
-        Ok(html) => (StatusCode::BAD_REQUEST, Html(html)).into_response(),
-        Err(e) => {
-            crate::runique_log!(errors_render_level(), error = %e, template = "400.html", "failed to render error template");
-            fallback_400_html()
-        }
-    };
-
-    inject_security_headers(response.headers_mut(), config);
-    response
-}
-
-fn render_404(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {
-    let mut context = Context::new();
-    inject_global_vars(&mut context, config, csrf_token);
-    context.insert("error_title", &t("html.404_title"));
-    context.insert("error_text", &t("html.404_text"));
-    context.insert("back_home", &t("html.back_home"));
-
-    let rendered = tera
-        .render("404.html", &context)
-        .or_else(|_| tera.render("404.html", &context));
-    let mut response = match rendered {
-        Ok(html) => (StatusCode::NOT_FOUND, Html(html)).into_response(),
-        Err(e) => {
-            crate::runique_log!(errors_render_level(), error = %e, template = "404.html", "failed to render error template");
-            fallback_404_html()
-        }
-    };
-
-    inject_security_headers(response.headers_mut(), config);
-    response
-}
-
-fn render_429(
-    tera: &Tera,
-    config: &RuniqueConfig,
-    csrf_token: Option<String>,
-    retry_after: Option<HeaderValue>,
-) -> Response {
-    let mut context = Context::new();
-    inject_global_vars(&mut context, config, csrf_token);
-    context.insert("error_title", &t("html.429_title"));
-    context.insert("error_text", &t("html.429_text"));
-    context.insert("back_home", &t("html.back_home"));
-
-    let rendered = tera
-        .render("429.html", &context)
-        .or_else(|_| tera.render("429", &context));
-    let mut response = match rendered {
-        Ok(html) => (StatusCode::TOO_MANY_REQUESTS, Html(html)).into_response(),
-        Err(e) => {
-            crate::runique_log!(errors_render_level(), error = %e, template = "429.html", "failed to render error template");
-            fallback_429_html()
-        }
-    };
-    if let Some(value) = retry_after {
-        response
-            .headers_mut()
-            .insert(axum::http::header::RETRY_AFTER, value);
-    }
-    inject_security_headers(response.headers_mut(), config);
-    response
+/// A 413 built by Runique: `message` as the body for an HTTP client, and as
+/// the text of the page `error_handler_middleware` renders for a browser.
+pub(crate) fn too_large(message: String) -> Response {
+    let mut res = (StatusCode::PAYLOAD_TOO_LARGE, message.clone()).into_response();
+    res.extensions_mut().insert(FrameworkTooLarge(message));
+    res
 }
 
 /// Retry delay (seconds) advertised on a 503 so clients back off before retrying.
 const SERVICE_UNAVAILABLE_RETRY_AFTER_SECS: u32 = 30;
 
-fn render_503(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {
-    let mut context = Context::new();
-    inject_global_vars(&mut context, config, csrf_token);
-    context.insert("error_title", &t("html.503_title"));
-    context.insert("error_text", &t("html.503_text"));
-    context.insert("back_home", &t("html.back_home"));
-
-    let rendered = tera
-        .render("503.html", &context)
-        .or_else(|_| tera.render("503", &context));
-    let mut response = match rendered {
-        Ok(html) => (StatusCode::SERVICE_UNAVAILABLE, Html(html)).into_response(),
-        Err(e) => {
-            crate::runique_log!(errors_render_level(), error = %e, template = "503.html", "failed to render error template");
-            fallback_503_html()
-        }
-    };
-    if let Ok(value) =
-        axum::http::HeaderValue::from_str(&SERVICE_UNAVAILABLE_RETRY_AFTER_SECS.to_string())
-    {
-        response
-            .headers_mut()
-            .insert(axum::http::header::RETRY_AFTER, value);
+fn status_icon(status: StatusCode) -> &'static str {
+    match status {
+        StatusCode::NOT_FOUND => "🔍",
+        StatusCode::TOO_MANY_REQUESTS | StatusCode::SERVICE_UNAVAILABLE => "⏳",
+        _ => "⚠️",
     }
-    inject_security_headers(response.headers_mut(), config);
-    response
 }
 
-fn render_500(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {
+/// The page of a status: `{code}.html`, with the `html.{code}_title` text and
+/// `text` (by default `html.{code}_text`) in the visitor's language. A
+/// project replaces one status's page by declaring its own `{code}.html`.
+fn render_status_page(
+    tera: &Tera,
+    config: &RuniqueConfig,
+    csrf_token: Option<String>,
+    status: StatusCode,
+    text: Option<&str>,
+) -> Response {
+    let code = status.as_u16();
+    let text = text.map_or_else(
+        || t(&format!("html.{code}_text")),
+        |text| text.to_owned().into(),
+    );
     let mut context = Context::new();
     inject_global_vars(&mut context, config, csrf_token);
-    context.insert("error_title", &t("html.500_title"));
-    context.insert("error_text", &t("html.500_text"));
+    context.insert("error_title", &t(&format!("html.{code}_title")));
+    context.insert("error_text", &text);
+    context.insert("error_icon", status_icon(status));
     context.insert("back_home", &t("html.back_home"));
 
-    let rendered = tera
-        .render("500.html", &context)
-        .or_else(|_| tera.render("500", &context));
-    let mut response = match rendered {
-        Ok(html) => (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response(),
+    let template = format!("{code}.html");
+    let mut response = match tera.render(&template, &context) {
+        Ok(html) => (status, Html(html)).into_response(),
         Err(e) => {
-            crate::runique_log!(errors_render_level(), error = %e, template = "500.html", "failed to render error template");
-            fallback_500_html()
+            crate::runique_log!(errors_render_level(), error = %e, template = %template, "failed to render error template");
+            fallback_status_html(status, &text)
         }
     };
     inject_security_headers(response.headers_mut(), config);
@@ -461,223 +421,17 @@ fn inject_global_vars(context: &mut Context, config: &RuniqueConfig, csrf_token:
 
 // --- FALLBACKS ---
 
-fn fallback_400_html() -> Response {
+/// The page of a status when its template can't be rendered: no style, no
+/// script, the text escaped.
+fn fallback_status_html(status: StatusCode, text: &str) -> Response {
+    let code = status.as_u16();
     let html = format!(
-        "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>400</title></head><body><h1>400</h1><p>{}</p></body></html>",
-        html_escape(&t("html.400_text"))
+        "<!DOCTYPE html><html lang=\"{lang}\"><head><meta charset=\"UTF-8\"><title>{code}</title></head><body><h1>{code}</h1><p>{text}</p><a href=\"/\">{back}</a></body></html>",
+        lang = crate::utils::trad::current_lang().code(),
+        text = html_escape(text),
+        back = html_escape(&t("html.back_home")),
     );
-    (StatusCode::BAD_REQUEST, Html(html)).into_response()
-}
-
-fn fallback_404_html() -> Response {
-    let lang = crate::utils::trad::current_lang().code();
-    let html = format!(
-        r#"<!DOCTYPE html>
-<html lang="{lang}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title} - {text}</title>
-    <style>
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
-        }}
-        .container {{
-            text-align: center;
-            padding: 2rem;
-        }}
-        h1 {{
-            font-size: 6rem;
-            margin: 0;
-            font-weight: 700;
-        }}
-        p {{
-            font-size: 1.5rem;
-            margin: 1rem 0;
-        }}
-        a {{
-            color: #fff;
-            text-decoration: none;
-            border: 2px solid #fff;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            display: inline-block;
-            margin-top: 1rem;
-            transition: all 0.3s ease;
-        }}
-        a:hover {{
-            background: #fff;
-            color: #667eea;
-        }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>{title}</h1>
-        <p>{text}</p>
-        <a href="/">{back}</a>
-    </div>
-</body>
-</html>"#,
-        lang = lang,
-        title = t("html.404_title"),
-        text = t("html.404_text"),
-        back = t("html.back_home"),
-    );
-    (StatusCode::NOT_FOUND, Html(html)).into_response()
-}
-
-fn fallback_429_html() -> Response {
-    let lang = crate::utils::trad::current_lang().code();
-    let html = format!(
-        r#"<!DOCTYPE html>
-<html lang="{lang}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title}</title>
-    <style>
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
-            color: #fff;
-        }}
-        .container {{ text-align: center; padding: 2rem; }}
-        h1 {{ font-size: 6rem; margin: 0; font-weight: 700; }}
-        p {{ font-size: 1.5rem; margin: 1rem 0; }}
-        a {{
-            color: #fff; text-decoration: none; border: 2px solid #fff;
-            padding: 0.75rem 1.5rem; border-radius: 0.5rem;
-            display: inline-block; margin-top: 1rem; transition: all 0.3s ease;
-        }}
-        a:hover {{ background: #fff; color: #f7971e; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>{title}</h1>
-        <p>{text}</p>
-        <a href="/">{back}</a>
-    </div>
-</body>
-</html>"#,
-        lang = lang,
-        title = t("html.429_title"),
-        text = t("html.429_text"),
-        back = t("html.back_home"),
-    );
-    (StatusCode::TOO_MANY_REQUESTS, Html(html)).into_response()
-}
-
-fn fallback_503_html() -> Response {
-    let lang = crate::utils::trad::current_lang().code();
-    let html = format!(
-        r#"<!DOCTYPE html>
-<html lang="{lang}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title}</title>
-</head>
-<body>
-    <h1>{title}</h1>
-    <p>{text}</p>
-    <a href="/">{back}</a>
-</body>
-</html>"#,
-        lang = lang,
-        title = t("html.503_title"),
-        text = t("html.503_text"),
-        back = t("html.back_home"),
-    );
-    let mut response = (StatusCode::SERVICE_UNAVAILABLE, Html(html)).into_response();
-    if let Ok(value) =
-        axum::http::HeaderValue::from_str(&SERVICE_UNAVAILABLE_RETRY_AFTER_SECS.to_string())
-    {
-        response
-            .headers_mut()
-            .insert(axum::http::header::RETRY_AFTER, value);
-    }
-    response
-}
-
-fn fallback_500_html() -> Response {
-    let lang = crate::utils::trad::current_lang().code();
-    let html = format!(
-        r#"<!DOCTYPE html>
-<html lang="{lang}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title} - {text}</title>
-    <style>
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: #fff;
-        }}
-        .container {{
-            text-align: center;
-            padding: 2rem;
-        }}
-        h1 {{
-            font-size: 6rem;
-            margin: 0;
-            font-weight: 700;
-        }}
-        p {{
-            font-size: 1.5rem;
-            margin: 1rem 0;
-        }}
-        a {{
-            color: #fff;
-            text-decoration: none;
-            border: 2px solid #fff;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            display: inline-block;
-            margin-top: 1rem;
-            transition: all 0.3s ease;
-        }}
-        a:hover {{
-            background: #fff;
-            color: #f5576c;
-        }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>{title}</h1>
-        <p>{text}</p>
-        <p style="font-size: 1rem;">{notice}</p>
-        <a href="/">{back}</a>
-    </div>
-</body>
-</html>"#,
-        lang = lang,
-        title = t("html.500_title"),
-        text = t("html.500_text"),
-        notice = t("html.500_notice"),
-        back = t("html.back_home"),
-    );
-    (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response()
+    (status, Html(html)).into_response()
 }
 
 fn critical_error_html(error: &str) -> Response {
@@ -823,21 +577,31 @@ mod tests {
     }
 
     #[test]
-    fn test_fallback_404_returns_not_found() {
-        let resp = super::fallback_404_html();
-        assert_eq!(resp.status(), axum::http::StatusCode::NOT_FOUND);
+    fn the_fallback_page_keeps_its_status_and_escapes_its_text() {
+        use axum::http::StatusCode;
+        for status in [
+            StatusCode::BAD_REQUEST,
+            StatusCode::NOT_FOUND,
+            StatusCode::PAYLOAD_TOO_LARGE,
+            StatusCode::TOO_MANY_REQUESTS,
+            StatusCode::INTERNAL_SERVER_ERROR,
+            StatusCode::SERVICE_UNAVAILABLE,
+        ] {
+            assert_eq!(super::fallback_status_html(status, "x").status(), status);
+        }
     }
 
-    #[test]
-    fn test_fallback_429_returns_too_many_requests() {
-        let resp = super::fallback_429_html();
-        assert_eq!(resp.status(), axum::http::StatusCode::TOO_MANY_REQUESTS);
-    }
-
-    #[test]
-    fn test_fallback_500_returns_internal_server_error() {
-        let resp = super::fallback_500_html();
-        assert_eq!(resp.status(), axum::http::StatusCode::INTERNAL_SERVER_ERROR);
+    #[tokio::test]
+    async fn the_fallback_page_text_is_escaped() {
+        use http_body_util::BodyExt;
+        let resp = super::fallback_status_html(
+            axum::http::StatusCode::NOT_FOUND,
+            "<script>alert(1)</script>",
+        );
+        let body = resp.into_body().collect().await.unwrap().to_bytes();
+        let html = String::from_utf8_lossy(&body);
+        assert!(!html.contains("<script>"), "{html}");
+        assert!(html.contains("&lt;script&gt;"), "{html}");
     }
 
     #[test]

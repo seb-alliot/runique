@@ -92,6 +92,7 @@
     "delete_linked": "Löschen nicht möglich: andere Einträge verwenden ihn noch.",
     "text_field_too_large": "Textfeld zu gross (max 1 MB)",
     "upload_too_large": "Datei-Upload zu gross (max {}MB)",
+    "body_too_large": "Anfrage zu gross",
     "upload_failed": "Die Datei konnte nicht gespeichert werden. Bitte erneut versuchen.",
     "max_size_above_model": "Die angeforderte Maximalgröße ({} MB) überschreitet das Limit des Modells ({} MB)."
   },
@@ -180,11 +181,12 @@
   "html": {
     "400_title": "400",
     "400_text": "Ungültige Anfrage: Die Parameter der Adresse sind ungültig.",
+    "413_title": "413",
+    "413_text": "Upload zu gross: Verkleinern Sie ihn und versuchen Sie es erneut.",
     "404_title": "404",
     "404_text": "Seite nicht gefunden",
     "500_title": "500",
     "500_text": "Interner Serverfehler",
-    "500_notice": "Unser Team wurde benachrichtigt und arbeitet an dem Problem.",
     "429_title": "429",
     "429_text": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut.",
     "503_title": "503",

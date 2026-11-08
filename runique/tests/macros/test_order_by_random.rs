@@ -51,17 +51,7 @@ async fn recreate_users_table(db: &DatabaseConnection) {
                 .expect("drop eihwaz_users");
         }
         DbBackend::MySql => {
-            let txn = db.begin().await.expect("begin txn for FK-safe drop");
-            txn.execute_unprepared("SET FOREIGN_KEY_CHECKS=0")
-                .await
-                .expect("disable FK checks");
-            txn.execute_unprepared("DROP TABLE IF EXISTS eihwaz_users")
-                .await
-                .expect("drop eihwaz_users");
-            txn.execute_unprepared("SET FOREIGN_KEY_CHECKS=1")
-                .await
-                .expect("re-enable FK checks");
-            txn.commit().await.expect("commit FK-safe drop txn");
+            crate::helpers::db_mariadb::drop_users_and_dependents(db).await;
         }
         DbBackend::Sqlite => {
             db.execute_unprepared("DROP TABLE IF EXISTS eihwaz_users")

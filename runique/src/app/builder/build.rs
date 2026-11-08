@@ -424,12 +424,13 @@ impl<P> RuniqueAppBuilder<P> {
             router
         };
 
-        // Step 7: body size. axum's default (2 MB) unless RUNIQUE_MAX_UPLOAD_MB
-        // sets it; `parse_multipart` holds each file to `max_upload_mb` anyway.
-        let router = match engine.config.static_files.max_body_mb {
-            Some(mb) => router.layer(axum::extract::DefaultBodyLimit::max(body_limit(mb))),
-            None => router,
-        };
+        // Step 7: body size. A multipart body streams to disk, each file held
+        // to `max_upload_mb` by `parse_multipart`, the whole request to
+        // `max_body_mb`. Bodies read into memory (urlencoded, JSON) are held
+        // to `FORM_BODY_LIMIT` by Aegis.
+        let router = router.layer(axum::extract::DefaultBodyLimit::max(body_limit(
+            engine.config.static_files.max_body_mb,
+        )));
 
         #[cfg(feature = "admin")]
         let router = if let Some(policy) = admin_cache_policy {
