@@ -2,9 +2,9 @@
 
 What remains for `makemigrations` to generate every schema operation. What comes next for the project is in the [roadmap](https://github.com/seb-alliot/runique/blob/main/ROADMAP.md).
 
-**Last update**: November 7, 2026
+**Last update**: November 8, 2026
 
-## 4.1: complete makemigrations (next work)
+## 4.1: complete makemigrations (in progress)
 
 | Status | Step |
 |:---:|---|

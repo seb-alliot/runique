@@ -16,14 +16,6 @@ documentation (fr/en) et le CHANGELOG sont à jour.
 
 ## En cours
 
-- **Publication de la 4.0** : finalisation avant la mise en ligne sur crates.io, avec des tests
-  sur des comptes à faibles droits et des groupes, et une revue OWASP complète.
-
-## Prévu
-
-- **Correctifs de sécurité (4.0.x)** : plafonner le nombre de clés gardées en mémoire par
-  `RateLimiter` et `LoginGuard`, et tester la protection contre les open redirects avec des
-  charges connues de contournement d'URL.
 - **4.1, makemigrations** : générer toutes les opérations de schéma sans étape manuelle : suppression
   de tables, création et suppression des tables de relation, respect de cascade, restrict et
   set_null, vrai `ALTER` lors d'un changement de type, détection des changements de valeur par
@@ -31,6 +23,12 @@ documentation (fr/en) et le CHANGELOG sont à jour.
   et les changements destructeurs indiquent ce qu'ils touchent.
   La table pivot du many-to-many est générée depuis le DSL du modèle ; une table écrite à la main,
   avec des colonnes en plus, reste possible.
+
+## Prévu
+
+- **Correctifs de sécurité (4.0.x)** : plafonner le nombre de clés gardées en mémoire par
+  `RateLimiter` et `LoginGuard`, et tester la protection contre les open redirects avec des
+  charges connues de contournement d'URL.
 - **4.2, base de données** : `get_or_create`, `update_or_create`, `exists()`, `last()`,
   chargement des relations en une requête,
   méthodes d'accès du many-to-many et sa gestion dans l'admin. `search!` accepte aussi des groupes

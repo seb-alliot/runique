@@ -6,7 +6,7 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
-## [4.0.0] - non publiée
+## [4.0.0] - 2026-11-08
 
 ### Sécurité
 

@@ -6,7 +6,7 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 4.0.x   | Yes (upcoming, not released yet) |
+| 4.0.x   | Yes |
 | 3.0.x   | Yes (use **3.0.3** or later) |
 | < 3.0   | No                 |
 

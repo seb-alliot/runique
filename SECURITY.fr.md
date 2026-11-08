@@ -6,7 +6,7 @@
 
 | Version | Prise en charge |
 | ------- | --------------- |
-| 4.0.x   | Oui (à venir, pas encore publiée) |
+| 4.0.x   | Oui |
 | 3.0.x   | Oui (utilisez la **3.0.3** ou une version ultérieure) |
 | < 3.0   | Non |
 

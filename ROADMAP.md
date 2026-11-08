@@ -16,19 +16,17 @@ been checked on demo-app and on a project created by `runique new`, and when the
 
 ## In progress
 
-- **Runique 4.0 release**: finishing the 4.0 before its crates.io release, with tests on
-  low-privilege and group accounts, and a full OWASP review.
-
-## Planned
-
-- **Security fixes (4.0.x)**: cap the number of keys held in memory by `RateLimiter` and
-  `LoginGuard`, and test open redirect protection against known URL validation bypass payloads.
 - **4.1, makemigrations**: generate every schema operation with no manual step: dropping tables,
   creating and dropping relation tables, honouring cascade, restrict and set_null, a real `ALTER`
   on a type change, detecting default value changes, and columns both renamed and modified.
   Constraint names are read from the database, and destructive changes state what they affect.
   The many-to-many pivot table is generated from the model DSL; a hand-written table with extra
   columns remains possible.
+
+## Planned
+
+- **Security fixes (4.0.x)**: cap the number of keys held in memory by `RateLimiter` and
+  `LoginGuard`, and test open redirect protection against known URL validation bypass payloads.
 - **4.2, database**: `get_or_create`, `update_or_create`, `exists()`, `last()`,
   loading relations in one query, many-to-many access methods
   and its management in the admin. `search!` also accepts AND groups inside OR, and the negation of
