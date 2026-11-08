@@ -37,10 +37,10 @@ Postgres et MariaDB sont ignorés, pas en échec, quand aucune URL n'est configu
 
 ```bash
 cd runique
-cargo test --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin
+cargo test --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin,test-utils
 ```
 
-C'est exactement le jeu de features utilisé par la CI.
+C'est exactement le jeu de features du job de tests principal de la CI.
 
 ### Avec Postgres et MariaDB
 
@@ -64,7 +64,8 @@ temps depuis la même copie : les deux passes partageraient cette base.
 
 ### Variantes de clé primaire
 
-La CI lance la suite trois fois, une par type de clé primaire :
+La CI lance chaque jeu de features ci-dessous dans son propre job, en parallèle, chacun avec une
+MariaDB et un Postgres neufs (aucune table laissée par un type de clé ne gêne le suivant) :
 
 ```bash
 cd runique
