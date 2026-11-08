@@ -15,9 +15,78 @@ env:
   DB_ENGINE: postgres
 
 jobs:
-  test:
-    name: Test Suite
+  # Formatting, lints and the workspace build: no database needed.
+  lint:
+    name: Format, clippy, build
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.94"
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-lint-${{ hashFiles('**/Cargo.toml') }}
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      # `big-pk` et `pk-uuid` sont mutuellement exclusives (compile_error! si les deux
+      # sont actives) — --all-features les active toutes les deux à la fois, donc le
+      # sweep principal les exclut ici et chacune est testée séparément juste après.
+      - name: Run clippy
+        run: cargo clippy --all-targets --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin,test-utils -- -D warnings
+
+      # working-directory: runique — sans ça, cargo cible tout le workspace (demo-app
+      # inclus), qui hérite de la feature par unification et casse pour du code qui
+      # ne l'a jamais demandée (cf. contribution.rs, seeds/*.rs en i32 en dur).
+      - name: Run clippy (big-pk)
+        run: cargo clippy --all-targets --features big-pk -- -D warnings
+        working-directory: runique
+
+      - name: Run clippy (pk-uuid)
+        run: cargo clippy --all-targets --features pk-uuid -- -D warnings
+        working-directory: runique
+
+      - name: Build
+        run: cargo build --verbose --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin
+
+  # One job per feature set, in parallel, each on its own runner with a fresh
+  # MariaDB and Postgres: no table left by one key type (int, bigint, uuid)
+  # in the way of the next.
+  test:
+    name: Tests (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Without `test-utils`, six modules are left out with no warning (0 test
+          # run): test_validation_form, test_form_guarantees, test_hooks,
+          # test_login_form, test_builder and the handler_req helper.
+          - name: all features
+            features: orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin,test-utils
+          - name: big-pk
+            features: big-pk,all-databases,admin
+          - name: pk-uuid
+            features: pk-uuid,all-databases,admin
+          # The admin is an opt-in feature: the framework must build and pass its
+          # tests without it too (admin tests are `#[cfg(feature = "admin")]`).
+          - name: without admin
+            features: all-databases
     services:
       mariadb:
         image: mariadb:11
@@ -33,10 +102,31 @@ jobs:
           --health-interval=5s
           --health-timeout=5s
           --health-retries=10
-
-    strategy:
-      matrix:
-        rust: [stable, beta, nightly]
+      # Same settings as docker-compose.yml: messages in English (`lc-messages=C`),
+      # which some tests read.
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: runique
+          POSTGRES_PASSWORD: runique_test
+          POSTGRES_DB: runique_test
+          POSTGRES_INITDB_ARGS: "--locale=C --lc-messages=C"
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd="pg_isready -h 127.0.0.1 -U runique -d runique_test"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      DATABASE_URL_MARIADB: mysql://runique:runique_test@127.0.0.1:3307/runique_test
+      DATABASE_URL_PG: postgres://runique:runique_test@127.0.0.1:5433/runique_test
+      # RUST_LOG temporaire : reset_password_unknown_id_creates_no_token échoue
+      # de façon intermittente (500 au lieu d'un id inconnu géré proprement),
+      # non reproduit en local — objectif : capturer l'erreur réelle derrière
+      # le 500 au prochain échec CI. À retirer une fois diagnostiqué.
+      RUST_LOG: warn,runique::admin=trace,runique::auth=trace
+      RUST_BACKTRACE: "1"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -46,8 +136,9 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "1.94"
-          components: rustfmt, clippy
 
+      # Each test run works in its own database (`runique_test_<id>`): the
+      # account needs to create them.
       - name: Configure MariaDB test permissions
         run: |
           docker exec ${{ job.services.mariadb.id }} \
@@ -63,71 +154,27 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.toml') }}
+          key: ${{ runner.os }}-cargo-test-${{ matrix.features }}-${{ hashFiles('**/Cargo.toml') }}
 
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-        continue-on-error: ${{ matrix.rust == 'nightly' }}
-
-      # `big-pk` et `pk-uuid` sont mutuellement exclusives (compile_error! si les deux
-      # sont actives) — --all-features les active toutes les deux à la fois, donc le
-      # sweep principal les exclut ici et chacune est testée séparément juste après.
-      - name: Run clippy
-        run: cargo clippy --all-targets --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin -- -D warnings
-        continue-on-error: ${{ matrix.rust == 'nightly' }}
-
-      # working-directory: runique — sans ça, cargo cible tout le workspace (demo-app
-      # inclus), qui hérite de la feature par unification et casse pour du code qui
-      # ne l'a jamais demandée (cf. contribution.rs, seeds/*.rs en i32 en dur).
-      - name: Run clippy (big-pk)
-        run: cargo clippy --all-targets --features big-pk -- -D warnings
-        working-directory: runique
-        continue-on-error: ${{ matrix.rust == 'nightly' }}
-
-      - name: Run clippy (pk-uuid)
-        run: cargo clippy --all-targets --features pk-uuid -- -D warnings
-        working-directory: runique
-        continue-on-error: ${{ matrix.rust == 'nightly' }}
-
-      - name: Build
-        run: cargo build --verbose --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin
-
-      # RUST_LOG temporaire : reset_password_unknown_id_creates_no_token échoue
-      # de façon intermittente sur ce job (500 au lieu d'un id inconnu géré
-      # proprement), non reproduit en local même sous contrainte CPU identique
-      # (4 coeurs, cargo test complet) — objectif : capturer l'erreur réelle
-      # derrière le 500 au prochain échec CI. À retirer une fois diagnostiqué.
       - name: Run tests
-        run: cargo test --verbose --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin
-        working-directory: runique
-        env:
-          RUST_LOG: warn,runique::admin=trace,runique::auth=trace
-          RUST_BACKTRACE: "1"
-          DATABASE_URL_MARIADB: mysql://runique:runique_test@127.0.0.1:3307/runique_test
-
-      - name: Run tests (big-pk)
-        run: cargo test --verbose --features big-pk,all-databases,admin
+        run: cargo test --verbose --features ${{ matrix.features }}
         working-directory: runique
 
-      - name: Run tests (pk-uuid)
-        run: cargo test --verbose --features pk-uuid,all-databases,admin
-        working-directory: runique
+  # `runique new`'s project, built against this checkout: the scaffold must
+  # follow the API. Ignored locally (it compiles a whole project).
+  scaffold:
+    name: Generated project compiles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-      # The admin is an opt-in feature: the framework must build and pass its
-      # tests without it too (admin tests are `#[cfg(feature = "admin")]`).
-      - name: Run tests (without admin)
-        run: cargo test --verbose --features all-databases
-        working-directory: runique
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.94"
 
-      # Without `test-utils`, six modules are left out with no warning (0 test
-      # run): test_validation_form, test_form_guarantees, test_hooks,
-      # test_login_form, test_builder and the handler_req helper.
-      - name: Run tests (test-utils)
-        run: cargo test --verbose --features all-databases,admin,test-utils
-        working-directory: runique
-
-      # `runique new`'s project, built against this checkout: the scaffold must
-      # follow the API. Ignored locally (it compiles a whole project).
       - name: Generated project compiles
         run: cargo test --lib --features all-databases the_generated_project_compiles -- --ignored
         working-directory: runique

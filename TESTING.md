@@ -37,10 +37,10 @@ tests are skipped, not failed, when no URL is configured.
 
 ```bash
 cd runique
-cargo test --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin
+cargo test --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin,test-utils
 ```
 
-This is the exact feature set the CI uses.
+This is the exact feature set of the CI's main test job.
 
 ### With Postgres and MariaDB
 
@@ -64,7 +64,8 @@ would share that database.
 
 ### Primary key variants
 
-The CI runs the suite three times, once per primary key type:
+The CI runs each feature set below in its own job, in parallel, each with a fresh MariaDB and
+Postgres (so no table left by one key type gets in the way of the next):
 
 ```bash
 cd runique
