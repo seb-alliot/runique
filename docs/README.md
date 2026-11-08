@@ -132,10 +132,10 @@ Backends sélectionnables (mutuellement exclusifs) :
 ## Aperçu des tests et de la couverture
 
 - Tests rapportés : **3443 passants** (108 ignorés)
-- Aperçu de la couverture (`2026-11-04`, package `runique`, module admin inclus) :
-  - Fonctions : **92,51 %**
-  - Lignes : **92,45 %**
-  - Régions : **91,51 %**
+- Aperçu de la couverture (`2026-11-08`, package `runique`, module admin inclus) :
+  - Fonctions : **92,93 %**
+  - Lignes : **93,00 %**
+  - Régions : **92,23 %**
 
 ```bash
 cargo llvm-cov --package runique --features all-databases,admin,test-utils --summary-only

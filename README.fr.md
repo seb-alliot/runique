@@ -198,7 +198,7 @@ Référence complète : [Sessions](https://runique.io/docs/fr/session)
 ## Tests et couverture
 
 - Tests rapportés : **3443 réussis** (108 ignorés)
-- Snapshot de couverture (`2026-11-04`, package `runique`, module admin inclus) : fonctions **92.51%**, lignes **92.45%**, régions **91.51%**
+- Snapshot de couverture (`2026-11-08`, package `runique`, module admin inclus) : fonctions **92.93%**, lignes **93.00%**, régions **92.23%**
 
 ```bash
 cargo llvm-cov --package runique --features all-databases,admin,test-utils --summary-only
