@@ -103,6 +103,7 @@ pub async fn blog_list(mut request: Request) -> AppResult<Response> {
     let articles = list_articles(&request.engine.db, search.as_deref()).await;
     context_update!(request => {
         "title"       => "Blog — Articles",
+        "description" => "The demo blog built with Runique: a model, its form and a search over the articles.",
         "articles"    => &articles,
         "search"      => &search,
         "search_form" => &form,
@@ -152,7 +153,7 @@ pub async fn test_fields(mut request: Request) -> AppResult<Response> {
 
 pub async fn formulaires_hub(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    context_update!(request => { "title" => "Forms" });
+    context_update!(request => { "title" => "Forms", "description" => "Runique's form engine: typed forms from a model, validation, file and media fields, rendering in Tera templates." });
     request.render("formulaires/index.html")
 }
 
@@ -171,6 +172,7 @@ pub async fn formulaires_helpers(mut request: Request) -> AppResult<Response> {
     let data = extract_helpers_data(&request, form.cleaned::<String>("search"));
     context_update!(request => {
         "title"          => "Helpers & URL access",
+        "description"    => "Form helpers in Runique: cleaned values, URL parameters, clear() and the helpers available after validation.",
         "path_id"        => &data.path_id,
         "search_value"   => &data.search_value,
         "cleaned_search" => &data.cleaned_search,
@@ -210,7 +212,8 @@ pub async fn about(mut request: Request) -> AppResult<Response> {
     warning!(request.notices => msg(&request.headers, "Attention required.", "Attention requise."));
     error!(request.notices => msg(&request.headers, "An error occurred.", "Une erreur est survenue."));
     context_update!(request => {
-        "title"   => "About the Runique Framework",
+        "title"   => "Flash messages",
+        "description" => "Flash messages in Runique: success, info, warning and error notices shown after a redirect, with their macros and template tag.",
         "content" => "Runique is a web framework inspired by Django, built on Axum and Tera.",
     });
     request.render("about/about.html")
@@ -218,7 +221,7 @@ pub async fn about(mut request: Request) -> AppResult<Response> {
 
 pub async fn rgpd(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    context_update!(request => { "title" => "Privacy Policy" });
+    context_update!(request => { "title" => "Privacy Policy", "description" => "Privacy policy of runique.io: data collected, cookies, hosting, retention and account deletion." });
     request.render("rgpd/rgpd.html")
 }
 
@@ -229,10 +232,6 @@ pub async fn rust_django_framework(mut request: Request) -> AppResult<Response> 
         "description" => "Runique is a Rust web framework inspired by Django: typed ModelAdmin panel, type-safe forms, built-in CSRF/CSP security and persistent sessions. A Django alternative for Rust, built on Axum, SeaORM and Tera.",
     });
     request.render("seo/rust_django_framework.html")
-}
-
-pub async fn changelog() -> Redirect {
-    Redirect::permanent("/releases")
 }
 
 pub async fn releases(mut request: Request) -> AppResult<Response> {
@@ -316,6 +315,7 @@ pub async fn probleme_connu(mut request: Request) -> AppResult<Response> {
     let sections = fetch_known_issues(&request.engine.db).await;
     context_update!(request => {
         "title"          => "Known Issues",
+        "description"    => "Known issues of each Runique version, and the release that fixes them.",
         "sections"       => &sections,
         "ext_link_label" => "Full CHANGELOG",
         "ext_link_url"   => "https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md",
@@ -394,7 +394,7 @@ pub async fn readme_en(mut request: Request) -> AppResult<Response> {
 
 pub async fn middleware_hub(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    context_update!(request => { "title" => "Middlewares" });
+    context_update!(request => { "title" => "Middlewares", "description" => "Runique's security middlewares: CSRF, Content Security Policy, rate limiting, login guard, host validation and HTTPS." });
     request.render("middleware/index.html")
 }
 
@@ -479,7 +479,7 @@ pub async fn docs_page(
 
 pub async fn admin_hub(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    context_update!(request => { "title" => "Administration" });
+    context_update!(request => { "title" => "Administration", "description" => "Runique's admin panel: a typed ModelAdmin builder, account ranks and column-level permissions." });
     request.render("admin/hub.html")
 }
 
@@ -493,13 +493,13 @@ pub async fn admin_setup(mut request: Request) -> AppResult<Response> {
 
 pub async fn surcharge_exemple(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    context_update!(request => { "title" => "Example — override template" });
+    context_update!(request => { "title" => "Example — override template", "description" => "A complete example of an overridden Runique admin page: the template, the blocks replaced and the result." });
     request.render("admin/surcharge_exemple.html")
 }
 
 pub async fn admin_surcharge(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    context_update!(request => { "title" => "Template overrides" });
+    context_update!(request => { "title" => "Template overrides", "description" => "Overriding Runique's admin templates: replace a whole page or one block, variables checked at startup." });
     request.render("admin/surcharge.html")
 }
 

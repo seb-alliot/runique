@@ -8,11 +8,12 @@
 
     {% block meta %}
         {% if lang == "fr" %}
-            <meta name="description" content="{% if description %}{% set tr_text = description %}{% include "utils/tr.html" %}{% else %}Runique — Framework web Rust inspiré de Django. Basé sur Axum, SeaORM et Tera. Formulaires typés, admin généré, middleware CSRF/CSP, sessions persistantes.{% endif %}">
+            <meta name="description" content="{% if description %}{% set tr_text = description %}{% include "utils/tr.html" %}{% else %}Runique — Framework web Rust inspiré de Django. Basé sur Axum, SeaORM et Tera. Formulaires typés, admin typé vérifié par le compilateur, middleware CSRF/CSP, sessions persistantes.{% endif %}">
         {% else %}
-            <meta name="description" content="{% if description %}{% set tr_text = description %}{% include "utils/tr.html" %}{% else %}Runique — Rust web framework inspired by Django, built on Axum, SeaORM and Tera. Type-safe forms, generated admin, CSRF/CSP middleware, persistent sessions.{% endif %}">
+            <meta name="description" content="{% if description %}{% set tr_text = description %}{% include "utils/tr.html" %}{% else %}Runique — Rust web framework inspired by Django, built on Axum, SeaORM and Tera. Type-safe forms, typed admin checked by the compiler, CSRF/CSP middleware, persistent sessions.{% endif %}">
         {% endif %}
-            <meta name="robots" content="index, follow">
+            {# Sign-in, sign-up and the error test pages are no search results. #}
+            <meta name="robots" content="{% if current_path is defined and current_path in ["/login", "/inscription", "/erreurs/propose-error", "/erreurs/502"] %}noindex, follow{% else %}index, follow{% endif %}">
             <link rel="canonical" href="https://runique.io{% if canonical %}{{ canonical }}{% elif current_path %}{{ current_path }}{% else %}/{% endif %}">
             <link rel="alternate" type="text/plain" href="https://runique.io/llms.txt" title="LLM-readable site summary">
             <link rel="alternate" type="text/plain" href="https://runique.io/llms-full.txt" title="LLM-readable full reference">
@@ -21,12 +22,20 @@
             <meta property="og:url" content="https://runique.io{% if canonical %}{{ canonical }}{% elif current_path %}{{ current_path }}{% else %}/{% endif %}">
             <meta property="og:title" content="{% if title %}{% set tr_text = title %}{% include "utils/tr.html" %} — Runique{% elif lang == "fr" %}Runique — Framework web Rust inspiré de Django{% else %}Runique — Rust web framework inspired by Django{% endif %}">
         {% if lang == "fr" %}
-            <meta property="og:description" content="{% if description %}{% set tr_text = description %}{% include "utils/tr.html" %}{% else %}Framework web Rust inspiré de Django — Axum, SeaORM, Tera. Formulaires typés, admin généré, sécurité intégrée.{% endif %}">
+            <meta property="og:description" content="{% if description %}{% set tr_text = description %}{% include "utils/tr.html" %}{% else %}Framework web Rust inspiré de Django — Axum, SeaORM, Tera. Formulaires typés, admin typé, sécurité intégrée.{% endif %}">
         {% else %}
-            <meta property="og:description" content="{% if description %}{% set tr_text = description %}{% include "utils/tr.html" %}{% else %}Rust web framework inspired by Django — Axum, SeaORM, Tera. Type-safe forms, generated admin, built-in security.{% endif %}">
+            <meta property="og:description" content="{% if description %}{% set tr_text = description %}{% include "utils/tr.html" %}{% else %}Rust web framework inspired by Django — Axum, SeaORM, Tera. Type-safe forms, typed admin, built-in security.{% endif %}">
         {% endif %}
             <meta property="og:image" content="{{ og_image }}">
     {% endblock %}
+    {# Outside the meta block: every page shares OG_IMAGE, the pages that
+       replace that block keep these too. Dimensions of media/web_content.jpg:
+       to update if OG_IMAGE changes. #}
+    <meta property="og:image:width" content="1600">
+    <meta property="og:image:height" content="896">
+    <meta property="og:image:alt" content="{% if lang == "fr" %}Runique, framework web Rust inspiré de Django{% else %}Runique, a Rust web framework inspired by Django{% endif %}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta property="og:locale" content="{% if lang == "fr" %}fr_FR{% else %}en_US{% endif %}">
 
     {% block jsonld %}
     <script type="application/ld+json" {% csp %}>

@@ -4,7 +4,7 @@
 <section class="hero">
     <div class="hero-visual">
         <picture>
-            <img src="{% media "runique_ecran.avif" %}" alt="{% if ui_lang == "fr" %}Runique : Rust porte Django vers de nouveaux horizons{% else %}Runique — Rust carrying Django to new horizons{% endif %}" class="hero-banner">
+            <img src="{% media "runique_ecran.avif" %}" width="1472" height="704" fetchpriority="high" alt="{% if ui_lang == "fr" %}Runique : Rust porte Django vers de nouveaux horizons{% else %}Runique — Rust carrying Django to new horizons{% endif %}" class="hero-banner">
         </picture>
         <div class="hero-visual-text">
             <div class="hero-visual-inner">
@@ -138,7 +138,7 @@
     ══════════════════════════════════════════ #}
 <section class="home-section">
     <div>
-        <h2 class="features-title">{% if ui_lang == "fr" %}Tout ce qu'il faut{% else %}Everything you need{% endif %}</h2>
+        <h2 class="features-title">{% if ui_lang == "fr" %}ORM, admin et formulaires à la Django, en Rust{% else %}A Django-style ORM, admin and forms for Rust{% endif %}</h2>
         <p class="features-sub">{% if ui_lang == "fr" %}Un framework complet, sans compromis sur la sécurité.{% else %}A complete framework, without compromising on security.{% endif %}</p>
         <div class="features-grid">
             <a href="/docs/{% if ui_lang == "fr" %}fr{% else %}en{% endif %}/orm" class="feature-item">
@@ -174,7 +174,7 @@
     ══════════════════════════════════════════ #}
 <section class="home-section">
     <div>
-        <h2 class="demo-section-title">{% if ui_lang == "fr" %}Explorer la démo{% else %}Explore the demo{% endif %}</h2>
+        <h2 class="demo-section-title">{% if ui_lang == "fr" %}Explorer Runique en démo : modèles, formulaires, sécurité{% else %}Explore the Runique demo: models, forms and security{% endif %}</h2>
         <p class="demo-section-sub">{% if ui_lang == "fr" %}Chaque section est une page interactive de la demo-app.{% else %}Each section is an interactive page of the demo-app.{% endif %}</p>
 
         <div class="demo-sections">

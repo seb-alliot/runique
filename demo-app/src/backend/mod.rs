@@ -6,6 +6,7 @@ pub mod comparatif;
 pub mod contribution;
 pub mod cours;
 pub mod doc;
+pub mod doc_lang;
 pub mod forms;
 pub mod lang;
 mod pages;

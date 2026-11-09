@@ -10,6 +10,10 @@
 <meta property="og:url" content="https://runique.io/docs/{{ lang }}">
 <meta property="og:image" content="{{ og_image }}">
 <link rel="canonical" href="https://runique.io/docs/{{ lang }}">
+{# The two languages of the documentation, each pointing at the other. #}
+<link rel="alternate" hreflang="fr" href="https://runique.io/docs/fr">
+<link rel="alternate" hreflang="en" href="https://runique.io/docs/en">
+<link rel="alternate" hreflang="x-default" href="https://runique.io/docs/en">
 {% endblock %}
 
 {% block style %}

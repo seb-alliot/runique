@@ -654,4 +654,46 @@ mod doc_link_validation {
             problems.join("\n")
         );
     }
+
+    /// Pages of one language with no page in the other one: the comparisons
+    /// with Loco and Cot are written in French only (served by `/comparatif`).
+    const ONE_LANGUAGE_ONLY: &[&str] = &["comparatif-cot", "comparatif-loco"];
+
+    /// Every page slug of `lang`, by the seeder's own rule.
+    fn page_slugs(docs_root: &Path, lang: &str) -> BTreeSet<String> {
+        collect_sections(&docs_root.join(lang))
+            .into_iter()
+            .flat_map(|(section, path)| collect_section_pages(&section, &path))
+            .map(|(slug, _, _)| slug)
+            .collect()
+    }
+
+    /// Each page has its counterpart in the other language, through the same
+    /// folder path or a pair of `doc_lang::TRANSLATED_SLUGS`: a folder renamed
+    /// in one language only, or a page written in one language only, fails
+    /// here instead of silently losing its `hreflang` links.
+    #[test]
+    fn every_doc_page_has_its_counterpart_in_the_other_language() {
+        use crate::backend::doc_lang::{counterpart_slug, other_lang};
+        let Some(docs_root) = find_docs_root() else {
+            eprintln!("docs/ introuvable — test ignoré");
+            return;
+        };
+        let mut missing = Vec::new();
+        for lang in ["fr", "en"] {
+            let other = page_slugs(&docs_root, other_lang(lang));
+            for slug in page_slugs(&docs_root, lang) {
+                let counterpart = counterpart_slug(lang, &slug);
+                if !other.contains(&counterpart) && !ONE_LANGUAGE_ONLY.contains(&slug.as_str()) {
+                    missing.push(format!("{lang}: {slug} → {counterpart} absent"));
+                }
+            }
+        }
+        assert!(
+            missing.is_empty(),
+            "{} page(s) sans équivalent (déclarer la paire dans doc_lang::TRANSLATED_SLUGS) :\n{}",
+            missing.len(),
+            missing.join("\n")
+        );
+    }
 }
