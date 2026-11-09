@@ -204,9 +204,18 @@ mod tests {
 
     #[test]
     fn a_course_page_is_swapped_to_the_other_language() {
-        assert_eq!(course_path_in_language("/cours", "en").as_deref(), Some("/cours/en"));
-        assert_eq!(course_path_in_language("/cours/", "en").as_deref(), Some("/cours/en"));
-        assert_eq!(course_path_in_language("/cours/fr", "en").as_deref(), Some("/cours/en"));
+        assert_eq!(
+            course_path_in_language("/cours", "en").as_deref(),
+            Some("/cours/en")
+        );
+        assert_eq!(
+            course_path_in_language("/cours/", "en").as_deref(),
+            Some("/cours/en")
+        );
+        assert_eq!(
+            course_path_in_language("/cours/fr", "en").as_deref(),
+            Some("/cours/en")
+        );
         assert_eq!(
             course_path_in_language("/cours/fr/serde", "en").as_deref(),
             Some("/cours/en/serde")

@@ -17,7 +17,10 @@ pub fn delete_accounts_inactive(db: DatabaseConnection) {
                 .await
             {
                 Ok(r) if r.rows_affected > 0 => {
-                    tracing::info!(n = r.rows_affected, "purge: never activated accounts deleted")
+                    tracing::info!(
+                        n = r.rows_affected,
+                        "purge: never activated accounts deleted"
+                    )
                 }
                 Ok(_) => {}
                 Err(e) => tracing::warn!(error = %e, "purge of never activated accounts failed"),

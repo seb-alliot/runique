@@ -339,7 +339,16 @@ mod tests {
         assert!(is_slug("serde"));
         assert!(is_slug("gestion-erreurs-avancee"));
         assert!(is_slug("a1"));
-        for refused in ["", "Serde", "a b", "a\r\nSet-Cookie: x=y", "../x", "a/b", "é", "a_b"] {
+        for refused in [
+            "",
+            "Serde",
+            "a b",
+            "a\r\nSet-Cookie: x=y",
+            "../x",
+            "a/b",
+            "é",
+            "a_b",
+        ] {
             assert!(!is_slug(refused), "{refused:?}");
         }
     }
