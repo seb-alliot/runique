@@ -4,14 +4,14 @@ use crate::views::{
     contribution_list, contribution_submit, database_demo, deconnexion, docs_index_en,
     docs_index_fr, docs_page, docs_section, erreur_502, force_not_found, force_server_error,
     force_to_many_requests, formulaires_champs, formulaires_helpers, formulaires_hub,
-    formulaires_templates, google_verify, i18n_demo, index, installation_demo, llms_full_txt,
-    llms_txt, login_user, macros_demo, middleware_csp, middleware_csrf, middleware_hosts,
-    middleware_https, middleware_hub, middleware_login_guard, middleware_rate_limit,
-    migrations_demo, model_demo, orm_demo, probleme_connu, profil, propos_template_error,
-    limites, readme_en, readme_fr, releases, releases_security, releases_status, rgpd, roadmap, router_demo,
-    rust_django_framework, security_txt, session_demo, set_language, sitemap_xml,
-    soumission_inscription, supprimer_compte, surcharge_exemple, template_demo, test_csrf,
-    test_fields, upload_image_submit, view_cours_detail, view_cours_index,
+    formulaires_templates, google_verify, i18n_demo, index, installation_demo, limites,
+    llms_full_txt, llms_txt, login_user, macros_demo, middleware_csp, middleware_csrf,
+    middleware_hosts, middleware_https, middleware_hub, middleware_login_guard,
+    middleware_rate_limit, migrations_demo, model_demo, orm_demo, probleme_connu, profil,
+    propos_template_error, readme_en, readme_fr, releases, releases_security, releases_status,
+    rgpd, roadmap, router_demo, rust_django_framework, security_txt, session_demo, set_language,
+    sitemap_xml, soumission_inscription, supprimer_compte, surcharge_exemple, template_demo,
+    test_csrf, test_fields, upload_image_submit, view_cours_detail, view_cours_index,
 };
 
 use runique::prelude::*;
