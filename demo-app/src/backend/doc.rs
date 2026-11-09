@@ -48,14 +48,15 @@ pub async fn doc_page(
     page_slug: &str,
     request: &mut Request,
 ) -> AppResult<Response> {
-    // Only `/comparatif` shows this section: its pages keep serving as its data.
+    // This section is shown by the comparison pages (`/comparatif/runique-vs-…`),
+    // one per framework: its doc pages lead there, never to the hub's top.
     if section_slug == "comparatif" {
-        let tab = match page_slug {
+        let rival = match page_slug {
             "loco" => "loco",
             "cot" => "cot",
             _ => "django",
         };
-        return Ok(Redirect::permanent(&format!("/comparatif#{tab}")).into_response());
+        return Ok(Redirect::permanent(&format!("/comparatif/runique-vs-{rival}")).into_response());
     }
 
     crate::backend::inject_globals(request).await;

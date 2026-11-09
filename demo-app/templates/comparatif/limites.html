@@ -2,26 +2,22 @@
 
 {% block meta %}
 {% if ui_lang == "fr" %}
-<meta name="description" content="Runique comparé à Loco, Cot et Django, ses limites connues et ce qui arrive.">
-<meta property="og:description" content="Runique comparé à Loco, Cot et Django, ses limites connues et ce qui arrive.">
+<meta name="description" content="Les limites connues de Runique et sa feuille de route : ce qu'il ne fait pas encore, ce qui arrive, et les problèmes connus par version.">
+<meta property="og:description" content="Les limites connues de Runique et sa feuille de route : ce qu'il ne fait pas encore, ce qui arrive, et les problèmes connus par version.">
 {% else %}
-<meta name="description" content="Runique compared with Loco, Cot and Django, its known limits and what's coming.">
-<meta property="og:description" content="Runique compared with Loco, Cot and Django, its known limits and what's coming.">
+<meta name="description" content="Runique's known limits and roadmap: what it doesn't do yet, what's coming, and the known issues by version.">
+<meta property="og:description" content="Runique's known limits and roadmap: what it doesn't do yet, what's coming, and the known issues by version.">
 {% endif %}
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Runique">
-<meta property="og:title" content="Runique, Loco, Cot, Django">
-<meta property="og:url" content="https://runique.io/comparatif">
+<meta property="og:title" content="{% if ui_lang == "fr" %}Limites et feuille de route — Runique{% else %}Limits and roadmap — Runique{% endif %}">
+<meta property="og:url" content="https://runique.io/releases/limits">
 <meta property="og:image" content="{{ og_image }}">
-<link rel="canonical" href="https://runique.io/comparatif">
+<link rel="canonical" href="https://runique.io/releases/limits">
 {% endblock %}
 
 {% block style %}
-    {# htmx locked down: same-origin requests only, no script run from swapped
-       content, no eval (strict CSP), no inline style, no page copy kept in
-       localStorage. Read by htmx from this meta: no inline script. #}
-    <meta name="htmx-config" content='{"selfRequestsOnly":true,"allowScriptTags":false,"allowEval":false,"includeIndicatorStyles":false,"historyCacheSize":0,"refreshOnHistoryMiss":true}'>
     {{ super() }}
     <link rel="stylesheet" href="{% static "css/doc.css" %}">
     <link rel="stylesheet" href="{% static "css/comparatif.css" %}">
@@ -30,16 +26,7 @@
 
 {% block content %}
 <div class="compare-page">
-    <section class="compare-section compare-intro">
-        <h2>{% if ui_lang == "fr" %}Comparaisons détaillées{% else %}Detailed comparisons{% endif %}</h2>
-        <nav class="hero-code-tabs compare-links" aria-label="{% if ui_lang == "fr" %}Comparaisons{% else %}Comparisons{% endif %}"
-         hx-boost="true" hx-target=".compare-page" hx-select=".compare-page" hx-swap="outerHTML show:window:top">
-            {% for r in rivals %}
-            <a class="hero-tab" href="/comparatif/{{ r[0] }}">Runique vs {{ r[1] }}</a>
-            {% endfor %}
-        </nav>
-    </section>
-
+    {% set release_tab = "limits" %}{% include "info/release_tabs.html" %}
     <div class="compare-layout compare-hub">
     <details class="compare-toc">
         <summary>{% if ui_lang == "fr" %}Sommaire{% else %}Contents{% endif %}</summary>
@@ -52,7 +39,7 @@
             <a class="compare-toc-page" href="#problemes-connus">{% if ui_lang == "fr" %}Problèmes connus{% else %}Known issues{% endif %}</a>
         </nav>
     </details>
-    <div class="compare-main" hx-disable>
+    <div class="compare-main">
 
     <section class="compare-section" id="limites">
         <h2>{% if ui_lang == "fr" %}Limites connues{% else %}Known limits{% endif %}</h2>
@@ -95,5 +82,4 @@
 <script {% csp %} src="{% static "js/highlight_init.js" %}"></script>
 <script {% csp %} src="{% static "js/doc_copy.js" %}"></script>
 <script {% csp %} src="{% static "js/comparatif.js" %}"></script>
-<script {% csp %} defer src="{% static "js/htmx.min.js" %}"></script>
 {% endblock %}

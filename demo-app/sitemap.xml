@@ -242,10 +242,11 @@
 <url><loc>https://runique.io/templates</loc><lastmod>2026-11-05T00:00:00+00:00</lastmod></url>
 <url><loc>https://runique.io/configuration</loc><lastmod>2026-11-05T00:00:00+00:00</lastmod></url>
 <url><loc>https://runique.io/orm</loc><lastmod>2026-11-05T00:00:00+00:00</lastmod></url>
-<url><loc>https://runique.io/comparatif</loc><lastmod>2026-11-08T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique.io/comparatif</loc><lastmod>2026-11-09T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique.io/releases/limits</loc><lastmod>2026-11-09T00:00:00+00:00</lastmod></url>
 <url><loc>https://runique.io/comparatif/runique-vs-django</loc><lastmod>2026-11-08T00:00:00+00:00</lastmod><priority>0.8</priority></url>
-<url><loc>https://runique.io/comparatif/runique-vs-loco</loc><lastmod>2026-11-08T00:00:00+00:00</lastmod><priority>0.8</priority></url>
-<url><loc>https://runique.io/comparatif/runique-vs-cot</loc><lastmod>2026-11-08T00:00:00+00:00</lastmod><priority>0.8</priority></url>
+<url><loc>https://runique.io/comparatif/runique-vs-loco</loc><lastmod>2026-11-09T00:00:00+00:00</lastmod><priority>0.8</priority></url>
+<url><loc>https://runique.io/comparatif/runique-vs-cot</loc><lastmod>2026-11-09T00:00:00+00:00</lastmod><priority>0.8</priority></url>
 <url><loc>https://runique.io/routeur</loc><lastmod>2026-11-05T00:00:00+00:00</lastmod></url>
 <url><loc>https://runique.io/modeles</loc><lastmod>2026-11-05T00:00:00+00:00</lastmod></url>
 <url><loc>https://runique.io/macros</loc><lastmod>2026-11-05T00:00:00+00:00</lastmod></url>

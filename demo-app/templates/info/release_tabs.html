@@ -3,4 +3,5 @@
     <a class="hero-tab{% if release_tab == "changelog" %} active{% endif %}" href="{% link "releases" %}"{% if release_tab == "changelog" %} aria-current="page"{% endif %}>{% if ui_lang == "fr" %}Journal des modifications{% else %}Changelog{% endif %}</a>
     <a class="hero-tab{% if release_tab == "security" %} active{% endif %}" href="{% link "releases_security" %}"{% if release_tab == "security" %} aria-current="page"{% endif %}>{% if ui_lang == "fr" %}Sécurité{% else %}Security{% endif %}</a>
     <a class="hero-tab{% if release_tab == "status" %} active{% endif %}" href="{% link "releases_status" %}"{% if release_tab == "status" %} aria-current="page"{% endif %}>{% if ui_lang == "fr" %}État du projet{% else %}Project status{% endif %}</a>
+    <a class="hero-tab{% if release_tab == "limits" %} active{% endif %}" href="{% link "limites" %}"{% if release_tab == "limits" %} aria-current="page"{% endif %}>{% if ui_lang == "fr" %}Limites et feuille de route{% else %}Limits and roadmap{% endif %}</a>
 </nav>

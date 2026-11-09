@@ -13,7 +13,7 @@
 
 {% block content %}
 <div class="compare-page">
-    <p class="compare-source"><a href="{% link "comparatif" %}">{% if ui_lang == "fr" %}← Comparatif{% else %}← Comparison{% endif %}</a></p>
+    <p class="compare-source"><a href="{% link "comparatif" %}">{% if ui_lang == "fr" %}← Choisir un framework web{% else %}← Choosing a web framework{% endif %}</a></p>
     <h1>Runique vs {{ rival }}</h1>
 
     <nav class="hero-code-tabs compare-links" aria-label="{% if ui_lang == "fr" %}Comparaisons{% else %}Comparisons{% endif %}"
@@ -37,7 +37,7 @@
         {% endfor %}
 
         <p class="compare-known-issues">
-            <a href="{% link "comparatif" %}#a-venir">{% if ui_lang == "fr" %}Ce qui arrive dans Runique{% else %}What's coming in Runique{% endif %}</a>
+            <a href="{% link "limites" %}#a-venir">{% if ui_lang == "fr" %}Ce qui arrive dans Runique{% else %}What's coming in Runique{% endif %}</a>
         </p>
     </div>
     </div>

@@ -201,7 +201,7 @@ Pour l'avancement du chantier `makemigrations`, voir [PROJECT_STATUS.md](https:/
 ## Ressources
 
 - [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md)
-- [Runique vs Django — Comparaison des fonctionnalités](https://runique.io/comparatif#django)
+- [Runique vs Django — Comparaison des fonctionnalités](https://runique.io/comparatif/runique-vs-django)
 - [Crates.io](https://crates.io/crates/runique)
 - [Politique de sécurité](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
 

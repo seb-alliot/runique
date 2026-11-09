@@ -1,4 +1,4 @@
-# Installation & Setup
+# Installation et configuration
 
 Guide complet pour installer Runique, créer un projet et le lancer.
 
