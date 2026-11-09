@@ -1,477 +1,567 @@
-# Rust : Send et Sync
+# Send & Sync
 
-**Guide complet pour la concurrence thread-safe** — comprendre les marker traits.
+> Les deux traits qui permettent au compilateur de garantir l'absence de course aux données : ce qu'ils signifient, quels types les ont, et comment corriger les erreurs « cannot be sent between threads safely ».
+
+## Objectifs
+
+- Comprendre ce que signifient `Send` et `Sync`, et le lien entre les deux
+- Savoir quels types standard les implémentent et pourquoi
+- Lire et corriger les erreurs `Send`/`Sync` avec `thread::spawn` et `tokio::spawn`
+- Éviter de garder une valeur non `Send` à travers un `.await`
+- Déclarer correctement des trait objects et des états partagés pour un serveur
+- Connaître les cas où l'on implémente `Send` ou `Sync` à la main, et le danger
 
 ## Table des matières
 
-1. Introduction aux marker traits
-2. Le trait `Send`
-3. Le trait `Sync`
-4. `Send` vs `Sync` : différences clés
-5. Types courants et leurs propriétés
-6. Cas pratiques : Axum et async
-7. Erreurs courantes et solutions
-8. Exemple illustratif de trait Rust généralisé
-9. Bonnes pratiques
-10. Exercices
+1. Le problème : la course aux données
+2. `Send`
+3. `Sync`
+4. Des traits automatiques
+5. Quels types sont `Send` et `Sync`
+6. `Send` et `Sync` dans les signatures
+7. Threads : corriger les erreurs
+8. Async : valeurs gardées à travers un `.await`
+9. Trait objects et état partagé d'un serveur
+10. Partager une valeur entre threads : toutes les façons
+11. Implémenter `Send` ou `Sync` à la main
+12. Exercices
+13. Aide-mémoire
 
-## 1. Introduction aux marker traits
+## 1. Le problème : la course aux données
 
-En Rust, `Send` et `Sync` sont des *marker traits* qui garantissent la sécurité de la concurrence
-à la compilation. Ils sont fondamentaux pour écrire du code concurrent sans data races.
-
-### Qu'est-ce qu'un marker trait ?
-
-Un marker trait est un trait sans méthode qui sert uniquement à marquer un type avec une
-propriété particulière. `Send` et `Sync` sont implémentés automatiquement par le compilateur
-pour la plupart des types.
+Une **course aux données** (data race) se produit quand deux threads accèdent à la même mémoire en même temps, qu'au moins l'un écrit, et que rien ne synchronise les accès. Le résultat est imprévisible : valeurs corrompues, plantages aléatoires, failles.
 
 ```rust
-// Définitions dans std::marker
-pub unsafe auto trait Send {}
-pub unsafe auto trait Sync {}
-
-// auto trait = implémenté automatiquement par le compilateur pour tout type
-// composé uniquement de champs Send/Sync
-// unsafe = si implémenté manuellement, la responsabilité de la sécurité
-// retombe sur le développeur
+// En C ou en Java, ceci compile et donne un total faux de façon aléatoire :
+// let mut total = 0;
+// for _ in 0..10 { spawn(|| total += 1); }
 ```
 
-## 2. Le trait `Send`
+En Rust, ce code **ne compile pas**. Le compilateur s'appuie sur deux traits marqueurs, `Send` et `Sync`, pour savoir ce qui peut traverser une frontière entre threads.
 
-### Définition
+## 2. `Send`
 
-`Send` signifie qu'une valeur peut être transférée (*moved*) entre threads en toute sécurité. Si
-un type implémente `Send`, on peut le déplacer d'un thread à un autre sans risque.
-
-### Exemple de base
+> Un type est `Send` si une valeur de ce type peut être **déplacée** vers un autre thread.
 
 ```rust
 use std::thread;
 
-fn main() {
-    let data = String::from("Hello");
-
-    thread::spawn(move || {
-        // OK : String est Send, on peut le déplacer dans un autre thread
-        println!("{}", data);
-    });
-}
+let v = vec![1, 2, 3];              // Vec<i32> est Send
+let h = thread::spawn(move || {
+    println!("{v:?}");              // v a été déplacé dans le nouveau thread
+});
+h.join().unwrap();
 ```
-
-### Types `Send` courants
-
-| Type | `Send` ? | Raison |
-|---|---|---|
-| `String` | ✅ Oui | Données possédées, pas de références partagées |
-| `Vec<T>` | ✅ Oui (si `T: Send`) | Idem, possède ses données |
-| `i32`, `u64`, `bool` | ✅ Oui | Types primitifs copiables |
-| `Arc<T>` | ✅ Oui (si `T: Send + Sync`) | Pointeur atomique thread-safe |
-| `Rc<T>` | ❌ Non | Compteur de références non atomique |
-| `Cell<T>` | ✅ Oui (si `T: Send`) | Possède sa donnée, mais pas thread-safe en partage (voir `Sync`) |
-
-### Exemple avec un type non-`Send`
 
 ```rust
 use std::rc::Rc;
-use std::thread;
 
-fn main() {
-    let data = Rc::new(String::from("Hello"));
-
-    // ERREUR : Rc<String> n'est pas Send !
-    thread::spawn(move || {
-        println!("{}", data);
-    });
-}
+let r = Rc::new(5);
+// thread::spawn(move || println!("{r}"));
+// ERREUR E0277 : `Rc<i32>` cannot be sent between threads safely
 ```
 
-```text
-error[E0277]: `Rc<String>` cannot be sent between threads safely
-   = help: the trait `Send` is not implemented for `Rc<String>`
-```
+`Rc` n'est pas `Send` : son compteur de références n'est pas protégé. Si deux threads clonaient ou libéraient chacun leur copie du même `Rc` en même temps, le compteur serait faux et la valeur libérée deux fois, ou jamais.
 
-## 3. Le trait `Sync`
+## 3. `Sync`
 
-### Définition
+> Un type `T` est `Sync` si une **référence** `&T` peut être partagée entre plusieurs threads.
 
-`Sync` signifie qu'une référence (`&T`) peut être partagée entre threads en toute sécurité. Si
-`T` est `Sync`, alors `&T` est `Send`.
-
-### Règle fondamentale
-
-```text
-T is Sync  ⇒  &T is Send
-```
-
-Si `T` implémente `Sync`, une référence `&T` peut être envoyée entre threads.
-
-### Exemple de base
+Autrement dit : `T: Sync` ⟺ `&T: Send`.
 
 ```rust
-use std::thread;
 use std::sync::Arc;
+use std::thread;
 
-fn main() {
-    let data = Arc::new(String::from("Hello"));
-    let data_ref = Arc::clone(&data);
-
+let compteur = Arc::new(std::sync::atomic::AtomicU32::new(0));   // AtomicU32 est Sync
+for _ in 0..4 {
+    let c = Arc::clone(&compteur);
     thread::spawn(move || {
-        // OK : String est Sync, donc &String est Send.
-        // Arc permet de partager la référence entre threads.
-        println!("{}", data_ref);
+        c.fetch_add(1, std::sync::atomic::Ordering::Relaxed);    // plusieurs threads, même valeur
     });
-
-    println!("{}", data);
 }
 ```
 
-### Types `Sync` courants
+```rust
+use std::cell::RefCell;
 
-| Type | `Sync` ? | Raison |
-|---|---|---|
-| `String` | ✅ Oui | Immuable une fois construite, pas de mutabilité intérieure |
-| `Vec<T>` | ✅ Oui (si `T: Sync`) | Idem |
-| `i32`, `u64`, `bool` | ✅ Oui | Types primitifs |
-| `Mutex<T>` | ✅ Oui (si `T: Send`) | Synchronisation explicite intégrée |
-| `Arc<T>` | ✅ Oui (si `T: Sync`) | Pointeur atomique |
-| `Rc<T>` | ❌ Non | Compteur de références non atomique |
-| `Cell<T>` | ❌ Non | Mutabilité intérieure non thread-safe |
-| `RefCell<T>` | ❌ Non | Vérifications d'emprunt à l'exécution, non thread-safe |
+let r = RefCell::new(0);
+// partager &r entre threads est refusé : RefCell n'est pas Sync
+```
 
-## 4. `Send` vs `Sync` : différences clés
+`RefCell` compte ses emprunts sans synchronisation : deux threads pourraient obtenir chacun un `borrow_mut()` en même temps.
 
-| Aspect | `Send` | `Sync` |
-|---|---|---|
-| Signification | La valeur peut être déplacée entre threads | Une référence vers la valeur peut être partagée entre threads |
-| Ownership | Transfert de propriété | Partage de référence |
-| Exemple d'usage | `move` dans `thread::spawn` | `&T` accessible depuis plusieurs threads |
-| Pattern typique | `thread::spawn(move \|\| data)` | `Arc<T>` partagé entre threads |
-| Vérification | À la compilation | À la compilation |
+## 4. Des traits automatiques
 
-### Diagramme mental
-
-| Situation | Trait requis |
-|---|---|
-| Je déplace une valeur dans un autre thread | `Send` |
-| Je partage une référence entre threads | `Sync` |
-| J'utilise un `Arc<T>` partagé | `T: Send + Sync` |
-| J'utilise un `Mutex<T>` partagé | `T: Send` |
-
-### Types courants et leurs propriétés (récapitulatif)
-
-| Type | `Send` | `Sync` | Notes |
-|---|---|---|---|
-| `String` | ✅ | ✅ | Sûr pour la concurrence |
-| `Vec<T>` | ✅* | ✅* | *si `T: Send`/`Sync` |
-| `HashMap<K,V>` | ✅* | ✅* | *si `K`,`V`: `Send`/`Sync` |
-| `i32`, `u64`, `bool` | ✅ | ✅ | Types primitifs |
-| `Arc<T>` | ✅* | ✅* | *si `T: Send + Sync` |
-| `Rc<T>` | ❌ | ❌ | Compteur non atomique |
-| `Cell<T>` | ✅* | ❌ | *si `T: Send` — jamais `Sync` |
-| `RefCell<T>` | ✅* | ❌ | *si `T: Send` — vérif. d'emprunt runtime non thread-safe |
-| `Mutex<T>` | ✅* | ✅* | *si `T: Send` (pas besoin de `T: Sync`) |
-| `RwLock<T>` | ✅* | ✅* | *si `T: Send + Sync` |
-
-## 5. Cas pratiques : Axum et async
-
-Dans Axum et Tokio, les traits `Send` et `Sync` sont cruciaux car les futures peuvent être
-déplacées entre threads par l'exécuteur (le runtime multi-thread de Tokio peut migrer une tâche
-d'un thread worker à un autre entre deux points d'`.await`).
-
-### Pourquoi `Sync` est nécessaire sur un trait de formulaire
+On n'implémente presque jamais `Send` ou `Sync` soi-même. Ce sont des **traits automatiques** : un type les a si **tous ses champs** les ont.
 
 ```rust
-// Trait générique illustratif pour un formulaire
-pub trait FormulaireTrait: Send + Sync {   // ← Sync important !
-    fn new() -> Self;
-    fn validate(&mut self, raw_data: &HashMap<String, String>) -> bool;
+struct Utilisateur {
+    nom: String,      // Send + Sync
+    age: u32,         // Send + Sync
 }
+// Utilisateur est automatiquement Send + Sync
 
-// Sans Sync, une erreur de ce type peut survenir dans un extracteur Axum :
-#[async_trait]
-impl<S, T> FromRequest<S> for AxumForm<T>
+struct Session {
+    donnees: std::rc::Rc<String>,   // ni Send ni Sync
+}
+// Session n'est ni Send ni Sync
+```
+
+Un seul champ non `Send` suffit à retirer `Send` à toute la struct, et à toute struct qui la contient.
+
+## 5. Quels types sont `Send` et `Sync`
+
+| Type | `Send` | `Sync` | Pourquoi |
+|---|---|---|---|
+| `i32`, `bool`, `String`, `Vec<T>`, `Box<T>` | oui | oui | (si `T` l'est) données possédées, sans état caché |
+| `&T` | si `T: Sync` | si `T: Sync` | |
+| `&mut T` | si `T: Send` | si `T: Sync` | |
+| `Rc<T>` | **non** | **non** | compteur non atomique |
+| `Arc<T>` | si `T: Send + Sync` | si `T: Send + Sync` | compteur atomique |
+| `Cell<T>`, `RefCell<T>` | si `T: Send` | **non** | modification sans synchronisation |
+| `Mutex<T>` | si `T: Send` | si `T: Send` | le verrou sérialise les accès |
+| `RwLock<T>` | si `T: Send` | si `T: Send + Sync` | plusieurs lecteurs simultanés |
+| `MutexGuard<'_, T>` (std) | **non** | si `T: Sync` | doit être relâché par le thread qui l'a pris |
+| `AtomicU32`, `AtomicBool`... | oui | oui | opérations atomiques |
+| `*const T`, `*mut T` | **non** | **non** | le compilateur ne sait rien de ce qu'ils pointent |
+| `tokio::sync::Mutex<T>` et son garde | oui (si `T: Send`) | oui | conçu pour l'async |
+
+Deux combinaisons à retenir :
+
+- `Arc<Mutex<T>>` : partager **et** modifier entre threads. `Mutex` rend `T` `Sync`, `Arc` le partage.
+- `Arc<RefCell<T>>` : refusé par `spawn`, car `RefCell` n'est pas `Sync`.
+
+## 6. `Send` et `Sync` dans les signatures
+
+### 6.1 `thread::spawn`
+
+```rust
+pub fn spawn<F, T>(f: F) -> JoinHandle<T>
 where
-    T: FormulaireTrait + 'static,   // ← doit être Send + Sync
-{
-    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
-        // Cette future peut être déplacée entre threads par Tokio.
-        // Si T n'est pas Sync et qu'une référence &T existe à travers un .await,
-        // le compilateur rejette le code.
-    }
-}
+    F: FnOnce() -> T + Send + 'static,
+    T: Send + 'static,
 ```
 
-### Exemple concret : un type qui casse la compilation
+- la closure est **envoyée** au nouveau thread : `Send` ;
+- elle peut lui survivre : `'static` (aucun emprunt temporaire) ;
+- le résultat revient au thread qui fait `join` : `T: Send`.
+
+### 6.2 `tokio::spawn`
 
 ```rust
-use std::cell::Cell;
-
-// Ce code ne compile PAS :
-pub struct BadForm {
-    inner: Forms,
-    counter: Cell<u32>,   // Cell n'est pas Sync !
-}
-
-impl FormulaireTrait for BadForm {
-    fn new() -> Self {
-        Self { inner: Forms::new(), counter: Cell::new(0) }
-    }
-    fn validate(&mut self, raw_data: &HashMap<String, String>) -> bool {
-        self.counter.set(self.counter.get() + 1);
-        self.inner.is_valid()
-    }
-}
+pub fn spawn<F>(future: F) -> JoinHandle<F::Output>
+where
+    F: Future + Send + 'static,
+    F::Output: Send + 'static,
 ```
 
-```text
-error[E0277]: `Cell<u32>` cannot be shared between threads safely
-   = help: the trait `Sync` is not implemented for `Cell<u32>`
-```
+Le runtime multithread de tokio peut déplacer une tâche d'un thread à l'autre à chaque `.await` : tout ce que le futur garde entre deux `.await` doit être `Send`.
 
-### Solution correcte
+### 6.3 Exiger `Send` dans tes propres fonctions
 
 ```rust
-use std::sync::atomic::{AtomicU32, Ordering};
-
-// Ce code compile :
-pub struct GoodForm {
-    inner: Forms,
-    counter: AtomicU32,   // AtomicU32 est Send + Sync
-}
-
-impl FormulaireTrait for GoodForm {
-    fn new() -> Self {
-        Self { inner: Forms::new(), counter: AtomicU32::new(0) }
-    }
-    fn validate(&mut self, raw_data: &HashMap<String, String>) -> bool {
-        self.counter.fetch_add(1, Ordering::Relaxed);
-        self.inner.is_valid()
-    }
+fn en_arriere_plan<T: Send + 'static>(valeur: T, traitement: fn(T)) {
+    std::thread::spawn(move || traitement(valeur));
 }
 ```
 
-## 6. Erreurs courantes et solutions
+## 7. Threads : corriger les erreurs
 
-### Erreur 1 — `Rc` dans un contexte async
+### 7.1 « cannot be sent between threads safely »
 
 ```rust
-// Erreur
 use std::rc::Rc;
-
-async fn handler(data: Rc<String>) {
-    // Erreur : Rc n'est pas Send
-}
-```
-
-```rust
-// Solution
 use std::sync::Arc;
 
-async fn handler(data: Arc<String>) {
-    // OK : Arc est Send + Sync
-}
+// Refusé : Rc
+// let r = Rc::new(vec![1]);
+// std::thread::spawn(move || println!("{r:?}"));
+
+// Correction 1 : Arc à la place de Rc
+let a = Arc::new(vec![1]);
+let a2 = Arc::clone(&a);
+std::thread::spawn(move || println!("{a2:?}"));
+
+// Correction 2 : déplacer une valeur possédée
+let v = vec![1];
+std::thread::spawn(move || println!("{v:?}"));
 ```
 
-### Erreur 2 — `Cell`/`RefCell` dans un type censé être `Sync`
-
-```rust
-// Erreur
-use std::cell::Cell;
-
-struct MyStruct {
-    value: Cell<i32>,   // Cell n'est pas Sync
-}
-```
-
-```rust
-// Solution : utiliser un type atomique
-use std::sync::atomic::{AtomicI32, Ordering};
-
-struct MyStruct {
-    value: AtomicI32,   // AtomicI32 est Send + Sync
-}
-```
-
-### Erreur 3 — oublier `Sync` sur un trait public
-
-```rust
-// Risque futur : Send seul suffit aujourd'hui mais bloquera dès qu'un usage
-// exigera Sync
-pub trait MyTrait: Send {
-    // ...
-}
-
-// Meilleure pratique : poser les deux bounds dès le départ si le trait
-// est destiné à un contexte partagé/async
-pub trait MyTrait: Send + Sync {
-    // ...
-}
-```
-
-## 7. Exemple illustratif — état partagé dans Axum
-
-```rust
-use std::sync::Arc;
-use tokio::sync::Mutex;
-
-#[derive(Clone)]
-struct AppState {
-    counter: Arc<Mutex<i32>>,   // Mutex<T> est Sync si T: Send
-    config: Arc<Settings>,      // Arc<T> est Sync si T: Sync
-}
-
-async fn handler(State(state): State<AppState>) -> Response {
-    // OK : AppState est Send + Sync
-    let mut counter = state.counter.lock().await;
-    *counter += 1;
-    // ...
-}
-```
-
-## 8. Bonnes pratiques
-
-1. **Ajouter `Send + Sync` aux traits publics destinés à un contexte async/partagé** — garantit
-   la compatibilité avec Tokio dès la conception, plutôt que de le découvrir à l'usage.
-2. **Préférer `Arc` à `Rc` dans tout code touché par async** — `Arc` est thread-safe, `Rc` ne
-   l'est jamais.
-3. **Utiliser `AtomicXxx` plutôt que `Cell`/`RefCell`** dès qu'un partage entre threads est
-   possible — mutabilité intérieure thread-safe.
-4. **Documenter les contraintes `Send`/`Sync`** explicitement dans les commentaires de trait —
-   facilite la compréhension pour les futurs développeurs.
-5. **Lire attentivement les erreurs du compilateur** — les messages `Send`/`Sync` nomment
-   précisément le type fautif et pourquoi.
-
-## 9. Exercices
-
-### Exercice 1 — identifier `Send` et `Sync`
-
-Pour chaque type, déterminer s'il est `Send` et/ou `Sync` :
-
-| Type | `Send` ? | `Sync` ? |
-|---|---|---|
-| `String` | ? | ? |
-| `Vec<Rc<i32>>` | ? | ? |
-| `Arc<Mutex<String>>` | ? | ? |
-| `Cell<String>` | ? | ? |
-| `&str` | ? | ? |
-
-### Exercice 2 — corriger le code
-
-```rust
-// Ce code ne compile pas. Pourquoi ? Comment le corriger ?
-use std::rc::Rc;
-use std::thread;
-
-fn main() {
-    let data = Rc::new(vec![1, 2, 3]);
-    thread::spawn(move || {
-        println!("{:?}", data);
-    });
-}
-```
-
-### Exercice 3 — implémenter un trait thread-safe
-
-Créer un trait `CacheTrait` qui :
-- soit utilisable dans du code async ;
-- permette de stocker et récupérer des valeurs ;
-- soit thread-safe.
-
----
-
-## Solutions des exercices
-
-### Solution Exercice 1
-
-| Type | `Send` | `Sync` | Explication |
-|---|---|---|---|
-| `String` | ✅ | ✅ | Type standard thread-safe |
-| `Vec<Rc<i32>>` | ❌ | ❌ | `Rc` n'est ni `Send` ni `Sync`, donc le `Vec` qui le contient non plus |
-| `Arc<Mutex<String>>` | ✅ | ✅ | `Arc` + `Mutex` = combinaison thread-safe standard |
-| `Cell<String>` | ✅ | ❌ | `Send` car `String: Send`, mais jamais `Sync` (mutabilité intérieure) |
-| `&str` | ✅ | ✅ | Référence immuable vers des données `Sync` |
-
-### Solution Exercice 2
-
-```rust
-// Problème : Rc n'est pas Send, impossible de le déplacer dans un thread.
-// Solution : utiliser Arc à la place.
-use std::sync::Arc;   // ← changement ici
-use std::thread;
-
-fn main() {
-    let data = Arc::new(vec![1, 2, 3]);   // ← Arc au lieu de Rc
-    thread::spawn(move || {
-        println!("{:?}", data);
-    });
-}
-// Compile et fonctionne.
-```
-
-### Solution Exercice 3
+### 7.2 « cannot be shared between threads safely »
 
 ```rust
 use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
 
-// Trait thread-safe pour cache
-pub trait CacheTrait: Send + Sync {
-    type Key: Send + Sync;
-    type Value: Send + Sync;
+// Refusé : Arc<RefCell<i32>> (RefCell n'est pas Sync)
+// let c = Arc::new(std::cell::RefCell::new(0));
 
-    fn get(&self, key: &Self::Key) -> Option<Self::Value>;
-    fn set(&self, key: Self::Key, value: Self::Value);
+let c = Arc::new(Mutex::new(0));                 // Mutex à la place de RefCell
+let mut handles = vec![];
+for _ in 0..4 {
+    let c = Arc::clone(&c);
+    handles.push(std::thread::spawn(move || {
+        *c.lock().unwrap() += 1;
+    }));
 }
-
-// Implémentation avec Mutex
-pub struct Cache<K, V> {
-    data: Arc<Mutex<HashMap<K, V>>>,
+for h in handles {
+    h.join().unwrap();
 }
-
-impl<K, V> Cache<K, V>
-where
-    K: Send + Sync + Eq + std::hash::Hash + Clone,
-    V: Send + Sync + Clone,
-{
-    pub fn new() -> Self {
-        Self { data: Arc::new(Mutex::new(HashMap::new())) }
-    }
-}
-
-impl<K, V> CacheTrait for Cache<K, V>
-where
-    K: Send + Sync + Eq + std::hash::Hash + Clone,
-    V: Send + Sync + Clone,
-{
-    type Key = K;
-    type Value = V;
-
-    fn get(&self, key: &Self::Key) -> Option<Self::Value> {
-        self.data.lock().unwrap().get(key).cloned()
-    }
-    fn set(&self, key: Self::Key, value: Self::Value) {
-        self.data.lock().unwrap().insert(key, value);
-    }
-}
-// Ce cache est Send + Sync et utilisable dans du code async.
+assert_eq!(*c.lock().unwrap(), 4);
 ```
 
-## Conclusion
+### 7.3 « borrowed value does not live long enough » / `'static`
 
-- `Send` = la valeur peut être déplacée entre threads.
-- `Sync` = une référence vers la valeur peut être partagée entre threads.
-- Vérification entièrement faite à la compilation : élimine les data races par construction.
-- Auto-implémenté par le compilateur pour la quasi-totalité des types.
-- Essentiel dès qu'on touche Axum, Tokio, ou async/await en général.
+```rust
+let donnees = vec![1, 2, 3];
 
-## Ressources
+// Refusé : la closure emprunte donnees, qui pourrait disparaître avant le thread
+// std::thread::spawn(|| println!("{donnees:?}"));
 
-- *The Rust Book* — chapitre 16 (Concurrency)
-- *Rust Nomicon* — Send and Sync
-- Documentation Tokio
-- Documentation Axum
+// 1. move : le thread possède la valeur
+// 2. Arc : chaque thread possède un pointeur partagé
+// 3. thread::scope : les threads ne peuvent pas survivre au bloc, l'emprunt devient permis
+std::thread::scope(|s| {
+    s.spawn(|| println!("{donnees:?}"));
+    s.spawn(|| println!("{}", donnees.len()));
+});
+println!("{donnees:?}");          // toujours disponible
+```
 
-> Pour voir `Send`/`Sync` appliqués à du vrai code Runique (pas un exemple générique), voir
-> `~/Bureau/revision/18_send_sync.md` — extraits réels de `runique/src/forms/base.rs` et
-> `field.rs`.
+`thread::scope` attend la fin de tous ses threads avant de rendre la main : ils peuvent donc emprunter les variables locales, sans `Arc` ni `'static`.
+
+### 7.4 Lire le message d'erreur
+
+```text
+error[E0277]: `Rc<String>` cannot be sent between threads safely
+   |
+   = help: within `Session`, the trait `Send` is not implemented for `Rc<String>`
+note: required because it appears within the type `Session`
+note: required by a bound in `spawn`
+```
+
+Le compilateur remonte la chaîne : il nomme le **champ** fautif (`Rc<String>`), la struct qui le contient (`Session`) et la fonction qui exige `Send` (`spawn`). On corrige le champ, pas l'appel.
+
+## 8. Async : valeurs gardées à travers un `.await`
+
+### 8.1 Le verrou std gardé pendant un `.await`
+
+```rust
+use std::sync::{Arc, Mutex};
+
+async fn mettre_a_jour(etat: Arc<Mutex<Vec<String>>>) {
+    let mut v = etat.lock().unwrap();        // MutexGuard (std) : pas Send
+    v.push("a".into());
+    // envoyer_notification().await;         // ERREUR avec tokio::spawn : future is not `Send`
+}
+```
+
+Le garde est gardé **à travers** l'`.await` : il ferait partie de l'état du futur, et le futur ne serait plus `Send`. De plus, garder un verrou bloquant pendant une attente bloque les autres tâches.
+
+### 8.2 Trois corrections
+
+```rust
+use std::sync::{Arc, Mutex};
+
+async fn envoyer_notification() {}
+
+// 1. Relâcher le verrou avant l'.await, dans un bloc
+async fn version1(etat: Arc<Mutex<Vec<String>>>) {
+    {
+        let mut v = etat.lock().unwrap();
+        v.push("a".into());
+    }                                         // garde libéré ici
+    envoyer_notification().await;
+}
+
+// 2. Copier ce dont on a besoin, puis relâcher
+async fn version2(etat: Arc<Mutex<Vec<String>>>) {
+    let nombre = etat.lock().unwrap().len();  // le garde est libéré à la fin de l'instruction
+    if nombre > 10 {
+        envoyer_notification().await;
+    }
+}
+
+// 3. Verrou asynchrone quand il DOIT être gardé pendant l'attente
+async fn version3(etat: Arc<tokio::sync::Mutex<Vec<String>>>) {
+    let mut v = etat.lock().await;            // garde Send
+    v.push("a".into());
+    envoyer_notification().await;             // permis, mais les autres tâches attendent
+}
+```
+
+Préfère les versions 1 et 2 : un `std::sync::Mutex` est plus rapide qu'un verrou async tant qu'il n'est jamais gardé pendant un `.await`.
+
+### 8.3 `Rc` dans une fonction async
+
+```rust
+async fn compter() {
+    let r = std::rc::Rc::new(5);
+    // quelque_chose().await;                 // r vit encore : le futur n'est pas Send
+    println!("{r}");
+}
+
+async fn compter_ok() {
+    {
+        let r = std::rc::Rc::new(5);
+        println!("{r}");
+    }                                          // r libérée avant l'attente
+    // quelque_chose().await;                 // OK
+}
+```
+
+Une variable non `Send` ne pose problème que si elle est **encore vivante** au moment d'un `.await`.
+
+### 8.4 Exécuter une tâche non `Send`
+
+```rust
+// Une tâche liée à un seul thread : LocalSet + spawn_local
+async fn local() {
+    let local = tokio::task::LocalSet::new();
+    local
+        .run_until(async {
+            tokio::task::spawn_local(async {
+                let r = std::rc::Rc::new(5);
+                tokio::task::yield_now().await;      // permis : la tâche ne change jamais de thread
+                println!("{r}");
+            })
+            .await
+            .unwrap();
+        })
+        .await;
+}
+```
+
+## 9. Trait objects et état partagé d'un serveur
+
+### 9.1 Ajouter `Send + Sync` aux trait objects
+
+```rust
+trait Notificateur {
+    fn envoyer(&self, msg: &str);
+}
+
+struct Etat {
+    // notificateur: Box<dyn Notificateur>,             // ni Send ni Sync : refusé par axum et tokio
+    notificateur: Box<dyn Notificateur + Send + Sync>,   // partageable entre les tâches
+}
+```
+
+Un `dyn Trait` ne dit rien de son type concret : le compilateur ne peut pas supposer qu'il est `Send`. Il faut le demander explicitement. Autre écriture : faire de `Send + Sync` des supertraits.
+
+```rust
+trait Notificateur2: Send + Sync {
+    fn envoyer(&self, msg: &str);
+}
+struct Etat2 { notificateur: Box<dyn Notificateur2> }   // Send + Sync déjà inclus
+```
+
+C'est ce que fait Runique : `FormField` et `PasswordHandler` ont `Send + Sync` dans leurs supertraits.
+
+### 9.2 L'état d'une application axum
+
+```rust
+use std::sync::Arc;
+
+#[derive(Clone)]
+struct AppState {
+    config: Arc<Config>,               // lecture seule, partagée
+    compteur: Arc<std::sync::atomic::AtomicU64>,
+    cache: Arc<tokio::sync::RwLock<std::collections::HashMap<String, String>>>,
+}
+
+struct Config { nom: String }
+```
+
+axum exige pour l'état `Clone + Send + Sync + 'static` : chaque requête reçoit un clone, traité sur n'importe quel thread. Avec des `Arc`, cloner l'état ne coûte que quelques compteurs. Runique suit le même principe avec `AEngine = Arc<RuniqueEngine>`.
+
+## 10. Partager une valeur entre threads : toutes les façons
+
+Compter des événements depuis plusieurs threads.
+
+```rust
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{mpsc, Arc, Mutex};
+use std::thread;
+
+// 1. Arc<Mutex<T>> : général, pour n'importe quelle donnée
+fn v1() -> u64 {
+    let total = Arc::new(Mutex::new(0u64));
+    let hs: Vec<_> = (0..4).map(|_| {
+        let t = Arc::clone(&total);
+        thread::spawn(move || *t.lock().unwrap() += 1)
+    }).collect();
+    hs.into_iter().for_each(|h| h.join().unwrap());
+    let r = *total.lock().unwrap();
+    r
+}
+
+// 2. Atomique : pour un simple nombre ou un drapeau, sans verrou
+fn v2() -> u64 {
+    let total = Arc::new(AtomicU64::new(0));
+    let hs: Vec<_> = (0..4).map(|_| {
+        let t = Arc::clone(&total);
+        thread::spawn(move || { t.fetch_add(1, Ordering::Relaxed); })
+    }).collect();
+    hs.into_iter().for_each(|h| h.join().unwrap());
+    total.load(Ordering::Relaxed)
+}
+
+// 3. Canal : les threads envoient, un seul propriétaire additionne (pas de partage du tout)
+fn v3() -> u64 {
+    let (tx, rx) = mpsc::channel();
+    for _ in 0..4 {
+        let tx = tx.clone();
+        thread::spawn(move || tx.send(1u64).unwrap());
+    }
+    drop(tx);                              // ferme le canal quand tous les émetteurs ont fini
+    rx.iter().sum()
+}
+
+// 4. Threads de portée : chaque thread calcule sa part, on additionne les résultats
+fn v4() -> u64 {
+    thread::scope(|s| {
+        let hs: Vec<_> = (0..4).map(|_| s.spawn(|| 1u64)).collect();
+        hs.into_iter().map(|h| h.join().unwrap()).sum()
+    })
+}
+```
+
+| Version | Quand |
+|---|---|
+| 1 `Arc<Mutex<T>>` | état partagé complexe, modifié par plusieurs |
+| 2 atomique | compteur, drapeau, identifiant à incrémenter |
+| 3 canal | producteurs et consommateur, pas d'état commun |
+| 4 scope + retour | découper un calcul, réunir les résultats |
+
+« Ne communiquez pas en partageant la mémoire ; partagez la mémoire en communiquant » : les versions 3 et 4 évitent tout verrou.
+
+## 11. Implémenter `Send` ou `Sync` à la main
+
+### 11.1 Retirer `Send` volontairement
+
+```rust
+use std::marker::PhantomData;
+
+struct LieAuThread {
+    _pas_send: PhantomData<*const ()>,    // un pointeur brut n'est ni Send ni Sync
+}
+```
+
+À quoi ça sert : un type qui représente une ressource liée au thread qui l'a créée (contexte graphique, handle d'une bibliothèque C non thread-safe).
+
+### 11.2 Ajouter `Send` : `unsafe impl`
+
+```rust
+struct Tampon {
+    ptr: *mut u8,          // pointeur brut : rend le type ni Send ni Sync
+    len: usize,
+}
+
+// SAFETY : Tampon possède seul la mémoire pointée par ptr, aucun autre alias n'existe.
+unsafe impl Send for Tampon {}
+```
+
+`unsafe impl` signifie : « je garantis ce que le compilateur ne peut pas vérifier ». Une erreur ici crée exactement les courses aux données que Rust empêche ailleurs. On ne l'écrit que pour envelopper une ressource bas niveau dont on maîtrise **tous** les accès, avec un commentaire `SAFETY` qui explique pourquoi c'est sûr.
+
+Dans du code applicatif ordinaire, il n'y a **jamais** besoin d'`unsafe impl Send` : si le compilateur refuse, la correction est de changer de type (`Rc` → `Arc`, `RefCell` → `Mutex`).
+
+## 12. Exercices
+
+### Exercice 1 — corriger
+
+Ce code ne compile pas. Corrige-le de deux façons.
+
+```rust
+use std::cell::RefCell;
+use std::rc::Rc;
+
+fn main() {
+    let liste = Rc::new(RefCell::new(Vec::new()));
+    let l = Rc::clone(&liste);
+    std::thread::spawn(move || l.borrow_mut().push(1)).join().unwrap();
+}
+```
+
+```rust
+// Solution 1 : Arc + Mutex
+use std::sync::{Arc, Mutex};
+fn main() {
+    let liste = Arc::new(Mutex::new(Vec::new()));
+    let l = Arc::clone(&liste);
+    std::thread::spawn(move || l.lock().unwrap().push(1)).join().unwrap();
+}
+
+// Solution 2 : le thread renvoie sa valeur, pas de partage
+fn main2() {
+    let mut liste = Vec::new();
+    let x = std::thread::spawn(|| 1).join().unwrap();
+    liste.push(x);
+}
+```
+
+### Exercice 2 — futur non `Send`
+
+Pourquoi cette fonction ne peut-elle pas être passée à `tokio::spawn` ? Corrige-la.
+
+```rust
+async fn ajouter(etat: std::sync::Arc<std::sync::Mutex<Vec<u32>>>) {
+    let mut v = etat.lock().unwrap();
+    v.push(1);
+    tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+    v.push(2);
+}
+```
+
+```rust
+// Solution : le MutexGuard std (non Send) est gardé à travers l'.await.
+async fn ajouter(etat: std::sync::Arc<std::sync::Mutex<Vec<u32>>>) {
+    etat.lock().unwrap().push(1);
+    tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+    etat.lock().unwrap().push(2);
+}
+```
+
+Attention : entre les deux `push`, une autre tâche peut modifier le `Vec`. Si les deux ajouts doivent être atomiques ensemble, il faut un `tokio::sync::Mutex` gardé pendant l'attente.
+
+### Exercice 3 — trait object partagé
+
+Déclare un état d'application qui contient un `Box<dyn Stockage>` utilisable depuis plusieurs tâches tokio.
+
+```rust
+// Solution :
+trait Stockage: Send + Sync {
+    fn lire(&self, cle: &str) -> Option<String>;
+}
+
+#[derive(Clone)]
+struct Etat {
+    stockage: std::sync::Arc<dyn Stockage>,
+}
+```
+
+`Arc` plutôt que `Box` : l'état doit être `Clone`, et un `Box<dyn Stockage>` ne l'est pas.
+
+## 13. Aide-mémoire
+
+```text
+T: Send   → une valeur T peut être déplacée vers un autre thread
+T: Sync   → &T peut être partagée entre threads   (T: Sync ⟺ &T: Send)
+
+Rc        → ni Send ni Sync           → Arc
+RefCell   → pas Sync                  → Mutex / RwLock
+Cell<u32> → pas Sync                  → AtomicU32
+MutexGuard (std) à travers .await     → relâcher avant, ou tokio::sync::Mutex
+Box<dyn Trait>                        → Box<dyn Trait + Send + Sync>
+emprunt dans thread::spawn            → move, Arc, ou thread::scope
+```
+
+### Points clés
+
+- `Send` : déplaçable vers un autre thread. `Sync` : partageable par référence.
+- Ce sont des traits automatiques : un type les a si tous ses champs les ont.
+- `Rc`, `RefCell`, `Cell` et les pointeurs bruts bloquent ; `Arc`, `Mutex`, `RwLock`, atomiques débloquent.
+- Un futur doit être `Send` pour `tokio::spawn` : rien de non `Send` ne doit vivre au moment d'un `.await`.
+- Les trait objects partagés doivent dire `+ Send + Sync`.
+- Le message d'erreur nomme le champ fautif : c'est lui qu'on change.
+- `unsafe impl Send` est réservé aux ressources bas niveau dont on maîtrise tous les accès.

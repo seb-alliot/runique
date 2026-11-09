@@ -88,11 +88,45 @@ async fn groq_call(system_prompt: &str, history: &[ConversationMessage]) -> Resu
         .ok_or_else(|| "Empty API response".to_string())
 }
 
-pub async fn cours_index(request: &mut Request) -> AppResult<Response> {
+fn route_lang(segment: &str) -> Option<&'static str> {
+    match segment {
+        "fr" => Some("fr"),
+        "en" => Some("en"),
+        _ => None,
+    }
+}
+
+/// Only a slug shape is redirected: the segment comes from the URL, decoded, and
+/// ends up in a `Location` header.
+fn is_slug(segment: &str) -> bool {
+    !segment.is_empty()
+        && segment
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+}
+
+/// `/cours`: the visitor's language. A temporary redirect, since the target
+/// depends on the cookie.
+pub fn cours_root(request: &Request) -> Response {
+    let lang = crate::backend::lang::visitor_lang(&request.headers);
+    Redirect::temporary(&format!("/cours/{lang}")).into_response()
+}
+
+/// `/cours/{segment}`: the index for `fr`/`en`, otherwise a link from before the
+/// language was in the URL (`/cours/{slug}`), sent to the visitor's language.
+pub async fn cours_index(segment: &str, request: &mut Request) -> AppResult<Response> {
+    let Some(lang) = route_lang(segment) else {
+        if !is_slug(segment) {
+            return Ok(StatusCode::NOT_FOUND.into_response());
+        }
+        let lang = crate::backend::lang::visitor_lang(&request.headers);
+        return Ok(Redirect::temporary(&format!("/cours/{lang}/{segment}")).into_response());
+    };
+
     crate::backend::inject_globals(request).await;
     let db = request.engine.db.clone();
 
-    let cours = search!(cour::Entity => Lang eq "fr", asc Ordre)
+    let cours = search!(cour::Entity => Lang eq lang, asc Ordre)
         .all(&db)
         .await
         .unwrap_or_default();
@@ -100,20 +134,23 @@ pub async fn cours_index(request: &mut Request) -> AppResult<Response> {
     let niveaux = vec!["debutant", "intermediaire", "avance", "specifique"];
 
     context_update!(request => {
-        "title"   => "Rust Courses",
+        "title"   => if lang == "fr" { "Cours Rust" } else { "Rust Courses" },
         "cours"   => &cours,
         "niveaux" => &niveaux,
-        "lang"    => "fr",
+        "lang"    => lang,
     });
 
     request.render("cours/cours_index.html")
 }
 
-pub async fn cours_detail(slug: &str, request: &mut Request) -> AppResult<Response> {
+pub async fn cours_detail(lang: &str, slug: &str, request: &mut Request) -> AppResult<Response> {
+    let Some(lang) = route_lang(lang) else {
+        return Ok(StatusCode::NOT_FOUND.into_response());
+    };
     crate::backend::inject_globals(request).await;
     let db = request.engine.db.clone();
 
-    let Some(cour) = search!(cour::Entity => Slug eq slug)
+    let Some(cour) = search!(cour::Entity => Slug eq slug, Lang eq lang)
         .first(&db)
         .await
         .unwrap_or(None)
@@ -164,7 +201,7 @@ pub async fn cours_exercice(
     // ── Chargement DB ───────────────────────────────────────────
     let db = request.engine.db.clone();
 
-    let Some(cour) = search!(cour::Entity => Slug eq slug)
+    let Some(cour) = search!(cour::Entity => Slug eq slug, Lang eq "fr")
         .first(&db)
         .await
         .unwrap_or(None)
@@ -282,4 +319,28 @@ pub async fn cours_exercice(
         status,
     })
     .into_response())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn only_fr_and_en_are_route_languages() {
+        assert_eq!(route_lang("fr"), Some("fr"));
+        assert_eq!(route_lang("en"), Some("en"));
+        for refused in ["", "FR", "de", "fr ", "serde"] {
+            assert_eq!(route_lang(refused), None, "{refused:?}");
+        }
+    }
+
+    #[test]
+    fn only_a_slug_shape_is_redirected() {
+        assert!(is_slug("serde"));
+        assert!(is_slug("gestion-erreurs-avancee"));
+        assert!(is_slug("a1"));
+        for refused in ["", "Serde", "a b", "a\r\nSet-Cookie: x=y", "../x", "a/b", "é", "a_b"] {
+            assert!(!is_slug(refused), "{refused:?}");
+        }
+    }
 }

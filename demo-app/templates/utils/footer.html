@@ -4,7 +4,7 @@
             <h4>{% if ui_lang == "fr" %}Apprendre{% else %}Learn{% endif %}</h4>
             <a href="/docs/{% if ui_lang == "fr" %}fr{% else %}en{% endif %}">Documentation</a>
             <a href="/readme/{% if ui_lang == "fr" %}fr{% else %}en{% endif %}">Readme</a>
-            <a href="/cours">{% if ui_lang == "fr" %}Cours Rust{% else %}Rust Courses{% endif %}</a>
+            <a href="{% if ui_lang == "fr" %}/cours/fr{% else %}/cours/en{% endif %}">{% if ui_lang == "fr" %}Cours Rust{% else %}Rust Courses{% endif %}</a>
         </div>
         <div>
             <h4>{% if ui_lang == "fr" %}Projet{% else %}Project{% endif %}</h4>

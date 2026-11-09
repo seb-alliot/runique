@@ -5,7 +5,7 @@ use crate::backend::{
     blog::{get_article, handle_blog_save, list_articles},
     comparatif::{comparatif_detail_page, comparatif_intro_page, limites_page},
     contribution::{handle_contribution_submit, list_contributions},
-    cours::{ExerciceInput, cours_detail, cours_exercice, cours_index},
+    cours::{ExerciceInput, cours_detail, cours_exercice, cours_index, cours_root},
     demo_code_page,
     doc::{doc_index, doc_page, doc_section_index},
     fetch_known_issues,
@@ -425,15 +425,22 @@ pub async fn middleware_https(mut request: Request) -> AppResult<Response> {
 
 // ─── Courses ──────────────────────────────────────────────────────────────────
 
-pub async fn view_cours_index(mut request: Request) -> AppResult<Response> {
-    cours_index(&mut request).await
+pub async fn view_cours_root(request: Request) -> AppResult<Response> {
+    Ok(cours_root(&request))
+}
+
+pub async fn view_cours_index(
+    Path(lang): Path<String>,
+    mut request: Request,
+) -> AppResult<Response> {
+    cours_index(&lang, &mut request).await
 }
 
 pub async fn view_cours_detail(
-    Path(slug): Path<String>,
+    Path((lang, slug)): Path<(String, String)>,
     mut request: Request,
 ) -> AppResult<Response> {
-    cours_detail(&slug, &mut request).await
+    cours_detail(&lang, &slug, &mut request).await
 }
 
 // Sa route est en commentaire dans url.rs : à retirer avec sa réactivation.

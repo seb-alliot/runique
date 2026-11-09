@@ -1,315 +1,408 @@
 # Les type aliases en Rust
 
-**Guide complet et pratique** — pour développeurs Rust intermédiaires.
+> Donner un nom court à un type long, sans créer de nouveau type : ce qu'un alias permet, ce qu'il ne permet pas, et quand passer à un newtype.
 
 ## Table des matières
 
-1. Introduction aux type aliases
-2. Syntaxe et utilisation de base
-3. Cas d'usage courants
-4. Type alias ou newtype
-5. Type aliases génériques
-6. Organisation et bonnes pratiques
-7. Limitations et pièges
-8. Exemples réels (framework Runique)
-9. Patterns avancés
-10. Exercices
+1. À quoi sert un alias
+2. Syntaxe
+3. Un alias n'est pas un nouveau type
+4. Alias génériques
+5. Les alias de `Result`
+6. Alias de types complexes
+7. Alias choisis à la compilation
+8. Alias, newtype ou `use ... as`
+9. Limites et pièges
+10. Organiser ses alias
+11. Exemples réels dans Runique
+12. Exercices
+13. Points clés à retenir
 
-## 1. Introduction aux type aliases
+## 1. À quoi sert un alias
 
-Un **type alias** donne un autre nom à un type existant. Il ne crée **pas** de nouveau type : c'est un *synonyme*, que le compilateur remplace par le type réel.
+Un alias donne un **nom** à un type existant. Il sert à :
 
-### Pourquoi utiliser des type aliases ?
+- **raccourcir** un type long qui revient souvent (`Arc<RwLock<HashMap<String, String>>>`) ;
+- **centraliser** une décision : changer le type en un seul endroit (le type de clé primaire) ;
+- **documenter** l'intention (`type Octets = Vec<u8>`) ;
+- **fixer** un paramètre d'un type générique (`type Result<T> = std::result::Result<T, MonErreur>`).
 
-- **Lisibilité** : raccourcir des types longs ou imbriqués
-- **Maintenabilité** : définir un type à un seul endroit
-- **Documentation** : donner un sens métier à un type technique
-- **Abstraction** : pouvoir changer l'implémentation sans toucher aux signatures
+Il n'ajoute **aucune** vérification : c'est un synonyme, rien de plus.
 
-> **Note :** un alias n'a aucun coût à l'exécution. Il disparaît à la compilation.
+## 2. Syntaxe
 
-## 2. Syntaxe et utilisation de base
-
-### 2.1 Syntaxe générale
+### 2.1 Forme générale
 
 ```rust
-type NomAlias = TypeExistant;
+type Nom = TypeExistant;
 
-// Exemples
-type UserId = i32;
-type Username = String;
-type Result<T> = std::result::Result<T, std::io::Error>;
+type Kilometres = f64;
+type Octets = Vec<u8>;
+type Grille = [[u8; 9]; 9];
+type Rappel = fn(i32) -> i32;
 ```
 
-### 2.2 Premier exemple concret
+Le nom suit la convention des types : `PascalCase`. Un alias peut être `pub`, `pub(crate)` ou privé, comme tout élément.
+
+### 2.2 Utilisation
 
 ```rust
-// Sans alias
-fn create_user(id: i32, name: String) -> i32 { id }
-fn get_user(id: i32) -> Option<String> { None }
+type Kilometres = f64;
 
-// Avec alias
-type UserId = i32;
-type Username = String;
-
-fn create_user(id: UserId, name: Username) -> UserId { id }
-fn get_user(id: UserId) -> Option<Username> { None }
-```
-
-L'intention devient lisible : on manipule un identifiant d'utilisateur et un nom, pas un entier et une chaîne quelconques.
-
-### 2.3 Dans une structure
-
-```rust
-type Timestamp = i64;
-type JsonData = serde_json::Value;
-
-struct Event {
-    id: UserId,
-    created_at: Timestamp,
-    data: JsonData,
+fn distance(a: Kilometres, b: Kilometres) -> Kilometres {
+    (a - b).abs()
 }
 
-let event = Event {
-    id: 42,
-    created_at: 1_706_400_000,
-    data: serde_json::json!({ "action": "login" }),
-};
+let trajet: Kilometres = 42.0;
+let d = distance(trajet, 10.0);
 ```
 
-## 3. Cas d'usage courants
-
-### 3.1 Simplifier un type de retour
+### 2.3 Dans une struct
 
 ```rust
 use std::collections::HashMap;
-use std::error::Error;
 
-// Avant
-fn process_data(input: &str) -> Result<HashMap<String, Vec<i32>>, Box<dyn Error>> { todo!() }
+type Scores = HashMap<String, u32>;
 
-// Après
-type DataMap = HashMap<String, Vec<i32>>;
-type ProcessResult = Result<DataMap, Box<dyn Error>>;
+struct Partie {
+    scores: Scores,
+}
 
-fn process_data(input: &str) -> ProcessResult { todo!() }
-```
-
-### 3.2 Types récurrents
-
-```rust
-use std::sync::Arc;
-use sea_orm::{DatabaseConnection, DbErr};
-
-type DbPool = Arc<DatabaseConnection>;
-type DbResult<T> = Result<T, DbErr>;
-
-async fn get_user(pool: &DbPool, id: UserId) -> DbResult<Option<User>> { todo!() }
-async fn create_user(pool: &DbPool, user: User) -> DbResult<()> { todo!() }
-async fn delete_user(pool: &DbPool, id: UserId) -> DbResult<()> { todo!() }
-```
-
-> **Attention :** trop d'alias rendent le code *moins* lisible — il faut aller chercher la définition. N'en créez que s'ils apportent quelque chose.
-
-### 3.3 Abstraire un détail d'implémentation
-
-```rust
-// API publique
-pub type Cache = std::collections::HashMap<String, String>;
-
-// Plus tard : pub type Cache = dashmap::DashMap<String, String>;
-// Le code qui utilise `Cache` ne change pas — tant que les méthodes appelées existent
-// sur le nouveau type.
-```
-
-## 4. Type alias ou newtype
-
-### 4.1 La différence fondamentale
-
-```rust
-// Alias : PAS un nouveau type
-type UserId = i32;
-
-// Newtype : un NOUVEAU type
-struct UserIdN(i32);
-
-let a: UserId = 42;
-let b: i32 = a;          // OK : même type
-
-let c = UserIdN(42);
-// let d: i32 = c;       // ERREUR : types différents
-let e: i32 = c.0;        // OK : accès explicite
-```
-
-### 4.2 Quand utiliser quoi ?
-
-| Critère | Type alias | Newtype |
-|---|---|---|
-| Sûreté de type | Aucune (synonyme) | Forte |
-| Coût à l'exécution | Aucun | Aucun |
-| Méthodes propres | Non | Oui |
-| Implémenter un trait | Non (c'est le type d'origine) | Oui |
-| Verbosité | Faible | Moyenne |
-| Interopérabilité | Transparente | Conversion explicite |
-
-### 4.3 Recommandations
-
-- **Alias** : simplifier une écriture sans ajouter de garantie — `Result<T>` d'un module, collections, types de callback.
-- **Newtype** : créer un type distinct avec ses règles — unités (`Meters`, `Seconds`), identifiants validés, ou implémenter un trait étranger sur un type étranger (voir 8.2).
-
-## 5. Type aliases génériques
-
-### 5.1 Alias générique
-
-```rust
-type AppResult<T> = Result<T, AppError>;
-
-fn create_user(name: &str) -> AppResult<User> { todo!() }
-fn delete_user(id: UserId) -> AppResult<()> { todo!() }
-```
-
-### 5.2 Spécialisation progressive
-
-```rust
-type GenericResult<T, E> = Result<T, E>;   // tout générique
-type AppResult<T> = Result<T, AppError>;   // erreur fixée
-type UserResult = AppResult<User>;         // tout fixé
-
-type DbResult<T> = Result<T, DbErr>;
-type UserDbResult = DbResult<User>;
-```
-
-### 5.3 Types complexes
-
-```rust
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::{Arc, Mutex};
-
-// Callbacks
-type EventHandler = Box<dyn Fn(&Event) + Send + Sync>;
-type EventHandlers = Vec<EventHandler>;
-
-// État partagé
-type SharedState<T> = Arc<Mutex<T>>;
-
-// Future en boîte
-type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
-```
-
-> **Astuce :** les alias génériques donnent une API cohérente dans tout le projet. Définissez-les une fois, dans un module central.
-
-## 6. Organisation et bonnes pratiques
-
-### 6.1 Centraliser
-
-```rust
-// Mauvais : dispersé
-mod user { type UserId = i32; }
-mod product { type ProductId = i32; }
-
-// Bon : un module dédié
-// src/types.rs
-pub type UserId = i32;
-pub type ProductId = i32;
-pub type Timestamp = i64;
-pub type JsonData = serde_json::Value;
-
-// ailleurs
-use crate::types::*;
-```
-
-### 6.2 Structure recommandée
-
-```rust
-// src/types/mod.rs
-pub mod db;
-pub mod api;
-pub mod errors;
-pub use db::*;
-pub use api::*;
-pub use errors::*;
-
-// src/types/db.rs
-pub type DbPool = std::sync::Arc<sea_orm::DatabaseConnection>;
-pub type DbResult<T> = Result<T, sea_orm::DbErr>;
-
-// src/types/api.rs
-pub type ApiResult<T> = Result<axum::Json<T>, ApiError>;
-
-// src/types/errors.rs
-pub type AppError = Box<dyn std::error::Error + Send + Sync>;
-pub type AppResult<T> = Result<T, AppError>;
-```
-
-### 6.3 Conventions de nommage
-
-- **PascalCase**, comme tout type Rust
-- **Suffixes descriptifs** : `UserId`, `UserResult`
-- **Contexte métier** : `OrderId` plutôt que `Id`, `Price` plutôt que `Decimal`
-- **Pas d'abréviations obscures**, sauf convention établie dans le projet
-
-## 7. Limitations et pièges
-
-### 7.1 Aucune vérification supplémentaire
-
-```rust
-type UserId = i32;
-type ProductId = i32;
-
-fn get_user(id: UserId) -> User { todo!() }
-
-let product_id: ProductId = 123;
-let user = get_user(product_id); // compile : bug silencieux
-
-// Solution : des newtypes
-struct UserIdN(i32);
-struct ProductIdN(i32);
-
-fn get_user_n(id: UserIdN) -> User { todo!() }
-// get_user_n(ProductIdN(123)); // ERREUR de compilation
-```
-
-### 7.2 Messages d'erreur
-
-```rust
-type ComplexType = HashMap<String, Vec<Result<i32, String>>>;
-
-fn process(data: ComplexType) {}
-// Le compilateur affiche le type complet, pas l'alias :
-// expected `HashMap<String, Vec<Result<i32, String>>>`, found ...
-```
-
-> **Limitation :** les erreurs montrent le type réel. Avec beaucoup d'alias imbriqués, elles deviennent plus difficiles à relier au code.
-
-### 7.3 Pas d'implémentation de trait propre à l'alias
-
-```rust
-use std::fmt;
-
-type UserId = i32;
-
-// ERREUR : c'est `impl Display for i32`, interdit (trait et type étrangers)
-// impl fmt::Display for UserId { ... }
-
-// Solution : un newtype
-struct UserIdN(i32);
-
-impl fmt::Display for UserIdN {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "User #{}", self.0)
+impl Partie {
+    fn new() -> Self {
+        Self { scores: Scores::new() }     // les fonctions associées passent par l'alias
     }
 }
 ```
 
-## 8. Exemples réels (framework Runique)
+## 3. Un alias n'est pas un nouveau type
+
+```rust
+type Metres = f64;
+type Secondes = f64;
+
+fn vitesse(d: Metres, t: Secondes) -> f64 {
+    d / t
+}
+
+let d: Metres = 100.0;
+let t: Secondes = 9.58;
+vitesse(t, d);              // compile : les arguments sont inversés, aucune erreur
+```
+
+`Metres`, `Secondes` et `f64` sont **le même type** : le compilateur ne voit aucune différence. Pour qu'il refuse l'inversion, il faut des newtypes (section 8).
+
+Conséquences :
+
+- toutes les méthodes et tous les traits de `f64` sont disponibles sur `Metres` ;
+- on peut passer un `f64` partout où un `Metres` est attendu, et inversement ;
+- les messages d'erreur affichent souvent le type réel, pas l'alias.
+
+## 4. Alias génériques
+
+### 4.1 Avec paramètres
+
+```rust
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+
+type Partage<T> = Arc<Mutex<T>>;
+type Index<V> = HashMap<String, V>;
+
+let compteur: Partage<u32> = Arc::new(Mutex::new(0));
+let villes: Index<u32> = Index::new();
+```
+
+### 4.2 Fixer une partie des paramètres
+
+```rust
+use std::collections::HashMap;
+
+type Table<K, V> = HashMap<K, V>;
+type TableTexte<V> = Table<String, V>;        // K fixé
+type TableComptes = TableTexte<u64>;           // K et V fixés
+```
+
+Chaque niveau fixe un paramètre de plus : on part d'un alias générique et on le spécialise.
+
+### 4.3 Les contraintes ne sont pas vérifiées
+
+```rust
+// type Affichable<T: std::fmt::Display> = Vec<T>;
+// avertissement : bounds on generic parameters are not enforced in type aliases
+```
+
+Une contrainte dans un alias est **ignorée** (le compilateur avertit). On la met sur les fonctions et les `impl` qui utilisent le type.
+
+## 5. Les alias de `Result`
+
+### 5.1 Le motif le plus courant
+
+```rust
+#[derive(Debug)]
+pub enum Erreur {
+    Introuvable,
+    Base(String),
+}
+
+pub type Result<T> = std::result::Result<T, Erreur>;
+
+pub fn charger(id: u32) -> Result<String> {
+    if id == 0 {
+        return Err(Erreur::Introuvable);
+    }
+    Ok("Ada".into())
+}
+```
+
+La bibliothèque standard fait de même : `std::io::Result<T>`, `std::fmt::Result`. SeaORM, anyhow (`anyhow::Result<T>`) et Runique (`AppResult<T>`) aussi.
+
+### 5.2 Le piège du masquage
+
+```rust
+use std::io;
+
+type Result<T> = std::result::Result<T, io::Error>;
+
+// fn analyser(s: &str) -> Result<i32, std::num::ParseIntError> { ... }
+// ERREUR : ce Result-là n'a qu'un paramètre
+fn analyser(s: &str) -> std::result::Result<i32, std::num::ParseIntError> {
+    s.parse()
+}
+```
+
+Un alias nommé `Result` **masque** celui du prélude dans tout le module. Deux façons d'éviter la confusion :
+
+```rust
+// 1. Lui donner un nom distinct
+type IoResult<T> = std::result::Result<T, std::io::Error>;
+
+// 2. L'utiliser préfixé depuis un autre module : io::Result<T>, ma_lib::Result<T>
+```
+
+### 5.3 Un alias de `Result` avec une erreur par défaut
+
+```rust
+pub type Resultat<T, E = Erreur> = std::result::Result<T, E>;
+
+fn a() -> Resultat<u32> { Ok(1) }                         // E = Erreur
+fn b() -> Resultat<u32, String> { Err("autre".into()) }   // E choisi
+```
+
+## 6. Alias de types complexes
+
+### 6.1 Closures et trait objects
+
+```rust
+use std::future::Future;
+use std::pin::Pin;
+
+type Ecouteur = Box<dyn Fn(&str) + Send + Sync>;
+type FuturEnvoyable<T> = Pin<Box<dyn Future<Output = T> + Send>>;
+type GestionnaireAsync = Box<dyn Fn(String) -> FuturEnvoyable<String> + Send + Sync>;
+
+struct Bus {
+    ecouteurs: Vec<Ecouteur>,
+}
+```
+
+Sans alias, `Vec<Box<dyn Fn(&str) + Send + Sync>>` revient dans chaque signature.
+
+### 6.2 Pointeurs de fonction
+
+```rust
+type Operation = fn(f64, f64) -> f64;
+
+fn appliquer(op: Operation, a: f64, b: f64) -> f64 {
+    op(a, b)
+}
+
+let table: [(&str, Operation); 2] = [("+", |a, b| a + b), ("*", |a, b| a * b)];
+```
+
+### 6.3 État partagé
+
+```rust
+use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
+
+type Cache = Arc<RwLock<HashMap<String, Vec<u8>>>>;
+
+fn lire(cache: &Cache, cle: &str) -> Option<Vec<u8>> {
+    cache.read().unwrap().get(cle).cloned()
+}
+```
+
+### 6.4 Alias de variante d'enum
+
+```rust
+type Note = Option<u8>;
+
+let a: Note = Note::Some(15);       // les variantes passent par l'alias
+let b = Note::None;
+```
+
+## 7. Alias choisis à la compilation
+
+Un alias peut dépendre de la plateforme ou d'une feature : le même nom désigne un type différent selon le build.
+
+```rust
+#[cfg(feature = "grands-nombres")]
+pub type Entier = i64;
+
+#[cfg(not(feature = "grands-nombres"))]
+pub type Entier = i32;
+
+pub fn doubler(x: Entier) -> Entier { x * 2 }
+```
+
+Le reste du code écrit `Entier` et ne change pas. Attention : les deux versions doivent compiler, donc le code ne doit utiliser que ce que les deux types ont en commun. Il faut tester chaque combinaison de features (voir `cargo-dependances`).
+
+```rust
+#[cfg(unix)]
+pub type Descripteur = std::os::unix::io::RawFd;      // i32
+#[cfg(windows)]
+pub type Descripteur = std::os::windows::io::RawHandle;
+```
+
+## 8. Alias, newtype ou `use ... as`
+
+### 8.1 La même idée, trois écritures
+
+```rust
+// 1. Alias : un synonyme
+type IdUtilisateur = u32;
+
+// 2. Newtype : un nouveau type
+struct IdCommande(u32);
+
+// 3. Renommage à l'import : un autre nom pour un élément existant
+use std::collections::HashMap as Table;
+```
+
+### 8.2 Comparaison
+
+| | Alias `type` | Newtype `struct X(T)` | `use ... as` |
+|---|---|---|---|
+| Crée un nouveau type | non | oui | non |
+| Empêche de mélanger avec le type d'origine | non | oui | non |
+| Méthodes du type d'origine | toutes | à réexposer (ou `Deref`) | toutes |
+| Implémenter un trait étranger | non (sauf si le type d'origine est local) | oui | non |
+| Peut fixer des paramètres génériques | oui | oui | non |
+| Coût à l'exécution | aucun | aucun | aucun |
+
+### 8.3 Quand utiliser quoi
+
+- **Alias** : raccourcir, centraliser une décision de type, fixer un paramètre d'erreur.
+- **Newtype** : empêcher une confusion (identifiants, unités), garantir une validation (`Email` construit par `parse`), cacher une représentation, implémenter un trait étranger.
+- **`use ... as`** : résoudre un conflit de noms entre deux imports (`fmt::Result` et `io::Result`).
+
+### 8.4 Le même code, de l'alias au newtype
+
+```rust
+// Alias : rien n'empêche l'erreur
+type Euros = i64;
+type Centimes = i64;
+fn payer(montant: Centimes) {}
+let prix: Euros = 12;
+payer(prix);                              // compile : bug (12 centimes au lieu de 12 euros)
+
+// Newtype : l'erreur devient une erreur de compilation
+struct EnEuros(i64);
+struct EnCentimes(i64);
+impl From<EnEuros> for EnCentimes {
+    fn from(e: EnEuros) -> Self { EnCentimes(e.0 * 100) }
+}
+fn payer2(montant: EnCentimes) {}
+// payer2(EnEuros(12));                   // ERREUR : expected EnCentimes
+payer2(EnEuros(12).into());               // conversion explicite
+```
+
+## 9. Limites et pièges
+
+### 9.1 Aucune vérification supplémentaire
+
+Voir section 3 : un alias ne protège jamais contre une confusion de valeurs.
+
+### 9.2 Pas de constructeur de tuple struct par l'alias
+
+```rust
+struct Point(i32, i32);
+type P = Point;
+
+// let p = P(1, 2);               // ERREUR E0423 : l'alias n'existe que comme type
+let p = Point(1, 2);
+let q: P = Point(3, 4);
+let r = P { 0: 5, 1: 6 };         // la forme avec accolades passe par l'alias
+```
+
+Pour une struct à champs nommés, `P { x, y }` fonctionne.
+
+### 9.3 Implémenter un trait
+
+```rust
+type Liste = Vec<i32>;
+
+// impl std::fmt::Display for Liste { ... }
+// ERREUR E0117 : Display et Vec viennent de la bibliothèque standard (règle de l'orphelin)
+```
+
+L'alias **est** `Vec<i32>` : l'implémentation viserait `Vec<i32>`, ce que seule la bibliothèque standard peut faire. Un newtype (`struct Liste(Vec<i32>)`) le permet.
+
+À l'inverse, sur un alias d'un type **local**, `impl` fonctionne normalement, puisqu'il vise le type local.
+
+### 9.4 Messages d'erreur
+
+Le compilateur affiche souvent le type réel (`HashMap<String, Vec<u8>>`) plutôt que l'alias (`Cache`). Avec beaucoup d'alias imbriqués, retrouver l'origine d'une erreur demande de les déplier.
+
+### 9.5 Trop d'alias
+
+Un alias par usage (`FormData`, `Erreurs`, `Parametres` pour le même `HashMap<String, String>`) fait croire à trois types différents. Préfère un alias par **forme** de type, nommé d'après sa structure (`StrMap`), sauf si l'usage porte une vraie décision.
+
+## 10. Organiser ses alias
+
+### 10.1 Centraliser
+
+```rust
+// src/types.rs
+use std::collections::HashMap;
+use std::sync::Arc;
+
+pub type StrMap = HashMap<String, String>;
+pub type Partage<T> = Arc<T>;
+pub type Result<T> = std::result::Result<T, crate::Erreur>;
+```
+
+```rust
+// src/lib.rs
+pub mod types;
+pub use types::*;          // ou via un prelude
+```
+
+### 10.2 Ou les garder près de leur usage
+
+Un alias utilisé dans un seul module reste dans ce module, privé. Seuls les alias partagés vont dans un fichier commun.
+
+### 10.3 Conventions de nommage observées
+
+| Préfixe / forme | Signification | Exemple |
+|---|---|---|
+| `A...` | dans un `Arc` | `AEngine = Arc<RuniqueEngine>` |
+| `O...` | dans une `Option` | `OCurrentUser = Option<CurrentUser>` |
+| `...Map` | une table | `StrMap`, `JsonMap` |
+| `...Result<T>` | un `Result` à erreur fixée | `AppResult<T>`, `IoResult<T>` |
+
+## 11. Exemples réels dans Runique
 
 Les alias de Runique sont regroupés dans `runique/src/utils/aliases/definition.rs`, et la plupart sont réexportés par `runique::prelude`.
 
-### 8.1 Un alias choisi par feature : `Pk`
+### 11.1 Un alias choisi par feature : `Pk`
 
 ```rust
 // runique/src/utils/config/pk.rs
+#[cfg(all(feature = "big-pk", feature = "pk-uuid"))]
+compile_error!("features `big-pk` and `pk-uuid` are mutually exclusive — enable at most one of them");
+
 #[cfg(feature = "pk-uuid")]
 pub type Pk = uuid::Uuid;
 
@@ -320,31 +413,43 @@ pub type Pk = i64;
 pub type Pk = i32;
 ```
 
-Tout le framework écrit `Pk` (`CurrentUser.id`, `BuiltinUserEntity::find_by_id(&db, id: Pk)`…). Changer de type de clé primaire, c'est changer une feature dans `Cargo.toml`, pas des centaines de signatures. C'est le cas d'école de l'alias : aucune garantie à ajouter, juste un seul endroit qui décide.
+Tout le framework écrit `Pk`. Changer de type de clé primaire, c'est changer une feature dans `Cargo.toml`, pas des centaines de signatures. Le `compile_error!` empêche d'activer deux choix contradictoires.
 
-### 8.2 Quand un alias ne suffit plus : `ADb`
-
-La base de données a d'abord été un alias, `Arc<DatabaseConnection>`. Problème : chaque appel SeaORM (`.insert(db)`, `.one(db)`, `db.begin()`) attend un type qui implémente `ConnectionTrait`, et `Arc<DatabaseConnection>` ne l'implémente pas. Il fallait écrire `.as_ref()` partout.
-
-Impossible de corriger ça avec un alias : `impl ConnectionTrait for Arc<DatabaseConnection>` est refusé par la règle de l'orphelin (trait et type viennent tous deux d'autres crates — voir 7.3). D'où un newtype :
+### 11.2 Un alias interne choisi par feature : `Inner` de `ADb`
 
 ```rust
 // runique/src/db/adb.rs
+#[cfg(not(feature = "test-utils"))]
+type Inner = sea_orm::DatabaseConnection;
+#[cfg(feature = "test-utils")]
+type Inner = crate::db::RuniqueDb;      // connexion réelle ou transaction de test
+
 #[derive(Clone, Debug)]
 pub struct ADb(Arc<Inner>);
+```
 
+L'alias est privé : l'utilisateur ne voit que `ADb`, quelle que soit la feature.
+
+### 11.3 Quand un alias ne suffit plus : `ADb`
+
+La base de données a d'abord été un alias, `Arc<DatabaseConnection>`. Problème : chaque appel SeaORM (`.insert(db)`, `.one(db)`, `db.begin()`) attend un type qui implémente `ConnectionTrait`, et `Arc<DatabaseConnection>` ne l'implémente pas. Il fallait écrire `.as_ref()` partout.
+
+Impossible de corriger avec un alias : `impl ConnectionTrait for Arc<DatabaseConnection>` est refusé par la règle de l'orphelin (le trait et le type viennent d'autres crates, et `Arc` n'est pas `#[fundamental]`). D'où un newtype :
+
+```rust
 impl ConnectionTrait for ADb { /* délègue à la connexion */ }
 impl TransactionTrait for ADb { /* idem */ }
 ```
 
-`ADb` reste aussi bon marché à cloner qu'un `Arc`, et `&ADb` s'utilise directement : `.insert(db)`, sans `.as_ref()`.
+`ADb` reste aussi bon marché à cloner qu'un `Arc`, et `&ADb` s'utilise directement : `.insert(db)`, sans `.as_ref()`. C'est l'illustration exacte de la ligne « implémenter un trait étranger » du tableau de la section 8.2.
 
-### 8.3 Alias de collections et de résultats
+### 11.4 Alias de collections et de résultats
 
 ```rust
 // runique/src/utils/aliases/definition.rs
 pub type AEngine = Arc<RuniqueEngine>;
-pub type StrMap = HashMap<String, String>;          // données de formulaire, erreurs…
+pub type StrMap = HashMap<String, String>;
+pub type StrVecMap = HashMap<String, Vec<String>>;
 pub type JsonMap = HashMap<String, serde_json::Value>;
 pub type AppResult<T> = Result<T, Box<AppError>>;
 
@@ -354,142 +459,78 @@ pub async fn contact(mut request: Request) -> AppResult<Response> {
 }
 ```
 
-La convention suivie : **un alias par type concret**, nommé d'après sa structure (`StrMap`) plutôt que d'après un usage particulier — sinon le même `HashMap<String, String>` finit avec cinq noms.
-
-## 9. Patterns avancés
-
-### 9.1 Alias conditionnels
-
-`Pk` (8.1) en est un exemple : le même nom désigne un type différent selon la configuration de compilation.
+### 11.5 Alias de type d'état d'un builder
 
 ```rust
-#[cfg(feature = "async")]
-pub type Handler = Box<dyn Fn() -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync>;
-
-#[cfg(not(feature = "async"))]
-pub type Handler = Box<dyn Fn() + Send + Sync>;
-
-fn register_handler(handler: Handler) { /* identique dans les deux cas */ }
+// runique/src/app/builder/mod.rs
+pub mod state {
+    pub struct No;
+    pub struct Yes;
+    pub type Fresh = (No, No, No, No, No, No, No);
+}
 ```
 
-### 9.2 Chaîne de traitement
+Le builder de Runique note dans son type quels réglages uniques ont déjà été faits (`No` ou `Yes` par réglage). `Fresh` nomme l'état de départ : sans l'alias, il faudrait écrire le tuple de sept `No` dans chaque signature qui en parle.
 
-```rust
-type RawData = Vec<u8>;
-type ParsedData = Result<Record, ParseError>;
-type ValidatedData = Result<Record, ValidationError>;
-
-fn parse(raw: RawData) -> ParsedData { todo!() }
-fn validate(parsed: Record) -> ValidatedData { todo!() }
-```
-
-### 9.3 Trait objects
-
-```rust
-type EventListener = Box<dyn Fn(&Event) + Send + Sync>;
-type AsyncHandler = Box<dyn Fn(Request) -> Pin<Box<dyn Future<Output = Response> + Send>> + Send + Sync>;
-
-type EventHandlers = Vec<EventListener>;
-```
-
-> **Pattern :** combinez alias et génériques pour des API souples. La bibliothèque standard le fait elle-même : `std::io::Result<T>` est un alias de `Result<T, std::io::Error>`.
-
-## 10. Exercices
+## 12. Exercices
 
 ### Exercice 1 : refactoring
 
-Introduisez des alias adaptés :
+Simplifie ces signatures avec des alias.
 
 ```rust
-fn get_user(id: i32, db: &Arc<DatabaseConnection>) -> Result<Option<User>, Box<dyn Error>> { todo!() }
-fn create_user(name: String, email: String, db: &Arc<DatabaseConnection>) -> Result<User, Box<dyn Error>> { todo!() }
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+
+fn lire(c: &Arc<Mutex<HashMap<String, Vec<String>>>>, k: &str) -> Option<Vec<String>> { None }
+fn ecrire(c: &Arc<Mutex<HashMap<String, Vec<String>>>>, k: String, v: Vec<String>) {}
+fn charger() -> Result<Arc<Mutex<HashMap<String, Vec<String>>>>, std::io::Error> { todo!() }
 ```
 
-### Exercice 2 : organisation
-
-Rangez ces types dans une hiérarchie de modules :
-
 ```rust
-type UserId = i32;
-type ProductId = i32;
-type OrderId = i32;
-type UserResult = Result<User, DbErr>;
-type ProductResult = Result<Product, DbErr>;
-type ApiError = Box<dyn Error + Send + Sync>;
-type JsonPayload = serde_json::Value;
-```
+// Solution :
+type Groupes = HashMap<String, Vec<String>>;
+type Partage<T> = Arc<Mutex<T>>;
+type IoResult<T> = std::result::Result<T, std::io::Error>;
 
-### Exercice 3 : généricité
-
-Créez des alias pour ce cache :
-
-```rust
-struct Cache<K, V> {
-    data: HashMap<K, V>,
+fn lire(c: &Partage<Groupes>, k: &str) -> Option<Vec<String>> {
+    c.lock().unwrap().get(k).cloned()
 }
-// 1. Un cache de chaînes vers chaînes
-// 2. Un résultat de cache avec erreur
-// 3. Un cache partagé entre tâches async
+fn ecrire(c: &Partage<Groupes>, k: String, v: Vec<String>) {
+    c.lock().unwrap().insert(k, v);
+}
+fn charger() -> IoResult<Partage<Groupes>> {
+    Ok(Arc::new(Mutex::new(Groupes::new())))
+}
 ```
 
-## Solutions
+### Exercice 2 : alias ou newtype
 
-### Solution 1
+Pour chaque cas, choisis alias ou newtype : (a) le type d'erreur de toute ta bibliothèque ; (b) des identifiants d'utilisateur et de produit, tous deux `i64` ; (c) `Box<dyn Fn(&Event) + Send + Sync>` répété partout ; (d) une adresse e-mail toujours valide.
+
+Réponses : (a) alias `type Result<T> = std::result::Result<T, Erreur>` ; (b) newtypes, pour qu'on ne puisse pas les confondre ; (c) alias ; (d) newtype avec un constructeur qui valide.
+
+### Exercice 3 : alias par feature
+
+Écris un alias `Horodatage` qui vaut `chrono::DateTime<chrono::Utc>` avec la feature `chrono`, et `u64` (secondes) sans.
 
 ```rust
-type UserId = i32;
-type DbPool = Arc<DatabaseConnection>;
-type AppError = Box<dyn Error>;
-type AppResult<T> = Result<T, AppError>;
+// Solution :
+#[cfg(feature = "chrono")]
+pub type Horodatage = chrono::DateTime<chrono::Utc>;
 
-fn get_user(id: UserId, db: &DbPool) -> AppResult<Option<User>> { todo!() }
-fn create_user(name: String, email: String, db: &DbPool) -> AppResult<User> { todo!() }
+#[cfg(not(feature = "chrono"))]
+pub type Horodatage = u64;
 ```
 
-### Solution 2
+Le code qui manipule `Horodatage` ne peut utiliser que ce qui existe pour les deux types (comparaison, copie) : tout le reste doit être placé sous le même `#[cfg]`.
 
-```rust
-// src/types/mod.rs
-pub mod ids;
-pub mod db;
-pub mod api;
+## 13. Points clés à retenir
 
-// src/types/ids.rs
-pub type UserId = i32;
-pub type ProductId = i32;
-pub type OrderId = i32;
-
-// src/types/db.rs
-pub type UserResult = Result<User, DbErr>;
-pub type ProductResult = Result<Product, DbErr>;
-
-// src/types/api.rs
-pub type ApiError = Box<dyn Error + Send + Sync>;
-pub type JsonPayload = serde_json::Value;
-pub type ApiResult<T> = Result<T, ApiError>;
-```
-
-### Solution 3
-
-```rust
-// 1.
-type StringCache = Cache<String, String>;
-// 2.
-type CacheResult<V> = Result<V, CacheError>;
-// 3.
-type SharedCache<K, V> = Arc<tokio::sync::RwLock<Cache<K, V>>>;
-```
-
-## Points clés à retenir
-
-- Un alias est un *synonyme*, pas un nouveau type, et ne coûte rien à l'exécution.
-- Il sert à nommer et centraliser des types récurrents ou longs.
-- Il n'apporte aucune sûreté : deux alias du même type sont interchangeables.
-- Dès qu'il faut une garantie, des méthodes ou un trait étranger, on passe au newtype — comme `ADb` dans Runique.
-- Les erreurs du compilateur montrent le type réel, pas l'alias.
-
-## Ressources complémentaires
-
-- *The Rust Programming Language*, section « Advanced Types » : type aliases et newtype
-- *Rust by Example*, section « Aliasing »
-- *Rust API Guidelines* : conventions de nommage
+- Un alias est un **synonyme** : aucun nouveau type, aucune vérification.
+- Il sert à raccourcir, centraliser et fixer des paramètres (`type Result<T> = ...`).
+- Les contraintes génériques d'un alias sont ignorées.
+- Un alias nommé `Result` masque celui du prélude dans son module.
+- Pour empêcher une confusion, valider ou implémenter un trait étranger : un **newtype**.
+- `use ... as` renomme un import, il ne crée pas de type.
+- Un alias sous `#[cfg]` change le type selon le build : teste chaque combinaison.

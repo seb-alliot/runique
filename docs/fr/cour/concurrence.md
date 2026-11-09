@@ -1,759 +1,822 @@
-# Concurrence et État Partagé en Rust
-> `Mutex`, `RwLock`, `Arc`, `LazyLock`, `OnceLock` — partager des données entre threads en toute sécurité
+# Concurrence & état partagé
+> Threads, verrous, atomiques, canaux et initialisation unique : partager des données entre plusieurs fils d'exécution sans course aux données, sans interblocage et sans fuite.
 
 ## Objectifs
 
-- Comprendre pourquoi la concurrence est difficile et comment Rust y répond
-- Utiliser `Mutex<T>` pour l'exclusion mutuelle
-- Utiliser `RwLock<T>` pour la lecture/écriture concurrente
-- Partager des données avec `Arc<T>`
-- Connaître le pattern `Arc<Mutex<T>>`
-- Initialiser des ressources globales avec `LazyLock` et `OnceLock`
-- Choisir la bonne primitive selon le cas d'usage
-
----
+- Lancer des threads, leur passer des données et récupérer leur résultat
+- Partager une valeur avec `Arc` et la protéger avec `Mutex` ou `RwLock`
+- Comprendre l'empoisonnement d'un verrou et savoir le traiter
+- Utiliser les types atomiques pour les compteurs et les drapeaux
+- Communiquer par canaux plutôt que par mémoire partagée
+- Initialiser une valeur globale une seule fois avec `LazyLock` et `OnceLock`
+- Éviter les interblocages et les stores qui grossissent sans fin
+- Choisir le bon outil pour chaque situation
 
 ## Table des matières
 
-1. [Pourquoi la concurrence est difficile](#1-pourquoi-la-concurrence-est-difficile)
-2. [Mutex<T> — exclusion mutuelle](#2-mutext--exclusion-mutuelle)
-3. [RwLock<T> — lecture/écriture](#3-rwlockt--lectureécriture)
-4. [Arc<T> — référence comptée thread-safe](#4-arct--référence-comptée-thread-safe)
-5. [Arc<Mutex<T>> — pattern classique](#5-arcmutext--pattern-classique)
-6. [LazyLock<T> — initialisation paresseuse](#6-lazylockt--initialisation-paresseuse)
-7. [OnceLock<T> — valeur initialisée une seule fois](#7-oncelockt--valeur-initialisée-une-seule-fois)
-8. [Comparaison et quand utiliser quoi](#8-comparaison-et-quand-utiliser-quoi)
-9. [Exemples concrets avec Runique](#9-exemples-concrets-avec-runique)
-10. [Piège — stores partagés sans cleanup](#10-piège--stores-partagés-sans-cleanup)
-11. [Exercices pratiques](#11-exercices-pratiques)
-12. [Aide-mémoire](#12-aide-mémoire)
+1. Pourquoi la concurrence est difficile
+2. Les threads
+3. `Arc<T>` : partager
+4. `Mutex<T>` : exclusion mutuelle
+5. `RwLock<T>` : lecteurs multiples
+6. Les atomiques
+7. Canaux
+8. `LazyLock<T>` et `OnceLock<T>`
+9. Interblocages
+10. Calcul parallèle sur des données
+11. Choisir
+12. Exemples dans Runique
+13. Piège : un store partagé sans nettoyage
+14. La même fonction écrite de plusieurs façons
+15. Exercices pratiques
+16. Aide-mémoire
 
 ---
 
 ## 1. Pourquoi la concurrence est difficile
 
-En programmation concurrente, plusieurs threads accèdent aux mêmes données simultanément.
-Cela génère deux catégories de bugs :
+Trois familles de bugs apparaissent quand plusieurs fils d'exécution touchent les mêmes données :
 
-**Data race** — deux threads modifient la même mémoire sans synchronisation. Le résultat est
-imprévisible et peut être différent à chaque exécution.
+| Bug | Description | Ce que fait Rust |
+|---|---|---|
+| **course aux données** | deux threads accèdent à la même mémoire, l'un écrit, sans synchronisation | impossible à compiler (`Send`, `Sync`, cours `send-sync`) |
+| **condition de course logique** | l'ordre des opérations change le résultat (lire puis écrire en deux étapes) | possible : c'est à toi de grouper les opérations sous un même verrou |
+| **interblocage** (deadlock) | deux threads attendent chacun un verrou que l'autre tient | possible : discipline sur l'ordre des verrous (section 9) |
 
-**Deadlock** — deux threads attendent chacun un verrou que l'autre détient. Ils se bloquent
-mutuellement pour toujours.
+Rust supprime la première famille à la compilation. Les deux autres restent des erreurs de conception.
 
 ```rust
-// Ce code ne compile PAS — Rust empêche le data race à la compilation
+// Condition de course logique : compile, mais faux
+use std::sync::Mutex;
+let stock = Mutex::new(1);
+
+// Deux threads font ceci en même temps :
+let disponible = *stock.lock().unwrap() > 0;   // verrou pris puis relâché
+if disponible {
+    *stock.lock().unwrap() -= 1;               // l'autre thread a pu passer entre les deux : stock = -1
+}
+
+// Correct : lire et écrire sous le même verrou
+let mut s = stock.lock().unwrap();
+if *s > 0 {
+    *s -= 1;
+}
+```
+
+---
+
+## 2. Les threads
+
+### 2.1 Lancer et attendre
+
+```rust
 use std::thread;
 
-let mut compteur = 0;
+let h = thread::spawn(|| {
+    (1..=10).sum::<u32>()
+});
 
-thread::spawn(|| compteur += 1); // erreur : compteur emprunté depuis un autre thread
-thread::spawn(|| compteur += 1); // erreur : idem
+let somme = h.join().unwrap();       // attendre la fin ; Err si le thread a paniqué
 ```
 
-Rust résout ces problèmes grâce aux traits `Send` et `Sync` vérifiés à la compilation,
-et aux primitives de synchronisation de la bibliothèque standard.
+### 2.2 Passer des données : `move`
+
+```rust
+let v = vec![1, 2, 3];
+let h = thread::spawn(move || v.iter().sum::<i32>());   // v appartient au thread
+let s = h.join().unwrap();
+```
+
+### 2.3 Plusieurs threads
+
+```rust
+let handles: Vec<_> = (0..4)
+    .map(|i| thread::spawn(move || i * i))
+    .collect();
+
+let resultats: Vec<i32> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+```
+
+### 2.4 Emprunter : `thread::scope`
+
+```rust
+let donnees = vec![1, 2, 3, 4, 5, 6];
+let (gauche, droite) = donnees.split_at(3);
+
+let (a, b) = thread::scope(|s| {
+    let ha = s.spawn(|| gauche.iter().sum::<i32>());   // emprunte, sans move ni Arc
+    let hb = s.spawn(|| droite.iter().sum::<i32>());
+    (ha.join().unwrap(), hb.join().unwrap())
+});
+```
+
+Un thread lancé dans un `scope` ne peut pas survivre au bloc : il peut donc **emprunter** les variables locales. C'est souvent la façon la plus simple de paralléliser un calcul.
+
+### 2.5 Nommer un thread
+
+```rust
+let h = thread::Builder::new()
+    .name("nettoyage".into())
+    .spawn(|| { /* ... */ })
+    .unwrap();
+```
+
+Le nom apparaît dans les messages de panique et les outils de profilage.
+
+### 2.6 Threads ou tâches async
+
+Pour des milliers d'attentes réseau : tâches async (cours `async-tokio`). Pour quelques calculs lourds en parallèle : threads. Les primitives de ce cours (`Arc`, `Mutex`, atomiques, `LazyLock`) servent dans les deux cas.
 
 ---
 
-## 2. `Mutex<T>` — exclusion mutuelle
-
-`Mutex<T>` (*Mutual Exclusion*) garantit qu'un seul thread à la fois peut accéder aux données.
-Pour lire ou modifier la valeur, il faut d'abord acquérir le **verrou**.
-
-```rust
-use std::sync::Mutex;
-
-let m = Mutex::new(5);
-
-{
-    // lock() bloque jusqu'à ce que le verrou soit disponible
-    let mut val = m.lock().unwrap();
-    *val += 1;
-    println!("{val}"); // 6
-} // le verrou est libéré ici automatiquement (drop du MutexGuard)
-
-// On peut de nouveau accéder
-println!("{:?}", m.lock().unwrap()); // 6
-```
-
-### Gestion des erreurs avec `lock()`
-
-`lock()` retourne `Err` si un thread a paniqué en tenant le verrou (*poisoned mutex*).
-
-```rust
-use std::sync::Mutex;
-
-let mutex = Mutex::new(vec![1, 2, 3]);
-
-match mutex.lock() {
-    Ok(mut guard) => {
-        guard.push(4);
-        println!("{:?}", *guard);
-    }
-
-    Err(poisoned) => {
-        // Récupérer quand même les données
-        let mut guard = poisoned.into_inner();
-        guard.push(99);
-        println!("Récupéré : {:?}", *guard);
-    }
-}
-```
-
-### `try_lock()` — tentative non bloquante
-
-```rust
-use std::sync::Mutex;
-
-let mutex = Mutex::new(0);
-
-match mutex.try_lock() {
-    Ok(mut val) => *val += 1,
-    Err(_) => println!("Verrou occupé, on continue"),
-}
-```
-
----
-
-## 3. `RwLock<T>` — lecture/écriture
-
-`RwLock<T>` (*Read-Write Lock*) permet **plusieurs lecteurs simultanés** ou **un seul écrivain**.
-C'est plus efficace que `Mutex` quand les lectures sont fréquentes et les écritures rares.
-
-```rust
-use std::sync::RwLock;
-
-let verrou = RwLock::new(vec![1, 2, 3]);
-
-// Plusieurs lectures simultanées — OK
-let lecture1 = verrou.read().unwrap();
-let lecture2 = verrou.read().unwrap();
-println!("{:?} {:?}", *lecture1, *lecture2);
-drop(lecture1);
-drop(lecture2);
-
-// Écriture exclusive — bloque si des lecteurs sont actifs
-{
-    let mut ecriture = verrou.write().unwrap();
-    ecriture.push(4);
-} // verrou d'écriture libéré
-
-println!("{:?}", verrou.read().unwrap()); // [1, 2, 3, 4]
-```
-
-### Différence avec `Mutex`
-
-```rust
-// Mutex : un seul accès à la fois, même pour la lecture
-// RwLock : plusieurs lecteurs simultanés, un seul écrivain
-
-// Choisir selon le ratio lecture/écriture :
-// - Beaucoup de lectures, peu d'écritures → RwLock
-// - Équilibré ou données petites → Mutex (moins de surcharge)
-```
-
----
-
-## 4. `Arc<T>` — référence comptée thread-safe
-
-`Arc<T>` (*Atomically Reference Counted*) permet à **plusieurs threads de posséder** la même
-valeur. Chaque clone incrémente un compteur atomique ; la valeur est libérée quand le compteur
-atteint zéro.
+## 3. `Arc<T>` : partager
 
 ```rust
 use std::sync::Arc;
 use std::thread;
 
-let donnees = Arc::new(vec![1, 2, 3, 4, 5]);
+let config = Arc::new(vec!["a", "b"]);
 let mut handles = vec![];
-
 for i in 0..3 {
-    let clone = Arc::clone(&donnees);
-
-    let handle = thread::spawn(move || {
-        println!("Thread {i} : {:?}", clone);
-    });
-
-    handles.push(handle);
+    let c = Arc::clone(&config);         // copie du pointeur, compteur + 1
+    handles.push(thread::spawn(move || println!("{i} : {:?}", c)));
 }
-
 for h in handles {
     h.join().unwrap();
 }
-
-// donnees est toujours accessible ici
-println!("Total : {}", donnees.len());
+println!("{}", Arc::strong_count(&config));   // 1 : les threads ont libéré leur copie
 ```
 
-> `Arc<T>` seul ne permet que la lecture. Pour modifier les données partagées entre threads,
-> combinez avec `Mutex<T>` ou `RwLock<T>`.
+`Arc` donne **plusieurs propriétaires** en lecture seule. Pour modifier, il faut un verrou ou un atomique **à l'intérieur** : `Arc<Mutex<T>>`, `Arc<RwLock<T>>`, `Arc<AtomicU64>`.
 
-```rust
-// Rc<T> vs Arc<T>
-use std::rc::Rc;
-use std::sync::Arc;
-
-let rc  = Rc::new(42);   // thread unique — compteur ordinaire, plus rapide
-let arc = Arc::new(42);  // multi-thread — compteur atomique, légèrement plus lent
-
-// Rc ne peut PAS être envoyé entre threads (erreur de compilation)
-// Arc peut traverser les frontières de threads
-```
+| | `Rc<T>` | `Arc<T>` |
+|---|---|---|
+| Threads | un seul | plusieurs |
+| Compteur | simple | atomique (un peu plus lent) |
 
 ---
 
-## 5. `Arc<Mutex<T>>` — pattern classique
+## 4. `Mutex<T>` : exclusion mutuelle
 
-C'est la combinaison standard pour **partager et modifier** des données entre plusieurs threads.
+### 4.1 Prendre le verrou
+
+```rust
+use std::sync::Mutex;
+
+let m = Mutex::new(0);
+{
+    let mut garde = m.lock().unwrap();   // un seul thread à la fois ici
+    *garde += 1;
+}                                        // garde libérée : verrou relâché
+```
+
+`lock()` renvoie un `MutexGuard` : il se déréférence vers la valeur, et son `Drop` relâche le verrou. On ne peut **pas** oublier de déverrouiller.
+
+### 4.2 Compteur partagé entre threads
 
 ```rust
 use std::sync::{Arc, Mutex};
 use std::thread;
 
 let compteur = Arc::new(Mutex::new(0));
-let mut handles = vec![];
-
-for _ in 0..10 {
-    let clone = Arc::clone(&compteur);
-
-    let handle = thread::spawn(move || {
-        let mut val = clone.lock().unwrap();
-        *val += 1;
-    });
-
-    handles.push(handle);
-}
-
+let handles: Vec<_> = (0..10)
+    .map(|_| {
+        let c = Arc::clone(&compteur);
+        thread::spawn(move || *c.lock().unwrap() += 1)
+    })
+    .collect();
 for h in handles {
     h.join().unwrap();
 }
-
-println!("Résultat : {}", compteur.lock().unwrap()); // 10
+assert_eq!(*compteur.lock().unwrap(), 10);
 ```
 
-### Pattern avec état applicatif
+### 4.3 Garder le verrou le moins longtemps possible
 
 ```rust
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-
-#[derive(Clone)]
-struct Cache {
-    donnees: Arc<Mutex<HashMap<String, String>>>,
-}
-
-impl Cache {
-    fn new() -> Self {
-        Cache {
-            donnees: Arc::new(Mutex::new(HashMap::new())),
-        }
-    }
-
-    fn inserer(&self, cle: &str, valeur: &str) {
-        let mut map = self.donnees.lock().unwrap();
-        map.insert(cle.to_string(), valeur.to_string());
-    }
-
-    fn obtenir(&self, cle: &str) -> Option<String> {
-        let map = self.donnees.lock().unwrap();
-        map.get(cle).cloned()
+// Mauvais : le verrou est tenu pendant tout le traitement
+let liste = Mutex::new(vec![1, 2, 3]);
+{
+    let garde = liste.lock().unwrap();
+    for x in garde.iter() {
+        traitement_long(*x);             // les autres threads attendent
     }
 }
 
-let cache = Cache::new();
-let cache2 = cache.clone(); // partage le même Arc intérieur
+// Mieux : copier, relâcher, traiter
+let copie = liste.lock().unwrap().clone();   // verrou relâché à la fin de l'instruction
+for x in copie {
+    traitement_long(x);
+}
 
-cache.inserer("cle1", "valeur1");
-println!("{:?}", cache2.obtenir("cle1")); // Some("valeur1")
+fn traitement_long(_: i32) {}
 ```
 
----
+### 4.4 L'empoisonnement
 
-## 6. `LazyLock<T>` — initialisation paresseuse
-
-`LazyLock<T>` (stable depuis Rust 1.80) initialise une valeur **la première fois qu'on y accède**,
-de façon thread-safe. Idéal pour les ressources globales coûteuses à initialiser.
+Si un thread **panique** pendant qu'il tient le verrou, le `Mutex` est marqué « empoisonné » : la donnée est peut-être dans un état incohérent. Les `lock()` suivants renvoient `Err(PoisonError)`.
 
 ```rust
-use std::sync::LazyLock;
-use std::collections::HashMap;
+use std::sync::Mutex;
 
-// Initialisé au premier accès, jamais avant
-static CODES_PAYS: LazyLock<HashMap<&str, &str>> = LazyLock::new(|| {
-    let mut m = HashMap::new();
-    m.insert("FR", "France");
-    m.insert("DE", "Allemagne");
-    m.insert("JP", "Japon");
-    m
-});
+let m = Mutex::new(vec![1]);
 
-fn main() {
-    // La HashMap est créée ici, au premier accès
-    println!("{:?}", CODES_PAYS.get("FR")); // Some("France")
-    println!("{:?}", CODES_PAYS.get("JP")); // Some("Japon")
+// 1. unwrap : propager la panique (choix par défaut le plus courant)
+let g = m.lock().unwrap();
+drop(g);
+
+// 2. Récupérer quand même la donnée, si elle ne peut pas être incohérente
+let g = match m.lock() {
+    Ok(g) => g,
+    Err(empoisonne) => empoisonne.into_inner(),
+};
+drop(g);
+
+// 3. Version courte de 2
+let g = m.lock().unwrap_or_else(|e| e.into_inner());
+```
+
+La forme 2 convient à un cache ou à une table de compteurs, où une entrée à moitié écrite n'est pas grave : continuer vaut mieux qu'arrêter le service. C'est ce que fait Runique dans ses limiteurs (section 12).
+
+### 4.5 Essayer sans attendre
+
+```rust
+match m.try_lock() {
+    Ok(mut g) => g.push(2),
+    Err(_) => println!("occupé : on réessaiera plus tard"),
 }
 ```
 
-### Comparaison avec `once_cell` (avant Rust 1.80)
+### 4.6 Accès sans verrou quand on est seul
 
 ```rust
-// Avant Rust 1.80, on utilisait la crate once_cell
-// once_cell::sync::Lazy est identique à std::sync::LazyLock
-
-// Depuis Rust 1.80, LazyLock est dans la stdlib — pas de dépendance externe nécessaire
-use std::sync::LazyLock;
-
-static CONFIG: LazyLock<String> = LazyLock::new(|| {
-    std::env::var("APP_CONFIG").unwrap_or_else(|_| "defaut".to_string())
-});
-```
-
-### `LazyLock` avec un type complexe
-
-```rust
-use std::sync::LazyLock;
-
-struct Connexion {
-    url: String,
-}
-
-impl Connexion {
-    fn nouvelle(url: &str) -> Self {
-        println!("Connexion établie vers {url}");
-        Connexion { url: url.to_string() }
-    }
-
-    fn ping(&self) -> bool {
-        println!("Ping vers {}", self.url);
-        true
-    }
-}
-
-static DB: LazyLock<Connexion> = LazyLock::new(|| {
-    Connexion::nouvelle("postgres://localhost/mabase")
-});
-
-// La connexion n'est créée que lors du premier appel à DB
-fn main() {
-    println!("Démarrage...");
-    DB.ping(); // connexion créée ici
-    DB.ping(); // déjà initialisé, réutilisé directement
-}
+let mut m = Mutex::new(5);
+*m.get_mut().unwrap() += 1;        // &mut m prouve qu'aucun autre accès n'existe : pas de verrou
+let valeur = m.into_inner().unwrap();   // récupérer la donnée et détruire le Mutex
 ```
 
 ---
 
-## 7. `OnceLock<T>` — valeur initialisée une seule fois
-
-`OnceLock<T>` est similaire à `LazyLock` mais l'initialisation est **manuelle** — vous choisissez
-quand et comment initialiser la valeur.
+## 5. `RwLock<T>` : lecteurs multiples
 
 ```rust
-use std::sync::OnceLock;
+use std::sync::{Arc, RwLock};
 
-static INSTANCE: OnceLock<String> = OnceLock::new();
+let config = Arc::new(RwLock::new(String::from("v1")));
 
-fn obtenir_instance() -> &'static String {
-    INSTANCE.get_or_init(|| {
-        println!("Initialisation unique...");
-        "valeur globale".to_string()
+let lecture = config.read().unwrap();      // plusieurs lecteurs en même temps
+println!("{}", *lecture);
+drop(lecture);
+
+let mut ecriture = config.write().unwrap(); // un seul écrivain, aucun lecteur
+*ecriture = String::from("v2");
+```
+
+| | `Mutex<T>` | `RwLock<T>` |
+|---|---|---|
+| Lecteurs simultanés | non | oui |
+| Coût | plus faible | plus élevé |
+| Pour | lectures et écritures fréquentes, sections courtes | beaucoup de lectures, rares écritures (configuration, cache) |
+| Exigence sur `T` pour partager | `Send` | `Send + Sync` |
+
+Un `RwLock` n'est pas toujours plus rapide : pour des sections très courtes, un `Mutex` est souvent meilleur. Et un écrivain peut attendre longtemps si les lecteurs se succèdent sans interruption.
+
+---
+
+## 6. Les atomiques
+
+### 6.1 Compteurs et drapeaux sans verrou
+
+```rust
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Arc;
+use std::thread;
+
+let compteur = Arc::new(AtomicU64::new(0));
+let handles: Vec<_> = (0..10)
+    .map(|_| {
+        let c = Arc::clone(&compteur);
+        thread::spawn(move || {
+            c.fetch_add(1, Ordering::Relaxed);
+        })
     })
+    .collect();
+for h in handles {
+    h.join().unwrap();
 }
+assert_eq!(compteur.load(Ordering::Relaxed), 10);
 
-fn main() {
-    println!("{}", obtenir_instance()); // initialise
-    println!("{}", obtenir_instance()); // réutilise, pas de réinitialisation
+static ARRET: AtomicBool = AtomicBool::new(false);
+ARRET.store(true, Ordering::Release);
+if ARRET.load(Ordering::Acquire) { /* arrêter */ }
+```
+
+### 6.2 Opérations
+
+| Méthode | Effet |
+|---|---|
+| `load`, `store` | lire, écrire |
+| `fetch_add`, `fetch_sub` | ajouter, retirer ; renvoie l'ancienne valeur |
+| `fetch_max`, `fetch_min` | garder le maximum, le minimum |
+| `swap` | remplacer, renvoie l'ancienne valeur |
+| `compare_exchange(attendu, nouveau, ..)` | remplacer seulement si la valeur est celle attendue |
+
+```rust
+use std::sync::atomic::{AtomicU32, Ordering};
+
+// Réserver une place seulement s'il en reste : lecture et écriture en une seule opération
+fn reserver(places: &AtomicU32) -> bool {
+    places
+        .fetch_update(Ordering::AcqRel, Ordering::Acquire, |p| p.checked_sub(1))
+        .is_ok()
 }
 ```
 
-### Initialisation depuis une fonction externe
+### 6.3 `Ordering` en pratique
+
+| Ordering | Usage |
+|---|---|
+| `Relaxed` | compteur, statistique : seul le nombre compte |
+| `Release` (écriture) / `Acquire` (lecture) | un drapeau qui publie d'autres données (« prêt » après avoir rempli un tampon) |
+| `AcqRel` | lecture-modification-écriture qui fait les deux |
+| `SeqCst` | ordre global strict ; le plus sûr en cas de doute |
+
+Un atomique ne protège **qu'une** valeur. Pour garder cohérentes deux valeurs liées (un total et un nombre), il faut un `Mutex`.
+
+---
+
+## 7. Canaux
+
+### 7.1 `std::sync::mpsc`
+
+```rust
+use std::sync::mpsc;
+use std::thread;
+
+let (tx, rx) = mpsc::channel();
+for i in 0..3 {
+    let tx = tx.clone();
+    thread::spawn(move || tx.send(i * 10).unwrap());
+}
+drop(tx);                                   // fermer : sinon rx attend pour toujours
+
+let total: i32 = rx.iter().sum();           // reçoit jusqu'à la fermeture
+```
+
+### 7.2 Canal limité
+
+```rust
+let (tx, rx) = mpsc::sync_channel::<String>(10);   // au-delà de 10, send bloque
+```
+
+### 7.3 Mémoire partagée ou messages
+
+```rust
+// 1. Mémoire partagée : plusieurs threads modifient la même Vec sous un verrou
+// 2. Messages : chaque thread envoie ses résultats ; un seul propriétaire assemble
+```
+
+Les messages évitent les verrous et les interblocages : une seule tâche possède la donnée. Pour l'asynchrone, tokio fournit ses propres canaux (`mpsc`, `oneshot`, `broadcast`, `watch`, voir `async-tokio`). La crate `crossbeam-channel` offre des canaux std plus riches (plusieurs récepteurs, `select!`).
+
+---
+
+## 8. `LazyLock<T>` et `OnceLock<T>`
+
+### 8.1 `LazyLock` : valeur globale calculée au premier accès
+
+```rust
+use std::collections::HashMap;
+use std::sync::LazyLock;
+
+static CODES: LazyLock<HashMap<u16, &'static str>> = LazyLock::new(|| {
+    HashMap::from([(404, "introuvable"), (500, "erreur interne")])
+});
+
+fn message(code: u16) -> &'static str {
+    CODES.get(&code).copied().unwrap_or("inconnu")
+}
+```
+
+- La closure s'exécute **une seule fois**, au premier accès, même si plusieurs threads y accèdent en même temps.
+- Disponible depuis Rust 1.80 : remplace `lazy_static!` et `once_cell::sync::Lazy`.
+
+### 8.2 Avant Rust 1.80
+
+```rust
+// lazy_static (crate)
+// lazy_static! { static ref CODES: HashMap<u16, &'static str> = { .. }; }
+
+// once_cell (crate)
+// static CODES: once_cell::sync::Lazy<HashMap<..>> = Lazy::new(|| ..);
+
+// Aujourd'hui : std uniquement
+// static CODES: std::sync::LazyLock<HashMap<..>> = LazyLock::new(|| ..);
+```
+
+### 8.3 `OnceLock` : valeur fixée plus tard, une seule fois
 
 ```rust
 use std::sync::OnceLock;
 
-static PORT: OnceLock<u16> = OnceLock::new();
+static URL_BASE: OnceLock<String> = OnceLock::new();
 
-fn configurer(port: u16) -> Result<(), u16> {
-    PORT.set(port) // retourne Err(port) si déjà initialisé
-}
-
-fn port() -> u16 {
-    *PORT.get().expect("port non configuré")
-}
-
-fn main() {
-    configurer(8080).unwrap();
-
-    match configurer(9090) {
-        Ok(_)  => println!("configuré"),
-        Err(p) => println!("déjà initialisé avec {p}"),
+fn initialiser(url: String) {
+    if URL_BASE.set(url).is_err() {
+        panic!("URL_BASE déjà initialisée");
     }
+}
 
-    println!("Port actif : {}", port()); // 8080
+fn url_base() -> &'static str {
+    URL_BASE.get().map(String::as_str).expect("initialiser() doit être appelée au démarrage")
+}
+
+// Ou : calculée à la première demande, depuis une fonction
+fn cache() -> &'static Vec<u32> {
+    static C: OnceLock<Vec<u32>> = OnceLock::new();
+    C.get_or_init(|| (1..=10).collect())
 }
 ```
 
-### Différence `LazyLock` vs `OnceLock`
+### 8.4 `LazyLock` ou `OnceLock`
+
+| | `LazyLock` | `OnceLock` |
+|---|---|---|
+| La valeur est connue | à la déclaration (une fonction) | plus tard (au démarrage, depuis la configuration) |
+| Initialisation | automatique au premier accès | `set` explicite, ou `get_or_init` |
+| Pour | tables constantes, regex, lecture de l'environnement | configuration reçue au démarrage, valeur passée par `main` |
+
+### 8.5 Le piège de l'initialisation paresseuse
+
+Une `LazyLock` qui lit une variable d'environnement la lit **au premier accès**, pas au démarrage du programme. Si le premier accès a lieu avant le chargement de `.env`, la valeur lue est celle d'avant. Et une fois calculée, elle ne change plus jusqu'à la fin du programme : modifier `.env` demande un redémarrage.
+
+---
+
+## 9. Interblocages
+
+### 9.1 Deux verrous pris dans un ordre différent
 
 ```rust
-// LazyLock — initialisation automatique à la closure définie à la déclaration
-static A: LazyLock<String> = LazyLock::new(|| "automatique".to_string());
+use std::sync::{Arc, Mutex};
+use std::thread;
 
-// OnceLock — initialisation manuelle, peut être faite depuis n'importe où
-static B: OnceLock<String> = OnceLock::new();
+let a = Arc::new(Mutex::new(0));
+let b = Arc::new(Mutex::new(0));
 
-fn main() {
-    let _ = &*A;              // A s'initialise ici
-    B.set("manuel".to_string()).unwrap(); // B initialisé explicitement
-}
+let (a1, b1) = (Arc::clone(&a), Arc::clone(&b));
+let t1 = thread::spawn(move || {
+    let _ga = a1.lock().unwrap();
+    let _gb = b1.lock().unwrap();      // attend b
+});
+
+let (a2, b2) = (Arc::clone(&a), Arc::clone(&b));
+let t2 = thread::spawn(move || {
+    let _gb = b2.lock().unwrap();
+    let _ga = a2.lock().unwrap();      // attend a : si t1 tient a et attend b, les deux attendent pour toujours
+});
+```
+
+### 9.2 Les règles
+
+1. **Toujours le même ordre** : si un code prend `a` puis `b`, tout le code prend `a` puis `b`.
+2. **Un seul verrou à la fois** quand c'est possible : regrouper les données liées dans un seul `Mutex<Struct>`.
+3. **Ne jamais reprendre un verrou qu'on tient déjà** : un `Mutex` std n'est pas réentrant, un second `lock()` dans le même thread bloque pour toujours.
+4. **Ne rien appeler d'inconnu** (closure de l'utilisateur, fonction qui pourrait prendre un verrou) en tenant un verrou.
+
+```rust
+let m = std::sync::Mutex::new(0);
+let _g = m.lock().unwrap();
+// let _g2 = m.lock().unwrap();   // interblocage dans le même thread
 ```
 
 ---
 
-## 8. Comparaison et quand utiliser quoi
+## 10. Calcul parallèle sur des données
 
-| Type | Thread-safe | Propriétaires | Mutation | Cas d'usage |
-|---|---|---|---|---|
-| `Mutex<T>` | ✅ | 1 | oui (lock exclusif) | Compteur, état partagé |
-| `RwLock<T>` | ✅ | 1 | oui (1 écrivain ou N lecteurs) | Cache lu souvent, écrit rarement |
-| `Arc<T>` | ✅ | N | non (seul) | Partage en lecture seule |
-| `Arc<Mutex<T>>` | ✅ | N | oui (lock) | État partagé entre threads |
-| `Arc<RwLock<T>>` | ✅ | N | oui (lock) | Config partagée, lectures fréquentes |
-| `LazyLock<T>` | ✅ | — | non (init une fois) | Ressource globale paresseuse |
-| `OnceLock<T>` | ✅ | — | non (init une fois) | Valeur globale initialisée manuellement |
+```rust
+use rayon::prelude::*;
 
-**Règles pratiques :**
+let v: Vec<u64> = (1..=1_000_000).collect();
 
-- Vous partagez entre threads sans modifier → `Arc<T>`
-- Vous partagez et modifiez → `Arc<Mutex<T>>`
-- Lectures très fréquentes, écritures rares → `Arc<RwLock<T>>`
-- Ressource globale à initialiser une seule fois → `LazyLock<T>` ou `OnceLock<T>`
-- Thread unique avec mutation partagée → `Rc<RefCell<T>>`
+let somme: u64 = v.iter().sum();                      // un cœur
+let somme_par: u64 = v.par_iter().sum();              // tous les cœurs
+
+let carres: Vec<u64> = v.par_iter().map(|x| x * x).collect();
+let mut a_trier = v.clone();
+a_trier.par_sort_unstable();
+```
+
+La crate `rayon` remplace `iter()` par `par_iter()` : le travail est réparti sur un ensemble de threads, sans verrou ni canal à écrire. Le compilateur vérifie que la closure peut être exécutée en parallèle (`Send + Sync`). À réserver aux calculs suffisamment gros : pour quelques milliers d'éléments simples, le découpage coûte plus qu'il ne rapporte.
 
 ---
 
-## 9. Exemples concrets avec Runique
+## 11. Choisir
 
-Dans Runique, plusieurs primitives de concurrence sont utilisées pour gérer l'état global
-du framework (environnement, token CSS, configuration de session, nettoyage de tâches).
+| Besoin | Outil |
+|---|---|
+| lancer un calcul en parallèle et récupérer le résultat | `thread::spawn` + `join`, ou `thread::scope` |
+| paralléliser une boucle sur une collection | `rayon` |
+| partager une valeur en lecture seule | `Arc<T>` |
+| partager et modifier, sections courtes | `Arc<Mutex<T>>` |
+| beaucoup de lectures, rares écritures | `Arc<RwLock<T>>` |
+| compteur, drapeau, identifiant à incrémenter | `AtomicU64`, `AtomicBool` |
+| producteurs et consommateur | canal `mpsc` |
+| valeur globale constante, calculée une fois | `LazyLock` |
+| valeur globale fixée au démarrage | `OnceLock` |
+| état partagé dans du code async avec attente | `tokio::sync::Mutex` (voir `async-tokio`) |
 
-### `LazyLock` pour l'environnement global
+---
+
+## 12. Exemples dans Runique
+
+### 12.1 `LazyLock` pour l'environnement
 
 ```rust
-use std::sync::LazyLock;
-
-// Lecture de DEBUG une seule fois au démarrage
+// runique/src/utils/config/env.rs (extrait)
 static DEBUG: LazyLock<bool> = LazyLock::new(|| debug_from(read_after_dotenv("DEBUG").as_deref()));
 
 pub fn is_debug() -> bool {
     *DEBUG
 }
 
-// Jeton de cache des fichiers statiques (?v=...), calculé une seule fois :
-// une empreinte du contenu de tous les .css/.js du projet et de Runique.
-// Il change dès qu'un de ces fichiers change ; "1000" si aucun n'est trouvé.
-static CSS_TOKEN: LazyLock<String> = LazyLock::new(|| {
-    let static_dir = std::env::var("STATICFILES_DIRS").unwrap_or_else(|_| "static".to_string());
-    let runique_dir = crate::config::StaticConfig::from_env().static_runique_path;
-    asset_token(&[&static_dir, &runique_dir])
-});
-
-pub fn css_token() -> String {
-    CSS_TOKEN.clone()
-}
+// Jeton de version des fichiers statiques (?v=...), calculé une seule fois :
+// une empreinte du contenu des .css/.js du projet et de Runique.
+static CSS_TOKEN: LazyLock<String> = LazyLock::new(|| { /* ... */ });
 ```
 
-### `Arc<Mutex<T>>` pour le nettoyage de sessions
+`read_after_dotenv` charge `.env` avant de lire la variable : c'est la réponse au piège de la section 8.5. Et puisque la valeur n'est calculée qu'une fois, un fichier CSS modifié en production n'est pris en compte qu'au redémarrage du serveur.
+
+### 12.2 `Arc<Mutex<HashMap>>` avec empoisonnement toléré
+
+Le limiteur de requêtes (`RateLimiter`) et le garde de connexion (`LoginGuard`) gardent leurs compteurs dans un `Arc<Mutex<HashMap<...>>>`. Leur nettoyage :
 
 ```rust
-use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
-use std::time::Instant;
-
-#[derive(Clone)]
-struct SessionStore {
-    donnees: Arc<Mutex<HashMap<String, (Vec<u8>, Instant)>>>,
-}
-
-impl SessionStore {
-    fn new() -> Self {
-        SessionStore {
-            donnees: Arc::new(Mutex::new(HashMap::new())),
+// runique/src/middleware/security/rate_limit.rs (extrait)
+pub fn spawn_cleanup(&self, period: tokio::time::Duration) {
+    let store = self.store.clone();
+    let window = self.window;
+    let period = period.max(tokio::time::Duration::from_secs(1));
+    tokio::spawn(async move {
+        let mut ticker = interval(period);
+        loop {
+            ticker.tick().await;
+            let mut guard = match store.lock() {
+                Ok(g) => g,
+                Err(p) => p.into_inner(),       // section 4.4 : un compteur à moitié écrit n'est pas grave
+            };
+            let now = Instant::now();
+            guard.retain(|_, (_, start)| now.duration_since(*start) < window);
         }
-    }
-
-    fn nettoyer_expirees(&self, duree_max: std::time::Duration) {
-        let mut map = self.donnees.lock().unwrap();
-        let maintenant = Instant::now();
-
-        map.retain(|_cle, (_valeur, horodatage)| {
-            maintenant.duration_since(*horodatage) < duree_max
-        });
-    }
+    });
 }
 ```
 
-### `Arc<RwLock<T>>` pour une configuration partagée
-
-```rust
-use std::sync::{Arc, RwLock};
-
-#[derive(Clone)]
-struct AppConfig {
-    interne: Arc<RwLock<ConfigInterne>>,
-}
-
-struct ConfigInterne {
-    page_size: usize,
-    site_title: String,
-}
-
-impl AppConfig {
-    fn page_size(&self) -> usize {
-        // Lecture légère — plusieurs threads peuvent lire simultanément
-        self.interne.read().unwrap().page_size
-    }
-
-    fn definir_page_size(&self, taille: usize) {
-        // Écriture exclusive
-        self.interne.write().unwrap().page_size = taille;
-    }
-}
-```
+On y voit : `Arc` cloné avant le `move` (section 3), `std::sync::Mutex` pris et relâché **sans `.await` entre les deux** (le verrou est libéré à la fin du tour de boucle, avant le prochain `tick().await`), empoisonnement toléré, et `retain` pour supprimer les entrées expirées.
 
 ---
 
-## 10. Piège — stores partagés sans cleanup
+## 13. Piège : un store partagé sans nettoyage
 
-Un store partagé qui grossit sans limite est un piège classique en production.
-
-### Le problème
+### 13.1 Le problème
 
 ```rust
-// ⚠️ Ce store grossit indéfiniment si personne ne nettoie
-static STORE: LazyLock<Arc<Mutex<HashMap<String, Session>>>> =
-    LazyLock::new(|| Arc::new(Mutex::new(HashMap::new())));
-
-fn ajouter_session(id: String, session: Session) {
-    STORE.lock().unwrap().insert(id, session);
-}
-
-// Les sessions expirées restent en mémoire pour toujours
-// → OOM silencieux en prod après quelques jours/semaines
-```
-
-### Pourquoi c'est silencieux
-
-- Pas d'erreur, pas de panic — juste une RAM qui monte lentement
-- En développement, le process redémarre souvent → le problème ne se voit pas
-- En prod avec peu de trafic, ça peut prendre des semaines avant de crasher
-
-### La solution générique — thread de nettoyage
-
-```rust
-use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
-use std::time::{Duration, Instant};
-use std::thread;
+use std::sync::{LazyLock, Mutex};
 
-struct Store {
-    donnees: Arc<Mutex<HashMap<String, (Vec<u8>, Instant)>>>,
+static TENTATIVES: LazyLock<Mutex<HashMap<String, u32>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
+
+fn echec_de_connexion(ip: &str) {
+    *TENTATIVES.lock().unwrap().entry(ip.to_string()).or_insert(0) += 1;
 }
-
-impl Store {
-    fn new() -> Self {
-        Self {
-            donnees: Arc::new(Mutex::new(HashMap::new())),
-        }
-    }
-
-    // Lance un thread de nettoyage en arrière-plan
-    fn spawn_cleanup(&self, ttl: Duration, intervalle: Duration) {
-        let donnees = Arc::clone(&self.donnees);
-
-        thread::spawn(move || loop {
-            thread::sleep(intervalle);
-
-            let maintenant = Instant::now();
-            donnees
-                .lock()
-                .unwrap()
-                .retain(|_, (_, horodatage)| {
-                    maintenant.duration_since(*horodatage) < ttl
-                });
-        });
-    }
-}
+// Chaque adresse IP qui se trompe ajoute une entrée, jamais retirée.
 ```
 
-### Ce que Runique fait
+### 13.2 Pourquoi c'est grave
 
-Runique intègre ce pattern directement dans ses builders. Le cleanup est automatiquement configuré et lancé au démarrage :
+- Aucune erreur, aucune panique : la mémoire monte lentement.
+- En développement, le processus redémarre souvent : le problème ne se voit pas.
+- Un attaquant qui varie les adresses ou les identifiants peut **remplir la mémoire volontairement** : c'est un déni de service.
+
+### 13.3 Les protections
+
+1. **Nettoyer périodiquement** les entrées expirées (section 12.2).
+2. **Borner la taille** : refuser ou évincer au-delà d'un maximum (une crate comme `lru` ou `moka`).
+3. **Expirer à la lecture** : une entrée trop vieille est ignorée et supprimée quand on la consulte.
+
+### 13.4 Ce que Runique fait
+
+Les extensions de routes et le builder de l'admin lancent eux-mêmes le nettoyage quand ils créent un limiteur :
 
 ```rust
-// Sessions : limite mémoire + nettoyage toutes les 5 minutes
-RuniqueApp::builder(config)
+// runique/src/macros/routeur/router_ext.rs (extrait)
+let limiter = Arc::new(limiter);
+limiter.spawn_cleanup(limiter.cleanup_interval());
+```
+
+Pour les sessions, le builder règle une limite de mémoire et une période de nettoyage :
+
+```rust
+RuniqueAppBuilder::new(config)
     .middleware(|m| {
-        m.with_session_memory_limit(5 * 1024 * 1024, 10 * 1024 * 1024)
-            .with_session_cleanup_interval(5)
+        m.with_session_memory_limit(5 * 1024 * 1024, 10 * 1024 * 1024)   // seuils bas et haut, en octets
+            .with_session_cleanup_interval(300)                           // en secondes
     })
-
-// Rate limiter : nettoyage intégré au spawn_cleanup
-RateLimiter::new()
-    .max_requests(100)
-    .retry_after(60)
-    .spawn_cleanup(Duration::from_secs(60))
-
-// Login guard : même pattern
-LoginGuard::new()
-    .max_attempts(5)
-    .lockout_secs(300)
-    .spawn_cleanup(Duration::from_secs(60))
 ```
 
-> **Règle** : tout `Arc<Mutex<HashMap>>` qui reçoit des insertions doit avoir un thread de nettoyage. Si ce n'est pas le cas, c'est un bug latent.
+Au seuil bas, les sessions anonymes expirées sont nettoyées sans bloquer ; au seuil haut, un nettoyage immédiat a lieu, et si la limite est encore dépassée, la requête est refusée (503) plutôt que de laisser la mémoire grossir.
+
+Un `RateLimiter` ou un `LoginGuard` créé à la main (hors de ces extensions) doit appeler `spawn_cleanup(..)` une fois au démarrage : c'est ce que précise sa documentation.
+
+> **Règle** : toute table partagée qui reçoit des insertions venant de l'extérieur doit avoir un nettoyage ou une taille maximale.
 
 ---
 
-## 11. Exercices pratiques
+## 14. La même fonction écrite de plusieurs façons
 
-### Exercice 1 — Compteur concurrent
-
-Implémentez un compteur thread-safe que plusieurs threads peuvent incrémenter simultanément.
-
-```rust
-use std::sync::{Arc, Mutex};
-use std::thread;
-
-fn compteur_concurrent(nb_threads: usize, increments: usize) -> usize {
-    let compteur = Arc::new(Mutex::new(0usize));
-    let mut handles = vec![];
-
-    for _ in 0..nb_threads {
-        let c = Arc::clone(&compteur);
-
-        handles.push(thread::spawn(move || {
-            for _ in 0..increments {
-                *c.lock().unwrap() += 1;
-            }
-        }));
-    }
-
-    for h in handles {
-        h.join().unwrap();
-    }
-
-    *compteur.lock().unwrap()
-}
-
-fn main() {
-    let resultat = compteur_concurrent(8, 100);
-    println!("Résultat : {resultat}"); // toujours 800
-}
-```
-
-### Exercice 2 — Cache avec `RwLock`
-
-Implémentez un cache thread-safe utilisant `RwLock` pour maximiser les lectures concurrentes.
+Compter les mots de plusieurs textes en parallèle.
 
 ```rust
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::{mpsc, Arc, Mutex};
+use std::thread;
 
-struct CacheRW<K, V> {
-    donnees: Arc<RwLock<HashMap<K, V>>>,
+fn compter(t: &str) -> HashMap<String, usize> {
+    let mut m = HashMap::new();
+    for mot in t.split_whitespace() {
+        *m.entry(mot.to_lowercase()).or_insert(0) += 1;
+    }
+    m
 }
 
-impl<K, V> CacheRW<K, V>
-where
-    K: Eq + std::hash::Hash + Clone,
-    V: Clone,
-{
-    fn new() -> Self {
-        CacheRW { donnees: Arc::new(RwLock::new(HashMap::new())) }
+fn fusionner(total: &mut HashMap<String, usize>, partiel: HashMap<String, usize>) {
+    for (k, v) in partiel {
+        *total.entry(k).or_insert(0) += v;
     }
+}
 
-    fn inserer(&self, cle: K, valeur: V) {
-        self.donnees.write().unwrap().insert(cle, valeur);
+// 1. Mémoire partagée : chaque thread écrit dans une table commune sous verrou
+fn v1(textes: Vec<String>) -> HashMap<String, usize> {
+    let total = Arc::new(Mutex::new(HashMap::new()));
+    let hs: Vec<_> = textes.into_iter().map(|t| {
+        let total = Arc::clone(&total);
+        thread::spawn(move || {
+            let partiel = compter(&t);                       // calcul hors verrou
+            fusionner(&mut total.lock().unwrap(), partiel);  // verrou seulement pour fusionner
+        })
+    }).collect();
+    hs.into_iter().for_each(|h| h.join().unwrap());
+    Arc::try_unwrap(total).unwrap().into_inner().unwrap()
+}
+
+// 2. Canal : chaque thread envoie son résultat, le thread principal fusionne
+fn v2(textes: Vec<String>) -> HashMap<String, usize> {
+    let (tx, rx) = mpsc::channel();
+    for t in textes {
+        let tx = tx.clone();
+        thread::spawn(move || tx.send(compter(&t)).unwrap());
     }
-
-    fn obtenir(&self, cle: &K) -> Option<V> {
-        self.donnees.read().unwrap().get(cle).cloned()
+    drop(tx);
+    let mut total = HashMap::new();
+    for partiel in rx {
+        fusionner(&mut total, partiel);
     }
+    total
+}
 
-    fn taille(&self) -> usize {
-        self.donnees.read().unwrap().len()
+// 3. scope + join : les threads empruntent les textes, renvoient leur résultat
+fn v3(textes: &[String]) -> HashMap<String, usize> {
+    thread::scope(|s| {
+        let hs: Vec<_> = textes.iter().map(|t| s.spawn(move || compter(t))).collect();
+        let mut total = HashMap::new();
+        for h in hs {
+            fusionner(&mut total, h.join().unwrap());
+        }
+        total
+    })
+}
+
+// 4. rayon : map en parallèle, puis réduction
+fn v4(textes: &[String]) -> HashMap<String, usize> {
+    use rayon::prelude::*;
+    textes
+        .par_iter()
+        .map(|t| compter(t))
+        .reduce(HashMap::new, |mut a, b| { fusionner(&mut a, b); a })
+}
+```
+
+| Version | Verrou | Copie des textes | Simplicité |
+|---|---|---|---|
+| 1 | oui | déplacés dans les threads | moyenne |
+| 2 | non | déplacés | bonne |
+| 3 | non | empruntés | très bonne |
+| 4 | non | empruntés, nombre de threads adapté aux cœurs | excellente |
+
+---
+
+## 15. Exercices pratiques
+
+### Exercice 1 — compteur concurrent
+
+Incrémente un compteur depuis 8 threads, 1 000 fois chacun, d'abord avec `Arc<Mutex<u64>>`, puis avec un atomique. Vérifie que le total vaut 8 000.
+
+```rust
+// Solution :
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+fn avec_mutex() -> u64 {
+    let c = Arc::new(Mutex::new(0u64));
+    let hs: Vec<_> = (0..8).map(|_| {
+        let c = Arc::clone(&c);
+        thread::spawn(move || for _ in 0..1000 { *c.lock().unwrap() += 1; })
+    }).collect();
+    hs.into_iter().for_each(|h| h.join().unwrap());
+    let total = *c.lock().unwrap();
+    total
+}
+
+fn avec_atomique() -> u64 {
+    let c = Arc::new(AtomicU64::new(0));
+    thread::scope(|s| {
+        for _ in 0..8 {
+            s.spawn(|| for _ in 0..1000 { c.fetch_add(1, Ordering::Relaxed); });
+        }
+    });
+    c.load(Ordering::Relaxed)
+}
+```
+
+### Exercice 2 — cache avec `RwLock`
+
+Écris un cache `get_or_compute(cle, f)` : lecture partagée si la clé existe, sinon calcul puis écriture.
+
+```rust
+// Solution :
+use std::collections::HashMap;
+use std::sync::RwLock;
+
+struct Cache { m: RwLock<HashMap<String, String>> }
+
+impl Cache {
+    fn get_or_compute(&self, cle: &str, f: impl FnOnce() -> String) -> String {
+        if let Some(v) = self.m.read().unwrap().get(cle) {
+            return v.clone();                         // verrou de lecture relâché ici
+        }
+        let mut w = self.m.write().unwrap();
+        w.entry(cle.to_string()).or_insert_with(f).clone()   // revérifie : un autre thread a pu calculer
     }
 }
 ```
 
-### Exercice 3 — Singleton avec `OnceLock`
+`entry` sous le verrou d'écriture évite de calculer deux fois si deux threads ont raté la lecture en même temps.
 
-Implémentez un pattern singleton thread-safe pour une configuration d'application.
+### Exercice 3 — configuration unique
+
+Fais en sorte qu'une configuration ne puisse être fixée qu'une fois au démarrage, puis lue partout.
 
 ```rust
+// Solution :
 use std::sync::OnceLock;
 
-struct AppSettings {
-    port: u16,
-    debug: bool,
-    max_connexions: usize,
+#[derive(Debug)]
+struct Config { port: u16 }
+
+static CONFIG: OnceLock<Config> = OnceLock::new();
+
+fn initialiser(c: Config) -> Result<(), Config> {
+    CONFIG.set(c)                                     // Err(c) si déjà fixée
 }
 
-static SETTINGS: OnceLock<AppSettings> = OnceLock::new();
-
-fn init_settings(port: u16, debug: bool, max_connexions: usize) {
-    SETTINGS.set(AppSettings { port, debug, max_connexions })
-        .expect("Settings déjà initialisés");
-}
-
-fn settings() -> &'static AppSettings {
-    SETTINGS.get().expect("Settings non initialisés — appeler init_settings d'abord")
-}
-
-fn main() {
-    init_settings(8080, true, 100);
-
-    println!("Port : {}", settings().port);
-    println!("Debug : {}", settings().debug);
+fn config() -> &'static Config {
+    CONFIG.get().expect("initialiser() doit être appelée dans main")
 }
 ```
 
 ---
 
-## 11. Aide-mémoire
-
-| Primitive | Import | Usage principal |
-|---|---|---|
-| `Mutex<T>` | `std::sync::Mutex` | Accès exclusif (lecture + écriture) |
-| `RwLock<T>` | `std::sync::RwLock` | N lecteurs OU 1 écrivain |
-| `Arc<T>` | `std::sync::Arc` | Propriété partagée entre threads |
-| `LazyLock<T>` | `std::sync::LazyLock` | Global initialisé paresseusement |
-| `OnceLock<T>` | `std::sync::OnceLock` | Global initialisé une seule fois |
-
-**Patterns fréquents :**
+## 16. Aide-mémoire
 
 ```rust
-// Partagé + mutable entre threads
-let etat = Arc::new(Mutex::new(valeur));
-
-// Partagé + mutable, lectures fréquentes
-let config = Arc::new(RwLock::new(valeur));
-
-// Global paresseux
-static X: LazyLock<T> = LazyLock::new(|| { ... });
-
-// Global initialisé manuellement
-static Y: OnceLock<T> = OnceLock::new();
-Y.set(valeur).unwrap();
+thread::spawn(move || ..).join()         thread::scope(|s| { s.spawn(|| ..); })
+Arc::new(v)   Arc::clone(&a)             Arc::try_unwrap(a)
+Mutex::new(v)   m.lock().unwrap()        m.lock().unwrap_or_else(|e| e.into_inner())
+m.try_lock()   m.get_mut()   m.into_inner()
+RwLock::new(v)   r.read()   r.write()
+AtomicU64::new(0)   a.fetch_add(1, Ordering::Relaxed)   a.load(..)   a.fetch_update(..)
+mpsc::channel()   mpsc::sync_channel(n)   drop(tx)   rx.iter()
+static X: LazyLock<T> = LazyLock::new(|| ..);
+static Y: OnceLock<T> = OnceLock::new();   Y.set(v)   Y.get()   Y.get_or_init(|| ..)
+v.par_iter().map(f).sum()                // rayon
 ```
 
-**Points clés :**
+### Points clés
 
-- `Mutex` bloque tous les accès — simple, sûr, légèrement moins performant sous forte lecture
-- `RwLock` autorise plusieurs lectures simultanées — gain réel si lectures >> écritures
-- `Arc` ne permet pas la mutation seul — combinez avec `Mutex` ou `RwLock`
-- `LazyLock` remplace `once_cell::sync::Lazy` depuis Rust 1.80
-- `OnceLock` remplace `once_cell::sync::OnceCell` depuis Rust 1.70
-- Un `Mutex` verrouillé dans un `await` peut bloquer des threads Tokio — préférez `tokio::sync::Mutex` en code async
+- Rust empêche les courses aux données ; les conditions de course logiques et les interblocages restent à éviter.
+- Lire puis écrire sous le **même** verrou.
+- Garder un verrou le moins longtemps possible ; jamais d'appel lent ni d'`.await` en le tenant.
+- Un verrou empoisonné peut être récupéré avec `into_inner` quand la donnée ne peut pas être incohérente.
+- Atomiques pour une valeur isolée, `Mutex` pour des valeurs liées.
+- Toujours prendre plusieurs verrous dans le même ordre.
+- Les canaux et `thread::scope` évitent souvent tout verrou.
+- `LazyLock` lit au premier accès et ne change plus ; toute table alimentée de l'extérieur doit être nettoyée ou bornée.

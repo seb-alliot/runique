@@ -1,587 +1,779 @@
-# Traits en Rust — Les Bases
-> Interfaces, implémentations, derives et `impl Trait` — le système de types en action
+# Traits — Les bases
+> Un trait décrit un comportement que plusieurs types peuvent partager. Ce cours montre comment en définir, en implémenter, les utiliser en paramètre, et implémenter les traits de la bibliothèque standard.
 
 ## Objectifs
 
-- Comprendre ce qu'est un trait et à quoi il sert
-- Définir et implémenter ses propres traits
-- Utiliser les implémentations par défaut
-- Maîtriser `impl Trait` en paramètre et en retour
-- Connaître les derives courantes (`Debug`, `Clone`, `Copy`, `PartialEq`, `Hash`)
-- Gérer plusieurs implémentations et la règle de cohérence
-
----
+- Définir un trait avec des méthodes, des fonctions associées et des constantes
+- L'implémenter pour ses types, et pour des types d'autres crates
+- Écrire des méthodes par défaut qui s'appuient sur les autres
+- Utiliser un trait en paramètre et en retour, de toutes les façons
+- Implémenter à la main les traits standard les plus utiles (`Display`, `From`, `FromStr`, `Default`, `PartialEq`, `Ord`)
+- Comprendre la règle de cohérence (orphelin) et les traits d'extension
+- Lever une ambiguïté quand deux traits ont une méthode du même nom
 
 ## Table des matières
 
-1. [Qu'est-ce qu'un trait](#1-quest-ce-quun-trait)
-2. [Définir un trait](#2-définir-un-trait)
-3. [Implémenter un trait sur une struct](#3-implémenter-un-trait-sur-une-struct)
-4. [Implémentation par défaut](#4-implémentation-par-défaut)
-5. [impl Trait en paramètre et en retour](#5-impl-trait-en-paramètre-et-en-retour)
-6. [Les derives communes](#6-les-derives-communes)
-7. [Impl multiple et cohérence](#7-impl-multiple-et-cohérence)
-8. [Exercices pratiques](#8-exercices-pratiques)
-9. [Aide-mémoire](#9-aide-mémoire)
+1. Qu'est-ce qu'un trait
+2. Définir un trait
+3. Implémenter un trait
+4. Méthodes par défaut
+5. Utiliser un trait : paramètres et retours
+6. Le trait doit être importé
+7. Dériver ou implémenter à la main
+8. Les traits standard à connaître
+9. Implémenter `Display`
+10. Conversions : `From`, `Into`, `TryFrom`, `FromStr`
+11. Comparaisons : `PartialEq`, `Eq`, `PartialOrd`, `Ord`, `Hash`
+12. Plusieurs traits sur un même type
+13. La règle de cohérence et les traits d'extension
+14. La même fonctionnalité écrite de plusieurs façons
+15. Exercices pratiques
+16. Aide-mémoire
 
 ---
 
 ## 1. Qu'est-ce qu'un trait
 
-Un **trait** est un contrat : il définit un ensemble de méthodes qu'un type doit implémenter.
-C'est l'équivalent des interfaces dans d'autres langages, avec des fonctionnalités en plus.
+Un **trait** est un ensemble de méthodes qu'un type promet de fournir. C'est l'équivalent des interfaces en Java ou en TypeScript, avec deux différences :
+
+- on peut implémenter un trait pour un type **après coup**, sans modifier sa définition (même `i32` ou `String`) ;
+- un trait peut fournir du code par défaut.
 
 ```rust
-// Un trait définit un comportement
-trait Saluer {
-    fn saluer(&self) -> String;
+trait Decrire {
+    fn decrire(&self) -> String;
 }
 
-// N'importe quel type peut l'implémenter
-struct Francais;
-struct Japonais;
+struct Chien { nom: String }
+struct Voiture { modele: String }
 
-impl Saluer for Francais {
-    fn saluer(&self) -> String {
-        "Bonjour !".to_string()
-    }
+impl Decrire for Chien {
+    fn decrire(&self) -> String { format!("le chien {}", self.nom) }
 }
 
-impl Saluer for Japonais {
-    fn saluer(&self) -> String {
-        "Konnichiwa !".to_string()
-    }
+impl Decrire for Voiture {
+    fn decrire(&self) -> String { format!("une {}", self.modele) }
 }
 
-// Utilisation polymorphique
-fn accueillir(personne: &impl Saluer) {
-    println!("{}", personne.saluer());
+fn presenter(x: &impl Decrire) {
+    println!("Voici {}", x.decrire());
 }
 ```
 
-Les traits permettent de :
-- Écrire du code générique réutilisable
-- Définir des interfaces sans héritage
-- Garantir des comportements à la compilation
+`Chien` et `Voiture` n'ont rien en commun, sauf ce comportement. `presenter` accepte n'importe quel type qui l'a.
 
 ---
 
 ## 2. Définir un trait
 
-Un trait déclare des signatures de méthodes. Les types qui l'implémentent doivent fournir le corps.
-
 ```rust
 trait Forme {
-    // Méthode requise — pas de corps
+    // Méthode à implémenter : seulement la signature
     fn aire(&self) -> f64;
 
-    // Méthode requise
-    fn perimetre(&self) -> f64;
+    // Méthode qui modifie
+    fn agrandir(&mut self, facteur: f64);
 
-    // Méthode avec implémentation par défaut
+    // Fonction associée (pas de self) : un constructeur commun
+    fn unite() -> Self where Self: Sized;
+
+    // Constante associée
+    const COTES: u32;
+
+    // Méthode par défaut (section 4)
     fn description(&self) -> String {
-        format!("Aire : {:.2}, Périmètre : {:.2}", self.aire(), self.perimetre())
+        format!("forme de {} côtés, aire {:.2}", Self::COTES, self.aire())
     }
 }
 ```
 
-Un trait peut aussi définir des **méthodes associées** (sans `&self`) :
-
-```rust
-trait Creable {
-    fn nouveau() -> Self;
-}
-
-struct Compteur {
-    valeur: u32,
-}
-
-impl Creable for Compteur {
-    fn nouveau() -> Self {
-        Compteur { valeur: 0 }
-    }
-}
-
-let c = Compteur::nouveau();
-```
+| Élément | Syntaxe | Appel |
+|---|---|---|
+| méthode | `fn f(&self)` | `valeur.f()` |
+| méthode qui modifie | `fn f(&mut self)` | `valeur.f()` |
+| méthode qui consomme | `fn f(self)` | `valeur.f()` |
+| fonction associée | `fn f() -> Self` | `Type::f()` ou `T::f()` |
+| constante | `const N: u32;` | `Type::N` ou `T::N` |
 
 ---
 
-## 3. Implémenter un trait sur une struct
-
-La syntaxe est `impl NomTrait for NomType`.
+## 3. Implémenter un trait
 
 ```rust
-struct Rectangle {
-    largeur: f64,
-    hauteur: f64,
-}
+struct Carre { cote: f64 }
 
-struct Cercle {
-    rayon: f64,
-}
-
-impl Forme for Rectangle {
-    fn aire(&self) -> f64 {
-        self.largeur * self.hauteur
-    }
-
-    fn perimetre(&self) -> f64 {
-        2.0 * (self.largeur + self.hauteur)
-    }
-}
-
-impl Forme for Cercle {
-    fn aire(&self) -> f64 {
-        std::f64::consts::PI * self.rayon * self.rayon
-    }
-
-    fn perimetre(&self) -> f64 {
-        2.0 * std::f64::consts::PI * self.rayon
-    }
-
-    // On peut surcharger la méthode par défaut
-    fn description(&self) -> String {
-        format!("Cercle r={} — aire {:.2}", self.rayon, self.aire())
-    }
+impl Forme for Carre {
+    fn aire(&self) -> f64 { self.cote * self.cote }
+    fn agrandir(&mut self, facteur: f64) { self.cote *= facteur; }
+    fn unite() -> Self { Carre { cote: 1.0 } }
+    const COTES: u32 = 4;
+    // description n'est pas écrite : la version par défaut s'applique
 }
 
 fn main() {
-    let r = Rectangle { largeur: 4.0, hauteur: 3.0 };
-    let c = Cercle { rayon: 5.0 };
-
-    println!("{}", r.description()); // méthode par défaut
-    println!("{}", c.description()); // méthode surchargée
+    let mut c = Carre::unite();
+    c.agrandir(3.0);
+    println!("{}", c.description());   // forme de 4 côtés, aire 9.00
 }
 ```
 
----
+Toutes les méthodes **sans** corps doivent être écrites, avec exactement la même signature. Le compilateur liste celles qui manquent (`missing ... in implementation`).
 
-## 4. Implémentation par défaut
-
-Une implémentation par défaut s'applique automatiquement si le type ne la redéfinit pas.
-Elle peut appeler d'autres méthodes du même trait.
+### Le bloc `impl Trait for Type` est séparé du bloc `impl Type`
 
 ```rust
-trait Resumable {
-    // Méthode à implémenter obligatoirement
-    fn auteur(&self) -> &str;
-
-    fn titre(&self) -> &str;
-
-    // Méthode par défaut qui s'appuie sur les deux précédentes
-    fn resume(&self) -> String {
-        format!("« {} » par {}", self.titre(), self.auteur())
-    }
+impl Carre {
+    fn diagonale(&self) -> f64 { self.cote * 2f64.sqrt() }   // méthode propre à Carre
 }
 
-struct Article {
-    titre: String,
-    auteur: String,
-    contenu: String,
+impl Forme for Carre {
+    // seulement les éléments déclarés par le trait : aire, agrandir, unite, COTES
+    // (et éventuellement description, pour remplacer la version par défaut)
 }
-
-impl Resumable for Article {
-    fn auteur(&self) -> &str {
-        &self.auteur
-    }
-
-    fn titre(&self) -> &str {
-        &self.titre
-    }
-
-    // resume() non redéfini → utilise la version par défaut
-}
-
-struct Tweet {
-    utilisateur: String,
-    message: String,
-}
-
-impl Resumable for Tweet {
-    fn auteur(&self) -> &str {
-        &self.utilisateur
-    }
-
-    fn titre(&self) -> &str {
-        &self.message
-    }
-
-    // Surcharge la méthode par défaut
-    fn resume(&self) -> String {
-        format!("@{} : {}", self.utilisateur, self.message)
-    }
-}
-
-let article = Article {
-    titre: "Rust en production".to_string(),
-    auteur: "Alice".to_string(),
-    contenu: "...".to_string(),
-};
-
-println!("{}", article.resume()); // « Rust en production » par Alice
 ```
+
+On ne peut pas ajouter de méthode supplémentaire dans un `impl Trait for Type` : elle irait dans `impl Type`.
 
 ---
 
-## 5. `impl Trait` en paramètre et en retour
+## 4. Méthodes par défaut
 
-`impl Trait` est un raccourci syntaxique pour les trait bounds. Il rend le code plus lisible.
+### 4.1 Une méthode par défaut peut appeler les autres
 
-### En paramètre
+```rust
+trait Resume {
+    fn auteur(&self) -> String;
+
+    fn resume(&self) -> String {
+        format!("(Lire la suite de {}…)", self.auteur())
+    }
+}
+
+struct Tweet { utilisateur: String, texte: String }
+
+impl Resume for Tweet {
+    fn auteur(&self) -> String { format!("@{}", self.utilisateur) }
+    // resume est fourni
+}
+```
+
+Le trait demande le **minimum** (`auteur`) et construit le reste. C'est le principe de `Iterator` : on écrit `next`, on obtient `map`, `filter`, `sum` et 70 autres méthodes.
+
+### 4.2 Remplacer une méthode par défaut
+
+```rust
+struct Article { titre: String, auteur: String }
+
+impl Resume for Article {
+    fn auteur(&self) -> String { self.auteur.clone() }
+    fn resume(&self) -> String {                      // remplace la version par défaut
+        format!("{}, par {}", self.titre, self.auteur)
+    }
+}
+```
+
+Une implémentation qui remplace la méthode par défaut **ne peut pas** appeler la version par défaut (il n'y a pas de `super`). Pour la réutiliser, on la place dans une fonction libre que les deux appellent.
+
+### 4.3 Concevoir un trait
+
+Demande le moins de méthodes obligatoires possible, et fournis par défaut tout ce qui peut s'en déduire. Ajouter plus tard une méthode **avec** défaut ne casse personne ; ajouter une méthode **obligatoire** casse toutes les implémentations existantes.
+
+---
+
+## 5. Utiliser un trait : paramètres et retours
+
+### 5.1 En paramètre : la même fonction de quatre façons
+
+```rust
+// 1. impl Trait
+fn notifier_v1(x: &impl Resume) {
+    println!("{}", x.resume());
+}
+
+// 2. Générique avec contrainte
+fn notifier_v2<T: Resume>(x: &T) {
+    println!("{}", x.resume());
+}
+
+// 3. where
+fn notifier_v3<T>(x: &T)
+where
+    T: Resume,
+{
+    println!("{}", x.resume());
+}
+
+// 4. Trait object : un seul exemplaire compilé, choix à l'exécution
+fn notifier_v4(x: &dyn Resume) {
+    println!("{}", x.resume());
+}
+```
+
+Les trois premières sont équivalentes (génériques, voir `generics`). La quatrième est dynamique (voir `box-dynamiques`).
+
+### 5.2 Plusieurs contraintes
 
 ```rust
 use std::fmt::Display;
 
-// Syntaxe impl Trait (raccourci)
-fn afficher(valeur: impl Display) {
-    println!("{valeur}");
+fn afficher_resume(x: &(impl Resume + Display)) {
+    println!("{x} : {}", x.resume());
 }
 
-// Équivalent avec générique explicite
-fn afficher_generique<T: Display>(valeur: T) {
-    println!("{valeur}");
-}
-
-// Plusieurs paramètres — chacun peut être un type différent
-fn comparer(a: impl Display, b: impl Display) {
-    println!("{a} vs {b}");
-}
-
-// Avec plusieurs bounds
-fn afficher_debug(valeur: impl Display + std::fmt::Debug) {
-    println!("Display: {valeur}  Debug: {valeur:?}");
+fn afficher_resume2<T: Resume + Display>(x: &T) {
+    println!("{x} : {}", x.resume());
 }
 ```
 
-### En retour
-
-`impl Trait` en position de retour cache le type concret tout en gardant le dispatch statique.
+### 5.3 En retour
 
 ```rust
-// Le type exact de l'itérateur est caché
-fn nombres_pairs(limite: u32) -> impl Iterator<Item = u32> {
-    (0..limite).filter(|n| n % 2 == 0)
+fn creer() -> impl Resume {
+    Tweet { utilisateur: "rust".into(), texte: "1.0".into() }
 }
-
-// Utile pour retourner des closures
-fn multiplicateur(facteur: i32) -> impl Fn(i32) -> i32 {
-    move |x| x * facteur
-}
-
-let doubler = multiplicateur(2);
-println!("{}", doubler(5)); // 10
 ```
 
-> **Limite :** avec `impl Trait` en retour, tous les chemins de code doivent retourner le **même type concret**. Pour retourner des types différents, utilisez `Box<dyn Trait>`.
+`impl Resume` en retour cache le type concret, mais il doit être **unique** :
 
 ```rust
-// Ceci ne compile PAS — deux types concrets différents
-// fn animal(chien: bool) -> impl Animal {
-//     if chien { Chien } else { Chat }
+// fn creer(court: bool) -> impl Resume {
+//     if court { Tweet { .. } } else { Article { .. } }    // ERREUR : deux types différents
 // }
 
-// Solution : Box<dyn Trait>
-fn animal(chien: bool) -> Box<dyn Animal> {
-    if chien { Box::new(Chien) } else { Box::new(Chat) }
+fn creer_dyn(court: bool) -> Box<dyn Resume> {
+    if court {
+        Box::new(Tweet { utilisateur: "a".into(), texte: "b".into() })
+    } else {
+        Box::new(Article { titre: "t".into(), auteur: "a".into() })
+    }
 }
+```
+
+### 5.4 Appeler une fonction associée sur un générique
+
+```rust
+trait Defaut {
+    fn defaut() -> Self;
+}
+
+impl Defaut for u32 { fn defaut() -> Self { 0 } }
+
+fn remplir<T: Defaut>(n: usize) -> Vec<T> {
+    (0..n).map(|_| T::defaut()).collect()        // T::f() : fonction associée du type générique
+}
+
+let v: Vec<u32> = remplir(3);
 ```
 
 ---
 
-## 6. Les derives communes
-
-L'attribut `#[derive(...)]` génère automatiquement des implémentations de traits standard.
-
-### `Debug`
-
-Permet l'affichage avec `{:?}` et `{:#?}` (pretty-print).
+## 6. Le trait doit être importé
 
 ```rust
-#[derive(Debug)]
-struct Utilisateur {
-    nom: String,
-    age: u32,
-    actif: bool,
+mod formes {
+    pub trait Aire { fn aire(&self) -> f64; }
+    impl Aire for f64 { fn aire(&self) -> f64 { self * self } }
 }
 
-let u = Utilisateur { nom: "Alice".to_string(), age: 30, actif: true };
-
-println!("{:?}", u);   // Utilisateur { nom: "Alice", age: 30, actif: true }
-println!("{:#?}", u);  // version indenté multi-ligne
+fn main() {
+    let x = 2.0_f64;
+    // x.aire();                 // ERREUR : no method named `aire` found
+    use formes::Aire;            // le trait doit être en portée
+    x.aire();
+}
 ```
 
-### `Clone` et `Copy`
-
-```rust
-// Clone — copie explicite via .clone()
-#[derive(Debug, Clone)]
-struct Config {
-    host: String,
-    port: u16,
-}
-
-let config1 = Config { host: "localhost".to_string(), port: 8080 };
-let config2 = config1.clone(); // copie indépendante
-
-// Copy — copie implicite (types légers, sans heap)
-// Copy nécessite Clone
-#[derive(Debug, Clone, Copy)]
-struct Point {
-    x: f64,
-    y: f64,
-}
-
-let p1 = Point { x: 1.0, y: 2.0 };
-let p2 = p1; // copié, pas déplacé
-
-println!("{p1:?}"); // p1 est toujours valide
-println!("{p2:?}");
-```
-
-> **Règle :** `Copy` ne peut s'appliquer qu'aux types dont tous les champs sont `Copy`. `String`, `Vec`, `Box` ne peuvent pas être `Copy` car ils possèdent de la mémoire sur le tas.
-
-### `PartialEq` et `Eq`
-
-```rust
-#[derive(Debug, PartialEq)]
-struct Coordonnee {
-    x: i32,
-    y: i32,
-}
-
-let a = Coordonnee { x: 1, y: 2 };
-let b = Coordonnee { x: 1, y: 2 };
-let c = Coordonnee { x: 3, y: 4 };
-
-assert!(a == b);
-assert!(a != c);
-
-// Eq garantit la réflexivité totale (a == a toujours vrai)
-// f64 implémente PartialEq mais pas Eq (NaN != NaN)
-#[derive(Debug, PartialEq, Eq)]
-struct Id(u64);
-```
-
-### `Hash`
-
-`Hash` est nécessaire pour utiliser un type comme clé de `HashMap` ou dans un `HashSet`.
-Il requiert `PartialEq` (et recommande `Eq`).
-
-```rust
-use std::collections::HashMap;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct CleComposee {
-    categorie: String,
-    identifiant: u32,
-}
-
-let mut map: HashMap<CleComposee, String> = HashMap::new();
-
-map.insert(
-    CleComposee { categorie: "utilisateur".to_string(), identifiant: 42 },
-    "Alice".to_string(),
-);
-
-let cle = CleComposee { categorie: "utilisateur".to_string(), identifiant: 42 };
-println!("{:?}", map.get(&cle)); // Some("Alice")
-```
+Les méthodes d'un trait ne sont visibles **que si le trait est importé**. C'est voulu : deux crates peuvent ajouter une méthode `aire` à `f64` sans conflit, tant qu'un même fichier n'importe pas les deux. Les préludes (`use runique::prelude::*`, `use std::io::prelude::*`) importent les traits courants d'un coup.
 
 ---
 
-## 7. Impl multiple et cohérence
+## 7. Dériver ou implémenter à la main
 
-### Plusieurs traits sur un même type
+```rust
+#[derive(Debug, Clone, PartialEq, Default)]
+struct Point { x: i32, y: i32 }
+```
 
-Un type peut implémenter autant de traits que nécessaire.
+`#[derive(...)]` génère l'implémentation la plus évidente, champ par champ. On l'écrit à la main quand le comportement voulu est différent :
+
+| Trait | Dérivé | À la main quand... |
+|---|---|---|
+| `Debug` | tous les champs | un champ est secret (mot de passe, jeton) |
+| `Clone` | clone chaque champ | rarement |
+| `PartialEq` | compare tous les champs | l'égalité porte sur un identifiant seulement |
+| `Default` | `Default` de chaque champ | zéro n'a pas de sens (port, limite, délai) |
+| `PartialOrd`/`Ord` | ordre des champs | l'ordre voulu n'est pas celui des champs |
+| `Hash` | tous les champs | doit rester cohérent avec un `PartialEq` écrit à la main |
+
+### Exemple : `Debug` sans le secret
 
 ```rust
 use std::fmt;
 
-#[derive(Clone)]
-struct Vecteur2D {
-    x: f64,
-    y: f64,
-}
+struct Identifiants { utilisateur: String, mot_de_passe: String }
 
-impl Vecteur2D {
-    fn norme(&self) -> f64 {
-        (self.x * self.x + self.y * self.y).sqrt()
-    }
-}
-
-impl fmt::Display for Vecteur2D {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "({}, {})", self.x, self.y)
-    }
-}
-
-impl fmt::Debug for Vecteur2D {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Vecteur2D {{ x: {}, y: {} }}", self.x, self.y)
-    }
-}
-
-impl PartialEq for Vecteur2D {
-    fn eq(&self, other: &Self) -> bool {
-        (self.x - other.x).abs() < f64::EPSILON
-            && (self.y - other.y).abs() < f64::EPSILON
-    }
-}
-
-impl std::ops::Add for Vecteur2D {
-    type Output = Vecteur2D;
-
-    fn add(self, other: Vecteur2D) -> Vecteur2D {
-        Vecteur2D {
-            x: self.x + other.x,
-            y: self.y + other.y,
-        }
+impl fmt::Debug for Identifiants {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Identifiants")
+            .field("utilisateur", &self.utilisateur)
+            .field("mot_de_passe", &"***")
+            .finish()
     }
 }
 ```
 
-### La règle de cohérence (orphan rule)
-
-Rust impose une contrainte : pour implémenter un trait sur un type, **au moins l'un des deux** doit être défini dans le crate courant.
-
-```rust
-// OK — MonType est dans notre crate
-impl Display for MonType { ... }
-
-// OK — MonTrait est dans notre crate
-impl MonTrait for String { ... }
-
-// INTERDIT — ni Display ni Vec ne sont dans notre crate
-// impl Display for Vec<i32> { ... }
-```
-
-Pour contourner cette règle, on utilise le **newtype pattern** :
-
-```rust
-// Wrapper local autour d'un type externe
-struct MesNombres(Vec<i32>);
-
-impl fmt::Display for MesNombres {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let s: Vec<String> = self.0.iter().map(|n| n.to_string()).collect();
-        write!(f, "[{}]", s.join(", "))
-    }
-}
-
-let liste = MesNombres(vec![1, 2, 3]);
-println!("{liste}"); // [1, 2, 3]
-```
+Un `#[derive(Debug)]` afficherait le mot de passe dans les logs au premier `{:?}` ou au premier `dbg!`.
 
 ---
 
-## 8. Exercices pratiques
+## 8. Les traits standard à connaître
 
-### Exercice 1 — Trait `Convertible`
+| Trait | Sert à | Se dérive |
+|---|---|---|
+| `Debug` | `{:?}`, `dbg!`, `assert_eq!` | oui |
+| `Display` | `{}`, `.to_string()` | non |
+| `Clone`, `Copy` | copier | oui |
+| `Default` | valeur par défaut | oui |
+| `PartialEq`, `Eq` | `==` | oui |
+| `PartialOrd`, `Ord` | `<`, tri | oui |
+| `Hash` | clé de `HashMap` | oui |
+| `From`, `Into` | conversion sans échec | non |
+| `TryFrom`, `TryInto` | conversion qui peut échouer | non |
+| `FromStr` | `"..".parse::<T>()` | non |
+| `AsRef`, `Borrow` | emprunter sous une autre forme | non |
+| `Iterator`, `IntoIterator` | parcourir, `for` | non |
+| `Deref`, `Drop` | smart pointers | non |
+| `Add`, `Sub`, `Mul`, `Index`... | opérateurs (voir `traits-avances`) | non |
+| `Error` | type d'erreur | non (`thiserror`) |
+| `Send`, `Sync` | threads (automatiques) | — |
+| `Serialize`, `Deserialize` (serde) | sérialisation | oui, avec serde |
 
-Créez un trait `Convertible` avec une méthode `en_chaine(&self) -> String` et implémentez-le
-pour `f64`, une struct `Temperature` et une struct `Couleur { r: u8, g: u8, b: u8 }`.
+---
+
+## 9. Implémenter `Display`
 
 ```rust
+use std::fmt;
+
+struct Prix { centimes: i64 }
+
+impl fmt::Display for Prix {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{},{:02} €", self.centimes / 100, self.centimes % 100)
+    }
+}
+
+let p = Prix { centimes: 1250 };
+println!("{p}");                 // 12,50 €
+let texte = p.to_string();       // offert par Display
+```
+
+### Respecter les options de formatage
+
+```rust
+struct Code(&'static str);
+
+impl fmt::Display for Code {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.pad(self.0)               // pad applique largeur et alignement demandés
+    }
+}
+
+println!("[{:>8}]", Code("abc"));  // [     abc]
+```
+
+`write!(f, ...)` ignore `{:>8}` ; `f.pad(...)` le respecte.
+
+---
+
+## 10. Conversions : `From`, `Into`, `TryFrom`, `FromStr`
+
+### 10.1 `From` : on écrit l'un, on obtient l'autre
+
+```rust
+struct Celsius(f64);
+struct Fahrenheit(f64);
+
+impl From<Celsius> for Fahrenheit {
+    fn from(c: Celsius) -> Self { Fahrenheit(c.0 * 9.0 / 5.0 + 32.0) }
+}
+
+let f = Fahrenheit::from(Celsius(100.0));
+let f: Fahrenheit = Celsius(100.0).into();     // Into vient gratuitement
+```
+
+On implémente **toujours `From`**, jamais `Into` : la bibliothèque standard fournit `Into` automatiquement pour tout `From`.
+
+### 10.2 `TryFrom` : conversion qui peut échouer
+
+```rust
+struct Age(u8);
+
+impl TryFrom<i32> for Age {
+    type Error = String;
+    fn try_from(v: i32) -> Result<Self, Self::Error> {
+        if (0..=150).contains(&v) {
+            Ok(Age(v as u8))
+        } else {
+            Err(format!("âge impossible : {v}"))
+        }
+    }
+}
+
+let a = Age::try_from(30);
+let b: Result<Age, _> = 200_i32.try_into();   // le suffixe dit quelle conversion utiliser
+```
+
+### 10.3 `FromStr` : pour `parse`
+
+```rust
+use std::str::FromStr;
+
+#[derive(Debug)]
+enum Couleur { Rouge, Vert, Bleu }
+
+impl FromStr for Couleur {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.trim().to_lowercase().as_str() {
+            "rouge" => Ok(Couleur::Rouge),
+            "vert" => Ok(Couleur::Vert),
+            "bleu" => Ok(Couleur::Bleu),
+            autre => Err(format!("couleur inconnue : {autre}")),
+        }
+    }
+}
+
+let c: Couleur = "Rouge".parse().unwrap();
+let d = "violet".parse::<Couleur>();          // Err
+```
+
+`FromStr` (texte → valeur) et `Display` (valeur → texte) forment une paire : un type qui a les deux s'écrit et se relit.
+
+---
+
+## 11. Comparaisons : `PartialEq`, `Eq`, `PartialOrd`, `Ord`, `Hash`
+
+### 11.1 Égalité sur un identifiant
+
+```rust
+use std::hash::{Hash, Hasher};
+
+struct Utilisateur { id: u32, nom: String }
+
+impl PartialEq for Utilisateur {
+    fn eq(&self, autre: &Self) -> bool { self.id == autre.id }
+}
+impl Eq for Utilisateur {}
+
+impl Hash for Utilisateur {
+    fn hash<H: Hasher>(&self, h: &mut H) { self.id.hash(h); }   // cohérent avec eq
+}
+```
+
+Règle impérative : si `a == b`, alors `hash(a) == hash(b)`. Un `Hash` qui inclurait `nom` alors que `eq` ne le compare pas casserait les `HashMap` en silence.
+
+### 11.2 `PartialEq` ou `Eq`, `PartialOrd` ou `Ord`
+
+- `PartialEq` : `==` existe, mais certaines valeurs peuvent ne pas être égales à elles-mêmes (`f64::NAN != f64::NAN`).
+- `Eq` : l'égalité est totale (`a == a` toujours). Aucune méthode à écrire : c'est une promesse.
+- `PartialOrd` : certaines paires ne sont pas comparables (`NaN`).
+- `Ord` : tout est comparable ; requis par `sort()`, `BTreeMap`, `max()`.
+
+### 11.3 Un ordre choisi
+
+```rust
+use std::cmp::Ordering;
+
+#[derive(PartialEq, Eq)]
+struct Tache { priorite: u8, titre: String }
+
+impl Ord for Tache {
+    fn cmp(&self, autre: &Self) -> Ordering {
+        autre.priorite.cmp(&self.priorite)              // priorité décroissante
+            .then_with(|| self.titre.cmp(&autre.titre))  // puis titre croissant
+    }
+}
+
+impl PartialOrd for Tache {
+    fn partial_cmp(&self, autre: &Self) -> Option<Ordering> { Some(self.cmp(autre)) }
+}
+```
+
+`PartialOrd` délègue à `Ord` pour rester cohérent : c'est la forme standard.
+
+Souvent, un tri ponctuel suffit sans implémenter `Ord` : `v.sort_by_key(|t| std::cmp::Reverse(t.priorite))`.
+
+---
+
+## 12. Plusieurs traits sur un même type
+
+### 12.1 Un type, plusieurs comportements
+
+```rust
+use std::fmt;
+
+#[derive(Debug, Clone, PartialEq)]
+struct Temperature(f64);
+
+impl fmt::Display for Temperature {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{:.1} °C", self.0) }
+}
+
+impl From<f64> for Temperature {
+    fn from(v: f64) -> Self { Temperature(v) }
+}
+
+impl Default for Temperature {
+    fn default() -> Self { Temperature(20.0) }
+}
+```
+
+### 12.2 Deux traits avec une méthode du même nom
+
+```rust
+trait Pilote { fn voler(&self) -> &'static str; }
+trait Sorcier { fn voler(&self) -> &'static str; }
+
+struct Humain;
+
+impl Pilote for Humain { fn voler(&self) -> &'static str { "décollage" } }
+impl Sorcier for Humain { fn voler(&self) -> &'static str { "balai" } }
+impl Humain { fn voler(&self) -> &'static str { "bras qui battent" } }
+
+fn main() {
+    let h = Humain;
+    h.voler();                       // la méthode propre au type gagne : "bras qui battent"
+    Pilote::voler(&h);               // "décollage"
+    Sorcier::voler(&h);              // "balai"
+    <Humain as Pilote>::voler(&h);   // forme complète
+}
+```
+
+Pour une fonction associée sans `self`, seule la forme complète marche : `<Humain as Pilote>::nom()`.
+
+---
+
+## 13. La règle de cohérence et les traits d'extension
+
+### 13.1 La règle de l'orphelin
+
+On peut écrire `impl Trait for Type` seulement si **le trait ou le type** est défini dans ta crate.
+
+```rust
+use std::fmt;
+
+struct MonType;
+trait MonTrait {}
+
+impl fmt::Display for MonType {                          // OK : le type est local
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "mon type")
+    }
+}
+
+impl MonTrait for Vec<i32> {}                            // OK : le trait est local
+
+// impl fmt::Display for Vec<i32> { .. }                 // ERREUR E0117 : ni l'un ni l'autre
+```
+
+Pourquoi : si deux crates pouvaient chacune implémenter `Display` pour `Vec<i32>`, le compilateur ne saurait pas laquelle choisir dans un programme qui utilise les deux.
+
+### 13.2 Contourner : le newtype
+
+```rust
+use std::fmt;
+
+struct Liste(Vec<i32>);
+
+impl fmt::Display for Liste {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let textes: Vec<String> = self.0.iter().map(|x| x.to_string()).collect();
+        write!(f, "[{}]", textes.join(" | "))
+    }
+}
+```
+
+### 13.3 Ajouter des méthodes à un type étranger : le trait d'extension
+
+```rust
+trait TexteExt {
+    fn est_vide_ou_espaces(&self) -> bool;
+    fn tronquer(&self, n: usize) -> String;
+}
+
+impl TexteExt for str {
+    fn est_vide_ou_espaces(&self) -> bool {
+        self.trim().is_empty()
+    }
+    fn tronquer(&self, n: usize) -> String {
+        self.chars().take(n).collect()
+    }
+}
+
+fn main() {
+    "   ".est_vide_ou_espaces();          // true
+    "bonjour".tronquer(3);                // "bon"
+    String::from("abc").tronquer(1);      // marche aussi sur String (Deref vers str)
+}
+```
+
+Le trait est local : la règle de l'orphelin est respectée. Convention de nommage : `NomDuTypeExt`. `itertools::Itertools` ajoute ainsi des dizaines de méthodes à tous les itérateurs.
+
+---
+
+## 14. La même fonctionnalité écrite de plusieurs façons
+
+Calculer le prix TTC de plusieurs sortes d'articles.
+
+```rust
+// 1. Une fonction par type : duplication
+fn ttc_livre(prix: f64) -> f64 { prix * 1.055 }
+fn ttc_jeu(prix: f64) -> f64 { prix * 1.20 }
+
+// 2. Une enum : ensemble fermé, un match
+enum Article { Livre(f64), Jeu(f64) }
+impl Article {
+    fn ttc(&self) -> f64 {
+        match self {
+            Article::Livre(p) => p * 1.055,
+            Article::Jeu(p) => p * 1.20,
+        }
+    }
+}
+
+// 3. Un trait avec constante associée et méthode par défaut : ensemble ouvert
+trait Taxable {
+    const TAUX: f64;
+    fn prix_ht(&self) -> f64;
+    fn ttc(&self) -> f64 { self.prix_ht() * (1.0 + Self::TAUX) }
+}
+
+struct Livre(f64);
+struct Jeu(f64);
+impl Taxable for Livre { const TAUX: f64 = 0.055; fn prix_ht(&self) -> f64 { self.0 } }
+impl Taxable for Jeu { const TAUX: f64 = 0.20; fn prix_ht(&self) -> f64 { self.0 } }
+
+fn total<T: Taxable>(articles: &[T]) -> f64 {
+    articles.iter().map(|a| a.ttc()).sum()
+}
+```
+
+| Version | Ajouter un type d'article | Ajouter une opération |
+|---|---|---|
+| fonctions | une fonction de plus par opération | une fonction par type |
+| enum | modifier l'enum et chaque `match` | un `match` de plus |
+| trait | un `impl` de plus, ailleurs | modifier le trait (avec un défaut : sans casser) |
+
+Note : un trait avec une **constante associée** n'est pas utilisable en `dyn Taxable` (voir `box-dynamiques`) ; pour des articles mélangés dans un `Vec`, on remplacerait `TAUX` par une méthode `fn taux(&self) -> f64`.
+
+---
+
+## 15. Exercices pratiques
+
+### Exercice 1 — trait `Convertible`
+
+Définis `Convertible` avec `fn en_texte(&self) -> String` et une méthode par défaut `fn en_texte_majuscules(&self) -> String`. Implémente-le pour `i32` et pour une struct `Personne { nom: String }`.
+
+```rust
+// Solution :
 trait Convertible {
-    fn en_chaine(&self) -> String;
-}
-
-impl Convertible for f64 {
-    fn en_chaine(&self) -> String {
-        format!("{:.2}", self)
+    fn en_texte(&self) -> String;
+    fn en_texte_majuscules(&self) -> String {
+        self.en_texte().to_uppercase()
     }
 }
 
-struct Temperature {
-    celsius: f64,
+impl Convertible for i32 {
+    fn en_texte(&self) -> String { self.to_string() }
 }
 
-impl Convertible for Temperature {
-    fn en_chaine(&self) -> String {
-        format!("{:.1}°C", self.celsius)
-    }
-}
+struct Personne { nom: String }
 
-struct Couleur {
-    r: u8,
-    g: u8,
-    b: u8,
+impl Convertible for Personne {
+    fn en_texte(&self) -> String { format!("Personne({})", self.nom) }
 }
-
-impl Convertible for Couleur {
-    fn en_chaine(&self) -> String {
-        format!("#{:02X}{:02X}{:02X}", self.r, self.g, self.b)
-    }
-}
-
-// Test
-let t = Temperature { celsius: 36.6 };
-let c = Couleur { r: 255, g: 128, b: 0 };
-println!("{}", t.en_chaine()); // 36.6°C
-println!("{}", c.en_chaine()); // #FF8000
 ```
 
-### Exercice 2 — Tri générique
+### Exercice 2 — `FromStr` et `Display`
 
-Écrivez une fonction `plus_grand` générique qui fonctionne avec tout type comparable et affichable.
+Écris `struct Version { majeur: u32, mineur: u32 }` qui se lit depuis `"4.0"` et s'affiche `"4.0"`.
 
 ```rust
-use std::fmt::Display;
+// Solution :
+use std::fmt;
+use std::str::FromStr;
 
-fn plus_grand<T>(liste: &[T]) -> Option<&T>
-where
-    T: PartialOrd + Display,
-{
-    let mut max = liste.first()?;
-    for item in liste.iter() {
-        if item > max {
-            max = item;
-        }
+struct Version { majeur: u32, mineur: u32 }
+
+impl FromStr for Version {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (a, b) = s.split_once('.').ok_or("format attendu : X.Y")?;
+        Ok(Version {
+            majeur: a.parse().map_err(|_| "majeur invalide")?,
+            mineur: b.parse().map_err(|_| "mineur invalide")?,
+        })
     }
-    Some(max)
 }
 
-let nombres = vec![34, 50, 25, 100, 65];
-let lettres = vec!['y', 'm', 'a', 'q'];
+impl fmt::Display for Version {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}.{}", self.majeur, self.mineur)
+    }
+}
 
-println!("{:?}", plus_grand(&nombres)); // Some(100)
-println!("{:?}", plus_grand(&lettres)); // Some('y')
+let v: Version = "4.0".parse().unwrap();
+assert_eq!(v.to_string(), "4.0");
 ```
+
+`ok_or("...")?` et `map_err(|_| "...")?` fonctionnent ici parce que `String: From<&str>` : `?` convertit le `&str` en `String`.
+
+### Exercice 3 — tri par un ordre choisi
+
+Trie un `Vec<Version>` de la plus récente à la plus ancienne, sans implémenter `Ord`, puis en l'implémentant.
+
+```rust
+// Solution 1 : sort_by
+fn trier(v: &mut [Version]) {
+    v.sort_by(|a, b| (b.majeur, b.mineur).cmp(&(a.majeur, a.mineur)));
+}
+
+// Solution 2 : Ord (ordre croissant naturel), puis reverse
+// #[derive(PartialEq, Eq, PartialOrd, Ord)] struct Version { majeur: u32, mineur: u32 }
+// v.sort(); v.reverse();
+```
+
+Avec `derive`, l'ordre compare `majeur` puis `mineur` : l'ordre des champs fait l'ordre de tri.
 
 ---
 
-## 9. Aide-mémoire
+## 16. Aide-mémoire
 
-| Syntaxe | Signification |
-|---|---|
-| `trait Foo { fn bar(&self); }` | Définir un trait |
-| `impl Foo for MaStruct { ... }` | Implémenter un trait |
-| `fn f(x: impl Foo)` | Paramètre avec trait bound |
-| `fn f() -> impl Foo` | Retour avec type opaque |
-| `fn f<T: Foo>(x: T)` | Générique explicite |
-| `where T: Foo + Bar` | Clause where (bounds multiples) |
-| `#[derive(Debug, Clone)]` | Implémentation automatique |
+```rust
+trait T {
+    fn obligatoire(&self) -> u32;
+    fn par_defaut(&self) -> u32 { self.obligatoire() * 2 }
+    fn associee() -> Self where Self: Sized;
+    const N: u32;
+}
+impl T for MonType { .. }
 
-**Derives et leurs usages :**
+fn f(x: &impl T)              fn f<X: T>(x: &X)          fn f<X>(x: &X) where X: T
+fn f(x: &dyn T)               fn f() -> impl T           fn f() -> Box<dyn T>
+X::associee()                 <MonType as T>::associee()  T::methode(&x)
 
-| Derive | Permet |
-|---|---|
-| `Debug` | `{:?}` et `{:#?}` |
-| `Clone` | `.clone()` explicite |
-| `Copy` | Copie implicite (types légers) |
-| `PartialEq` | `==` et `!=` |
-| `Eq` | Égalité totale (+ `PartialEq`) |
-| `Hash` | Clé de `HashMap` / `HashSet` |
-| `Default` | `T::default()` |
-| `PartialOrd` / `Ord` | `<`, `>`, tri |
+impl fmt::Display for X       impl From<A> for B         impl TryFrom<A> for B
+impl FromStr for X            impl PartialEq for X       impl Ord + PartialOrd
+trait StrExt { .. } impl StrExt for str { .. }            // trait d'extension
+```
 
-**Points clés à retenir :**
+### Points clés
 
-- Un trait = un contrat de comportement
-- `impl Trait` en paramètre = syntaxe courte pour un bound
-- `impl Trait` en retour = type concret opaque (statique, pas de box)
-- `Box<dyn Trait>` = dispatch dynamique (pour types hétérogènes)
-- La règle de cohérence protège l'écosystème des conflits
-- `Copy` requiert `Clone`, et tous les champs doivent être `Copy`
+- Un trait déclare un comportement ; un type l'implémente, même après coup.
+- Demande peu de méthodes obligatoires, fournis le reste par défaut.
+- Les méthodes d'un trait ne sont visibles que si le trait est importé.
+- Dérive quand le comportement évident convient ; écris à la main pour un secret, une égalité sur identifiant, un défaut non nul.
+- Implémente `From`, jamais `Into`. `FromStr` + `Display` pour un type qui s'écrit et se relit.
+- `Hash` doit rester cohérent avec `PartialEq`.
+- Règle de l'orphelin : le trait ou le type doit être local ; sinon newtype ou trait d'extension.

@@ -85,12 +85,33 @@ fn local_path(next: Option<&str>) -> &str {
     .unwrap_or("/")
 }
 
+/// A course has the same slug in both languages; `/cours/{slug}` is the shape
+/// from before the language was in the URL.
+fn course_path_in_language(path: &str, lang: &str) -> Option<String> {
+    let rest = path.strip_prefix("/cours")?;
+    if !rest.is_empty() && !rest.starts_with('/') {
+        return None;
+    }
+    let mut parts = rest.split('/').filter(|part| !part.is_empty());
+    let slug = match parts.next() {
+        Some("fr" | "en") => parts.next(),
+        other => other,
+    };
+    Some(match slug {
+        Some(slug) => format!("/cours/{lang}/{slug}"),
+        None => format!("/cours/{lang}"),
+    })
+}
+
 /// The same page in `lang` for pages whose language is in their URL. Doc pages
 /// don't always have the same name in both languages: without an equivalent,
 /// the section, then the documentation's index.
 async fn path_in_language(path: &str, lang: &str, request: &Request) -> String {
     if path == "/readme/fr" || path == "/readme/en" {
         return format!("/readme/{lang}");
+    }
+    if let Some(course) = course_path_in_language(path, lang) {
+        return course;
     }
     let Some(rest) = path.strip_prefix("/docs/") else {
         return path.to_string();
@@ -179,6 +200,27 @@ mod tests {
             assert_eq!(local_path(Some(refused)), "/", "{refused:?}");
         }
         assert_eq!(local_path(None), "/");
+    }
+
+    #[test]
+    fn a_course_page_is_swapped_to_the_other_language() {
+        assert_eq!(course_path_in_language("/cours", "en").as_deref(), Some("/cours/en"));
+        assert_eq!(course_path_in_language("/cours/", "en").as_deref(), Some("/cours/en"));
+        assert_eq!(course_path_in_language("/cours/fr", "en").as_deref(), Some("/cours/en"));
+        assert_eq!(
+            course_path_in_language("/cours/fr/serde", "en").as_deref(),
+            Some("/cours/en/serde")
+        );
+        assert_eq!(
+            course_path_in_language("/cours/en/serde", "fr").as_deref(),
+            Some("/cours/fr/serde")
+        );
+        assert_eq!(
+            course_path_in_language("/cours/serde", "fr").as_deref(),
+            Some("/cours/fr/serde")
+        );
+        assert_eq!(course_path_in_language("/coursx", "fr"), None);
+        assert_eq!(course_path_in_language("/docs/fr/cour", "en"), None);
     }
 
     #[test]
