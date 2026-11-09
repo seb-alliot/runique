@@ -31,7 +31,7 @@
 
     <div class="back-link">
         {% if ext_link_url %}
-        <a href="{{ ext_link_url }}" target="_blank" class="btn btn-secondary">{% set tr_text = ext_link_label %}{% include "utils/tr.html" %}</a>
+        <a href="{{ ext_link_url }}" class="btn btn-secondary">{% set tr_text = ext_link_label %}{% include "utils/tr.html" %}</a>
         {% endif %}
         <a href="{% link "index" %}">{% if ui_lang == "fr" %}← Retour à l'accueil{% else %}← Back home{% endif %}</a>
     </div>

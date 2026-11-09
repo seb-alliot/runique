@@ -1,0 +1,75 @@
+{% extends "index.html" %}
+
+{% block meta %}
+{% if ui_lang == "fr" %}
+<meta name="description" content="Choisir un framework web : Django, Loco, Cot et Runique présentés côte à côte, sans rivalité, avec une comparaison détaillée de chacun.">
+<meta property="og:description" content="Choisir un framework web : Django, Loco, Cot et Runique présentés côte à côte, sans rivalité, avec une comparaison détaillée de chacun.">
+{% else %}
+<meta name="description" content="Choosing a web framework: Django, Loco, Cot and Runique side by side, as alternatives rather than rivals, with a detailed comparison of each.">
+<meta property="og:description" content="Choosing a web framework: Django, Loco, Cot and Runique side by side, as alternatives rather than rivals, with a detailed comparison of each.">
+{% endif %}
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Runique">
+<meta property="og:title" content="{% if ui_lang == "fr" %}Choisir un framework web : Django, Loco, Cot et Runique{% else %}Choosing a web framework: Django, Loco, Cot and Runique{% endif %}">
+<meta property="og:url" content="https://runique.io/comparatif">
+<meta property="og:image" content="{{ og_image }}">
+<link rel="canonical" href="https://runique.io/comparatif">
+{% endblock %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href="{% static "css/comparatif.css" %}">
+{% endblock %}
+
+{% block content %}
+<div class="compare-page compare-choose">
+    {% if ui_lang == "fr" %}
+    <h1>Choisir un framework web : Django, Loco, Cot et Runique</h1>
+    <p class="compare-source compare-lead">Runique ne se voit pas comme un rival de Django, de Loco ou de Cot, mais comme une alternative de plus. Chacun répond à des besoins différents, avec ses propres forces.</p>
+    {% else %}
+    <h1>Choosing a web framework: Django, Loco, Cot and Runique</h1>
+    <p class="compare-source compare-lead">Runique doesn't see itself as a rival to Django, Loco or Cot, only as one more alternative. Each answers different needs, with its own strengths.</p>
+    {% endif %}
+
+    {# One card per framework, same length and same shape for each: where it
+       comes from, what it brings, which projects it suits. #}
+    <div class="demo-cards compare-rivals">
+        <a href="/comparatif/runique-vs-django" class="feature-card">
+            <h3>Django</h3>
+            {% if ui_lang == "fr" %}
+            <p>Django est la référence du développement web en Python depuis vingt ans. Son admin, son ORM et son écosystème immense en font un choix sûr pour la plupart des projets web.</p>
+            {% else %}
+            <p>Django has been the reference for web development in Python for twenty years. Its admin, its ORM and its huge ecosystem make it a safe choice for most web projects.</p>
+            {% endif %}
+            <p>Runique vs Django →</p>
+        </a>
+        <a href="/comparatif/runique-vs-loco" class="feature-card">
+            <h3>Loco</h3>
+            {% if ui_lang == "fr" %}
+            <p>Loco s'inspire de Rails et mise sur la productivité : générateurs de code, tâches de fond, planificateur et stockage de fichiers configurable. Il convient aux projets qui veulent ces outils dès le départ.</p>
+            {% else %}
+            <p>Loco draws on Rails and bets on productivity: code generators, background jobs, a scheduler and configurable file storage. It suits projects that want these tools from day one.</p>
+            {% endif %}
+            <p>Runique vs Loco →</p>
+        </a>
+        <a href="/comparatif/runique-vs-cot" class="feature-card">
+            <h3>Cot</h3>
+            {% if ui_lang == "fr" %}
+            <p>Cot s'inspire de Django avec son propre ORM, des templates Askama vérifiés à la compilation et un panneau d'administration intégré. Il convient aux projets qui veulent l'esprit Django dans un Rust idiomatique.</p>
+            {% else %}
+            <p>Cot draws on Django, with its own ORM, Askama templates checked at compile time and a built-in admin panel. It suits projects that want the Django spirit in idiomatic Rust.</p>
+            {% endif %}
+            <p>Runique vs Cot →</p>
+        </a>
+    </div>
+
+    {% if ui_lang == "fr" %}
+    <p class="compare-source">Runique s'inspire lui aussi de Django, en misant sur le typage de bout en bout : modèles, formulaires et admin vérifiés par le compilateur, sécurité active par défaut.</p>
+    <p class="compare-source">Les pages ci-dessus comparent leurs fonctionnalités telles que décrites dans leur documentation, à une date donnée, pour aider à choisir l'outil adapté à un projet. Si une information est inexacte ou dépassée, <a href="https://github.com/seb-alliot/runique/issues" target="_blank" rel="noopener">signalez-la</a>.</p>
+    {% else %}
+    <p class="compare-source">Runique also draws on Django, betting on end-to-end typing: models, forms and admin checked by the compiler, security on by default.</p>
+    <p class="compare-source">The pages above compare their features as described in their documentation, at a given date, to help pick the right tool for a project. If something is wrong or out of date, <a href="https://github.com/seb-alliot/runique/issues" target="_blank" rel="noopener">please report it</a>.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -3,7 +3,7 @@ use crate::backend::{
     account::{handle_delete_account, render_profile},
     auth::{handle_activate, handle_inscription, handle_login},
     blog::{get_article, handle_blog_save, list_articles},
-    comparatif::{comparatif_detail_page, comparatif_page},
+    comparatif::{comparatif_detail_page, comparatif_intro_page, limites_page},
     contribution::{handle_contribution_submit, list_contributions},
     cours::{ExerciceInput, cours_detail, cours_exercice, cours_index},
     demo_code_page,
@@ -318,13 +318,14 @@ pub async fn probleme_connu(mut request: Request) -> AppResult<Response> {
         "description"    => "Known issues of each Runique version, and the release that fixes them.",
         "sections"       => &sections,
         "ext_link_label" => "Full CHANGELOG",
-        "ext_link_url"   => "https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md",
+        // The changelog is on the site (`/releases`), no need to leave it.
+        "ext_link_url"   => "/releases",
     });
     request.render("info/cards.html")
 }
 
 pub async fn roadmap() -> Redirect {
-    Redirect::permanent("/comparatif#a-venir")
+    Redirect::permanent("/releases/limits#a-venir")
 }
 
 // ─── Sitemap ──────────────────────────────────────────────────────────────────
@@ -518,7 +519,11 @@ pub async fn migrations_demo(mut request: Request) -> AppResult<Response> {
 }
 
 pub async fn comparatif(mut request: Request) -> AppResult<Response> {
-    comparatif_page(&mut request).await
+    comparatif_intro_page(&mut request).await
+}
+
+pub async fn limites(mut request: Request) -> AppResult<Response> {
+    limites_page(&mut request).await
 }
 
 pub async fn comparatif_detail(

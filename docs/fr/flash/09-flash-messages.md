@@ -1,4 +1,4 @@
-# Flash Messages
+# Messages flash
 
 Runique fournit un système de messages flash pour les notifications utilisateur. Il existe **deux types** de messages :
 

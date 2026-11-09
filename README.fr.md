@@ -71,7 +71,7 @@ Rust a déjà de bonnes briques web, rapides et bas niveau — ce qui lui manque
 | QuerySet | SeaORM + DSL de requêtes `search!` |
 | middleware | slots de middleware ordonnés |
 
-Pour le tableau complet : [Runique vs Django](https://runique.io/comparatif#django).
+Pour le tableau complet : [Runique vs Django](https://runique.io/comparatif/runique-vs-django).
 
 ---
 
@@ -232,7 +232,7 @@ Détail complet par fichier : [docs/couverture_test.md](docs/couverture_test.md)
 - [État du projet](https://github.com/seb-alliot/runique/blob/main/docs/fr/PROJECT_STATUS.md) — avancement du chantier `makemigrations`
 - [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md)
 - [Passer de la 3.0 à la 4.0](https://github.com/seb-alliot/runique/blob/main/MIGRATION-4.0.fr.md)
-- [Runique vs Django — comparatif des fonctionnalités](https://runique.io/comparatif#django)
+- [Runique vs Django — comparatif des fonctionnalités](https://runique.io/comparatif/runique-vs-django)
 - [Crates.io](https://crates.io/crates/runique)
 - [Politique de sécurité](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
 

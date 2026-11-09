@@ -85,6 +85,7 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 1.5rem;
+    margin-top: 3em;
 }
 
 .compare-main {
@@ -431,6 +432,67 @@
     overflow: visible;
 }
 
+/* The limits page's introduction, kept apart from the two columns below. */
+.compare-lead {
+    margin-bottom: 1.5rem;
+}
+
+@media (min-width: 64rem) {
+    .compare-lead { margin-bottom: 3rem; }
+}
+
+/* The comparisons' introduction reads as a page, not as the home page's
+   compact grid: its text at reading size. */
+.compare-choose .compare-source {
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.compare-rivals .feature-card {
+    padding: 1.25rem 1.375rem;
+}
+
+.compare-rivals .feature-card h3 {
+    font-size: 1.125rem;
+    margin-bottom: 0.5rem;
+}
+
+.compare-rivals .feature-card p {
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+/* The framework names in violet, like the site's labels; the hover keeps the
+   cards' own colour. */
+.compare-rivals .feature-card h3 {
+    color: var(--label);
+}
+
+.compare-rivals .feature-card:hover h3 {
+    color: var(--accent);
+}
+
+/* The comparisons' introduction: one card under the other on a phone, the
+   three frameworks side by side from tablet width, same height, their
+   "Runique vs …" line level at the bottom. */
+@media (min-width: 48rem) {
+    .compare-rivals {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .compare-rivals .feature-card {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .compare-rivals .feature-card p:last-child {
+        margin-top: auto;
+        padding-top: 0.5rem;
+    }
+}
+
 /* The first section starts level with the table of contents. */
 .compare-main > .compare-section:first-child {
     margin-top: 0;
@@ -448,21 +510,10 @@
     .compare-section > h2 { font-size: 1.875rem; }
 }
 
-/* The hub's links to the comparison pages, a header above the two columns. */
-.compare-section.compare-intro {
-    margin-top: 0;
-    margin-bottom: 1.5rem;
-}
-
-@media (min-width: 64rem) {
-    .compare-section.compare-intro {
-        margin-bottom: 3rem;
-    }
-}
 
 
 .changelog-layout {
-    margin-top: 1.5rem;
+    margin-top: 3em;
 }
 
 .changelog-layout .compare-section {

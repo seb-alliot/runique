@@ -50,8 +50,24 @@ async fn doc_blocks(
         .collect()
 }
 
-/// The hub: links to the comparisons, the known limits, what's coming.
-pub async fn comparatif_page(request: &mut Request) -> AppResult<Response> {
+/// The comparisons' introduction: Django, Loco, Cot and Runique as
+/// alternatives, one card each leading to its detailed comparison.
+pub async fn comparatif_intro_page(request: &mut Request) -> AppResult<Response> {
+    inject_globals(request).await;
+    let lang = visitor_lang(&request.headers);
+    context_update!(request => {
+        "title" => if lang == "fr" {
+            "Choisir un framework web : Django, Loco, Cot et Runique"
+        } else {
+            "Choosing a web framework: Django, Loco, Cot and Runique"
+        },
+    });
+    request.render("comparatif/index.html")
+}
+
+/// Runique's known limits and what's coming (the roadmap), on their own page:
+/// the comparisons have theirs, `/comparatif/runique-vs-…`.
+pub async fn limites_page(request: &mut Request) -> AppResult<Response> {
     inject_globals(request).await;
     let lang = visitor_lang(&request.headers);
     let limits = doc_blocks(lang, "limites", "index", request).await;
@@ -61,12 +77,11 @@ pub async fn comparatif_page(request: &mut Request) -> AppResult<Response> {
         include_str!("../../../ROADMAP.md")
     });
     context_update!(request => {
-        "title"   => if lang == "fr" { "Comparatif" } else { "Comparison" },
-        "rivals"  => &comparative_links(),
+        "title"   => if lang == "fr" { "Limites et feuille de route" } else { "Limits and roadmap" },
         "limits"  => &limits,
         "roadmap" => &roadmap,
     });
-    request.render("comparatif/comparatif.html")
+    request.render("comparatif/limites.html")
 }
 
 /// One comparison on its own page. An unknown slug, or a comparison missing

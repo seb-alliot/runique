@@ -1,4 +1,4 @@
-# Models et AST (`model!`)
+# Modèles et AST (`model!`)
 
 > Fichiers concernés : `src/entities/*`
 
