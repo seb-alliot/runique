@@ -655,9 +655,9 @@ mod doc_link_validation {
         );
     }
 
-    /// Pages of one language with no page in the other one: the comparisons
-    /// with Loco and Cot are written in French only (served by `/comparatif`).
-    const ONE_LANGUAGE_ONLY: &[&str] = &["comparatif-cot", "comparatif-loco"];
+    /// Pages of one language with no page in the other one. Empty: every page
+    /// exists in both; add a slug here only for a page meant for one language.
+    const ONE_LANGUAGE_ONLY: &[&str] = &[];
 
     /// Every page slug of `lang`, by the seeder's own rule.
     fn page_slugs(docs_root: &Path, lang: &str) -> BTreeSet<String> {
