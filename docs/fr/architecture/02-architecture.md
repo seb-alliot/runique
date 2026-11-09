@@ -135,7 +135,6 @@ fn demo_category() -> ModelAdmin<demo_category::Entity> {
     use demo_category::Column::*;
     ModelAdmin::new().list(|l| {
         l.display([Title, BackLinkLabel, BackLinkUrl, SortOrder])
-            .links([Title])
             .ordering([(SortOrder, Order::Asc)])
             .search([Title])
             .empty_value("—")

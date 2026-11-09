@@ -1,9 +1,8 @@
 //! The comparison pages. The hub (`/comparatif`) links to one page per
-//! framework, then shows the known limits and what's coming. Each comparison
-//! has its own URL, title and description (`/comparatif/runique-vs-django`…),
-//! what a search for "runique vs django" lands on. The comparisons and the
-//! limits are read from the documentation and what's coming from the roadmap
-//! files, so each has a single source.
+//! framework. Each comparison has its own URL, title and description
+//! (`/comparatif/runique-vs-django`…), what a search for "runique vs django"
+//! lands on. The comparisons are read from the documentation and what's coming
+//! from the roadmap files, so each has a single source.
 use crate::backend::{inject_globals, lang::visitor_lang, split_markdown_sections};
 use crate::entities::{doc_block, doc_page, doc_section};
 use runique::prelude::*;
@@ -65,12 +64,13 @@ pub async fn comparatif_intro_page(request: &mut Request) -> AppResult<Response>
     request.render("comparatif/index.html")
 }
 
-/// Runique's known limits and what's coming (the roadmap), on their own page:
-/// the comparisons have theirs, `/comparatif/runique-vs-…`.
+/// What's coming (the roadmap), with a link to the known limits of the
+/// documentation: the comparisons have their own pages, `/comparatif/runique-vs-…`.
 pub async fn limites_page(request: &mut Request) -> AppResult<Response> {
     inject_globals(request).await;
     let lang = visitor_lang(&request.headers);
-    let limits = doc_blocks(lang, "limites", "index", request).await;
+    // The limits are only linked: their text lives at /docs/{lang}/limites, a
+    // copy here would be the same content under two URLs.
     let roadmap = split_markdown_sections(if lang == "fr" {
         include_str!("../../../ROADMAP.fr.md")
     } else {
@@ -78,7 +78,7 @@ pub async fn limites_page(request: &mut Request) -> AppResult<Response> {
     });
     context_update!(request => {
         "title"   => if lang == "fr" { "Limites et feuille de route" } else { "Limits and roadmap" },
-        "limits"  => &limits,
+        "limits_url" => format!("/docs/{lang}/limites"),
         "roadmap" => &roadmap,
     });
     request.render("comparatif/limites.html")

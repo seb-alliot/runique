@@ -51,7 +51,7 @@ fn articles() -> ModelAdmin<article::Entity> {
     use article::Column::*;
     ModelAdmin::new()
         .title("Articles")
-        .list(|l| l.display([Title, Status]).links([Title]).filter([Status]))
+        .list(|l| l.display([Title, Status]).filter([Status]))
         .form(|f| f.fields([Title, Body, Status]))
 }
 ```
