@@ -16,6 +16,12 @@
 <meta property="og:url" content="{{ canonical_url }}">
 <meta property="og:image" content="{{ og_image }}">
 <link rel="canonical" href="{{ canonical_url }}">
+{# The same page in the other language (backend/doc_lang.rs), English as default. #}
+{% if alternate_url %}
+<link rel="alternate" hreflang="{{ lang }}" href="{{ canonical_url }}">
+<link rel="alternate" hreflang="{{ alternate_lang }}" href="https://runique.io{{ alternate_url }}">
+<link rel="alternate" hreflang="x-default" href="{% if lang == "en" %}{{ canonical_url }}{% else %}https://runique.io{{ alternate_url }}{% endif %}">
+{% endif %}
 {% endblock %}
 
 {% block style %}

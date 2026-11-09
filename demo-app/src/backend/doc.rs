@@ -1,3 +1,4 @@
+use crate::backend::doc_lang::{counterpart_slug, doc_page_path, other_lang};
 use crate::entities::{cour, doc_block, doc_page, doc_section};
 use runique::prelude::*;
 
@@ -29,7 +30,7 @@ pub async fn doc_index(lang: &str, request: &mut Request) -> AppResult<Response>
         .unwrap_or_default();
 
     context_update!(request => {
-        "title"              => &format!("Documentation — {}", lang.to_uppercase()),
+        "title"              => "Documentation",
         "sections"           => &sections,
         "cours_themes"       => &cours_difficultes,
         "cours_difficultes"  => &cours_difficultes,
@@ -90,8 +91,20 @@ pub async fn doc_page(
         .await
         .unwrap_or_default();
 
+    // The same page in the other language, for the `hreflang` links: only when
+    // it really exists, a link to a missing page would mislead the crawlers.
+    let alternate_lang = other_lang(lang);
+    let alternate_slug = counterpart_slug(lang, &page.slug);
+    let alternate_url = search!(doc_page::Entity => Lang eq alternate_lang, Slug eq alternate_slug)
+        .first(&db)
+        .await
+        .unwrap_or(None)
+        .map(|other| doc_page_path(alternate_lang, section_slug, &other.slug));
+
     context_update!(request => {
-        "title"         => &page.title,
+        "title"          => &page.title,
+        "alternate_lang" => alternate_lang,
+        "alternate_url"  => &alternate_url,
         "section"       => &section,
         "page"          => &page,
         "blocks"        => &blocks,

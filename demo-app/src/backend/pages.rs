@@ -58,6 +58,9 @@ pub async fn demo_code_page(slug: &str, request: &mut Request) -> AppResult<Resp
 
     context_update!(request => {
         "title"         => &page.title,
+        // The page's own lead as its meta description: one per page, never
+        // the site's default repeated across them.
+        "description"   => &page.lead,
         "page"          => &page,
         "code_examples" => &code_examples,
         "doc_links"     => &doc_links,
