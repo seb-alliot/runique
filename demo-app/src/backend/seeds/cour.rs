@@ -552,7 +552,12 @@ async fn seed_lang(db: &DatabaseConnection, lang: &str, cour_dir: &Path) {
         let cour_model = cour::ActiveModel {
             slug: Set(def.slug.to_string()),
             lang: Set(lang.to_string()),
-            title: Set(if lang == "fr" { def.title } else { def.title_en }.to_string()),
+            title: Set(if lang == "fr" {
+                def.title
+            } else {
+                def.title_en
+            }
+            .to_string()),
             theme: Set(def.theme.parse::<cour::CourTheme>().unwrap_or_default()),
             difficulte: Set(def
                 .difficulte
