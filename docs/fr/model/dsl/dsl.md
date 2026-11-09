@@ -635,7 +635,6 @@ fn user_profiles() -> ModelAdmin<user_profile::Entity> {
         .title("Profils utilisateurs")
         .list(|l| {
             l.display([Username, Bio, IsVerified])
-                .links([Username])
         })
         .form(|f| f.fields([Bio, Avatar, Website, Phone, BirthDate, IsVerified]))
 }

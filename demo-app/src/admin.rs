@@ -77,7 +77,6 @@ fn blog() -> ModelAdmin<blog::Entity> {
     ModelAdmin::new()
         .list(|l| {
             l.display([Title, Email, Website, Status])
-                .links([Title])
                 .sortable([Title, Status])
                 .ordering([(Title, Order::Asc)])
                 .search([Title, Summary])
@@ -127,7 +126,6 @@ fn chapitre() -> ModelAdmin<chapitre::Entity> {
     ModelAdmin::new()
         .list(|l| {
             l.display([Title, Slug, CourId, SortOrder])
-                .links([Title])
                 .sortable([Title, SortOrder])
                 .ordering([(CourId, Order::Asc), (SortOrder, Order::Asc)])
                 .search([Title, Slug])
@@ -156,7 +154,6 @@ fn demo_category() -> ModelAdmin<demo_category::Entity> {
     use demo_category::Column::*;
     ModelAdmin::new().list(|l| {
         l.display([Title, BackLinkLabel, BackLinkUrl, SortOrder])
-            .links([Title])
             .ordering([(SortOrder, Order::Asc)])
             .search([Title])
             .empty_value("—")
@@ -168,7 +165,6 @@ fn demo_page() -> ModelAdmin<demo_page::Entity> {
     ModelAdmin::new()
         .list(|l| {
             l.display([Title, Slug, PageType, CategoryId])
-                .links([Title])
                 .sortable([Title, Slug])
                 .ordering([(CategoryId, Order::Asc), (SortOrder, Order::Asc)])
                 .search([Title, Slug, Lead])
@@ -208,7 +204,6 @@ fn doc_page() -> ModelAdmin<doc_page::Entity> {
     ModelAdmin::new()
         .list(|l| {
             l.display([Title, Slug, Lang, SectionId])
-                .links([Title])
                 .sortable([Title, Lang])
                 .ordering([(SectionId, Order::Asc), (SortOrder, Order::Asc)])
                 .search([Title, Slug, Lead])
@@ -239,7 +234,6 @@ fn page_doc_link() -> ModelAdmin<page_doc_link::Entity> {
     use page_doc_link::Column::*;
     ModelAdmin::new().list(|l| {
         l.display([Label, LinkType, Url, PageId])
-            .links([Label])
             .ordering([(PageId, Order::Asc), (SortOrder, Order::Asc)])
             .search([Label, Url])
             .filter([LinkType])
@@ -251,7 +245,6 @@ fn runique_release() -> ModelAdmin<runique_release::Entity> {
     use runique_release::Column::*;
     ModelAdmin::new().title("Releases").list(|l| {
         l.display([Version, GithubUrl, CratesUrl, ChangelogFrUrl])
-            .links([Version])
             .sortable([Version])
             .ordering([(Version, Order::Desc)])
             .empty_value("—")

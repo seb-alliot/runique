@@ -36,7 +36,6 @@ fn articles() -> ModelAdmin<article::Entity> {
         .title("Articles")
         .list(|l| {
             l.display([Title, Status, Views])
-                .links([Title])
                 .sortable([Title])
                 .search([Title])
                 .filter([Status])

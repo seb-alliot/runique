@@ -11,7 +11,6 @@ fn articles() -> ModelAdmin<article::Entity> {
         .title("Articles")
         .list(|l| {
             l.display([Title, Status, Views])
-                .links([Title])
                 .sortable([Title, Status])
                 .ordering([(Title, Order::Asc)])
                 .search([Title, Summary])
@@ -130,7 +129,6 @@ fn blog() -> ModelAdmin<blog::Entity> {
     ModelAdmin::new()
         .list(|l| {
             l.display([Title, Email, Website, Status])
-                .links([Title])
                 .sortable([Title, Status])
                 .ordering([(Title, Order::Asc)])
                 .search([Title, Summary])
