@@ -1,709 +1,788 @@
-## Cours Complet
+# Box et types dynamiques
 
-## Encapsulation de Box<dyn Trait> dans des Structs en Rust
+> `Box<T>` pour placer une valeur sur le tas, `dyn Trait` pour manipuler des types différents derrière une même interface : quand les utiliser, comment, et ce qu'ils coûtent par rapport aux génériques et aux enums.
 
-Guide pratique pour la programmation orientée objet en Rust 
+## Objectifs
 
-## Table des Matières
+- Savoir quand une valeur doit aller dans une `Box`
+- Comprendre ce qu'est un trait object (`dyn Trait`) et un pointeur « large »
+- Écrire `&dyn Trait`, `Box<dyn Trait>`, `Arc<dyn Trait>` et choisir entre eux
+- Connaître les règles de compatibilité `dyn` d'un trait, et les contourner
+- Stocker des trait objects dans des structs et des collections
+- Cloner, comparer et convertir des trait objects
+- Choisir entre enum, générique et `dyn Trait` pour un même problème
 
-1. Introduction aux Box et au Trait Object 
+## Table des matières
 
-2. Comprendre Box&lt;dyn Trait&gt; 
+1. `Box<T>` : une valeur sur le tas
+2. Quand utiliser une `Box`
+3. Les trait objects
+4. Les différentes façons de tenir un trait object
+5. Comment fonctionne un appel dynamique
+6. Compatibilité `dyn` d'un trait
+7. Trait objects dans les structs
+8. Collections de trait objects
+9. Cloner un trait object
+10. Retrouver le type concret : `Any`
+11. Remonter vers un supertrait
+12. Enum, générique ou `dyn` : la même fonctionnalité trois fois
+13. Patterns de conception
+14. Exemples réels dans Runique
+15. Exercices
+16. Points clés à retenir
 
-3. Encapsulation dans des Structs 
+## 1. `Box<T>` : une valeur sur le tas
 
-4. Patterns et Cas d'Usage Avancés 
-
-5. Gestion de la Mémoire et Performance 
-
-6. Exercices Pratiques 
-
-## 1. Introduction aux Box et au Trait Object
-
-## 1.1 Qu'est-ce qu'un Box ?
-
-Un **Box** est un pointeur intelligent (smart pointer) qui alloue de la mémoire sur le tas (heap). Il permet de stocker des données dont la taille n'est pas connue à la compilation ou qui sont trop volumineuses pour la pile (stack). 
-
+```rust
+let b = Box::new(5);           // 5 est sur le tas, b (un pointeur) sur la pile
+println!("{}", b);             // Box se déréférence automatiquement
+let x: i32 = *b;               // * pour récupérer la valeur
 ```
-// Exemple simple de Box
-let x = Box::new(5);
-println!("Valeur dans le box: {}", x);
-// Box pour les types de taille inconnue
-struct Node {
-    value: i32,
-    next: Option<Box<Node>>,
+
+Une `Box<T>` **possède** sa valeur : quand la `Box` est libérée, la valeur l'est aussi. Elle se comporte comme la valeur elle-même (méthodes, opérateurs) grâce à `Deref`.
+
+```rust
+let s = Box::new(String::from("abc"));
+println!("{}", s.len());      // méthode de String, appelée à travers la Box
+let possede: String = *s;     // sortir la valeur de la Box (la Box est consommée)
+```
+
+Sa taille sur la pile est toujours celle d'un pointeur (8 octets sur une machine 64 bits), quelle que soit la taille de `T`.
+
+## 2. Quand utiliser une `Box`
+
+### 2.1 Type récursif
+
+```rust
+// enum Liste { Fin, Element(i32, Liste) }       // ERREUR E0072 : recursive type has infinite size
+
+enum Liste {
+    Fin,
+    Element(i32, Box<Liste>),
+}
+
+let l = Liste::Element(1, Box::new(Liste::Element(2, Box::new(Liste::Fin))));
+```
+
+Pour calculer la taille de `Liste`, le compilateur aurait besoin de la taille de `Liste`. Avec `Box`, l'élément suivant devient un pointeur de taille fixe.
+
+### 2.2 Grosse valeur qu'on déplace souvent
+
+```rust
+struct Image { pixels: [u8; 1_000_000] }
+
+fn traiter(img: Box<Image>) -> Box<Image> { img }    // ne déplace qu'un pointeur
+```
+
+Déplacer une valeur copie ses octets ; déplacer une `Box` ne copie que le pointeur.
+
+### 2.3 Réduire la taille d'une enum
+
+```rust
+enum Message {
+    Ping,
+    Gros(Box<[u8; 4096]>),     // sans Box, chaque Ping occuperait 4 Ko
 }
 ```
 
-## 1.2 Qu'est-ce qu'un Trait Object ?
+### 2.4 Trait object possédé
 
-Un **trait object** (objet trait) est une référence dynamique à un type qui implémente un trait particulier. On utilise le mot-clé **dyn** pour indiquer qu'il s'agit d'un dispatch dynamique. 
-
-```
-// Définition d'un trait
-trait Drawable {
-    fn draw(&self);
-}
-// Utilisation d'un trait object
-fn render(item: &dyn Drawable) {
-    item.draw();
-}
+```rust
+trait Forme { fn aire(&self) -> f64; }
+let f: Box<dyn Forme>;          // voir la suite du cours
 ```
 
-## 1.3 Pourquoi Box<dyn Trait> ?
+### 2.5 Tranches et chaînes de taille fixe
 
-La combinaison **Box<dyn Trait>** permet de : 
-
-- `Stocker différents types implémentant le même trait` 
-
-- `Avoir des collections hétérogènes de types` 
-
-- `Implémenter le polymorphisme à l'exécution` 
-
-- `Cacher l'implémentation concrète (abstraction)` 
-
-- `Gérer des types récursifs` 
-
-## 2. Comprendre Box<dyn Trait>
-
-## 2.1 Anatomie d'un Trait Object
-
-Un trait object est composé de deux pointeurs : 
-
-```
-1. Un pointeur vers les données (l'instance concrète)
+```rust
+let tranche: Box<[i32]> = vec![1, 2, 3].into_boxed_slice();   // comme un Vec, sans capacité en trop
+let texte: Box<str> = String::from("fixe").into_boxed_str();
 ```
 
-```
-2. Un pointeur vers la vtable (table de méthodes virtuelles)
-```
+À quoi ça sert : stocker beaucoup de données qui ne grandiront plus, avec un pointeur et une longueur seulement (16 octets au lieu de 24 pour un `Vec` ou une `String`).
 
-## 2.2 Exemple Complet
+### 2.6 Quand ne pas utiliser `Box`
 
-```
+Pour une valeur ordinaire, sans récursion ni trait object : la pile est plus rapide et `Box` n'apporte qu'une allocation. `Box<Vec<T>>` est presque toujours inutile : le `Vec` est déjà sur le tas.
+
+## 3. Les trait objects
+
+Un **trait object** est une valeur dont on ne connaît que le trait, pas le type concret. Il s'écrit `dyn Trait`.
+
+```rust
 trait Animal {
-    fn make_sound(&self) -> String;
-    fn name(&self) -> &str;
+    fn nom(&self) -> String;
+    fn cri(&self) -> String;
 }
-struct Dog {
-    name: String,
+
+struct Chien;
+struct Chat;
+
+impl Animal for Chien {
+    fn nom(&self) -> String { "chien".into() }
+    fn cri(&self) -> String { "wouf".into() }
 }
-impl Animal for Dog {
-    fn make_sound(&self) -> String {
-        "Woof!".to_string()
-    }
-    fn name(&self) -> &str {
-        &self.name
-    }
+
+impl Animal for Chat {
+    fn nom(&self) -> String { "chat".into() }
+    fn cri(&self) -> String { "miaou".into() }
 }
-struct Cat {
-    name: String,
+
+fn presenter(a: &dyn Animal) {
+    println!("le {} fait {}", a.nom(), a.cri());
 }
-impl Animal for Cat {
-    fn make_sound(&self) -> String {
-        "Meow!".to_string()
-    }
-    fn name(&self) -> &str {
-        &self.name
-    }
-}
-// Utilisation
+
 fn main() {
-    let dog: Box<dyn Animal> = Box::new(Dog {
-        name: "Rex".to_string(),
-    });
-    let cat: Box<dyn Animal> = Box::new(Cat {
-        name: "Whiskers".to_string(),
-    });
-    println!("{} says {}", dog.name(), dog.make_sound());
-    println!("{} says {}", cat.name(), cat.make_sound());
-}
-```
-
-## 2.3 Limitations des Trait Objects
-
-Tous les traits ne peuvent pas être utilisés comme trait objects. Un trait doit être **object-safe** : 
-
-`• Pas de méthodes génériques • Pas de méthodes retournant Self • Pas de constantes associées • Pas de types associés avec des bornes //` I `Ce trait n'est PAS object-safe trait NotObjectSafe { fn generic_method<T>(&self, x: T);  // Méthode générique fn clone_self(&self) -> Self;        // Retourne Self }` 
-
-`//` I `Ce trait EST object-safe trait ObjectSafe { fn method(&self) -> String; fn another(&mut self, x: i32); }` 
-
-## 3. Encapsulation dans des Structs
-
-## 3.1 Pattern Basique
-
-Le pattern le plus simple consiste à stocker un Box<dyn Trait> comme champ d'une struct : 
-
-```
-trait Strategy {
-    fn execute(&self, data: &[i32]) -> i32;
-}
-struct Context {
-    strategy: Box<dyn Strategy>,
-}
-impl Context {
-    fn new(strategy: Box<dyn Strategy>) -> Self {
-        Context { strategy }
-    }
-    fn execute_strategy(&self, data: &[i32]) -> i32 {
-        self.strategy.execute(data)
-    }
-    // Permet de changer la stratégie dynamiquement
-    fn set_strategy(&mut self, strategy: Box<dyn Strategy>) {
-        self.strategy = strategy;
-    }
-}
-// Implémentations concrètes
-struct SumStrategy;
-impl Strategy for SumStrategy {
-    fn execute(&self, data: &[i32]) -> i32 {
-        data.iter().sum()
-    }
-}
-struct MaxStrategy;
-impl Strategy for MaxStrategy {
-    fn execute(&self, data: &[i32]) -> i32 {
-        *data.iter().max().unwrap_or(&0)
-    }
-}
-// Utilisation
-fn main() {
-    let data = vec![1, 5, 3, 9, 2];
-    let mut context = Context::new(Box::new(SumStrategy));
-    println!("Sum: {}", context.execute_strategy(&data));
-    context.set_strategy(Box::new(MaxStrategy));
-    println!("Max: {}", context.execute_strategy(&data));
-}
-```
-
-## 3.2 Collections de Trait Objects
-
-On peut créer des collections hétérogènes avec Vec<Box<dyn Trait>> : 
-
-```
-trait Component {
-    fn render(&self) -> String;
-    fn update(&mut self);
-}
-struct Application {
-    components: Vec<Box<dyn Component>>,
-}
-impl Application {
-    fn new() -> Self {
-        Application {
-            components: Vec::new(),
-        }
-```
-
-```
-    }
-    fn add_component(&mut self, component: Box<dyn Component>) {
-        self.components.push(component);
-    }
-    fn render_all(&self) -> String {
-        self.components
-            .iter()
-            .map(|c| c.render())
-            .collect::<Vec<_>>()
-            .join("\n")
-    }
-    fn update_all(&mut self) {
-        for component in &mut self.components {
-            component.update();
-        }
-    }
-}
-// Exemples de composants
-struct Button {
-    label: String,
-    clicks: u32,
-}
-impl Component for Button {
-    fn render(&self) -> String {
-        format!("[Button: {} (clicks: {})]", self.label, self.clicks)
-    }
-    fn update(&mut self) {
-        self.clicks += 1;
-    }
-}
-struct Label {
-    text: String,
-}
-impl Component for Label {
-    fn render(&self) -> String {
-        format!("[Label: {}]", self.text)
-    }
-    fn update(&mut self) {
-        // Labels ne changent pas
+    presenter(&Chien);
+    presenter(&Chat);
+    let zoo: Vec<Box<dyn Animal>> = vec![Box::new(Chien), Box::new(Chat)];
+    for a in &zoo {
+        presenter(a.as_ref());
     }
 }
 ```
 
-## 3.3 Pattern Builder avec Trait Objects
+`dyn Animal` n'a pas de taille connue (un `Chien` et un `Chat` n'ont pas forcément la même) : on ne le manipule **que derrière un pointeur** (`&`, `Box`, `Arc`, `Rc`).
 
-```
-trait Plugin {
-    fn initialize(&mut self);
-    fn execute(&self, input: &str) -> String;
-}
-struct Engine {
-    plugins: Vec<Box<dyn Plugin>>,
-}
-impl Engine {
-    fn new() -> Self {
-        Engine {
-            plugins: Vec::new(),
-        }
-    }
-    fn add_plugin(mut self, mut plugin: Box<dyn Plugin>) -> Self {
-        plugin.initialize();
-        self.plugins.push(plugin);
-        self
-    }
-    fn process(&self, input: &str) -> String {
-        let mut result = input.to_string();
-        for plugin in &self.plugins {
-            result = plugin.execute(&result);
-        }
-        result
-    }
-}
-// Plugins concrets
-struct UpperCasePlugin;
-impl Plugin for UpperCasePlugin {
-    fn initialize(&mut self) {
-        println!("UpperCase plugin initialized");
-    }
-    fn execute(&self, input: &str) -> String {
-        input.to_uppercase()
-    }
-}
-struct ReversePlugin;
-impl Plugin for ReversePlugin {
-    fn initialize(&mut self) {
-        println!("Reverse plugin initialized");
-    }
-    fn execute(&self, input: &str) -> String {
-        input.chars().rev().collect()
-    }
-}
-// Utilisation
-fn main() {
-    let engine = Engine::new()
-        .add_plugin(Box::new(UpperCasePlugin))
-        .add_plugin(Box::new(ReversePlugin));
-    let result = engine.process("hello");
-    println!("Result: {}", result); // OLLEH
-}
-```
+## 4. Les différentes façons de tenir un trait object
 
-## 4. Patterns et Cas d'Usage Avancés
+| Écriture | Possède la valeur | Partage | Usage |
+|---|---|---|---|
+| `&dyn Trait` | non | — | paramètre de fonction, accès temporaire |
+| `&mut dyn Trait` | non | — | paramètre qui modifie |
+| `Box<dyn Trait>` | oui, seul | non | champ de struct, élément de collection, retour de fonction |
+| `Rc<dyn Trait>` | oui, à plusieurs | un thread | graphe, valeur partagée dans un seul thread |
+| `Arc<dyn Trait>` | oui, à plusieurs | entre threads | service partagé dans un serveur |
 
-## 4.1 State Pattern
-
-Le pattern State permet à un objet de changer son comportement quand son état interne change : 
-
-```
-trait State {
-    fn handle(self: Box<Self>) -> Box<dyn State>;
-    fn description(&self) -> &str;
-}
-struct DraftState;
-struct PendingReviewState;
-struct PublishedState;
-impl State for DraftState {
-    fn handle(self: Box<Self>) -> Box<dyn State> {
-        Box::new(PendingReviewState)
-    }
-    fn description(&self) -> &str {
-        "Draft"
-    }
-}
-impl State for PendingReviewState {
-    fn handle(self: Box<Self>) -> Box<dyn State> {
-        Box::new(PublishedState)
-    }
-    fn description(&self) -> &str {
-        "Pending Review"
-    }
-}
-impl State for PublishedState {
-    fn handle(self: Box<Self>) -> Box<dyn State> {
-        self // Reste publié
-    }
-    fn description(&self) -> &str {
-        "Published"
-    }
-}
-struct Post {
-    state: Box<dyn State>,
-    content: String,
-}
-impl Post {
-    fn new(content: String) -> Self {
-        Post {
-            state: Box::new(DraftState),
-            content,
-        }
-    }
-    fn request_review(&mut self) {
-        self.state = self.state.handle();
-    }
-    fn status(&self) -> &str {
-        self.state.description()
-    }
-}
-// Utilisation
-fn main() {
-    let mut post = Post::new("My article".to_string());
-    println!("Status: {}", post.status()); // Draft
-    post.request_review();
-    println!("Status: {}", post.status()); // Pending Review
-    post.request_review();
-```
-
-```
-    println!("Status: {}", post.status()); // Published
-}
-```
-
-## 4.2 Command Pattern
-
-```
-trait Command {
-    fn execute(&mut self);
-    fn undo(&mut self);
-}
-struct TextEditor {
-    content: String,
-}
-impl TextEditor {
-    fn new() -> Self {
-        TextEditor {
-            content: String::new(),
-        }
-    }
-    fn append(&mut self, text: &str) {
-        self.content.push_str(text);
-    }
-    fn delete(&mut self, count: usize) {
-        let new_len = self.content.len().saturating_sub(count);
-        self.content.truncate(new_len);
-    }
-    fn content(&self) -> &str {
-        &self.content
-    }
-}
-struct AppendCommand {
-    editor: *mut TextEditor,
-    text: String,
-}
-impl AppendCommand {
-    fn new(editor: &mut TextEditor, text: String) -> Self {
-        AppendCommand {
-            editor: editor as *mut TextEditor,
-            text,
-        }
-    }
-}
-impl Command for AppendCommand {
-    fn execute(&mut self) {
-        unsafe {
-            (*self.editor).append(&self.text);
-        }
-    }
-    fn undo(&mut self) {
-        unsafe {
-            (*self.editor).delete(self.text.len());
-        }
-    }
-}
-struct CommandManager {
-    history: Vec<Box<dyn Command>>,
-    current: usize,
-}
-impl CommandManager {
-    fn new() -> Self {
-        CommandManager {
-            history: Vec::new(),
-            current: 0,
-        }
-    }
-    fn execute(&mut self, mut command: Box<dyn Command>) {
-        command.execute();
-        self.history.truncate(self.current);
-        self.history.push(command);
-        self.current += 1;
-    }
-```
-
-```
-    fn undo(&mut self) {
-        if self.current > 0 {
-            self.current -= 1;
-            self.history[self.current].undo();
-        }
-    }
-    fn redo(&mut self) {
-        if self.current < self.history.len() {
-            self.history[self.current].execute();
-            self.current += 1;
-        }
-    }
-}
-```
-
-## 4.3 Observer Pattern
-
-```
-trait Observer {
-    fn update(&mut self, event: &str);
-}
-struct Subject {
-    observers: Vec<Box<dyn Observer>>,
-    state: String,
-}
-impl Subject {
-    fn new() -> Self {
-        Subject {
-            observers: Vec::new(),
-            state: String::new(),
-        }
-    }
-    fn attach(&mut self, observer: Box<dyn Observer>) {
-        self.observers.push(observer);
-    }
-    fn set_state(&mut self, state: String) {
-        self.state = state.clone();
-        self.notify(&state);
-    }
-    fn notify(&mut self, event: &str) {
-        for observer in &mut self.observers {
-            observer.update(event);
-        }
-    }
-}
-struct Logger {
-    name: String,
-}
-impl Observer for Logger {
-    fn update(&mut self, event: &str) {
-        println!("[{}] Logged: {}", self.name, event);
-    }
-}
-struct EmailNotifier {
-    email: String,
-}
-impl Observer for EmailNotifier {
-    fn update(&mut self, event: &str) {
-        println!("Email to {}: {}", self.email, event);
-    }
-}
-// Utilisation
-fn main() {
-    let mut subject = Subject::new();
-    subject.attach(Box::new(Logger {
-        name: "FileLogger".to_string(),
-    }));
-    subject.attach(Box::new(EmailNotifier {
-        email: "admin@example.com".to_string(),
-    }));
-    subject.set_state("New event occurred".to_string());
-}
-```
-
-## 5. Gestion de la Mémoire et Performance
-
-## 5.1 Coût des Trait Objects
-
-## Les trait objects ont un coût en performance : 
-
-- `Indirection via pointeur (accès mémoire supplémentaire)` 
-
-- `Dispatch dynamique via vtable (impossible d'inliner)` 
-
-- `Allocation sur le tas avec Box` 
-
-- `Pas d'optimisations du compilateur (monomorphisation)` 
-
-## 5.2 Alternatives aux Trait Objects
-
-```
-// 1. Générics (dispatch statique) - PLUS RAPIDE
-fn process_generic<T: Drawable>(item: &T) {
-    item.draw();
-}
-// 2. Enum pour types connus - ENCORE PLUS RAPIDE
-enum Shape {
-    Circle(Circle),
-    Rectangle(Rectangle),
-}
-impl Shape {
-    fn draw(&self) {
-        match self {
-            Shape::Circle(c) => c.draw(),
-            Shape::Rectangle(r) => r.draw(),
-        }
-    }
-}
-// 3. Trait Objects - FLEXIBLE mais PLUS LENT
-fn process_dynamic(item: &dyn Drawable) {
-    item.draw();
-}
-```
-
-## 5.3 Optimisations
-
-```
-// Éviter les allocations inutiles
-struct Container {
-    // Au lieu de: items: Vec<Box<dyn Item>>
-    // Considérer: items prépooled ou arena allocation
-    items: Vec<Box<dyn Item>>,
-}
-// Utiliser Rc/Arc pour partager sans copier
+```rust
 use std::rc::Rc;
-struct Shared {
-    data: Rc<dyn Data>,
-}
-// Pour le multithreading
 use std::sync::Arc;
-struct ThreadSafe {
-    data: Arc<dyn Send + Sync + Data>,
+
+let a: &dyn Animal = &Chien;
+let b: Box<dyn Animal> = Box::new(Chien);
+let c: Rc<dyn Animal> = Rc::new(Chat);
+let d: Arc<dyn Animal + Send + Sync> = Arc::new(Chat);
+```
+
+### 4.1 Ajouter des contraintes
+
+```rust
+Box<dyn Animal + Send>             // peut être envoyé à un autre thread
+Box<dyn Animal + Send + Sync>      // peut être partagé entre threads
+Box<dyn Animal + 'a>               // peut contenir des références de durée 'a
+Box<dyn Animal>                    // = Box<dyn Animal + 'static>
+```
+
+Pour un serveur web (tokio, axum), les trait objects partagés sont presque toujours `Send + Sync`.
+
+### 4.2 Paramètre : `&dyn` ou générique
+
+```rust
+fn presenter_dyn(a: &dyn Animal) { println!("{}", a.nom()); }
+fn presenter_gen(a: &impl Animal) { println!("{}", a.nom()); }
+fn presenter_gen2<A: Animal + ?Sized>(a: &A) { println!("{}", a.nom()); }   // accepte aussi &dyn Animal
+```
+
+Les trois acceptent `&Chien`. La version générique est copiée pour chaque type (rapide), la version `dyn` existe en un seul exemplaire (plus compacte). `?Sized` permet à la version générique d'accepter aussi un `&dyn Animal`.
+
+## 5. Comment fonctionne un appel dynamique
+
+### 5.1 Le pointeur large
+
+```rust
+use std::mem::size_of;
+
+size_of::<&Chien>();           // 8 octets : une adresse
+size_of::<&dyn Animal>();      // 16 octets : une adresse + une adresse de vtable
+size_of::<Box<dyn Animal>>();  // 16 octets
+```
+
+Une référence vers un trait object contient deux pointeurs :
+
+```
+&dyn Animal
+┌────────────┬────────────┐
+│ données ───┼──► Chien   │
+│ vtable  ───┼──► [ drop, taille, alignement, nom(), cri() ] pour Chien
+└────────────┴────────────┘
+```
+
+### 5.2 Le coût
+
+| | Appel statique (générique, type concret) | Appel dynamique (`dyn`) |
+|---|---|---|
+| Choix de la fonction | à la compilation | à l'exécution, via la vtable |
+| Intégration (inlining) | possible | impossible en général |
+| Taille du code | une copie par type | une seule copie |
+| Coût d'un appel | nul | une lecture mémoire + un appel indirect |
+
+Ce coût est négligeable devant une requête réseau ou une lecture en base. Il compte dans une boucle très serrée (millions d'appels par seconde).
+
+## 6. Compatibilité `dyn` d'un trait
+
+Tous les traits ne peuvent pas devenir des trait objects. Un trait est « dyn-compatible » (anciennement *object safe*) si ses méthodes peuvent être appelées sans connaître le type concret.
+
+### 6.1 Ce qui empêche `dyn`
+
+```rust
+trait Copiable {
+    fn copier(&self) -> Self;                  // renvoie Self : taille inconnue derrière dyn
+}
+
+trait Convertisseur {
+    fn convertir<T>(&self, x: T) -> String;    // méthode générique : infinité de versions
+}
+
+trait Constructible {
+    fn nouveau() -> Self;                      // pas de self : rien à appeler sur un objet
+}
+
+// let x: Box<dyn Copiable>;                   // ERREUR E0038 : the trait cannot be made into an object
+```
+
+| Règle | Exemple refusé |
+|---|---|
+| pas de méthode qui renvoie `Self` | `fn clone(&self) -> Self` |
+| pas de méthode générique | `fn f<T>(&self, x: T)` |
+| pas de fonction associée sans `self` | `fn new() -> Self` |
+| pas de constante associée | `const N: usize;` |
+| le trait ne doit pas exiger `Sized` | `trait T: Sized` |
+
+C'est pourquoi `Clone` n'est pas dyn-compatible : `Box<dyn Clone>` n'existe pas.
+
+### 6.2 Exclure une méthode avec `where Self: Sized`
+
+```rust
+trait Forme {
+    fn aire(&self) -> f64;
+
+    fn nouveau_carre(cote: f64) -> Self        // pas appelable sur un dyn Forme...
+    where
+        Self: Sized;                           // ...mais n'empêche plus dyn Forme
+
+    fn dupliquer(&self) -> Self where Self: Sized;
 }
 ```
 
-## 5.4 Lifetime et Ownership
+Les méthodes marquées `where Self: Sized` n'existent que sur les types concrets. Le reste du trait reste utilisable en `dyn`.
 
-```
-// Box possède ses données
-struct Owner {
-    item: Box<dyn Trait>,  // Owner possède l'objet
-}
-// Référence ne possède pas
-struct Borrower<'a> {
-    item: &'a dyn Trait,  // Borrower emprunte seulement
+### 6.3 Remplacer une méthode générique
+
+```rust
+// trait Journal { fn ecrire<T: std::fmt::Display>(&self, x: T); }    // pas dyn
+
+trait Journal {
+    fn ecrire(&self, x: &dyn std::fmt::Display);                         // dyn
 }
 ```
 
+## 7. Trait objects dans les structs
+
+### 7.1 Un comportement injectable
+
+```rust
+trait Notificateur {
+    fn envoyer(&self, a: &str, msg: &str) -> Result<(), String>;
+}
+
+struct Email;
+impl Notificateur for Email {
+    fn envoyer(&self, a: &str, msg: &str) -> Result<(), String> {
+        println!("email à {a} : {msg}");
+        Ok(())
+    }
+}
+
+struct Sms;
+impl Notificateur for Sms {
+    fn envoyer(&self, a: &str, msg: &str) -> Result<(), String> {
+        println!("sms à {a} : {msg}");
+        Ok(())
+    }
+}
+
+struct Service {
+    notificateur: Box<dyn Notificateur>,
+}
+
+impl Service {
+    fn new(notificateur: Box<dyn Notificateur>) -> Self {
+        Self { notificateur }
+    }
+    fn inscrire(&self, contact: &str) -> Result<(), String> {
+        self.notificateur.envoyer(contact, "Bienvenue")
+    }
+    fn changer(&mut self, n: Box<dyn Notificateur>) {
+        self.notificateur = n;               // le comportement change à l'exécution
+    }
+}
+
+fn main() {
+    let mut s = Service::new(Box::new(Email));
+    s.inscrire("ada@ex.com").unwrap();
+    s.changer(Box::new(Sms));
+}
 ```
-// Exemple complet
-trait Processor {
-    fn process(&self, data: &str) -> String;
+
+### 7.2 La même struct en générique
+
+```rust
+struct ServiceGen<N: Notificateur> {
+    notificateur: N,
 }
-struct Pipeline<'a> {
-    processors: Vec<&'a dyn Processor>,  // Emprunte
+
+impl<N: Notificateur> ServiceGen<N> {
+    fn inscrire(&self, contact: &str) -> Result<(), String> {
+        self.notificateur.envoyer(contact, "Bienvenue")
+    }
 }
-impl<'a> Pipeline<'a> {
-    fn new() -> Self {
-        Pipeline {
-            processors: Vec::new(),
+
+let s = ServiceGen { notificateur: Email };
+// impossible de remplacer Email par Sms dans la même variable : ServiceGen<Email> et ServiceGen<Sms> sont deux types
+```
+
+| | `Box<dyn Notificateur>` | `ServiceGen<N>` |
+|---|---|---|
+| Changer d'implémentation à l'exécution | oui | non |
+| Choisir d'après la configuration (`.env`) | oui, facilement | possible avec un `match` qui crée des types différents |
+| Paramètre de type à propager | non | oui, partout où `ServiceGen` apparaît |
+| Performance | appel indirect | appel direct |
+
+### 7.3 Option et valeur par défaut
+
+```rust
+struct Config {
+    journal: Option<Box<dyn Fn(&str)>>,      // comportement facultatif
+}
+
+impl Config {
+    fn log(&self, msg: &str) {
+        if let Some(f) = &self.journal {
+            f(msg);
         }
     }
-    fn add(&mut self, processor: &'a dyn Processor) {
-        self.processors.push(processor);
+}
+```
+
+## 8. Collections de trait objects
+
+### 8.1 Des types différents dans un même `Vec`
+
+```rust
+trait Forme {
+    fn aire(&self) -> f64;
+    fn nom(&self) -> &str;
+}
+
+struct Carre(f64);
+struct Cercle(f64);
+
+impl Forme for Carre {
+    fn aire(&self) -> f64 { self.0 * self.0 }
+    fn nom(&self) -> &str { "carré" }
+}
+impl Forme for Cercle {
+    fn aire(&self) -> f64 { std::f64::consts::PI * self.0 * self.0 }
+    fn nom(&self) -> &str { "cercle" }
+}
+
+fn main() {
+    let formes: Vec<Box<dyn Forme>> = vec![Box::new(Carre(2.0)), Box::new(Cercle(1.0))];
+
+    let total: f64 = formes.iter().map(|f| f.aire()).sum();
+    let plus_grande = formes.iter().max_by(|a, b| a.aire().total_cmp(&b.aire()));
+    for f in &formes {
+        println!("{} : {:.2}", f.nom(), f.aire());
     }
-    fn execute(&self, data: &str) -> String {
-        let mut result = data.to_string();
-        for processor in &self.processors {
-            result = processor.process(&result);
+}
+```
+
+### 8.2 Une table de traitements
+
+```rust
+use std::collections::HashMap;
+
+type Commande = Box<dyn Fn(&[&str]) -> String>;
+
+fn commandes() -> HashMap<&'static str, Commande> {
+    let mut m: HashMap<&'static str, Commande> = HashMap::new();
+    m.insert("echo", Box::new(|args| args.join(" ")));
+    m.insert("compter", Box::new(|args| args.len().to_string()));
+    m
+}
+
+fn main() {
+    let c = commandes();
+    if let Some(f) = c.get("echo") {
+        println!("{}", f(&["a", "b"]));
+    }
+}
+```
+
+### 8.3 Ordre d'insertion
+
+`IndexMap` (crate `indexmap`) garde l'ordre d'insertion, ce qu'une `HashMap` ne fait pas. Utile pour une liste de champs d'un formulaire, affichés dans l'ordre déclaré.
+
+## 9. Cloner un trait object
+
+`Clone` n'est pas dyn-compatible (section 6) : `Box<dyn Forme>` ne peut pas être cloné directement.
+
+### 9.1 Écrire la méthode soi-même
+
+```rust
+trait Forme {
+    fn aire(&self) -> f64;
+    fn cloner(&self) -> Box<dyn Forme>;
+}
+
+#[derive(Clone)]
+struct Carre(f64);
+
+impl Forme for Carre {
+    fn aire(&self) -> f64 { self.0 * self.0 }
+    fn cloner(&self) -> Box<dyn Forme> { Box::new(self.clone()) }
+}
+
+impl Clone for Box<dyn Forme> {
+    fn clone(&self) -> Self { self.cloner() }
+}
+```
+
+### 9.2 Avec la crate `dyn-clone`
+
+```rust
+use dyn_clone::DynClone;
+
+trait Forme: DynClone {
+    fn aire(&self) -> f64;
+}
+dyn_clone::clone_trait_object!(Forme);
+
+#[derive(Clone)]
+struct Cercle(f64);
+impl Forme for Cercle {
+    fn aire(&self) -> f64 { 3.14 * self.0 * self.0 }
+}
+
+let a: Box<dyn Forme> = Box::new(Cercle(1.0));
+let b = a.clone();          // fonctionne : la macro a écrit l'impl Clone
+```
+
+La crate génère exactement le code de la section 9.1. Runique l'utilise pour ses champs de formulaire (section 14).
+
+### 9.3 Partager au lieu de cloner
+
+```rust
+use std::sync::Arc;
+
+let a: Arc<dyn Forme> = Arc::new(Cercle(1.0));
+let b = Arc::clone(&a);     // même objet, compteur de références augmenté
+```
+
+Si les copies n'ont pas à être modifiées séparément, `Arc` évite toute copie.
+
+## 10. Retrouver le type concret : `Any`
+
+```rust
+use std::any::Any;
+
+trait Composant: Any {
+    fn nom(&self) -> &str;
+    fn comme_any(&self) -> &dyn Any;
+}
+
+struct Bouton { libelle: String }
+
+impl Composant for Bouton {
+    fn nom(&self) -> &str { "bouton" }
+    fn comme_any(&self) -> &dyn Any { self }
+}
+
+fn libelle(c: &dyn Composant) -> Option<&str> {
+    c.comme_any().downcast_ref::<Bouton>().map(|b| b.libelle.as_str())
+}
+```
+
+`downcast_ref` renvoie `Some` si le type concret est le bon, `None` sinon. Si tu en as souvent besoin, c'est le signe qu'une méthode manque dans le trait, ou qu'une enum conviendrait mieux.
+
+## 11. Remonter vers un supertrait
+
+Depuis Rust 1.86, un trait object se convertit vers le trait object d'un **supertrait** :
+
+```rust
+trait Nomme {
+    fn nom(&self) -> String;
+}
+
+trait Animal: Nomme {
+    fn cri(&self) -> String;
+}
+
+struct Chien;
+impl Nomme for Chien { fn nom(&self) -> String { "chien".into() } }
+impl Animal for Chien { fn cri(&self) -> String { "wouf".into() } }
+
+fn afficher_nom(n: &dyn Nomme) {
+    println!("{}", n.nom());
+}
+
+fn main() {
+    let a: Box<dyn Animal> = Box::new(Chien);
+    afficher_nom(&*a);                         // &dyn Animal -> &dyn Nomme
+    let n: Box<dyn Nomme> = a;                 // Box<dyn Animal> -> Box<dyn Nomme>
+}
+```
+
+Avant 1.86, il fallait ajouter dans le trait une méthode `fn comme_nomme(&self) -> &dyn Nomme`.
+
+## 12. Enum, générique ou `dyn` : la même fonctionnalité trois fois
+
+Un système de paiement avec plusieurs moyens.
+
+```rust
+// 1. Enum : ensemble FERMÉ, connu à l'avance
+enum Moyen {
+    Carte { numero: String },
+    Virement { iban: String },
+}
+
+impl Moyen {
+    fn payer(&self, montant: u32) -> String {
+        match self {
+            Moyen::Carte { numero } => format!("carte {} : {montant}", &numero[numero.len() - 4..]),
+            Moyen::Virement { iban } => format!("virement {iban} : {montant}"),
         }
-        result
+    }
+}
+
+// 2. Trait + générique : ensemble ouvert, un seul type par utilisation
+trait Paiement {
+    fn payer(&self, montant: u32) -> String;
+}
+
+struct Carte { numero: String }
+impl Paiement for Carte {
+    fn payer(&self, montant: u32) -> String { format!("carte : {montant}") }
+}
+
+fn encaisser<P: Paiement>(p: &P, montant: u32) -> String { p.payer(montant) }
+
+// 3. Trait object : ensemble ouvert, types mélangés à l'exécution
+fn encaisser_tous(moyens: &[Box<dyn Paiement>], montant: u32) -> Vec<String> {
+    moyens.iter().map(|m| m.payer(montant)).collect()
+}
+```
+
+| Critère | Enum | Générique | `dyn Trait` |
+|---|---|---|---|
+| Ajouter un cas sans toucher au code existant | non (modifier l'enum et les `match`) | oui (nouvel `impl`) | oui (nouvel `impl`) |
+| Ajouter une opération à tous les cas | facile (un `match` de plus) | modifier le trait et chaque `impl` | idem |
+| Le compilateur vérifie que tous les cas sont traités | oui | — | — |
+| Types mélangés dans une collection | oui | non | oui |
+| Un utilisateur de la bibliothèque peut ajouter un cas | non | oui | oui |
+| Performance | `match` direct | appel direct | appel indirect |
+| Pas d'allocation | oui | oui | non (`Box`) sauf `&dyn` |
+
+Règle : **enum** si les cas sont connus et peu nombreux (états, commandes, types de message) ; **générique** pour une abstraction choisie à la compilation ; **`dyn`** pour des plugins, des comportements choisis à l'exécution ou une collection hétérogène.
+
+## 13. Patterns de conception
+
+### 13.1 Stratégie : changer un algorithme à l'exécution
+
+C'est le `Service` de la section 7.1 : l'algorithme (email, SMS) est un trait object remplaçable.
+
+### 13.2 État : chaque état décide du suivant
+
+```rust
+trait Etat {
+    fn publier(self: Box<Self>) -> Box<dyn Etat>;
+    fn nom(&self) -> &'static str;
+}
+
+struct Brouillon;
+struct EnRelecture;
+struct Publie;
+
+impl Etat for Brouillon {
+    fn publier(self: Box<Self>) -> Box<dyn Etat> { Box::new(EnRelecture) }
+    fn nom(&self) -> &'static str { "brouillon" }
+}
+impl Etat for EnRelecture {
+    fn publier(self: Box<Self>) -> Box<dyn Etat> { Box::new(Publie) }
+    fn nom(&self) -> &'static str { "en relecture" }
+}
+impl Etat for Publie {
+    fn publier(self: Box<Self>) -> Box<dyn Etat> { self }
+    fn nom(&self) -> &'static str { "publié" }
+}
+
+struct Article { etat: Option<Box<dyn Etat>> }
+
+impl Article {
+    fn publier(&mut self) {
+        if let Some(e) = self.etat.take() {
+            self.etat = Some(e.publier());
+        }
     }
 }
 ```
 
-## 6. Exercices Pratiques
+`self: Box<Self>` prend possession de l'état pour le remplacer. Le même automate s'écrit plus simplement avec une enum (`enum Etat { Brouillon, EnRelecture, Publie }`) et un `match` : la version `dyn` n'est préférable que si de nouveaux états doivent pouvoir être ajoutés de l'extérieur.
 
-## Exercice 1: Système de fichiers virtuel
+### 13.3 Commande : des actions stockées et annulables
 
-Créez un système de fichiers virtuel avec des fichiers et des dossiers : 
-
-```
-trait FileSystemItem {
-    fn name(&self) -> &str;
-    fn size(&self) -> u64;
-    fn print(&self, indent: usize);
+```rust
+trait Action {
+    fn executer(&mut self, doc: &mut String);
+    fn annuler(&mut self, doc: &mut String);
 }
-struct File {
-    name: String,
-    size: u64,
+
+struct Ajouter(String);
+
+impl Action for Ajouter {
+    fn executer(&mut self, doc: &mut String) { doc.push_str(&self.0); }
+    fn annuler(&mut self, doc: &mut String) {
+        let n = doc.len() - self.0.len();
+        doc.truncate(n);
+    }
 }
-struct Directory {
-    name: String,
-    items: Vec<Box<dyn FileSystemItem>>,
+
+struct Editeur { doc: String, historique: Vec<Box<dyn Action>> }
+
+impl Editeur {
+    fn faire(&mut self, mut a: Box<dyn Action>) {
+        a.executer(&mut self.doc);
+        self.historique.push(a);
+    }
+    fn defaire(&mut self) {
+        if let Some(mut a) = self.historique.pop() {
+            a.annuler(&mut self.doc);
+        }
+    }
 }
-// À implémenter:
-// - impl FileSystemItem for File
-// - impl FileSystemItem for Directory
-// - Méthode pour ajouter des items au Directory
-// - Calcul récursif de la taille du Directory
 ```
 
-## Exercice 2: Calculatrice avec extensions
+### 13.4 Observateur : prévenir plusieurs abonnés
 
+```rust
+struct Evenements {
+    abonnes: Vec<Box<dyn Fn(&str) + Send + Sync>>,
+}
+
+impl Evenements {
+    fn abonner(&mut self, f: impl Fn(&str) + Send + Sync + 'static) {
+        self.abonnes.push(Box::new(f));
+    }
+    fn emettre(&self, e: &str) {
+        for a in &self.abonnes {
+            a(e);
+        }
+    }
+}
 ```
+
+## 14. Exemples réels dans Runique
+
+### 14.1 Les champs de formulaire
+
+```rust
+// runique/src/forms/base.rs
+pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Sync { /* ... */ }
+
+// runique/src/forms/field.rs
+dyn_clone::clone_trait_object!(FormField);
+
+// runique/src/utils/aliases/definition.rs
+pub type FieldsMap = IndexMap<String, Box<dyn FormField>>;
+```
+
+Un formulaire contient des champs de types différents (`TextField`, `MediaField`, `SelectField`...) dans une seule table ordonnée : c'est exactement le cas d'usage d'une collection de trait objects (section 8). `IndexMap` garde l'ordre de déclaration pour le rendu HTML ; `DynClone` permet de cloner le formulaire entier ; `Send + Sync` permet de le partager entre les tâches du serveur.
+
+### 14.2 Les algorithmes de hachage de mot de passe
+
+```rust
+// runique/src/utils/password/mod.rs
+pub trait PasswordHandler: Send + Sync + DynClone { /* ... */ }
+dyn_clone::clone_trait_object!(PasswordHandler);
+```
+
+L'algorithme (Argon2, bcrypt, scrypt) est choisi par la configuration : un trait object permet de le décider au démarrage sans paramètre générique propagé dans tout le framework (le pattern stratégie de la section 13.1).
+
+## 15. Exercices
+
+### Exercice 1 : système de fichiers virtuel
+
+Définis un trait `Noeud` avec `nom(&self) -> &str` et `taille(&self) -> u64`. Implémente `Fichier { nom, taille }` et `Dossier { nom, enfants: Vec<Box<dyn Noeud>> }` dont la taille est la somme des enfants.
+
+```rust
+// Solution :
+trait Noeud {
+    fn nom(&self) -> &str;
+    fn taille(&self) -> u64;
+}
+
+struct Fichier { nom: String, taille: u64 }
+struct Dossier { nom: String, enfants: Vec<Box<dyn Noeud>> }
+
+impl Noeud for Fichier {
+    fn nom(&self) -> &str { &self.nom }
+    fn taille(&self) -> u64 { self.taille }
+}
+
+impl Noeud for Dossier {
+    fn nom(&self) -> &str { &self.nom }
+    fn taille(&self) -> u64 { self.enfants.iter().map(|e| e.taille()).sum() }
+}
+```
+
+### Exercice 2 : calculatrice extensible
+
+Crée un trait `Operation { fn symbole(&self) -> char; fn calculer(&self, a: f64, b: f64) -> Option<f64>; }` et une calculatrice qui stocke ses opérations dans une `HashMap<char, Box<dyn Operation>>`. Ajoute l'addition et la division (qui renvoie `None` sur zéro).
+
+```rust
+// Solution :
+use std::collections::HashMap;
+
 trait Operation {
-    fn execute(&self, a: f64, b: f64) -> f64;
-    fn symbol(&self) -> &str;
+    fn symbole(&self) -> char;
+    fn calculer(&self, a: f64, b: f64) -> Option<f64>;
 }
-struct Calculator {
-    operations: Vec<Box<dyn Operation>>,
+
+struct Addition;
+struct Division;
+
+impl Operation for Addition {
+    fn symbole(&self) -> char { '+' }
+    fn calculer(&self, a: f64, b: f64) -> Option<f64> { Some(a + b) }
 }
-// À implémenter:
-// - Opérations: Add, Subtract, Multiply, Divide, Power
-// - Méthode Calculator::register_operation
-// - Méthode Calculator::calculate(a, symbol, b)
-// - Gestion des erreurs (division par zéro, etc.)
+impl Operation for Division {
+    fn symbole(&self) -> char { '/' }
+    fn calculer(&self, a: f64, b: f64) -> Option<f64> { (b != 0.0).then(|| a / b) }
+}
+
+struct Calculatrice { ops: HashMap<char, Box<dyn Operation>> }
+
+impl Calculatrice {
+    fn new() -> Self { Self { ops: HashMap::new() } }
+    fn ajouter(&mut self, op: Box<dyn Operation>) { self.ops.insert(op.symbole(), op); }
+    fn calculer(&self, a: f64, s: char, b: f64) -> Option<f64> {
+        self.ops.get(&s)?.calculer(a, b)
+    }
+}
 ```
 
-## Exercice 3: Event System
+### Exercice 3 : même problème, enum
 
-```
-trait EventHandler {
-    fn handle(&mut self, event_type: &str, data: &str);
-    fn can_handle(&self, event_type: &str) -> bool;
-}
-struct EventBus {
-    handlers: Vec<Box<dyn EventHandler>>,
-}
-// À implémenter:
-// - EventBus::register_handler
-// - EventBus::emit(event_type, data)
-// - Plusieurs handlers concrets
-// - Système de priorité pour les handlers
-```
+Réécris l'exercice 2 avec une enum `Operation { Addition, Division }`. Quelle version permet à un utilisateur de ta bibliothèque d'ajouter la multiplication sans modifier ton code ?
 
-## Solutions des Exercices
+Réponse : la version `dyn`. Avec l'enum, ajouter une opération demande de modifier l'enum et son `match`.
 
-## Solution Exercice 1
+## 16. Points clés à retenir
 
-`impl FileSystemItem for File { fn name(&self) -> &str { &self.name } fn size(&self) -> u64 { self.size } fn print(&self, indent: usize) { println!("{}- {} ({} bytes)", " ".repeat(indent), self.name, self.size); } } impl Directory { fn new(name: String) -> Self { Directory { name, items: Vec::new(), } } fn add(&mut self, item: Box<dyn FileSystemItem>) { self.items.push(item); } } impl FileSystemItem for Directory { fn name(&self) -> &str { &self.name } fn size(&self) -> u64 { self.items.iter().map(|item| item.size()).sum() } fn print(&self, indent: usize) { println!("{}` I `{} ({} bytes total)", " ".repeat(indent), self.name, self.size()); for item in &self.items { item.print(indent + 2); } } } fn main() { let mut root = Directory::new("root".to_string()); root.add(Box::new(File { name: "file1.txt".to_string(), size: 100, })); let mut subdir = Directory::new("documents".to_string()); subdir.add(Box::new(File { name: "doc.pdf".to_string(), size: 500, })); root.add(Box::new(subdir)); root.print(0); }` 
-
-## Conclusion
-
-L'encapsulation de Box<dyn Trait> dans des structs est une technique puissante en Rust qui permet d'implémenter des patterns de programmation orientée objet tout en conservant les garanties de sécurité mémoire de Rust. 
-
-## Points Clés à Retenir:
-
-- `Box<dyn Trait> combine allocation heap et polymorphisme` 
-
-- `Permet de créer des collections hétérogènes` 
-
-- `Essentiel pour les patterns OOP (Strategy, Observer, Command)` 
-
-- `A un coût en performance (dispatch dynamique)` 
-
-- `Le trait doit être object-safe` 
-
-- `Alternatives: generics (plus rapide) ou enums (si types connus)` 
-
-## Ressources Complémentaires:
-
-- `The Rust Programming Language Book (Chapitre 17)` 
-
-- `Rust Design Patterns (rust-unofficial/patterns)` 
-
-- `Trait Objects - Rust Reference` 
-
-- `Object Safety - Rust RFC`
+- `Box<T>` place une valeur sur le tas et la possède ; elle sert aux types récursifs, aux grosses valeurs, aux trait objects.
+- `dyn Trait` se manipule toujours derrière un pointeur : `&dyn`, `Box<dyn>`, `Arc<dyn>`.
+- Un pointeur vers un trait object fait deux mots : les données et la vtable.
+- Un trait n'est utilisable en `dyn` que sans `Self` en retour, sans méthode générique, sans fonction sans `self` (sauf `where Self: Sized`).
+- `Clone` sur un trait object : méthode `cloner` ou crate `dyn-clone`.
+- Enum pour un ensemble fermé, générique pour un choix à la compilation, `dyn` pour un ensemble ouvert ou mélangé à l'exécution.
+- Ajoute `Send + Sync` aux trait objects partagés dans un serveur.

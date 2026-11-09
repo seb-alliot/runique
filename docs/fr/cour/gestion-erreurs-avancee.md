@@ -1,120 +1,101 @@
 # Gestion d'erreurs avancée — thiserror et anyhow
-> Indispensables · Niveau intermédiaire · Prérequis : [Gestion des erreurs](/cours/gestion-des-erreurs)
 
-Concevoir des types d'erreurs expressifs avec `thiserror`, gérer les erreurs contextuelles dans les applications avec `anyhow`, et propager correctement les erreurs entre couches.
+> Des erreurs typées pour les bibliothèques, des erreurs avec contexte pour les applications, et leur traduction en réponses HTTP dans Runique.
 
 ## Objectifs
 
-- Comprendre les limites de `Box<dyn Error>` et des strings comme erreurs
-- Créer des types d'erreurs ergonomiques avec `thiserror`
-- Ajouter du contexte aux erreurs avec `anyhow`
-- Savoir quand utiliser l'un ou l'autre
-- Propager les erreurs entre couches (service → handler)
-- Intégrer la gestion d'erreurs dans un projet Runique
+- Savoir pourquoi les erreurs écrites à la main deviennent lourdes
+- Générer `Display`, `Error`, `source` et `From` avec `thiserror`
+- Utiliser `anyhow` : `Result`, `anyhow!`, `bail!`, `ensure!`, `context`, `downcast`
+- Choisir entre `thiserror` et `anyhow`, et les combiner
+- Organiser les erreurs par couche (données, métier, HTTP)
+- Transformer ses erreurs en réponses Runique (`AppResult`, `AppError`, `ErrorContext`)
+- Ne jamais exposer un détail interne dans un message destiné au visiteur
+
+Prérequis : le cours `gestion-des-erreurs` (`Result`, `?`, `From`, trait `Error`).
 
 ---
 
 ## Table des matières
 
-1. [Les limites de Box\<dyn Error\> et des strings](#1-les-limites-de-boxdyn-error-et-des-strings)
-2. [Le crate thiserror](#2-le-crate-thiserror)
-3. [#\[error\], #\[from\], #\[source\]](#3-error-from-source)
-4. [Le crate anyhow](#4-le-crate-anyhow)
-5. [anyhow::Result, .context(), .with_context()](#5-anyhowresult-context-with_context)
-6. [Quand utiliser thiserror vs anyhow](#6-quand-utiliser-thiserror-vs-anyhow)
-7. [Propager les erreurs entre couches](#7-propager-les-erreurs-entre-couches)
-8. [Erreurs dans les handlers Runique](#8-erreurs-dans-les-handlers-runique)
-9. [Exercices pratiques](#9-exercices-pratiques)
-10. [Aide-mémoire](#10-aide-mémoire)
+1. Les limites des solutions simples
+2. `thiserror` : déclarer une erreur
+3. Les attributs de `thiserror`
+4. `anyhow` : une erreur pour toute l'application
+5. Le contexte avec `anyhow`
+6. Lire une erreur `anyhow`
+7. `thiserror` ou `anyhow`
+8. Erreurs par couche
+9. Erreurs dans les handlers Runique
+10. Sécurité des messages d'erreur
+11. La même fonction écrite de plusieurs façons
+12. Exercices
+13. Aide-mémoire
 
 ---
 
-## 1. Les limites de `Box<dyn Error>` et des strings
+## 1. Les limites des solutions simples
 
-### Strings comme erreurs — fragile
+### Une `String` comme erreur
 
 ```rust
-// Retourner String comme erreur : vite pénible
-fn parser_age(texte: &str) -> Result<u8, String> {
-    texte.parse::<u8>().map_err(|e| e.to_string())
+fn trouver(id: u32) -> Result<String, String> {
+    if id == 0 {
+        return Err("introuvable".to_string());
+    }
+    Ok("Ada".into())
 }
 
-// L'appelant ne peut pas distinguer les cas d'erreur autrement
-// qu'en faisant du matching sur le texte — fragile et non idiomatique
-match parser_age("abc") {
-    Err(msg) if msg.contains("invalid") => { /* ... */ }
-    Err(msg) => { /* ... */ }
-    Ok(age) => { /* ... */ }
+// L'appelant doit comparer des textes pour réagir :
+match trouver(0) {
+    Err(e) if e == "introuvable" => { /* fragile : une faute de frappe casse le test */ }
+    _ => {}
 }
 ```
 
-### `Box<dyn Error>` — pratique mais imprécis
+### `Box<dyn Error>`
+
+Pratique, mais l'appelant ne voit plus **quelles** erreurs sont possibles : il doit tenter des `downcast_ref` au hasard.
+
+### L'implémentation manuelle
 
 ```rust
-use std::error::Error;
-
-fn charger_donnees(chemin: &str) -> Result<Vec<u8>, Box<dyn Error>> {
-    let contenu = std::fs::read(chemin)?;    // io::Error converti auto
-    Ok(contenu)
-}
-
-// Problèmes :
-// — L'appelant ne sait pas quel type d'erreur peut survenir
-// — Impossible de faire du pattern matching sur le type exact
-// — Allocation heap à chaque erreur
-// — Pas d'information de contexte ("lors de quelle opération ?")
-```
-
-### L'implémentation manuelle — verbeux
-
-```rust
-use std::fmt;
-
 #[derive(Debug)]
-enum AppError {
-    Io(std::io::Error),
-    Parse(std::num::ParseIntError),
-    Metier(String),
+enum ErreurDepot {
+    Base(sea_orm::DbErr),
+    Introuvable(i32),
 }
 
-impl fmt::Display for AppError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for ErreurDepot {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AppError::Io(e)      => write!(f, "Erreur IO : {e}"),
-            AppError::Parse(e)   => write!(f, "Erreur de parsing : {e}"),
-            AppError::Metier(m)  => write!(f, "Erreur métier : {m}"),
+            Self::Base(_) => write!(f, "erreur de base de données"),
+            Self::Introuvable(id) => write!(f, "élément {id} introuvable"),
         }
     }
 }
 
-impl std::error::Error for AppError {
+impl std::error::Error for ErreurDepot {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            AppError::Io(e)    => Some(e),
-            AppError::Parse(e) => Some(e),
-            AppError::Metier(_) => None,
+            Self::Base(e) => Some(e),
+            Self::Introuvable(_) => None,
         }
     }
 }
 
-impl From<std::io::Error> for AppError {
-    fn from(e: std::io::Error) -> Self { AppError::Io(e) }
+impl From<sea_orm::DbErr> for ErreurDepot {
+    fn from(e: sea_orm::DbErr) -> Self { Self::Base(e) }
 }
-
-impl From<std::num::ParseIntError> for AppError {
-    fn from(e: std::num::ParseIntError) -> Self { AppError::Parse(e) }
-}
-// 40 lignes de boilerplate pour 3 variants. thiserror réduit ça à 8 lignes.
 ```
+
+Une trentaine de lignes pour deux variantes, à maintenir à la main à chaque ajout. C'est ce que `thiserror` génère.
 
 ---
 
-## 2. Le crate `thiserror`
-
-`thiserror` génère automatiquement les implémentations `Display`, `Error` et `From` via des macros derive.
+## 2. `thiserror` : déclarer une erreur
 
 ```toml
-# Cargo.toml
 [dependencies]
 thiserror = "2"
 ```
@@ -122,302 +103,396 @@ thiserror = "2"
 ```rust
 use thiserror::Error;
 
-// Équivalent aux 40 lignes précédentes — en 8 lignes
-#[derive(Error, Debug)]
-enum AppError {
-    #[error("Erreur IO : {0}")]
-    Io(#[from] std::io::Error),
+#[derive(Debug, Error)]
+enum ErreurDepot {
+    #[error("erreur de base de données")]
+    Base(#[from] sea_orm::DbErr),
 
-    #[error("Erreur de parsing : {0}")]
-    Parse(#[from] std::num::ParseIntError),
-
-    #[error("Erreur métier : {0}")]
-    Metier(String),
+    #[error("élément {0} introuvable")]
+    Introuvable(i32),
 }
 ```
 
-La macro `#[derive(Error)]` génère :
-- `impl std::fmt::Display` à partir des `#[error("...")]`
-- `impl std::error::Error`
-- `impl From<X>` pour chaque `#[from]`
+Le même code que la section 1, en six lignes. `thiserror` ne fait que générer du code à la compilation : il n'apparaît pas dans l'API publique, et une bibliothèque peut l'utiliser sans l'imposer à ses utilisateurs.
 
 ---
 
-## 3. `#[error]`, `#[from]`, `#[source]`
+## 3. Les attributs de `thiserror`
 
-### `#[error("...")]` — le message affiché
+### 3.1 — `#[error("...")]` : le message
 
 ```rust
-use thiserror::Error;
+#[derive(Debug, thiserror::Error)]
+enum ErreurFormulaire {
+    #[error("le champ est obligatoire")]                         // texte fixe
+    Vide,
 
-#[derive(Error, Debug)]
-enum DbError {
-    // Accès aux champs par position
-    #[error("Connexion refusée à l'adresse {0}")]
-    ConnexionRefusee(String),
+    #[error("valeur {0} hors limites")]                          // champ de tuple par position
+    HorsLimites(i64),
 
-    // Accès aux champs nommés par nom
-    #[error("Enregistrement introuvable : table={table}, id={id}")]
-    Introuvable { table: String, id: i64 },
+    #[error("{champ} : {longueur} caractères, maximum {max}")]   // champs nommés
+    TropLong { champ: String, longueur: usize, max: usize },
 
-    // Afficher l'erreur source avec {0}
-    #[error("Erreur de requête : {0}")]
-    Requete(#[from] sea_orm::DbErr),
+    #[error("valeur invalide : {0:?}")]                          // avec Debug
+    Invalide(String),
 
-    // Accès à self pour les calculs
-    #[error("Timeout après {0}ms")]
-    Timeout(u64),
+    #[error("{}", .0.to_uppercase())]                            // expression sur un champ
+    Brut(String),
 }
 ```
 
-### `#[from]` — conversion automatique
+On peut aussi mettre `#[error]` sur une **struct** :
 
 ```rust
-#[derive(Error, Debug)]
-enum ServiceError {
-    // #[from] génère impl From<sea_orm::DbErr> for ServiceError
-    #[error("Erreur base de données")]
-    Db(#[from] sea_orm::DbErr),
+#[derive(Debug, thiserror::Error)]
+#[error("quota dépassé : {utilise}/{limite}")]
+struct Quota { utilise: u32, limite: u32 }
+```
 
-    // #[from] génère impl From<std::io::Error> for ServiceError
-    #[error("Erreur fichier")]
-    Fichier(#[from] std::io::Error),
+### 3.2 — `#[from]` : conversion automatique pour `?`
 
-    #[error("Validation échouée : {champ} — {message}")]
-    Validation { champ: String, message: String },
+```rust
+#[derive(Debug, thiserror::Error)]
+enum ErreurImport {
+    #[error("lecture du fichier impossible")]
+    Lecture(#[from] std::io::Error),
+
+    #[error("ligne mal formée")]
+    Format(#[from] std::num::ParseIntError),
 }
 
-// Grâce à #[from], l'opérateur ? convertit automatiquement
-fn charger_utilisateur(id: i64, db: &Db) -> Result<Utilisateur, ServiceError> {
-    let user = db.find_by_id(id)?;   // DbErr → ServiceError::Db auto
-    Ok(user)
+fn importer(chemin: &str) -> Result<Vec<i64>, ErreurImport> {
+    let texte = std::fs::read_to_string(chemin)?;          // io::Error -> Lecture
+    let v = texte.lines().map(|l| l.parse::<i64>()).collect::<Result<_, _>>()?;   // -> Format
+    Ok(v)
 }
 ```
 
-### `#[source]` — chaîner les erreurs sans conversion automatique
+`#[from]` génère `impl From<std::io::Error> for ErreurImport` **et** déclare le champ comme `source`. Une seule variante par type source : deux variantes `#[from] std::io::Error` seraient ambiguës.
+
+### 3.3 — `#[source]` : garder la cause sans conversion automatique
 
 ```rust
-#[derive(Error, Debug)]
-enum ConfigError {
-    #[error("Fichier de config introuvable")]
-    FichierManquant,
-
-    // #[source] expose l'erreur sous-jacente via Error::source()
-    // mais ne génère pas de From (tu l'encapsules manuellement)
-    #[error("Format TOML invalide")]
-    FormatInvalide(#[source] toml::de::Error),
-
-    #[error("Clé manquante : {0}")]
-    CleManquante(String),
+#[derive(Debug, thiserror::Error)]
+enum ErreurConfig {
+    #[error("lecture de {chemin}")]
+    Lecture {
+        chemin: String,
+        #[source]
+        cause: std::io::Error,
+    },
 }
 
-// Différence entre #[from] et #[source] :
-// #[from]   → From impl généré + source() implémenté
-// #[source] → source() implémenté seulement (pas de From auto)
+fn lire(chemin: &str) -> Result<String, ErreurConfig> {
+    std::fs::read_to_string(chemin).map_err(|cause| ErreurConfig::Lecture {
+        chemin: chemin.to_string(),
+        cause,
+    })
+}
 ```
+
+À quoi ça sert : quand la variante a besoin d'**autres** données que la cause (ici le chemin), `#[from]` ne peut pas les deviner. Un champ nommé `source` est pris comme cause automatiquement, sans attribut.
+
+### 3.4 — `#[error(transparent)]` : déléguer entièrement
+
+```rust
+#[derive(Debug, thiserror::Error)]
+enum ErreurApi {
+    #[error("ressource introuvable")]
+    Introuvable,
+
+    #[error(transparent)]
+    Autre(#[from] anyhow::Error),      // Display et source sont ceux de l'erreur enveloppée
+}
+```
+
+À quoi ça sert : une variante « tout le reste » qui ne rajoute pas de message, ou un type public opaque qui cache l'erreur interne :
+
+```rust
+#[derive(Debug, thiserror::Error)]
+#[error(transparent)]
+pub struct MonErreur(#[from] ErreurInterne);    // l'enum interne peut changer sans rupture d'API
+
+#[derive(Debug, thiserror::Error)]
+enum ErreurInterne {
+    #[error("x")]
+    X,
+}
+```
+
+### 3.5 — Récapitulatif
+
+| Attribut | Effet |
+|---|---|
+| `#[error("...")]` | génère `Display` |
+| `#[from]` sur un champ | génère `From` + marque la cause |
+| `#[source]` sur un champ | marque la cause, sans `From` |
+| champ nommé `source` | marque la cause automatiquement |
+| `#[error(transparent)]` | `Display` et `source` délégués au champ unique |
 
 ---
 
-## 4. Le crate `anyhow`
-
-`anyhow` est conçu pour les **applications**, là où tu veux propager n'importe quelle erreur avec du contexte, sans te soucier des types exacts.
+## 4. `anyhow` : une erreur pour toute l'application
 
 ```toml
-# Cargo.toml
 [dependencies]
 anyhow = "1"
 ```
 
+### 4.1 — `anyhow::Result`
+
 ```rust
-use anyhow::{Context, Result, bail, ensure, anyhow};
+use anyhow::Result;            // Result<T, anyhow::Error>
 
-// anyhow::Result<T> est un alias pour Result<T, anyhow::Error>
-// anyhow::Error accepte n'importe quel type qui implémente Error
+fn charger_port() -> Result<u16> {
+    let t = std::fs::read_to_string("port.txt")?;    // n'importe quelle erreur Error + Send + Sync
+    let p = t.trim().parse::<u16>()?;
+    Ok(p)
+}
 
-fn lire_config(chemin: &str) -> Result<Config> {
-    let contenu = std::fs::read_to_string(chemin)?;  // io::Error accepté
-    let config: Config = toml::from_str(&contenu)?;  // toml::Error accepté
-    Ok(config)
+fn main() -> Result<()> {
+    let port = charger_port()?;
+    println!("{port}");
+    Ok(())
 }
 ```
 
-### Créer des erreurs anyhow ponctuelles
+`anyhow::Error` accepte toute erreur qui implémente `std::error::Error + Send + Sync + 'static`. Il garde la cause d'origine, une pile d'appels si `RUST_BACKTRACE=1`, et le contexte ajouté en chemin.
+
+### 4.2 — Créer une erreur ponctuelle : trois macros
 
 ```rust
 use anyhow::{anyhow, bail, ensure, Result};
 
-fn valider_age(age: i32) -> Result<()> {
-    // bail! — retourne immédiatement une erreur
+fn verifier_age(age: i32) -> Result<u32> {
+    // anyhow! : construire une erreur
     if age < 0 {
-        bail!("L'âge ne peut pas être négatif : {age}");
+        return Err(anyhow!("âge négatif : {age}"));
     }
 
-    // ensure! — comme assert! mais retourne Err au lieu de paniquer
-    ensure!(age <= 150, "Âge irréaliste : {age}");
-
-    // anyhow! — construit une erreur sans la retourner
-    if age == 0 {
-        return Err(anyhow!("Âge zéro non accepté"));
+    // bail! : construire ET renvoyer (équivaut à return Err(anyhow!(..)))
+    if age > 150 {
+        bail!("âge improbable : {age}");
     }
 
-    Ok(())
+    // ensure! : renvoyer une erreur si la condition est fausse
+    ensure!(age >= 18, "il faut être majeur (âge : {age})");
+
+    Ok(age as u32)
 }
 ```
 
+Les trois écritures donnent la même erreur ; `bail!` et `ensure!` sont plus courts pour les vérifications en début de fonction.
+
 ---
 
-## 5. `anyhow::Result`, `.context()`, `.with_context()`
+## 5. Le contexte avec `anyhow`
 
-### `.context()` — ajouter un message statique
+### 5.1 — `context` : un message fixe
 
 ```rust
 use anyhow::{Context, Result};
 
-fn charger_utilisateur(id: u32) -> Result<Utilisateur> {
-    let chemin = format!("users/{id}.json");
-
-    let contenu = std::fs::read_to_string(&chemin)
-        .context("Impossible de lire le fichier utilisateur")?;
-
-    let utilisateur: Utilisateur = serde_json::from_str(&contenu)
-        .context("Format JSON invalide pour l'utilisateur")?;
-
-    Ok(utilisateur)
+fn lire_config() -> Result<String> {
+    std::fs::read_to_string("config.toml").context("lecture de la configuration")
 }
-// En cas d'erreur, la chaîne complète est affichée :
-// Error: Format JSON invalide pour l'utilisateur
-// Caused by:
-//     expected value at line 1 column 1
+// Affichage : lecture de la configuration
+// Cause : No such file or directory (os error 2)
 ```
 
-### `.with_context()` — message calculé à la demande
+Le trait `Context` ajoute `.context()` et `.with_context()` à tout `Result` dont l'erreur implémente `Error`, et aussi à `Option` (un `None` devient une erreur).
+
+### 5.2 — `with_context` : un message calculé seulement en cas d'erreur
 
 ```rust
-fn traiter_fichiers(chemins: &[&str]) -> Result<()> {
-    for chemin in chemins {
-        let contenu = std::fs::read_to_string(chemin)
-            // La closure n'est appelée qu'en cas d'erreur — pas de formatage inutile
-            .with_context(|| format!("Lecture de '{chemin}' échouée"))?;
+fn lire(chemin: &str) -> Result<String> {
+    std::fs::read_to_string(chemin).with_context(|| format!("lecture de {chemin}"))
+}
+```
 
-        traiter_contenu(&contenu)
-            .with_context(|| format!("Traitement de '{chemin}' échoué"))?;
+`context(format!(...))` construirait la `String` **à chaque appel**, même en cas de succès ; `with_context` ne l'appelle qu'en cas d'erreur.
+
+### 5.3 — Sur une `Option`
+
+```rust
+use std::collections::HashMap;
+
+fn port(env: &HashMap<String, String>) -> Result<u16> {
+    let texte = env.get("PORT").context("variable PORT absente")?;   // None -> erreur
+    texte.parse().with_context(|| format!("PORT invalide : {texte}"))
+}
+```
+
+### 5.4 — Empiler le contexte à chaque couche
+
+```rust
+fn lire_utilisateurs() -> Result<Vec<String>> {
+    let t = std::fs::read_to_string("users.csv").context("ouverture de users.csv")?;
+    Ok(t.lines().map(String::from).collect())
+}
+
+fn demarrer() -> Result<()> {
+    let u = lire_utilisateurs().context("chargement des comptes au démarrage")?;
+    println!("{} comptes", u.len());
+    Ok(())
+}
+// Error: chargement des comptes au démarrage
+//
+// Caused by:
+//     0: ouverture de users.csv
+//     1: No such file or directory (os error 2)
+```
+
+Chaque couche dit **ce qu'elle essayait de faire** ; la cause d'origine reste au bout de la chaîne.
+
+---
+
+## 6. Lire une erreur `anyhow`
+
+### 6.1 — Les formats d'affichage
+
+```rust
+fn afficher(e: &anyhow::Error) {
+    println!("{e}");        // seulement le dernier contexte
+    println!("{e:#}");      // toute la chaîne sur une ligne : a: b: c
+    println!("{e:?}");      // chaîne complète sur plusieurs lignes + backtrace si activée
+}
+```
+
+Utilise `{e:#}` dans les logs d'une ligne, `{e:?}` pour le terminal ou un rapport de bug.
+
+### 6.2 — Parcourir la chaîne
+
+```rust
+fn causes(e: &anyhow::Error) {
+    for (i, cause) in e.chain().enumerate() {
+        println!("{i} : {cause}");
     }
-
-    Ok(())
+    let racine = e.root_cause();
 }
 ```
 
-### Chaîner le contexte sur plusieurs niveaux
+### 6.3 — Retrouver le type d'origine
 
 ```rust
-fn initialiser_app() -> Result<()> {
-    charger_config("config.toml")
-        .context("Initialisation de l'application échouée")?;
-    Ok(())
+fn reagir(e: &anyhow::Error) {
+    if let Some(io) = e.downcast_ref::<std::io::Error>() {
+        if io.kind() == std::io::ErrorKind::NotFound {
+            println!("fichier absent");
+        }
+    }
 }
-
-// Sortie en cas d'erreur :
-// Error: Initialisation de l'application échouée
-// Caused by:
-//     0: Format TOML invalide
-//     1: expected an equals, found a newline at line 3
 ```
+
+`downcast_ref` cherche le type dans **toute la chaîne**, contexte compris. Si tu dois souvent faire des `downcast`, c'est le signe qu'une erreur typée (`thiserror`) conviendrait mieux à cet endroit.
 
 ---
 
-## 6. Quand utiliser thiserror vs anyhow
+## 7. `thiserror` ou `anyhow`
 
-| Situation | Recommandation |
-|---|---|
-| Tu écris une **bibliothèque** | `thiserror` — types précis, l'appelant peut matcher |
-| Tu écris une **application** | `anyhow` — simplicité, contexte, moins de boilerplate |
-| Couche **domaine / service** | `thiserror` — erreurs métier typées |
-| Couche **handler / main** | `anyhow` ou type custom avec `thiserror` |
-| L'appelant doit **distinguer** les cas d'erreur | `thiserror` |
-| Tu veux juste **propager et logger** | `anyhow` |
-| Tu veux un **backtrace** automatique | `anyhow` (avec `RUST_BACKTRACE=1`) |
+| | `thiserror` | `anyhow` |
+|---|---|---|
+| Nature | génère un type d'erreur à toi | un type d'erreur unique, opaque |
+| L'appelant peut faire un `match` | oui | non (seulement `downcast`) |
+| Contexte | à prévoir dans les variantes | `.context()` partout |
+| Pour | bibliothèques, couches dont l'appelant doit réagir aux cas | applications, binaires, scripts, couches où l'erreur sera seulement affichée |
+| Dans une API publique | oui | à éviter : l'utilisateur perd l'information de type |
 
-```rust
-// Règle simple :
-//   thiserror → quand le TYPE de l'erreur a de la valeur pour l'appelant
-//   anyhow    → quand seul le MESSAGE a de la valeur (logs, affichage)
-```
-
----
-
-## 7. Propager les erreurs entre couches
-
-Dans une application en couches (repository → service → handler), les types d'erreurs se transforment à chaque niveau.
-
-### Couche repository — erreurs techniques
+La règle courante : **`thiserror` dans les bibliothèques, `anyhow` dans les applications.** Les deux se combinent :
 
 ```rust
-use thiserror::Error;
-
-#[derive(Error, Debug)]
-pub enum RepoError {
-    #[error("Enregistrement introuvable : id={0}")]
-    Introuvable(i64),
-
-    #[error("Erreur base de données")]
-    Db(#[from] sea_orm::DbErr),
-}
-```
-
-### Couche service — erreurs métier
-
-```rust
-#[derive(Error, Debug)]
-pub enum ServiceError {
-    #[error("Utilisateur introuvable")]
-    UtilisateurInexistant,
-
-    #[error("Permission refusée")]
-    Interdit,
-
-    #[error("Erreur interne")]
-    Interne(#[from] RepoError),
+// Une bibliothèque expose des erreurs typées
+#[derive(Debug, thiserror::Error)]
+pub enum ErreurPaiement {
+    #[error("carte refusée")]
+    Refusee,
+    #[error("service indisponible")]
+    Indisponible(#[source] std::io::Error),
 }
 
-pub async fn obtenir_utilisateur(
-    id: i64,
-    repo: &UserRepo,
-) -> Result<Utilisateur, ServiceError> {
-    let user = repo.find_by_id(id).await.map_err(|e| match e {
-        RepoError::Introuvable(_) => ServiceError::UtilisateurInexistant,
-        autre => ServiceError::Interne(autre),
-    })?;
-
-    Ok(user)
-}
-```
-
-### De thiserror vers anyhow
-
-```rust
-use anyhow::{Context, Result};
-
-// Dans main() ou dans un code d'orchestration de haut niveau,
-// on peut convertir les erreurs typées vers anyhow pour simplifier
-async fn demarrer_app() -> Result<()> {
-    let db = connecter_db()
-        .await
-        .context("Connexion à la base de données échouée")?;
-
-    let config = charger_config("config.toml")
-        .context("Chargement de la configuration échoué")?;
-
-    // Les deux types d'erreurs (DbError, ConfigError) sont absorbés
-    // par anyhow — on ne se soucie plus des types, seulement du contexte
+// L'application les reçoit avec anyhow : la conversion est automatique
+fn payer() -> anyhow::Result<()> {
+    debiter().context("paiement de la commande 42")?;
     Ok(())
+}
+
+fn debiter() -> Result<(), ErreurPaiement> { Err(ErreurPaiement::Refusee) }
+
+// ... et peut encore réagir au cas précis
+fn gerer() {
+    if let Err(e) = payer() {
+        if let Some(ErreurPaiement::Refusee) = e.downcast_ref::<ErreurPaiement>() {
+            println!("proposer un autre moyen de paiement");
+        }
+    }
 }
 ```
 
 ---
 
-## 8. Erreurs dans les handlers Runique
+## 8. Erreurs par couche
 
-Dans Runique, un handler retourne `AppResult<Response>`, c'est-à-dire `Result<Response, Box<AppError>>`. `AppError` n'est pas un enum : c'est une struct qui porte un `ErrorContext` (code HTTP, titre, message, trace pour la page de debug).
+Chaque couche a son vocabulaire : la couche de données parle de base et de lignes, la couche métier de règles, la couche HTTP de codes de statut.
+
+### 8.1 — Couche données
+
+```rust
+#[derive(Debug, thiserror::Error)]
+pub enum ErreurDepot {
+    #[error("article {0} introuvable")]
+    Introuvable(i32),
+    #[error("erreur de base de données")]
+    Base(#[from] sea_orm::DbErr),
+}
+```
+
+### 8.2 — Couche métier
+
+```rust
+#[derive(Debug, thiserror::Error)]
+pub enum ErreurArticle {
+    #[error("titre vide")]
+    TitreVide,
+    #[error("vous n'êtes pas l'auteur de cet article")]
+    PasAuteur,
+    #[error(transparent)]
+    Depot(#[from] ErreurDepot),
+}
+
+pub async fn publier(id: i32, auteur: i32) -> Result<(), ErreurArticle> {
+    let article = charger(id).await?;            // ErreurDepot -> ErreurArticle::Depot
+    if article.auteur != auteur {
+        return Err(ErreurArticle::PasAuteur);
+    }
+    Ok(())
+}
+
+struct Article { auteur: i32 }
+async fn charger(id: i32) -> Result<Article, ErreurDepot> { Err(ErreurDepot::Introuvable(id)) }
+```
+
+### 8.3 — Couche HTTP : traduire en statut
+
+```rust
+fn statut(e: &ErreurArticle) -> u16 {
+    match e {
+        ErreurArticle::TitreVide => 400,
+        ErreurArticle::PasAuteur => 403,
+        ErreurArticle::Depot(ErreurDepot::Introuvable(_)) => 404,
+        ErreurArticle::Depot(ErreurDepot::Base(_)) => 500,
+    }
+}
+```
+
+Le `match` est exhaustif : ajouter une variante oblige à décider de son code HTTP.
+
+---
+
+## 9. Erreurs dans les handlers Runique
+
+### 9.1 — `AppResult` et `AppError`
+
+Un handler Runique renvoie `AppResult<Response>`, alias de `Result<Response, Box<AppError>>`. `AppError` n'est pas une enum : c'est une struct qui porte un `ErrorContext` (code HTTP, titre, message, informations pour la page de debug).
 
 ```rust
 // runique/src/context/template.rs
@@ -429,26 +504,11 @@ pub struct AppError {
 pub type AppResult<T> = Result<T, Box<AppError>>;
 ```
 
-Les erreurs courantes se convertissent déjà : `DbErr`, `anyhow::Error` et les erreurs de session passent par `?` sans rien écrire. Pour une erreur choisie par le handler, on construit l'`ErrorContext` voulu :
+`AppError` implémente `IntoResponse` : renvoyer `Err(...)` depuis un handler produit la page d'erreur correspondant au statut (404, 500...), ou la page de debug en développement.
 
-```rust
-use runique::prelude::*;
+### 9.2 — Les conversions déjà fournies
 
-pub async fn detail_article(request: Request) -> AppResult<Response> {
-    let id = request.get_path_as::<Pk>("id").unwrap_or_default();
-    let Some(article) = article::Entity::find_by_id(id)
-        .one(request.db())
-        .await?                                    // DbErr → AppError (500) automatiquement
-    else {
-        return Err(Box::new(AppError::new(ErrorContext::not_found(&format!("/articles/{id}")))));
-    };
-    // ...
-}
-```
-
-### La macro `impl_from_error!` de Runique
-
-`impl_from_error!` génère, pour chaque type d'erreur, `From<X> for AppError` et `From<X> for Box<AppError>`, en passant par une méthode de `ErrorContext`. Runique l'utilise pour ses propres conversions :
+`DbErr`, `anyhow::Error` et les erreurs de session passent par `?` sans rien écrire :
 
 ```rust
 // runique/src/context/template.rs
@@ -459,83 +519,270 @@ impl_from_error!(
 );
 ```
 
-La syntaxe est `Type => méthode_de_ErrorContext`, une entrée par type, séparées par des virgules.
+`impl_from_error!(Type => methode, ...)` génère `From<Type> for AppError` et `From<Type> for Box<AppError>`, en appelant `ErrorContext::methode(&erreur)`. Ces erreurs deviennent des 500 : le détail est journalisé, le visiteur voit une page générique.
 
-### Pattern : enrichir l'erreur avec du contexte
+### 9.3 — Choisir le statut soi-même
+
+```rust
+use runique::prelude::*;
+
+pub async fn detail_article(request: Request) -> AppResult<Response> {
+    let id = request.get_path_as::<Pk>("id").unwrap_or_default();
+    let Some(article) = article::Entity::find_by_id(id)
+        .one(request.db())
+        .await?                                      // DbErr -> 500 automatiquement
+    else {
+        return Err(Box::new(AppError::new(ErrorContext::not_found(&format!("/articles/{id}")))));
+    };
+    // ...
+}
+```
+
+Constructeurs disponibles sur `ErrorContext` : `not_found(chemin)`, `bad_request(message)`, `database(erreur)`, `from_anyhow(&erreur)`, `generic(StatusCode, message)`.
+
+### 9.4 — Raccourci : `get_or_404`
+
+Pour l'accès le plus courant (une ligne par sa clé, 404 si elle n'existe pas), le gestionnaire `objects` d'une entité fournit `get_or_404(db, id, &request, message)`, qui renvoie la ligne ou directement la réponse d'erreur (404 si absente, 500 si la requête échoue).
+
+### 9.5 — Brancher sa propre erreur sur `?`
+
+```rust
+use runique::prelude::*;
+
+impl From<ErreurArticle> for Box<AppError> {
+    fn from(e: ErreurArticle) -> Self {
+        let contexte = match &e {
+            ErreurArticle::TitreVide => ErrorContext::bad_request("Le titre est obligatoire."),
+            ErreurArticle::PasAuteur => {
+                ErrorContext::generic(StatusCode::FORBIDDEN, "Action réservée à l'auteur.")
+            }
+            ErreurArticle::Depot(ErreurDepot::Introuvable(id)) => {
+                ErrorContext::not_found(&format!("/articles/{id}"))
+            }
+            ErreurArticle::Depot(ErreurDepot::Base(db)) => ErrorContext::database(db),
+        };
+        Box::new(AppError::new(contexte))
+    }
+}
+
+pub async fn publier_article(request: Request) -> AppResult<Response> {
+    let id = request.get_path_as::<i32>("id").unwrap_or_default();
+    publier(id, 1).await?;              // ErreurArticle -> Box<AppError> grâce au From
+    // ...
+}
+```
+
+`From<ErreurArticle> for Box<AppError>` est autorisé dans ton crate parce que `ErreurArticle` t'appartient (règle de l'orphelin, voir `traits-avances`).
+
+### 9.6 — `anyhow` dans les services
 
 ```rust
 use anyhow::Context;
 
-// Dans un service (pas un handler), on peut utiliser anyhow
-// pour ajouter du contexte avant de remonter l'erreur
 pub async fn creer_article(
-    payload: CreerArticlePayload,
+    titre: String,
+    contenu: String,
     db: &DatabaseConnection,
 ) -> anyhow::Result<article::Model> {
     let actif = article::ActiveModel {
-        titre:   Set(payload.titre.trim().to_string()),
-        contenu: Set(payload.contenu),
-        publie:  Set(false),
+        titre: Set(titre.trim().to_string()),
+        contenu: Set(contenu),
         ..Default::default()
     };
-
-    actif.insert(db)
+    actif
+        .insert(db)
         .await
-        .with_context(|| format!("Insertion de l'article '{}' échouée", payload.titre))
+        .with_context(|| format!("insertion de l'article « {} »", titre.trim()))
 }
 ```
 
+Le handler appelle `creer_article(...).await?` : l'`anyhow::Error` devient une 500 grâce aux conversions de la section 9.2, avec toute la chaîne de contexte dans les logs.
+
+### 9.7 — Erreur de formulaire : pas une `AppError`
+
+Une saisie invalide n'est pas une erreur HTTP : on réaffiche le formulaire avec les messages sous les champs. Les formulaires Runique (`ValidationForm::try_form`, `is_valid`) gèrent ce cas ; `AppError` est réservé à ce qui empêche de produire la page.
+
 ---
 
-## 9. Exercices pratiques
+## 10. Sécurité des messages d'erreur
 
-### Exercice 1 : type d'erreur avec thiserror
+| Où | Ce qu'on y met |
+|---|---|
+| Message affiché au visiteur | une phrase générique, utile pour lui : « Article introuvable », « Action réservée à l'auteur » |
+| Logs du serveur | tout : chaîne de causes, requête, identifiants, pile d'appels |
+| Page de debug | réservée au développement (`DEBUG=true`), jamais en production |
 
-Crée un enum `ValidationError` avec les variants :
-- `Vide { champ: String }`
-- `TropLong { champ: String, max: usize, actuel: usize }`
-- `FormatInvalide { champ: String, attendu: String }`
+À ne jamais renvoyer au visiteur : chemin de fichier du serveur, requête SQL, nom de table, message brut de la base, jeton, mot de passe, adresse e-mail d'un autre utilisateur.
 
-Utilise `#[error("...")]` avec des messages incluant les noms de champs. Écris une fonction `valider_nom(nom: &str) -> Result<(), ValidationError>` qui retourne les erreurs appropriées.
-
-### Exercice 2 : chaîne de couches
-
-Crée deux types d'erreurs `RepoError` et `ServiceError`. `ServiceError` doit avoir un variant `Repo(#[from] RepoError)`. Écris une fonction de service qui appelle une fonction de repo et propage l'erreur avec `?`.
-
-### Exercice 3 : anyhow avec contexte
-
-Réécris cette fonction en utilisant `anyhow::Result` et `.with_context()` pour donner du contexte à chaque étape :
+Attention aussi aux messages qui **révèlent** une information : « mot de passe incorrect » contre « utilisateur inconnu » permet de savoir quels comptes existent. Pour une connexion, un seul message pour les deux cas.
 
 ```rust
-fn traiter_import(chemin: &str) -> Result<Vec<Enregistrement>, Box<dyn std::error::Error>> {
-    let contenu = std::fs::read_to_string(chemin)?;
-    let enregistrements: Vec<Enregistrement> = serde_json::from_str(&contenu)?;
-    Ok(enregistrements)
+#[derive(Debug, thiserror::Error)]
+enum ErreurConnexion {
+    #[error("identifiants invalides")]     // même message pour les deux cas
+    UtilisateurInconnu,
+    #[error("identifiants invalides")]
+    MauvaisMotDePasse,
 }
+// Les deux variantes restent distinctes pour les logs et les tests.
 ```
-
-### Exercice 4 : AppError complet
-
-Crée un `AppError` pour un handler Axum avec les variants `NotFound`, `Unauthorized`, `BadRequest(String)`, `DbError(#[from] sea_orm::DbErr)`. Implémente `IntoResponse` pour mapper chaque variant vers le bon code HTTP.
 
 ---
 
-## 10. Aide-mémoire
+## 11. La même fonction écrite de plusieurs façons
 
-| Besoin | Solution |
-|---|---|
-| Type d'erreur précis pour une lib | `#[derive(thiserror::Error)]` |
-| Message d'erreur | `#[error("message {champ}")]` |
-| Conversion automatique depuis un autre type | `#[from]` |
-| Chaîner l'erreur source sans From | `#[source]` |
-| Propager toutes erreurs dans une app | `anyhow::Result<T>` |
-| Ajouter contexte (message statique) | `.context("message")?` |
-| Ajouter contexte (message calculé) | `.with_context(\|\| format!(...))?` |
-| Retourner erreur immédiatement | `bail!("message")` |
-| Assert qui retourne Err | `ensure!(condition, "message")` |
-| Construire une erreur ad hoc | `anyhow!("message")` |
-| Accéder à l'erreur source | `err.source()` |
-| Chaîne complète de causes | `anyhow` affiche automatiquement `Caused by:` |
-| Backtrace | `RUST_BACKTRACE=1` avec `anyhow` |
+Charger un fichier JSON de paramètres.
 
-> **Règle d'or :** `thiserror` pour les types que l'on publie ou qui ont une valeur sémantique pour l'appelant ; `anyhow` pour le code applicatif où seul le message compte. Les deux se combinent : une couche service retourne `Result<T, MonErreur>` (thiserror), un handler l'absorbe via `?` ou `.context()` dans un `anyhow::Result`.
+```rust
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct Parametres { port: u16 }
+
+// 1. Box<dyn Error> : simple, sans contexte
+fn charger_v1(chemin: &str) -> Result<Parametres, Box<dyn std::error::Error>> {
+    let t = std::fs::read_to_string(chemin)?;
+    Ok(serde_json::from_str(&t)?)
+}
+
+// 2. anyhow + contexte : pour une application
+fn charger_v2(chemin: &str) -> anyhow::Result<Parametres> {
+    use anyhow::Context;
+    let t = std::fs::read_to_string(chemin).with_context(|| format!("lecture de {chemin}"))?;
+    serde_json::from_str(&t).with_context(|| format!("format de {chemin}"))
+}
+
+// 3. thiserror : pour une bibliothèque, l'appelant distingue les cas
+#[derive(Debug, thiserror::Error)]
+enum ErreurParametres {
+    #[error("lecture de {chemin}")]
+    Lecture { chemin: String, #[source] cause: std::io::Error },
+    #[error("format de {chemin}")]
+    Format { chemin: String, #[source] cause: serde_json::Error },
+}
+
+fn charger_v3(chemin: &str) -> Result<Parametres, ErreurParametres> {
+    let t = std::fs::read_to_string(chemin).map_err(|cause| ErreurParametres::Lecture {
+        chemin: chemin.into(),
+        cause,
+    })?;
+    serde_json::from_str(&t).map_err(|cause| ErreurParametres::Format {
+        chemin: chemin.into(),
+        cause,
+    })
+}
+```
+
+---
+
+## 12. Exercices
+
+### Exercice 1 — type d'erreur avec `thiserror`
+
+Crée `ErreurInscription` avec `EmailInvalide(String)`, `MotDePasseCourt { min: usize }` et `Base(#[from] sea_orm::DbErr)`.
+
+```rust
+// Solution :
+#[derive(Debug, thiserror::Error)]
+enum ErreurInscription {
+    #[error("adresse email invalide : {0}")]
+    EmailInvalide(String),
+    #[error("mot de passe trop court (minimum {min} caractères)")]
+    MotDePasseCourt { min: usize },
+    #[error("erreur de base de données")]
+    Base(#[from] sea_orm::DbErr),
+}
+```
+
+### Exercice 2 — contexte
+
+Réécris cette fonction pour que l'erreur dise quel fichier et quelle ligne posent problème.
+
+```rust
+fn total(chemin: &str) -> anyhow::Result<i64> {
+    let t = std::fs::read_to_string(chemin)?;
+    let mut s = 0;
+    for l in t.lines() {
+        s += l.parse::<i64>()?;
+    }
+    Ok(s)
+}
+```
+
+```rust
+// Solution :
+use anyhow::Context;
+
+fn total(chemin: &str) -> anyhow::Result<i64> {
+    let t = std::fs::read_to_string(chemin).with_context(|| format!("lecture de {chemin}"))?;
+    let mut s = 0;
+    for (i, l) in t.lines().enumerate() {
+        s += l.trim().parse::<i64>().with_context(|| format!("{chemin}, ligne {} : « {l} »", i + 1))?;
+    }
+    Ok(s)
+}
+```
+
+### Exercice 3 — vers une réponse Runique
+
+Écris `From<ErreurInscription> for Box<AppError>` : 400 pour les deux erreurs de saisie, 500 pour la base.
+
+```rust
+// Solution :
+use runique::prelude::*;
+
+impl From<ErreurInscription> for Box<AppError> {
+    fn from(e: ErreurInscription) -> Self {
+        let c = match &e {
+            ErreurInscription::Base(db) => ErrorContext::database(db),
+            autre => ErrorContext::bad_request(&autre.to_string()),
+        };
+        Box::new(AppError::new(c))
+    }
+}
+```
+
+`to_string()` est sûr ici : les messages des deux variantes de saisie ne contiennent rien d'interne. Pour `Base`, le message de la base n'est jamais montré.
+
+---
+
+## 13. Aide-mémoire
+
+```rust
+// thiserror
+#[derive(Debug, thiserror::Error)]
+enum E {
+    #[error("texte {0}")]            A(i32),
+    #[error("{champ}")]              B { champ: String },
+    #[error("cause")]                C(#[from] std::io::Error),
+    #[error("x")]                    D { #[source] cause: std::io::Error },
+    #[error(transparent)]            F(#[from] anyhow::Error),
+}
+
+// anyhow
+use anyhow::{anyhow, bail, ensure, Context, Result};
+fn f() -> Result<()> {
+    let v = op().context("étape")?;
+    let w = op().with_context(|| format!("étape {v}"))?;
+    let x = option.context("absent")?;
+    ensure!(cond, "message {v}");
+    bail!("message");
+}
+format!("{e}")  format!("{e:#}")  format!("{e:?}")  e.chain()  e.downcast_ref::<T>()
+
+// Runique
+AppResult<Response>                       // Result<Response, Box<AppError>>
+Err(Box::new(AppError::new(ErrorContext::not_found(chemin))))
+ErrorContext::bad_request(msg)   ErrorContext::generic(StatusCode::FORBIDDEN, msg)
+impl From<MonErreur> for Box<AppError> { .. }
+```
+
+### Points clés
+
+- `thiserror` génère le code d'une erreur typée ; `anyhow` fournit une erreur unique avec contexte.
+- Bibliothèque : `thiserror`. Application : `anyhow`. Les deux se combinent.
+- `#[from]` pour convertir, `#[source]` pour garder une cause avec d'autres données, `transparent` pour déléguer.
+- `with_context` plutôt que `context(format!(..))`.
+- Chaque couche traduit les erreurs dans son vocabulaire ; la couche HTTP choisit le statut.
+- Dans Runique, `DbErr` et `anyhow::Error` deviennent des 500 par `?` ; un `From<MonErreur> for Box<AppError>` choisit le statut de ses propres erreurs.
+- Le visiteur voit un message générique, les logs voient tout.

@@ -1,11 +1,12 @@
 use crate::entities::{chapitre, cour, cour_block};
 use runique::prelude::*;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 struct CourDef {
     slug: &'static str,
     title: &'static str,
+    title_en: &'static str,
     theme: &'static str,
     difficulte: &'static str,
     sort_order: i32,
@@ -16,6 +17,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "cargo-dependances",
         title: "Cargo & dépendances",
+        title_en: "Cargo & dependencies",
         theme: "Fondamentaux",
         difficulte: "debutant",
         sort_order: 1,
@@ -24,6 +26,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "variables-et-fonctions",
         title: "Variables & fonctions",
+        title_en: "Variables & functions",
         theme: "Fondamentaux",
         difficulte: "debutant",
         sort_order: 2,
@@ -32,6 +35,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "structures-et-controle",
         title: "Structures & contrôle",
+        title_en: "Control structures",
         theme: "Fondamentaux",
         difficulte: "debutant",
         sort_order: 3,
@@ -40,6 +44,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "structures-enums",
         title: "Structures & enums",
+        title_en: "Structs & enums",
         theme: "Fondamentaux",
         difficulte: "debutant",
         sort_order: 4,
@@ -48,6 +53,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "pattern-matching",
         title: "Pattern matching",
+        title_en: "Pattern matching",
         theme: "Fondamentaux",
         difficulte: "debutant",
         sort_order: 5,
@@ -56,6 +62,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "collections",
         title: "Collections",
+        title_en: "Collections",
         theme: "Fondamentaux",
         difficulte: "debutant",
         sort_order: 6,
@@ -64,6 +71,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "modules",
         title: "Modules",
+        title_en: "Modules",
         theme: "Fondamentaux",
         difficulte: "debutant",
         sort_order: 7,
@@ -72,6 +80,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "tests-rust",
         title: "Tests en Rust",
+        title_en: "Testing in Rust",
         theme: "Fondamentaux",
         difficulte: "debutant",
         sort_order: 8,
@@ -80,6 +89,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "borrow-bases",
         title: "Borrow & ownership",
+        title_en: "Borrowing & ownership",
         theme: "Fondamentaux",
         difficulte: "debutant",
         sort_order: 9,
@@ -88,6 +98,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "closures-iterateurs",
         title: "Closures & itérateurs",
+        title_en: "Closures & iterators",
         theme: "Mémoire & sûreté",
         difficulte: "intermediaire",
         sort_order: 1,
@@ -96,6 +107,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "gestion-des-erreurs",
         title: "Gestion des erreurs",
+        title_en: "Error handling",
         theme: "Mémoire & sûreté",
         difficulte: "intermediaire",
         sort_order: 2,
@@ -104,6 +116,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "generics",
         title: "Generics",
+        title_en: "Generics",
         theme: "Mémoire & sûreté",
         difficulte: "intermediaire",
         sort_order: 3,
@@ -112,6 +125,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "type-aliases",
         title: "Type aliases",
+        title_en: "Type aliases",
         theme: "Mémoire & sûreté",
         difficulte: "intermediaire",
         sort_order: 4,
@@ -120,6 +134,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "lifetimes",
         title: "Lifetimes",
+        title_en: "Lifetimes",
         theme: "Mémoire & sûreté",
         difficulte: "intermediaire",
         sort_order: 5,
@@ -128,6 +143,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "box-dynamiques",
         title: "Box & types dynamiques",
+        title_en: "Box & dynamic types",
         theme: "Mémoire & sûreté",
         difficulte: "intermediaire",
         sort_order: 6,
@@ -136,6 +152,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "smart-pointers",
         title: "Smart pointers",
+        title_en: "Smart pointers",
         theme: "Mémoire & sûreté",
         difficulte: "intermediaire",
         sort_order: 7,
@@ -144,6 +161,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "send-sync",
         title: "Send & Sync",
+        title_en: "Send & Sync",
         theme: "Mémoire & sûreté",
         difficulte: "intermediaire",
         sort_order: 8,
@@ -152,6 +170,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "borrow-avance",
         title: "Borrow avancé — Cow & AsRef",
+        title_en: "Advanced borrowing — Cow & AsRef",
         theme: "Mémoire & sûreté",
         difficulte: "intermediaire",
         sort_order: 9,
@@ -160,6 +179,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "traits-basics",
         title: "Traits — Les bases",
+        title_en: "Traits — The basics",
         theme: "Avancé",
         difficulte: "avance",
         sort_order: 1,
@@ -168,6 +188,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "traits-avances",
         title: "Traits avancés",
+        title_en: "Advanced traits",
         theme: "Avancé",
         difficulte: "avance",
         sort_order: 2,
@@ -176,6 +197,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "macros-declaratives",
         title: "Macros déclaratives",
+        title_en: "Declarative macros",
         theme: "Avancé",
         difficulte: "avance",
         sort_order: 3,
@@ -184,6 +206,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "macros-export",
         title: "Macros — Visibilité et export",
+        title_en: "Macros — Visibility and export",
         theme: "Avancé",
         difficulte: "avance",
         sort_order: 4,
@@ -192,6 +215,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "macros-derive",
         title: "Macros procédurales — Derive",
+        title_en: "Procedural macros — Derive",
         theme: "Avancé",
         difficulte: "avance",
         sort_order: 5,
@@ -200,6 +224,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "macros-attribut",
         title: "Macros procédurales — Attribute",
+        title_en: "Procedural macros — Attribute",
         theme: "Avancé",
         difficulte: "avance",
         sort_order: 6,
@@ -208,6 +233,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "macros-function-like",
         title: "Macros procédurales — Function-like",
+        title_en: "Procedural macros — Function-like",
         theme: "Avancé",
         difficulte: "avance",
         sort_order: 7,
@@ -216,6 +242,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "async-tokio",
         title: "Async & Tokio",
+        title_en: "Async & Tokio",
         theme: "Avancé",
         difficulte: "avance",
         sort_order: 8,
@@ -224,6 +251,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "concurrence",
         title: "Concurrence & état partagé",
+        title_en: "Concurrency & shared state",
         theme: "Avancé",
         difficulte: "avance",
         sort_order: 9,
@@ -232,6 +260,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "serde",
         title: "Sérialisation — serde",
+        title_en: "Serialization — serde",
         theme: "Indispensables",
         difficulte: "intermediaire",
         sort_order: 1,
@@ -240,6 +269,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "gestion-erreurs-avancee",
         title: "Gestion erreurs avancée",
+        title_en: "Advanced error handling",
         theme: "Indispensables",
         difficulte: "intermediaire",
         sort_order: 2,
@@ -248,6 +278,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "orm",
         title: "ORM — SeaORM",
+        title_en: "ORM — SeaORM",
         theme: "Runique",
         difficulte: "specifique",
         sort_order: 1,
@@ -256,6 +287,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "filtre-admin",
         title: "Filtre admin",
+        title_en: "Admin filters",
         theme: "Runique",
         difficulte: "specifique",
         sort_order: 2,
@@ -264,6 +296,7 @@ const COURS: &[CourDef] = &[
     CourDef {
         slug: "middleware-ordre",
         title: "Middlewares — Pièges et Solutions",
+        title_en: "Middlewares — Pitfalls and solutions",
         theme: "Runique",
         difficulte: "specifique",
         sort_order: 3,
@@ -271,21 +304,19 @@ const COURS: &[CourDef] = &[
     },
 ];
 
-fn find_cour_dir() -> Option<PathBuf> {
-    let candidates = [
-        "docs/fr/cour",
-        "../docs/fr/cour",
-        "../../docs/fr/cour",
-        "/app/docs/fr/cour",
-        "/var/www/runique/docs/fr/cour",
-    ];
-    for candidate in &candidates {
-        let p = PathBuf::from(candidate);
-        if p.is_dir() {
-            return Some(p);
-        }
-    }
-    None
+const LANGS: [&str; 2] = ["fr", "en"];
+
+fn find_cour_dir(lang: &str) -> Option<PathBuf> {
+    [
+        format!("docs/{lang}/cour"),
+        format!("../docs/{lang}/cour"),
+        format!("../../docs/{lang}/cour"),
+        format!("/app/docs/{lang}/cour"),
+        format!("/var/www/runique/docs/{lang}/cour"),
+    ]
+    .into_iter()
+    .map(PathBuf::from)
+    .find(|p| p.is_dir())
 }
 
 fn slugify(s: &str) -> String {
@@ -358,7 +389,7 @@ fn detect_block_type(content: &str) -> &'static str {
 
 /// Découpe le contenu markdown en chapitres délimités par `## Titre`.
 /// Retourne vec de (titre_chapitre, contenu_brut).
-/// Filtre les sections "table des matières", "objectifs", "table of contents".
+/// Filtre les sections de navigation (table des matières, objectifs), en FR et en EN.
 fn split_chapitres(content: &str) -> Vec<(String, String)> {
     let mut chapitres: Vec<(String, String)> = Vec::new();
     let mut current_title: Option<String> = None;
@@ -391,6 +422,7 @@ fn split_chapitres(content: &str) -> Vec<(String, String)> {
             let title_low = title.to_lowercase();
             let is_nav = title_low.contains("table des matières")
                 || title_low.contains("objectifs")
+                || title_low.contains("objectives")
                 || title_low.contains("table of contents");
             !is_nav && !raw.trim().is_empty()
         })
@@ -478,27 +510,31 @@ fn split_blocks(raw: &str) -> Vec<(Option<String>, String, &'static str)> {
 pub async fn seed_cours(db: &DatabaseConnection) {
     tracing::info!("cour_seed: démarrage");
 
-    // Nettoyage complet avant re-seed (ordre FK : cour_block → chapitre → cour)
-    let stmts = [
-        "DELETE FROM cour_block",
-        "DELETE FROM chapitre",
-        "DELETE FROM cour",
-    ];
-    for sql in &stmts {
-        if let Err(e) = db.execute_unprepared(sql).await {
-            tracing::warn!("cour_seed: erreur nettoyage ({sql}): {e}");
-            return;
+    // Ordre FK : cour_block → chapitre → cour
+    if let Err(e) = cour_block::Entity::delete_many().exec(db).await {
+        tracing::warn!("cour_seed: erreur nettoyage cour_block: {e}");
+        return;
+    }
+    if let Err(e) = chapitre::Entity::delete_many().exec(db).await {
+        tracing::warn!("cour_seed: erreur nettoyage chapitre: {e}");
+        return;
+    }
+    if let Err(e) = cour::Entity::delete_many().exec(db).await {
+        tracing::warn!("cour_seed: erreur nettoyage cour: {e}");
+        return;
+    }
+
+    for lang in LANGS {
+        match find_cour_dir(lang) {
+            Some(dir) => seed_lang(db, lang, &dir).await,
+            None => tracing::warn!("cour_seed: dossier docs/{lang}/cour/ introuvable, ignoré"),
         }
     }
 
-    let cour_dir = match find_cour_dir() {
-        Some(p) => p,
-        None => {
-            tracing::warn!("cour_seed: dossier docs/fr/cour/ introuvable, seed ignoré");
-            return;
-        }
-    };
+    tracing::info!("cour_seed: terminé");
+}
 
+async fn seed_lang(db: &DatabaseConnection, lang: &str, cour_dir: &Path) {
     tracing::info!("cour_seed: lecture depuis {:?}", cour_dir);
 
     for def in COURS {
@@ -507,7 +543,7 @@ pub async fn seed_cours(db: &DatabaseConnection) {
         let content = match fs::read_to_string(&md_path) {
             Ok(c) => c,
             Err(_) => {
-                tracing::warn!("cour_seed: fichier introuvable — {}.md", def.slug);
+                tracing::warn!("cour_seed: fichier introuvable — {lang}/{}.md", def.slug);
                 continue;
             }
         };
@@ -515,8 +551,8 @@ pub async fn seed_cours(db: &DatabaseConnection) {
         // Insère le cours
         let cour_model = cour::ActiveModel {
             slug: Set(def.slug.to_string()),
-            lang: Set("fr".to_string()),
-            title: Set(def.title.to_string()),
+            lang: Set(lang.to_string()),
+            title: Set(if lang == "fr" { def.title } else { def.title_en }.to_string()),
             theme: Set(def.theme.parse::<cour::CourTheme>().unwrap_or_default()),
             difficulte: Set(def
                 .difficulte
@@ -580,8 +616,6 @@ pub async fn seed_cours(db: &DatabaseConnection) {
             }
         }
 
-        tracing::info!("cour_seed: cours seedé — {}", def.slug);
+        tracing::info!("cour_seed: cours seedé — {lang}/{}", def.slug);
     }
-
-    tracing::info!("cour_seed: terminé");
 }

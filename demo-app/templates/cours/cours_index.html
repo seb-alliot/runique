@@ -1,14 +1,17 @@
 {% extends "index.html" %}
 
 {% block meta %}
-<meta name="description" content="Rust Courses — From beginner to advanced, all courses to master Rust.">
+<meta name="description" content="{% if lang == "fr" %}Cours Rust : du débutant à l'avancé, tous les cours pour maîtriser Rust.{% else %}Rust Courses: from beginner to advanced, all courses to master Rust.{% endif %}">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Runique">
-<meta property="og:title" content="Rust Courses — Runique">
-<meta property="og:description" content="Rust Courses — From beginner to advanced.">
-<meta property="og:url" content="https://runique.io/cours">
-<link rel="canonical" href="https://runique.io/cours">
+<meta property="og:title" content="{% if lang == "fr" %}Cours Rust{% else %}Rust Courses{% endif %} — Runique">
+<meta property="og:description" content="{% if lang == "fr" %}Cours Rust, du débutant à l'avancé.{% else %}Rust Courses, from beginner to advanced.{% endif %}">
+<meta property="og:url" content="https://runique.io/cours/{{ lang }}">
+<link rel="canonical" href="https://runique.io/cours/{{ lang }}">
+<link rel="alternate" hreflang="fr" href="https://runique.io/cours/fr">
+<link rel="alternate" hreflang="en" href="https://runique.io/cours/en">
+<link rel="alternate" hreflang="x-default" href="https://runique.io/cours/en">
 {% endblock %}
 
 {% block style %}
@@ -18,7 +21,7 @@
 
 {% block content %}
 <div class="cours-index-container">
-    <h1>{% if ui_lang == "fr" %}Cours Rust{% else %}Rust Courses (French only for now){% endif %}</h1>
+    <h1>{% if ui_lang == "fr" %}Cours Rust{% else %}Rust Courses{% endif %}</h1>
     <p class="cours-index-lead">{% if ui_lang == "fr" %}Du débutant à l'avancé : tous les cours pour maîtriser Rust.{% else %}From beginner to advanced — all courses to master Rust.{% endif %}</p>
 
     {% for niveau in niveaux %}
@@ -35,7 +38,7 @@
         </h2>
         <div class="cours-grid">
             {% for c in niveau_cours %}
-            <a href="/cours/{{ c.slug }}" class="cours-card">
+            <a href="/cours/{{ lang }}/{{ c.slug }}" class="cours-card">
                 <h3>{{ c.title }}</h3>
             </a>
             {% endfor %}

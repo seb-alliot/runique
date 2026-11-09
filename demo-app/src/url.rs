@@ -12,6 +12,7 @@ use crate::views::{
     rgpd, roadmap, router_demo, rust_django_framework, security_txt, session_demo, set_language,
     sitemap_xml, soumission_inscription, supprimer_compte, surcharge_exemple, template_demo,
     test_csrf, test_fields, upload_image_submit, view_cours_detail, view_cours_index,
+    view_cours_root,
 };
 
 use runique::prelude::*;
@@ -105,10 +106,12 @@ pub fn routes() -> Routes {
         "/readme/en"                     => view! { readme_en },              name = "readme_en",
 
         // Rust Courses
-        "/cours"                         => view! { view_cours_index },       name = "cours_index",
-        "/cours/{slug}"                  => view! { view_cours_detail },      name = "cours_detail",
+        "/cours"                         => view! { view_cours_root },        name = "cours_root",
+        // `{lang}` also takes the `/cours/{slug}` links from before, redirected.
+        "/cours/{lang}"                  => view! { view_cours_index },       name = "cours_index",
+        "/cours/{lang}/{slug}"           => view! { view_cours_detail },      name = "cours_detail",
         // Exercices IA : le code fonctionne, à faire évoluer plus tard. Réactiver aussi le tchat de cours_detail.html.
-        // "/cours/{slug}/exercice"         => view! { view_cours_exercice },    name = "cours_exercice",
+        // "/cours/{lang}/{slug}/exercice"         => view! { view_cours_exercice },    name = "cours_exercice",
 
         // Documentation
         "/docs/fr"                       => view! { docs_index_fr },          name = "doc_index_fr",

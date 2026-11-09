@@ -80,7 +80,7 @@
             <a href="{% link "comparatif" %}">{% if ui_lang == "fr" %}Comparatif{% else %}Comparison{% endif %}</a>
             <a href="{% link "releases" %}">{% if ui_lang == "fr" %}Versions{% else %}Releases{% endif %}</a>
             <a href="{% link "contribution_list" %}">{% if ui_lang == "fr" %}Contribuer{% else %}Contribute{% endif %}</a>
-            <a href="/cours">{% if ui_lang == "fr" %}Cours{% else %}Courses{% endif %}</a>
+            <a href="{% if ui_lang == "fr" %}/cours/fr{% else %}/cours/en{% endif %}">{% if ui_lang == "fr" %}Cours{% else %}Courses{% endif %}</a>
         </div>
         <div class="site-nav-actions">
             {% if user %}
@@ -105,7 +105,7 @@
             <button class="site-nav-panel-close" id="site-nav-panel-close">✕</button>
         </div>
         <a href="/docs/{% if ui_lang == "fr" %}fr{% else %}en{% endif %}">Documentation</a>
-        <a href="/cours">{% if ui_lang == "fr" %}Cours{% else %}Courses{% endif %}</a>
+        <a href="{% if ui_lang == "fr" %}/cours/fr{% else %}/cours/en{% endif %}">{% if ui_lang == "fr" %}Cours{% else %}Courses{% endif %}</a>
         <a href="{% link "comparatif" %}">{% if ui_lang == "fr" %}Comparatif{% else %}Comparison{% endif %}</a>
         <a href="{% link "releases" %}">{% if ui_lang == "fr" %}Versions{% else %}Releases{% endif %}</a>
         <a href="{% link "contribution_list" %}">{% if ui_lang == "fr" %}Contribuer{% else %}Contribute{% endif %}</a>
