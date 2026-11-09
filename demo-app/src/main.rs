@@ -24,6 +24,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db_config = DatabaseConfig::from_env()?.build();
     let db: DatabaseConnection = db_config.connect().await?;
     backend::run_seeds(&db).await;
+    backend::delete_accounts_inactive(db.clone());
 
     builder::new(config)
         .routes(url::routes())

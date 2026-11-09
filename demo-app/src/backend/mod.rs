@@ -5,6 +5,7 @@ mod cards;
 pub mod comparatif;
 pub mod contribution;
 pub mod cours;
+pub mod cron_auth;
 pub mod doc;
 pub mod doc_lang;
 pub mod forms;
@@ -13,6 +14,7 @@ mod pages;
 pub mod seeds;
 
 pub use cards::*;
+pub use cron_auth::delete_accounts_inactive;
 pub use pages::*;
 pub use seeds::run_seeds;
 

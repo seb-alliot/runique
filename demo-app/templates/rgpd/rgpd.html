@@ -1,127 +1,242 @@
 {% extends "index.html" %}
 
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href="{% static "css/rgpd.css" %}">
+{% endblock %}
+
 {% block content %}
-<div class="content">
-    <h1>{% set tr_text = title %}{% include "utils/tr.html" %}</h1>
+<div class="content rgpd">
+    <header class="rgpd-header">
+        <h1>{% set tr_text = title %}{% include "utils/tr.html" %}</h1>
+        {% if ui_lang == "fr" %}
+        <p class="rgpd-lead">
+            Ce site est une démonstration technique du framework <strong>Runique</strong>, sans but commercial.
+            Voici ce qu'il collecte, pourquoi, combien de temps, et comment exercer vos droits.
+        </p>
+        <p class="rgpd-updated">Dernière mise à jour : 9 novembre 2026</p>
+        {% else %}
+        <p class="rgpd-lead">
+            This site is a technical demonstration of the <strong>Runique</strong> framework, with no commercial purpose.
+            Here is what it collects, why, for how long, and how to exercise your rights.
+        </p>
+        <p class="rgpd-updated">Last updated: November 9, 2026</p>
+        {% endif %}
+    </header>
 
     {% if ui_lang == "fr" %}
-    <h2>Site de démonstration</h2>
-    <p>
-        Ce site est une démonstration technique du framework <strong>Runique</strong>.
-        Il n'a aucun but commercial.
-    </p>
+    <div class="rgpd-identity">
+        <section class="rgpd-card">
+            <h2>Responsable du traitement</h2>
+            <p><strong>Itsuki</strong>, auteur de Runique, à titre personnel et non professionnel.</p>
+            <p><a href="mailto:runique.framework.web@gmail.com">runique.framework.web@gmail.com</a></p>
+        </section>
+        <section class="rgpd-card">
+            <h2>Hébergeur</h2>
+            <p><strong>Hostinger International Ltd</strong></p>
+            <p>61 Lordou Vironos Street, 6023 Larnaca, Chypre</p>
+        </section>
+    </div>
 
-    <h2>Données collectées</h2>
-    <p>À la création d'un compte :</p>
-    <p><strong>nom d'utilisateur</strong>, <strong>adresse email</strong>, <strong>mot de passe</strong> (haché, jamais stocké en clair).</p>
-    <p>
-        <strong>Utilisez une vraie adresse email</strong> : votre compte s'active par le lien qui y est envoyé,
-        et elle sert aussi à réinitialiser votre mot de passe.
-    </p>
-    <p>
-        Si vous les utilisez : les articles et contributions que vous publiez, avec les informations
-        que vous y saisissez (l'email et le site web d'un article, par exemple), et les fichiers que vous envoyez.
-    </p>
-    <p>
-        Comme pour tout site web, votre adresse IP est traitée pour acheminer les requêtes,
-        protéger le site contre les abus et tenir les journaux du serveur.
-    </p>
+    <section class="rgpd-section">
+        <h2>Données collectées</h2>
+        <ul>
+            <li><strong>À la création d'un compte</strong> : nom d'utilisateur, adresse email, mot de passe (haché, jamais stocké en clair).</li>
+            <li><strong>Si vous les utilisez</strong> : les articles et contributions que vous publiez, avec les informations que vous y saisissez (l'email et le site web d'un article, par exemple), et les fichiers que vous envoyez.</li>
+            <li><strong>Comme pour tout site web</strong> : votre adresse IP, pour acheminer les requêtes, protéger le site contre les abus et tenir les journaux du serveur.</li>
+        </ul>
+        <p class="rgpd-note">
+            Utilisez une vraie adresse email : votre compte s'active par le lien qui y est envoyé,
+            et elle sert aussi à réinitialiser votre mot de passe.
+        </p>
+    </section>
 
-    <h2>Cookies et stockage local</h2>
-    <p>Ce site n'utilise pas de cookie publicitaire :</p>
-    <p>— <code>id</code> : cookie de session, nécessaire au fonctionnement du site et à sa sécurité</p>
-    <p>— <code>lang</code> : la langue choisie, conservée un an</p>
-    <p>— <code>theme</code> : le thème clair ou sombre, gardé dans votre navigateur (stockage local)</p>
+    <section class="rgpd-section">
+        <h2>Finalités et bases légales</h2>
+        <ul>
+            <li><strong>Votre compte</strong> (création, activation, connexion, réinitialisation du mot de passe, contributions) : exécution du service que vous demandez en vous inscrivant.</li>
+            <li><strong>Sécurité et journaux du serveur</strong> (protection contre les abus, limitation des tentatives de connexion) : intérêt légitime à garder le site sûr et disponible.</li>
+            <li><strong>Préférences</strong> (langue, thème) : enregistrées à votre demande, quand vous les choisissez.</li>
+        </ul>
+        <p>Vos données ne servent qu'au fonctionnement de ce site. Elles ne sont <strong>jamais</strong> vendues, utilisées à des fins commerciales, ni pour du profilage ou du marketing.</p>
+    </section>
 
-    <h2>Hébergement et prestataires</h2>
-    <p>
-        Les données sont stockées dans la base du serveur qui héberge ce site.
-        Pour fonctionner, le site s'appuie sur <strong>Cloudflare</strong>, par lequel passent les requêtes,
-        et sur un service d'envoi de mails pour les messages d'activation et de réinitialisation.
-    </p>
+    <section class="rgpd-section">
+        <h2>Cookies et stockage local</h2>
+        <p>Ce site n'utilise ni cookie publicitaire, ni outil de mesure d'audience.</p>
+        <ul>
+            <li><code>id</code> : cookie de session, nécessaire au fonctionnement du site et à sa sécurité.</li>
+            <li><code>lang</code> : la langue choisie.</li>
+            <li><code>theme</code> : le thème clair ou sombre, gardé dans votre navigateur (stockage local).</li>
+        </ul>
+        <p>Ces éléments sont strictement nécessaires ou demandés par vous : ils ne requièrent pas de consentement.</p>
+    </section>
 
-    <h2>Utilisation des données</h2>
-    <p>Vos données ne servent qu'au fonctionnement de ce site. Elles ne sont <strong>jamais</strong> :</p>
-    <p>— vendues</p>
-    <p>— utilisées à des fins commerciales</p>
-    <p>— utilisées pour du profilage ou du marketing</p>
+    <section class="rgpd-section">
+        <h2>Prestataires et transferts hors de l'Union européenne</h2>
+        <p>Les données sont stockées dans la base du serveur qui héberge ce site. Pour fonctionner, le site s'appuie sur :</p>
+        <ul>
+            <li><strong>Cloudflare</strong>, par lequel passent les requêtes (protection et acheminement) ;</li>
+            <li><strong>Gmail</strong> (Google), pour envoyer les messages d'activation et de réinitialisation.</li>
+        </ul>
+        <p>Ces deux sociétés sont établies aux États-Unis. Les transferts reposent sur le <em>Data Privacy Framework</em> UE–États-Unis, auquel elles adhèrent.</p>
+    </section>
 
-    <h2>Conservation des données</h2>
-    <p>
-        Vous pouvez supprimer votre compte à tout moment depuis votre <a href="{% link "profil" %}">profil</a>,
-        avec votre mot de passe : votre compte et vos contributions sont alors effacés immédiatement,
-        et toutes vos sessions sont fermées. Les articles de blog et les fichiers envoyés ne sont pas
-        rattachés à votre compte : pour les faire supprimer, faites-en la demande.
-        La base de démonstration peut aussi être réinitialisée sans préavis :
-        comptes et contenus sont alors effacés.
-    </p>
+    <section class="rgpd-section">
+        <h2>Durées de conservation</h2>
+        <div class="rgpd-table-wrap">
+            <table class="rgpd-table">
+                <tbody>
+                    <tr><th scope="row">Compte activé</th><td>Jusqu'à sa suppression par vous, ou une réinitialisation de la base de démonstration</td></tr>
+                    <tr><th scope="row">Compte jamais activé</th><td>Supprimé automatiquement 7 jours après l'inscription</td></tr>
+                    <tr><th scope="row">Session connectée</th><td>Fermée après 24 heures sans activité</td></tr>
+                    <tr><th scope="row">Session anonyme</th><td>5 minutes sans activité</td></tr>
+                    <tr><th scope="row">Cookie <code>lang</code></th><td>Un an</td></tr>
+                    <tr><th scope="row">Journaux du serveur</th><td>14 jours</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p>
+            Vous pouvez supprimer votre compte à tout moment depuis votre <a href="{% link "profil" %}">profil</a>,
+            avec votre mot de passe : votre compte et vos contributions sont alors effacés immédiatement,
+            et toutes vos sessions sont fermées. Les articles de blog et les fichiers envoyés ne sont pas
+            rattachés à votre compte : pour les faire supprimer, faites-en la demande.
+        </p>
+        <p class="rgpd-note">La base de démonstration peut être réinitialisée sans préavis : comptes et contenus sont alors effacés.</p>
+    </section>
 
-    <h2>Contact</h2>
-    <p>
-        Pour toute demande d'accès, de correction ou de suppression de vos données, écrivez à
-        <a href="mailto:runique.framework.web@gmail.com">runique.framework.web@gmail.com</a>.
-        Les questions sur le framework peuvent passer par le
-        <a href="https://github.com/seb-alliot/runique" target="_blank" rel="noopener">dépôt GitHub</a>.
-    </p>
+    <section class="rgpd-section">
+        <h2>Vos droits</h2>
+        <p>Vous disposez des droits suivants sur vos données :</p>
+        <ul class="rgpd-rights">
+            <li>accès</li>
+            <li>rectification</li>
+            <li>effacement</li>
+            <li>opposition</li>
+            <li>limitation</li>
+            <li>portabilité</li>
+        </ul>
+        <p>
+            Pour les exercer, écrivez à
+            <a href="mailto:runique.framework.web@gmail.com">runique.framework.web@gmail.com</a> :
+            une réponse vous est apportée dans un délai d'un mois.
+        </p>
+        <p>
+            Si vous estimez que vos droits ne sont pas respectés, vous pouvez adresser une réclamation à la
+            <a href="https://www.cnil.fr/fr/plaintes" target="_blank" rel="noopener">CNIL</a>.
+        </p>
+        <p class="rgpd-note">
+            Les questions sur le framework peuvent passer par le
+            <a href="https://github.com/seb-alliot/runique" target="_blank" rel="noopener">dépôt GitHub</a>.
+        </p>
+    </section>
     {% else %}
-    <h2>Demo site</h2>
-    <p>
-        This site is a technical demonstration of the <strong>Runique</strong> framework.
-        It has no commercial purpose.
-    </p>
+    <div class="rgpd-identity">
+        <section class="rgpd-card">
+            <h2>Data controller</h2>
+            <p><strong>Itsuki</strong>, author of Runique, as a private individual, not professionally.</p>
+            <p><a href="mailto:runique.framework.web@gmail.com">runique.framework.web@gmail.com</a></p>
+        </section>
+        <section class="rgpd-card">
+            <h2>Hosting provider</h2>
+            <p><strong>Hostinger International Ltd</strong></p>
+            <p>61 Lordou Vironos Street, 6023 Larnaca, Cyprus</p>
+        </section>
+    </div>
 
-    <h2>Data collected</h2>
-    <p>When creating an account:</p>
-    <p><strong>username</strong>, <strong>email address</strong>, <strong>password</strong> (hashed, never stored in plain text).</p>
-    <p>
-        <strong>Use a real email address</strong>: your account is activated through the link sent to it,
-        and it is also used to reset your password.
-    </p>
-    <p>
-        If you use them: the articles and contributions you publish, with the information
-        you enter in them (an article's email and website, for example), and the files you upload.
-    </p>
-    <p>
-        As on any website, your IP address is processed to route requests,
-        protect the site from abuse and keep server logs.
-    </p>
+    <section class="rgpd-section">
+        <h2>Data collected</h2>
+        <ul>
+            <li><strong>When creating an account</strong>: username, email address, password (hashed, never stored in plain text).</li>
+            <li><strong>If you use them</strong>: the articles and contributions you publish, with the information you enter in them (an article's email and website, for example), and the files you upload.</li>
+            <li><strong>As on any website</strong>: your IP address, to route requests, protect the site from abuse and keep server logs.</li>
+        </ul>
+        <p class="rgpd-note">
+            Use a real email address: your account is activated through the link sent to it,
+            and it is also used to reset your password.
+        </p>
+    </section>
 
-    <h2>Cookies and local storage</h2>
-    <p>This site uses no advertising cookies:</p>
-    <p>— <code>id</code>: session cookie, needed for the site to work and stay secure</p>
-    <p>— <code>lang</code>: the language you chose, kept for one year</p>
-    <p>— <code>theme</code>: the light or dark theme, kept in your browser (local storage)</p>
+    <section class="rgpd-section">
+        <h2>Purposes and legal bases</h2>
+        <ul>
+            <li><strong>Your account</strong> (sign-up, activation, login, password reset, contributions): performance of the service you ask for by signing up.</li>
+            <li><strong>Security and server logs</strong> (protection from abuse, limiting login attempts): legitimate interest in keeping the site safe and available.</li>
+            <li><strong>Preferences</strong> (language, theme): stored at your request, when you choose them.</li>
+        </ul>
+        <p>Your data only serves to run this site. It is <strong>never</strong> sold, used for commercial purposes, or used for profiling or marketing.</p>
+    </section>
 
-    <h2>Hosting and service providers</h2>
-    <p>
-        Data is stored in the database of the server hosting this site.
-        To work, the site relies on <strong>Cloudflare</strong>, which requests pass through,
-        and on an email delivery service for activation and reset messages.
-    </p>
+    <section class="rgpd-section">
+        <h2>Cookies and local storage</h2>
+        <p>This site uses no advertising cookies and no audience measurement tool.</p>
+        <ul>
+            <li><code>id</code>: session cookie, needed for the site to work and stay secure.</li>
+            <li><code>lang</code>: the language you chose.</li>
+            <li><code>theme</code>: the light or dark theme, kept in your browser (local storage).</li>
+        </ul>
+        <p>These are strictly necessary or requested by you: they need no consent.</p>
+    </section>
 
-    <h2>Data usage</h2>
-    <p>Your data only serves to run this site. It is <strong>never</strong>:</p>
-    <p>— sold</p>
-    <p>— used for commercial purposes</p>
-    <p>— used for profiling or marketing</p>
+    <section class="rgpd-section">
+        <h2>Service providers and transfers outside the European Union</h2>
+        <p>Data is stored in the database of the server hosting this site. To work, the site relies on:</p>
+        <ul>
+            <li><strong>Cloudflare</strong>, which requests pass through (protection and routing);</li>
+            <li><strong>Gmail</strong> (Google), to send activation and reset messages.</li>
+        </ul>
+        <p>Both companies are based in the United States. Transfers rely on the EU–US <em>Data Privacy Framework</em>, which they have joined.</p>
+    </section>
 
-    <h2>Data retention</h2>
-    <p>
-        You can delete your account at any time from your <a href="{% link "profil" %}">profile</a>,
-        with your password: your account and your contributions are erased at once,
-        and all your sessions are closed. Blog posts and uploaded files are not tied to your account:
-        to have them removed, send a request.
-        The demo database may also be reset without notice,
-        which erases accounts and content.
-    </p>
+    <section class="rgpd-section">
+        <h2>Retention periods</h2>
+        <div class="rgpd-table-wrap">
+            <table class="rgpd-table">
+                <tbody>
+                    <tr><th scope="row">Activated account</th><td>Until you delete it, or until the demo database is reset</td></tr>
+                    <tr><th scope="row">Account never activated</th><td>Deleted automatically 7 days after sign-up</td></tr>
+                    <tr><th scope="row">Logged-in session</th><td>Closed after 24 hours without activity</td></tr>
+                    <tr><th scope="row">Anonymous session</th><td>5 minutes without activity</td></tr>
+                    <tr><th scope="row"><code>lang</code> cookie</th><td>One year</td></tr>
+                    <tr><th scope="row">Server logs</th><td>14 days</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p>
+            You can delete your account at any time from your <a href="{% link "profil" %}">profile</a>,
+            with your password: your account and your contributions are erased at once,
+            and all your sessions are closed. Blog posts and uploaded files are not tied to your account:
+            to have them removed, send a request.
+        </p>
+        <p class="rgpd-note">The demo database may be reset without notice, which erases accounts and content.</p>
+    </section>
 
-    <h2>Contact</h2>
-    <p>
-        For any request to access, correct or delete your data, write to
-        <a href="mailto:runique.framework.web@gmail.com">runique.framework.web@gmail.com</a>.
-        Questions about the framework can go through the
-        <a href="https://github.com/seb-alliot/runique" target="_blank" rel="noopener">GitHub repository</a>.
-    </p>
+    <section class="rgpd-section">
+        <h2>Your rights</h2>
+        <p>You have the following rights over your data:</p>
+        <ul class="rgpd-rights">
+            <li>access</li>
+            <li>correction</li>
+            <li>erasure</li>
+            <li>objection</li>
+            <li>restriction</li>
+            <li>portability</li>
+        </ul>
+        <p>
+            To exercise them, write to
+            <a href="mailto:runique.framework.web@gmail.com">runique.framework.web@gmail.com</a>:
+            you will get an answer within one month.
+        </p>
+        <p>
+            If you believe your rights are not respected, you can lodge a complaint with the
+            <a href="https://www.cnil.fr/en/complaints" target="_blank" rel="noopener">CNIL</a>
+            (the French data protection authority) or with the authority of your country.
+        </p>
+        <p class="rgpd-note">
+            Questions about the framework can go through the
+            <a href="https://github.com/seb-alliot/runique" target="_blank" rel="noopener">GitHub repository</a>.
+        </p>
+    </section>
     {% endif %}
 
     <div class="back-link">
