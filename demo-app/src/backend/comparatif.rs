@@ -64,13 +64,14 @@ pub async fn comparatif_intro_page(request: &mut Request) -> AppResult<Response>
     request.render("comparatif/index.html")
 }
 
-/// What's coming (the roadmap), with a link to the known limits of the
-/// documentation: the comparisons have their own pages, `/comparatif/runique-vs-…`.
+/// Runique's known limits and what's coming (the roadmap), on their own page:
+/// the comparisons have theirs, `/comparatif/runique-vs-…`.
 pub async fn limites_page(request: &mut Request) -> AppResult<Response> {
     inject_globals(request).await;
     let lang = visitor_lang(&request.headers);
-    // The limits are only linked: their text lives at /docs/{lang}/limites, a
-    // copy here would be the same content under two URLs.
+    // Same text as /docs/{lang}/limites: the template points its canonical
+    // there, so search engines index the documentation page only.
+    let limits = doc_blocks(lang, "limites", "index", request).await;
     let roadmap = split_markdown_sections(if lang == "fr" {
         include_str!("../../../ROADMAP.fr.md")
     } else {
@@ -78,7 +79,7 @@ pub async fn limites_page(request: &mut Request) -> AppResult<Response> {
     });
     context_update!(request => {
         "title"   => if lang == "fr" { "Limites et feuille de route" } else { "Limits and roadmap" },
-        "limits_url" => format!("/docs/{lang}/limites"),
+        "limits"  => &limits,
         "roadmap" => &roadmap,
     });
     request.render("comparatif/limites.html")

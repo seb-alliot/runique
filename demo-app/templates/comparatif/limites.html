@@ -12,9 +12,9 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Runique">
 <meta property="og:title" content="{% if ui_lang == "fr" %}Limites et feuille de route — Runique{% else %}Limits and roadmap — Runique{% endif %}">
-<meta property="og:url" content="https://runique.io/releases/limits">
+<meta property="og:url" content="https://runique.io/docs/{{ ui_lang }}/limites">
 <meta property="og:image" content="{{ og_image }}">
-<link rel="canonical" href="https://runique.io/releases/limits">
+<link rel="canonical" href="https://runique.io/docs/{{ ui_lang }}/limites">
 {% endblock %}
 
 {% block style %}
@@ -32,6 +32,9 @@
         <summary>{% if ui_lang == "fr" %}Sommaire{% else %}Contents{% endif %}</summary>
         <nav class="compare-toc-list" aria-label="{% if ui_lang == "fr" %}Sommaire{% else %}Contents{% endif %}">
             <a class="compare-toc-page" href="#limites">{% if ui_lang == "fr" %}Limites connues{% else %}Known limits{% endif %}</a>
+            <div class="compare-toc-group">
+                {% for block in limits %}{% if block.heading %}<a href="#limites-{{ block.heading | slugify }}">{{ block.heading }}</a>{% endif %}{% endfor %}
+            </div>
             <a class="compare-toc-page" href="#a-venir">{% if ui_lang == "fr" %}À venir{% else %}What's coming{% endif %}</a>
             <a class="compare-toc-page" href="#problemes-connus">{% if ui_lang == "fr" %}Problèmes connus{% else %}Known issues{% endif %}</a>
         </nav>
@@ -40,13 +43,12 @@
 
     <section class="compare-section" id="limites">
         <h2>{% if ui_lang == "fr" %}Limites connues{% else %}Known limits{% endif %}</h2>
-        {% if ui_lang == "fr" %}
-        <p class="compare-source">Ce que Runique ne fait pas encore, par domaine (base de données, formulaires, sécurité, admin), avec les solutions en attendant.</p>
-        <p class="compare-known-issues"><a href="{{ limits_url }}">Lire les limites connues dans la documentation</a></p>
-        {% else %}
-        <p class="compare-source">What Runique doesn't do yet, by area (database, forms, security, admin), with the workarounds in the meantime.</p>
-        <p class="compare-known-issues"><a href="{{ limits_url }}">Read the known limits in the documentation</a></p>
-        {% endif %}
+        <div class="doc-block-content">
+            {% for block in limits %}
+            {% if block.heading %}<h3 id="limites-{{ block.heading | slugify }}">{{ block.heading }}</h3>{% endif %}
+            {{ block.content | markdown }}
+            {% endfor %}
+        </div>
     </section>
 
     <section class="compare-section" id="a-venir">
