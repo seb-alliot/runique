@@ -8,7 +8,7 @@
 //! - enum value additions are detected.
 #![cfg(test)]
 use super::*;
-use crate::cli::makemigration::{collect_destructive_messages, topological_sort_changes};
+use crate::migration::changes::{collect_destructive_messages, topological_sort_changes};
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

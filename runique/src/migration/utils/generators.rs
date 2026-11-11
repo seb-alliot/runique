@@ -6,7 +6,7 @@ use crate::migration::utils::{
 
 /// Builds the FK constraint name. Length (MariaDB/MySQL hard-reject over 64 characters) is
 /// validated upfront, over the whole change set, before any file generation runs — see
-/// `check_identifier_lengths` in `cli/makemigration.rs` — so this stays a pure formatter.
+/// `check_identifier_lengths` in `migration/cli_migration/report.rs` — so this stays a pure formatter.
 /// The create and drop statements for the same FK must always agree on the exact name, so
 /// this is the single place that builds it.
 fn fk_constraint_name(table: &str, from: &str, to_table: &str) -> String {

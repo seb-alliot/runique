@@ -2,7 +2,9 @@
 pub mod new_project;
 pub use new_project::create_new_project;
 
-pub mod makemigration;
+// The `makemigrations` command lives in `migration/cli_migration`; this name
+// keeps `runique::cli::makemigration::…` working for the binary and the tests.
+pub use crate::migration::cli_migration as makemigration;
 pub use makemigration::{
     scan_entities, seaorm_alter_file_path, seaorm_alter_module_name, update_migration_lib,
 };

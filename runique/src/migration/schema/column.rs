@@ -123,7 +123,7 @@ impl ColumnDef {
     /// # Examples
     ///
     /// ```rust, ignore
-    /// use crate::runique::migration::column::ColumnDef;
+    /// use runique::migration::ColumnDef;
     /// ColumnDef::new("short_id").binary_len(16);
     /// ColumnDef::new("sha256_hash").binary_len(32);
     /// ColumnDef::new("sha512_hash").binary_len(64);
