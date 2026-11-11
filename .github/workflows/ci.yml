@@ -10,6 +10,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# No job writes to the repository: the token stays read-only.
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
   DB_ENGINE: postgres
@@ -121,11 +125,6 @@ jobs:
     env:
       DATABASE_URL_MARIADB: mysql://runique:runique_test@127.0.0.1:3307/runique_test
       DATABASE_URL_PG: postgres://runique:runique_test@127.0.0.1:5433/runique_test
-      # RUST_LOG temporaire : reset_password_unknown_id_creates_no_token échoue
-      # de façon intermittente (500 au lieu d'un id inconnu géré proprement),
-      # non reproduit en local — objectif : capturer l'erreur réelle derrière
-      # le 500 au prochain échec CI. À retirer une fois diagnostiqué.
-      RUST_LOG: warn,runique::admin=trace,runique::auth=trace
       RUST_BACKTRACE: "1"
     steps:
       - uses: actions/checkout@v4
@@ -179,6 +178,30 @@ jobs:
         run: cargo test --lib --features all-databases the_generated_project_compiles -- --ignored
         working-directory: runique
 
+  # The engines are mutually exclusive for a user, who always builds one of
+  # them alone: every other job uses `all-databases`, so a `cfg` branch of a
+  # single engine is only compiled here.
+  engines:
+    name: Single engine (${{ matrix.features }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        features: [sqlite, postgres, mysql, "sqlite,admin", "postgres,admin", "mysql,admin"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.94"
+
+      - name: Check
+        run: cargo check --features ${{ matrix.features }}
+        working-directory: runique
+
   security:
     name: Security Audit
     runs-on: ubuntu-latest
@@ -193,7 +216,8 @@ jobs:
       - name: Install cargo-audit
         run: cargo install cargo-audit
 
-      # Blocking: a known vulnerability in a dependency fails the build.
+      # Blocking: a known vulnerability in a dependency fails the build. The
+      # advisories ignored, and why, are in `.cargo/audit.toml`.
       - name: Run security audit
         run: cargo audit
 
@@ -224,7 +248,8 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      # Same features as `[package.metadata.docs.rs]` in runique/Cargo.toml:
+      # what passes here is what docs.rs builds.
       - name: Build documentation
-        run: cargo doc --no-deps --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin
+        run: cargo doc --no-deps --features all-databases,admin,acme
         working-directory: runique
-        continue-on-error: true

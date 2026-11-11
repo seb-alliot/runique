@@ -32,9 +32,7 @@ use std::net::IpAddr;
 /// adding your own entries.
 ///
 /// # Example — behind nginx on the same machine
-/// ```rust,ignore
-/// // Default already covers this — no config needed.
-/// ```
+/// The default already covers it: no configuration needed.
 ///
 /// # Example — specific cloud proxy IP
 /// ```rust,ignore

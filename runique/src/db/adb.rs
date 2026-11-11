@@ -1,8 +1,8 @@
 //! `ADb`: the framework's database handle, the type behind every `&ADb`
 //! parameter in the framework (`search!`, forms, admin, auth).
 //!
-//! It wraps either a real [`DatabaseConnection`] or, with the `test-utils`
-//! feature, a [`RuniqueDb`](crate::db::RuniqueDb), behind an `Arc`. Unlike a
+//! It wraps either a real [`DatabaseConnection`](sea_orm::DatabaseConnection) or, with the `test-utils`
+//! feature, a `RuniqueDb`, behind an `Arc`. Unlike a
 //! bare `Arc<T>`, `ADb` implements `ConnectionTrait`/`TransactionTrait`
 //! itself. `Arc<T>` can't get those impls from this crate: `Arc` isn't
 //! `#[fundamental]`, so the orphan rule rules it out. And that's the whole
@@ -30,7 +30,7 @@ impl ADb {
         Self(Arc::new(inner))
     }
 
-    /// Builds an `ADb` from a freshly opened [`DatabaseConnection`], which is
+    /// Builds an `ADb` from a freshly opened [`DatabaseConnection`](sea_orm::DatabaseConnection), which is
     /// what you want most of the time (boot, CLI tools, test setup). With
     /// `test-utils` on, it also does the `RuniqueDb::Conn` wrapping for you, so
     /// callers never have to care that `Inner` changes with the feature.

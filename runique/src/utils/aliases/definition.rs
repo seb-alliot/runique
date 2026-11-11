@@ -67,7 +67,7 @@ pub type OCspNonce = Option<CspNonce>;
 /// String-to-String map (headers, form data, attributes, errors, etc.)
 pub type StrMap = HashMap<String, String>;
 
-/// String-to-Vec<String> map (raw multipart/urlencoded form data)
+/// String-to-`Vec<String>` map (raw multipart/urlencoded form data)
 pub type StrVecMap = HashMap<String, Vec<String>>;
 
 /// String-to-JSON map (serialized form data, field `extra_context`).
