@@ -5,7 +5,7 @@
 //!
 //! No database: the migration's column is what the CLI parses, built the way
 //! its generated file builds it.
-use runique::migration::utils::parser_builder::parse_schema_from_source;
+use runique::migration::parse_schema_from_source;
 use runique::runique_dsl::ast::FormFieldKind;
 use runique::sea_orm::sea_query::{ColumnType, StringLen};
 

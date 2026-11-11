@@ -71,9 +71,9 @@ sequenceDiagram
     participant CLI as runique makemigrations
     participant DSL as runique_dsl (même parseur que la macro)
     participant SC as scan_entities
-    participant SN as snapshots (parser_seaorm)
+    participant SN as snapshots (parse::seaorm)
     participant D as diff_schemas
-    participant G as generators SeaQuery
+    participant G as generate (SeaQuery)
 
     CLI->>DSL: model!{} / extend!{} de chaque fichier
     DSL-->>CLI: ParsedModel (schéma + tables des listes) ou erreur fichier:ligne:colonne
@@ -88,7 +88,7 @@ sequenceDiagram
 ## Anomalies / flux suspects
 
 ### ❌ AM1 — FAUX POSITIF (makemigrations gère bien les `ALTER COLUMN`)
-La CLI utilise `diff_schemas` ([makemigration.rs:489](../../runique/src/cli/makemigration.rs#L489))
+La CLI utilise `diff_schemas` ([cli_migration/plan.rs:33](../../runique/src/migration/cli_migration/plan.rs#L33))
 qui calcule `modified_columns`. Le `ModelSchema::diff` limité (add/drop) n'est **pas** le
 chemin de la CLI. Détecté en traçant le flux jusqu'au vrai `diff` appelé.
 
@@ -99,7 +99,8 @@ touche `session_id`. `upsert` (1ʳᵉ) le fixe, `create` (2ᵉ) ne fait qu'un UP
 **double aller-retour DB** au login (🟡 perf, fusionnable).
 
 ### 🟡 AM3 — TTL 24h codé en dur en double — ✅ CORRIGÉ
-Extrait en constante unique `AUTH_SESSION_TTL_HOURS` (cookie + DB).
+Une seule durée, `AUTH_SESSION_TTL_SECS`, pour le cookie et la base : réglable par le builder,
+24 h par défaut (`DEFAULT_AUTH_SESSION_TTL_SECS`, `auth/session.rs`).
 
 ### 🟡 AM4 — `pull_groupes_db` à chaque login + cache mémoire process-local — ✅ CORRIGÉ (2026-10-03)
 Cache supprimé. L'état du compte et les droits sont relus en base à chaque requête admin

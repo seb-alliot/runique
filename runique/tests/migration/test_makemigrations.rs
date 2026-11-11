@@ -3,7 +3,7 @@
 //!          update_migration_lib (création + mise à jour), parse_create_file,
 //!          collect_destructive_messages
 
-use runique::cli::makemigration::{
+use runique::migration::cli_migration::{
     seaorm_alter_file_path, seaorm_alter_module_name, update_migration_lib,
 };
 use std::fs;
@@ -113,14 +113,14 @@ fn test_update_migration_lib_ajoute_second_module() {
 
 #[test]
 fn test_parse_create_file_fichier_inexistant_retourne_err() {
-    use runique::cli::makemigration::parse_create_file;
+    use runique::migration::cli_migration::parse_create_file;
     let result = parse_create_file("/chemin/inexistant/fichier.rs");
     assert!(result.is_err());
 }
 
 #[test]
 fn test_parse_create_file_contenu_invalide_retourne_err() {
-    use runique::cli::makemigration::parse_create_file;
+    use runique::migration::cli_migration::parse_create_file;
     let dir = temp_dir("parse_invalid");
     let file_path = dir.join("invalid.rs");
     fs::write(&file_path, "ce n'est pas du rust valide !!!@@@").unwrap();
@@ -132,7 +132,7 @@ fn test_parse_create_file_contenu_invalide_retourne_err() {
 // scan_entities
 // ═══════════════════════════════════════════════════════════════
 
-use runique::cli::makemigration::scan_entities;
+use runique::migration::cli_migration::scan_entities;
 
 fn entity_user() -> &'static str {
     r#"
@@ -390,8 +390,8 @@ fn test_scan_entities_belongs_to_table_framework() {
 // collect_destructive_messages
 // ═══════════════════════════════════════════════════════════════
 
-use runique::cli::makemigration::collect_destructive_messages;
-use runique::migration::utils::types::{Changes, ParsedColumn, ParsedFk};
+use runique::migration::cli_migration::collect_destructive_messages;
+use runique::migration::types::{Changes, ParsedColumn, ParsedFk};
 
 fn col(name: &str, col_type: &str, nullable: bool) -> ParsedColumn {
     ParsedColumn {
@@ -574,7 +574,7 @@ fn added_fk_no_action_not_destructive() {
 // seaorm_extend_module_name / seaorm_extend_file_path
 // ═══════════════════════════════════════════════════════════════
 
-use runique::cli::makemigration::{seaorm_extend_file_path, seaorm_extend_module_name};
+use runique::migration::cli_migration::{seaorm_extend_file_path, seaorm_extend_module_name};
 
 #[test]
 fn extend_module_name_format() {
@@ -610,8 +610,8 @@ fn extend_file_path_termine_par_rs() {
 // merge_extend_schemas
 // ═══════════════════════════════════════════════════════════════
 
-use runique::cli::makemigration::merge_extend_schemas;
-use runique::migration::utils::types::ParsedSchema;
+use runique::migration::cli_migration::merge_extend_schemas;
+use runique::migration::types::ParsedSchema;
 
 fn extend_schema(table: &str, col_names: &[&str]) -> ParsedSchema {
     ParsedSchema {
@@ -673,7 +673,7 @@ fn merge_vide_retourne_vide() {
 // scan_extend_blocks
 // ═══════════════════════════════════════════════════════════════
 
-use runique::cli::makemigration::scan_extend_blocks;
+use runique::migration::cli_migration::scan_extend_blocks;
 
 #[test]
 fn scan_extend_dir_vide_retourne_vide() {
@@ -725,7 +725,7 @@ fn scan_extend_ignore_mod_rs() {
 // ensure_admin_migration_positioned
 // ═══════════════════════════════════════════════════════════════
 
-use runique::cli::makemigration::ensure_admin_migration_positioned;
+use runique::migration::cli_migration::ensure_admin_migration_positioned;
 
 fn lib_with_vec(modules: &[&str]) -> String {
     let mods: String = modules.iter().map(|m| format!("mod {};\n", m)).collect();

@@ -81,8 +81,9 @@ clé jamais affichée par `Debug` (voir [../middleware/sessions.md](../middlewar
 
 ## Reste utils (data/flux, pas de classe notable)
 
-- `cli/` : `makemigration`/`migrate`/`cli_admin`/`new_project`/`start` = **fonctions de flux**
-  (couvertes par flux/makemigrations + commit atomique). Pas de struct porteuse.
+- `cli/` : fichiers d'appel seulement (`makemigration`, `migrate`, `create_superuser`, `new_project` ;
+  `test_runner` garde encore sa logique). La logique vit dans `migration::cli_migration`,
+  `auth::create_superuser` et `new_project` (couverts par flux/makemigrations + commit atomique).
 - `reset_token/entity` : Model `eihwaz_reset_tokens` (cf. [merise](../../merise/modele-donnees.md) + [auth](../auth/authentification.md)).
 - `constante/`, `aliases/`, `config/{env,integrity,pk,url_params}`, `resolve_ogimage/`,
   `init_error/` : constantes, alias de types, helpers — pas de modèle de données propre.

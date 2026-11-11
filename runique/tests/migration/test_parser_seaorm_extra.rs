@@ -1,6 +1,6 @@
 //! Tests supplémentaires — parser_seaorm (FK, indexes, types variés)
 
-use runique::migration::utils::parser_seaorm::parse_seaorm_source;
+use runique::migration::parse_seaorm_source;
 
 const TABLE_WITH_FK: &str = r#"
 use sea_orm_migration::prelude::*;

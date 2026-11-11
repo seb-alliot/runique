@@ -158,9 +158,7 @@ mod helpers_migration {
 // Written from cargo-mutants survivors (2026-10-07): every type, and every
 // alternative spelling a detector accepts, checked one by one.
 mod helpers_type_table {
-    use runique::migration::utils::helpers::{
-        col_type_to_method, detect_col_type_builder, detect_col_type_seaorm,
-    };
+    use runique::migration::{col_type_to_method, detect_col_type_builder, detect_col_type_seaorm};
 
     const TYPES: &[(&str, &str)] = &[
         ("Text", "text"),

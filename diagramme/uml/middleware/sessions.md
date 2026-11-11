@@ -94,7 +94,8 @@ writer mémoire). Mémoire reste cohérente (autoritaire), mais le fallback peut
 **Corrigé (2.1.21).** Le refus au-delà du high watermark était déjà propre côté store (Err
 typé, loggé), mais remontait en 500 générique. Ajout de `is_saturated()` +
 `RuniqueEngine::session_store_saturated()` → le login admin renvoie un **503 + Retry-After**
-clair (template `503.html` + `render_503`, 9 locales) au lieu d'un 500. Le login public se
+clair au lieu d'un 500 : la route renvoie le statut, et le middleware d'erreurs l'affiche avec
+`errors/status.html` et l'en-tête `Retry-After` (`middleware/errors/error.rs`). Le login public se
 protège pareil via l'accesseur engine.
 
 ### 🟡 S4 — Double identifiant `cookie_id` / `session_id` (rappel D4)

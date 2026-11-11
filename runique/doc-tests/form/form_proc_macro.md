@@ -3,36 +3,65 @@
 La macro `#[form(...)]` génère la struct, `impl FormAccess` (champs du modèle et accesseurs) et `impl ModelForm`.
 Le dev n'écrit que `impl RuniqueForm`, avec sa logique métier.
 
-```rust,ignore
+```rust,no_run
 use runique::prelude::*;
 
-#[form(schema = user_schema, fields = [username, email, password])]
-pub struct RegisterForm;
+mod article {
+    use runique::prelude::*;
 
-impl RuniqueForm for RegisterForm {}
+    model! {
+        Article,
+        table: "articles",
+        pk: id => i32,
+        {
+            title: text [max_length: 100, required],
+            body:  textarea [required],
+        }
+    }
+}
+
+#[form(schema = article, fields = [title, body])]
+pub struct ArticleForm;
+
+impl RuniqueForm for ArticleForm {}
+
+fn main() {}
 ```
 
 ## Avec validation métier
 
-`#[async_trait]` requis uniquement quand on override une méthode async :
+`#[async_trait]` est requis dès qu'on surcharge une méthode async :
 
-```rust,ignore
+```rust,no_run
 use runique::prelude::*;
 
-#[form(schema = user_schema, fields = [username, email, password])]
-pub struct RegisterForm;
+mod article {
+    use runique::prelude::*;
+
+    model! {
+        Article,
+        table: "articles",
+        pk: id => i32,
+        {
+            title: text [max_length: 100, required],
+            body:  textarea [required],
+        }
+    }
+}
+
+#[form(schema = article, fields = [title, body])]
+pub struct ArticleForm;
 
 #[async_trait]
-impl RuniqueForm for RegisterForm {
+impl RuniqueForm for ArticleForm {
     async fn clean(&mut self) -> Result<(), StrMap> {
         let mut errors = StrMap::new();
-        if self.get_string("username").len() < 3 {
-            errors.insert("username".to_string(), "Minimum 3 caractères".to_string());
-        }
-        if !self.get_string("email").contains('@') {
-            errors.insert("email".to_string(), "Email invalide".to_string());
+        if self.cleaned::<String>("title").unwrap_or_default().len() < 3 {
+            errors.insert("title".to_string(), "Minimum 3 caractères".to_string());
         }
         if errors.is_empty() { Ok(()) } else { Err(errors) }
     }
 }
+
+fn main() {}
 ```

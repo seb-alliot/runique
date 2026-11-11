@@ -119,7 +119,7 @@ fn columns_are_not_null_unless_declared_nullable() {
 
 #[test]
 fn snapshot_default_does_not_set_has_default_now() {
-    // parser_seaorm must NOT treat a literal `.default(0)` as a CURRENT_TIMESTAMP default.
+    // the SeaORM parser (`parse/seaorm.rs`) must NOT treat a literal `.default(0)` as a CURRENT_TIMESTAMP default.
     let schema = parse_model(BLOG_SRC);
     let snapshot = generate_snapshot_file(&schema);
     let reparsed = parse_seaorm_source(&snapshot).expect("snapshot should reparse");
@@ -1851,7 +1851,7 @@ fn a_snapshot_from_before_lengths_takes_the_model_lengths() {
         r#"model! { Post, table: "post", pk: id => i32, { title: text [required] } }"#,
     ));
     let old = old
-        .strip_prefix(crate::migration::utils::generators::SNAPSHOT_LENGTHS_MARKER)
+        .strip_prefix(crate::migration::SNAPSHOT_LENGTHS_MARKER)
         .unwrap()
         .to_string();
     let dir = std::env::temp_dir().join(format!("runique_len_{}", std::process::id()));
@@ -1860,7 +1860,7 @@ fn a_snapshot_from_before_lengths_takes_the_model_lengths() {
     std::fs::write(&path, old).unwrap();
 
     let previous =
-        crate::cli::makemigration::previous_snapshot(path.to_str().unwrap(), &current).unwrap();
+        crate::migration::cli_migration::previous_snapshot(path.to_str().unwrap(), &current).unwrap();
     std::fs::remove_dir_all(&dir).ok();
     assert!(diff_schemas(&previous, &current).is_empty());
 }

@@ -15,8 +15,8 @@ use anyhow::Result;
 use runique_dsl::extend::ExtendDsl;
 use syn::visit::Visit;
 
-use crate::migration::utils::parser_builder::{MacroCollector, decl_to_column, located};
-use crate::migration::utils::types::ParsedSchema;
+use crate::migration::parse::builder::{MacroCollector, decl_to_column, located};
+use crate::migration::types::ParsedSchema;
 
 /// Parses all `extend!{}` blocks in a Rust source file, one [`ParsedSchema`]
 /// per block, with `primary_key = None` — these extend existing tables. An

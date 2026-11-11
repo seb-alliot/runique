@@ -289,3 +289,29 @@ Pentest local (demo-app sur 127.0.0.1, Postgres local) — VALIDE les diagrammes
   « a page of bare keys shows nothing »). Le menu montre la ressource (`visible_to` sur le
   droit table) alors que la liste refuse — attendu. Candidat à documenter dans le diagramme
   de la porte si on veut tracer cette règle.
+
+## Réorganisation du code, 2026-11-12 — diagrammes mis à jour
+
+Le code de `migration/` et de `cli/` a été réorganisé (aucune logique modifiée, tests et
+clippy verts) :
+- `migration/` suit les étapes de makemigrations : `schema/` (ex-`column/`, `foreign_key/`,
+  `hooks/`, `index/`, `primary_key/`), `parse/` (ex-`utils/parser_*` + moitié de `helpers.rs`),
+  `diff.rs`, `changes/` (tri et contrôles purs), `generate/` (ex-`utils/generators.rs`, découpé),
+  `cli_migration/` (logique des commandes), `paths.rs`, `types.rs`, `helpers.rs`. `utils/` n'existe plus.
+- `cli/` ne contient plus que des appels : `cli_admin.rs` → `auth/create_superuser.rs`,
+  `new_project.rs` → `new_project/` (avec ses modèles `composant-bin/`), `migrate.rs` et
+  `migration_crate.rs` (renommé `init_migrate.rs`) → `migration/cli_migration/`.
+  `test_runner.rs` garde encore sa logique.
+
+Diagrammes : chemins et liens corrigés dans `uml/migration/*`, `flux/auth-session-et-makemigrations.md`,
+`uml/utils/tracing-securite-tokens.md`, `anomalies.md`, `README.md` ; nouveau
+`uml/migration/organisation-modules.md`. Restent 6 liens cassés dans `anomalies.md` vers l'ancien
+admin (`admin/table_admin/`, `admin/admin_main/`, `admin/helper/`), antérieurs à cette session.
+
+Même jour, `anomalies.md` réécrit : seules les anomalies encore présentes dans le code, vérifiées
+une par une (S2, IM1, S1, AM2, D3, D4/S4, E1, C7, C8, A7, MG1, DUP1, DC2) ; les entrées corrigées
+ou sans objet retirées (historique dans git) ; faux positifs gardés pour ne pas les re-signaler.
+A7 reste ouverte : le 3ᵉ niveau de la porte (règles métier) n'existe que dans les commentaires.
+Scan des diagrammes contre le code : 3 passages périmés corrigés (`render_503` → middleware
+d'erreurs, `AUTH_SESSION_TTL_HOURS` → `AUTH_SESSION_TTL_SECS`, `admin_required` → `admin_access`) ;
+les autres noms absents du code sont des notes historiques assumées ou des étiquettes de diagramme.

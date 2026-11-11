@@ -1,5 +1,6 @@
 use sea_orm::{EntityTrait, IdenStatic, Iterable, PrimaryKeyToColumn};
 
+#[doc = include_str!("../../../doc-tests/admin/form_config.md")]
 pub struct FormConfig<E: EntityTrait> {
     fields: Vec<E::Column>,
     readonly: Vec<E::Column>,

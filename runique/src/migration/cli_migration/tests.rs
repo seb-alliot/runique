@@ -5,7 +5,7 @@ use super::plan::*;
 use super::report::*;
 use super::snapshot::*;
 use super::*;
-use crate::migration::utils::types::{ParsedColumn, ParsedFk};
+use crate::migration::types::{ParsedColumn, ParsedFk};
 use std::fs;
 use std::path::Path;
 
@@ -285,7 +285,7 @@ fn identifier_lengths_at_the_postgres_limit() {
         on_delete: "Cascade".into(),
         on_update: "NoAction".into(),
     };
-    let index = |len: usize| crate::migration::utils::types::ParsedIndex {
+    let index = |len: usize| crate::migration::types::ParsedIndex {
         name: "i".repeat(len),
         columns: vec!["title".into()],
         unique: false,

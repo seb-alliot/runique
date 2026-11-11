@@ -7,7 +7,7 @@ use runique_dsl::ast::{
 };
 use runique_dsl::form_field_to_field_def;
 
-use crate::migration::utils::types::{ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema};
+use crate::migration::types::{ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema};
 
 /// PascalCase → snake_case to derive target table name from model
 pub(crate) fn pascal_to_snake(s: &str) -> String {

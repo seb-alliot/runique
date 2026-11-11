@@ -1,25 +1,25 @@
 //! Migration file paths — snapshots directory, migration files, SeaORM entities.
 
 /// `snapshots/` directory (current table state, used only for diffing).
-#[doc = include_str!("../../../doc-tests/migration/paths_snapshot_dir.md")]
+#[doc = include_str!("../../doc-tests/migration/paths_snapshot_dir.md")]
 pub fn snapshot_dir(migrations_path: &str) -> String {
     format!("{}/snapshots", migrations_path)
 }
 
 /// Path to the snapshot file of a table
-#[doc = include_str!("../../../doc-tests/migration/paths_snapshot_file.md")]
+#[doc = include_str!("../../doc-tests/migration/paths_snapshot_file.md")]
 pub fn snapshot_file_path(migrations_path: &str, table_name: &str) -> String {
     format!("{}/snapshots/{}.rs", migrations_path, table_name)
 }
 
 /// SeaORM module name for a CREATE (used in lib.rs and as file name)
-#[doc = include_str!("../../../doc-tests/migration/paths_seaorm_module.md")]
+#[doc = include_str!("../../doc-tests/migration/paths_seaorm_module.md")]
 pub fn seaorm_create_module_name(timestamp: &str, table_name: &str) -> String {
     format!("m{}_create_{}_table", timestamp, table_name)
 }
 
 /// Path to the SeaORM migration file for a CREATE
-#[doc = include_str!("../../../doc-tests/migration/paths_seaorm_file.md")]
+#[doc = include_str!("../../doc-tests/migration/paths_seaorm_file.md")]
 pub fn seaorm_create_file_path(migrations_path: &str, timestamp: &str, table_name: &str) -> String {
     format!(
         "{}/m{}_create_{}_table.rs",

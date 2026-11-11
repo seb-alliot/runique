@@ -1,6 +1,6 @@
 # Utilisation manuelle du formulaire
 
-```rust,ignore
+```rust,no_run
 use runique::prelude::*;
 use runique::forms::{Forms, fields::text::TextField, fields::number::NumericField};
 
@@ -27,7 +27,7 @@ async fn register_handler(mut request: Request) -> AppResult<Response> {
         Ok(validated) => validated,
         Err(form) => {
             // GET (rien soumis) ou soumission invalide — ré-afficher avec les erreurs
-            context_update!(request => { "form" => &form });
+            context_update!(request => { "form" => form.forms() });
             return request.render("register.html");
         }
     };
@@ -40,25 +40,33 @@ async fn register_handler(mut request: Request) -> AppResult<Response> {
 
     Ok(Redirect::to("/success").into_response())
 }
+
+fn main() {}
 ```
 
 `request.form("nom")` construit le formulaire, extrait le body et vérifie le CSRF en coulisses — pas de `Forms::new(&csrf_token)` ni de `set_renderer()` manuel. `ValidationForm::try_form(form, &request)` remplace le `if ctx.is_post() { form.fill(&data); if form.is_valid()... }` : il dispatche lui-même sur la méthode HTTP (`allow_get`/`allow_post`) puis valide.
 
 ## Récupération des valeurs
 
-Les accesseurs `cleaned_*` renvoient toujours un `Option<T>` (le champ peut être absent, vide, ou invalide) :
+`cleaned::<T>(nom)` renvoie toujours un `Option<T>` (le champ peut être absent, vide, ou invalide) :
 
-```rust,ignore
-// Chaîne de caractères
-let username: Option<String> = form.cleaned::<String>("username");
+```rust,no_run
+use runique::prelude::*;
 
-// Entiers et décimaux
-let age: Option<i32> = form.cleaned::<i32>("age");
-let score: Option<f64> = form.cleaned::<f64>("score");
+fn read<F: RuniqueForm>(form: &F) {
+    // Chaîne de caractères
+    let username: Option<String> = form.cleaned::<String>("username");
 
-// Booléen
-let active: Option<bool> = form.cleaned::<bool>("active");
+    // Entiers et décimaux
+    let age: Option<i32> = form.cleaned::<i32>("age");
+    let score: Option<f64> = form.cleaned::<f64>("score");
 
-// Dates
-let birthday: Option<chrono::NaiveDate> = form.cleaned::<chrono::NaiveDate>("birthday");
+    // Booléen
+    let active: Option<bool> = form.cleaned::<bool>("active");
+
+    // Dates
+    let birthday: Option<chrono::NaiveDate> = form.cleaned::<chrono::NaiveDate>("birthday");
+}
+
+fn main() {}
 ```

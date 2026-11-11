@@ -2,7 +2,7 @@
 
 Navigate the Runique Framework codebase.
 
-**Version**: 4.0.0 — **Updated**: 2026-10-29
+**Version**: 4.0.0 — **Updated**: 2026-11-12
 
 ---
 
@@ -55,13 +55,14 @@ runique/
 - **`user.rs`** — user extractor
 - **`user_trait.rs`** — `RuniqueUser` trait
 - **`form.rs`** — login form
+- **`create_superuser.rs`** — `runique create-superuser`: interactive wizard, hashing, insert
 
 ### `bin/`
 - **`runique.rs`** — CLI: `new`, `makemigrations`, `migration up`, `create-superuser`, `test`
 
-### `composant-bin/` — Scaffolding Templates
-- **`code/`** — generated code templates (main.rs, forms.rs, url.rs, views.rs, users.rs…)
-- `css/`, `image/`, `template/`, `readme/` — default assets for new projects
+### `new_project/` — `runique new`
+- **`mod.rs`** — scaffolds a project: layout, bundled files, `SECRET_KEY`, its `migration` crate
+- **`composant-bin/`** — templates embedded at compile time (`include_str!`/`include_bytes!`): `code/` (main.rs, forms, url.rs, views.rs…), `config/`, `css/`, `image/`, `template/`, `readme/`
 
 ### `config/` — Configuration
 - **`app.rs`** — `RuniqueConfig` struct
@@ -132,12 +133,20 @@ runique/
 - **`session/session_db.rs`** — DB-backed session store, content encrypted
 
 ### `migration/` — Migration Tooling
-- **`mod.rs`** — public migration API
-- **`schema/`**, **`column/`**, **`primary_key/`**, **`foreign_key/`**, **`index/`**, **`hooks/`** — schema DSL
-- **`utils/`** — `diff`, `generators`, `parser_seaorm`, `parser_builder` (reads `model!{}` through `runique_dsl`), `parser_extend`, `paths`, `types`
+Folders follow the steps `makemigrations` goes through.
+- **`mod.rs`** — public migration API (everything re-exported at `runique::migration::…`)
+- **`schema/`** — ① describe a model: `ModelSchema`, `column` (`ColumnDef`), `primary_key`, `foreign_key`, `index`, `hooks`
+- **`parse/`** — ② read source into `ParsedSchema`: `builder/` (`model!{}` through `runique_dsl`), `extend`, `seaorm` (existing migration files), `col_types`, `syn_extract`
+- **`diff.rs`** — ③ snapshot vs model → `Changes`
+- **`changes/`** — ④ order and check the `Changes`: `ordering`, `destructive_changes`, `name_length_limit`
+- **`generate/`** — ⑤ write the migration files: `create`, `alter`, `columns`, `constraints` (FKs, indexes), `enums`
+- **`cli_migration/`** — the commands' logic: `run` (makemigrations: `scan`, `snapshot`, `plan`, `lib_file`, `report`), `migrate` (up/down/status), `init_migrate` (writes a project's `migration` crate, templates in `composant-bin/`)
+- **`paths.rs`**, **`types.rs`**, **`helpers.rs`**, **`tests_pipeline.rs`**
 
-### `cli/` — CLI implementations
-- `makemigration.rs`, `migrate.rs` (`migration up`), `new_project.rs`, `cli_admin.rs` (`create-superuser`), `test_runner.rs` (`runique test`)
+### `cli/` — CLI entry points
+Calls only: each command's logic lives in its own module, the binary goes through `runique::cli`.
+- `makemigration.rs` → `migration::cli_migration`, `migrate.rs` → `migration::cli_migration::migrate`, `new_project.rs` → `new_project`, `create_superuser.rs` → `auth::create_superuser`
+- `test_runner.rs` (`runique test`) — still holds its logic, to be moved out
 
 ### `utils/` — Utilities
 - **`acme/`** — automatic TLS via Let's Encrypt (ACME HTTP-01), `acme` feature

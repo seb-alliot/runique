@@ -1,6 +1,6 @@
 //! Destructive changes: listing them (dropped columns, type changes, narrowed
 //! lengths, dropped FKs…) and the type changes that are not migrated yet.
-use crate::migration::utils::types::Changes;
+use crate::migration::types::Changes;
 
 /// Scans a set of changes for destructive operations (dropped columns, type
 /// changes, nullable-to-required, dropped FKs, new `ON DELETE CASCADE` on an

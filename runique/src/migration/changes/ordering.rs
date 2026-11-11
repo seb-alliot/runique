@@ -6,8 +6,8 @@
 /// keys left pointing forward are added once their target exists (see
 /// `build_main_plan`). Changes to existing tables follow, by name.
 pub fn topological_sort_changes(
-    changes: Vec<crate::migration::utils::types::Changes>,
-) -> Vec<crate::migration::utils::types::Changes> {
+    changes: Vec<crate::migration::types::Changes>,
+) -> Vec<crate::migration::types::Changes> {
     use std::collections::{BTreeMap, BTreeSet};
 
     let new_tables: BTreeSet<String> = changes
@@ -47,12 +47,11 @@ pub fn topological_sort_changes(
         sorted_names.push(next);
     }
 
-    let mut by_name: BTreeMap<String, crate::migration::utils::types::Changes> = changes
+    let mut by_name: BTreeMap<String, crate::migration::types::Changes> = changes
         .into_iter()
         .map(|c| (c.table_name.clone(), c))
         .collect();
-    let mut result: Vec<crate::migration::utils::types::Changes> =
-        Vec::with_capacity(by_name.len());
+    let mut result: Vec<crate::migration::types::Changes> = Vec::with_capacity(by_name.len());
     for name in sorted_names {
         if let Some(c) = by_name.remove(&name) {
             result.push(c);

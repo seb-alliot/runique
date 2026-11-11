@@ -9,8 +9,8 @@
 //! Postgres/MariaDB need `docker compose up -d` and `DATABASE_URL_PG` /
 //! `DATABASE_URL_MARIADB` in `.env.test`; without them those tests return early.
 use crate::helpers::{db_mariadb, db_postgres};
-use runique::migration::utils::helpers::col_type_method;
-use runique::migration::utils::parser_builder::parse_schema_from_source;
+use runique::migration::col_type_method;
+use runique::migration::parse_schema_from_source;
 use runique::sea_orm::{
     ConnectionTrait, Database, DatabaseConnection,
     sea_query::{Alias, ColumnDef, Table},

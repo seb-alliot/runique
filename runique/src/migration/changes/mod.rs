@@ -1,4 +1,4 @@
-//! Working on the computed [`Changes`](crate::migration::utils::types::Changes),
+//! Working on the computed [`Changes`](crate::migration::types::Changes),
 //! after `diff_schemas` and before any SQL is written: ordering them, and
 //! inspecting them for destructive operations or names too long for the engine.
 pub mod destructive_changes;

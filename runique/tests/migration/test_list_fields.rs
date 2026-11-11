@@ -1,6 +1,6 @@
 //! `checkbox` / `multichoice` list fields: no column on the model, a table of
 //! their own in the migrations; `i8` / `i16` enums.
-use runique::cli::makemigration::scan_entities;
+use runique::migration::cli_migration::scan_entities;
 use std::fs;
 
 mod book {

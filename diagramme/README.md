@@ -89,8 +89,9 @@ sont consolidées dans [anomalies.md](anomalies.md) avec sévérité (🔴 bloqu
 | forms (+ prisme, ValidationForm) | uml/forms + flux/requete-csrf-upload |
 | **admin 4.0** (builder, site, router, template, config, middleware) | uml/admin + flux/admin-crud |
 | **auth 4.0** (gate, ModelMeta, Rang, permissions, history, migrations_table) | uml/auth + merise |
-| migration + runique_dsl | uml/migration + flux/makemigrations |
+| migration + runique_dsl | uml/migration (dont organisation-modules) + flux/makemigrations |
 | middleware session / sécurité | uml/middleware |
 | tables eihwaz_* | merise/modele-donnees |
 
-Hors-scope assumé : `composant-bin/` (scaffolding `new_project`) ; `cli/` couvert en flux.
+Hors-scope assumé : `new_project/composant-bin/` et `migration/cli_migration/composant-bin/` (modèles
+de fichiers intégrés au binaire) ; `cli/` ne contient que des appels, couvert en flux.

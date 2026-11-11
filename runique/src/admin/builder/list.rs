@@ -128,6 +128,8 @@ pub(crate) const TOTAL: &str = "__total";
 
 /// Only what is declared here is shown or accepted from the URL
 /// (e.g. `?sort_by=title&sort_dir=desc`); anything else is ignored.
+///
+#[doc = include_str!("../../../doc-tests/admin/list_config.md")]
 #[derive(Clone)]
 pub struct ListConfig<E: EntityTrait> {
     /// Columns shown, in this order.

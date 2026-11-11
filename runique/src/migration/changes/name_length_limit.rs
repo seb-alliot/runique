@@ -1,11 +1,11 @@
 //! Length limit of the generated names (FK constraints, indexes) per engine.
-use crate::migration::utils::types::Changes;
+use crate::migration::types::Changes;
 
 /// Scans a set of changes for FK constraint / index names that would exceed
 /// MariaDB/MySQL's 64-character identifier limit (63 used here as the shared safe bound —
 /// Postgres's own NAMEDATALEN-1 limit is one byte tighter). Checked once, upfront, over
 /// the whole plan — before any migration file is generated — so the string-building
-/// generators (`generators.rs`) and the DSL-to-schema conversion (`to_schema.rs`) stay
+/// generators (`migration/generate/`) and the DSL-to-schema conversion (`to_schema.rs`) stay
 /// pure and infallible. There is no `--force` escape hatch here, unlike
 /// `check_destructive`: Runique won't guess a shortened name for you (that would make it
 /// unpredictable from the `model!{}` declaration alone), so a human has to rename

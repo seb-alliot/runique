@@ -1,7 +1,7 @@
 //! Tests — Migration Parser (DSL model!)
 //! Couvre : parse_schema_from_source (parser_builder)
 
-use runique::migration::utils::parser_builder::parse_schema_from_source;
+use runique::migration::parse_schema_from_source;
 
 // ── Source DSL valide ─────────────────────────────────────────────────────────
 

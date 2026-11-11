@@ -1,11 +1,9 @@
-//! Tests — migration/utils/generators.rs
+//! Tests — migration/generate/
 //! Couvre : generate_create_file, generate_alter_file,
 //!          generate_snapshot_file
 
-use runique::migration::utils::{
-    generators::{generate_alter_file, generate_create_file, generate_snapshot_file},
-    types::{Changes, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema},
-};
+use runique::migration::types::{Changes, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema};
+use runique::migration::{generate_alter_file, generate_create_file, generate_snapshot_file};
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -1099,7 +1097,7 @@ fn test_snapshot_down_drops_its_foreign_keys_and_indexes() {
 
 #[test]
 fn test_create_in_cycle_keeps_a_forward_key_out_of_the_table_body() {
-    use runique::migration::utils::generators::{CycleKeys, generate_create_file_in_cycle};
+    use runique::migration::{CycleKeys, generate_create_file_in_cycle};
     let schema = schema_with_fk();
     let fk_name = ".name(\"posts_user_id_users_fkey\")";
     let sqlite_only = "== sea_orm::DbBackend::Sqlite";
