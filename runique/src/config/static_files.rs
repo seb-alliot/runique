@@ -126,7 +126,7 @@ impl StaticConfig {
             std::env::var("MEDIA_RUNIQUE_URL").unwrap_or_else(|_| "/runique/media".to_string());
 
         let og_image =
-            std::env::var("OG_IMAGE").unwrap_or("/runique/static/favicon_runique.ico".to_string());
+            std::env::var("OG_IMAGE").unwrap_or("/runique/static/runique_320.avif".to_string());
 
         let templates_runique = std::env::var("TEMPLATES_RUNIQUE")
             .unwrap_or_else(|_| format!("{}/templates", env!("CARGO_MANIFEST_DIR")));

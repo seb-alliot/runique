@@ -3,6 +3,7 @@ pub mod auth;
 pub mod blog;
 mod cards;
 pub mod comparatif;
+pub mod compatibility;
 pub mod contribution;
 pub mod cours;
 pub mod cron_auth;

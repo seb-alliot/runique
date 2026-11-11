@@ -87,7 +87,7 @@ An axum extractor (`Json`, `Bytes`, `Multipart`…) used directly in a handler f
 | `MEDIA_RUNIQUE_PATH` | `<runique sources>/media` | Internal media |
 | `MEDIA_RUNIQUE_URL` | `/runique/media` | Internal media URL prefix |
 | `TEMPLATES_RUNIQUE` | `<runique sources>/templates` | Internal templates |
-| `OG_IMAGE` | `/runique/static/favicon_runique.ico` | Default Open Graph image |
+| `OG_IMAGE` | `/runique/static/runique_320.avif` | Default Open Graph image |
 
 `<runique sources>` is the crate's folder at compile time (`CARGO_MANIFEST_DIR`).
 
