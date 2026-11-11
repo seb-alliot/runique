@@ -73,7 +73,7 @@ pub(crate) fn write(migration_dir: &Path, engine: Engine, runique_version: &str)
     )?;
     fs::write(
         migration_dir.join("src/lib.rs"),
-        super::makemigration::initial_lib(),
+        crate::migration::cli_migration::initial_lib(),
     )?;
     Ok(())
 }

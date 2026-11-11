@@ -1,8 +1,15 @@
 //! `ModelSchema`: single source of truth for a model — columns, primary keys, FKs, indexes, hooks.
-use crate::migration::{
-    column::ColumnDef, foreign_key::ForeignKeyDef, hooks::HooksDef, index::IndexDef,
-    primary_key::PrimaryKeyDef,
-};
+pub mod column;
+pub mod foreign_key;
+pub mod hooks;
+pub mod index;
+pub mod primary_key;
+
+pub use column::*;
+pub use foreign_key::*;
+pub use hooks::*;
+pub use index::*;
+pub use primary_key::*;
 
 /// Sort direction for `ModelSchema::order_by`.
 #[derive(Debug, Clone, PartialEq, Eq)]

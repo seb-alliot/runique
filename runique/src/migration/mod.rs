@@ -3,21 +3,14 @@
 //! The main entry point is [`schema::ModelSchema`], the single source of truth for a model.
 //! Sub-modules expose the basic building blocks (columns, primary keys, FKs…) and the
 //! diff/SQL generation utilities used by the migration engine.
-pub mod column;
-pub mod foreign_key;
-pub mod hooks;
-pub mod index;
+pub mod changes;
+pub mod cli_migration;
 
-pub mod primary_key;
 pub mod schema;
 pub mod utils;
 
 // Re-exports
-pub use column::*;
-pub use foreign_key::*;
-pub use hooks::*;
-pub use index::*;
-pub use primary_key::*;
+pub use changes::*;
 pub use schema::*;
 pub use sea_query::ForeignKeyAction;
 pub use utils::*;

@@ -42,6 +42,33 @@ pub fn extend_snapshot_file_path(migrations_path: &str, table_name: &str) -> Str
     format!("{}/snapshots/runique/{}.rs", migrations_path, table_name)
 }
 
+/// Builds the SeaORM module name for an ALTER migration on `table` (`m{timestamp}_alter_{table}_table`).
+pub fn seaorm_alter_module_name(timestamp: &str, table: &str) -> String {
+    format!("m{}_alter_{}_table", timestamp, table)
+}
+
+/// Builds the file path of the SeaORM ALTER migration for `table`.
+pub fn seaorm_alter_file_path(migrations_path: &str, timestamp: &str, table: &str) -> String {
+    format!(
+        "{}/{}.rs",
+        migrations_path,
+        seaorm_alter_module_name(timestamp, table)
+    )
+}
+
+/// Builds the SeaORM module name for an `extend!{}` migration on `table` (`m{timestamp}_extend_{table}_table`).
+pub fn seaorm_extend_module_name(timestamp: &str, table: &str) -> String {
+    format!("m{}_extend_{}_table", timestamp, table)
+}
+
+/// Builds the file path of the SeaORM `extend!{}` migration for `table`.
+pub fn seaorm_extend_file_path(migrations_path: &str, timestamp: &str, table: &str) -> String {
+    format!(
+        "{}/m{}_extend_{}_table.rs",
+        migrations_path, timestamp, table
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

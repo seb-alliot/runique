@@ -1,6 +1,6 @@
 // Tests pour IndexDef
 
-use runique::migration::index::IndexDef;
+use runique::migration::IndexDef;
 
 // ═══════════════════════════════════════════════════════════════
 // Valeurs par défaut
