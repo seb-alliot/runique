@@ -1,5 +1,5 @@
 //! Date/time fields: `DateField`, `TimeField`, `DateTimeField` with min/max validation.
-use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
+use crate::forms::base::{FieldConfig, FormField};
 use crate::utils::aliases::ATera;
 use crate::utils::trad::{t, tf};
 use async_trait::async_trait;
@@ -53,12 +53,6 @@ impl DateField {
         self
     }
 
-    /// Overrides the auto-generated label.
-    pub fn label(mut self, label: &str) -> Self {
-        self.base.label = label.to_string();
-        self
-    }
-
     /// Marks the field as required (empty value fails validation).
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
@@ -66,15 +60,7 @@ impl DateField {
     }
 }
 
-impl CommonFieldConfig for DateField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(DateField, label);
 
 #[async_trait]
 impl FormField for DateField {
@@ -87,18 +73,10 @@ impl FormField for DateField {
     }
 
     async fn validate(&mut self) -> bool {
-        let val = self.base.value.trim();
-
-        if self.base.is_required.choice && val.is_empty() {
-            let msg = self
-                .base
-                .is_required
-                .message
-                .clone()
-                .unwrap_or_else(|| t("forms.required").to_string());
-            self.set_error(msg);
+        if self.fails_required("forms.required") {
             return false;
         }
+        let val = self.base.value.trim();
 
         if val.is_empty() {
             return true;
@@ -155,14 +133,7 @@ impl FormField for DateField {
             context.insert("max_date", &max.format("%Y-%m-%d").to_string());
         }
 
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 }
 
@@ -206,12 +177,6 @@ impl TimeField {
         self
     }
 
-    /// Overrides the auto-generated label.
-    pub fn label(mut self, label: &str) -> Self {
-        self.base.label = label.to_string();
-        self
-    }
-
     /// Marks the field as required (empty value fails validation).
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
@@ -219,15 +184,7 @@ impl TimeField {
     }
 }
 
-impl CommonFieldConfig for TimeField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(TimeField, label);
 #[async_trait]
 impl FormField for TimeField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
@@ -239,18 +196,10 @@ impl FormField for TimeField {
     }
 
     async fn validate(&mut self) -> bool {
-        let val = self.base.value.trim();
-
-        if self.base.is_required.choice && val.is_empty() {
-            let msg = self
-                .base
-                .is_required
-                .message
-                .clone()
-                .unwrap_or_else(|| t("forms.required").to_string());
-            self.set_error(msg);
+        if self.fails_required("forms.required") {
             return false;
         }
+        let val = self.base.value.trim();
 
         if val.is_empty() {
             return true;
@@ -309,14 +258,7 @@ impl FormField for TimeField {
             context.insert("max_time", &max.format("%H:%M").to_string());
         }
 
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 }
 
@@ -360,27 +302,13 @@ impl DateTimeField {
         self
     }
 
-    /// Overrides the auto-generated label.
-    pub fn label(mut self, label: &str) -> Self {
-        self.base.label = label.to_string();
-        self
-    }
-
     /// Marks the field as required (empty value fails validation).
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
         self
     }
 }
-impl CommonFieldConfig for DateTimeField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(DateTimeField, label);
 
 #[async_trait]
 impl FormField for DateTimeField {
@@ -393,18 +321,10 @@ impl FormField for DateTimeField {
     }
 
     async fn validate(&mut self) -> bool {
-        let val = self.base.value.trim();
-
-        if self.base.is_required.choice && val.is_empty() {
-            let msg = self
-                .base
-                .is_required
-                .message
-                .clone()
-                .unwrap_or_else(|| t("forms.required").to_string());
-            self.set_error(msg);
+        if self.fails_required("forms.required") {
             return false;
         }
+        let val = self.base.value.trim();
 
         if val.is_empty() {
             return true;
@@ -476,14 +396,7 @@ impl FormField for DateTimeField {
             context.insert("max_datetime", &max.format("%Y-%m-%dT%H:%M").to_string());
         }
 
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 }
 
@@ -527,12 +440,6 @@ impl DurationField {
         self
     }
 
-    /// Overrides the auto-generated label.
-    pub fn label(mut self, label: &str) -> Self {
-        self.base.label = label.to_string();
-        self
-    }
-
     /// Marks the field as required (empty value fails validation).
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
@@ -540,15 +447,7 @@ impl DurationField {
     }
 }
 
-impl CommonFieldConfig for DurationField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(DurationField, label);
 
 #[async_trait]
 impl FormField for DurationField {
@@ -561,18 +460,10 @@ impl FormField for DurationField {
     }
 
     async fn validate(&mut self) -> bool {
-        let val = self.base.value.trim();
-
-        if self.base.is_required.choice && val.is_empty() {
-            let msg = self
-                .base
-                .is_required
-                .message
-                .clone()
-                .unwrap_or_else(|| t("forms.required").to_string());
-            self.set_error(msg);
+        if self.fails_required("forms.required") {
             return false;
         }
+        let val = self.base.value.trim();
 
         if val.is_empty() {
             return true;
@@ -629,14 +520,7 @@ impl FormField for DurationField {
             context.insert("max_seconds", max);
         }
 
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 }
 

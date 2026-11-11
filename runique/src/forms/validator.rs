@@ -50,17 +50,7 @@ impl FormValidator {
         let mut is_all_valid = true;
 
         for field in fields.values_mut() {
-            if field.required()
-                && field.value().trim().is_empty()
-                && field.field_type() != "checkbox"
-            {
-                field.set_error(t("forms.required").into_owned());
-                is_all_valid = false;
-                if let Some(level) = log_validate {
-                    crate::runique_log!(level, field = %field.name(), "required field empty");
-                }
-                continue;
-            }
+            // Each field checks `required` itself, with its own message.
             let valid = field.validate().await;
             if let Some(level) = log_validate {
                 crate::runique_log!(

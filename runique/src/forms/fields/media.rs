@@ -8,7 +8,7 @@ use super::file::{
     parse_file_list, read_image_dimensions,
 };
 use crate::config::static_files::resolve_media_root;
-use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
+use crate::forms::base::{FieldConfig, FormField};
 use crate::utils::aliases::ATera;
 use crate::utils::trad::{t, tf};
 
@@ -355,15 +355,7 @@ pub struct MediaField {
     pub max_height: Option<u32>,
 }
 
-impl CommonFieldConfig for MediaField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(MediaField, label);
 
 impl MediaField {
     fn create(name: &str, kind: MediaKind) -> Self {
@@ -395,12 +387,6 @@ impl MediaField {
     /// Video: mp4, webm, mov, ogv. Checks the signature.
     pub fn video(name: &str) -> Self {
         Self::create(name, MediaKind::Video)
-    }
-
-    /// Overrides the auto-generated label.
-    pub fn label(mut self, label: &str) -> Self {
-        self.base.label = label.to_string();
-        self
     }
 
     /// Destination directory, relative to `MEDIA_ROOT` (`"podcasts"` →
@@ -653,14 +639,7 @@ impl FormField for MediaField {
         if let Some(h) = self.max_height {
             context.insert("max_height", &h);
         }
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 }
 

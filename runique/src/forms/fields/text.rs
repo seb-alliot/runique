@@ -1,7 +1,7 @@
 //! Champs texte : `TextField`, `EmailField`, `UrlField`, `TextAreaField`, `PasswordField`.
 pub use crate::forms::generic::GenericField;
 use crate::forms::{
-    base::{CommonFieldConfig, FieldConfig, FormField, TextConfig},
+    base::{FieldConfig, FormField, TextConfig},
     options::LengthConstraint,
 };
 use crate::utils::{
@@ -39,15 +39,7 @@ pub enum SpecialFormat {
     Csrf,
     Phone,
 }
-impl CommonFieldConfig for TextField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(TextField, label);
 
 // Implementation of methods for TextField
 impl TextField {
@@ -121,12 +113,6 @@ impl TextField {
     /// Marks the field as required (empty value fails validation).
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
-        self
-    }
-
-    /// Overrides the auto-generated label.
-    pub fn label(mut self, label: &str) -> Self {
-        self.base.label = label.to_string();
         self
     }
 
@@ -223,20 +209,11 @@ impl FormField for TextField {
         self.submitted = true;
     }
     async fn validate(&mut self) -> bool {
-        // Initial trim
-        let mut val = self.base.value.trim().to_string();
-
-        // Required field validation
-        if self.base.is_required.choice && val.is_empty() {
-            let msg = self
-                .base
-                .is_required
-                .message
-                .clone()
-                .unwrap_or_else(|| t("forms.required").to_string());
-            self.set_error(msg);
+        if self.fails_required("forms.required") {
             return false;
         }
+        // Initial trim
+        let mut val = self.base.value.trim().to_string();
 
         if val.is_empty() {
             return true;
@@ -352,13 +329,6 @@ impl FormField for TextField {
             context.insert("rows", &rows);
         }
 
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 }

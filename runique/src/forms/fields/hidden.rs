@@ -1,8 +1,8 @@
 //! Hidden field `HiddenField` for non-displayed data (tokens, internal IDs).
-use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
+use crate::forms::base::{FieldConfig, FormField};
 use crate::utils::aliases::ATera;
 use crate::utils::constante::session_key::session::FORM_NAME_KEY;
-use crate::utils::trad::{t, tf};
+use crate::utils::trad::t;
 use async_trait::async_trait;
 use serde::Serialize;
 use subtle::ConstantTimeEq;
@@ -37,23 +37,9 @@ impl HiddenField {
     pub fn set_expected_value(&mut self, expected: &str) {
         self.expected_value = Some(expected.to_string());
     }
-
-    /// Overrides the auto-generated label.
-    pub fn label(mut self, label: &str) -> Self {
-        self.base.label = label.to_string();
-        self
-    }
 }
 
-impl CommonFieldConfig for HiddenField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(HiddenField, label);
 
 /// Hidden field carrying the form's name, set by `ValidationForm::try_form`.
 /// Registered in every form; never filled from the request nor stored.
@@ -76,15 +62,7 @@ impl Default for FormNameField {
     }
 }
 
-impl CommonFieldConfig for FormNameField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(FormNameField);
 
 #[async_trait]
 impl FormField for FormNameField {
@@ -107,14 +85,7 @@ impl FormField for FormNameField {
         }
         let mut context = tera::Context::new();
         context.insert("field", &field);
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 }
 
@@ -135,15 +106,7 @@ impl HoneypotField {
     }
 }
 
-impl CommonFieldConfig for HoneypotField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(HoneypotField);
 
 #[async_trait]
 impl FormField for HoneypotField {
@@ -158,14 +121,7 @@ impl FormField for HoneypotField {
 
     fn render(&self, tera: &ATera) -> Result<String, String> {
         let context = self.base_context();
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 }
 
@@ -184,6 +140,9 @@ impl FormField for HiddenField {
     }
 
     async fn validate(&mut self) -> bool {
+        if self.fails_required("forms.required") {
+            return false;
+        }
         // For a CSRF field, check that the value matches the expected one
         if self.base.name == "csrf_token"
             && let Some(expected) = &self.expected_value
@@ -209,13 +168,6 @@ impl FormField for HiddenField {
         let mut context = self.base_context();
         context.insert("input_type", &self.base.type_field);
 
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 }

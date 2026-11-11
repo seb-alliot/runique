@@ -1,7 +1,7 @@
 //! Boolean field `BooleanField`: HTML checkbox with unchecked case management.
 use crate::forms::base::*;
 use crate::utils::aliases::ATera;
-use crate::utils::trad::{t, tf};
+use crate::utils::trad::t;
 use async_trait::async_trait;
 use serde::Serialize;
 
@@ -14,15 +14,7 @@ pub struct BooleanField {
     pub checked_value: String,
 }
 
-impl CommonFieldConfig for BooleanField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(BooleanField, label);
 
 impl BooleanField {
     /// Creates a checkbox field. Unchecked state is normalized to `"false"` by `fill()`.
@@ -64,12 +56,6 @@ impl BooleanField {
     /// meaning `required` has on a checkbox.
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
-        self
-    }
-
-    /// Overrides the auto-generated label.
-    pub fn label(mut self, label: &str) -> Self {
-        self.base.label = label.to_string();
         self
     }
 
@@ -135,13 +121,6 @@ impl FormField for BooleanField {
         context.insert("checked", &self.state().unwrap_or(false));
         context.insert("checked_value", &self.checked_value);
 
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 }

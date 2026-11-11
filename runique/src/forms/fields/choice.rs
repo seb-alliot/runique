@@ -1,5 +1,5 @@
 //! Selection field: `ChoiceField` with groups, multi-select, and dynamic options.
-use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
+use crate::forms::base::{FieldConfig, FormField};
 use crate::utils::aliases::ATera;
 use crate::utils::trad::{t, tf};
 use async_trait::async_trait;
@@ -68,12 +68,6 @@ impl ChoiceField {
         self
     }
 
-    /// Overrides the auto-generated label.
-    pub fn label(mut self, label: &str) -> Self {
-        self.base.label = label.to_string();
-        self
-    }
-
     /// Marks the field as required (empty selection fails validation).
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
@@ -81,15 +75,7 @@ impl ChoiceField {
     }
 }
 
-impl CommonFieldConfig for ChoiceField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(ChoiceField, label);
 
 #[async_trait]
 impl FormField for ChoiceField {
@@ -114,18 +100,10 @@ impl FormField for ChoiceField {
     }
 
     async fn validate(&mut self) -> bool {
-        let val = self.base.value.trim();
-
-        if self.base.is_required.choice && val.is_empty() {
-            let msg = self
-                .base
-                .is_required
-                .message
-                .clone()
-                .unwrap_or_else(|| t("forms.select_required").to_string());
-            self.set_error(msg);
+        if self.fails_required("forms.select_required") {
             return false;
         }
+        let val = self.base.value.trim();
 
         if !val.is_empty() && self.multiple {
             // Every selected value must be one of the choices, not the joined string.
@@ -153,14 +131,7 @@ impl FormField for ChoiceField {
         context.insert("choices", &self.choices);
         context.insert("multiple", &self.multiple);
 
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 }
 
@@ -192,12 +163,6 @@ impl RadioField {
         self
     }
 
-    /// Overrides the auto-generated label.
-    pub fn label(mut self, label: &str) -> Self {
-        self.base.label = label.to_string();
-        self
-    }
-
     /// Marks the field as required (no selection fails validation).
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
@@ -205,15 +170,7 @@ impl RadioField {
     }
 }
 
-impl CommonFieldConfig for RadioField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(RadioField, label);
 
 #[async_trait]
 impl FormField for RadioField {
@@ -226,18 +183,10 @@ impl FormField for RadioField {
     }
 
     async fn validate(&mut self) -> bool {
-        let val = self.base.value.trim();
-
-        if self.base.is_required.choice && val.is_empty() {
-            let msg = self
-                .base
-                .is_required
-                .message
-                .clone()
-                .unwrap_or_else(|| t("forms.select_required").to_string());
-            self.set_error(msg);
+        if self.fails_required("forms.select_required") {
             return false;
         }
+        let val = self.base.value.trim();
 
         if !val.is_empty() {
             let valid = self.choices.iter().any(|c| c.value == val);
@@ -255,14 +204,7 @@ impl FormField for RadioField {
         let mut context = self.base_context();
         context.insert("choices", &self.choices);
         context.insert("meta", &self.to_json_meta());
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 
     fn to_json_value(&self) -> Value {
@@ -306,27 +248,13 @@ impl CheckboxField {
         self
     }
 
-    /// Overrides the auto-generated label.
-    pub fn label(mut self, label: &str) -> Self {
-        self.base.label = label.to_string();
-        self
-    }
-
     /// Marks the field as required (no selection fails validation).
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
         self
     }
 }
-impl CommonFieldConfig for CheckboxField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(CheckboxField, label);
 
 #[async_trait]
 impl FormField for CheckboxField {
@@ -346,18 +274,10 @@ impl FormField for CheckboxField {
     }
 
     async fn validate(&mut self) -> bool {
-        let val = self.base.value.trim();
-
-        if self.base.is_required.choice && val.is_empty() {
-            let msg = self
-                .base
-                .is_required
-                .message
-                .clone()
-                .unwrap_or_else(|| t("forms.checkbox_required").to_string());
-            self.set_error(msg);
+        if self.fails_required("forms.checkbox_required") {
             return false;
         }
+        let val = self.base.value.trim();
 
         if !val.is_empty() {
             // Check that all selected values exist
@@ -379,13 +299,6 @@ impl FormField for CheckboxField {
         context.insert("choices", &self.choices);
         context.insert("meta", &self.to_json_meta());
 
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 }

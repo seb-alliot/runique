@@ -4,7 +4,7 @@
 //! Form values travel as strings up to the conversion into the entity, and
 //! arbitrary bytes aren't valid UTF-8: `finalize` reads the staged upload and
 //! hands its content on as base64, which [`decode_binary`] turns back into bytes.
-use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
+use crate::forms::base::{FieldConfig, FormField};
 use crate::forms::fields::file::is_staged_upload;
 use crate::utils::aliases::ATera;
 use crate::utils::trad::{t, tf};
@@ -36,12 +36,6 @@ impl BinaryField {
         self
     }
 
-    /// Overrides the auto-generated label.
-    pub fn label(mut self, label: &str) -> Self {
-        self.base.label = label.to_string();
-        self
-    }
-
     /// Marks the field as required (no upload fails validation).
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
@@ -55,15 +49,7 @@ pub fn decode_binary(value: &str) -> Option<Vec<u8>> {
     STANDARD.decode(value.trim()).ok()
 }
 
-impl CommonFieldConfig for BinaryField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(BinaryField, label);
 
 #[async_trait]
 impl FormField for BinaryField {
@@ -93,18 +79,10 @@ impl FormField for BinaryField {
     }
 
     async fn validate(&mut self) -> bool {
-        let val = self.base.value.trim().to_string();
-
-        if self.base.is_required.choice && val.is_empty() {
-            let msg = self
-                .base
-                .is_required
-                .message
-                .clone()
-                .unwrap_or_else(|| t("forms.file_required").to_string());
-            self.set_error(msg);
+        if self.fails_required("forms.file_required") {
             return false;
         }
+        let val = self.base.value.trim().to_string();
 
         if val.is_empty() {
             self.clear_error();
@@ -174,14 +152,7 @@ impl FormField for BinaryField {
             context.insert("max_size", &size);
             context.insert("max_size_mb", &(size as f64 / (1024.0 * 1024.0)));
         }
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 }
 

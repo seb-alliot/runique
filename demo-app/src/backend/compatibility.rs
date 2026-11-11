@@ -160,8 +160,17 @@ mod tests {
             requirement(r#"axum = { version = "0.8.9", features = ["macros"] }"#),
             Some(("axum", "0.8.9"))
         );
-        assert_eq!(requirement(r#"sea-orm = "=2.0.4""#), Some(("sea-orm", "=2.0.4")));
-        for not_one in ["", "[dependencies]", r#"    "set-header","#, "] }", "name = 3"] {
+        assert_eq!(
+            requirement(r#"sea-orm = "=2.0.4""#),
+            Some(("sea-orm", "=2.0.4"))
+        );
+        for not_one in [
+            "",
+            "[dependencies]",
+            r#"    "set-header","#,
+            "] }",
+            "name = 3",
+        ] {
             assert_eq!(requirement(not_one), None, "{not_one:?}");
         }
     }

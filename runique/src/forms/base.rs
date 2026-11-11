@@ -1,6 +1,7 @@
 //! `FormField` trait and `FieldConfig` structure: common base for all form fields.
 use crate::forms::options::*;
 use crate::utils::aliases::*;
+use crate::utils::trad::{t, tf};
 use async_trait::async_trait;
 use dyn_clone::DynClone;
 use serde::{Deserialize, Serialize};
@@ -392,6 +393,31 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
 
     /// HTML rendering of the field
     fn render(&self, tera: &ATera) -> Result<String, String>;
+
+    /// Renders the field's template with `context`; a failure names the template.
+    #[doc(hidden)]
+    fn render_template(&self, tera: &ATera, context: &tera::Context) -> Result<String, String> {
+        let template = &self.get_field_config().template_name;
+        tera.render(template, context)
+            .map_err(|e| tf("forms.finalize_error", &[template, &e.to_string()]))
+    }
+
+    /// Required and left empty: sets the field's own message, or `default_key`
+    /// translated, and returns `true`.
+    #[doc(hidden)]
+    fn fails_required(&mut self, default_key: &str) -> bool {
+        let config = self.get_field_config();
+        if !config.is_required.choice || !config.value.trim().is_empty() {
+            return false;
+        }
+        let msg = config
+            .is_required
+            .message
+            .clone()
+            .unwrap_or_else(|| t(default_key).to_string());
+        self.set_error(msg);
+        true
+    }
 
     /// Finalization (e.g., password hashing)
     async fn finalize(&mut self) -> Result<(), String> {

@@ -2,10 +2,9 @@
 use super::media::{UploadCheck, UploadMedia};
 use crate::config::static_files::resolve_media_root;
 use crate::utils::aliases::ATera;
-use crate::utils::trad::tf;
 use crate::{
     config::StaticConfig,
-    forms::base::{CommonFieldConfig, FieldConfig, FormField},
+    forms::base::{FieldConfig, FormField},
 };
 
 /// Accepts an upload path in several forms:
@@ -445,15 +444,7 @@ pub struct FileField {
     pub upload: UploadMedia,
 }
 
-impl CommonFieldConfig for FileField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(FileField, label);
 
 impl FileField {
     /// Low-level constructor. Prefer [`image`](FileField::image), [`document`](FileField::document), or [`any`](FileField::any).
@@ -484,12 +475,6 @@ impl FileField {
     /// for a closed list.
     pub fn any(name: &str) -> Self {
         Self::create(name, "file", FileFieldType::Any)
-    }
-
-    /// Overrides the auto-generated label.
-    pub fn label(mut self, label: &str) -> Self {
-        self.base.label = label.to_string();
-        self
     }
 
     /// Destination directory, relative to `MEDIA_ROOT` (`"avatars"` →
@@ -641,14 +626,7 @@ impl FormField for FileField {
         if let Some(count) = self.upload.max_files {
             context.insert("max_files", &count);
         }
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 }
 
