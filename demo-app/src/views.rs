@@ -288,6 +288,10 @@ pub async fn releases_security(mut request: Request) -> AppResult<Response> {
     request.render("info/release_document.html")
 }
 
+pub async fn releases_compatibility(mut request: Request) -> AppResult<Response> {
+    crate::backend::compatibility::compatibility_page(&mut request).await
+}
+
 pub async fn releases_status(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
     let lang = visitor_lang(&request.headers);

@@ -22,7 +22,13 @@ use axum::{
 use sea_orm::DbErr;
 use serde::de::DeserializeOwned;
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
+
+// Read once, on the first request: it never changes while the server runs,
+// and `std::env::var` takes the process-wide environment lock on every call.
+static ICON_IMAGE: LazyLock<String> = LazyLock::new(|| {
+    std::env::var("ICON_IMAGE").unwrap_or("/runique/static/favicon_runique.ico".to_string())
+});
 use tera::Context;
 use tower_sessions::Session;
 use tracing::error;
@@ -194,15 +200,12 @@ where
             .map(|Path(p)| p)
             .unwrap_or_default();
 
-        let ico_image = std::env::var("ICON_IMAGE")
-            .unwrap_or("/runique/static/favicon_runique.ico".to_string());
         let public_url = engine.config.server.public_url.as_deref();
-        let ico_image = crate::utils::resolve_og_image(public_url, &ico_image);
+        let ico_image = crate::utils::resolve_og_image(public_url, &ICON_IMAGE);
         context.insert("icon_image", &ico_image);
 
         let og_image =
-            std::env::var("OG_IMAGE").unwrap_or("/runique/static/runique_320.avif".to_string());
-        let og_image = crate::utils::resolve_og_image(public_url, &og_image);
+            crate::utils::resolve_og_image(public_url, &engine.config.static_files.og_image);
         context.insert("og_image", &og_image);
 
         context.insert("current_path", parts.uri.path());

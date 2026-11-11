@@ -2,9 +2,9 @@
 //! files from the `model!{}` DSL), `migration up/down/status` (`migrate`) and the
 //! project's `migration` crate (`init_migrate`). The commands themselves are
 //! called through `cli::makemigration` and `cli::migrate`.
+pub(crate) mod init_migrate;
 mod lib_file;
 pub mod migrate;
-pub(crate) mod init_migrate;
 mod plan;
 mod report;
 mod scan;

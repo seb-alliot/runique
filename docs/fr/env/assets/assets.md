@@ -87,7 +87,7 @@ Un extracteur axum (`Json`, `Bytes`, `Multipart`…) utilisé directement dans u
 | `MEDIA_RUNIQUE_PATH` | `<sources de runique>/media` | Médias internes |
 | `MEDIA_RUNIQUE_URL` | `/runique/media` | Préfixe URL des médias internes |
 | `TEMPLATES_RUNIQUE` | `<sources de runique>/templates` | Templates internes |
-| `OG_IMAGE` | `/runique/static/favicon_runique.ico` | Image Open Graph par défaut |
+| `OG_IMAGE` | `/runique/static/runique_320.avif` | Image Open Graph par défaut |
 
 `<sources de runique>` est le dossier de la crate au moment de la compilation (`CARGO_MANIFEST_DIR`).
 

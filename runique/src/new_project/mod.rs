@@ -194,10 +194,7 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
             "src/forms/mod.rs",
         ),
         (include_bytes!("composant-bin/code/url.rs"), "src/url.rs"),
-        (
-            include_bytes!("composant-bin/code/main.rs"),
-            "src/main.rs",
-        ),
+        (include_bytes!("composant-bin/code/main.rs"), "src/main.rs"),
         (
             include_bytes!("composant-bin/template/base.html"),
             "templates/base.html",
@@ -246,10 +243,7 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
             include_bytes!("composant-bin/image/favicon.ico"),
             "media/favicon/favicon.ico",
         ),
-        (
-            include_bytes!("composant-bin/config/ignore"),
-            ".gitignore",
-        ),
+        (include_bytes!("composant-bin/config/ignore"), ".gitignore"),
     ];
 
     for (content, path) in files {
@@ -258,14 +252,8 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
     fs::write(project_dir.join("src/entities/mod.rs"), "")?;
     // Cargo.toml, READMEs and .env with substitutions
     for (template, path) in [
-        (
-            include_str!("composant-bin/config/apiconfig"),
-            "Cargo.toml",
-        ),
-        (
-            include_str!("composant-bin/readme/README.md"),
-            "README.md",
-        ),
+        (include_str!("composant-bin/config/apiconfig"), "Cargo.toml"),
+        (include_str!("composant-bin/readme/README.md"), "README.md"),
         (
             include_str!("composant-bin/readme/README.fr.md"),
             "README.fr.md",

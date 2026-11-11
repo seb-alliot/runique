@@ -1860,7 +1860,8 @@ fn a_snapshot_from_before_lengths_takes_the_model_lengths() {
     std::fs::write(&path, old).unwrap();
 
     let previous =
-        crate::migration::cli_migration::previous_snapshot(path.to_str().unwrap(), &current).unwrap();
+        crate::migration::cli_migration::previous_snapshot(path.to_str().unwrap(), &current)
+            .unwrap();
     std::fs::remove_dir_all(&dir).ok();
     assert!(diff_schemas(&previous, &current).is_empty());
 }
