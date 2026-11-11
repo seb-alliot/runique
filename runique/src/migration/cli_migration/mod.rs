@@ -1,5 +1,10 @@
-//! `makemigration` command — generates SeaORM migration files from `ModelSchema` DSL.
+//! Migration commands' logic: `makemigrations` (`run`, generates SeaORM migration
+//! files from the `model!{}` DSL), `migration up/down/status` (`migrate`) and the
+//! project's `migration` crate (`init_migrate`). The commands themselves are
+//! called through `cli::makemigration` and `cli::migrate`.
 mod lib_file;
+pub mod migrate;
+pub(crate) mod init_migrate;
 mod plan;
 mod report;
 mod scan;
@@ -15,8 +20,8 @@ use std::fs;
 
 pub use crate::utils::*;
 
-// The integration tests and `cli/mod.rs` reach these through `makemigration`:
-// their logic now lives in `migration/`, the paths stay.
+// Logic that lives in `migration/`, offered here too: the integration tests
+// reach the whole command from this one module.
 pub use crate::migration::{
     collect_destructive_messages, seaorm_alter_file_path, seaorm_alter_module_name,
     seaorm_extend_file_path, seaorm_extend_module_name,
@@ -25,7 +30,7 @@ pub(crate) use lib_file::initial_lib;
 pub use lib_file::{ensure_admin_migration_positioned, update_migration_lib};
 pub use scan::{merge_extend_schemas, scan_entities, scan_extend_blocks};
 pub use snapshot::parse_create_file;
-// Only the pipeline tests (`migration/utils/tests_pipeline.rs`) reach it from outside.
+// Only the pipeline tests (`migration/tests_pipeline.rs`) reach it from outside.
 #[cfg(test)]
 pub(crate) use snapshot::previous_snapshot;
 
@@ -41,7 +46,7 @@ use snapshot::snapshot_upgrades;
 /// changes unless `force` is set, then writes the full migration plan atomically.
 pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()> {
     let schemas = scan_entities(entities_path)?;
-    crate::cli::migration_crate::ensure(migrations_path)?;
+    init_migrate::ensure(migrations_path)?;
 
     fs::create_dir_all(snapshot_dir(migrations_path))?;
 

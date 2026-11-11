@@ -61,7 +61,7 @@ impl Engine {
 /// `makemigrations` would write for a project without a model of its own.
 pub(crate) fn write(migration_dir: &Path, engine: Engine, runique_version: &str) -> Result<()> {
     fs::create_dir_all(migration_dir.join("src"))?;
-    let cargo = include_str!("../composant-bin/migration/migration_cargo")
+    let cargo = include_str!("composant-bin/migration_cargo")
         .replace("{{RUNIQUE_VERSION}}", runique_version)
         .replace("{{DB_FEATURE}}", engine.feature())
         .replace("{{SEA_ORM_MIGRATION_REQ}}", SEA_ORM_MIGRATION_REQ)
@@ -69,7 +69,7 @@ pub(crate) fn write(migration_dir: &Path, engine: Engine, runique_version: &str)
     fs::write(migration_dir.join("Cargo.toml"), cargo)?;
     fs::write(
         migration_dir.join("src/main.rs"),
-        include_str!("../composant-bin/migration/migration_main.rs"),
+        include_str!("composant-bin/migration_main.rs"),
     )?;
     fs::write(
         migration_dir.join("src/lib.rs"),

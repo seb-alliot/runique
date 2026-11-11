@@ -1,6 +1,6 @@
 # Validation métier : `clean_field` et `clean`
 
-```rust,ignore
+```rust,no_run
 use runique::prelude::*;
 use runique::forms::{RuniqueForm, Forms};
 use runique::forms::fields::text::TextField;
@@ -23,7 +23,7 @@ impl RuniqueForm for ChangePasswordForm {
     async fn clean_field(&mut self, name: &str) -> bool {
         match name {
             "password" => {
-                let pwd = self.forms().get_string("password");
+                let pwd = self.cleaned::<String>("password").unwrap_or_default();
                 if pwd.len() < 8 {
                     if let Some(field) = self.forms_mut().fields.get_mut("password") {
                         field.set_error("Le mot de passe doit faire au moins 8 caractères".to_string());
@@ -37,8 +37,8 @@ impl RuniqueForm for ChangePasswordForm {
     }
     /// Validation globale inter-champs — appelée après tous les clean_field()
     async fn clean(&mut self) -> Result<(), StrMap> {
-        let password = self.forms().get_string("password");
-        let confirm  = self.forms().get_string("confirm");
+        let password = self.cleaned::<String>("password").unwrap_or_default();
+        let confirm  = self.cleaned::<String>("confirm").unwrap_or_default();
 
         if password != confirm {
             let mut errors = StrMap::new();
@@ -49,4 +49,6 @@ impl RuniqueForm for ChangePasswordForm {
         Ok(())
     }
 }
+
+fn main() {}
 ```

@@ -9,7 +9,7 @@ Complément de [schema-et-diff.md](schema-et-diff.md) (ColumnDef/ModelSchema/Sch
 
 ## Defs de schéma (builder)
 
-[`migration/{primary_key,foreign_key,index,hooks}`](../../../runique/src/migration/)
+[`migration/schema/{primary_key,foreign_key,index,hooks}.rs`](../../../runique/src/migration/schema/)
 
 ```mermaid
 classDiagram
@@ -49,7 +49,7 @@ classDiagram
 `Vec<IndexDef>` (cf. schema-et-diff.md). Les FK de `schema()` viennent des `belongs_to` : table
 et clé primaire lues sur l'entité cible.
 
-## Lecture du DSL (`migration/utils/parser_builder`, `parser_extend`)
+## Lecture du DSL (`migration/parse/builder`, `parse/extend.rs`)
 
 ```mermaid
 classDiagram
@@ -86,7 +86,7 @@ classDiagram
   `value`, unique `(owner_id, value)`, index `(value, owner_id)`).
 - `scan_entities` résout `ParsedFk.to_table` (nom de module) en vraie table + vraie PK.
 
-## Types parsés + diff (`migration/utils/types.rs`)
+## Types parsés + diff (`migration/types.rs`)
 
 ```mermaid
 classDiagram
@@ -130,11 +130,11 @@ classDiagram
     CycleKeys ..> ParsedFk
 ```
 
-`CycleKeys` (generators.rs) : pour une table nouvelle, ses FK vers une table créée plus tard
+`CycleKeys` (`generate/mod.rs`) : pour une table nouvelle, ses FK vers une table créée plus tard
 (`forward`, inline sous SQLite seulement) et les FK d'autres tables à ajouter après sa création
 (`closing`, `ALTER` hors SQLite).
 
-Index d'une FK (`idx_{table}_{col}`, une colonne, non unique) : `fk_index_column` le repère,
+Index d'une FK (`idx_{table}_{col}`, une colonne, non unique) : `fk_index_column` (`generate/constraints.rs`) le repère,
 `unless_mysql_fk` l'encadre d'une vérification `information_schema.KEY_COLUMN_USAGE` à
 l'exécution → jamais créé ni supprimé sous MySQL/MariaDB (InnoDB l'indexe déjà, et le
 supprimer lèverait l'erreur 1553). Snapshots non encadrés (`build_index_create_stmts(schema, guard)`).

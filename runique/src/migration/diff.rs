@@ -1,15 +1,15 @@
 //! Diff calculation between two [`ParsedSchema`] — added/dropped/modified columns, FKs, indexes, enum renames.
 use std::collections::{HashMap, HashSet};
 
-use crate::migration::utils::types::{Changes, ParsedColumn, ParsedFk, ParsedSchema};
+use crate::migration::types::{Changes, ParsedColumn, ParsedFk, ParsedSchema};
 
 /// Columns that actually exist in the database (excluding ignored and PK)
 ///
 /// # Example
 ///
 /// ```rust, ignore
-/// use runique::migration::utils::types::{ParsedSchema, ParsedColumn};
-/// use runique::migration::utils::diff::db_columns;
+/// use runique::migration::types::{ParsedSchema, ParsedColumn};
+/// use runique::migration::diff::db_columns;
 /// let schema = ParsedSchema {
 ///     table_name: "t".to_string(),
 ///     columns: vec![

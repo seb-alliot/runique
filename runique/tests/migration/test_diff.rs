@@ -1,9 +1,9 @@
 //! Tests — Migration Diff + update_migration_lib
 //! Couvre : diff_schemas, db_columns, Changes::is_empty, update_migration_lib
 
-use runique::cli::makemigration::update_migration_lib;
-use runique::migration::utils::diff::{db_columns, diff_schemas};
-use runique::migration::utils::types::{ParsedColumn, ParsedSchema};
+use runique::migration::cli_migration::update_migration_lib;
+use runique::migration::diff::{db_columns, diff_schemas};
+use runique::migration::types::{ParsedColumn, ParsedSchema};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -360,7 +360,7 @@ fn test_diff_detects_unique_or_default_now_alone() {
 /// An index gone from the model is dropped; one still there is not.
 #[test]
 fn test_diff_drops_only_the_removed_index() {
-    use runique::migration::utils::types::ParsedIndex;
+    use runique::migration::types::ParsedIndex;
     let idx = |name: &str| ParsedIndex {
         name: name.to_string(),
         columns: vec!["title".to_string()],

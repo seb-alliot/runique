@@ -15,6 +15,7 @@ pub(crate) struct NavEntry {
     pub title: String,
 }
 
+#[doc = include_str!("../../../doc-tests/admin/admin_site.md")]
 pub struct AdminSite {
     models: Vec<Box<dyn RegisteredModel>>,
     /// The accounts admin: the framework's own unless the project hands its

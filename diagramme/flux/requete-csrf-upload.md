@@ -115,7 +115,7 @@ Conséquences :
    peut atterrir dans MEDIA_ROOT ; si MEDIA_ROOT est servi en statique, risque de **stored
    XSS**/contenu hostile selon le content-type servi.
 3. **Remplissage disque** non authentifié (borné `max_upload_mb` par fichier, mais répétable).
-Seules les routes admin sont protégées car `admin_required` (middleware) s'exécute **avant**
+Seules les routes admin sont protégées car `admin_access` (middleware) s'exécute **avant**
 l'extraction `Request`. Les routes publiques n'ont pas ce filet.
 
 ### 🟠 C2 — CSRF des forms HTML reposait entièrement sur `req.form()` (footgun) — ✅ CORRIGÉ

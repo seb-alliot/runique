@@ -1,7 +1,7 @@
 //! Tests — migration/utils/parser_seaorm.rs
 //! Couvre : parse_seaorm_source (table name, columns, FK, indexes)
 
-use runique::migration::utils::parser_seaorm::parse_seaorm_source;
+use runique::migration::parse_seaorm_source;
 
 // ─── Fixtures SeaORM ─────────────────────────────────────────────────────────
 
@@ -189,9 +189,9 @@ impl MigrationTrait for Migration {
 "#;
 
 fn col<'a>(
-    s: &'a runique::migration::utils::types::ParsedSchema,
+    s: &'a runique::migration::types::ParsedSchema,
     name: &str,
-) -> &'a runique::migration::utils::types::ParsedColumn {
+) -> &'a runique::migration::types::ParsedColumn {
     s.columns
         .iter()
         .find(|c| c.name == name)

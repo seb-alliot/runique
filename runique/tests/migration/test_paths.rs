@@ -1,5 +1,5 @@
 mod paths_migration {
-    use runique::migration::utils::paths::*;
+    use runique::migration::paths::*;
     #[test]
     fn test_snapshot_dir() {
         assert!(snapshot_dir("test").contains("snapshot"));

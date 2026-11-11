@@ -36,6 +36,7 @@ fn time_columns_last<C: ColumnTrait>(columns: impl IntoIterator<Item = C>) -> Ve
 /// The account table's rank flags: written by the gate alone, never a form field.
 const RANK_FLAGS: [&str; 3] = ["is_superuser", "is_dirigeant", "is_admin"];
 
+#[doc = include_str!("../../../doc-tests/admin/model_admin.md")]
 pub struct ModelAdmin<E: ModelMeta> {
     pub list: ListConfig<E>,
     pub form: FormConfig<E>,

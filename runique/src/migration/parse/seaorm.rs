@@ -51,14 +51,15 @@ fn extract_decimal_len_arg(expr: &Expr) -> Option<(u32, u32)> {
     })
 }
 
-use crate::migration::utils::{
-    helpers::{
-        collect_chain, detect_col_type_seaorm, extract_alias_new_str, extract_alias_new_str_inner,
-        extract_all_str_args, extract_fk_action, extract_fk_action_value,
-        extract_references_from_expr, extract_str_from_call, get_root_expr, method_names_in_expr,
+use crate::migration::parse::{
+    col_types::detect_col_type_seaorm,
+    syn_extract::{
+        collect_chain, extract_alias_new_str, extract_alias_new_str_inner, extract_all_str_args,
+        extract_fk_action, extract_fk_action_value, extract_references_from_expr,
+        extract_str_from_call, get_root_expr, method_names_in_expr,
     },
-    types::{ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema},
 };
+use crate::migration::types::{ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema};
 
 /// True if `expr`'s method-chain root is `ColumnDef::new(...)` — the shape of a real
 /// column definition inside `Table::create()...col(...)`. `Index::create()...col(Alias::new(name))`

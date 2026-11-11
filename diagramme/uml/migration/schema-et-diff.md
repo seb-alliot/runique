@@ -1,6 +1,6 @@
 # UML — Migration (ColumnDef, ModelSchema, diff)
 
-[`migration/column/mod.rs`](../../../runique/src/migration/column/mod.rs),
+[`migration/schema/column.rs`](../../../runique/src/migration/schema/column.rs),
 [`migration/schema/mod.rs`](../../../runique/src/migration/schema/mod.rs)
 
 ```mermaid
@@ -57,7 +57,7 @@ pas de colonne, donc pas de `ColumnDef`.
 ## Anomalies / flux suspects
 
 ### 🔴 M1 — `SchemaDiff` ne détecte PAS les colonnes modifiées — FAUX POSITIF (voir types-builder-et-parsed.md : la CLI utilise `diff_schemas`/`Changes`, complet)
-[`schema/mod.rs:388`](../../../runique/src/migration/schema/mod.rs#L388)
+[`schema/mod.rs:370`](../../../runique/src/migration/schema/mod.rs#L370)
 `SchemaDiff` n'a que `added_columns` et `dropped_columns`. Le `diff()` compare les **ensembles
 de noms** de colonnes (`difference`). Conséquence : un changement de **type**, de **nullabilité**,
 d'**unicité**, de **default** ou de **longueur** sur une colonne existante **n'est jamais
@@ -75,7 +75,8 @@ genre. À confirmer dans le flux makemigrations (03), mais la structure le prouv
 `set_max_size_bounded` (rejet si dépassement). Pas de divergence entre les chemins.
 
 ### 🟠 M4 — noms de contrainte FK/index générés sans limite de longueur — ✅ CORRIGÉ (2026-09-24)
-[`cli/makemigration.rs`](../../../runique/src/cli/makemigration.rs)
+[`changes/name_length_limit.rs`](../../../runique/src/migration/changes/name_length_limit.rs) (détection),
+[`cli_migration/report.rs`](../../../runique/src/migration/cli_migration/report.rs) (refus)
 MariaDB/MySQL rejette tout identifiant > 64 caractères ; Postgres tronque silencieusement à 63
 (donc invisible sur cet engine). Trouvé en exerçant `many_to_many`/`unique_together` pour de vrai
 sur des noms de table/colonne un peu longs. Pas de troncature auto (imprévisible depuis
@@ -84,7 +85,7 @@ plan, même pattern que M1 aurait dû suivre si porté : `check_identifier_lengt
 `check_destructive` via `report_and_bail_if_any`. Détail : [[project_bugs_generateur]] Bug K.
 
 ### 🟠 M5 — `drop_index` avant `drop_table` cassait MariaDB si l'index servait une FK — ✅ CORRIGÉ (2026-09-24)
-[`generators.rs::generate_create_file`](../../../runique/src/migration/utils/generators.rs)
+[`generate/mod.rs::generate_create_file`](../../../runique/src/migration/generate/mod.rs)
 Le `down()` d'une migration CREATE TABLE faisait un `drop_index` explicite avant `drop_table` —
 redondant (`DROP TABLE` supprime déjà ses index) et cassé sur MariaDB (erreur 1553) quand l'index
 encore actif servait de support à une FK. `generate_snapshot_file` avait déjà le bon ordre

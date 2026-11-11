@@ -1,6 +1,6 @@
 //! The syn helpers that read migration files back. Written from cargo-mutants
 //! survivors (2026-10-08): migration/utils/helpers.rs, paths.rs, parser_seaorm.rs.
-use runique::migration::utils::helpers::{
+use runique::migration::{
     extract_alias_new_str, extract_alias_new_str_inner, extract_fk_action,
     extract_references_from_expr, extract_str_from_call, method_names_in_expr,
 };
@@ -74,7 +74,7 @@ fn only_alias_new_gives_a_name() {
 
 #[test]
 fn extension_snapshots_live_under_snapshots_runique() {
-    use runique::migration::utils::paths::{extend_snapshot_dir, extend_snapshot_file_path};
+    use runique::migration::paths::{extend_snapshot_dir, extend_snapshot_file_path};
     assert_eq!(
         extend_snapshot_dir("migration/src"),
         "migration/src/snapshots/runique"
@@ -89,7 +89,7 @@ fn extension_snapshots_live_under_snapshots_runique() {
 /// panic (`mc.args[1]` would be out of bounds).
 #[test]
 fn a_one_argument_from_does_not_panic() {
-    use runique::migration::utils::parser_seaorm::parse_seaorm_source;
+    use runique::migration::parse_seaorm_source;
     let src = r#"
 use sea_orm_migration::prelude::*;
 pub struct Migration;
@@ -125,7 +125,7 @@ impl MigrationTrait for Migration {
 /// Integer-backed enums map to the integer column of their size.
 #[test]
 fn integer_enums_get_their_integer_column_type() {
-    use runique::migration::utils::parser_builder::parse_schema_from_source;
+    use runique::migration::parse_schema_from_source;
     let src = r#"model! { Item, table: "items", pk: id => i32,
         enums: { Tiny: i8 [A = 1, B = 2], Huge: i64 [X = 1, Y = 2] },
         { tiny: choice [enum(Tiny), required], huge: choice [enum(Huge), required] } }"#;

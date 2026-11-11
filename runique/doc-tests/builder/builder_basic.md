@@ -1,84 +1,40 @@
 # Exemple d'utilisation du builder
 
-```rust,ignore
+```rust,no_run
 use runique::prelude::*;
 
-#[tokio::main]
-async fn main() {
-    // Configuration chargée depuis les variables d'environnement
-    let config = RuniqueConfig::from_env();
-
-    // Définition des routes de l'application
-    let router = axum::Router::new()
-        .route("/", axum::routing::get(home_handler))
-        .route("/about", axum::routing::get(about_handler));
-
-    // Construction de l'application
-    let app = RuniqueApp::builder(config)
-        .routes(router)
-        .middleware(|m| {
-            m.with_session_duration(tower_sessions::cookie::time::Duration::hours(2))
-             .with_csp(|c| {
-                 c.scripts(vec!["'self'"])
-                  .images(vec!["'self'", "data:"])
-             })
-        })
-        .build()
-        .await
-        .expect("Erreur de démarrage");
-
-    app.run().await;
+async fn index(mut request: Request) -> AppResult<Response> {
+    request.render("index.html")
 }
-```
 
-## Avec base de données
-
-```rust,ignore
-use runique::prelude::*;
-use runique::db::DatabaseConfig;
+fn routes() -> Routes {
+    urlpatterns! {
+        "/" => view! { index }, name = "index",
+    }
+}
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Configuration lue dans les variables d'environnement (.env)
     let config = RuniqueConfig::from_env();
 
-    // Option 1 : connexion établie avant le build
-    let db = DatabaseConfig::from_env()
-        .expect("Config DB manquante")
-        .build()
-        .connect()
-        .await
-        .expect("Connexion DB échouée");
+    // Connexion à la base, établie avant le build
+    let db = DatabaseConfig::from_env()?.build().connect().await?;
 
-    let app = RuniqueApp::builder(config)
+    RuniqueAppBuilder::new(config)
+        .routes(routes())
         .with_database(db)
-        .routes(axum::Router::new())
+        .statics()
+        .middleware(|m| m.with_csp(|c| c.policy(SecurityPolicy::strict())))
         .build()
         .await
-        .expect("Erreur de démarrage");
+        .map_err(|e| -> Box<dyn std::error::Error> { Box::new(e) })?
+        .run()
+        .await?;
 
-    app.run().await;
+    Ok(())
 }
 ```
 
-## Avec AdminPanel
-
-```rust,ignore
-use runique::prelude::*;
-
-#[tokio::main]
-async fn main() {
-    let config = RuniqueConfig::from_env();
-
-    let app = RuniqueApp::builder(config)
-        .routes(axum::Router::new())
-        .with_admin(|a| {
-            a.prefix("/admin")
-             .site_title("Mon Application")
-        })
-        .build()
-        .await
-        .expect("Erreur de démarrage");
-
-    app.run().await;
-}
-```
+Chaque méthode du builder ne peut être appelée qu'une fois : un second appel ne compile pas.
+Le panel d'administration se branche avec `.with_admin(…)` (feature `admin`, voir `AdminStaging`).

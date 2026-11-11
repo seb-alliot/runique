@@ -1,163 +1,46 @@
-# Synthèse des anomalies & bugs latents
+# Anomalies ouvertes
 
-Révélés par la mise en diagramme + suivi des flux de données. Sévérité :
-🔴 bloquant/sécurité · 🟠 sérieux · 🟡 mineur/dette. Chaque entrée pointe le code.
+Révélées par la mise en diagramme et le suivi des flux de données. Seules les anomalies
+**encore présentes dans le code** sont listées ici, vérifiées le **2026-11-12**. Les entrées
+corrigées ou devenues sans objet (admin 3.x, chantiers CSRF, uploads, HSTS, formulaires…) ont
+été retirées : leur historique est dans git (`git log -p -- diagramme/anomalies.md`) et dans
+le CHANGELOG.
 
-> Journal historique + plan de remédiation. Les entrées admin 3.x (Registry,
-> ResourceEntry, `admin_main`, `table_admin`) sont **obsolètes en 4.0** : voir
-> les diagrammes `uml/admin/*` et la session « alignement 4.0 » dans
-> [ETAT-AVANCEMENT.md](ETAT-AVANCEMENT.md). Chemins migrations framework :
-> `auth/migrations_table.rs`.
-
-## 🔴 Critiques
-
-| ID | Anomalie | Localisation | Correctif proposé |
-|----|----------|--------------|-------------------|
-| **C1** | Upload **commité en MEDIA_ROOT avant** CSRF/validation/auth | [parse_html.rs](../runique/src/utils/forms/parse_html.rs) | ✅ **CORRIGÉ (TDD)** — `parse_multipart` écrit en `.staging-{uuid}` ; `finalize` est le seul committer (gère aussi le cas sans `upload_to`). Test `parse_multipart_stages_file_without_eager_commit` |
-| **C3** | Aucun **rollback** du fichier si la requête est rejetée → orphelin permanent | [parse_html.rs](../runique/src/utils/forms/parse_html.rs) | ✅ **CORRIGÉ** — `sweep_stale_staging` purge les staging orphelins (TTL), erreurs **loggées** (pas avalées) |
-| **D1** | `eihwaz_users_groupes.user_id` codé `.integer()` sans `#[cfg(big-pk)]` → FK incompatible avec `users.id` BIGINT sous feature `big-pk` | [migrations_table.rs](../runique/src/auth/migrations_table.rs) (`user_pk_reference`) | ✅ **CORRIGÉ** — `user_pk_reference` (int/bigint/uuid) |
+Sévérité : 🔴 bloquant/sécurité · 🟠 sérieux · 🟡 mineur/dette.
 
 ## 🟠 Sérieux
 
-| ID | Anomalie | Localisation | Correctif proposé |
-|----|----------|--------------|-------------------|
-| **C2** | ~~CSRF des forms HTML repose **uniquement** sur `req.form()` ; lire `req.prisme.data` direct **contourne** la CSRF~~ | [extractor.rs:20](../runique/src/forms/extractor.rs#L20), [template.rs:406](../runique/src/context/template.rs#L406) | ✅ **CORRIGÉ structurellement (Unreleased/breaking)** — `Prisme::data` passé en `pub(crate)` : le code tiers ne peut plus lire le corps hors CSRF, seuls `checked_data()` (fail-closed) et `req.form()` y donnent accès. Audit interne clean (admin/login/`form()` gardent tous la CSRF avant de toucher `.data`). demo-app migré |
-| **A1** | ~~Closures CRUD `Option` → no-op silencieux~~ | admin 3.x `admin_main` (supprimé) | ❌ **SANS OBJET en 4.0** — plus de closures CRUD ; `RegisteredModel` + gate `Authorized` |
-| **A2** | ~~`own_field = None` → `can_*_own` inopérant sans warning~~ | admin 3.x `resource_entry` (supprimé) | ❌ **SANS OBJET en 4.0** — ownership = `ModelMeta::OWNER` + preuves gate (`Scope::Own`) |
-| **A3** | ~~`list_filter` builtins sans `filter_fn`~~ | admin 3.x builtins (supprimés) | ❌ **SANS OBJET en 4.0** — filtres = `ListConfig::filter` + valeurs sous scope du proof ; comptes/groupes = `ModelAdmin` framework |
-| **TZ1** | `timestamp_tz [auto_now]` / `[auto_now_update]` : colonne créée en `TIMESTAMP` sans fuseau alors que le champ est un `DateTime<Utc>` → sous Postgres, insertion et lecture en échec (`TIMESTAMPTZ … not compatible with SQL type TIMESTAMP`) ; MariaDB/SQLite fonctionnaient | [column/mod.rs](../runique/src/migration/column/mod.rs) `auto_now`, [to_schema.rs](../runique/src/migration/utils/parser_builder/to_schema.rs) | ✅ **CORRIGÉ 2026-10-08 (TDD)** — le fuseau est gardé aux deux endroits ; `datetime`/`timestamp` inchangés. Tests `auto_now_keeps_the_time_zone_of_a_timestamp_tz` + 3 cas dans `test_dsl_types_roundtrip` (3 moteurs) |
-| **IX1** | Index d'une FK (`idx_{table}_{col}`) créé à côté de l'index implicite d'InnoDB → `migrate down/reset` sous MySQL/MariaDB en échec (erreur 1553 « needed in a foreign key constraint ») | [generators.rs](../runique/src/migration/utils/generators.rs) | ✅ **CORRIGÉ 2026-10-07** — `unless_mysql_fk` : vérification `information_schema` à l'exécution, index ni créé ni supprimé sous MySQL/MariaDB. Trouvé par la suite de référence de `cargo mutants --iterate` |
-| **SU1** | `create-superuser` sous la feature `pk-uuid` : aucun id attribué (`..Default::default()`) → insertion en échec | [cli_admin.rs](../runique/src/cli/cli_admin.rs) | ✅ **CORRIGÉ 2026-10-08** — `insert_superuser` extrait du wizard, `Uuid::now_v7()` comme l'admin ; tests sur la vraie migration `eihwaz_users` |
-| **DB1** | Mot de passe de `DATABASE_URL` affiché en clair dans l'erreur « no supporting driver » (CLI, SeaORM cite l'URL complète) | [db/config.rs](../runique/src/db/config.rs), [cli_admin.rs](../runique/src/cli/cli_admin.rs) | ✅ **CORRIGÉ 2026-10-08** — `redact_url` masque l'URL dans l'erreur ; la CLI passe par `DatabaseConfig` (driver vérifié, message i18n avec `cargo install --features`) |
-| **S1** | Sessions anonymes **non persistées** → CSRF des forms publics perdu au restart | [cleaning_store.rs:148](../runique/src/middleware/session/cleaning_store.rs#L148) | Persister aussi un minimum anonyme (ou CSRF indépendant de la session mémoire) |
-| **S2** | `save` relâche le lock **avant** l'écriture DB async → backup DB potentiellement périmé d'un cran | [cleaning_store.rs:378](../runique/src/middleware/session/cleaning_store.rs#L378) | Sérialiser le persist par session (ou versionner le snapshot) |
-| **S3** | ~~High watermark → **refus de login** sous pression mémoire (remontait en 500 générique)~~ → ✅ **CORRIGÉ (TDD)** : refus déjà propre côté store (Err typé, loggé) ; ajout `is_saturated()` + `RuniqueEngine::session_store_saturated()` → garde **503 + Retry-After** sur le login admin (template `503.html` + `render_503`, 9 locales). Login public : même garde via l'accesseur engine. Test `test_is_saturated_reflects_high_watermark` | [cleaning_store.rs:188](../runique/src/middleware/session/cleaning_store.rs#L188) |
-| **M2** | ~~`to_form_field` retombe en `TextField` pour tout `ColumnType` non géré silencieusement~~ | [column/mod.rs:540](../runique/src/migration/column/mod.rs#L540) | ✅ **CORRIGÉ** — log `debug` sur le fallback (« type de colonne non géré → TextField par défaut »). Brancher les types manquants reste un nice-to-have non bloquant |
-| **AM2** | Double écriture `eihwaz_sessions` au login (`create` + `upsert`) → **2 aller-retours DB** (perf) | [session.rs:382](../runique/src/auth/session.rs#L382) | 🟡 perf seulement (fusionner les 2 écritures). **Pas de divergence** : voir faux positifs |
-| **F3** | ~~`honeypot`/`force_invalid` posés par middleware vs ordre `fill`/`validate` à vérifier~~ | [template.rs:396](../runique/src/context/template.rs#L396) | ✅ **VÉRIFIÉ clean** — `force_invalid` posé à la construction (honeypot + CSRF) **avant** `fill()` (qui n'y touche pas) ; `is_valid()` court-circuite dessus, `is_save_allowed()` double-garde. Honeypot POST-only mais CSRF couvre toutes méthodes mutantes |
-| **C6** | ~~Échec CSRF **totalement silencieux** — `force_invalid` court-circuite `is_valid()` avant que `HiddenField::validate()` (branche morte, dépend de `set_expected_value()` jamais appelé en prod) ne puisse poser un message~~ | [template.rs](../runique/src/context/template.rs), [form.rs](../runique/src/forms/form.rs) | ✅ **CORRIGÉ (2026-09-22)** — `Request::form()` pousse `t("csrf.invalid_or_missing")` dans `Forms.errors` dès la détection, avant le court-circuit. Bénéfice framework entier (pas seulement demo-app). Doublé d'un rafraîchissement JS du token au `submit` (`csrf.js`) |
-| **F8** | ~~`ValidationForm::allow_get` par défaut sur `is_submitted()` → tout formulaire mutant (login/inscription/contact) auto-validait sur GET dès que la query string correspondait aux champs, exécutant son effet de bord **sans CSRF** (GET/HEAD seules méthodes exemptées)~~ | [forms/field.rs](../runique/src/forms/field.rs) | ✅ **CORRIGÉ (2026-09-22)** — défaut basculé à **`false`** inconditionnel ; seul un formulaire de recherche GET lecture-seule opte explicitement pour `is_submitted()` (`UsernameForm`, demo-app). Trouvé en migrant Campanile (aurait exigé 4 surcharges manuelles répétées côté app) |
-| **D2** | `eihwaz_history.user_id` sans FK (probablement voulu, mais implicite) | [migrations_table.rs:283](../runique/src/admin/table_admin/migrations_table.rs#L283) | **Documenter** le choix (audit survit à la suppression user) |
-| **D3** | Index manquants : `history(resource_key,object_pk,batch_id)`, `sessions(user_id)`, `reset_tokens(expires_at)` | [migrations_table.rs](../runique/src/admin/table_admin/migrations_table.rs) | Ajouter les index de requête/purge |
-| **CX2 + STRICT_CSP mort** | ~~`enable_header_security=false` partout + `STRICT_CSP` (env, défaut true) stocké mais jamais consommé → headers durcis jamais posés~~ | from_config + csp.rs | Le fix 2.1.21 (`enable_header_security = security.strict_csp`) reliait un flag mort à un **autre flag tout aussi mort** : `security_headers_middleware` posait déjà HSTS/X-Frame/COOP/CORP+CSP+nonce **inconditionnellement** dans `applicator.rs`, sans jamais lire `enable_header_security`. ✅ **NETTOYÉ (2026-09-21)** — les 3 flags supprimés (`enable_csp`/`enable_header_security` sur `MiddlewareConfig`, `enable_header_security`/`with_header_security()` sur `CspConfig`, `strict_csp`/`STRICT_CSP` sur `SecurityConfig`), comportement réel inchangé (headers toujours actifs). HSTS reste gaté `should_emit_hsts()`. Test `hsts_only_over_real_https` |
-| **CX3** | Header HSTS **codé en dur** `max-age=31536000; includeSubDomains; preload` dans **3 sites** (middleware CSP, pages d'erreur, statiques) → `preload` (quasi-irréversible) imposé sans opt-in, `max-age`/`includeSubDomains` non configurables | [csp.rs:281](../runique/src/middleware/security/csp.rs#L281), [error.rs:210](../runique/src/middleware/errors/error.rs#L210), [build.rs:344](../runique/src/app/builder/build.rs#L344) | ✅ **CORRIGÉ (TDD)** — source unique `SecurityConfig::hsts_header_value()` (défaut `max-age=1an; includeSubDomains`, **preload opt-in via `HSTS_PRELOAD`**). Env `HSTS_MAX_AGE`/`HSTS_INCLUDE_SUBDOMAINS`/`HSTS_PRELOAD`. Warning boot si combo preload invalide (`hsts_preload_misconfigured()`). Statiques : plus de HSTS (host-scoped, posé par la 1ʳᵉ page). Tests `hsts_value_*`, `preload_misconfig_detected` |
-| **CFG1** | ~~`secret_key` vide = warning au lieu d'échec boot (CSRF/HMAC cassés en silence)~~ | [server.rs:14](../runique/src/config/server.rs#L14) | ✅ **CORRIGÉ (TDD)** — `secret_key_is_weak()` (vide ‖ défaut ‖ < 32 car.) ; `cross_validate` refuse le boot en prod. Debug → warning. Test `secret_key_tests` |
+| ID | Anomalie | Localisation | Piste |
+|----|----------|--------------|-------|
+| **S2** | `save` relâche le verrou **avant** l'écriture en base (« Release the lock before the async DB writes ») : deux `save` concurrents d'une même session peuvent atteindre la base dans l'ordre inverse, et la sauvegarde garde l'état d'avant | [cleaning_store.rs](../runique/src/middleware/session/cleaning_store.rs) (`save`, `drop(guard)` puis `update_db_backup`) | sérialiser l'écriture par session, ou versionner l'enregistrement |
+| **IM1** | `init_migrate::write` écrit le crate `migration/` fichier par fichier : un échec au milieu laisse un crate incomplet, et `ensure` ne le répare jamais (il ne fait rien dès que le dossier existe) | [init_migrate.rs](../runique/src/migration/cli_migration/init_migrate.rs) (`write`, `ensure`) | **Prévu : complétion de makemigrations** (atomicité, nettoyage) |
 
 ## 🟡 Mineurs / dette
 
-| ID | Anomalie | Localisation |
-|----|----------|--------------|
-| **A4** | `bulk POST` exige `can_create` en plus du droit d'opération (quirk préservé) | [admin_main/action.rs](../runique/src/admin/admin_main/action.rs) |
-| **A7** | Pas de point d'accroche DSL pour un filtre métier arbitraire (région/statut) dans `get_fn`/`list_fn` — ownership (`own_field`) bien géré, mais rien d'équivalent à `get_queryset()` Django pour un prédicat quelconque ; fichier généré réécrit sans fusion, donc pas de contournement manuel durable. Backlog framework #38 | [resource_entry.rs](../runique/src/admin/helper/resource_entry.rs), [admin_main/mod.rs:1041](../runique/src/admin/admin_main/mod.rs#L1041) |
-| **C4** | ~~`csrf_gate` possiblement mort ; commentaire `form.rs:194` trompeur~~ → ✅ **CONFIRMÉ** : module `csrf_gate` **vide** (poids mort, logique en `extractor::check_csrf`). Commentaire `form.rs:194` **corrigé**. Module **supprimé** (fichier + `pub mod` + tombstone test + réf INDEX/commentaires) | forms/prisme/ |
-| **C5** | ~~Seuls GET/HEAD exemptés de CSRF (OPTIONS/TRACE traités mutants) ; règle dupliquée → risque de dérive~~ → ✅ **DURCI, 2 passes**. 2026-09-22 : politique CSRF par méthode collapsée en source unique `csrf_required()` (GET/HEAD exemptés, **tout le reste** exige un token, fail-closed), partagée par le pipeline et `Request::form()`. Test `csrf_required_only_exempts_safe_methods`. 2026-09-24 : **3ᵉ copie divergente trouvée** dans `csrf_middleware` lui-même (`matches!(POST\|PUT\|DELETE\|PATCH)`, excluait OPTIONS/TRACE) — unifiée sur `csrf_required()` partagée. Vérifié avant unification : `SLOT_CORS`(8) précède `SLOT_CSRF`(60), un vrai préflight OPTIONS n'atteint jamais ce code, aucun risque de casser CORS. `is_csrf_exempt(path, exempt_paths)` extrait au même endroit (chemins exemptés, mécanisme reste dans `csrf.rs`) | [extractor.rs](../runique/src/forms/extractor.rs) |
-| **C7** | ~~Un chemin exempté via `.csrf_exempt()` cassait `Request`/`RuniqueContext` en entier (500 `csrf missing`) pour tout usage hors CSRF (session, contexte de template…)~~ → ✅ **CORRIGÉ (2026-09-24)** : `csrf_middleware` sortait tôt sur un chemin exempté **avant** de générer/injecter l'extension `CsrfToken` — `Request` l'attend sans condition, donc plantait systématiquement. `.csrf_exempt()` n'est censé sauter que la *vérification*, pas une fonctionnalité sans rapport. Le token est désormais toujours généré/injecté, exempté ou non ; seule l'étape de vérification est sautée. Trouvé par Sébastien en relisant l'explication du fix C5 ([[user_croissance_instincts_securite]]) | [csrf.rs](../runique/src/middleware/security/csrf.rs) |
-| **E3** | Écart ordre d'écriture vs ordre d'exécution des `.layer()` Axum. **Conséquence concrète trouvée (2026-09-21)** : `applicator.rs` slot 30 (`security_headers_middleware`, toujours actif, pose CSP+nonce) puis slot 31 (`csp_middleware`, ajouté dès `.with_csp()`, pose CSP **sans** nonce) — slot 31 étant appliqué après, il écrasait le header du slot 30 dans `HeaderMap` (`insert`, pas `append`). Le nonce restait injecté côté requête (templates/`{% csp %}` fonctionnaient) mais **disparaissait du header final** → le navigateur bloquait les scripts/styles inline nonce-tagués dès que `.with_csp()` était utilisé (usage documenté normal). `use_nonce`/`.with_nonce()` (champ+méthode jamais lus, supprimés le même jour) masquaient ce bug derrière une fausse impression de configurabilité. **✅ Corrigé (2026-09-21)** : slot 31/`csp_middleware` supprimé, redondant (slot 30 fait déjà tout, en mieux) | [applicator.rs:303-328](../runique/src/app/staging/middleware_staging/applicator.rs#L303-L328), [csp.rs:211](../runique/src/middleware/security/csp.rs#L211) |
-| **E4** | ~~`session_store`/`session_db_store` `LazyLock<RwLock<Option>>` → `unwrap` avant init ?~~ → ✅ **VÉRIFIÉ clean** : écritures gardées `if let Ok(write())`, lectures `.read().ok().and_then()`, aucun `unwrap`/`expect`, init `RwLock::new(None)` infaillible, store non-init → `None` géré | [engine/core.rs:48](../runique/src/engine/core.rs#L48) |
-| **F1** | ~~Hook `customize` seulement sur l'arm `(model)` de `impl_form_access!`~~ → ✅ **VÉRIFIÉ** (model-only = voulu) **+ bug corrigé** : l'arm `(model)` était **dupliqué** (2ᵉ sans `customize`, inatteignable car macro_rules prend le 1ᵉ match) → doublon mort **supprimé** | [impl_form.rs](../runique/src/macros/forms/impl_form.rs) |
-| **F2/M3** | ~~`max_size` appliqué par deux chemins → risque de divergence~~ → ✅ **VÉRIFIÉ clean** : modèle pose le plafond (`model_max_size`), override de form via `field_max_size`→`set_max_size_bounded` qui **rejette si > plafond** ([file.rs:333](../runique/src/forms/fields/file.rs#L333)). Pas de divergence, design « override sans dépasser » appliqué | [column/mod.rs](../runique/src/migration/column/mod.rs) |
-| **AM3** | ~~TTL 24h codé en dur en double (set_expiry + expires_at)~~ → ✅ **CORRIGÉ** : `ttl_secs` unique (OnceLock builder) pour `set_expiry` ET `expires_at` | [session.rs:417](../runique/src/auth/session.rs#L417) |
-| **AM4** | ~~Cache permissions process-local → périmé en multi-instance~~ | [auth/session.rs](../runique/src/auth/session.rs) | ✅ **SANS OBJET** depuis 2026-10-03 — cache supprimé, compte et droits relus en base à chaque requête |
-| **D4/S4** | Double identifiant `cookie_id`/`session_id` à documenter | [migrations_table.rs:209](../runique/src/admin/table_admin/migrations_table.rs#L209) |
-| **E1** | `enable_debug_errors` : nom trompeur ; défaut `true` partout (le handler EST monté en prod) mais le désactiver retirerait toutes les pages d'erreur | [config.rs:65](../runique/src/middleware/config.rs#L65) |
-| **E2** | ~~`RuniqueEngine::attach_middlewares` = code mort (aucun appelant ; le staging applicator est le chemin vivant)~~ → ✅ **SUPPRIMÉ** (2026-09-21) : fonction + test dédié (`test_engine.rs`) retirés, imports orphelins nettoyés dans `engine/core.rs`. Trouvé en creusant un bug réel dans le chemin vivant (slot 30/31 CSP, voir dessous) | engine/core.rs (historique) |
-| **D5** | ~~Fichier orphelin `permissions/droit.rs` (entité `eihwaz_droits` fantôme) ; **pire** : la table était whitelistée dans `extend!{}` + registre phantom → `extend!{ table: "eihwaz_droits" }` aurait cassé la migration à l'exécution~~ → ✅ **SUPPRIMÉ** : ancienne table mono-droits remplacée par `eihwaz_groupes_droits` (matrice par groupe). Retiré sur 4 fronts (fichier entité + `FRAMEWORK_TABLES` + static/arm `EIHWAZ_DROITS` + commentaire `resource.rs`). Vérifié zéro réf vivante | derive_form + permissions/ |
+| ID | Anomalie | Localisation | Piste |
+|----|----------|--------------|-------|
+| **AM2** | Connexion : deux écritures dans `eihwaz_sessions` (`create`, puis la mise à jour de `save`) | [auth/session.rs](../runique/src/auth/session.rs) (`create`), [cleaning_store.rs](../runique/src/middleware/session/cleaning_store.rs) (`update_db_backup`) | **À concevoir avec S2** : écriture unique par `persist_to_db` avec le store par défaut ; l'appel explicite reste la seule écriture d'un store personnalisé (révocation, S6). Piste : un trait de persistance selon le store |
+| **D3** | Index manquants pour les requêtes de purge : `eihwaz_sessions(user_id)` (Postgres n'indexe pas une FK tout seul) et `eihwaz_reset_tokens(expires_at)`. `eihwaz_history` a ses index `(resource_key, object_pk)` et `(user_id)` | [auth/migrations_table.rs](../runique/src/auth/migrations_table.rs) | **À ajouter** : nouvelle migration du framework (`m000000_000006…`), la migration des sessions étant déjà appliquée partout |
+| **D4/S4** | `eihwaz_sessions` porte deux identifiants, `cookie_id` (unique) et `session_id`, sans explication dans la doc | [auth/migrations_table.rs](../runique/src/auth/migrations_table.rs) (`create_eihwaz_sessions_table`) | documenter le rôle de chacun |
+| **E1** | `enable_debug_errors` / `with_debug_errors` : nom trompeur. Le middleware d'erreurs est toujours monté (c'est `config.debug` qui décide du contenu) ; le désactiver retire **toutes** les pages d'erreur, pas seulement le détail de débogage | [middleware/config.rs](../runique/src/middleware/config.rs), [middleware_staging/mod.rs](../runique/src/app/staging/middleware_staging/mod.rs) (`with_debug_errors`) | renommer (rupture, version majeure) ou documenter |
+| **C7** | Formulaire d'un autre site vers un handler à extracteur Axum : durci (`Sec-Fetch-Site`), mais une requête **sans** cet en-tête reste à vérifier par le handler lui-même | [middleware/security/csrf.rs](../runique/src/middleware/security/csrf.rs) | documenté ; à garder en vue |
+| **A7** | La porte annonce un 3ᵉ niveau, « les règles métier du développeur, qui ne peuvent que restreindre », mais seulement dans ses commentaires : aucune API publique ne permet encore d'en déclarer une (pas d'équivalent de `get_queryset` de Django pour un prédicat arbitraire, région, statut…) | [auth/gate/mod.rs](../runique/src/auth/gate/mod.rs), [auth/gate/rights.rs](../runique/src/auth/gate/rights.rs) | concevoir l'API (restrictive uniquement) ; backlog framework |
+| **MG1** | `makemigrations` crée le crate `migration/` (`ensure`) **avant** les contrôles destructifs : une commande refusée sans `--force` laisse quand même ce crate | [cli_migration/mod.rs](../runique/src/migration/cli_migration/mod.rs) (`run`) | **Prévu : complétion de makemigrations** (atomicité, nettoyage) |
+| **DUP1** | `to_snake_case` existe en trois versions qui ne traitent pas pareil les lettres hors ASCII (`to_ascii_lowercase` / `to_lowercase`) | [helpers.rs](../runique/src/migration/helpers.rs), [schema/mod.rs](../runique/src/migration/schema/mod.rs), [parse/builder/to_schema.rs](../runique/src/migration/parse/builder/to_schema.rs) (`pascal_to_snake`) | **Prévu : complétion de makemigrations** (atomicité, nettoyage) |
+| **DC2** | `detect_col_type_builder` n'est appelé que par un test : code mort | [parse/col_types.rs](../runique/src/migration/parse/col_types.rs) | **Prévu : complétion de makemigrations** (atomicité, nettoyage) |
 
-## Faux positifs écartés après vérification
+## Comportements documentés et limites connues
 
-| ID | Hypothèse initiale | Réalité vérifiée |
-|----|--------------------|------------------|
-| **M1/AM1** | `makemigrations` ne gérerait pas les `ALTER COLUMN` | **Faux.** makemigrations utilise `diff_schemas` ([makemigration.rs:489](../runique/src/cli/makemigration.rs#L489)) qui calcule `modified_columns` ([diff.rs:90](../runique/src/migration/utils/diff.rs#L90)). `ModelSchema::diff` (limité à add/drop) est un diff secondaire **non** utilisé par la CLI. |
-| **E1 (sévérité)** | Pas de pages d'erreur en prod | **Faux par défaut.** `enable_debug_errors` vaut `true` dans tous les presets ; handler monté en prod. Reste seulement le risque si on le désactive (rétrogradé en 🟡). |
-| **AM2 (divergence)** | `session_id` divergent entre `create` et `upsert` | **Faux.** `save()`/`upsert_session` insère en 1er ; `create()` arrive en conflit et son `on_conflict` ne met à jour que `[UserId, ExpiresAt]` (jamais `session_id`). `session_id` final déterministe. Résidu réel = double écriture (perf 🟡). |
-| **TR1** | `ErrorContext` exposé en prod | **Faux.** Rendu gaté sur `config.debug` ([error.rs:96](../runique/src/middleware/errors/error.rs#L96)). |
+| ID | Comportement | Où c'est dit |
+|----|--------------|--------------|
+| **S1** | Les sessions anonymes (jeton CSRF, messages flash) ne vivent qu'en mémoire : perdues au redémarrage, absentes d'une autre instance ; un formulaire public ouvert avant échoue au contrôle CSRF, avec le message `csrf.invalid_or_missing` | `docs/*/session/14-sessions.md`, `docs/*/session/store/store.md` |
+| **C8** | Upload : staging → écriture → publication → commit ; tout échec supprime le fichier publié (`rollback_uploads`), le staging restant est purgé (`sweep_stale_staging`). Reste un orphelin possible sur coupure en cours de traitement, ou si la suppression échoue (tracée en `error!`). L'ancien fichier remplacé par un nouvel upload reste sur le disque : sa suppression revient au développeur | [forms/form.rs](../runique/src/forms/form.rs) (`publish_uploads`, `rollback_uploads`), [forms/fields/media.rs](../runique/src/forms/fields/media.rs) |
 
-## Tracing — erreurs avalées corrigées (chantier « zéro erreur avalée »)
+## Faux positifs (ne pas re-signaler)
 
-Toutes compilées + testées (215/215 vert).
-
-| Site | Avant | Après |
-|------|-------|-------|
-| `forms/field.rs` rollback txn (×4) | `let _ = txn.rollback()` | `rollback_traced()` → `warn!` |
-| `forms/fields/file.rs` cleanup + ancien fichier | `let _ =` | `warn!` (filtre NotFound) |
-| `admin/admin_main/handle_crud.rs` ancien upload | `let _ =` | `warn!` (filtre NotFound) |
-| `admin/history.rs` insert audit | `let _ =` muet | `warn!` (audit row lost) |
-| `admin/builtin/user.rs` user→groupe (×2, RBAC) | `let _ =` | let-chain + `warn!` |
-| `utils/reset_token` cleanup | `let _ =` | `warn!` |
-| `middleware/security/anti_bot.rs` session honeypot | `let _ =` | `warn!` |
-| `auth/password.rs` template email reset | `if let Ok` sans else | `else` → `warn!` (email non envoyé visible) |
-| `auth/guard.rs` cache permissions (×4) | `if let Ok(write())` skip | `unwrap_or_else(into_inner)` + `warn!` (récupère le lock empoisonné) |
-| `utils/forms/parse_html.rs` (C3) | `let _ =` | `warn!` ×3 + sweep tracé |
-| `utils/mailer` `MailerConfig` Debug | `derive(Debug)` (password en clair) | Debug manuel masquant `password: ***` |
-
-Bénins classés (pas des avalages) : `write!(String,…)` (generator/parsers), `dotenv().ok()`,
-`OnceCell::set().ok()`, `rustls install_default()`, `LoginGuard`/`RateLimiter` (déjà
-`into_inner()`).
-
-### Nouvelles anomalies transverses (uml/transverse)
-
-| ID | Anomalie | Statut |
-|----|----------|--------|
-| **TR2** | `MailerConfig` dérivait `Debug` → password SMTP en clair dans les logs | ✅ **CORRIGÉ** (Debug manuel `***`) |
-| **TR1** | `ErrorContext` (debug_repr/stack_trace/headers) exposés en prod ? | ✅ **FAUX POSITIF** — `error.rs:96` gate sur `config.debug` : prod → `render_500/404` sans détails ; page debug seulement en debug |
-
-## Thèmes transverses
-
-1. **Erreurs avalées silencieusement** (A1, A2, M2, S1) — rejoint le chantier « zéro erreur
-   avalée » : un `None`/fallback inattendu doit logger/erreur, jamais dégrader en silence.
-2. **Deux sources de vérité** (E2, AM2, F2, AM3) — collapser chaque paire en un seul chemin.
-3. **Ordre des opérations sécurité** (C1, C2, C3, F3) — la validation (CSRF/extension) doit
-   précéder tout effet de bord persistant (écriture fichier, save).
-4. **`big-pk` non propagé** (D1) — auditer **tous** les `user_id`/PK pour la cohérence `cfg`.
-
-## Passe 4.0 — novembre 2026
-
-| ID | Anomalie | Statut |
-|----|----------|--------|
-| **C7** | Formulaire d'un autre site vers un handler à extracteur Axum | ✅ durci ; reste la requête sans `Sec-Fetch-Site`, à vérifier par ce handler |
-| **C8** | Fichier et ligne d'un même `save` désaccordés | ✅ corrigé ; reste un fichier orphelin possible, jamais un lien cassé |
-| **C9** | Valeurs et erreur CSRF recopiées entre formulaires d'une page | ✅ corrigé (`request.form(nom)`) |
-| **F9** | Type de colonne absent sur les vrais formulaires | ✅ corrigé (`enforce_limits`) |
-| **F10** | `add_js` sans SHA ni nonce | ✅ corrigé |
-| **S5** | Contenu des sessions lisible en base | ✅ corrigé (chiffrement) |
-| **S6** | Store personnalisé non révoqué après un reset | ✅ corrigé (`session_version`) |
-
-### Passe du 2026-11-05 au 2026-11-07
-
-| ID | Anomalie | Statut |
-|----|----------|--------|
-| **F11** | Champ `readonly` renvoyé par le navigateur, lu par `cleaned()` | ✅ un champ verrouillé n'est plus rempli depuis la requête |
-| **F12** | Mot de passe saisi au format d'un hash enregistré tel quel, coût choisi par le visiteur | ✅ valeur de la requête toujours hachée ; coûts plafonnés à la vérification |
-| **F13** | `decimal` à une seule borne refusait toute valeur | ✅ borne absente non comparée |
-| **F14** | `f32` hors plage accepté puis refusé à l'écriture | ✅ borné à la validation |
-| **F15** | Bornes `bigint` au-delà de 2^53 arrondies (passage par `f64`) | ✅ `min_i64` / `max_i64` |
-| **F16** | JSON fait d'espaces : vide à la validation, refusé à l'écriture | ✅ vide des deux côtés |
-| **F17** | Filtre de protocoles coupant au milieu d'un mot (« profile: ») | ✅ début de texte ou après séparateur |
-| **F18** | Texte riche d'un `<textarea>` désescapé à chaque réédition | ✅ échappé une fois |
-| **F19** | `register_dynamic_fields` tournait après le remplissage : champ ajouté jamais rempli | ✅ hook retiré (rupture notée) |
-| **UP1** | Fichiers actifs (`.html`, `.js`, `.xml`…) acceptés hors `.svg` | ✅ `ACTIVE_CONTENT` toujours refusé ; CSP médias `form-action 'none'` |
-| **UP2** | Upload en échec : chemin serveur et erreur OS montrés au visiteur | ✅ `upload_failed` traduit, détail au journal |
-| **SQ1** | `search!` : `%` / `_` de la valeur agissaient en jokers, `iexact` en `LIKE` | ✅ littéral ; `iexact` = égalité |
-| **SEC4** | `X-Forwarded-For` multi-lignes : seule la première lue (IP forgée) | ✅ toutes les lignes lues |
-| **SEC5** | `with_cors` + `allow_credentials(true)` paniquait au boot | ✅ méthodes / en-têtes reflétés |
-| **AU2** | `LoginGuard` contourné par la casse / les espaces (MySQL/MariaDB) | ✅ clé trim + minuscules |
-| **AU3** | Déconnexion de l'admin sans CSRF | ✅ jeton exigé |
-| **AU4** | Reset d'un compte de rang supérieur depuis l'admin | ✅ `ResetPassword::PROTECTS_RANK` |
-| **AU5** | Nom du compte non échappé dans l'e-mail de reset intégré | ✅ `email_text` |
-| **AU6** | Reset intégré hachant avec `config.password` au lieu de `password_init` | ✅ `password_get()` |
-| **AU7** | Pages de reset et listes admin gardées en cache (navigateur / htmx) | ✅ `no-store`, cache d'historique htmx coupé |
-| **FS1** | `.env` de `runique new` et `key.pem` ACME lisibles par tous | ✅ `private_file` (0600) |
-| **AC1** | Certificat ACME jamais renouvelé sans redémarrage | ✅ contrôle toutes les 12 h + `reload_from_pem` |
-| **AD1** | Page admin surchargée absente : erreur au premier rendu seulement | ✅ `missing_pages` au boot, tous environnements |
-| **AD2** | Variable inconnue dans une surcharge admin : erreur au rendu | ✅ `unknown_variables` au boot, tous environnements |
-| **AD3** | Fiche admin dans un ordre aléatoire ; `session_version` affiché | ✅ `detail_columns` ; compteur jamais lu |
-| **AD4** | Comptes créés dans l'admin sans `created_at` / `updated_at` | ✅ remplis à l'enregistrement |
-| **AD5** | Liens de liste réencodant mal un nom de filtre inventé | ✅ réencodé |
-| **AD6** | Booléens d'`extend!{}` : valeur inconnue lue `false` | ✅ refusée |
-| **ST1** | `?v=` des statiques aveugle aux fichiers de Runique (SRI bloquant après montée) | ✅ jeton sur les deux dossiers |
-| **ER1** | Ligne d'erreur Tera jamais surlignée ; version de Rust lue à l'exécution | ✅ span de l'erreur ; `build.rs` |
-| **JS1** | `csrf.js` renvoyait un formulaire malgré `preventDefault()` (double envoi) | ✅ corrigé |
-| **DC1** | Code mort : `user_resource(_with_template)`, `success_redirect` | ✅ retirés (ruptures notées) |
-| **F20** | Clé primaire listée dans `#[form(fields = […])]` : compilait puis panique à chaque requête | ✅ refusée à la compilation (`PRIMARY_KEY` + assertion `const`) |
-| **AC2** | ACME : renouvellement décidé sur `expires.txt` (+60 j), aveugle à un certificat plus court, remplacé ou d'un autre domaine | ✅ décidé sur le certificat (domaine couvert, tiers de vie restant) ; `expires.txt` abandonné |
-| **T1** | Tests des modes `Delegated` / `Manual` du reset faussés par la config globale (`OnceLock`) d'un binaire partagé | ✅ un binaire par mode, qui vérifie que `password_get()` est le sien |
+| ID | Hypothèse | Réalité vérifiée |
+|----|-----------|------------------|
+| **M1/AM1** | `makemigrations` ne gérerait pas les `ALTER COLUMN` | Faux : `diff_schemas` ([cli_migration/plan.rs:33](../runique/src/migration/cli_migration/plan.rs#L33)) calcule `modified_columns` ([diff.rs:90](../runique/src/migration/diff.rs#L90)). `ModelSchema::diff` (ajouts / suppressions) n'est pas utilisé par la CLI. |
+| **AM2 (divergence)** | `session_id` divergent entre `create` et la sauvegarde | Faux : la mise à jour ne touche jamais `session_id`. Seule reste la double écriture (AM2 ci-dessus). |
+| **TR1** | `ErrorContext` exposé en production | Faux : le rendu détaillé dépend de `config.debug` ([middleware/errors/error.rs](../runique/src/middleware/errors/error.rs)). |
+| **D2** | `eihwaz_history.user_id` sans clé étrangère | Voulu et documenté dans le code (`create_eihwaz_history_table`) : l'historique survit à la suppression du compte. |
