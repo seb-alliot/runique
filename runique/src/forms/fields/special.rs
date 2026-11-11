@@ -1,5 +1,5 @@
 //! Special fields: `ColorField`, `UUIDField`, `IPAddressField`, `JSONField`, `SlugField`.
-use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
+use crate::forms::base::{FieldConfig, FormField};
 use crate::utils::aliases::ATera;
 use crate::utils::trad::{t, tf};
 use async_trait::async_trait;
@@ -22,12 +22,6 @@ impl ColorField {
         }
     }
 
-    /// Sets the field's display label.
-    pub fn label(mut self, label: &str) -> Self {
-        self.base.label = label.to_string();
-        self
-    }
-
     /// Marks the field as required; empty input fails validation.
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
@@ -45,15 +39,7 @@ impl ColorField {
     }
 }
 
-impl CommonFieldConfig for ColorField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(ColorField, label);
 
 #[async_trait]
 impl FormField for ColorField {
@@ -66,18 +52,10 @@ impl FormField for ColorField {
     }
 
     async fn validate(&mut self) -> bool {
-        let val = self.base.value.trim();
-
-        if self.base.is_required.choice && val.is_empty() {
-            let msg = self
-                .base
-                .is_required
-                .message
-                .clone()
-                .unwrap_or_else(|| t("forms.required").to_string());
-            self.set_error(msg);
+        if self.fails_required("forms.required") {
             return false;
         }
+        let val = self.base.value.trim();
 
         if !val.is_empty() {
             // Validate the hexadecimal format #RRGGBB or #RGB
@@ -105,14 +83,7 @@ impl FormField for ColorField {
     fn render(&self, tera: &ATera) -> Result<String, String> {
         let context = self.base_context();
 
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 }
 
@@ -125,15 +96,7 @@ pub struct SlugField {
     pub allow_unicode: bool,
 }
 
-impl CommonFieldConfig for SlugField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(SlugField, label);
 
 impl SlugField {
     /// Creates a new slug field with ASCII-only validation by default.
@@ -156,12 +119,6 @@ impl SlugField {
         self
     }
 
-    /// Sets the field's display label.
-    pub fn label(mut self, label: &str) -> Self {
-        self.set_label(label);
-        self
-    }
-
     /// Marks the field as required (empty value fails validation).
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
@@ -180,18 +137,10 @@ impl FormField for SlugField {
     }
 
     async fn validate(&mut self) -> bool {
-        let val = self.base.value.trim();
-
-        if self.base.is_required.choice && val.is_empty() {
-            let msg = self
-                .base
-                .is_required
-                .message
-                .clone()
-                .unwrap_or_else(|| t("forms.required").to_string());
-            self.set_error(msg);
+        if self.fails_required("forms.required") {
             return false;
         }
+        let val = self.base.value.trim();
 
         if !val.is_empty() {
             // Slug validation
@@ -230,14 +179,7 @@ impl FormField for SlugField {
         let mut context = self.base_context();
         context.insert("field_hint", &t("forms.hint_slug").to_string());
 
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 }
 
@@ -255,12 +197,6 @@ impl UUIDField {
         }
     }
 
-    /// Sets the field's display label.
-    pub fn label(mut self, label: &str) -> Self {
-        self.base.label = label.to_string();
-        self
-    }
-
     /// Marks the field as required; empty input fails validation.
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
@@ -274,15 +210,7 @@ impl UUIDField {
     }
 }
 
-impl CommonFieldConfig for UUIDField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(UUIDField, label);
 
 #[async_trait]
 impl FormField for UUIDField {
@@ -295,18 +223,10 @@ impl FormField for UUIDField {
     }
 
     async fn validate(&mut self) -> bool {
-        let val = self.base.value.trim();
-
-        if self.base.is_required.choice && val.is_empty() {
-            let msg = self
-                .base
-                .is_required
-                .message
-                .clone()
-                .unwrap_or_else(|| t("forms.required").to_string());
-            self.set_error(msg);
+        if self.fails_required("forms.required") {
             return false;
         }
+        let val = self.base.value.trim();
 
         if !val.is_empty() {
             // Validate the UUID format
@@ -324,14 +244,7 @@ impl FormField for UUIDField {
         let mut context = self.base_context();
         context.insert("field_hint", &t("forms.hint_uuid").to_string());
 
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 }
 
@@ -347,12 +260,6 @@ impl JSONField {
         Self {
             base: FieldConfig::new(name, "textarea", "base_special.html"),
         }
-    }
-
-    /// Sets the field's display label.
-    pub fn label(mut self, label: &str) -> Self {
-        self.base.label = label.to_string();
-        self
     }
 
     /// Marks the field as required; empty input fails validation.
@@ -376,15 +283,7 @@ impl JSONField {
     }
 }
 
-impl CommonFieldConfig for JSONField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(JSONField, label);
 
 #[async_trait]
 impl FormField for JSONField {
@@ -397,18 +296,10 @@ impl FormField for JSONField {
     }
 
     async fn validate(&mut self) -> bool {
-        let val = self.base.value.trim();
-
-        if self.base.is_required.choice && val.is_empty() {
-            let msg = self
-                .base
-                .is_required
-                .message
-                .clone()
-                .unwrap_or_else(|| t("forms.required").to_string());
-            self.set_error(msg);
+        if self.fails_required("forms.required") {
             return false;
         }
+        let val = self.base.value.trim();
 
         if !val.is_empty() {
             // Validate the JSON
@@ -434,14 +325,7 @@ impl FormField for JSONField {
             .unwrap_or(10);
         context.insert("rows", &rows);
 
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 }
 
@@ -481,12 +365,6 @@ impl IPAddressField {
         self
     }
 
-    /// Sets the field's display label.
-    pub fn label(mut self, label: &str) -> Self {
-        self.base.label = label.to_string();
-        self
-    }
-
     /// Marks the field as required; empty input fails validation.
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
@@ -500,15 +378,7 @@ impl IPAddressField {
     }
 }
 
-impl CommonFieldConfig for IPAddressField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(IPAddressField, label);
 
 #[async_trait]
 impl FormField for IPAddressField {
@@ -521,18 +391,10 @@ impl FormField for IPAddressField {
     }
 
     async fn validate(&mut self) -> bool {
-        let val = self.base.value.trim();
-
-        if self.base.is_required.choice && val.is_empty() {
-            let msg = self
-                .base
-                .is_required
-                .message
-                .clone()
-                .unwrap_or_else(|| t("forms.required").to_string());
-            self.set_error(msg);
+        if self.fails_required("forms.required") {
             return false;
         }
+        let val = self.base.value.trim();
 
         if !val.is_empty() {
             // Parse the IP address
@@ -570,13 +432,6 @@ impl FormField for IPAddressField {
         };
         context.insert("field_hint", &hint);
 
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 }

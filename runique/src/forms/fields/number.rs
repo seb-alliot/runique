@@ -25,15 +25,7 @@ pub struct NumericField {
     pub int_range: Option<(i128, i128)>,
 }
 
-impl CommonFieldConfig for NumericField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
+field_base!(NumericField, label);
 
 impl NumericField {
     fn create(name: &str, type_field: &str, config: NumericConfig) -> Self {
@@ -218,12 +210,6 @@ impl NumericField {
         }
         self
     }
-
-    /// Overrides the auto-generated label.
-    pub fn label(mut self, label: &str) -> Self {
-        self.base.label = label.to_string();
-        self
-    }
 }
 
 impl NumericField {
@@ -324,17 +310,10 @@ impl FormField for NumericField {
     }
 
     async fn validate(&mut self) -> bool {
-        let val = self.base.value.trim();
-        if self.base.is_required.choice && val.is_empty() {
-            self.set_error(
-                self.base
-                    .is_required
-                    .message
-                    .clone()
-                    .unwrap_or_else(|| t("forms.number_required").to_string()),
-            );
+        if self.fails_required("forms.number_required") {
             return false;
         }
+        let val = self.base.value.trim();
         if val.is_empty() {
             return true;
         }
@@ -494,13 +473,6 @@ impl FormField for NumericField {
         let mut context = self.base_context();
         context.insert("config", &self.config);
 
-        tera.render(&self.base.template_name, &context)
-            .map_err(|e| {
-                tf(
-                    "forms.finalize_error",
-                    &[&self.base.template_name, &e.to_string()],
-                )
-                .to_string()
-            })
+        self.render_template(tera, &context)
     }
 }
