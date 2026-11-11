@@ -74,7 +74,15 @@ Runique 4.0 keeps the 3.0.x security fixes and adds more (listed below). Runique
 
 #### Dependencies
 
-No known vulnerability. The dependency tree was checked against the two advisories previously tracked here (below): neither applies. `cargo audit` also reports two crates as unmaintained, which is not a vulnerability: `paste` (RUSTSEC-2024-0436) and `rustls-pemfile` (RUSTSEC-2025-0134).
+One known advisory, ignored in the CI's `cargo audit` and not fixable from Runique today:
+
+#### RUSTSEC-2026-0459: libsqlite3-sys < 0.39
+- **Affects**: the `sqlite` feature only (SQLite bundled in C). PostgreSQL and MySQL/MariaDB projects don't pull it in.
+- **Chain**: `runique` → `sea-orm` 2.0.4 → `sqlx` 0.9.0 → `sqlx-sqlite` 0.9.0 → `libsqlite3-sys` 0.37.
+- **Why it can't be fixed here**: `sqlx-sqlite` 0.9.0, the latest release, requires `libsqlite3-sys < 0.38`; the fix is in 0.39.
+- **What Runique does**: the advisory is listed, with this reason, in `.cargo/audit.toml`, and comes out as soon as sqlx accepts 0.39. It is reviewed at each release.
+
+The dependency tree was also checked against the two advisories previously tracked here (below): neither applies. `cargo audit` also reports two crates as unmaintained, which is not a vulnerability: `paste` (RUSTSEC-2024-0436) and `rustls-pemfile` (RUSTSEC-2025-0134).
 
 ### Previously Tracked (now resolved)
 
@@ -86,7 +94,7 @@ No known vulnerability. The dependency tree was checked against the two advisori
 - **Was affected via**: `async-std` (transitive dependency of `sea-orm`/`sqlx`)
 - **Current state**: `async-std` does not appear anywhere in `Cargo.lock` — the SeaORM/sqlx stack Runique depends on has moved to pure Tokio.
 
-Re-checked against a local `Cargo.lock` on 2026-11-07; that file isn't committed, so your resolved versions may differ. The CI runs `cargo audit` on every push, with no ignored advisory, and a known vulnerability fails the build. If you maintain a fork with different dependency versions, verify with `cargo audit` before relying on this section.
+Re-checked against a local `Cargo.lock` on 2026-11-07; that file isn't committed, so your resolved versions may differ. The CI runs `cargo audit` on every push; any known vulnerability other than the one above fails the build. If you maintain a fork with different dependency versions, verify with `cargo audit` before relying on this section.
 
 ## Fixed in Runique
 

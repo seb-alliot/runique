@@ -35,13 +35,6 @@ pub fn db_columns(schema: &ParsedSchema) -> Vec<&ParsedColumn> {
 }
 
 /// Calculates differences between two table schemas.
-///
-/// # Example
-///
-/// ```rust,ignore
-/// // let changes = diff_schemas(&old_schema, &new_schema);
-/// // assert!(changes.added_columns.len() > 0 || changes.dropped_columns.len() > 0);
-/// ```
 pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes {
     let prev_cols: HashMap<&str, &ParsedColumn> = db_columns(previous)
         .into_iter()

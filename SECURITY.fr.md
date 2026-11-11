@@ -74,7 +74,15 @@ Runique 4.0 conserve les correctifs de sécurité de la 3.0.x et en ajoute d'aut
 
 #### Dépendances
 
-Aucune vulnérabilité connue. L'arbre des dépendances a été vérifié par rapport aux deux avis suivis auparavant ici (ci-dessous) : aucun ne s'applique. `cargo audit` signale aussi deux crates non maintenues, ce qui n'est pas une vulnérabilité : `paste` (RUSTSEC-2024-0436) et `rustls-pemfile` (RUSTSEC-2025-0134).
+Un avis connu, ignoré par le `cargo audit` de la CI, qui ne peut pas être corrigé depuis Runique aujourd'hui :
+
+#### RUSTSEC-2026-0459 : libsqlite3-sys < 0.39
+- **Concerne** : la feature `sqlite` uniquement (SQLite embarqué en C). Les projets PostgreSQL et MySQL/MariaDB ne l'utilisent pas.
+- **Chaîne** : `runique` → `sea-orm` 2.0.4 → `sqlx` 0.9.0 → `sqlx-sqlite` 0.9.0 → `libsqlite3-sys` 0.37.
+- **Pourquoi ce n'est pas corrigeable ici** : `sqlx-sqlite` 0.9.0, la dernière version publiée, impose `libsqlite3-sys < 0.38` ; le correctif est en 0.39.
+- **Ce que fait Runique** : l'avis est listé, avec cette raison, dans `.cargo/audit.toml`, et en sort dès que sqlx accepte la 0.39. Il est revu à chaque version.
+
+L'arbre des dépendances a aussi été vérifié par rapport aux deux avis suivis auparavant ici (ci-dessous) : aucun ne s'applique. `cargo audit` signale aussi deux crates non maintenues, ce qui n'est pas une vulnérabilité : `paste` (RUSTSEC-2024-0436) et `rustls-pemfile` (RUSTSEC-2025-0134).
 
 ### Suivies auparavant (résolues)
 
@@ -86,7 +94,7 @@ Aucune vulnérabilité connue. L'arbre des dépendances a été vérifié par ra
 - **Concernait via** : `async-std` (dépendance transitive de `sea-orm`/`sqlx`)
 - **État actuel** : `async-std` n'apparaît nulle part dans `Cargo.lock` ; la pile SeaORM/sqlx utilisée par Runique est passée entièrement à Tokio.
 
-Vérifié à nouveau sur un `Cargo.lock` local le 2026-11-07 ; ce fichier n'est pas commité, donc vos versions résolues peuvent différer. La CI lance `cargo audit` à chaque push, sans avis ignoré, et une vulnérabilité connue fait échouer le build. Si vous maintenez un fork avec d'autres versions de dépendances, vérifiez avec `cargo audit` avant de vous fier à cette section.
+Vérifié à nouveau sur un `Cargo.lock` local le 2026-11-07 ; ce fichier n'est pas commité, donc vos versions résolues peuvent différer. La CI lance `cargo audit` à chaque push ; toute vulnérabilité connue autre que celle ci-dessus fait échouer le build. Si vous maintenez un fork avec d'autres versions de dépendances, vérifiez avec `cargo audit` avant de vous fier à cette section.
 
 ## Corrigé dans Runique
 

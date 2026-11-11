@@ -447,7 +447,7 @@ pub struct FileField {
 field_base!(FileField, label);
 
 impl FileField {
-    /// Low-level constructor. Prefer [`image`](FileField::image), [`document`](FileField::document), or [`any`](FileField::any).
+    /// Low-level constructor. Prefer [`MediaField::image`](crate::forms::fields::MediaField::image) for images, [`document`](FileField::document), or [`any`](FileField::any).
     pub fn create(name: &str, type_field: &str, format: FileFieldType) -> Self {
         let extensions = match format {
             FileFieldType::Document => AllowedExtensions::documents(),
@@ -470,7 +470,7 @@ impl FileField {
     /// Generic upload field. Every extension is accepted except those a browser
     /// runs as a page ([`ACTIVE_CONTENT`]: `.svg`, `.html`, `.js`…).
     /// The framework does not inspect the content: what the file is, and how
-    /// it is served, is the application's responsibility. Use [`image`](Self::image),
+    /// it is served, is the application's responsibility. Use [`MediaField::image`](crate::forms::fields::MediaField::image),
     /// [`document`](Self::document), or [`allowed_extensions`](Self::allowed_extensions)
     /// for a closed list.
     pub fn any(name: &str) -> Self {

@@ -657,7 +657,7 @@ impl Forms {
 impl Forms {
     /// Runs all field validators in order.
     /// Returns `Ok(false)` if the form was force-invalidated (honeypot).
-    /// Used internally by [`RuniqueForm::is_valid`].
+    /// Used internally by [`RuniqueForm::is_valid`](crate::forms::field::RuniqueForm::is_valid).
     pub async fn is_valid(&mut self) -> Result<bool, ValidationError> {
         if self.force_invalid {
             return Ok(false);

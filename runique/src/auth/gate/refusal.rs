@@ -3,7 +3,7 @@
 //! enumerated; the reason only goes to the logs.
 //!
 //! A delete the database blocks because other rows still point at this one
-//! is the exception ([`RefusalReason::LinkedRecords`]). The sentence names
+//! is the exception (`RefusalReason::LinkedRecords`). The sentence names
 //! neither those rows nor how many, and the caller's rights do not change it.
 use crate::utils::trad::t;
 

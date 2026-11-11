@@ -185,4 +185,5 @@ test-utils = ["orm"]
 
 [package.metadata.docs.rs]
 default-target = "x86_64-unknown-linux-gnu"
-features = ["all-databases"]
+# Same features as the CI's `docs` job.
+features = ["all-databases", "admin", "acme"]

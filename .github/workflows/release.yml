@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: read
+
 jobs:
   publish:
     name: Security audit
@@ -22,8 +25,7 @@ jobs:
       - name: Install cargo-audit
         run: cargo install cargo-audit
 
-      # No ignored advisory: rsa, async-std and instant are no longer in the
-      # dependency tree (see SECURITY.md).
+      # The advisories ignored, and why, are in `.cargo/audit.toml` (see SECURITY.md).
       - name: Security Audit
         run: cargo audit
 
