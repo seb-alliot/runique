@@ -6,6 +6,33 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [4.1.0] - non publiée
+
+### Sécurité
+
+* **`login_required` se fiait à la session seule** : il laissait passer dès qu'un identifiant était en session. Si la fermeture de la session d'un compte désactivé échouait (store en panne), ce compte passait encore la route. Il se fie maintenant au compte relu en base par le middleware d'authentification.
+* **`X-Forwarded-For` : une entrée illisible était sautée** : derrière un proxy qui écrit `ip:port`, l'adresse à sa gauche, que le client peut forger, était prise pour la sienne. Une entrée qui n'est pas une adresse arrête maintenant la lecture, et l'IP de la connexion est retenue.
+* **Limite de débit contournable en IPv6** : chaque adresse avait son propre quota, alors qu'un abonné IPv6 dispose de tout un `/64`. Une adresse IPv6 est maintenant comptée par préfixe `/64` ; une adresse IPv4 vue à travers une socket IPv6 (`::ffff:1.2.3.4`) reste comptée seule.
+* **Champ URL : seuls `http` et `https` passent** : `TextField::url` acceptait tout schéma, et s'appuyait sur le retrait du mot `javascript:` du texte, contournable (`java<TAB>script:`, qu'un navigateur lit comme `javascript:`). L'URL est maintenant lue par le parseur des navigateurs et doit être absolue, en `http` ou `https`. **À vérifier** : un champ URL qui recevait `ftp://`, `mailto:` ou une URL relative les refuse désormais.
+* **Hôte vide** : un `Host` vide (`Host: .`) ne correspond plus à aucune entrée de la liste, même vide.
+
+### Ajouté
+
+* **`ExclusiveLogin`** : le dernier paramètre de `login` accepte `ExclusiveLogin::{Off, On, Strict}` en plus d'un `bool` (`false` = `Off`, `true` = `On`, sans changement). `Strict` refuse la connexion (`LoginError::Session`) et ferme sa session quand les autres sessions du compte n'ont pas pu être fermées ; `On` journalise l'échec et connecte.
+* **Messages « requis » propres à chaque champ** : un champ de choix, un nombre ou un fichier requis et vide affiche son propre message (`forms.select_required`, `forms.number_required`, `forms.file_required`) au lieu du message générique, et le message personnalisé de `set_required(true, Some("…"))` est maintenant respecté dans un formulaire.
+
+### Corrigé
+
+* **`save()` prenait un `{id}` quelconque pour la ligne du formulaire** : hors admin, `save()` et `delete()` lisaient la clé sous `{<nom>_<clé>}`, puis sous `{<clé>}` tout court. Sur `/articles/{id}/commenter`, le numéro de l'article était pris pour celui du commentaire : le commentaire n° `id` était modifié, ou « introuvable », là où le handler voulait en créer un. Seul `{<nom>_<clé>}` est lu maintenant (`{article_id}` pour le formulaire `"article"`) ; un `{id}` se lit avec `request.get_path_as("id")`. **À vérifier** : une route qui modifiait une ligne par `{id}` doit le renommer en `{<nom>_id}`, sinon `save()` crée une ligne.
+* **Une erreur de base de données déconnectait l'utilisateur** : quand la lecture du compte échouait (base indisponible, pool saturé), la session était fermée comme pour un compte supprimé. La requête reçoit maintenant un `503` et la session reste ouverte.
+* **Arrêt du serveur** : seul Ctrl+C déclenchait l'arrêt propre. `SIGTERM` (`systemctl stop`, `docker stop`) est maintenant écouté, et le serveur HTTPS (ACME), qui n'en avait aucun, laisse 30 secondes aux requêtes en cours.
+* **Texte saisi abîmé** : les mots `javascript:`, `vbscript:`, `data:` et `file:` étaient retirés de tout champ texte (« data: 2024 » perdait « data: »). Le texte est gardé tel que saisi ; seules les balises HTML sont retirées. `sanitize_strict` suit la même règle.
+* **Hôtes autorisés sensibles à la casse** : `Host: Example.COM` ou `example.com.` (point final) étaient refusés. La comparaison ignore maintenant la casse et le point final.
+* **`OG_IMAGE` avait deux valeurs par défaut** : la configuration donnait `favicon_runique.ico`, le rendu `runique_320.avif`. Il n'y a plus qu'une lecture et une valeur : `/runique/static/runique_320.avif`.
+* **docs.rs sans l'admin** : la documentation publiée était construite sans la feature `admin`. Elle l'est maintenant avec `all-databases`, `admin` et `acme`.
+
+---
+
 ## [4.0.0] - 2026-11-08
 
 ### Sécurité

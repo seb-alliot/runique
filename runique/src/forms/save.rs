@@ -15,19 +15,25 @@ pub(crate) enum SaveAction {
     Delete,
 }
 
-/// The row a form's write points at: the URL's `{<name>_<pk>}`, else `{<pk>}`;
-/// none means a create. A key that doesn't read as the entity's key type is an
-/// error, never a create.
+/// The path parameter naming the row of the form called `name`: `article_id`
+/// for the form `article` of a model keyed by `id`.
+pub(crate) fn row_param(name: &str, pk: &str) -> String {
+    format!("{name}_{pk}")
+}
+
+/// The row a form's write points at: the URL's `{<name>_<pk>}`; none means a
+/// create. A plain `{<pk>}` is not read: on `/articles/{id}/comment` it is the
+/// article's, and taking it for the comment's would update (or miss) comment
+/// `id` where the handler meant to add one. A key that doesn't read as the
+/// entity's key type is an error, never a create.
 pub(crate) fn url_key<E: ModelMeta>(form: &Forms) -> Result<Option<PkOf<E>>, ()> {
     let Some(pk) = E::PrimaryKey::iter().next() else {
         return Ok(None);
     };
     let pk = pk.into_column();
-    let pk = pk.as_str();
     let text = form
         .name
-        .and_then(|name| form.path_params.get(&format!("{name}_{pk}")))
-        .or_else(|| form.path_params.get(pk));
+        .and_then(|name| form.path_params.get(&row_param(name, pk.as_str())));
     match text {
         None => Ok(None),
         Some(text) => PkOf::<E>::from_str(text).map(Some).map_err(|_| ()),

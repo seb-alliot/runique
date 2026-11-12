@@ -46,6 +46,8 @@ La validation des hosts se configure dans `main.rs` via le builder — la liste 
 - `".example.com"` — match `example.com` et `*.example.com`
 - `"*"` — tous les hosts (⚠️ dangereux en production)
 
+La comparaison ignore la casse et le point final : `Example.COM` et `example.com.` désignent le même host que `example.com`. Un host vide n'est jamais accepté.
+
 ### Selon l'environnement
 
 La validation est active avec `RUNIQUE_ENV=prod` dès qu'un hôte est déclaré, inactive avec `RUNIQUE_ENV=dev`. `.enabled(true)` ou `.enabled(false)` a le dernier mot, par exemple pour essayer la validation en local.

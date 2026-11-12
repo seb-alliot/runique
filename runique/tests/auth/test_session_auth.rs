@@ -147,3 +147,125 @@ async fn test_unprotect_session_removes_key() {
     let res = request::get(build_app(get(handler)), "/test").await;
     assert_body_str(res, "removed").await;
 }
+
+// ── ExclusiveLogin ────────────────────────────────────────────────────────────
+
+mod exclusive_login {
+    use crate::helpers::framework_tables::SESSIONS_DDL;
+    use crate::helpers::{db, pk::pk, user::test_user};
+    use runique::auth::session::{ExclusiveLogin, LoginError, is_authenticated, login};
+    use runique::middleware::session::session_db::RuniqueSessionStore;
+    use std::sync::Arc;
+    use tower_sessions::{MemoryStore, Session};
+
+    fn session() -> Session {
+        Session::new(None, Arc::new(MemoryStore::default()), None)
+    }
+
+    fn store(conn: runique::sea_orm::DatabaseConnection) -> RuniqueSessionStore {
+        RuniqueSessionStore::new(
+            runique::db::ADb::from_connection(conn),
+            crate::helpers::server::TEST_SECRET,
+        )
+    }
+
+    fn expiry() -> chrono::NaiveDateTime {
+        chrono::Utc::now().naive_utc() + chrono::Duration::hours(1)
+    }
+
+    /// A store that works, holding a session of account 7 on another device.
+    async fn with_another_device() -> RuniqueSessionStore {
+        let store = store(db::fresh_db_with_schema(SESSIONS_DDL).await);
+        store
+            .create("other-device", pk(7), "s", expiry())
+            .await
+            .unwrap();
+        store
+    }
+
+    async fn other_device_is_open(store: &RuniqueSessionStore) -> bool {
+        store
+            .find_by_cookie_id("other-device")
+            .await
+            .unwrap()
+            .is_some()
+    }
+
+    #[tokio::test]
+    async fn off_leaves_the_other_device_signed_in() {
+        for exclusive in [ExclusiveLogin::Off, false.into()] {
+            let store = with_another_device().await;
+            let session = session();
+            login(
+                &session,
+                &test_user(pk(7), "ada", false),
+                Some(&store),
+                exclusive,
+            )
+            .await
+            .unwrap();
+            assert!(other_device_is_open(&store).await, "{exclusive:?}");
+            assert!(is_authenticated(&session).await);
+        }
+    }
+
+    #[tokio::test]
+    async fn on_and_strict_close_the_other_device() {
+        for exclusive in [ExclusiveLogin::On, true.into(), ExclusiveLogin::Strict] {
+            let store = with_another_device().await;
+            let session = session();
+            login(
+                &session,
+                &test_user(pk(7), "ada", false),
+                Some(&store),
+                exclusive,
+            )
+            .await
+            .unwrap();
+            assert!(!other_device_is_open(&store).await, "{exclusive:?}");
+            assert!(is_authenticated(&session).await, "{exclusive:?}");
+        }
+    }
+
+    #[test]
+    fn a_bool_reads_as_off_or_on_never_strict() {
+        assert_eq!(ExclusiveLogin::from(false), ExclusiveLogin::Off);
+        assert_eq!(ExclusiveLogin::from(true), ExclusiveLogin::On);
+    }
+
+    /// No sessions table: every write of the store is refused.
+    #[tokio::test]
+    async fn when_the_store_refuses_only_strict_refuses_the_sign_in() {
+        for exclusive in [ExclusiveLogin::Off, ExclusiveLogin::On] {
+            let store = store(db::fresh_db().await);
+            let session = session();
+            login(
+                &session,
+                &test_user(pk(7), "ada", false),
+                Some(&store),
+                exclusive,
+            )
+            .await
+            .unwrap_or_else(|e| panic!("{exclusive:?}: {e}"));
+            assert!(is_authenticated(&session).await, "{exclusive:?}");
+        }
+
+        let store = store(db::fresh_db().await);
+        let session = session();
+        let refused = login(
+            &session,
+            &test_user(pk(7), "ada", false),
+            Some(&store),
+            ExclusiveLogin::Strict,
+        )
+        .await;
+        assert!(
+            matches!(refused, Err(LoginError::Session(_))),
+            "{refused:?}"
+        );
+        assert!(
+            !is_authenticated(&session).await,
+            "the session of a refused sign-in is closed"
+        );
+    }
+}

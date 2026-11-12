@@ -106,7 +106,11 @@ pub(crate) async fn load_admin_user(
 
     // Staff access comes from the groups: the account alone can't decide, so
     // the user is built first and judged after.
-    match fresh_user(&engine, &session, user_id).await {
+    let account = match fresh_user(&engine, &session, user_id).await {
+        Ok(account) => account,
+        Err(error) => return account_not_read(user_id, &error),
+    };
+    match account {
         Some(current_user) if current_user.can_access_admin() => {
             RequestExtensions::new()
                 .with_current_user(current_user)
@@ -158,12 +162,21 @@ pub(crate) async fn load_admin_user(
 /// rights; `None` once it is gone, may no longer sign in, or `session` is
 /// outdated. Checked here too: if the auth middleware couldn't close the
 /// session, its `user_id` is still there.
-async fn fresh_user(engine: &AEngine, session: &Session, user_id: Pk) -> Option<CurrentUser> {
-    let account = crate::auth::BuiltinUserEntity::find_by_id(&engine.db, user_id)
-        .await
-        .filter(RuniqueUser::can_sign_in)?;
+/// `Ok(None)`: the account is gone, may no longer sign in, or its session is
+/// outdated. `Err`: the database didn't answer, which says nothing about it.
+async fn fresh_user(
+    engine: &AEngine,
+    session: &Session,
+    user_id: Pk,
+) -> Result<Option<CurrentUser>, sea_orm::DbErr> {
+    let account = crate::auth::BuiltinUserEntity::lookup_by_id(&engine.db, user_id)
+        .await?
+        .filter(RuniqueUser::can_sign_in);
+    let Some(account) = account else {
+        return Ok(None);
+    };
     if !crate::auth::session::session_is_current(session, &account).await {
-        return None;
+        return Ok(None);
     }
     let mut user = CurrentUser {
         id: account.id,
@@ -173,7 +186,19 @@ async fn fresh_user(engine: &AEngine, session: &Session, user_id: Pk) -> Option<
         droits: Vec::new(),
     };
     load_rights(&engine.db, &mut user).await;
-    Some(user)
+    Ok(Some(user))
+}
+
+/// The answer to a request whose account could not be read: its session is
+/// left open, the page asks to come back.
+fn account_not_read(user_id: Pk, error: &sea_orm::DbErr) -> Response {
+    crate::runique_log!(
+        tracing::Level::WARN,
+        user_id = %user_id,
+        error = %error,
+        "admin account not read — session kept, request answered 503"
+    );
+    axum::http::StatusCode::SERVICE_UNAVAILABLE.into_response()
 }
 
 /// Middleware of the routes declared `admin` in `urlpatterns!`: the account and
@@ -194,7 +219,10 @@ pub(crate) async fn declared_route_access(
     request.extensions_mut().remove::<CurrentUser>();
     let engine = request.extensions().get::<AEngine>().cloned();
     let user = match (get_user_id(&session).await, engine) {
-        (Some(user_id), Some(engine)) => fresh_user(&engine, &session, user_id).await,
+        (Some(user_id), Some(engine)) => match fresh_user(&engine, &session, user_id).await {
+            Ok(user) => user,
+            Err(error) => return account_not_read(user_id, &error),
+        },
         _ => None,
     };
     match user {

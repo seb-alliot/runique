@@ -35,64 +35,48 @@ fn test_strict_texte_normal_conserve() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// sanitize_strict — neutralisation des protocoles dangereux
+// sanitize_strict — le texte reste tel que tapé, seules les balises partent
 // ═══════════════════════════════════════════════════════════════
 
+/// `javascript:`, `data:`, `file:` are words in a text. The value of a link
+/// is checked where it is a link: `TextField::url`.
 #[test]
-fn test_strict_retire_javascript_protocol() {
-    let out = sanitize_strict("javascript:alert(1)");
-    assert!(!out.contains("javascript:"));
+fn test_strict_garde_les_mots_qui_ressemblent_a_un_protocole() {
+    for texte in [
+        "data: 2024",
+        "voir file: rapport final",
+        "javascript:alert(1)",
+        "vbscript:x",
+        "Mon profile: dev",
+        "x,data:text/html",
+    ] {
+        assert_eq!(sanitize_strict(texte), texte);
+    }
 }
 
 #[test]
-fn test_strict_caractere_qui_change_de_longueur_en_minuscule() {
-    // `K` (U+212A, 3 octets) devient `k` (1 octet) : ne doit ni paniquer ni décaler
-    let out = sanitize_strict("\u{212A}javascript:alert(1)");
-    assert_eq!(out, "\u{212A}alert(1)");
-    let out = sanitize_strict("\u{130}\u{130}JavaScript:x");
-    assert_eq!(out, "\u{130}\u{130}x");
-}
-
-/// Removed where a scheme can start; one left exposed by the removal goes too.
-#[test]
-fn test_strict_protocole_en_tete_retire_meme_repete() {
+fn test_strict_retire_toujours_les_balises_autour() {
     assert_eq!(
-        sanitize_strict("javascript:javascript:alert(1)"),
-        "alert(1)"
+        sanitize_strict("data:text/html,<h1>x</h1>"),
+        "data:text/html,x"
     );
-    assert_eq!(sanitize_strict("voir javascript:alert(1)"), "voir alert(1)");
-    assert_eq!(sanitize_strict("x,data:text/html"), "x,text/html");
-}
-
-/// Inside a word the protocol is text: no browser reads `javajavascript:` or
-/// `profile:` as `javascript:` or `file:`, and the visitor's text is kept.
-#[test]
-fn test_strict_protocole_dans_un_mot_est_du_texte() {
-    assert_eq!(sanitize_strict("Mon profile: dev"), "Mon profile: dev");
-    assert_eq!(sanitize_strict("metadata: x"), "metadata: x");
     assert_eq!(
-        sanitize_strict("javajavascript:script:alert(1)"),
-        "javajavascript:script:alert(1)"
+        sanitize_strict("<a href=\"javascript:alert(1)\">clic</a>"),
+        "clic"
     );
-    assert_eq!(sanitize_strict("dadata:ta:x"), "dadata:ta:x");
 }
 
 #[test]
-fn test_strict_retire_vbscript_protocol() {
-    let out = sanitize_strict("vbscript:alert(1)");
-    assert!(!out.contains("vbscript:"));
-}
-
-#[test]
-fn test_strict_retire_data_protocol() {
-    let out = sanitize_strict("data:text/html,<h1>x</h1>");
-    assert!(!out.contains("data:"));
-}
-
-#[test]
-fn test_strict_retire_file_protocol() {
-    let out = sanitize_strict("file:///etc/passwd");
-    assert!(!out.contains("file:"));
+fn test_strict_caractere_multi_octets_ne_panique_pas() {
+    // `K` (U+212A, 3 octets) et `İ` (U+0130) changent de longueur en minuscules.
+    assert_eq!(
+        sanitize_strict("\u{212A}javascript:alert(1)"),
+        "\u{212A}javascript:alert(1)"
+    );
+    assert_eq!(
+        sanitize_strict("\u{130}\u{130}JavaScript:x"),
+        "\u{130}\u{130}JavaScript:x"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════

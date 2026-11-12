@@ -330,8 +330,9 @@ match ValidationForm::try_form(form, &request).await {
 The key is looked up in the route's parameters, by the name given to `try_form`:
 
 1. `{<name>_<key>}` — e.g. `{article_id}` for the form `"article"`;
-2. else `{<key>}` — e.g. `{id}`;
-3. else none: `save` creates the row.
+2. else none: `save` creates the row.
+
+A plain `{id}` is not the form's row. On `/articles/{id}/comment` it is the article's: the form `"comment"` therefore creates a comment, and the handler reads the article with `request.get_path_as::<Pk>("id")`.
 
 With a key, `save` updates that row; `delete` needs one. A key that doesn't read as the model's key type, or a missing row, gives "Resource not found" and nothing is written. Two forms on one page each point at their row by their own name.
 

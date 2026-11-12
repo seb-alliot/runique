@@ -60,58 +60,15 @@ pub fn sanitize_strict(input: &str) -> String {
 
     // Strip all HTML tags — ammonia encodes `&` → `&amp;` as a side effect,
     // so we decode entities afterwards to store plain text.
+    //
+    // Words like `javascript:` or `data:` are left where the visitor typed
+    // them: as text they are harmless, and removing them was no protection for
+    // a value placed in an `href` (`java<TAB>script:` got through, a browser
+    // drops the tab). A link's value comes from a URL field, which checks the
+    // scheme (`TextField::url`).
     let stripped = Builder::new().tags(HashSet::new()).clean(input).to_string();
     let decoded = html_escape::decode_html_entities(&stripped);
-    strip_protocols(&decoded).trim().to_string()
-}
-
-/// Removes `javascript:`, `vbscript:`, `data:` and `file:`, ASCII
-/// case-insensitively — the way browsers read a URL scheme — where a scheme can
-/// start: at the beginning, or after a character no scheme name holds. Inside
-/// a word (`profile:`, `metadata:`) it is text, and kept: a browser never
-/// reads `profile:` as `file:`.
-///
-/// Matched on the input itself: offsets taken from a `to_lowercase()` copy
-/// don't line up with the original once a character changes byte length
-/// (`K` U+212A → `k`), which panicked on a non-char boundary. Repeated until
-/// nothing is left, so `javajavascript:script:` can't rebuild `javascript:`.
-fn strip_protocols(input: &str) -> String {
-    const PROTOCOLS: &[&str] = &["javascript:", "vbscript:", "data:", "file:"];
-    let mut current = input.to_string();
-    loop {
-        let mut out = String::with_capacity(current.len());
-        let mut rest = current.as_str();
-        let mut removed = false;
-        // A scheme name is ASCII letters, digits, `+`, `-`, `.`: after one of
-        // those, the protocol is the end of a longer word.
-        let mut prev: Option<char> = None;
-        while !rest.is_empty() {
-            let at_scheme_start =
-                prev.is_none_or(|c| !(c.is_ascii_alphanumeric() || matches!(c, '+' | '-' | '.')));
-            // Protocols are ASCII: a match ends on a char boundary.
-            if at_scheme_start
-                && let Some(proto) = PROTOCOLS.iter().find(|p| {
-                    rest.as_bytes()
-                        .get(..p.len())
-                        .is_some_and(|head| head.eq_ignore_ascii_case(p.as_bytes()))
-                })
-            {
-                rest = &rest[proto.len()..];
-                removed = true;
-                continue;
-            }
-            let mut chars = rest.chars();
-            if let Some(ch) = chars.next() {
-                out.push(ch);
-                prev = Some(ch);
-            }
-            rest = chars.as_str();
-        }
-        if !removed {
-            return out;
-        }
-        current = out;
-    }
+    decoded.trim().to_string()
 }
 
 // =============================

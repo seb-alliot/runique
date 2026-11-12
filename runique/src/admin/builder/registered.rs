@@ -487,9 +487,10 @@ where
 
         let mut form = req.form::<ConfirmForm<E>>(admin_form::DELETE);
         let forms = form.forms_mut();
-        forms
-            .path_params
-            .insert(self.pk_column().to_string(), id.to_string());
+        forms.path_params.insert(
+            crate::forms::save::row_param(admin_form::DELETE, self.pk_column()),
+            id.to_string(),
+        );
 
         if req.method.is_safe() {
             // A confirmation names a row that exists: a rank that needs no
@@ -527,11 +528,12 @@ where
         let forms = form.forms_mut();
         crate::auth::gate::change::type_fields::<E>(forms);
         self.shape_for_edit(forms, &readable, &user.rights_on(E::KEY).columns);
-        // `save_as` looks for the row under the key's own name; the route
-        // calls it `{id}` whatever the model names it.
-        forms
-            .path_params
-            .insert(self.pk_column().to_string(), id.to_string());
+        // `save_as` looks for the row under the form's name and the key's; the
+        // route calls it `{id}` whatever the model names it.
+        forms.path_params.insert(
+            crate::forms::save::row_param(admin_form::UPDATE, self.pk_column()),
+            id.to_string(),
+        );
 
         if req.method.is_safe() {
             let row = self.fetch_detail(db, &view).await?.ok_or_else(not_found)?;

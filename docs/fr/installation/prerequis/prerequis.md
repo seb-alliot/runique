@@ -139,6 +139,49 @@ Les autres variables (dossiers des templates, des fichiers statiques et des méd
 
 ---
 
+## Utiliser Runique depuis le dépôt (version en développement)
+
+Le dépôt contient le travail en cours, en avance sur la version publiée sur crates.io. Il porte un numéro de pré-version (`4.1.0-preview`) : ce que vous clonez est la dernière version publiée plus les changements de la section la plus récente du [CHANGELOG](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md).
+
+Une pré-version n'existe pas sur crates.io. Un projet créé par un `runique new` installé depuis le dépôt demande donc `runique = { version = "4.1.0-preview", … }`, que Cargo ne trouvera pas : remplacez cette ligne par l'une des formes 2 ou 3 ci-dessous.
+
+`runique` est déclaré dans deux fichiers du projet : le `Cargo.toml` de l'application et `migration/Cargo.toml`. Les deux doivent pointer la même source. Trois façons de la choisir :
+
+```toml
+# 1. La version publiée (par défaut)
+runique = { version = "4.0.0", features = ["sqlite"] }
+
+# 2. Un clone local du dépôt
+runique = { path = "../runique/runique", features = ["sqlite"] }
+
+# 3. Directement depuis GitHub
+runique = { git = "https://github.com/seb-alliot/runique", branch = "main", features = ["sqlite"] }
+```
+
+Avec un clone local, le workspace du projet évite d'écrire le chemin deux fois : déclarez la source une fois à la racine, puis reprenez-la dans les deux crates.
+
+```toml
+# Cargo.toml (racine du projet)
+[workspace]
+members = ["migration"]
+
+[workspace.dependencies]
+runique = { path = "../runique/runique" }
+
+[dependencies]
+runique = { workspace = true, features = ["sqlite"] }
+```
+
+```toml
+# migration/Cargo.toml
+[dependencies]
+runique = { workspace = true, features = ["sqlite"] }
+```
+
+Dans tous les cas, `sea-orm` et `sea-orm-migration` doivent garder la version exacte utilisée par cette source de Runique : reprenez celles du `Cargo.toml` à la racine du dépôt.
+
+---
+
 ## Outils recommandés (développement)
 
 ```bash

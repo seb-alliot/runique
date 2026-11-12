@@ -184,7 +184,8 @@ pub(crate) async fn get_user_id(session: &Session) -> Option<Pk> {
 /// activated), never from an id taken from the request.
 ///
 /// If `db_store` is provided, persists the session in DB (multi-device).
-/// If `exclusive` is `true`, invalidates other sessions for the user.
+/// `exclusive` says what happens to the account's other sessions
+/// ([`ExclusiveLogin`]); `true` and `false` still work, as `On` and `Off`.
 ///
 /// ```rust,ignore
 /// login(&session, &user, None, false).await?;
@@ -193,13 +194,14 @@ pub async fn login(
     session: &Session,
     user: &impl RuniqueUser,
     db_store: Option<&RuniqueSessionStore>,
-    exclusive: bool,
+    exclusive: impl Into<ExclusiveLogin>,
 ) -> Result<(), LoginError> {
     // Checked here whatever the path: a session is never opened for an inactive
     // or never-activated account, even one loaded without `authenticate_user`.
     if !user.can_sign_in() {
         return Err(LoginError::CannotSignIn);
     }
+    let exclusive = exclusive.into();
     let user_id = user.user_id();
     let username = user.username();
     let is_superuser = user.is_superuser();
@@ -241,7 +243,7 @@ pub async fn login(
             user_id = %user_id,
             username = %username,
             is_superuser,
-            exclusive,
+            exclusive = ?exclusive,
             db_persist = db_store.is_some(),
             "login"
         );
@@ -296,18 +298,43 @@ pub async fn login(
                 "persist session to DB",
             );
 
-        if exclusive {
-            store
-                .invalidate_other_sessions(user_id, &cookie_id)
-                .await
-                .trace_or(
-                    crate::utils::runique_log::get_log()
-                        .session
-                        .as_ref()
-                        .and_then(|s| s.exclusive_login),
+        if exclusive != ExclusiveLogin::Off {
+            let closed = store.invalidate_other_sessions(user_id, &cookie_id).await;
+            let refused = match &closed {
+                Err(error) if exclusive == ExclusiveLogin::Strict => Some(error.to_string()),
+                _ => None,
+            };
+            closed.trace_or(
+                crate::utils::runique_log::get_log()
+                    .session
+                    .as_ref()
+                    .and_then(|s| s.exclusive_login),
+                tracing::Level::WARN,
+                "invalidate other sessions (exclusive login)",
+            );
+            if let Some(reason) = refused {
+                // `Strict` promised a single session: the one just opened is
+                // closed too. Not through `logout`, which stops at the first
+                // refusal of the store — the very case here. `flush` empties
+                // this request's session before it asks the store anything.
+                let level = crate::utils::runique_log::get_log()
+                    .session
+                    .as_ref()
+                    .and_then(|s| s.store);
+                store.delete(&cookie_id).await.trace_or(
+                    level,
                     tracing::Level::WARN,
-                    "invalidate other sessions (exclusive login)",
+                    "delete the row of a refused exclusive login",
                 );
+                session.flush().await.trace_or(
+                    level,
+                    tracing::Level::WARN,
+                    "close the session of a refused exclusive login",
+                );
+                return Err(LoginError::Session(tower_sessions::session::Error::Store(
+                    tower_sessions::session_store::Error::Backend(reason),
+                )));
+            }
         }
     }
 
@@ -341,6 +368,27 @@ fn log_cycle_id_failure(level: Option<tracing::Level>, error: &impl std::fmt::De
         at = %loc,
         "cycle session id (session fixation protection)"
     );
+}
+
+/// What a sign-in does to the account's other sessions (other devices).
+/// `Strict` is `On`, harder: both close them, only `Strict` refuses the
+/// sign-in when closing them failed.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ExclusiveLogin {
+    /// The other sessions stay open.
+    Off,
+    /// The other sessions are closed. If the store refuses, it is logged and
+    /// the sign-in goes on.
+    On,
+    /// The other sessions are closed. If the store refuses, the sign-in is
+    /// refused with [`LoginError::Session`] and its own session closed.
+    Strict,
+}
+
+impl From<bool> for ExclusiveLogin {
+    fn from(exclusive: bool) -> Self {
+        if exclusive { Self::On } else { Self::Off }
+    }
 }
 
 /// Why [`login`] opened no session.

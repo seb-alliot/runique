@@ -24,6 +24,6 @@ pub use password::{
 pub use permissions::rang::Rang;
 pub use permissions::{Groupe, Permission, pull_groupes_db};
 pub use session::{
-    LoginError, is_authenticated, login, logout, protect_session, unprotect_session,
+    ExclusiveLogin, LoginError, is_authenticated, login, logout, protect_session, unprotect_session,
 };
 pub use user::{BuiltinUserEntity, authenticate_admin, authenticate_user};

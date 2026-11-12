@@ -6,6 +6,33 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [4.1.0] - unreleased
+
+### Security
+
+* **`login_required` trusted the session alone**: it let a request through as soon as an id was in the session. If closing the session of a deactivated account failed (store down), that account still passed the route. It now relies on the account the auth middleware read from the database.
+* **`X-Forwarded-For`: an unreadable entry was skipped**: behind a proxy that writes `ip:port`, the address on its left, which the client can forge, was taken for the client's. An entry that is not an address now stops the walk, and the connection's IP is kept.
+* **Rate limit bypass over IPv6**: each address had its own allowance, while an IPv6 subscriber holds a whole `/64`. An IPv6 address is now counted by its `/64` prefix; an IPv4 address seen through an IPv6 socket (`::ffff:1.2.3.4`) is still counted alone.
+* **URL field: only `http` and `https` pass**: `TextField::url` accepted any scheme, and relied on the word `javascript:` being removed from the text, which could be bypassed (`java<TAB>script:`, read as `javascript:` by a browser). The URL is now read by the parser browsers follow and must be absolute, in `http` or `https`. **To check**: a URL field that received `ftp://`, `mailto:` or a relative URL now refuses them.
+* **Empty host**: an empty `Host` (`Host: .`) no longer matches any entry of the list, even an empty one.
+
+### Added
+
+* **`ExclusiveLogin`**: the last parameter of `login` takes `ExclusiveLogin::{Off, On, Strict}` as well as a `bool` (`false` = `Off`, `true` = `On`, unchanged). `Strict` refuses the sign-in (`LoginError::Session`) and closes its session when the account's other sessions could not be closed; `On` logs the failure and signs in.
+* **A "required" message per field**: a required choice, number or file field left empty shows its own message (`forms.select_required`, `forms.number_required`, `forms.file_required`) instead of the generic one, and the custom message of `set_required(true, Some("…"))` is now honoured inside a form.
+
+### Fixed
+
+* **`save()` took any `{id}` for the form's row**: outside the admin, `save()` and `delete()` read the key under `{<name>_<key>}`, then under a plain `{<key>}`. On `/articles/{id}/comment`, the article's number was taken for the comment's: comment `id` was updated, or "not found", where the handler meant to add one. Only `{<name>_<key>}` is read now (`{article_id}` for the form `"article"`); a plain `{id}` is read with `request.get_path_as("id")`. **To check**: a route that updated a row through `{id}` must rename it `{<name>_id}`, or `save()` creates a row.
+* **A database error signed the user out**: when reading the account failed (database down, pool exhausted), the session was closed as for a deleted account. The request now gets a `503` and the session stays open.
+* **Server shutdown**: only Ctrl+C triggered the graceful shutdown. `SIGTERM` (`systemctl stop`, `docker stop`) is now listened to, and the HTTPS (ACME) server, which had none, gives requests in flight 30 seconds.
+* **Typed text damaged**: the words `javascript:`, `vbscript:`, `data:` and `file:` were removed from every text field ("data: 2024" lost "data:"). The text is kept as typed; only HTML tags are removed. `sanitize_strict` follows the same rule.
+* **Case-sensitive allowed hosts**: `Host: Example.COM` or `example.com.` (trailing dot) were refused. The comparison now ignores case and the trailing dot.
+* **`OG_IMAGE` had two defaults**: the configuration gave `favicon_runique.ico`, the rendering `runique_320.avif`. There is now one read and one value: `/runique/static/runique_320.avif`.
+* **docs.rs without the admin**: the published documentation was built without the `admin` feature. It is now built with `all-databases`, `admin` and `acme`.
+
+---
+
 ## [4.0.0] - 2026-11-08
 
 ### Security

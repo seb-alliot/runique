@@ -53,7 +53,7 @@ pub struct Forms {
     /// Set by `req.form()` from the request's constraint.
     pub(crate) save_comportement: SaveComportement,
     /// The name `try_form` gave the form: `save` looks for its key under
-    /// `{<name>_<pk>}` in the URL first.
+    /// `{<name>_<pk>}` in the URL, and nowhere else.
     pub(crate) name: Option<&'static str>,
     /// Values `add_value` gave to names that are not fields: `save` writes the
     /// ones naming a column of the entity, never filled from the request.

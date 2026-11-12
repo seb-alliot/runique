@@ -73,8 +73,10 @@ impl<F: RuniqueForm> ValidationForm<F> {
 }
 
 /// Writing a validated form of an entity. The row comes from the URL:
-/// `{<name>_<pk>}`, else `{<pk>}`, where `name` is the one given to
-/// [`Request::form`](crate::context::Request::form); without one, `save` creates. On a route
+/// `{<name>_<pk>}`, where `name` is the one given to
+/// [`Request::form`](crate::context::Request::form); without it, `save` creates.
+/// A plain `{<pk>}` is not the form's row: read it with
+/// [`Request::get_path_as`](crate::context::Request::get_path_as) when the handler needs it. On a route
 /// declared `admin` the gate writes, as the checked account, with its
 /// history; elsewhere SeaORM does, and checking that the user may touch that
 /// row is the handler's job.
@@ -252,7 +254,10 @@ mod tests {
             user: staff(pk(10), "notes", [true; 7]),
         };
         if let Some(id) = target {
-            forms.path_params.insert("id".to_string(), id.to_string());
+            forms.set_name("note");
+            forms
+                .path_params
+                .insert(crate::forms::save::row_param("note", "id"), id.to_string());
         }
         NoteForm::from_form(forms)
     }

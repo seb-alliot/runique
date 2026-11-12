@@ -649,7 +649,9 @@ mod tests {
             None => SaveComportement::Open,
         };
         if let Some(key) = target {
-            form.path_params.insert("id".to_string(), key.to_string());
+            form.set_name("row");
+            form.path_params
+                .insert(crate::forms::save::row_param("row", "id"), key.to_string());
         }
         for (name, value) in values {
             form.add_value(name, value);
