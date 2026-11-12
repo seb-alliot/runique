@@ -13,20 +13,13 @@ use sea_orm::DbErr;
 
 dyn_clone::clone_trait_object!(FormField);
 
-/// Common logic for all `cleaned_*` — whitelist + priority: POST > path > query.
+/// Common logic for all `cleaned_*`: the value of a declared field, nothing
+/// else. The URL is never read here — a value that didn't go through the
+/// field's rules must not come out of something called "cleaned"
+/// (`request.get_path` / `request.get_query` give the raw ones).
 fn cleaned_value(form: &Forms, name: &str) -> Option<String> {
-    if !form.fields.contains_key(name) {
-        return None;
-    }
-    if let Some(val) = form.fields.get(name).map(|f| f.value())
-        && !val.is_empty()
-    {
-        return Some(val.to_string().trim().to_string());
-    }
-    form.path_params
-        .get(name)
-        .or_else(|| form.query_params.get(name))
-        .map(|s| s.to_string())
+    let value = form.fields.get(name)?.value();
+    (!value.is_empty()).then(|| value.trim().to_string())
 }
 
 /// Logs (field, raw, error) at `forms.field` level when a present value fails to parse,
@@ -75,15 +68,15 @@ pub trait RuniqueForm: FormAccess {
     /// `impl RuniqueForm` block to customize a macro-generated form.
     fn customize(_form: &mut Forms) {}
 
-    // ── Whitelisted access to values (POST > path param > query param) ──────────
+    // ── Whitelisted access to values (declared fields only) ─────────────────────
 
     /// The value of `name` as `T`, read the way the field's column reads it —
     /// the one reading the write makes too, so `Decimal` keeps every digit.
     /// `T` must be that column's Rust type: `cleaned::<i64>` on an `i32`
     /// column is `None`, whatever the value, rather than right only while the
     /// value happens to fit. A field with no column (a form without a model)
-    /// reads as `T`'s own column would. Whitelisted (POST > path > query):
-    /// `None` if the field is unknown, empty, or doesn't read as `T`.
+    /// reads as `T`'s own column would. `None` if the field is unknown, empty,
+    /// or doesn't read as `T`. Only the field is read, never the URL.
     ///
     /// A password field reads as its stored value: once `is_valid()` ran, the
     /// hash in `Auto` mode (`finalize` replaced it); as typed only when marked

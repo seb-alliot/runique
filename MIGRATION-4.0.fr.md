@@ -277,7 +277,7 @@ PRAGMA foreign_keys = ON;
 
 ## Admin
 
-`admin!{}`, `src/admins/` et `runique start` n'existent plus. L'admin se déclare avec le builder typé `ModelAdmin` :
+L'ancienne macro de déclaration de l'admin, `src/admins/` et `runique start` n'existent plus. L'admin se déclare avec le builder typé `ModelAdmin` :
 
 ```rust
 // 3.0

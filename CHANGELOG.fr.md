@@ -15,12 +15,15 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 * **Limite de débit contournable en IPv6** : chaque adresse avait son propre quota, alors qu'un abonné IPv6 dispose de tout un `/64`. Une adresse IPv6 est maintenant comptée par préfixe `/64` ; une adresse IPv4 vue à travers une socket IPv6 (`::ffff:1.2.3.4`) reste comptée seule.
 * **Champ URL : seuls `http` et `https` passent** : `TextField::url` acceptait tout schéma, et s'appuyait sur le retrait du mot `javascript:` du texte, contournable (`java<TAB>script:`, qu'un navigateur lit comme `javascript:`). L'URL est maintenant lue par le parseur des navigateurs et doit être absolue, en `http` ou `https`. **À vérifier** : un champ URL qui recevait `ftp://`, `mailto:` ou une URL relative les refuse désormais.
 * **Hôte vide** : un `Host` vide (`Host: .`) ne correspond plus à aucune entrée de la liste, même vide.
+* **`cleaned` pouvait rendre une valeur de l'URL jamais validée** : quand un champ était vide, `cleaned("x")` rendait à la place le paramètre de chemin ou de query string du même nom, sans qu'aucune règle du champ ne l'ait vu. Un lien `/profil/edition?bio=texte` suffisait : la victime laissait le champ vide, envoyait le formulaire vers l'adresse courante, et `cleaned("bio")` rendait le texte du lien. `cleaned` ne lit plus que les champs. `save()` n'était pas concerné (il lit les champs).
 
 ### Ruptures
 
 * **Canaux de log `admin.filter_fn` et `admin.daemon` supprimés** : ils dataient de l'ancien admin (fonctions de filtre, générateur de code) et ne produisaient plus rien. Retirer `.filter_fn(...)` et `.daemon(...)` des appels à `with_log(|l| l.admin(...))`. Les filtres d'une liste sont maintenant visibles dans le journal `admin.list`.
 
 * **`hot_reload` de l'admin supprimé** : `AdminConfig.hot_reload` et `.hot_reload(...)` dans `with_admin` ne faisaient plus rien depuis le nouvel admin (en développement, les templates sont rechargés à chaque rendu, avec ou sans ce réglage). Retirer l'appel.
+
+* **`cleaned` ne lit plus l'URL, `Forms::set_url_params` remplacé par `set_path_params`** : `cleaned::<T>("x")` rend la valeur du champ `x` et rien d'autre. Pour une valeur de l'URL, utiliser `request.get_path("x")` / `request.get_path_as::<T>("x")` ou `request.get_query("x")` ; pour pré-remplir un champ depuis un lien, `form.add_value("x", valeur)`. Un formulaire de recherche envoyé en `GET` ne change pas (ses champs sont remplis depuis la query string). `Forms::set_url_params(chemin, query)` devient `Forms::set_path_params(chemin)` : la query string n'est plus donnée au formulaire.
 
 ### Ajouté
 

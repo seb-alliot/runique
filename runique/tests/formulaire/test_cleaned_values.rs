@@ -295,33 +295,22 @@ fn test_cleaned_datetime_utc_invalid_returns_none() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// path/query param fallback dans cleaned_value
+// cleaned ne lit que les champs, jamais l'URL
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
-fn test_cleaned_string_falls_back_to_path_param() {
+fn test_cleaned_never_reads_a_path_param() {
     let mut form = make_form();
     let path =
         std::collections::HashMap::from([("str_field".to_string(), "from-path".to_string())]);
-    let query = std::collections::HashMap::new();
-    form.form.set_url_params(&path, &query);
-    // champ vide mais path param présent
-    assert_eq!(
-        form.cleaned::<String>("str_field"),
-        Some("from-path".to_string())
-    );
-}
+    form.form.set_path_params(&path);
+    assert_eq!(form.cleaned::<String>("str_field"), None, "empty field");
 
-#[test]
-fn test_cleaned_string_falls_back_to_query_param() {
-    let mut form = make_form();
-    let path = std::collections::HashMap::new();
-    let query =
-        std::collections::HashMap::from([("str_field".to_string(), "from-query".to_string())]);
-    form.form.set_url_params(&path, &query);
+    form.form.add_value("str_field", "typed");
     assert_eq!(
         form.cleaned::<String>("str_field"),
-        Some("from-query".to_string())
+        Some("typed".to_string()),
+        "the field's value, with the same name in the path"
     );
 }
 

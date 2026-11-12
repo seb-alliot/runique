@@ -347,6 +347,8 @@ form.field(
 
 `finalize()` prepares the relative path but keeps the file in its temporary staging directory, under `MEDIA_ROOT`, named `{uuid}.extension`. With `ValidationForm::save`, Runique writes the row, moves the file to its destination, then commits the transaction. Until the row is committed no one else sees it: no reader meets a path whose file isn't in place yet. A refused write (value already taken, foreign key…) leaves the file in staging, removed at the end of the request; only a failing commit itself takes back the file already moved. The destination must be relative to `MEDIA_ROOT` and cannot contain `.` or `..` components, Windows separators, or a volume prefix. The directory is created automatically if it does not already exist.
 
+**The file of a deleted row.** Deleting a row, from your code or from the admin, doesn't delete its files: Runique can't know whether you must keep them (archive, legal duty) or remove them (right to erasure). If the file has to go, read its path before the deletion and remove it once the deletion is committed.
+
 **The replaced file.** Runique never deletes the file a new upload replaces: you may still need it (history, archive). To delete it, read the old path before the `save`, then remove it once the write is done:
 
 ```rust

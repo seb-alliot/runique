@@ -19,8 +19,8 @@ Runique 4.0 conserve les correctifs de sécurité de la 3.0.x et en ajoute d'aut
 #### `extend!{}` de la table des comptes met `password` et `is_active` dans son formulaire d'admin — Élevée, corrigée en 4.0
 
 - **Ce que ça fait** : le formulaire généré pour un `extend!` de `eihwaz_users` (un profil utilisateur, par exemple) reprend ces deux colonnes du compte. Un admin peut alors choisir le mot de passe d'un utilisateur à la création ou à l'édition, et donc le connaître, et désactiver n'importe quel compte, le sien compris, sans passer par les règles des comptes.
-- **Qui est concerné** : les projets Runique 3.0.x qui enregistrent un tel `extend!` dans `admin!{}`.
-- **Comment se protéger dès maintenant** : gardez les comptes étendus hors de `admin!{}`, et gérez ces colonnes dans vos propres vues.
+- **Qui est concerné** : les projets Runique 3.0.x qui enregistrent un tel `extend!` dans l'admin.
+- **Comment se protéger dès maintenant** : gardez les comptes étendus hors de l'admin, et gérez ces colonnes dans vos propres vues.
 - **Correctif** : Runique 4.0 ne met jamais ces colonnes dans un formulaire, comme les rangs. Un nouveau compte reçoit un mot de passe aléatoire que personne ne connaît (son propriétaire choisit le sien via le lien reçu par e-mail), et une édition n'y touche pas, quoi que contienne la requête.
 
 #### `csrf.js` envoie le jeton CSRF à d'autres origines — Moyenne, corrigée en 4.0

@@ -250,7 +250,8 @@ async fn cleaned_reads_through_the_field_column() {
     assert_eq!(form.cleaned::<String>("title"), Some("abc".to_string()));
     assert_eq!(form.cleaned::<i32>("title"), None, "a text column");
 
-    // Nothing posted: the URL's value, read through the same column.
+    // Nothing posted: a value the handler puts in, read through the same
+    // column. The path's `views` is never read by `cleaned`.
     let request = build_handler_req(
         build_engine().await,
         None,
@@ -259,10 +260,14 @@ async fn cleaned_reads_through_the_field_column() {
     )
     .await;
     let mut form: TypedForm = request.form("typed");
-    form.forms_mut().set_url_params(
-        &HashMap::new(),
-        &HashMap::from([("views".to_string(), "7".to_string())]),
+    form.forms_mut()
+        .set_path_params(&HashMap::from([("views".to_string(), "9".to_string())]));
+    assert_eq!(
+        form.cleaned::<i32>("views"),
+        None,
+        "the path is not a field"
     );
+    form.add_value("views", "7");
     assert_eq!(form.cleaned::<i32>("views"), Some(7));
     assert_eq!(form.cleaned::<i64>("views"), None);
 }

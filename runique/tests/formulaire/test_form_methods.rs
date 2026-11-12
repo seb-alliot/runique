@@ -1,5 +1,5 @@
 //! Tests — forms/form.rs
-//! Couvre : fill(), clear_values(), finalize(), database_error(), set_url_params(), sérialisation
+//! Couvre : fill(), clear_values(), finalize(), database_error(), set_path_params(), sérialisation
 
 use axum::http::Method;
 use runique::{
@@ -143,11 +143,11 @@ async fn test_finalize_ok_on_valid_form() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// set_url_params()
+// set_path_params()
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
-fn test_set_url_params_accessible_via_cleaned() {
+fn test_set_path_params_is_not_read_by_cleaned() {
     use runique::forms::field::{FormAccess, RuniqueForm};
 
     struct F {
@@ -175,10 +175,11 @@ fn test_set_url_params_accessible_via_cleaned() {
     };
     F::register_fields(&mut f.form);
     let path = strmap(&[("id", "42")]);
-    let query = strmap(&[]);
-    f.form.set_url_params(&path, &query);
-    // cleaned::<String> récupère la valeur depuis path_params si le champ est vide
-    assert_eq!(f.cleaned::<String>("id"), Some("42".to_string()));
+    f.form.set_path_params(&path);
+    // The path is the router's, kept for `save()`: `cleaned` gives fields only.
+    assert_eq!(f.cleaned::<String>("id"), None);
+    f.form.add_value("id", "7");
+    assert_eq!(f.cleaned::<String>("id"), Some("7".to_string()));
 }
 
 // ═══════════════════════════════════════════════════════════════

@@ -1,6 +1,6 @@
 # Runique Admin
 
-Runique's admin builds a full CRUD UI from a **typed builder** (`ModelAdmin`). No `admin!` macro, no generated files: you declare SeaORM columns, the framework serves routes, list views, forms and permissions.
+Runique's admin builds a full CRUD UI from a **typed builder** (`ModelAdmin`). No macro, no generated files: you declare SeaORM columns, the framework serves routes, list views, forms and permissions.
 
 Columns are enums (`blog::Column::Title`): the compiler rejects a missing column, and the boot rejects an exposed secret or an inconsistent action.
 

@@ -17,23 +17,7 @@ L'inline afficherait un tableau éditable (ajout, suppression, modification) dan
 
 ## CRUD public
 
-Des vues génériques publiques (à la manière de Django), avec templates surchargeables. Le nom reste à choisir : `view!` existe déjà (routage GET / POST d'un handler). Esquisse :
-
-```rust
-crud! { // nom provisoire
-    Article {
-        model: entities::article::Entity,
-        prefix: "/articles",
-        templates: {
-            list:   "articles/list.html",
-            detail: "articles/detail.html",
-            create: "articles/create.html",
-        },
-        page_size: 10,
-        login_required: true,
-    }
-}
-```
+Des vues génériques publiques (à la manière de Django), avec templates surchargeables. La forme de la déclaration reste à définir.
 
 Routes visées : liste paginée, détail, create, edit, delete — templates framework overridables block par block, comme l'admin.
 

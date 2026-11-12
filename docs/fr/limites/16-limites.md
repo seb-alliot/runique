@@ -17,7 +17,7 @@ Ce que Runique ne fait pas encore (4.1 en cours de développement), ou fait avec
 | Limite | Détail |
 | --- | --- |
 | Un échec d'écriture en session perd le message flash ; l'échec n'apparaît que dans le journal (canal `session.store`) | [Macros flash](/docs/fr/flash/macros) |
-| Un fichier publié puis une écriture en base qui échoue brutalement (coupure) peuvent laisser un fichier orphelin | [Champs](/docs/fr/formulaire/champs) |
+| Un fichier publié puis une écriture en base qui échoue brutalement (coupure) peuvent laisser un fichier orphelin<br>Supprimer une ligne ne supprime pas ses fichiers, y compris depuis l'admin : c'est au projet de décider s'il les garde ou les efface | [Champs](/docs/fr/formulaire/champs) |
 
 ## Sécurité, sessions, authentification
 
@@ -25,7 +25,7 @@ Ce que Runique ne fait pas encore (4.1 en cours de développement), ou fait avec
 | --- | --- |
 | `RateLimiter` et `LoginGuard` n'ont pas de plafond mémoire<br>`RateLimiter` et `LoginGuard` comptent par processus : avec plusieurs instances, le quota est multiplié | [Rate limiting](/docs/fr/middleware/rate-limit) |
 | `LoginGuard` bloque par nom d'utilisateur : quelqu'un peut bloquer un compte dont il connaît le nom | [LoginGuard](/docs/fr/auth/login-guard) |
-| Le store de sessions mémoire appartient à un processus | [Store de sessions](/docs/fr/session/store) |
+| Le store de sessions mémoire appartient à un processus<br>Chaque requête sans cookie ouvre une session anonyme (le jeton CSRF y est gardé) : un flot de telles requêtes peut remplir le store, qui refuse alors les nouvelles sessions | [Store de sessions](/docs/fr/session/store) |
 | Un store personnalisé (`with_session_store`) ne peut pas être parcouru par utilisateur : après un reset de mot de passe, ses sessions ne se ferment qu'à leur requête suivante, et seulement si le modèle utilisateur renvoie `session_version` | [Session](/docs/fr/auth/session) |
 | Durée de session : une seule pour tous les comptes connectés ; « se souvenir de moi » (durée par session) n'est pas encore possible | [Sessions](/docs/fr/middleware/sessions) |
 | Au plus 5 middlewares personnalisés (le 6ᵉ fait paniquer le démarrage) ; ils tournent avant la session, sans accès au compte connecté | [Stack middleware](/docs/fr/architecture/middleware) |
@@ -55,6 +55,7 @@ Ce que Runique ne fait pas encore (4.1 en cours de développement), ou fait avec
 | --- | --- |
 | `RateLimiter` et `LoginGuard` sans plafond mémoire, compteurs par processus | Limiter aussi au reverse proxy (exemple ci-dessous) |
 | `LoginGuard` bloque par nom d'utilisateur | L'associer à une limite par IP, au reverse proxy ou avec `RateLimiter` |
+| Sessions anonymes ouvertes par un flot de requêtes sans cookie | Limiter par IP au reverse proxy, comme pour `/login` (exemple ci-dessous), et dimensionner le plafond du store |
 | Store de sessions mémoire propre à un processus | Une seule instance, ou un reverse proxy qui renvoie chaque visiteur vers la même (`ip_hash` avec nginx) |
 | ACME : un seul site par machine | Confier le TLS à un reverse proxy dès qu'il y a plusieurs sites |
 | SQLite : un seul écrivain à la fois | PostgreSQL pour une charge en écriture soutenue |

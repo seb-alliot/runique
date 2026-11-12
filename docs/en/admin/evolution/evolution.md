@@ -17,23 +17,7 @@ The inline would show an editable table (add, remove, update) on the parent's cr
 
 ## Public CRUD
 
-Public generic views (in the manner of Django's), with overridable templates. The name is still to choose: `view!` already exists (GET / POST routing of a handler). Sketch:
-
-```rust
-crud! { // placeholder name
-    Article {
-        model: entities::article::Entity,
-        prefix: "/articles",
-        templates: {
-            list:   "articles/list.html",
-            detail: "articles/detail.html",
-            create: "articles/create.html",
-        },
-        page_size: 10,
-        login_required: true,
-    }
-}
-```
+Public generic views (in the manner of Django's), with overridable templates. The shape of the declaration is still to define.
 
 Target routes: paginated list, detail, create, edit, delete — framework templates overridable block by block, like the admin.
 

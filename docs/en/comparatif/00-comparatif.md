@@ -214,7 +214,7 @@ Real commands of the `runique` binary (see `runique/src/bin/runique.rs`): `new`,
 ## What Runique is still missing (compared to Django)
 
 - **Image resizing**: no server-side auto resize/cropping.
-- **Generic public CRUD views**: no equivalent to Django's `DetailView`, `ListView`, `CreateView` for public views — considered via `crud!{}` (roadmap, no commitment). The admin panel covers backoffice CRUD via `ModelAdmin`.
+- **Generic public CRUD views**: no equivalent to Django's `DetailView`, `ListView`, `CreateView` for public views — considered (roadmap, no commitment). The admin panel covers backoffice CRUD via `ModelAdmin`.
 - **Model signals / hooks**: `before_save`, `after_save`, `before_delete`, `after_delete` can't be declared in `model!{}`. The internal `HooksDef` struct exists, with no link to the DSL; the behaviour `model!{}` generates only fills `auto_now` columns. On the roadmap, with no commitment.
 - **Management commands**: no equivalent to `manage.py custom_command` — one-shot operations go through `src/bin/`.
 - **Built-in test client**: no native HTTP test client. `runique test` and `runique_test` cover running tests and isolating the database; requests go through `reqwest` or `tower::ServiceExt::oneshot`.
