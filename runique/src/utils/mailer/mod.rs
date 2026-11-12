@@ -111,7 +111,11 @@ impl MailerConfig {
 /// Registers the mailer configuration globally. A no-op if it was already set
 /// (e.g. called twice) — the first configuration wins.
 pub fn mailer_init(config: MailerConfig) {
-    MAILER_CONFIG.set(config).ok();
+    if MAILER_CONFIG.set(config).is_err()
+        && let Some(level) = crate::utils::runique_log::log_level!(mailer.send)
+    {
+        crate::runique_log!(level, "{}", crate::utils::trad::t("log.mailer.init_twice"));
+    }
 }
 
 /// Builds a [`MailerConfig`] from environment variables (see
@@ -225,10 +229,7 @@ impl Email {
     /// if the addresses/transport are invalid.
     pub async fn send(self) -> Result<(), String> {
         let config = MAILER_CONFIG.get().ok_or_else(|| {
-            if let Some(level) = crate::utils::runique_log::get_log()
-                .mailer
-                .as_ref()
-                .and_then(|m| m.send)
+            if let Some(level) = crate::utils::runique_log::log_level!(mailer.send)
             {
                 crate::runique_log!(level, to = %self.to, subject = %self.subject, "send — mailer not configured");
             }
@@ -245,11 +246,7 @@ impl Email {
             MailerBackend::Console => "console",
             MailerBackend::Smtp => "smtp",
         };
-        if let Some(level) = crate::utils::runique_log::get_log()
-            .mailer
-            .as_ref()
-            .and_then(|m| m.send)
-        {
+        if let Some(level) = crate::utils::runique_log::log_level!(mailer.send) {
             crate::runique_log!(level, to = %self.to, subject = %self.subject, backend, "send");
         }
         let result = match config.backend {
@@ -257,10 +254,7 @@ impl Email {
             MailerBackend::Smtp => self.send_smtp(config).await,
         };
         if let Err(ref e) = result
-            && let Some(level) = crate::utils::runique_log::get_log()
-                .mailer
-                .as_ref()
-                .and_then(|m| m.send)
+            && let Some(level) = crate::utils::runique_log::log_level!(mailer.send)
         {
             crate::runique_log!(level, error = %e, backend, "send error");
         }

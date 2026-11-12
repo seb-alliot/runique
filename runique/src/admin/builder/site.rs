@@ -154,6 +154,12 @@ impl AdminSite {
 
     /// Whether the project registered any model of its own, beyond the
     /// accounts the framework always serves.
+    /// The models the project registered, without the framework's accounts
+    /// and groups.
+    pub(crate) fn project_models(&self) -> impl Iterator<Item = &dyn RegisteredModel> {
+        self.models.iter().map(|m| m.as_ref())
+    }
+
     pub(crate) fn has_project_models(&self) -> bool {
         !self.models.is_empty()
     }

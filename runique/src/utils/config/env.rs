@@ -74,9 +74,9 @@ pub fn runique_env_is_known(value: &str) -> bool {
     value.eq_ignore_ascii_case("dev") || value.eq_ignore_ascii_case("prod")
 }
 
-/// Returns `true` when `DEBUG` turns on the detailed error pages (see
-/// [`debug_from`]). It changes nothing else: use [`is_dev`] for the behaviors
-/// that differ between development and production.
+/// Returns `true` when `DEBUG` turns on the detailed error pages and every log
+/// channel (see [`debug_from`]). It changes nothing else: use [`is_dev`] for
+/// the behaviors that differ between development and production.
 ///
 /// Read once, stored in a `LazyLock`, available everywhere in the framework
 /// without passing parameters.

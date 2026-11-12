@@ -39,11 +39,7 @@ fn log_convert_failure<T, E: std::fmt::Display>(
     match res {
         Ok(v) => Some(v),
         Err(e) => {
-            if let Some(level) = crate::utils::config::runique_log::get_log()
-                .forms
-                .as_ref()
-                .and_then(|f| f.field)
-            {
+            if let Some(level) = crate::utils::runique_log::log_level!(forms.field) {
                 crate::runique_log!(
                     level,
                     field = %name,
@@ -271,7 +267,12 @@ async fn submission_accepted<T: RuniqueForm>(form: &mut T) -> bool {
                 .push(t("forms.validation_overflow").into_owned());
             return false;
         }
-        Err(_) => return false,
+        Err(error) => {
+            if let Some(level) = crate::utils::runique_log::log_level!(forms.validate) {
+                crate::runique_log!(level, error = ?error, "{}", crate::utils::trad::t("log.forms.validation_failed"));
+            }
+            return false;
+        }
     };
 
     let names: Vec<String> = form.forms().fields.keys().cloned().collect();

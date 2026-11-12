@@ -126,10 +126,7 @@ impl BuiltinUserEntity {
         Self::lookup_by_id(db, id)
             .await
             .trace(
-                crate::utils::runique_log::get_log()
-                    .db
-                    .as_ref()
-                    .and_then(|d| d.query),
+                crate::utils::runique_log::log_level!(db.query),
                 "find user by id",
             )
             .flatten()
@@ -148,10 +145,7 @@ impl BuiltinUserEntity {
             .first(db)
             .await
             .trace(
-                crate::utils::runique_log::get_log()
-                    .db
-                    .as_ref()
-                    .and_then(|d| d.query),
+                crate::utils::runique_log::log_level!(db.query),
                 "find user by username",
             )
             .flatten()
@@ -163,10 +157,7 @@ impl BuiltinUserEntity {
             .first(db)
             .await
             .trace(
-                crate::utils::runique_log::get_log()
-                    .db
-                    .as_ref()
-                    .and_then(|d| d.query),
+                crate::utils::runique_log::log_level!(db.query),
                 "find user by email",
             )
             .flatten()

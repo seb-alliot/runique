@@ -505,6 +505,14 @@ impl Request {
             && csrf_required(&self.method)
             && self.prisme.data.get(hp_name).is_some_and(|v| !v.is_empty())
         {
+            if let Some(level) = crate::utils::runique_log::log_level!(middleware.anti_bot) {
+                crate::runique_log!(
+                    level,
+                    form = name,
+                    "{}",
+                    crate::utils::trad::t("log.anti_bot.filled")
+                );
+            }
             forms.force_invalid = true;
         }
 
@@ -519,6 +527,19 @@ impl Request {
         // failed submission isn't silently indistinguishable from an untouched form —
         // reuses the same key already shown by the admin CSRF check (`admin_router.rs`).
         if csrf_required(&self.method) && !self.prisme.csrf_valid {
+            let sent = self
+                .prisme
+                .data
+                .contains_key(crate::utils::constante::session_key::session::CSRF_TOKEN_KEY)
+                || self.headers.contains_key("x-csrf-token");
+            crate::middleware::security::csrf::log_refusal(
+                name,
+                if sent {
+                    "log.csrf.reason_form_mismatch"
+                } else {
+                    "log.csrf.reason_form_missing"
+                },
+            );
             forms.force_invalid = true;
             forms.errors.push(t("csrf.invalid_or_missing").into_owned());
         }

@@ -31,7 +31,7 @@ pub struct RuniqueApp {
 async fn shutdown_signal() {
     let ctrl_c = async {
         if let Err(error) = signal::ctrl_c().await {
-            tracing::warn!(%error, "Ctrl+C handler not installed");
+            tracing::warn!(%error, "{}", crate::utils::trad::t("log.server.ctrl_c_not_installed"));
             std::future::pending::<()>().await;
         }
     };
@@ -42,7 +42,7 @@ async fn shutdown_signal() {
                 stream.recv().await;
             }
             Err(error) => {
-                tracing::warn!(%error, "SIGTERM handler not installed");
+                tracing::warn!(%error, "{}", crate::utils::trad::t("log.server.sigterm_not_installed"));
                 std::future::pending::<()>().await;
             }
         }
@@ -271,7 +271,14 @@ impl RuniqueApp {
         let http_addr = format!("{ip}:80");
         let http_listener = tokio::net::TcpListener::bind(&http_addr).await?;
         tokio::spawn(async move {
-            axum::serve(http_listener, http_app).await.ok();
+            // Never silent: without it the ACME challenge can't be answered, and
+            // the next renewal fails weeks later with nothing to explain it.
+            use crate::utils::config::TraceResult;
+            axum::serve(http_listener, http_app).await.trace_or(
+                crate::utils::runique_log::log_level!(middleware.https),
+                tracing::Level::WARN,
+                "log.https.port80_stopped",
+            );
         });
 
         // Load existing cert or run ACME flow

@@ -92,9 +92,24 @@ pub(crate) fn readable(key: &str) -> String {
 }
 
 /// What the site needs from a `ModelAdmin` without knowing `E`.
+/// What the boot log says of a registered model.
+pub(crate) struct BootSummary {
+    /// Columns of the list.
+    pub display: usize,
+    pub filters: usize,
+    /// Bulk actions declared on the list.
+    pub actions: usize,
+    /// Fields of the form; 0 when none is declared (every column is offered).
+    pub form_fields: usize,
+    /// Options set on the list that no page reads yet.
+    pub without_effect: Vec<&'static str>,
+}
+
 #[async_trait::async_trait]
 pub(crate) trait RegisteredModel: Send + Sync {
     fn key(&self) -> &'static str;
+    /// The model as the boot log describes it.
+    fn boot_summary(&self) -> BootSummary;
 
     /// The primary key's column, as named in a list row.
     fn pk_column(&self) -> &'static str;
@@ -196,6 +211,20 @@ where
 {
     fn key(&self) -> &'static str {
         E::KEY
+    }
+
+    fn boot_summary(&self) -> BootSummary {
+        BootSummary {
+            display: self.list.display_columns().len(),
+            filters: self.list.filter_columns().len(),
+            actions: self.list.actions.len(),
+            form_fields: if self.form.is_empty() {
+                0
+            } else {
+                self.form.read_columns().len()
+            },
+            without_effect: self.list.options_without_effect(),
+        }
     }
 
     fn pk_column(&self) -> &'static str {
@@ -462,12 +491,23 @@ where
             };
             BulkChange::Set(declared.col, declared.value.clone())
         };
+        let level = crate::utils::runique_log::log_level!(admin.bulk);
         match bulk_as::<E>(user, &ids, &change, &req.engine.db).await {
-            Ok(count) => Ok(match change {
-                BulkChange::Delete => BulkOutcome::Deleted(count),
-                BulkChange::Set(..) => BulkOutcome::Updated(count),
-            }),
-            Err(sea_orm::DbErr::Custom(message)) => Ok(BulkOutcome::Refused(message)),
+            Ok(count) => {
+                if let Some(level) = level {
+                    crate::runique_log!(level, resource = E::KEY, action = %action, rows = count, "{}", crate::utils::trad::t("log.admin.bulk_done"));
+                }
+                Ok(match change {
+                    BulkChange::Delete => BulkOutcome::Deleted(count),
+                    BulkChange::Set(..) => BulkOutcome::Updated(count),
+                })
+            }
+            Err(sea_orm::DbErr::Custom(message)) => {
+                if let Some(level) = level {
+                    crate::runique_log!(level, resource = E::KEY, action = %action, "{}", crate::utils::trad::t("log.admin.bulk_refused"));
+                }
+                Ok(BulkOutcome::Refused(message))
+            }
             Err(e) => Err(AdminError::Db(e)),
         }
     }
@@ -501,8 +541,14 @@ where
         }
         match ValidationForm::try_form(form, req).await {
             Ok(valid) => match valid.delete(db).await {
-                Ok(_) => Ok(FormOutcome::Saved(None)),
-                Err(form) => Ok(FormOutcome::Show(shown(form.forms()))),
+                Ok(_) => {
+                    log_crud(E::KEY, "log.admin.outcome_deleted");
+                    Ok(FormOutcome::Saved(None))
+                }
+                Err(form) => {
+                    log_crud(E::KEY, "log.admin.outcome_delete_refused");
+                    Ok(FormOutcome::Show(shown(form.forms())))
+                }
             },
             Err(form) => Ok(FormOutcome::Show(shown(form.forms()))),
         }
@@ -545,6 +591,21 @@ where
 }
 
 /// The form as the template reads it: its HTML, errors and fields.
+/// One line per write through the admin's forms, on the `admin.crud` channel.
+/// The detail of the change is in the history; a refusal's reason is logged by
+/// the gate.
+fn log_crud(resource: &'static str, outcome: &'static str) {
+    if let Some(level) = crate::utils::runique_log::log_level!(admin.crud) {
+        crate::runique_log!(
+            level,
+            resource,
+            outcome = %crate::utils::trad::t(outcome),
+            "{}",
+            crate::utils::trad::t("log.admin.write")
+        );
+    }
+}
+
 fn shown(form: &crate::forms::form::Forms) -> serde_json::Value {
     serde_json::to_value(form).unwrap_or_default()
 }
@@ -561,14 +622,20 @@ where
 {
     match ValidationForm::try_form(form, req).await {
         Ok(form) => match form.save(&req.engine.db).await {
-            Ok(form) => Ok(FormOutcome::Saved(E::IS_ACCOUNT_TABLE.then(|| {
-                form.forms()
-                    .fields
-                    .get("email")
-                    .map(|f| f.value().trim().to_string())
-                    .unwrap_or_default()
-            }))),
-            Err(form) => Ok(FormOutcome::Show(shown(form.forms()))),
+            Ok(form) => {
+                log_crud(E::KEY, "log.admin.outcome_saved");
+                Ok(FormOutcome::Saved(E::IS_ACCOUNT_TABLE.then(|| {
+                    form.forms()
+                        .fields
+                        .get("email")
+                        .map(|f| f.value().trim().to_string())
+                        .unwrap_or_default()
+                })))
+            }
+            Err(form) => {
+                log_crud(E::KEY, "log.admin.outcome_save_refused");
+                Ok(FormOutcome::Show(shown(form.forms())))
+            }
         },
         Err(form) => Ok(FormOutcome::Show(shown(form.forms()))),
     }

@@ -430,11 +430,7 @@ impl MiddlewareStaging {
         // In Axum, last `.layer()` = outermost = first executed on the request.
         entries.sort_by_key(|b| std::cmp::Reverse(b.slot));
 
-        if let Some(level) = crate::utils::runique_log::get_log()
-            .builder
-            .as_ref()
-            .and_then(|b| b.middleware)
-        {
+        if let Some(level) = crate::utils::runique_log::log_level!(builder.middleware) {
             crate::runique_log!(level, count = entries.len(), "middleware stack");
             for entry in &entries {
                 crate::runique_log!(level, slot = entry.slot, name = %entry.name, "middleware slot");
@@ -500,7 +496,7 @@ async fn auth_middleware(
                     tracing::Level::WARN,
                     user_id = %id,
                     error = %error,
-                    "account not read — session kept, request answered 503"
+                    "{}", crate::utils::trad::t("log.auth.account_not_read")
                 );
                 return axum::http::StatusCode::SERVICE_UNAVAILABLE.into_response();
             }
@@ -530,11 +526,9 @@ async fn auth_middleware(
                     .and_then(|g| g.as_ref().cloned());
                 // Logged, not fatal: the account is read again on every request and
                 // refused here each time, so a row that survives grants nothing.
-                logout(&session, db_store.as_deref()).await.trace(
-                    crate::utils::runique_log::get_log()
-                        .session
-                        .as_ref()
-                        .and_then(|s| s.store),
+                logout(&session, db_store.as_deref()).await.trace_or(
+                    crate::utils::runique_log::log_level!(session.store),
+                    tracing::Level::WARN,
                     "close the session of a deleted or inactive account, or an outdated one",
                 );
             }

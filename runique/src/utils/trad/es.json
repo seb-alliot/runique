@@ -639,5 +639,81 @@
   "auth": {
     "login_cannot_sign_in": "Esta cuenta no puede iniciar sesión: está inactiva o nunca se activó.",
     "login_session_failed": "No se pudo guardar la sesión: {}"
+  },
+  "log": {
+    "csrf": {
+      "refused": "CSRF rechazado",
+      "reason_header_invalid": "token no válido en la cabecera X-CSRF-Token",
+      "reason_not_a_form": "sin token, y el cuerpo no es un formulario",
+      "reason_cross_site": "formulario enviado desde otro sitio",
+      "reason_form_mismatch": "formulario: el token enviado no es el de la sesión (sesión caducada, o página abierta antes de un inicio de sesión)",
+      "reason_form_missing": "formulario: ningún token en el cuerpo ni en X-CSRF-Token",
+      "reason_admin_login_missing": "inicio de sesión del admin: ningún token en el formulario",
+      "reason_admin_login_mismatch": "inicio de sesión del admin: el token enviado no es el de la sesión",
+      "reason_admin_logout": "cierre de sesión del admin: ningún token válido",
+      "reason_upload": "subida: un archivo llegó antes de un campo csrf_token válido, no se escribió nada",
+      "token_dropped": "token CSRF descartado (inicio o cierre de sesión): las páginas abiertas antes tienen un token muerto",
+      "token_new": "nuevo token CSRF para esta sesión",
+      "read_token": "lectura del token CSRF de la sesión",
+      "keep_token": "conservación del token CSRF en la sesión",
+      "read_account": "lectura de la cuenta conectada para el token CSRF",
+      "write_token": "escritura de un nuevo token CSRF en la sesión",
+      "set_value": "set_value [token CSRF recibido: su comprobación está en el canal middleware.csrf]"
+    },
+    "session": {
+      "read_account": "lectura de la cuenta conectada de la sesión",
+      "read_version": "lectura de la versión de la sesión",
+      "read_flash": "lectura de los mensajes flash de la sesión",
+      "read_dashboard_template": "lectura de la plantilla del panel elegida en la sesión",
+      "decode_user_memory": "decodificación del user_id de la sesión (carga desde memoria)",
+      "decode_user_db": "decodificación del user_id de la sesión (carga desde la base de datos)"
+    },
+    "anti_bot": {
+      "read_name": "lectura del nombre del campo trampa de la sesión",
+      "filled": "campo trampa rellenado: formulario rechazado"
+    },
+    "https": {
+      "redirected": "petición recibida por HTTP: redirigida a HTTPS",
+      "port80_stopped": "el servidor HTTP del puerto 80 (desafío ACME y redirección HTTPS) se detuvo"
+    },
+    "auth": {
+      "hash_failed": "fallo del hash de la contraseña al restablecerla",
+      "account_not_read": "cuenta no leída: sesión conservada, petición respondida con 503",
+      "admin_account_not_read": "cuenta del admin no leída: sesión conservada, petición respondida con 503"
+    },
+    "forms": {
+      "validation_failed": "fallo de la validación del formulario",
+      "remove_oversized": "eliminación de un archivo en tránsito demasiado grande"
+    },
+    "mailer": {
+      "init_twice": "mailer_init() llamado varias veces: se conserva la configuración inicial"
+    },
+    "db": {
+      "read_reset_token": "lectura de un token de restablecimiento de contraseña"
+    },
+    "admin": {
+      "write": "escritura en el admin",
+      "outcome_saved": "guardado",
+      "outcome_save_refused": "guardado rechazado",
+      "outcome_deleted": "eliminado",
+      "outcome_delete_refused": "eliminación rechazada",
+      "bulk_done": "acción en lote realizada",
+      "bulk_refused": "acción en lote rechazada",
+      "list": "lista del admin"
+    },
+    "boot": {
+      "admin": "admin",
+      "model": "modelo del admin",
+      "route": "ruta declarada del admin",
+      "no_guard": "el inicio de sesión del admin no tiene LoginGuard ni limitador de frecuencia: los intentos de contraseña son ilimitados (`with_login_guard`, `with_rate_limiter`)",
+      "options_without_effect": "opciones de lista del admin aceptadas, pero aún no mostradas por ninguna página",
+      "stylesheets_missing": "hojas de estilo de Runique no encontradas para el admin: compruebe STATIC_RUNIQUE_PATH",
+      "debug_in_prod": "DEBUG=true en producción: todos los visitantes ven las páginas de error detalladas y todos los canales de log están activos: los registros contienen lo que los visitantes escriben en los formularios (salvo contraseñas). Desactívelo en cuanto encuentre el problema",
+      "prune_failed": "fallo de la poda de derechos huérfanos: pueden quedar permisos obsoletos"
+    },
+    "server": {
+      "ctrl_c_not_installed": "manejador de Ctrl+C no instalado",
+      "sigterm_not_installed": "manejador de SIGTERM no instalado"
+    }
   }
 }

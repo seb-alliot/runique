@@ -2,6 +2,7 @@
 use crate::auth::session::is_authenticated;
 use crate::context::RequestExtensions;
 use crate::forms::extractor::{csrf_required, is_csrf_exempt};
+use crate::utils::config::TraceResult;
 use crate::utils::{
     aliases::AEngine,
     constante::{session::CSRF_TOKEN_KEY, session_key::session::SESSION_USER_ID_KEY},
@@ -144,6 +145,7 @@ pub async fn csrf_middleware(
                     // OK, continue
                 }
                 _ => {
+                    log_refusal(req.uri().path(), "log.csrf.reason_header_invalid");
                     return (StatusCode::FORBIDDEN, "Invalid CSRF token").into_response();
                 }
             }
@@ -158,12 +160,14 @@ pub async fn csrf_middleware(
             let is_form = ct.starts_with("application/x-www-form-urlencoded")
                 || ct.starts_with("multipart/form-data");
             if !is_form {
+                log_refusal(req.uri().path(), "log.csrf.reason_not_a_form");
                 return (StatusCode::FORBIDDEN, "CSRF token required").into_response();
             }
             // A form posted from another site is refused here, before any
             // handler: one reading its body with an Axum extractor rather than
             // `Request::form()` would never check the token.
             if from_another_site(&req) {
+                log_refusal(req.uri().path(), "log.csrf.reason_cross_site");
                 return (StatusCode::FORBIDDEN, "Cross-site form submission").into_response();
             }
             // Otherwise, we let Prisme validate the form field
@@ -200,6 +204,21 @@ pub async fn csrf_middleware(
 /// (`cross-site`) or of a subdomain (`same-site`). The browser sets it, a page
 /// can neither set nor remove it; a client that doesn't send it (an old
 /// browser, curl) is left to the token.
+/// One line per CSRF refusal, whoever decides it — this middleware, a form,
+/// the admin, an upload: without it, nothing says the token is why a request
+/// or a form was turned down. `at` is the path, or the form's name.
+pub(crate) fn log_refusal(at: &str, reason: &'static str) {
+    if let Some(level) = crate::utils::runique_log::log_level!(middleware.csrf) {
+        crate::runique_log!(
+            level,
+            at = %at,
+            reason = %crate::utils::trad::t(reason),
+            "{}",
+            crate::utils::trad::t("log.csrf.refused")
+        );
+    }
+}
+
 fn from_another_site(req: &Request<Body>) -> bool {
     req.headers()
         .get("sec-fetch-site")
@@ -215,6 +234,9 @@ fn from_another_site(req: &Request<Body>) -> bool {
 /// middleware issues the replacement before the response leaves, so a custom
 /// auth flow only has to call this.
 pub async fn rotate_csrf_token(session: &Session) -> Result<(), tower_sessions::session::Error> {
+    if let Some(level) = crate::utils::runique_log::log_level!(middleware.csrf) {
+        crate::runique_log!(level, "{}", crate::utils::trad::t("log.csrf.token_dropped"));
+    }
     session.remove_value(CSRF_TOKEN_KEY).await.map(|_| ())
 }
 
@@ -226,17 +248,31 @@ async fn session_csrf_token(session: &Session, secret: &str) -> Option<CsrfToken
     if let Some(token) = session
         .get::<CsrfToken>(CSRF_TOKEN_KEY)
         .await
-        .ok()
+        .trace(
+            crate::utils::runique_log::log_level!(middleware.csrf),
+            "log.csrf.read_token",
+        )
         .flatten()
     {
-        session.insert(CSRF_TOKEN_KEY, &token).await.ok()?;
+        session.insert(CSRF_TOKEN_KEY, &token).await.trace(
+            crate::utils::runique_log::log_level!(middleware.csrf),
+            "log.csrf.keep_token",
+        )?;
         return Some(token);
+    }
+    // A new token means the session had none: a first visit, a rotation, or a
+    // session that expired — the forms of pages opened before it will be refused.
+    if let Some(level) = crate::utils::runique_log::log_level!(middleware.csrf) {
+        crate::runique_log!(level, "{}", crate::utils::trad::t("log.csrf.token_new"));
     }
     let token = if is_authenticated(session).await {
         let user_id: crate::utils::pk::Pk = session
             .get::<crate::utils::pk::Pk>(SESSION_USER_ID_KEY)
             .await
-            .ok()
+            .trace(
+                crate::utils::runique_log::log_level!(middleware.csrf),
+                "log.csrf.read_account",
+            )
             .flatten()
             .unwrap_or_default();
         CsrfToken::generate_with_context(&CsrfContext::Authenticated { user_id }, secret)
@@ -249,6 +285,9 @@ async fn session_csrf_token(session: &Session, secret: &str) -> Option<CsrfToken
             secret,
         )
     };
-    session.insert(CSRF_TOKEN_KEY, &token).await.ok()?;
+    session.insert(CSRF_TOKEN_KEY, &token).await.trace(
+        crate::utils::runique_log::log_level!(middleware.csrf),
+        "log.csrf.write_token",
+    )?;
     Some(token)
 }

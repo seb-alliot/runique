@@ -229,12 +229,16 @@ pub(super) fn commit_plan(plan: &Plan, migrations_path: &str) -> Result<()> {
             }
         }
         match lib_backup {
-            Some(content) => {
-                let _ = fs::write(&lib_file, content);
-                eprintln!("  lib.rs restored");
-            }
+            Some(content) => match fs::write(&lib_file, content) {
+                Ok(()) => eprintln!("  lib.rs restored"),
+                Err(re) => eprintln!("  warning: cannot restore {} : {}", lib_file, re),
+            },
             None => {
-                let _ = fs::remove_file(&lib_file);
+                if let Err(re) = fs::remove_file(&lib_file)
+                    && re.kind() != std::io::ErrorKind::NotFound
+                {
+                    eprintln!("  warning: cannot delete {} : {}", lib_file, re);
+                }
             }
         }
         return Err(e);

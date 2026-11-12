@@ -639,5 +639,81 @@
   "auth": {
     "login_cannot_sign_in": "此账户无法登录：账户未启用或从未激活。",
     "login_session_failed": "无法保存会话：{}"
+  },
+  "log": {
+    "csrf": {
+      "refused": "CSRF 被拒绝",
+      "reason_header_invalid": "X-CSRF-Token 请求头中的令牌无效",
+      "reason_not_a_form": "没有令牌，且请求体不是表单",
+      "reason_cross_site": "表单来自其他站点",
+      "reason_form_mismatch": "表单：发送的令牌不是会话的令牌（会话已过期，或页面在登录前打开）",
+      "reason_form_missing": "表单：请求体和 X-CSRF-Token 中都没有令牌",
+      "reason_admin_login_missing": "后台登录：表单中没有令牌",
+      "reason_admin_login_mismatch": "后台登录：发送的令牌不是会话的令牌",
+      "reason_admin_logout": "后台退出：没有有效令牌",
+      "reason_upload": "上传：文件先于有效的 csrf_token 字段到达，未写入任何内容",
+      "token_dropped": "CSRF 令牌已丢弃（登录或退出）：此前打开的页面持有的令牌已失效",
+      "token_new": "为此会话生成新的 CSRF 令牌",
+      "read_token": "从会话读取 CSRF 令牌",
+      "keep_token": "在会话中保留 CSRF 令牌",
+      "read_account": "为 CSRF 令牌读取已登录账户",
+      "write_token": "向会话写入新的 CSRF 令牌",
+      "set_value": "set_value [已收到 CSRF 令牌：其校验见 middleware.csrf 通道]"
+    },
+    "session": {
+      "read_account": "从会话读取已登录账户",
+      "read_version": "读取会话版本",
+      "read_flash": "从会话读取闪现消息",
+      "read_dashboard_template": "从会话读取所选的仪表盘模板",
+      "decode_user_memory": "解码会话 user_id（从内存加载）",
+      "decode_user_db": "解码会话 user_id（从数据库加载）"
+    },
+    "anti_bot": {
+      "read_name": "从会话读取蜜罐字段名",
+      "filled": "蜜罐字段被填写：表单被拒绝"
+    },
+    "https": {
+      "redirected": "通过 HTTP 收到请求：已重定向到 HTTPS",
+      "port80_stopped": "80 端口的 HTTP 服务器（ACME 质询与 HTTPS 重定向）已停止"
+    },
+    "auth": {
+      "hash_failed": "重置时密码哈希失败",
+      "account_not_read": "未能读取账户：会话保留，请求返回 503",
+      "admin_account_not_read": "未能读取后台账户：会话保留，请求返回 503"
+    },
+    "forms": {
+      "validation_failed": "表单校验失败",
+      "remove_oversized": "删除过大的暂存上传文件"
+    },
+    "mailer": {
+      "init_twice": "mailer_init() 被多次调用：保留初始配置"
+    },
+    "db": {
+      "read_reset_token": "读取密码重置令牌"
+    },
+    "admin": {
+      "write": "后台写入",
+      "outcome_saved": "已保存",
+      "outcome_save_refused": "保存被拒绝",
+      "outcome_deleted": "已删除",
+      "outcome_delete_refused": "删除被拒绝",
+      "bulk_done": "批量操作已完成",
+      "bulk_refused": "批量操作被拒绝",
+      "list": "后台列表"
+    },
+    "boot": {
+      "admin": "后台",
+      "model": "后台模型",
+      "route": "后台声明的路由",
+      "no_guard": "后台登录既没有 LoginGuard 也没有限流器：密码尝试次数不受限制（`with_login_guard`、`with_rate_limiter`）",
+      "options_without_effect": "后台列表选项已接受，但目前没有页面显示它们",
+      "stylesheets_missing": "未找到后台所需的 Runique 样式表：请检查 STATIC_RUNIQUE_PATH",
+      "debug_in_prod": "生产环境 DEBUG=true：所有访问者都能看到详细错误页面，且所有日志通道已开启 — 日志包含访问者在表单中输入的内容（密码除外）。找到问题后请立即关闭",
+      "prune_failed": "清理孤立权限失败 — 可能残留过期授权"
+    },
+    "server": {
+      "ctrl_c_not_installed": "未能安装 Ctrl+C 处理程序",
+      "sigterm_not_installed": "未能安装 SIGTERM 处理程序"
+    }
   }
 }

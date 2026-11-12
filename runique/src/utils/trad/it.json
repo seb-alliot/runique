@@ -639,5 +639,81 @@
   "auth": {
     "login_cannot_sign_in": "Questo account non può accedere: è inattivo o non è mai stato attivato.",
     "login_session_failed": "Impossibile salvare la sessione: {}"
+  },
+  "log": {
+    "csrf": {
+      "refused": "CSRF rifiutato",
+      "reason_header_invalid": "token non valido nell'intestazione X-CSRF-Token",
+      "reason_not_a_form": "nessun token, e il corpo non è un modulo",
+      "reason_cross_site": "modulo inviato da un altro sito",
+      "reason_form_mismatch": "modulo: il token inviato non è quello della sessione (sessione scaduta, o pagina aperta prima di un accesso)",
+      "reason_form_missing": "modulo: nessun token nel corpo né in X-CSRF-Token",
+      "reason_admin_login_missing": "accesso all'admin: nessun token nel modulo",
+      "reason_admin_login_mismatch": "accesso all'admin: il token inviato non è quello della sessione",
+      "reason_admin_logout": "uscita dall'admin: nessun token valido",
+      "reason_upload": "caricamento: un file è arrivato prima di un campo csrf_token valido, non è stato scritto nulla",
+      "token_dropped": "token CSRF scartato (accesso o uscita): le pagine aperte prima hanno un token non più valido",
+      "token_new": "nuovo token CSRF per questa sessione",
+      "read_token": "lettura del token CSRF dalla sessione",
+      "keep_token": "conservazione del token CSRF nella sessione",
+      "read_account": "lettura dell'account connesso per il token CSRF",
+      "write_token": "scrittura di un nuovo token CSRF nella sessione",
+      "set_value": "set_value [token CSRF ricevuto: il suo controllo è sul canale middleware.csrf]"
+    },
+    "session": {
+      "read_account": "lettura dell'account connesso dalla sessione",
+      "read_version": "lettura della versione della sessione",
+      "read_flash": "lettura dei messaggi flash dalla sessione",
+      "read_dashboard_template": "lettura del template della dashboard scelto dalla sessione",
+      "decode_user_memory": "decodifica del user_id della sessione (caricamento dalla memoria)",
+      "decode_user_db": "decodifica del user_id della sessione (caricamento dal database)"
+    },
+    "anti_bot": {
+      "read_name": "lettura del nome del campo trappola dalla sessione",
+      "filled": "campo trappola compilato: modulo rifiutato"
+    },
+    "https": {
+      "redirected": "richiesta ricevuta in HTTP: reindirizzata a HTTPS",
+      "port80_stopped": "il server HTTP sulla porta 80 (sfida ACME e reindirizzamento HTTPS) si è fermato"
+    },
+    "auth": {
+      "hash_failed": "hash della password fallito durante la reimpostazione",
+      "account_not_read": "account non letto: sessione mantenuta, richiesta risposta con 503",
+      "admin_account_not_read": "account dell'admin non letto: sessione mantenuta, richiesta risposta con 503"
+    },
+    "forms": {
+      "validation_failed": "validazione del modulo fallita",
+      "remove_oversized": "rimozione di un file in transito troppo grande"
+    },
+    "mailer": {
+      "init_twice": "mailer_init() chiamato più volte: la configurazione iniziale è mantenuta"
+    },
+    "db": {
+      "read_reset_token": "lettura di un token di reimpostazione della password"
+    },
+    "admin": {
+      "write": "scrittura nell'admin",
+      "outcome_saved": "salvato",
+      "outcome_save_refused": "salvataggio rifiutato",
+      "outcome_deleted": "eliminato",
+      "outcome_delete_refused": "eliminazione rifiutata",
+      "bulk_done": "azione di gruppo eseguita",
+      "bulk_refused": "azione di gruppo rifiutata",
+      "list": "elenco dell'admin"
+    },
+    "boot": {
+      "admin": "admin",
+      "model": "modello dell'admin",
+      "route": "rotta dichiarata dell'admin",
+      "no_guard": "l'accesso all'admin non ha né LoginGuard né limitatore di frequenza: i tentativi di password sono illimitati (`with_login_guard`, `with_rate_limiter`)",
+      "options_without_effect": "opzioni di elenco dell'admin accettate, ma per ora non mostrate da nessuna pagina",
+      "stylesheets_missing": "fogli di stile di Runique non trovati per l'admin: controllate STATIC_RUNIQUE_PATH",
+      "debug_in_prod": "DEBUG=true in produzione: tutti i visitatori vedono le pagine di errore dettagliate e tutti i canali di log sono attivi: i log contengono ciò che i visitatori digitano nei moduli (password escluse). Da disattivare appena trovato il problema",
+      "prune_failed": "potatura dei diritti orfani fallita: possono restare diritti obsoleti"
+    },
+    "server": {
+      "ctrl_c_not_installed": "gestore di Ctrl+C non installato",
+      "sigterm_not_installed": "gestore di SIGTERM non installato"
+    }
   }
 }

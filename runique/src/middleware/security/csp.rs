@@ -330,5 +330,8 @@ pub async fn https_redirect_middleware(
         uri.path_and_query().map_or("", |pq| pq.as_str())
     );
 
+    if let Some(level) = crate::utils::runique_log::log_level!(middleware.https) {
+        crate::runique_log!(level, host = %host, "{}", crate::utils::trad::t("log.https.redirected"));
+    }
     Redirect::permanent(&https_url).into_response()
 }

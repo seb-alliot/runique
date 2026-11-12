@@ -159,7 +159,10 @@ pub async fn is_authenticated(session: &Session) -> bool {
     session
         .get::<Pk>(SESSION_USER_ID_KEY)
         .await
-        .ok()
+        .trace(
+            crate::utils::runique_log::log_level!(session.store),
+            "log.session.read_account",
+        )
         .flatten()
         .is_some()
 }
@@ -167,7 +170,14 @@ pub async fn is_authenticated(session: &Session) -> bool {
 /// The id the session was signed in with — for the middlewares that reload
 /// the account. Handlers read `request.user`, the account as the database has it.
 pub(crate) async fn get_user_id(session: &Session) -> Option<Pk> {
-    session.get::<Pk>(SESSION_USER_ID_KEY).await.ok().flatten()
+    session
+        .get::<Pk>(SESSION_USER_ID_KEY)
+        .await
+        .trace(
+            crate::utils::runique_log::log_level!(session.store),
+            "log.session.read_account",
+        )
+        .flatten()
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -233,11 +243,7 @@ pub async fn login(
         rotate_csrf_token(session).await?;
     }
 
-    if let Some(level) = crate::utils::runique_log::get_log()
-        .auth
-        .as_ref()
-        .and_then(|a| a.login)
-    {
+    if let Some(level) = crate::utils::runique_log::log_level!(auth.login) {
         crate::runique_log!(
             level,
             user_id = %user_id,
@@ -290,10 +296,7 @@ pub async fn login(
             .create(&cookie_id, user_id, &session_id, expires_at)
             .await
             .trace_or(
-                crate::utils::runique_log::get_log()
-                    .session
-                    .as_ref()
-                    .and_then(|s| s.store),
+                crate::utils::runique_log::log_level!(session.store),
                 tracing::Level::WARN,
                 "persist session to DB",
             );
@@ -305,10 +308,7 @@ pub async fn login(
                 _ => None,
             };
             closed.trace_or(
-                crate::utils::runique_log::get_log()
-                    .session
-                    .as_ref()
-                    .and_then(|s| s.exclusive_login),
+                crate::utils::runique_log::log_level!(session.exclusive_login),
                 tracing::Level::WARN,
                 "invalidate other sessions (exclusive login)",
             );
@@ -317,10 +317,7 @@ pub async fn login(
                 // closed too. Not through `logout`, which stops at the first
                 // refusal of the store — the very case here. `flush` empties
                 // this request's session before it asks the store anything.
-                let level = crate::utils::runique_log::get_log()
-                    .session
-                    .as_ref()
-                    .and_then(|s| s.store);
+                let level = crate::utils::runique_log::log_level!(session.store);
                 store.delete(&cookie_id).await.trace_or(
                     level,
                     tracing::Level::WARN,
@@ -345,10 +342,7 @@ pub async fn login(
 /// (`WARN` when that channel is off) and tried once more. The second failure
 /// is returned: the caller must not attach an account to the id that stayed.
 async fn cycle_session_id(session: &Session) -> Result<(), tower_sessions::session::Error> {
-    let level = crate::utils::runique_log::get_log()
-        .session
-        .as_ref()
-        .and_then(|s| s.store);
+    let level = crate::utils::runique_log::log_level!(session.store);
     if let Err(error) = session.cycle_id().await {
         log_cycle_id_failure(level, &error);
         if let Err(error) = session.cycle_id().await {
@@ -429,7 +423,10 @@ pub(crate) async fn session_is_current(session: &Session, user: &impl RuniqueUse
     let opened_at = session
         .get::<i32>(SESSION_VERSION_KEY)
         .await
-        .ok()
+        .trace(
+            crate::utils::runique_log::log_level!(session.store),
+            "log.session.read_version",
+        )
         .flatten()
         .unwrap_or(0);
     opened_at == user.session_version()

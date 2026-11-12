@@ -135,12 +135,6 @@ impl AdminStaging {
         self
     }
 
-    /// Enables or disables hot-reloading of admin templates.
-    pub fn hot_reload(mut self, enabled: bool) -> Self {
-        self.config = self.config.hot_reload(enabled);
-        self
-    }
-
     /// Sets the site title shown in the admin interface.
     pub fn site_title(mut self, title: &str) -> Self {
         self.config = self.config.site_title(title);
@@ -390,6 +384,66 @@ impl AdminStaging {
 
     /// Returns `true` if the admin is disabled, or enabled with a non-empty
     /// route prefix configured.
+    /// What the admin serves, written once at boot on the `builder.registry`
+    /// channel. Two findings are never silent: a sign-in page without any
+    /// limit on password attempts, and list options no page shows yet.
+    pub(crate) fn log_boot(&self, dev: bool) {
+        let level = crate::utils::runique_log::log_level!(builder.registry);
+        if let Some(level) = level {
+            crate::runique_log!(
+                level,
+                prefix = %self.public_prefix(),
+                models = self.site.models().count(),
+                page_size = self.config.page_size,
+                filter_size = self.config.filter_size,
+                search_max_len = self.config.search_max_len,
+                robots_txt = self.robots_txt,
+                sitemap = ?self.sitemap_url,
+                "{}",
+                crate::utils::trad::t("log.boot.admin")
+            );
+            for model in self.site.models() {
+                let summary = model.boot_summary();
+                crate::runique_log!(
+                    level,
+                    key = model.key(),
+                    title = %model.title(),
+                    display = summary.display,
+                    filters = summary.filters,
+                    actions = summary.actions,
+                    form_fields = summary.form_fields,
+                    "{}", crate::utils::trad::t("log.boot.model")
+                );
+            }
+            for route in &self.declared_routes {
+                crate::runique_log!(
+                    level,
+                    path = %route.path,
+                    name = %route.name,
+                    model = %route.model_key,
+                    overrides = ?route.overrides,
+                    "{}", crate::utils::trad::t("log.boot.route")
+                );
+            }
+        }
+
+        let warn = level.unwrap_or(tracing::Level::WARN);
+        if !dev && self.config.login_guard.is_none() && self.config.rate_limiter.is_none() {
+            crate::runique_log!(warn, "{}", crate::utils::trad::t("log.boot.no_guard"));
+        }
+        for model in self.site.project_models() {
+            let without_effect = model.boot_summary().without_effect;
+            if !without_effect.is_empty() {
+                crate::runique_log!(
+                    warn,
+                    key = model.key(),
+                    options = %without_effect.join(", "),
+                    "{}", crate::utils::trad::t("log.boot.options_without_effect")
+                );
+            }
+        }
+    }
+
     pub fn is_ready(&self) -> bool {
         if !self.enabled {
             return true;

@@ -12,7 +12,7 @@ What Runique does without any setting on your side. Each value can be changed, o
 | Template escaping (Tera) | on for `.html` and `.xml`; `{{ var }}` is always escaped, except with the `safe` filter | [Template syntax](/docs/en/template/syntax) |
 | CSRF | required for every method but `GET` and `HEAD` | [CSRF](/docs/en/middleware/csrf) |
 | CSP | `default-src 'none'`, `script-src 'self'`, `style-src 'self' 'unsafe-inline'` | [CSP](/docs/en/middleware/csp) |
-| Anonymous session | 5 minutes of inactivity, in memory only | [Sessions](/docs/en/session) |
+| Anonymous session | 5 minutes of inactivity, in memory only | [Session durations](/docs/en/middleware/sessions) |
 | Logged-in session | 24 hours of inactivity, also stored in the database | [Sessions](/docs/en/session) |
 | `LoginGuard` | 5 attempts, then 5 minutes locked out | [LoginGuard](/docs/en/auth/login-guard) |
 | `RateLimiter` | 60 requests per minute, on the routes it is attached to | [Rate limit](/docs/en/middleware/rate-limit) |

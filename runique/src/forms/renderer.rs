@@ -62,10 +62,7 @@ impl FormRenderer {
     /// `fields`, then the registered JS files, all joined with newlines.
     /// Fails on the first field that errors during rendering.
     pub fn render(&self, fields: &FieldsMap, errors: &[String]) -> Result<String, String> {
-        let log_render = crate::utils::runique_log::get_log()
-            .forms
-            .as_ref()
-            .and_then(|f| f.render);
+        let log_render = crate::utils::runique_log::log_level!(forms.render);
         if let Some(level) = log_render {
             crate::runique_log!(
                 level,

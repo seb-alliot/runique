@@ -16,23 +16,29 @@ been checked on demo-app and on a project created by `runique new`, and when the
 
 ## In progress
 
-- **4.1, makemigrations**: generate every schema operation with no manual step: dropping tables,
-  creating and dropping relation tables, honouring cascade, restrict and set_null, a real `ALTER`
-  on a type change, detecting default value changes, and columns both renamed and modified.
-  Constraint names are read from the database, and destructive changes state what they affect.
-  The many-to-many pivot table is generated from the model DSL; a hand-written table with extra
-  columns remains possible.
+- **4.1, database infrastructure**: `makemigrations` generates schema operations with no manual
+  step: dropping tables, a real `ALTER` on a type change, moving to `NOT NULL` while filling
+  existing values, detecting default value changes, columns both renamed and modified, table
+  renames. Constraint names are read from the database, and destructive changes state what they
+  affect.
+  Queries: `get_or_create`, `update_or_create`, `exists()` and `last()`.
+  Security: a cap on the number of keys held in memory by `RateLimiter` and `LoginGuard`, and
+  tiered lockout against brute force: a duration that grows at each repeat (5 min, then 15 min,
+  then 1 h by default), each tier being configurable.
+
+An item planned for one version may move to the other along the way, when they have to ship
+together.
 
 ## Planned
 
-- **Security fixes (4.0.x)**: cap the number of keys held in memory by `RateLimiter` and
-  `LoginGuard`, and test open redirect protection against known URL validation bypass payloads.
-- **4.2, database**: `get_or_create`, `update_or_create`, `exists()`, `last()`,
-  loading relations in one query, many-to-many access methods
-  and its management in the admin. `search!` also accepts AND groups inside OR, and the negation of
-  a condition or a group, still through typed queries.
-- **Tracing**: finish file output with rotation, add a request identifier, and leave no error
-  silently ignored. Missing translation keys will be logged.
+- **4.2, relations**: the many-to-many pivot table is generated from the model DSL, created and
+  dropped by `makemigrations`, honouring cascade, restrict and set_null; a hand-written table with
+  extra columns remains possible. Loading relations in one query, many-to-many access methods and
+  its management in the admin. `search!` also accepts AND groups inside OR, and the negation of a
+  condition or a group, still through typed queries.
+- **Open redirect**: test the protection against known URL validation bypass payloads.
+- **Tracing**: finish file output with rotation and add a request identifier. Missing translation
+  keys will be logged.
 - **Languages added by a project**: let a project provide a language Runique does not ship,
   registered through the builder.
 - **Admin**: date and foreign key filters, date hierarchy, `fieldsets`, read-only fields,
@@ -43,8 +49,7 @@ been checked on demo-app and on a project created by `runique new`, and when the
 
 No commitment: these will move up as work finishes.
 
-- **Authentication**: two-level brute force protection, then OAuth/OIDC, JWT, API keys, a login
-  journal and CSP violation reports.
+- **Authentication**: OAuth/OIDC, JWT, API keys, a login journal and CSP violation reports.
 - **ORM and DSL**: model hooks, aggregates in `search!`, declared indexes, and numeric bounds and
   steps.
 - **Tools and storage**: public CRUD views, a built-in test client, fixtures, custom commands,

@@ -106,10 +106,7 @@ impl RuniqueSessionStore {
         let sealed = model.session_data.as_deref()?;
         let opened = self.key.open(sealed, &hash_cookie_id(&model.cookie_id));
         if opened.is_none()
-            && let Some(level) = crate::utils::runique_log::get_log()
-                .session
-                .as_ref()
-                .and_then(|s| s.store)
+            && let Some(level) = crate::utils::runique_log::log_level!(session.store)
         {
             crate::runique_log!(level, "stored session data could not be decrypted");
         }
@@ -303,10 +300,7 @@ impl RuniqueSessionStore {
                     .filter(Column::ExpiresAt.lt(now))
                     .exec(&*db)
                     .await
-                    && let Some(level) = crate::utils::runique_log::get_log()
-                        .session
-                        .as_ref()
-                        .and_then(|s| s.store)
+                    && let Some(level) = crate::utils::runique_log::log_level!(session.cleanup)
                 {
                     crate::runique_log!(level, "session cleanup error: {e}");
                 }

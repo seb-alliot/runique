@@ -639,5 +639,81 @@
   "auth": {
     "login_cannot_sign_in": "Esta conta não pode entrar: está inativa ou nunca foi ativada.",
     "login_session_failed": "Não foi possível salvar a sessão: {}"
+  },
+  "log": {
+    "csrf": {
+      "refused": "CSRF recusado",
+      "reason_header_invalid": "token inválido no cabeçalho X-CSRF-Token",
+      "reason_not_a_form": "sem token, e o corpo não é um formulário",
+      "reason_cross_site": "formulário enviado de outro site",
+      "reason_form_mismatch": "formulário: o token enviado não é o da sessão (sessão expirada, ou página aberta antes de um início de sessão)",
+      "reason_form_missing": "formulário: nenhum token no corpo nem em X-CSRF-Token",
+      "reason_admin_login_missing": "início de sessão do admin: nenhum token no formulário",
+      "reason_admin_login_mismatch": "início de sessão do admin: o token enviado não é o da sessão",
+      "reason_admin_logout": "fim de sessão do admin: nenhum token válido",
+      "reason_upload": "envio: um ficheiro chegou antes de um campo csrf_token válido, nada foi escrito",
+      "token_dropped": "token CSRF descartado (início ou fim de sessão): as páginas abertas antes têm um token morto",
+      "token_new": "novo token CSRF para esta sessão",
+      "read_token": "leitura do token CSRF da sessão",
+      "keep_token": "conservação do token CSRF na sessão",
+      "read_account": "leitura da conta ligada para o token CSRF",
+      "write_token": "escrita de um novo token CSRF na sessão",
+      "set_value": "set_value [token CSRF recebido: a sua verificação está no canal middleware.csrf]"
+    },
+    "session": {
+      "read_account": "leitura da conta ligada da sessão",
+      "read_version": "leitura da versão da sessão",
+      "read_flash": "leitura das mensagens flash da sessão",
+      "read_dashboard_template": "leitura do modelo do painel escolhido na sessão",
+      "decode_user_memory": "descodificação do user_id da sessão (carregamento da memória)",
+      "decode_user_db": "descodificação do user_id da sessão (carregamento da base de dados)"
+    },
+    "anti_bot": {
+      "read_name": "leitura do nome do campo armadilha da sessão",
+      "filled": "campo armadilha preenchido: formulário recusado"
+    },
+    "https": {
+      "redirected": "pedido recebido por HTTP: redirecionado para HTTPS",
+      "port80_stopped": "o servidor HTTP da porta 80 (desafio ACME e redirecionamento HTTPS) parou"
+    },
+    "auth": {
+      "hash_failed": "falha do hash da palavra-passe na redefinição",
+      "account_not_read": "conta não lida: sessão mantida, pedido respondido com 503",
+      "admin_account_not_read": "conta do admin não lida: sessão mantida, pedido respondido com 503"
+    },
+    "forms": {
+      "validation_failed": "falha da validação do formulário",
+      "remove_oversized": "remoção de um ficheiro em trânsito demasiado grande"
+    },
+    "mailer": {
+      "init_twice": "mailer_init() chamado várias vezes: a configuração inicial é mantida"
+    },
+    "db": {
+      "read_reset_token": "leitura de um token de redefinição da palavra-passe"
+    },
+    "admin": {
+      "write": "escrita no admin",
+      "outcome_saved": "guardado",
+      "outcome_save_refused": "gravação recusada",
+      "outcome_deleted": "eliminado",
+      "outcome_delete_refused": "eliminação recusada",
+      "bulk_done": "ação em massa efetuada",
+      "bulk_refused": "ação em massa recusada",
+      "list": "lista do admin"
+    },
+    "boot": {
+      "admin": "admin",
+      "model": "modelo do admin",
+      "route": "rota declarada do admin",
+      "no_guard": "o início de sessão do admin não tem LoginGuard nem limitador de taxa: as tentativas de palavra-passe são ilimitadas (`with_login_guard`, `with_rate_limiter`)",
+      "options_without_effect": "opções de lista do admin aceites, mas ainda não mostradas por nenhuma página",
+      "stylesheets_missing": "folhas de estilo do Runique não encontradas para o admin: verifique STATIC_RUNIQUE_PATH",
+      "debug_in_prod": "DEBUG=true em produção: todos os visitantes veem as páginas de erro detalhadas e todos os canais de log estão ligados: os registos contêm o que os visitantes escrevem nos formulários (exceto palavras-passe). Desligue assim que o problema for encontrado",
+      "prune_failed": "falha da limpeza de direitos órfãos: podem restar permissões obsoletas"
+    },
+    "server": {
+      "ctrl_c_not_installed": "gestor de Ctrl+C não instalado",
+      "sigterm_not_installed": "gestor de SIGTERM não instalado"
+    }
   }
 }

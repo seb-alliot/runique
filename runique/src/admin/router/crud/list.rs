@@ -44,6 +44,19 @@ pub(crate) async fn list_view(
         Ok(page) => page,
         Err(error) => return failure(error, &req, &admin).await,
     };
+    if let Some(level) = crate::utils::runique_log::log_level!(admin.list) {
+        crate::runique_log!(
+            level,
+            resource = %resource,
+            page = page.page,
+            rows = page.rows.len(),
+            total = page.total,
+            filters = query.filters.len(),
+            search = query.search.is_some(),
+            "{}",
+            crate::utils::trad::t("log.admin.list")
+        );
+    }
 
     let page_count = page.total.div_ceil(page.page_size.max(1)).max(1);
     let filter_qs: String = query

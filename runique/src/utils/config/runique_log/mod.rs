@@ -55,7 +55,7 @@ pub use templates::TemplatesTracing;
 #[derive(Debug, Clone, Default)]
 pub struct RuniqueLog {
     /// Tracing subscriber level. `RUST_LOG` takes priority if defined.
-    /// Default: `"debug"` if `RUNIQUE_ENV=dev`, else `"warn"`.
+    /// Default: `"debug"` if `RUNIQUE_ENV=dev` or `DEBUG=true`, else `"warn"`.
     subscriber_level: Option<String>,
 
     /// Form pipeline tracing (`#[form]` fields, validation, render, finalize).
@@ -66,7 +66,7 @@ pub struct RuniqueLog {
     pub session: Option<SessionTracing>,
     /// Auth tracing (login, reset, password_init).
     pub auth: Option<AuthTracing>,
-    /// Admin panel tracing (auth, crud, list, bulk, filter_fn, daemon).
+    /// Admin panel tracing (auth, crud, list, bulk).
     pub admin: Option<AdminTracing>,
     /// Database tracing (connect, query).
     pub db: Option<DbTracing>,
@@ -88,6 +88,10 @@ pub struct RuniqueLog {
     /// When `true`, the application owns the subscriber: Runique installs nothing
     /// (see [`external`](RuniqueLog::external)). Runique still emits its events.
     external: bool,
+
+    /// When `true`, only the channels set by hand are on: the levels `.env`
+    /// would give are not applied (see [`manual`](RuniqueLog::manual)).
+    manual: bool,
 }
 
 impl RuniqueLog {
@@ -146,6 +150,105 @@ impl RuniqueLog {
         self
     }
 
+    /// Keeps only the channels set here: `DEBUG` and `RUNIQUE_ENV` no longer
+    /// turn any channel on by themselves.
+    ///
+    /// ```rust,ignore
+    /// .with_log(|l| l.manual().auth(|a| a.login(LogLevel::INFO)))
+    /// ```
+    #[must_use]
+    pub fn manual(mut self) -> Self {
+        self.manual = true;
+        self
+    }
+
+    /// Turns on, for the channels left unset, what `.env` asks for. A channel
+    /// set by hand keeps its level; [`manual`](RuniqueLog::manual) skips this.
+    ///
+    /// - `DEBUG=true`: every channel. The useful ones at `INFO`, the chatty
+    ///   ones at `DEBUG` — each form field **with its value**, each admin
+    ///   request and list. Passwords stay hidden; everything else a visitor
+    ///   types is written to the logs, in production too.
+    /// - `RUNIQUE_ENV=dev` without `DEBUG`: the useful ones only (sign-ins,
+    ///   refusals, admin writes, HTTP errors, boot).
+    /// - production without `DEBUG`: nothing more than what is set by hand.
+    #[must_use]
+    pub(crate) fn with_env_levels(mut self, dev: bool, debug: bool) -> Self {
+        if self.manual || !(dev || debug) {
+            return self;
+        }
+        use tracing::Level;
+        fn fill(slot: &mut Option<Level>, level: Option<Level>) {
+            if slot.is_none() {
+                *slot = level;
+            }
+        }
+        let useful = Some(Level::INFO);
+        let chatty = debug.then_some(Level::DEBUG);
+
+        let forms = self.forms.get_or_insert_with(Default::default);
+        fill(&mut forms.field, chatty);
+        fill(&mut forms.set_value, chatty);
+        fill(&mut forms.validate, chatty);
+        fill(&mut forms.render, chatty);
+        fill(&mut forms.finalize, chatty);
+
+        let middleware = self.middleware.get_or_insert_with(Default::default);
+        fill(&mut middleware.csrf, useful);
+        fill(&mut middleware.csp, useful);
+        fill(&mut middleware.cors, useful);
+        fill(&mut middleware.rate_limit, useful);
+        fill(&mut middleware.host_validation, useful);
+        fill(&mut middleware.open_redirect, useful);
+        fill(&mut middleware.anti_bot, useful);
+        fill(&mut middleware.https, useful);
+
+        let session = self.session.get_or_insert_with(Default::default);
+        fill(&mut session.store, useful);
+        fill(&mut session.cleanup, useful);
+        fill(&mut session.exclusive_login, useful);
+
+        let auth = self.auth.get_or_insert_with(Default::default);
+        fill(&mut auth.login, useful);
+        fill(&mut auth.reset, useful);
+        fill(&mut auth.password_init, useful);
+
+        let admin = self.admin.get_or_insert_with(Default::default);
+        fill(&mut admin.auth, chatty);
+        fill(&mut admin.crud, useful);
+        fill(&mut admin.list, chatty);
+        fill(&mut admin.bulk, useful);
+
+        let db = self.db.get_or_insert_with(Default::default);
+        fill(&mut db.connect, useful);
+        fill(&mut db.query, useful);
+
+        let mailer = self.mailer.get_or_insert_with(Default::default);
+        fill(&mut mailer.send, useful);
+
+        let migration = self.migration.get_or_insert_with(Default::default);
+        fill(&mut migration.plan, useful);
+        fill(&mut migration.apply, useful);
+        fill(&mut migration.rollback, useful);
+
+        let templates = self.templates.get_or_insert_with(Default::default);
+        fill(&mut templates.load, useful);
+        fill(&mut templates.render, useful);
+
+        let errors = self.errors.get_or_insert_with(Default::default);
+        fill(&mut errors.http, useful);
+        fill(&mut errors.render, useful);
+
+        let builder = self.builder.get_or_insert_with(Default::default);
+        fill(&mut builder.templates, useful);
+        fill(&mut builder.registry, useful);
+        fill(&mut builder.middleware, useful);
+        fill(&mut builder.statics, useful);
+        fill(&mut builder.routes, useful);
+
+        self
+    }
+
     /// Initializes the global tracing subscriber and returns the file-writer
     /// guards. Called automatically by `build()` — no effect if already initialized.
     ///
@@ -165,8 +268,9 @@ impl RuniqueLog {
             return Vec::new();
         }
 
+        // `DEBUG=true` has to let its channels through in production too.
         let default = self.subscriber_level.as_deref().unwrap_or_else(|| {
-            if crate::utils::env::is_dev() {
+            if crate::utils::env::is_dev() || crate::utils::env::is_debug() {
                 "debug"
             } else {
                 "warn"
@@ -391,6 +495,18 @@ pub fn get_log() -> Arc<RuniqueLog> {
         .unwrap_or_default()
 }
 
+/// The level a log channel is set to, `None` when it is off:
+/// `log_level!(session.store)` reads `get_log().session`, then its `store`.
+macro_rules! log_level {
+    ($domain:ident . $channel:ident) => {
+        $crate::utils::runique_log::get_log()
+            .$domain
+            .as_ref()
+            .and_then(|domain| domain.$channel)
+    };
+}
+pub(crate) use log_level;
+
 /// Resets the log configuration. Only call from tests.
 pub fn reset_log_for_test() {
     if let Ok(mut guard) = LOG_CONFIG.lock() {
@@ -555,6 +671,62 @@ mod tests {
         assert_eq!(fields.as_slice(), &[("answer", "42".to_string())]);
     }
 
+    /// What `.env` turns on for the channels left unset: nothing in
+    /// production, the useful ones in development, all of them with `DEBUG`.
+    #[test]
+    fn env_levels_follow_debug_and_runique_env() {
+        use tracing::Level;
+        let (info, debug) = (Some(Level::INFO), Some(Level::DEBUG));
+        // (useful channel, chatty channel) of a configuration.
+        let seen = |log: &RuniqueLog| {
+            (
+                log.auth.as_ref().and_then(|a| a.login),
+                log.forms.as_ref().and_then(|f| f.set_value),
+                log.admin.as_ref().and_then(|a| a.list),
+            )
+        };
+
+        let prod = RuniqueLog::new().with_env_levels(false, false);
+        assert_eq!(seen(&prod), (None, None, None));
+
+        let dev = RuniqueLog::new().with_env_levels(true, false);
+        assert_eq!(seen(&dev), (info, None, None));
+
+        for dev_too in [false, true] {
+            let all = RuniqueLog::new().with_env_levels(dev_too, true);
+            assert_eq!(seen(&all), (info, debug, debug), "dev = {dev_too}");
+        }
+    }
+
+    #[test]
+    fn a_level_set_by_hand_survives_the_env_levels() {
+        use tracing::Level;
+        let log = RuniqueLog::new()
+            .auth(|a| a.login(Level::ERROR))
+            .forms(|f| f.set_value(Level::TRACE))
+            .with_env_levels(true, true);
+        assert_eq!(log.auth.as_ref().and_then(|a| a.login), Some(Level::ERROR));
+        assert_eq!(
+            log.forms.as_ref().and_then(|f| f.set_value),
+            Some(Level::TRACE)
+        );
+        // The channels beside them, left unset, still follow `.env`.
+        assert_eq!(log.auth.as_ref().and_then(|a| a.reset), Some(Level::INFO));
+        assert_eq!(log.forms.as_ref().and_then(|f| f.field), Some(Level::DEBUG));
+    }
+
+    #[test]
+    fn manual_keeps_only_what_was_set_by_hand() {
+        use tracing::Level;
+        let log = RuniqueLog::new()
+            .manual()
+            .auth(|a| a.login(Level::WARN))
+            .with_env_levels(true, true);
+        assert_eq!(log.auth.as_ref().and_then(|a| a.login), Some(Level::WARN));
+        assert_eq!(log.auth.as_ref().and_then(|a| a.reset), None);
+        assert!(log.forms.is_none() && log.session.is_none());
+    }
+
     // Written from cargo-mutants survivors (2026-10-08): each `dev()` turns
     // every channel of its category on, through each setter.
     #[test]
@@ -562,10 +734,7 @@ mod tests {
         use tracing::Level;
         let d = Some(Level::DEBUG);
         let a = AdminTracing::new().dev();
-        assert_eq!(
-            [a.auth, a.crud, a.list, a.bulk, a.filter_fn, a.daemon],
-            [d; 6]
-        );
+        assert_eq!([a.auth, a.crud, a.list, a.bulk], [d; 4]);
         let m = MiddlewareTracing::new().dev();
         assert_eq!(
             [

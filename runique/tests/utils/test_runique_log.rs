@@ -49,15 +49,6 @@ fn test_exclusive_login_builder() {
 }
 
 #[test]
-fn test_filter_fn_builder() {
-    let log = RuniqueLog::new().admin(|a| a.filter_fn(Level::WARN));
-    assert_eq!(
-        log.admin.as_ref().and_then(|a| a.filter_fn),
-        Some(Level::WARN)
-    );
-}
-
-#[test]
 fn test_password_init_builder() {
     let log = RuniqueLog::new().auth(|a| a.password_init(Level::WARN));
     assert_eq!(

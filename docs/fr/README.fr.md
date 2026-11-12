@@ -1,9 +1,9 @@
 # Runique — l'expérience développeur Django, en Rust type-safe
 
 ![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-3443%20passing-green)
+![Tests passing](https://img.shields.io/badge/tests-3703%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-4.0.0-blue)
+![Version](https://img.shields.io/badge/version-4.1.0--preview-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
 [![GitHub stars](https://img.shields.io/github/stars/seb-alliot/runique?style=social)](https://github.com/seb-alliot/runique)
 [![Runique](https://img.shields.io/badge/Runique-brightgreen)](https://runique.io)
@@ -146,7 +146,7 @@ Pour le guide complet : [Installation](https://runique.io/docs/fr/installation)
 - `demo-app/` — une vraie application construite contre le framework, utilisée pour le valider
 - `docs/` — documentation en anglais et en français
 
-Version du workspace (source de vérité) : **4.0.0**.
+Version du workspace (source de vérité) : **4.1.0-preview**, en développement. Dernière version publiée sur crates.io : **4.0.0**.
 
 ---
 
@@ -196,7 +196,7 @@ Référence complète : [Sessions](https://runique.io/docs/fr/session)
 
 ## Tests et couverture
 
-- Tests rapportés : **3443 réussis** (108 ignorés)
+- Tests rapportés : **3703 réussis** (98 ignorés) sur le workspace, dont 3463 pour `runique`
 - Snapshot de couverture (`2026-11-08`, package `runique`, module admin inclus) : fonctions **92.93%**, lignes **93.00%**, régions **92.23%**
 
 ```bash
@@ -228,7 +228,7 @@ Détail complet par fichier : [docs/couverture_test.md](docs/couverture_test.md)
 
 ## État du projet & ressources
 
-- [État du projet](https://github.com/seb-alliot/runique/blob/main/docs/fr/PROJECT_STATUS.md) — avancement du chantier `makemigrations`
+- [État du projet](https://github.com/seb-alliot/runique/blob/main/docs/fr/PROJECT_STATUS.md) — avancement des versions 4.1 et 4.2
 - [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md)
 - [Passer de la 3.0 à la 4.0](https://github.com/seb-alliot/runique/blob/main/MIGRATION-4.0.fr.md)
 - [Runique vs Django — comparatif des fonctionnalités](https://runique.io/comparatif/runique-vs-django)

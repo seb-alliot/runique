@@ -491,7 +491,6 @@ impl<S> RuniqueAppBuilder<S> {
     /// ```rust,ignore
     /// .with_admin(|a| a
     ///     .prefix("/admin")
-    ///     .hot_reload(is_dev())
     ///     .site_title("My Admin")
     /// )
     /// ```

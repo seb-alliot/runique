@@ -76,7 +76,7 @@ context_update!(request => {
 
 ---
 
-> **Current limit:** the redirect macros ignore a failed session write. When the session can't be saved (database down with the database store), the message is lost with no error. The action itself isn't affected.
+> **Current limit:** the redirect macros ignore a failed session write. When the session can't be saved (database down with the database store), the message is lost: nothing tells the visitor, and the failure only shows in the log, on the `session.store` channel (see [Tracing](/docs/en/configuration/tracing)). The action itself isn't affected.
 
 ---
 

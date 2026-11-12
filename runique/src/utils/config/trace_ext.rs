@@ -16,6 +16,9 @@ use tracing::Level;
 /// replacing silent `.ok()` / `.unwrap_or_default()` call sites (see module docs).
 pub trait TraceResult<T> {
     /// Logs the error (caller `file:line` + `ctx`) at `level` if `Some`, returns `Option<T>`.
+    ///
+    /// `ctx` is a translation key (`log.*`), resolved only when an error is
+    /// logged; a text that matches no key is logged as written.
     #[track_caller]
     fn trace(self, level: Option<Level>, ctx: &'static str) -> Option<T>;
 
@@ -45,7 +48,7 @@ impl<T, E: std::fmt::Debug> TraceResult<T> for Result<T, E> {
             Err(e) => {
                 if let Some(level) = level {
                     let loc = std::panic::Location::caller();
-                    crate::runique_log!(level, error = ?e, at = %loc, "{}", ctx);
+                    crate::runique_log!(level, error = ?e, at = %loc, "{}", crate::utils::trad::t(ctx));
                 }
                 None
             }
@@ -58,7 +61,7 @@ impl<T, E: std::fmt::Debug> TraceResult<T> for Result<T, E> {
             Ok(v) => Some(v),
             Err(e) => {
                 let loc = std::panic::Location::caller();
-                crate::runique_log!(level.unwrap_or(default), error = ?e, at = %loc, "{}", ctx);
+                crate::runique_log!(level.unwrap_or(default), error = ?e, at = %loc, "{}", crate::utils::trad::t(ctx));
                 None
             }
         }
@@ -74,7 +77,7 @@ impl<T, E: std::fmt::Debug> TraceResult<T> for Result<T, E> {
             Err(e) => {
                 if let Some(level) = level {
                     let loc = std::panic::Location::caller();
-                    crate::runique_log!(level, error = ?e, at = %loc, "{}", ctx);
+                    crate::runique_log!(level, error = ?e, at = %loc, "{}", crate::utils::trad::t(ctx));
                 }
                 T::default()
             }
@@ -146,12 +149,12 @@ mod tests {
     #[serial_test::serial]
     #[test]
     fn gated_site_emits_only_when_its_category_is_configured() {
-        use crate::utils::runique_log::{RuniqueLog, get_log, log_init, reset_log_for_test};
+        use crate::utils::runique_log::{RuniqueLog, log_init, reset_log_for_test};
 
         // Disabled category → the canonical `if let Some(level) = …` gate stays silent.
         reset_log_for_test();
         log_init(RuniqueLog::new());
-        if let Some(level) = get_log().db.as_ref().and_then(|d| d.query) {
+        if let Some(level) = crate::utils::runique_log::log_level!(db.query) {
             crate::runique_log!(level, "db query while disabled");
         }
         assert!(!logs_contain("db query while disabled"));
@@ -159,7 +162,7 @@ mod tests {
         // Enabled category → the same gate emits.
         reset_log_for_test();
         log_init(RuniqueLog::new().db(|d| d.query(Level::WARN)));
-        if let Some(level) = get_log().db.as_ref().and_then(|d| d.query) {
+        if let Some(level) = crate::utils::runique_log::log_level!(db.query) {
             crate::runique_log!(level, "db query while enabled");
         }
         assert!(logs_contain("db query while enabled"));

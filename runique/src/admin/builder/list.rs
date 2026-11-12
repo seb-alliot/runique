@@ -202,6 +202,21 @@ impl<E: EntityTrait> ListConfig<E> {
     }
 
     /// Whether `display` was declared.
+    /// The options set on this list that no page reads yet.
+    pub(super) fn options_without_effect(&self) -> Vec<&'static str> {
+        let mut names = Vec::new();
+        if !self.links.is_empty() {
+            names.push("links");
+        }
+        if self.search_help.is_some() {
+            names.push("search_help");
+        }
+        if self.empty_value.is_some() {
+            names.push("empty_value");
+        }
+        names
+    }
+
     pub(super) fn has_display(&self) -> bool {
         !self.display.is_empty()
     }

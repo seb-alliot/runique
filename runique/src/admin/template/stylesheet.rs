@@ -213,12 +213,21 @@ impl PageSheets {
         statics: &Statics,
     ) -> Result<Self, String> {
         use crate::context::tera::static_tera::asset_url;
+        // Runique's own sheets that aren't on disk: the admin would be served
+        // without its style (a `STATIC_RUNIQUE_PATH` that doesn't hold them).
+        let missing = std::cell::RefCell::new(std::collections::BTreeSet::new());
         let serve = |sheet: Stylesheet| -> Result<ServedStylesheet, String> {
             Ok(match sheet {
-                Stylesheet::Runique(path) => ServedStylesheet {
-                    href: asset_url(statics.runique_url, path, statics.version),
-                    integrity: statics.runique.get(path).cloned(),
-                },
+                Stylesheet::Runique(path) => {
+                    let integrity = statics.runique.get(path).cloned();
+                    if integrity.is_none() {
+                        missing.borrow_mut().insert(path);
+                    }
+                    ServedStylesheet {
+                        href: asset_url(statics.runique_url, path, statics.version),
+                        integrity,
+                    }
+                }
                 Stylesheet::Dev(path) => {
                     let Some(hash) = statics.site.get(&path) else {
                         return Err(format!(
@@ -249,6 +258,15 @@ impl PageSheets {
                     .collect::<Result<Vec<_>, _>>()?;
                 all.insert((page, key), served);
             }
+        }
+        let missing = missing.into_inner();
+        if !missing.is_empty() {
+            // Never silent: every admin page would load unstyled.
+            crate::runique_log!(
+                crate::utils::runique_log::log_level!(builder.statics).unwrap_or(tracing::Level::WARN),
+                sheets = ?missing,
+                "{}", crate::utils::trad::t("log.boot.stylesheets_missing")
+            );
         }
         Ok(Self(all))
     }

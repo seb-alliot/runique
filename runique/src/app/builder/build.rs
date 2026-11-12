@@ -78,6 +78,12 @@ impl<P> RuniqueAppBuilder<P> {
     pub async fn build(mut self) -> Result<RuniqueApp, BuildError> {
         // Step 0: tracing (before everything else)
         // log_init early so get_log() works in TemplateLoader::init() and middleware staging.
+        // The channels `.env` asks for (DEBUG, RUNIQUE_ENV), under those set by hand.
+        self.config.log = self
+            .config
+            .log
+            .clone()
+            .with_env_levels(self.config.dev, self.config.debug);
         log_init(self.config.log.clone());
         let log_guards = self.config.log.init_subscriber();
 
@@ -188,9 +194,7 @@ impl<P> RuniqueAppBuilder<P> {
         }
 
         if config.debug && !config.dev {
-            tracing::warn!(
-                "DEBUG=true in production: every visitor sees the detailed error pages. Turn it off once the problem is found"
-            );
+            tracing::warn!("{}", crate::utils::trad::t("log.boot.debug_in_prod"));
         }
 
         let engine = new(RuniqueEngine {
@@ -290,6 +294,8 @@ impl<P> RuniqueAppBuilder<P> {
                 .iter()
                 .map(|route| (route.name.clone(), route.path.clone()))
                 .collect();
+            self.admin.log_boot(config.dev);
+
             // Close the `resource_key` referential-integrity gap: drop rights that
             // point at a resource no longer registered (see `prune_orphan_droits`).
             // The registered models are fixed at build time: boot is the only window.
@@ -297,10 +303,7 @@ impl<P> RuniqueAppBuilder<P> {
             // would make every other right look orphaned.
             let valid_keys = self.admin.site.keys();
             if self.admin.site.has_project_models() {
-                let level = crate::utils::runique_log::get_log()
-                    .builder
-                    .as_ref()
-                    .and_then(|b| b.registry);
+                let level = crate::utils::runique_log::log_level!(builder.registry);
                 match crate::auth::permissions::prune_orphan_droits(&engine.db, &valid_keys).await {
                     Ok(n) if n > 0 => {
                         if let Some(level) = level {
@@ -313,9 +316,12 @@ impl<P> RuniqueAppBuilder<P> {
                     }
                     Ok(_) => {}
                     Err(e) => {
-                        if let Some(level) = level {
-                            crate::runique_log!(level, error = %e, "orphan rights prune failed — stale grants may remain");
-                        }
+                        // Never silent: stale grants would stay without a word.
+                        crate::runique_log!(
+                            level.unwrap_or(tracing::Level::WARN),
+                            error = %e,
+                            "{}", crate::utils::trad::t("log.boot.prune_failed")
+                        );
                     }
                 }
             }
@@ -385,11 +391,7 @@ impl<P> RuniqueAppBuilder<P> {
             router
         };
 
-        if let Some(level) = crate::utils::runique_log::get_log()
-            .builder
-            .as_ref()
-            .and_then(|b| b.routes)
-        {
+        if let Some(level) = crate::utils::runique_log::log_level!(builder.routes) {
             let count = engine
                 .url_registry
                 .read()
@@ -636,11 +638,7 @@ impl<P> RuniqueAppBuilder<P> {
             );
         }
 
-        if let Some(level) = crate::utils::runique_log::get_log()
-            .builder
-            .as_ref()
-            .and_then(|b| b.statics)
-        {
+        if let Some(level) = crate::utils::runique_log::log_level!(builder.statics) {
             crate::runique_log!(
                 level,
                 static_url = %config.static_files.static_url,

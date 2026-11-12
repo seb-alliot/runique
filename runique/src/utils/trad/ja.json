@@ -639,5 +639,81 @@
   "auth": {
     "login_cannot_sign_in": "このアカウントはログインできません: 無効か、一度も有効化されていません。",
     "login_session_failed": "セッションを保存できませんでした: {}"
+  },
+  "log": {
+    "csrf": {
+      "refused": "CSRF を拒否",
+      "reason_header_invalid": "X-CSRF-Token ヘッダーのトークンが無効",
+      "reason_not_a_form": "トークンがなく、本文はフォームではない",
+      "reason_cross_site": "別のサイトから送信されたフォーム",
+      "reason_form_mismatch": "フォーム：送信されたトークンがセッションのものではない（セッション切れ、またはログイン前に開いたページ）",
+      "reason_form_missing": "フォーム：本文にも X-CSRF-Token にもトークンがない",
+      "reason_admin_login_missing": "管理画面ログイン：フォームにトークンがない",
+      "reason_admin_login_mismatch": "管理画面ログイン：送信されたトークンがセッションのものではない",
+      "reason_admin_logout": "管理画面ログアウト：有効なトークンがない",
+      "reason_upload": "アップロード：有効な csrf_token フィールドより先にファイルが届いたため、何も書き込まれていない",
+      "token_dropped": "CSRF トークンを破棄（ログインまたはログアウト）：それ以前に開いたページのトークンは無効",
+      "token_new": "このセッションに新しい CSRF トークン",
+      "read_token": "セッションから CSRF トークンを読み取り",
+      "keep_token": "CSRF トークンをセッションに保持",
+      "read_account": "CSRF トークン用にログイン中のアカウントを読み取り",
+      "write_token": "新しい CSRF トークンをセッションに書き込み",
+      "set_value": "set_value [CSRF トークンを受信：検証結果は middleware.csrf チャンネル]"
+    },
+    "session": {
+      "read_account": "セッションからログイン中のアカウントを読み取り",
+      "read_version": "セッションのバージョンを読み取り",
+      "read_flash": "セッションからフラッシュメッセージを読み取り",
+      "read_dashboard_template": "セッションから選択中のダッシュボードテンプレートを読み取り",
+      "decode_user_memory": "セッションの user_id をデコード（メモリから読み込み）",
+      "decode_user_db": "セッションの user_id をデコード（データベースから読み込み）"
+    },
+    "anti_bot": {
+      "read_name": "セッションからハニーポットフィールド名を読み取り",
+      "filled": "ハニーポットフィールドに入力あり：フォームを拒否"
+    },
+    "https": {
+      "redirected": "HTTP でリクエストを受信：HTTPS にリダイレクト",
+      "port80_stopped": "ポート 80 の HTTP サーバー（ACME チャレンジと HTTPS リダイレクト）が停止"
+    },
+    "auth": {
+      "hash_failed": "パスワード再設定時のハッシュ化に失敗",
+      "account_not_read": "アカウントを読み取れず：セッションは維持、リクエストには 503 を返答",
+      "admin_account_not_read": "管理者アカウントを読み取れず：セッションは維持、リクエストには 503 を返答"
+    },
+    "forms": {
+      "validation_failed": "フォームの検証に失敗",
+      "remove_oversized": "大きすぎる一時アップロードを削除"
+    },
+    "mailer": {
+      "init_twice": "mailer_init() が複数回呼ばれた：最初の設定を維持"
+    },
+    "db": {
+      "read_reset_token": "パスワード再設定トークンを読み取り"
+    },
+    "admin": {
+      "write": "管理画面での書き込み",
+      "outcome_saved": "保存済み",
+      "outcome_save_refused": "保存を拒否",
+      "outcome_deleted": "削除済み",
+      "outcome_delete_refused": "削除を拒否",
+      "bulk_done": "一括操作を実行",
+      "bulk_refused": "一括操作を拒否",
+      "list": "管理画面の一覧"
+    },
+    "boot": {
+      "admin": "管理画面",
+      "model": "管理画面のモデル",
+      "route": "管理画面の宣言済みルート",
+      "no_guard": "管理画面のログインに LoginGuard もレート制限もない：パスワード試行が無制限（`with_login_guard`、`with_rate_limiter`）",
+      "options_without_effect": "管理画面の一覧オプションは受け付けたが、まだどのページにも表示されない",
+      "stylesheets_missing": "管理画面用の Runique スタイルシートが見つからない：STATIC_RUNIQUE_PATH を確認",
+      "debug_in_prod": "本番で DEBUG=true：すべての訪問者に詳細なエラーページが表示され、すべてのログチャンネルが有効 — ログには訪問者がフォームに入力した内容（パスワードを除く）が記録される。原因が分かり次第オフにすること",
+      "prune_failed": "孤立した権限の整理に失敗 — 古い権限が残る可能性あり"
+    },
+    "server": {
+      "ctrl_c_not_installed": "Ctrl+C ハンドラーを設定できない",
+      "sigterm_not_installed": "SIGTERM ハンドラーを設定できない"
+    }
   }
 }
