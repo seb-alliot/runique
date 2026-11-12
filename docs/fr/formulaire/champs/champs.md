@@ -15,7 +15,7 @@ form.field(&TextField::text("username").label("Nom").required());
 // Email — validé via `validator::ValidateEmail`
 form.field(&TextField::email("email").label("Email").required());
 
-// URL — validée via `validator::ValidateUrl`
+// URL — absolue, en `http` ou `https` uniquement
 form.field(&TextField::url("website").label("Site web"));
 
 // Formulaire d'inscription / modification — hachage automatique dans finalize()
@@ -64,10 +64,11 @@ TextField::text("nom")
 | Format | Validation | Transformation |
 | --- | --- | --- |
 | `Email` | `validator::ValidateEmail` | Conversion en lowercase |
-| `Url` | `validator::ValidateUrl` | — |
+| `Url` | URL absolue en `http` ou `https`, lue comme un navigateur la lit (`javascript:`, `data:`, `file:`, `ftp:`, `mailto:` et les URL relatives sont refusées) | — |
 | `Password` | Standard | Hachage auto dans `finalize()` si config `Auto` et pas `.no_hash()`, valeur vidée au `render()` |
 | `RichText` | Standard | Sanitisation XSS (`sanitize()`) avant validation |
 | `Csrf` | Token session | — |
+| Texte (`text`, `textarea`) | Standard | Balises HTML retirées, le reste est gardé tel que saisi |
 | `Phone` | Caractères autorisés (chiffres/espaces/`-`/`()`), `+` en première position uniquement, 7 à 15 chiffres | — |
 
 **Utilitaires mot de passe :**
@@ -470,7 +471,7 @@ form.field(
 
 | Struct           | Constructeurs                                                              | Validation spéciale                                           |
 | ---------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `TextField`      | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()`, `phone()` | Email/URL via `validator`, hachage selon la `PasswordConfig`, sanitisation XSS, `.rows(n)` |
+| `TextField`      | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()`, `phone()` | Email via `validator`, URL `http`/`https` uniquement, hachage selon la `PasswordConfig`, sanitisation XSS, `.rows(n)` |
 | `NumericField`   | `integer()`, `float()`, `decimal()`, `percent()`, `range()`                | Bornes min/max, précision décimale, `.step(n)` (range uniquement) |
 | `BooleanField`   | `new()`, `radio()`                                                         | `required` = doit être cochée ; seule sa valeur est acceptée |
 | `ChoiceField`    | `new()` + `.multiple()`                                                    | Valeur dans les choix déclarés                                |

@@ -1,4 +1,4 @@
-//! Rate limiter by key (IP or other) with sliding window and 429 response.
+//! Rate limiter by key (IP or other) with a fixed window and 429 response.
 use crate::utils::trad::t;
 use axum::{
     body::Body,
@@ -17,7 +17,8 @@ use tokio::time::interval;
 /// Entry per key: (request count in window, window start)
 type Store = Arc<Mutex<HashMap<String, (u32, Instant)>>>;
 
-/// Configurable rate limiter — sliding window per key (IP or other)
+/// Configurable rate limiter — fixed window per key (IP or other): the count
+/// starts at a key's first request and is dropped once the window has passed.
 #[derive(Clone)]
 pub struct RateLimiter {
     store: Store,
@@ -162,20 +163,31 @@ impl std::fmt::Debug for RateLimiter {
     }
 }
 
-/// Fallback client key, used only when the `ClientIp` extension is absent — i.e.
-/// the `trusted_proxies` middleware is not in the stack (standalone use of this
-/// middleware). Keys on the **real socket peer** from `ConnectInfo`, never on the
-/// client-controlled `X-Forwarded-For`, so the fallback can't be spoofed.
-///
-/// Behind a proxy without `trusted_proxies`, every request shares the proxy's IP
-/// (one bucket) — add `trusted_proxies` (which injects `ClientIp`) for per-client
-/// limiting. For login brute-force, prefer [`LoginGuard`] (limits by username,
-/// never by IP).
-fn extract_ip(req: &Request<Body>) -> String {
+/// The limiter's key for a client. An IPv6 subscriber holds a whole /64:
+/// keyed on the full address, each of its addresses would get an allowance of
+/// its own, and a row in the store. One key per /64 instead.
+fn limiter_key(ip: std::net::IpAddr) -> String {
+    // An IPv4 client seen through an IPv6 socket (`::ffff:1.2.3.4`) is an
+    // IPv4 client: left as IPv6, all of them would share one /64.
+    match ip.to_canonical() {
+        std::net::IpAddr::V4(v4) => v4.to_string(),
+        std::net::IpAddr::V6(v6) => {
+            let s = v6.segments();
+            format!("{:x}:{:x}:{:x}:{:x}::/64", s[0], s[1], s[2], s[3])
+        }
+    }
+}
+
+/// The client's address: the one `trusted_proxies` resolved, else the peer's.
+fn client_ip(req: &Request<Body>) -> Option<std::net::IpAddr> {
     req.extensions()
-        .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
-        .map(|ci| ci.0.ip().to_string())
-        .unwrap_or_else(|| "unknown".to_string())
+        .get::<crate::middleware::security::trusted_proxies::ClientIp>()
+        .map(|c| c.0)
+        .or_else(|| {
+            req.extensions()
+                .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
+                .map(|ci| ci.0.ip())
+        })
 }
 
 /// Rate limiting middleware — to be applied on sensitive routes (login, etc.)
@@ -204,11 +216,7 @@ pub async fn rate_limit_middleware(
     {
         return next.run(req).await;
     }
-    let ip = req
-        .extensions()
-        .get::<crate::middleware::security::trusted_proxies::ClientIp>()
-        .map(|c| c.0.to_string())
-        .unwrap_or_else(|| extract_ip(&req));
+    let ip = client_ip(&req).map_or_else(|| "unknown".to_string(), limiter_key);
     if limiter.is_allowed(&ip) {
         next.run(req).await
     } else {
@@ -282,6 +290,24 @@ mod expiration_tests {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_ipv6_client_is_keyed_by_its_64_and_an_ipv4_one_by_its_address() {
+        let key = |ip: &str| limiter_key(ip.parse().unwrap());
+        assert_eq!(key("203.0.113.7"), "203.0.113.7");
+        assert_ne!(key("203.0.113.7"), key("203.0.113.8"));
+        // Same /64, two addresses: one key.
+        assert_eq!(
+            key("2001:db8:1:2::1"),
+            key("2001:db8:1:2:ffff:ffff:ffff:ffff")
+        );
+        assert_eq!(key("2001:db8:1:2::1"), "2001:db8:1:2::/64");
+        // The next /64 is another client.
+        assert_ne!(key("2001:db8:1:2::1"), key("2001:db8:1:3::1"));
+        // IPv4 through an IPv6 socket stays one key per address.
+        assert_eq!(key("::ffff:203.0.113.7"), "203.0.113.7");
+        assert_ne!(key("::ffff:203.0.113.7"), key("::ffff:203.0.113.8"));
+    }
 
     #[test]
     fn test_is_allowed_basic() {

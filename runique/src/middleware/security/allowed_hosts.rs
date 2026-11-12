@@ -34,13 +34,16 @@ impl HostPolicy {
     /// applied by the caller (see `HostPolicy::validate` and the middleware).
     #[must_use]
     pub fn is_host_allowed(&self, host: &str) -> bool {
-        fn normalize_host(host: &str) -> &str {
-            if host.starts_with('[') {
+        // A host name is case-insensitive, and `example.com.` (the fully
+        // qualified form) names the same host as `example.com`.
+        fn normalize_host(host: &str) -> String {
+            let bare = if host.starts_with('[') {
                 // No `]` (e.g. `Host: [::1`): kept whole, it matches no entry.
                 host.find(']').map_or(host, |end| &host[..=end])
             } else {
                 host.split(':').next().unwrap_or(host)
-            }
+            };
+            bare.strip_suffix('.').unwrap_or(bare).to_ascii_lowercase()
         }
 
         let host = normalize_host(host);
@@ -52,12 +55,17 @@ impl HostPolicy {
                 return true;
             }
 
+            // An empty host (`Host: .`, a stray comma in the list) matches nothing.
+            if host.is_empty() {
+                return false;
+            }
+
             // normalization on allowed side too
             let allowed_host = normalize_host(allowed);
 
             if let Some(suffix) = allowed_host.strip_prefix('.') {
                 host == suffix
-                    || (host.ends_with(allowed_host)
+                    || (host.ends_with(allowed_host.as_str())
                         && host.as_bytes()[host.len().saturating_sub(allowed_host.len())] == b'.')
             } else {
                 allowed_host == host
@@ -158,6 +166,40 @@ mod tests {
         assert!(validator.is_host_allowed("api.exemple.com"));
         assert!(validator.is_host_allowed("admin.api.exemple.com"));
         assert!(!validator.is_host_allowed("malicious.com"));
+    }
+
+    #[test]
+    fn a_host_matches_whatever_its_case_or_trailing_dot() {
+        let validator = HostPolicy::new(
+            vec!["Exemple.com".to_string(), ".Api.exemple.com".to_string()],
+            true,
+        );
+        for host in [
+            "exemple.com",
+            "EXEMPLE.COM",
+            "exemple.com.",
+            "Exemple.Com:8080",
+        ] {
+            assert!(validator.is_host_allowed(host), "{host}");
+        }
+        assert!(validator.is_host_allowed("V1.API.exemple.com."));
+        for host in [
+            "exemple.com..",
+            "xexemple.com",
+            "exemple.co",
+            "evil-api.exemple.com",
+        ] {
+            assert!(!validator.is_host_allowed(host), "{host}");
+        }
+    }
+
+    #[test]
+    fn an_empty_host_matches_no_entry_even_an_empty_one() {
+        let validator = HostPolicy::new(vec![String::new(), "exemple.com".to_string()], true);
+        for host in ["", ".", ":8080"] {
+            assert!(!validator.is_host_allowed(host), "{host:?}");
+        }
+        assert!(validator.is_host_allowed("exemple.com"));
     }
 
     #[test]

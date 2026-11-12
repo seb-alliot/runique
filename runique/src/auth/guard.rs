@@ -226,16 +226,21 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Redirect, Response},
 };
-use tower_sessions::Session;
 
 /// Middleware that redirects to `redirect_url` if the user is not authenticated.
 pub(crate) async fn login_required_middleware(
     State(redirect_url): State<Arc<String>>,
-    session: Session,
     req: Request<Body>,
     next: Next,
 ) -> Response {
-    if crate::auth::session::is_authenticated(&session).await {
+    // The auth middleware puts a `CurrentUser` only for an account the database
+    // still accepts. The session alone says who signed in, not that they still
+    // may: it survives a logout the store refused.
+    if req
+        .extensions()
+        .get::<crate::auth::current_user::CurrentUser>()
+        .is_some()
+    {
         next.run(req).await
     } else {
         Redirect::to(redirect_url.as_str()).into_response()

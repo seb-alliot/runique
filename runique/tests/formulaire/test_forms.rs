@@ -139,6 +139,38 @@ mod tests {
         assert!(field.error().is_none());
     }
 
+    /// A URL field's value can go into an `href`: only `http` and `https`
+    /// pass, read the way a browser reads them.
+    #[tokio::test]
+    async fn test_url_accepts_only_http_and_https() {
+        for url in [
+            "http://example.com",
+            "https://example.com/a?b=1&c=2#d",
+            "HTTPS://Example.com",
+        ] {
+            let mut field = TextField::url("website");
+            field.set_value(url);
+            assert!(field.validate().await, "{url}");
+        }
+        for url in [
+            "javascript:alert(1)",
+            "JavaScript:alert(1)",
+            "java\tscript:alert(1)",
+            "java\nscript:alert(1)",
+            "data:text/html,x",
+            "file:///etc/passwd",
+            "ftp://example.com",
+            "mailto:ada@example.com",
+            "//example.com",
+            "/relative",
+        ] {
+            let mut field = TextField::url("website");
+            field.set_value(url);
+            assert!(!field.validate().await, "{url:?}");
+            assert!(field.error().is_some(), "{url:?}");
+        }
+    }
+
     // ── NumericField ─────────────────────────────────────────────────────────────
 
     #[tokio::test]

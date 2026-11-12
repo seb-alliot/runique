@@ -17,6 +17,7 @@ Without this middleware, `X-Forwarded-For` is untrusted user input — an attack
 3. If it **is** trusted → parse `X-Forwarded-For`, walk from right to left:
    - Skip entries that are trusted proxies.
    - Return the first untrusted entry as the real client IP.
+   - An entry that is not an address (`ip:port`, text) stops the walk: the direct connection IP is kept. Skipping it would hand the choice to the entry on its left, which the client may have written itself.
 4. If all entries are trusted → fall back to the direct connection IP; the header contains no verifiable client address.
 
 The result is injected into request extensions as `ClientIp(IpAddr)`.

@@ -209,7 +209,7 @@ else {
 form.add_value("article_id", &article.id.to_string());
 ```
 
-**Updating a row without checking whose it is.** On `/comment/{id}`, `save()` updates row `id` from the URL. Setting `author_id` does not protect that row: it hands it to the signed-in account.
+**Updating a row without checking whose it is.** On `/comment/{comment_id}`, `save()` of the form `"comment"` updates that row. Setting `author_id` does not protect that row: it hands it to the signed-in account.
 
 ```rust
 // ❌ any account takes someone else's comment 42
@@ -217,7 +217,7 @@ form.add_value("author_id", &user.id.to_string());
 form.save(db).await;
 
 // ✅ check first that the row belongs to the account
-let id = request.get_path_as::<Pk>("id").unwrap_or_default();
+let id = request.get_path_as::<Pk>("comment_id").unwrap_or_default();
 let theirs = search!(comment::Entity => Id eq id, AuthorId eq user.id)
     .count(request.db()).await.unwrap_or(0) > 0;
 if !theirs {

@@ -15,7 +15,7 @@ form.field(&TextField::text("username").label("Name").required());
 // Email — validated via `validator::ValidateEmail`
 form.field(&TextField::email("email").label("Email").required());
 
-// URL — validated via `validator::ValidateUrl`
+// URL — absolute, `http` or `https` only
 form.field(&TextField::url("website").label("Website"));
 
 // Registration / password change form — automatic hashing in finalize()
@@ -64,10 +64,11 @@ TextField::text("name")
 | Format     | Validation                 | Transformation                                                                                 |
 | ---------- | -------------------------- | ---------------------------------------------------------------------------------------------- |
 | `Email`    | `validator::ValidateEmail` | Lowercased                                                                                     |
-| `Url`      | `validator::ValidateUrl`   | —                                                                                              |
+| `Url`      | Absolute `http` or `https` URL, read the way a browser reads it (`javascript:`, `data:`, `file:`, `ftp:`, `mailto:` and relative URLs are refused) | — |
 | `Password` | Standard                   | Auto hash in `finalize()` if config is `Auto` and no `.no_hash()`, value cleared on `render()` |
 | `RichText` | Standard                   | XSS sanitization (`sanitize()`) before validation                                              |
 | `Csrf`     | Session token              | —                                                                                              |
+| Text (`text`, `textarea`) | Standard | HTML tags removed, the rest kept as typed |
 | `Phone`    | Allowed chars (digits/spaces/`-`/`()`), leading `+` only, 7 to 15 digits | — |
 
 **Password utilities:**
@@ -470,7 +471,7 @@ form.field(
 
 | Struct           | Constructors                                                           | Special validation                                  |
 | ---------------- | ---------------------------------------------------------------------- | --------------------------------------------------- |
-| `TextField`      | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()`, `phone()` | Email/URL via `validator`, hashing per the `PasswordConfig`, XSS sanitization, `.rows(n)` |
+| `TextField`      | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()`, `phone()` | Email via `validator`, `http`/`https` URLs only, hashing per the `PasswordConfig`, XSS sanitization, `.rows(n)` |
 | `NumericField`   | `integer()`, `float()`, `decimal()`, `percent()`, `range()`            | Min/max bounds, decimal precision, `.step(n)` (`range` only)   |
 | `BooleanField`   | `new()`, `radio()`                                                     | `required` = must be checked; only its value is accepted       |
 | `ChoiceField`    | `new()` + `.multiple()`                                                | Value must be in declared choices                   |

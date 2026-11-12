@@ -85,6 +85,7 @@ RateLimiter::new().max_requests(100).retry_after(60)  // 100 requêtes par minut
 
 - La clé de limitation est l'**adresse IP** de la requête — l'extension `ClientIp` posée par le middleware `trusted_proxies` (toujours actif) si présente, sinon l'adresse TCP brute du pair (`ConnectInfo`)
 - Le support de `X-Forwarded-For` passe par ce mécanisme `trusted_proxies` (validation contre une liste de CIDR de confiance), pas par une lecture directe du header ici — `X-Real-IP` n'est lu nulle part dans le code
+- Une adresse **IPv6** est comptée par préfixe `/64` : un abonné IPv6 dispose de tout un `/64`, chaque adresse aurait sinon son propre quota. Une adresse IPv4 reste comptée seule, même vue à travers une socket IPv6 (`::ffff:1.2.3.4`)
 - Fenêtre **fixe** : le compteur repart à zéro après `retry_after` secondes
 - Réponse `429 Too Many Requests` quand la limite est dépassée, avec header `Retry-After: <secondes>`
 

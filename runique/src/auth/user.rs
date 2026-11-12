@@ -123,8 +123,7 @@ pub struct BuiltinUserEntity;
 impl BuiltinUserEntity {
     /// The account with this id.
     pub async fn find_by_id(db: &ADb, id: Pk) -> Option<Model> {
-        Entity::find_by_id(id)
-            .one(db)
+        Self::lookup_by_id(db, id)
             .await
             .trace(
                 crate::utils::runique_log::get_log()
@@ -134,6 +133,13 @@ impl BuiltinUserEntity {
                 "find user by id",
             )
             .flatten()
+    }
+
+    /// The same lookup, a database failure kept apart from "no such account".
+    /// The middlewares that close the session of a missing account read it
+    /// this way: an outage must not sign everybody out.
+    pub(crate) async fn lookup_by_id(db: &ADb, id: Pk) -> Result<Option<Model>, sea_orm::DbErr> {
+        Entity::find_by_id(id).one(db).await
     }
 
     /// The account with this username.

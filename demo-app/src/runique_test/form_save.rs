@@ -140,7 +140,7 @@ async fn save_with_the_id_updates_that_row_and_creates_none() -> Result<(), Test
     runique_test::<ADb>(super::ENV, async |db| {
         let id = existing(db, "runique_test before").await?;
         let key = id.to_string();
-        let req = request(db, &[("id", &key)], &article(TITLE));
+        let req = request(db, &[("blog_id", &key)], &article(TITLE));
         if validated(&req).await?.save(db).await.is_err() {
             return Err(fail("save should update the row"));
         }
@@ -156,7 +156,7 @@ async fn save_with_the_id_updates_that_row_and_creates_none() -> Result<(), Test
 }
 
 #[tokio::test]
-async fn the_key_named_after_the_form_wins_over_the_plain_one() -> Result<(), TestFailure> {
+async fn only_the_key_named_after_the_form_is_the_row_written() -> Result<(), TestFailure> {
     runique_test::<ADb>(super::ENV, async |db| {
         let named = existing(db, "runique_test named").await?;
         let plain = existing(db, "runique_test plain").await?;
@@ -180,11 +180,33 @@ async fn the_key_named_after_the_form_wins_over_the_plain_one() -> Result<(), Te
     .await
 }
 
+/// `/articles/{id}/comment`: `{id}` is another table's. The form's row is
+/// named after the form, so a plain `{id}` leaves `save` creating.
+#[tokio::test]
+async fn a_plain_id_is_not_the_forms_row_save_creates() -> Result<(), TestFailure> {
+    runique_test::<ADb>(super::ENV, async |db| {
+        let other = existing(db, "runique_test other").await?;
+        let key = other.to_string();
+        let req = request(db, &[("id", &key)], &article(TITLE));
+        if validated(&req).await?.save(db).await.is_err() {
+            return Err(fail("save should create a row"));
+        }
+        if title_of(db, other).await?.as_deref() != Some("runique_test other") {
+            return Err(fail("the row whose id is in the URL should be left alone"));
+        }
+        match titled(db, TITLE).await? {
+            1 => Ok(()),
+            n => Err(DbErr::Custom(format!("expected 1 created row, found {n}"))),
+        }
+    })
+    .await
+}
+
 #[tokio::test]
 async fn an_unknown_or_unreadable_key_writes_nothing() -> Result<(), TestFailure> {
     runique_test::<ADb>(super::ENV, async |db| {
         for key in ["2147483000", "abc", "", "1 OR 1=1"] {
-            let req = request(db, &[("id", key)], &article(TITLE));
+            let req = request(db, &[("blog_id", key)], &article(TITLE));
             let form = match validated(&req).await?.save(db).await {
                 Ok(_) => return Err(DbErr::Custom(format!("key {key:?} was saved"))),
                 Err(form) => form,
@@ -206,7 +228,7 @@ async fn delete_removes_the_row_of_the_url() -> Result<(), TestFailure> {
     runique_test::<ADb>(super::ENV, async |db| {
         let id = existing(db, TITLE).await?;
         let key = id.to_string();
-        let req = request(db, &[("id", &key)], &article(TITLE));
+        let req = request(db, &[("blog_id", &key)], &article(TITLE));
         if validated(&req).await?.delete(db).await.is_err() {
             return Err(fail("delete should remove the row"));
         }
@@ -285,7 +307,7 @@ async fn an_empty_title_leaves_the_row_of_the_url_unchanged() -> Result<(), Test
         let id = existing(db, TITLE).await?;
         let key = id.to_string();
         for title in ["", "   "] {
-            let req = request(db, &[("id", &key)], &article(title));
+            let req = request(db, &[("blog_id", &key)], &article(title));
             refused_on_title(&req).await?;
         }
         match title_of(db, id).await?.as_deref() {
@@ -335,7 +357,7 @@ async fn website_is_set_then_replaced_then_emptied() -> Result<(), TestFailure> 
         ] {
             let mut body = article(TITLE);
             body.push(("website", sent));
-            let req = request(db, &[("id", &key)], &body);
+            let req = request(db, &[("blog_id", &key)], &body);
             if validated(&req).await?.save(db).await.is_err() {
                 return Err(DbErr::Custom(format!("the update with {sent:?} failed")));
             }

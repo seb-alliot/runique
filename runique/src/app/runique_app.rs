@@ -24,6 +24,39 @@ pub struct RuniqueApp {
     pub _log_guards: Vec<tracing_appender::non_blocking::WorkerGuard>,
 }
 
+/// Resolves when the server is asked to stop: Ctrl+C, or SIGTERM on Unix —
+/// what `systemctl stop` and `docker stop` send. Without the second, those
+/// cut the requests in flight (and a container, deaf to SIGTERM as PID 1,
+/// is killed after its grace period).
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        if let Err(error) = signal::ctrl_c().await {
+            tracing::warn!(%error, "Ctrl+C handler not installed");
+            std::future::pending::<()>().await;
+        }
+    };
+    #[cfg(unix)]
+    let terminate = async {
+        match signal::unix::signal(signal::unix::SignalKind::terminate()) {
+            Ok(mut stream) => {
+                stream.recv().await;
+            }
+            Err(error) => {
+                tracing::warn!(%error, "SIGTERM handler not installed");
+                std::future::pending::<()>().await;
+            }
+        }
+    };
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        () = ctrl_c => {}
+        () = terminate => {}
+    }
+    println!("\n{}", t("server.shutting_down"));
+}
+
 impl RuniqueApp {
     /// Creates a new builder to configure the application.
     ///
@@ -83,10 +116,7 @@ impl RuniqueApp {
             self.router
                 .into_make_service_with_connect_info::<SocketAddr>(),
         )
-        .with_graceful_shutdown(async {
-            signal::ctrl_c().await.expect("Error signal Ctrl+C");
-            println!("\n{}", t("server.shutting_down"));
-        })
+        .with_graceful_shutdown(shutdown_signal())
         .await?;
 
         Ok(())
@@ -340,7 +370,15 @@ impl RuniqueApp {
         // ConnectInfo must be propagated so `trusted_proxies` sees the real peer IP.
         // Without it, conn_ip defaults to loopback (trusted) and X-Forwarded-For
         // becomes spoofable in standalone-TLS mode (no reverse proxy).
+        // Requests in flight get this long to finish once the stop is asked.
+        let handle = axum_server::Handle::<std::net::SocketAddr>::new();
+        let stop = handle.clone();
+        tokio::spawn(async move {
+            shutdown_signal().await;
+            stop.graceful_shutdown(Some(std::time::Duration::from_secs(30)));
+        });
         axum_server::bind_rustls(https_addr.parse::<std::net::SocketAddr>()?, tls_config)
+            .handle(handle)
             .serve(
                 self.router
                     .into_make_service_with_connect_info::<std::net::SocketAddr>(),

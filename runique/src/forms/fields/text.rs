@@ -11,7 +11,14 @@ use crate::utils::{
 };
 use async_trait::async_trait;
 use serde::Serialize;
-use validator::{ValidateEmail, ValidateUrl};
+use validator::ValidateEmail;
+
+/// Whether `value` is an absolute `http` / `https` URL. Read by the parser
+/// browsers follow, so what it says is what an `href` would do:
+/// `java<TAB>script:alert(1)` is `javascript:` to both, and refused.
+fn is_web_url(value: &str) -> bool {
+    url::Url::parse(value).is_ok_and(|url| matches!(url.scheme(), "http" | "https"))
+}
 
 /// Single-line text input. Construct with [`TextField::text`], [`::email`](TextField::email),
 /// [`::password`](TextField::password), [`::url`](TextField::url), [`::phone`](TextField::phone),
@@ -101,7 +108,8 @@ impl TextField {
         field.base.value = field.base.value.to_lowercase();
         field
     }
-    /// URL input. Validates format.
+    /// URL input. Accepts an absolute `http` or `https` URL only: the value
+    /// can go into an `href`.
     pub fn url(name: &str) -> Self {
         Self::create(name, "url", SpecialFormat::Url)
     }
@@ -254,7 +262,7 @@ impl FormField for TextField {
             SpecialFormat::Email => {
                 val = val.to_lowercase();
             }
-            SpecialFormat::Url if !val.validate_url() => {
+            SpecialFormat::Url if !is_web_url(&val) => {
                 self.set_error(t("forms.url_invalid").to_string());
                 return false;
             }

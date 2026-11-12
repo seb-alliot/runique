@@ -112,7 +112,7 @@ async fn save_profile(
     let req = named_request(
         db,
         "profile",
-        &[("id", id)],
+        &[("profile_id", id)],
         &[
             ("username", username),
             ("email", &email),
@@ -237,7 +237,7 @@ async fn validated_profile(
     let req = named_request(
         db,
         "profile",
-        &[("id", id)],
+        &[("profile_id", id)],
         &[
             ("username", username),
             ("email", &email),

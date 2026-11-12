@@ -14,6 +14,8 @@ use runique::prelude::*;
 
 Two steps: `authenticate_user` checks the credentials (password, active and activated account), then `login` records the account in the session. `login` renews the session id and the CSRF token, and writes only the id: the account is read from the database on every request (`request.user`).
 
+A deleted or deactivated account has its session closed on its next request. If the database doesn't answer, nothing is decided: the request gets a `503` and the session stays open.
+
 ```rust
 match authenticate_user(&db, &username, &password).await {
     Some(user) => login(&session, &user, None, false).await?,
@@ -56,11 +58,22 @@ RuniqueApp::builder(config)
 
 The default session store then closes the account's other sessions as soon as it signs in, whatever the `login` call (even `login(&session, &user, None, false)`). With a store plugged in through `with_session_store()`, this setting has no effect.
 
-By hand, `exclusive: true` only acts with a database store passed to `login`; with `None`, it is ignored without error:
+By hand, the last parameter of `login` says what happens to the account's other sessions. It takes a `bool` (`false` = `Off`, `true` = `On`) or an `ExclusiveLogin`:
+
+| Value | Other devices | If the store refuses to close them |
+| --- | --- | --- |
+| `ExclusiveLogin::Off` | stay signed in | — |
+| `ExclusiveLogin::On` | closed | the failure is logged, the sign-in goes on |
+| `ExclusiveLogin::Strict` | closed | the sign-in is refused (`LoginError::Session`) and its session closed |
 
 ```rust
-login(&session, &user, Some(&store), true).await?;
+use runique::auth::ExclusiveLogin;
+
+login(&session, &user, Some(&store), true).await?;                    // On
+login(&session, &user, Some(&store), ExclusiveLogin::Strict).await?;  // one device, or nothing
 ```
+
+It only acts with a database store passed to `login`; with `None`, it is ignored without error. The builder's setting (`with_exclusive_login(true)`) means `On`.
 
 ---
 

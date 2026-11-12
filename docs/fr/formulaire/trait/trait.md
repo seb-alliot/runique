@@ -328,8 +328,9 @@ match ValidationForm::try_form(form, &request).await {
 La clé est cherchée dans les paramètres de la route, par le nom donné à `try_form` :
 
 1. `{<nom>_<clé>}` — par exemple `{article_id}` pour le formulaire `"article"` ;
-2. sinon `{<clé>}` — par exemple `{id}` ;
-3. sinon aucune : `save` crée la ligne.
+2. sinon aucune : `save` crée la ligne.
+
+Un `{id}` tout court n'est pas la ligne du formulaire. Sur `/articles/{id}/commenter`, c'est l'identifiant de l'article : le formulaire `"commentaire"` crée donc un commentaire, et le handler lit l'article avec `request.get_path_as::<Pk>("id")`.
 
 Avec une clé, `save` met à jour cette ligne ; `delete` exige une clé. Une clé qui ne se lit pas au type de la clé du modèle, ou une ligne absente, donne « Ressource introuvable » et rien n'est écrit. Deux formulaires sur une page pointent chacun leur ligne par leur propre nom.
 

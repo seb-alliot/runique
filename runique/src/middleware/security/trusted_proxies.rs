@@ -158,24 +158,26 @@ impl TrustedProxies {
         // Every `X-Forwarded-For` line, in order: a proxy that adds its own line
         // instead of extending the client's leaves the client's first, and
         // reading that one alone would take the forged address for the client.
-        let xff: Vec<IpAddr> = req
+        let xff: Vec<&str> = req
             .headers()
             .get_all("x-forwarded-for")
             .iter()
             .filter_map(|v| v.to_str().ok())
             .flat_map(|s| s.split(','))
-            .filter_map(|ip| ip.trim().parse::<IpAddr>().ok())
-            .map(canonicalize_ip)
+            .map(str::trim)
             .collect();
 
-        if xff.is_empty() {
-            return conn_ip_value;
-        }
-
         // Walk from rightmost (last proxy) to leftmost (client)
-        for ip in xff.iter().rev() {
-            if !self.is_trusted(ip) {
-                return *ip;
+        for entry in xff.iter().rev() {
+            // An entry that isn't an address (`ip:port`, anything else) hides
+            // which hop wrote it. Skipping it would hand the choice to the next
+            // one on the left, which the client may have written itself.
+            let Ok(ip) = entry.parse::<IpAddr>() else {
+                return conn_ip_value;
+            };
+            let ip = canonicalize_ip(ip);
+            if !self.is_trusted(&ip) {
+                return ip;
             }
         }
 
@@ -255,6 +257,21 @@ mod tests {
             tp.extract_client_ip(&req, Some(ip("10.0.0.1"))),
             ip("10.0.0.1")
         );
+    }
+
+    /// `forged, real:port`: the proxy wrote the real client with its port.
+    /// Skipping that entry would take the forged address for the client.
+    #[test]
+    fn an_entry_that_is_not_an_address_stops_the_walk_at_the_peer() {
+        let tp = TrustedProxies::default_for_edge(false);
+        let peer = ip("10.0.0.1");
+        for xff in ["9.9.9.9, 203.0.113.7:4711", "9.9.9.9, unknown", "9.9.9.9,"] {
+            let req = req_with_xff(Some(xff));
+            assert_eq!(tp.extract_client_ip(&req, Some(peer)), peer, "{xff}");
+        }
+        // Left of the first untrusted address, nothing is read: garbage there changes nothing.
+        let req = req_with_xff(Some("unknown, 203.0.113.7"));
+        assert_eq!(tp.extract_client_ip(&req, Some(peer)), ip("203.0.113.7"));
     }
 
     // ── default_for_edge (SEC2 — edge-aware default) ─────────────────

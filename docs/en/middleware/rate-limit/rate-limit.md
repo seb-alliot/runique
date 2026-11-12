@@ -84,6 +84,7 @@ RateLimiter::new().max_requests(100).retry_after(60)  // 100 requests per minute
 
 - The rate limit key is the request's **IP address** — the `ClientIp` extension set by the `trusted_proxies` middleware (always active) if present, otherwise the raw TCP peer address (`ConnectInfo`)
 - `X-Forwarded-For` support goes through this `trusted_proxies` mechanism (validated against a trusted CIDR list), not a direct header read here — `X-Real-IP` is never read anywhere in the code
+- An **IPv6** address is counted by its `/64` prefix: an IPv6 subscriber holds a whole `/64`, each address would otherwise get its own allowance. An IPv4 address is still counted alone, even seen through an IPv6 socket (`::ffff:1.2.3.4`)
 - **Fixed window**: the counter resets after `retry_after` seconds
 - Returns `429 Too Many Requests` when the limit is exceeded, with a `Retry-After: <seconds>` header
 

@@ -481,6 +481,7 @@ async fn auth_middleware(
     use crate::auth::session::{get_user_id, logout, session_is_current};
     use crate::auth::user::BuiltinUserEntity;
     use crate::utils::config::TraceResult;
+    use axum::response::IntoResponse;
 
     let session = req.extensions().get::<tower_sessions::Session>().cloned();
     let engine = req
@@ -490,9 +491,20 @@ async fn auth_middleware(
     if let (Some(session), Some(engine)) = (session, engine)
         && let Some(id) = get_user_id(&session).await
     {
-        let account = BuiltinUserEntity::find_by_id(&engine.db, id)
-            .await
-            .filter(crate::auth::user_trait::RuniqueUser::can_sign_in);
+        let account = match BuiltinUserEntity::lookup_by_id(&engine.db, id).await {
+            Ok(account) => account.filter(crate::auth::user_trait::RuniqueUser::can_sign_in),
+            // The database didn't answer: that says nothing about the account.
+            // Its session is left as it is, and the request waits for better.
+            Err(error) => {
+                crate::runique_log!(
+                    tracing::Level::WARN,
+                    user_id = %id,
+                    error = %error,
+                    "account not read — session kept, request answered 503"
+                );
+                return axum::http::StatusCode::SERVICE_UNAVAILABLE.into_response();
+            }
+        };
         let account = match account {
             Some(user) if session_is_current(&session, &user).await => Some(user),
             _ => None,

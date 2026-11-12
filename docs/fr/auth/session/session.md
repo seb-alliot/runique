@@ -14,6 +14,8 @@ use runique::prelude::*;
 
 Deux étapes : `authenticate_user` vérifie les identifiants (mot de passe, compte actif et activé), puis `login` inscrit le compte dans la session. `login` renouvelle l'identifiant de session et le jeton CSRF, et n'y écrit que l'id : le compte est relu en base à chaque requête (`request.user`).
 
+Un compte supprimé ou désactivé voit sa session fermée à sa requête suivante. Si la base ne répond pas, rien n'est décidé : la requête reçoit un `503` et la session reste ouverte.
+
 ```rust
 match authenticate_user(&db, &username, &password).await {
     Some(user) => login(&session, &user, None, false).await?,
@@ -56,11 +58,22 @@ RuniqueApp::builder(config)
 
 Le store de sessions par défaut ferme alors les autres sessions du compte dès qu'il se connecte, quel que soit l'appel à `login` (même `login(&session, &user, None, false)`). Avec un store branché par `with_session_store()`, ce réglage n'a pas d'effet.
 
-À la main, `exclusive: true` n'agit qu'avec un store en base passé à `login` ; avec `None`, il est ignoré sans erreur :
+À la main, le dernier paramètre de `login` dit quoi faire des autres sessions du compte. Il accepte un `bool` (`false` = `Off`, `true` = `On`) ou un `ExclusiveLogin` :
+
+| Valeur | Autres appareils | Si le store refuse de les fermer |
+| --- | --- | --- |
+| `ExclusiveLogin::Off` | restent connectés | — |
+| `ExclusiveLogin::On` | fermés | l'échec est journalisé, la connexion réussit |
+| `ExclusiveLogin::Strict` | fermés | la connexion est refusée (`LoginError::Session`) et sa session fermée |
 
 ```rust
-login(&session, &user, Some(&store), true).await?;
+use runique::auth::ExclusiveLogin;
+
+login(&session, &user, Some(&store), true).await?;                    // On
+login(&session, &user, Some(&store), ExclusiveLogin::Strict).await?;  // un seul appareil, ou rien
 ```
+
+Il n'agit qu'avec un store en base passé à `login` ; avec `None`, il est ignoré sans erreur. Le réglage du builder (`with_exclusive_login(true)`) vaut `On`.
 
 ---
 

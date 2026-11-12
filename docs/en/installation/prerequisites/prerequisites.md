@@ -138,6 +138,49 @@ The other variables (templates, static and media folders, logging…) have defau
 
 ---
 
+## Using Runique from the repository (development version)
+
+The repository holds the work in progress, ahead of the version published on crates.io. It carries a pre-release number (`4.1.0-preview`): what you clone is the last published version plus the changes of the most recent section of the [CHANGELOG](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md).
+
+A pre-release does not exist on crates.io. A project created by a `runique new` installed from the repository therefore asks for `runique = { version = "4.1.0-preview", … }`, which Cargo will not find: replace that line with form 2 or 3 below.
+
+`runique` is declared in two files of the project: the application's `Cargo.toml` and `migration/Cargo.toml`. Both must point at the same source. Three ways to choose it:
+
+```toml
+# 1. The published version (default)
+runique = { version = "4.0.0", features = ["sqlite"] }
+
+# 2. A local clone of the repository
+runique = { path = "../runique/runique", features = ["sqlite"] }
+
+# 3. Straight from GitHub
+runique = { git = "https://github.com/seb-alliot/runique", branch = "main", features = ["sqlite"] }
+```
+
+With a local clone, the project's workspace saves writing the path twice: declare the source once at the root, then take it up in both crates.
+
+```toml
+# Cargo.toml (project root)
+[workspace]
+members = ["migration"]
+
+[workspace.dependencies]
+runique = { path = "../runique/runique" }
+
+[dependencies]
+runique = { workspace = true, features = ["sqlite"] }
+```
+
+```toml
+# migration/Cargo.toml
+[dependencies]
+runique = { workspace = true, features = ["sqlite"] }
+```
+
+In every case, `sea-orm` and `sea-orm-migration` must keep the exact version this source of Runique is built with: take them from the `Cargo.toml` at the root of the repository.
+
+---
+
 ## Recommended tools (development)
 
 ```bash

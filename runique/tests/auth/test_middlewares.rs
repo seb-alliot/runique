@@ -123,3 +123,30 @@ async fn a_deactivated_account_is_signed_out_on_its_next_request() {
         .unwrap();
     assert_eq!(get_text(&c, format!("{base}/whoami")).await, "anonymous");
 }
+
+/// The table is away for a moment: reading the account fails, which says
+/// nothing about the account. The request is answered 503 and the session is
+/// still there once the database is back.
+#[tokio::test]
+#[serial]
+async fn a_database_failure_answers_503_and_keeps_the_session() {
+    let (base, db) = spawn().await;
+    let c = client();
+    assert_eq!(get_text(&c, format!("{base}/sign-in")).await, "ok");
+    assert_eq!(get_text(&c, format!("{base}/whoami")).await, "alice|Admin");
+
+    db.execute_unprepared("ALTER TABLE eihwaz_users RENAME TO eihwaz_users_away")
+        .await
+        .unwrap();
+    let during = c.get(format!("{base}/whoami")).send().await.unwrap();
+    assert_eq!(during.status(), 503);
+
+    db.execute_unprepared("ALTER TABLE eihwaz_users_away RENAME TO eihwaz_users")
+        .await
+        .unwrap();
+    assert_eq!(
+        get_text(&c, format!("{base}/whoami")).await,
+        "alice|Admin",
+        "the outage signed nobody out"
+    );
+}

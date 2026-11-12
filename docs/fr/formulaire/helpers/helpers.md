@@ -209,7 +209,7 @@ else {
 form.add_value("article_id", &article.id.to_string());
 ```
 
-**Modifier une ligne sans vérifier à qui elle est.** Sur `/commentaire/{id}`, `save()` modifie la ligne `id` de l'URL. Poser `auteur_id` ne protège pas cette ligne : il la donne au compte connecté.
+**Modifier une ligne sans vérifier à qui elle est.** Sur `/commentaire/{commentaire_id}`, `save()` du formulaire `"commentaire"` modifie cette ligne. Poser `auteur_id` ne protège pas cette ligne : il la donne au compte connecté.
 
 ```rust
 // ❌ n'importe quel compte prend le commentaire 42 d'un autre
@@ -217,7 +217,7 @@ form.add_value("auteur_id", &user.id.to_string());
 form.save(db).await;
 
 // ✅ vérifier d'abord que la ligne appartient au compte
-let id = request.get_path_as::<Pk>("id").unwrap_or_default();
+let id = request.get_path_as::<Pk>("commentaire_id").unwrap_or_default();
 let a_lui = search!(commentaire::Entity => Id eq id, AuteurId eq user.id)
     .count(request.db()).await.unwrap_or(0) > 0;
 if !a_lui {

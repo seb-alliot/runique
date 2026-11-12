@@ -19,6 +19,7 @@ Runique impose une version **exacte** de SeaORM. Les `Cargo.toml` générés par
 
 | Runique | SeaORM / sea-orm-migration |
 |---|---|
+| 4.1.0-preview | `=2.0.4` |
 | 4.0.0 | `=2.0.4` |
 
 Ne changez pas cette version à la main : quand vous mettez Runique à jour, alignez `Cargo.toml` et `migration/Cargo.toml` sur la version de la nouvelle release. Une version différente dans le projet est refusée par Cargo à la résolution des dépendances.

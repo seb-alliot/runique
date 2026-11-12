@@ -390,33 +390,51 @@ async fn an_active_but_never_activated_account_cannot_sign_in() {
 mod login_required {
     use crate::helpers::pk::pk;
     use axum::{Router, body::Body, http::Request, middleware::Next, routing::get};
+    use runique::auth::current_user::CurrentUser;
+    use runique::auth::permissions::rang::Rang;
     use runique::macros::routeur::router_ext::RouterExt;
     use runique::utils::constante::session_key::session::SESSION_USER_ID_KEY;
     use tower::ServiceExt;
     use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 
-    fn app(logged_in: bool) -> Router {
+    /// What reaches the route: nobody, a session holding an id the auth
+    /// middleware refused (no `CurrentUser`), or an accepted account.
+    #[derive(Clone, Copy)]
+    enum Visitor {
+        Anonymous,
+        SessionOnly,
+        Accepted,
+    }
+
+    fn app(visitor: Visitor) -> Router {
         let protected = Router::new().login_required(
             "/private",
             "auth_guarantees_private",
             get(|| async { "secret page" }),
             "/login",
         );
-        let app = if logged_in {
-            protected.layer(axum::middleware::from_fn(
-                |session: Session, req: Request<Body>, next: Next| async move {
+        let app = protected.layer(axum::middleware::from_fn(
+            move |session: Session, mut req: Request<Body>, next: Next| async move {
+                if !matches!(visitor, Visitor::Anonymous) {
                     session.insert(SESSION_USER_ID_KEY, pk(1)).await.unwrap();
-                    next.run(req).await
-                },
-            ))
-        } else {
-            protected
-        };
+                }
+                if matches!(visitor, Visitor::Accepted) {
+                    req.extensions_mut().insert(CurrentUser {
+                        id: pk(1),
+                        username: "ada".to_string(),
+                        rang: Rang::Lambda,
+                        groupes: Vec::new(),
+                        droits: Vec::new(),
+                    });
+                }
+                next.run(req).await
+            },
+        ));
         app.layer(SessionManagerLayer::new(MemoryStore::default()).with_secure(false))
     }
 
-    async fn visit(logged_in: bool) -> (u16, Option<String>, String) {
-        let res = app(logged_in)
+    async fn visit(visitor: Visitor) -> (u16, Option<String>, String) {
+        let res = app(visitor)
             .oneshot(Request::get("/private").body(Body::empty()).unwrap())
             .await
             .unwrap();
@@ -437,7 +455,17 @@ mod login_required {
 
     #[tokio::test]
     async fn an_anonymous_visitor_is_sent_to_the_login_page() {
-        let (status, location, body) = visit(false).await;
+        let (status, location, body) = visit(Visitor::Anonymous).await;
+        assert!((300..400).contains(&status), "redirect, got {status}");
+        assert_eq!(location.as_deref(), Some("/login"));
+        assert!(!body.contains("secret page"));
+    }
+
+    /// The account was deactivated and closing its session failed: the id is
+    /// still in the session, the auth middleware gave no `CurrentUser`.
+    #[tokio::test]
+    async fn a_session_whose_account_was_refused_is_sent_to_the_login_page() {
+        let (status, location, body) = visit(Visitor::SessionOnly).await;
         assert!((300..400).contains(&status), "redirect, got {status}");
         assert_eq!(location.as_deref(), Some("/login"));
         assert!(!body.contains("secret page"));
@@ -445,7 +473,7 @@ mod login_required {
 
     #[tokio::test]
     async fn a_logged_in_user_gets_the_page() {
-        let (status, _, body) = visit(true).await;
+        let (status, _, body) = visit(Visitor::Accepted).await;
         assert_eq!(status, 200);
         assert_eq!(body, "secret page");
     }
