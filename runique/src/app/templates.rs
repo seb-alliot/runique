@@ -145,11 +145,7 @@ impl TemplateLoader {
             return Err(Box::new(e));
         }
 
-        if let Some(level) = crate::utils::runique_log::get_log()
-            .builder
-            .as_ref()
-            .and_then(|b| b.templates)
-        {
+        if let Some(level) = crate::utils::runique_log::log_level!(builder.templates) {
             let internal_count = SIMPLE_TEMPLATES.len()
                 + ERROR_CORPS.len()
                 + FIELD_TEMPLATES.len()

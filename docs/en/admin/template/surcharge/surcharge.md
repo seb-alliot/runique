@@ -13,7 +13,8 @@ Everything is declared in the builder. At boot:
 - a replaced page or block template reading a variable its page never provides refuses the boot, always, whatever the environment. The message names the template, the variable, and the closest key ("`resourse` (did you mean `resource`?)"). A block shown on several pages may read what any of them provides. Only top-level variables are checked: `resource.title` is accepted as soon as `resource` exists;
 - a template path that doesn't end in `.html` / `.xml`, or that holds `"`, `{`, `}`, `%`, `#`, `\` or a control character, refuses the boot;
 - a missing **page** template refuses the boot, in every environment, naming the page and the path;
-- a missing stylesheet is not detected: the page loads without it (404 on the file).
+- a declared stylesheet that isn't a file of your static folder refuses the boot, naming the path;
+- a stylesheet of Runique that can't be found (wrong `STATIC_RUNIQUE_PATH`) doesn't refuse the boot: a warning names it in the log, and the page loads without it.
 
 ---
 
@@ -216,7 +217,6 @@ ModelAdmin::new().templates(|t| t
 
 - No global theme stylesheet: to change the CSS variables on every page, go through a block shown everywhere, for instance `.global_block_stylesheet(GlobalBlock::Topbar, "css/admin/theme.css")` (every page but the login). See [CSS theme](/docs/en/admin/template-surcharge-blocks).
 - `.with_htmx` is global: no per-model list fragment.
-- A missing stylesheet isn't reported (see above).
 
 ## Sub-sections
 

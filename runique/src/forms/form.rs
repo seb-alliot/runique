@@ -134,11 +134,7 @@ impl Serialize for Forms {
         let rendered_html = match self.render() {
             Ok(h) => h,
             Err(e) => {
-                if let Some(level) = crate::utils::runique_log::get_log()
-                    .forms
-                    .as_ref()
-                    .and_then(|f| f.render)
-                {
+                if let Some(level) = crate::utils::runique_log::log_level!(forms.render) {
                     crate::runique_log!(level, error = %e, "form render failed");
                 }
                 format!("<p style='color:red'>Render error: {}</p>", html_escape(&e))
@@ -155,10 +151,7 @@ impl Serialize for Forms {
                 // then fails every submission with no trace on screen).
                 .map(|(name, field)| {
                     let html = renderer.render_field(field.as_ref()).unwrap_or_else(|e| {
-                        if let Some(level) = crate::utils::runique_log::get_log()
-                            .forms
-                            .as_ref()
-                            .and_then(|f| f.render)
+                        if let Some(level) = crate::utils::runique_log::log_level!(forms.render)
                         {
                             crate::runique_log!(level, field = %name, error = %e, "field render failed");
                         }
@@ -215,10 +208,7 @@ impl Serialize for Forms {
             (Some(name), Some(renderer)) => {
                 let hp = HoneypotField::new(name);
                 renderer.render_field(&hp).trace_or_default(
-                    crate::utils::runique_log::get_log()
-                        .forms
-                        .as_ref()
-                        .and_then(|f| f.render),
+                    crate::utils::runique_log::log_level!(forms.render),
                     "honeypot render",
                 )
             }
@@ -365,7 +355,6 @@ impl Forms {
 
     /// Replaces a field with a `ChoiceField` populated with the given options.
     /// Preserves the current value (pre-selects the matching option) and the required flag.
-    /// Used by the admin daemon to inject FK select options loaded from the DB.
     pub fn field_choices(&mut self, name: &str, label: &str, choices: Vec<(String, String)>) {
         let current_value = self
             .fields
@@ -393,11 +382,7 @@ impl Forms {
         T: FormField + Clone + Into<GenericField> + 'static,
     {
         let generic_instance: GenericField = field_template.clone().into();
-        if let Some(level) = crate::utils::runique_log::get_log()
-            .forms
-            .as_ref()
-            .and_then(|f| f.field)
-        {
+        if let Some(level) = crate::utils::runique_log::log_level!(forms.field) {
             crate::runique_log!(
                 level,
                 field = %generic_instance.name(),
@@ -447,13 +432,17 @@ impl Forms {
                 if !value.trim().is_empty() {
                     has_data = true;
                 }
-                if let Some(level) = crate::utils::runique_log::get_log()
-                    .forms
-                    .as_ref()
-                    .and_then(|f| f.set_value)
-                {
+                if let Some(level) = crate::utils::runique_log::log_level!(forms.set_value) {
                     if is_password {
                         crate::runique_log!(level, field = %field.name(), "set_value [hidden]");
+                    } else if key == CSRF_TOKEN_KEY {
+                        // A secret, not something typed: whether it was accepted
+                        // is what matters, and `middleware.csrf` says it.
+                        crate::runique_log!(
+                            level,
+                            field = %field.name(),
+                            "{}", crate::utils::trad::t("log.csrf.set_value")
+                        );
                     } else {
                         crate::runique_log!(level, field = %field.name(), value = %value, "set_value");
                     }
@@ -470,11 +459,7 @@ impl Forms {
                     && !field.is_locked()
                     && !data.contains_key(field.name())
                 {
-                    if let Some(level) = crate::utils::runique_log::get_log()
-                        .forms
-                        .as_ref()
-                        .and_then(|f| f.set_value)
-                    {
+                    if let Some(level) = crate::utils::runique_log::log_level!(forms.set_value) {
                         crate::runique_log!(level, field = %field.name(), value = "false", "set_value [checkbox absent → false]");
                     }
                     field.set_value("false");
@@ -588,10 +573,7 @@ impl Forms {
     /// path, hashing a password) in registration order. File uploads remain
     /// staged until `publish_uploads` is called.
     pub async fn finalize(&mut self) -> Result<(), String> {
-        let log_finalize = crate::utils::runique_log::get_log()
-            .forms
-            .as_ref()
-            .and_then(|f| f.finalize);
+        let log_finalize = crate::utils::runique_log::log_level!(forms.finalize);
         for (name, field) in self.fields.iter_mut() {
             match field.finalize().await {
                 Ok(()) => {

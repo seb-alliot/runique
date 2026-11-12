@@ -13,7 +13,8 @@ Tout se déclare dans le builder. Au démarrage :
 - un template de page ou de bloc surchargé qui lit une variable que sa page ne fournit pas refuse le boot, toujours, quel que soit l'environnement. Le message nomme le template, la variable, et la clé la plus proche (« `resourse` (did you mean `resource`?) »). Un bloc affiché sur plusieurs pages peut lire ce que fournit l'une d'elles. Seules les variables de premier niveau sont vérifiées : `resource.titre` est accepté dès que `resource` existe ;
 - un chemin de template qui ne finit pas par `.html` / `.xml`, ou qui contient `"`, `{`, `}`, `%`, `#`, `\` ou un caractère de contrôle, refuse le boot ;
 - un template de **page** absent refuse le boot, dans tous les environnements, en nommant la page et le chemin ;
-- une feuille de style absente n'est pas détectée : la page se charge sans elle (404 sur le fichier).
+- une feuille de style déclarée qui n'est pas un fichier de votre dossier static refuse le boot, en nommant le chemin ;
+- une feuille de style de Runique introuvable (mauvais `STATIC_RUNIQUE_PATH`) ne refuse pas le boot : un avertissement la nomme dans le journal, et la page se charge sans elle.
 
 ---
 
@@ -216,7 +217,6 @@ ModelAdmin::new().templates(|t| t
 
 - Pas de feuille de thème globale : pour changer les variables CSS sur toutes les pages, il faut passer par un bloc présent partout, par exemple `.global_block_stylesheet(GlobalBlock::Topbar, "css/admin/theme.css")` (toutes les pages sauf la connexion). Voir [Thème CSS](/docs/fr/admin/template-surcharge-blocks).
 - `.with_htmx` est global : pas de fragment de liste par modèle.
-- Une feuille de style absente n'est pas signalée (voir plus haut).
 
 ## Sous-sections
 

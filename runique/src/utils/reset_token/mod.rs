@@ -16,6 +16,7 @@ use std::time::Duration;
 use uuid::Uuid;
 
 use crate::utils::aliases::ADb;
+use crate::utils::config::TraceResult;
 use crate::utils::pk::Pk;
 
 mod entity;
@@ -76,7 +77,10 @@ pub async fn resolve(db: &ADb, token: &str) -> Option<Pk> {
         .filter(entity::Column::ExpiresAt.gt(now))
         .one(db)
         .await
-        .ok()
+        .trace(
+            crate::utils::runique_log::log_level!(db.query),
+            "log.db.read_reset_token",
+        )
         .flatten()
         .map(|row| row.user_id)
 }

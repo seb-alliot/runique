@@ -364,6 +364,7 @@ pub(crate) async fn parse_multipart_guarded(
             }
 
             if !csrf_checked {
+                crate::middleware::security::csrf::log_refusal(&name, "log.csrf.reason_upload");
                 return Err((
                     StatusCode::FORBIDDEN,
                     t("csrf.invalid_or_missing").into_owned(),

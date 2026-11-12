@@ -2,6 +2,35 @@
 
 Runique expose un système de tracing structuré via `RuniqueLog`. Par défaut, un subscriber **console** est installé et les **domaines sont opt-in** : tant qu'un domaine n'est pas activé, ses événements ne sont pas émis. Quelques sites critiques émettent toujours (voir [Erreurs inconditionnelles](#erreurs-inconditionnelles-toujours-actives)).
 
+## Ce que le `.env` allume tout seul
+
+Sans rien écrire dans `.with_log(...)`, les canaux suivent `DEBUG` et `RUNIQUE_ENV` :
+
+| `.env` | Canaux allumés | Niveau |
+| --- | --- | --- |
+| `DEBUG=true` (avec ou sans `RUNIQUE_ENV=dev`) | **tous** : les canaux utiles, plus les canaux bavards (`forms.*`, `admin.auth`, `admin.list`) | utiles en `INFO`, bavards en `DEBUG` |
+| `RUNIQUE_ENV=dev`, sans `DEBUG` | les canaux utiles : connexions, reset, refus CSRF, limite de débit, hôtes, redirections, anti-bot, écritures et actions groupées de l'admin, base, mailer, erreurs HTTP, démarrage | `INFO` |
+| production, sans `DEBUG` | aucun : seuls sortent les avertissements à plancher `WARN` (voir plus bas) | — |
+
+Un canal réglé à la main garde son niveau. `.manual()` coupe ce mécanisme : seuls les canaux écrits dans `.with_log(...)` sont allumés.
+
+```rust
+.with_log(|l| l.manual().auth(|a| a.login(LogLevel::INFO)))
+```
+
+> **⚠️ `DEBUG=true` en production.** C'est permis, pour essayer une mise en service sur une adresse de test ou diagnostiquer en direct. Mais tant qu'il est actif :
+>
+> - tous les visiteurs voient les pages d'erreur détaillées ;
+> - le canal `forms.set_value` écrit dans les journaux **la valeur de chaque champ saisi** : adresses e-mail, noms, messages. Seuls les mots de passe sont masqués, et le jeton CSRF est remplacé par un message ;
+> - ces journaux deviennent des données personnelles : leur accès, leur durée de conservation et leur sauvegarde relèvent du RGPD ;
+> - le filtre global passe à `debug`, ce qui laisse aussi passer les journaux de niveau `debug` des dépendances.
+>
+> À réserver à une adresse de test, ou à une fenêtre courte sur un site réel. Coupez-le dès que le problème est trouvé, et purgez les journaux écrits pendant ce temps.
+
+> **Langue des journaux.** Les messages du CSRF, de l'admin, des sessions et du démarrage ajoutés en 4.1 suivent la langue de l'application (`set_lang`), comme les messages affichés aux visiteurs. Les noms de champs (`at`, `reason`, `resource`, `error`…) restent en anglais ; la valeur de `reason` et de `outcome` est traduite. Pour filtrer ou agréger des journaux par leur texte, gardez la langue par défaut (`en`).
+
+---
+
 ## Activation rapide en développement
 
 ```rust
@@ -50,7 +79,7 @@ RuniqueApp::builder(config)
 | Champ | Moment | Données loggées |
 |-------|--------|-----------------|
 | `field` | Enregistrement d'un champ | nom, type, required |
-| `set_value` | Valeur assignée par `fill()` | nom, valeur (password masqué) |
+| `set_value` | Valeur assignée par `fill()` | nom, valeur (mot de passe masqué ; jeton CSRF remplacé par un message) |
 | `validate` | Résultat de validation | champ, ok/error, nb global errors |
 | `render` | Rendu HTML | champ, ok/error |
 | `finalize` | Hash/move fichier | champ, ok/error |
@@ -60,9 +89,9 @@ RuniqueApp::builder(config)
 | Champ | Moment | Données loggées |
 |-------|--------|-----------------|
 | `auth` | Vérification accès + CSRF fail | resource, action |
-| `crud` | Dispatch + résultat create/edit/delete | resource, action, ok/error |
-| `list` | Dispatch + résultat liste | resource, rows, total, page |
-| `bulk` | Actions de masse | resource, action |
+| `crud` | Écriture par un formulaire de l'admin (créer, modifier, supprimer) | resource, outcome (`saved`, `save refused`, `deleted`, `delete refused`) |
+| `list` | Liste affichée ; comptages du tableau de bord en échec | resource, page, rows, total, filters, search |
+| `bulk` | Action groupée faite ou refusée | resource, action, rows |
 
 ### `auth` — Authentification
 
@@ -83,7 +112,7 @@ RuniqueApp::builder(config)
 | Champ | Moment | Données loggées |
 |-------|--------|-----------------|
 | `templates` | Chargement Tera | internal, user, total |
-| `registry` | Ressources admin | count |
+| `registry` | L'admin au démarrage : sa configuration (préfixe, tailles de page), chaque modèle enregistré, chaque route déclarée `admin`, les droits élagués | prefix, models, key, title, display, filters, actions, form_fields, pruned |
 | `middleware` | Stack middleware | count + slot + name pour chaque entrée |
 | `routes` | Registry URL | count |
 | `statics` | Fichiers statiques | static_url, static_dir, media_url, media_dir |
@@ -92,16 +121,16 @@ RuniqueApp::builder(config)
 
 | Champ | Moment | Données loggées |
 |-------|--------|-----------------|
-| `load` | Chargement des templates | — |
-| `render` | Rendu d'un template | template, ok/error |
+| `load` | Réservé : aucun événement émis pour l'instant (le chargement sort sous `builder.templates`) | — |
+| `render` | Réservé : aucun événement émis pour l'instant (un échec de rendu passe par `errors`) | — |
 
 ### `migration` — Migrations
 
 | Champ | Moment | Données loggées |
 |-------|--------|-----------------|
-| `plan` | Calcul du plan de migration | — |
-| `apply` | Application | — |
-| `rollback` | Annulation | — |
+| `plan` | Réservé : aucun événement émis pour l'instant (la CLI écrit sur la sortie standard) | — |
+| `apply` | Réservé : aucun événement émis pour l'instant | — |
+| `rollback` | Réservé : aucun événement émis pour l'instant (l'annulation d'un plan est écrite sur la sortie d'erreur) | — |
 
 ### `errors` — Pages d'erreur HTTP
 
@@ -118,21 +147,21 @@ RuniqueApp::builder(config)
 
 | Champ | Moment | Données loggées |
 |-------|--------|-----------------|
-| `csrf` | Token CSRF détecté dans une URL GET | path |
-| `csp` | Violation ou construction CSP | — |
-| `cors` | Décision CORS | — |
+| `csrf` | Le journal du CSRF. Chaque refus avec sa raison, où qu'il soit décidé : middleware (jeton invalide, absent, formulaire venu d'un autre site), formulaire (jeton absent, ou qui n'est plus celui de la session), connexion et déconnexion de l'admin, fichier envoyé avant le jeton. Chaque nouveau jeton et chaque rotation (connexion, déconnexion). Échec de lecture ou d'écriture en session | at, reason / erreur |
+| `csp` | Réservé : aucun événement émis pour l'instant | — |
+| `cors` | Réservé : aucun événement émis pour l'instant | — |
 | `rate_limit` | Requête bloquée | ip, retry_after |
 | `host_validation` | Hôte rejeté | host |
-| `open_redirect` | Redirection refusée | — |
-| `anti_bot` | Honeypot déclenché | — |
-| `https` | Redirection HTTPS | — |
+| `open_redirect` | Redirection refusée | location |
+| `anti_bot` | Honeypot rempli (formulaire refusé) ; échec de lecture du nom du piège en session | form / erreur |
+| `https` | Requête reçue en HTTP redirigée vers HTTPS ; arrêt du serveur du port 80 en mode ACME — **plancher WARN** pour cet arrêt | host / erreur |
 
 ### `session` — Store (`.session(|s| s....)`)
 
 | Champ | Moment | Données loggées |
 |-------|--------|-----------------|
 | `store` | Opérations session store (watermarks, purge) | event |
-| `cleanup` | Purge de sessions expirées | — |
+| `cleanup` | Erreur de la purge périodique des sessions expirées (mémoire et base) | erreur |
 | `exclusive_login` | Invalidation des autres sessions | — |
 
 ### `db` — Base de données (`.db(\|d\| d....)`)
@@ -237,7 +266,7 @@ Indépendamment de la config tracing, certains événements sont toujours émis 
 
 - **Template invalide au démarrage** — `tracing::error!` (nom du template + ligne) avant l'arrêt.
 - **Erreurs serveur critiques** (500 : base de données, IO, template, interne) — `tracing::error!`.
-- **Sites sensibles à plancher `WARN`** — même domaine désactivé, ces échecs émettent au moins en `WARN`, car un échec silencieux y casserait une garantie : rotation de l'ID de session (anti-fixation), invalidation des autres sessions (login exclusif), persistance de la session au login, envoi de l'email de reset, et échec de rendu d'un template d'erreur (`errors.render`).
+- **Sites sensibles à plancher `WARN`** — même domaine désactivé, ces échecs émettent au moins en `WARN`, car un échec silencieux y casserait une garantie : rotation de l'ID de session (anti-fixation), invalidation des autres sessions (login exclusif), persistance de la session au login, envoi de l'email de reset, échec de rendu d'un template d'erreur (`errors.render`), fermeture de la session d'un compte supprimé ou désactivé, sauvegarde d'une session en base, élagage des droits au démarrage (`builder.registry`) arrêt du serveur du port 80 en mode ACME (`middleware.https`), connexion de l'admin sans `LoginGuard` ni limiteur (hors développement), options de liste sans effet (`links`, `search_help`, `empty_value`) et feuilles de style de Runique introuvables (`STATIC_RUNIQUE_PATH`).
 
 ---
 

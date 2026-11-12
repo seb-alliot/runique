@@ -6,16 +6,12 @@ use tracing::Level;
 pub struct AdminTracing {
     /// Auth checks: login, permission gate, write-access guard.
     pub auth: Option<Level>,
-    /// CRUD handlers: detail, create, edit, delete — request + outcome.
+    /// Writes through the admin's forms: create, edit, delete — done or refused.
     pub crud: Option<Level>,
-    /// List view: pagination, ordering, column resolution.
+    /// List view: page, rows, total, filters and search applied; dashboard counts.
     pub list: Option<Level>,
-    /// Bulk operations: group_action, group_set, bulk_delete.
+    /// Bulk actions: done (with the number of rows) or refused.
     pub bulk: Option<Level>,
-    /// `filter_fn` failures in the admin list view.
-    pub filter_fn: Option<Level>,
-    /// Admin daemon / generated resource events.
-    pub daemon: Option<Level>,
 }
 
 impl AdminTracing {
@@ -47,25 +43,11 @@ impl AdminTracing {
         self.bulk = Some(level);
         self
     }
-    /// Sets the level for `filter_fn` failures in the admin list view.
-    #[must_use]
-    pub fn filter_fn(mut self, level: Level) -> Self {
-        self.filter_fn = Some(level);
-        self
-    }
-    /// Sets the level for admin daemon / generated resource events.
-    #[must_use]
-    pub fn daemon(mut self, level: Level) -> Self {
-        self.daemon = Some(level);
-        self
-    }
     /// Enables every admin panel channel at `Level::DEBUG`.
     pub fn dev(self) -> Self {
         self.auth(Level::DEBUG)
             .crud(Level::DEBUG)
             .list(Level::DEBUG)
             .bulk(Level::DEBUG)
-            .filter_fn(Level::DEBUG)
-            .daemon(Level::DEBUG)
     }
 }

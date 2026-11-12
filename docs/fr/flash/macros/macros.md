@@ -76,7 +76,7 @@ context_update!(request => {
 
 ---
 
-> **Limite actuelle :** les macros de redirection ignorent un échec d'écriture en session. Si la session ne peut pas être enregistrée (base indisponible avec le store en base), le message est perdu sans erreur. L'action elle-même n'est pas affectée.
+> **Limite actuelle :** les macros de redirection ignorent un échec d'écriture en session. Si la session ne peut pas être enregistrée (base indisponible avec le store en base), le message est perdu : rien ne le dit au visiteur, et l'échec n'apparaît que dans le journal, sur le canal `session.store` (voir [Tracing](/docs/fr/configuration/tracing)). L'action elle-même n'est pas affectée.
 
 ---
 

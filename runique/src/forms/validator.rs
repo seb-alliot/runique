@@ -43,10 +43,7 @@ impl FormValidator {
         fields: &mut FieldsMap,
         global_errors: &[String],
     ) -> Result<bool, ValidationError> {
-        let log_validate = crate::utils::runique_log::get_log()
-            .forms
-            .as_ref()
-            .and_then(|f| f.validate);
+        let log_validate = crate::utils::runique_log::log_level!(forms.validate);
         let mut is_all_valid = true;
 
         for field in fields.values_mut() {

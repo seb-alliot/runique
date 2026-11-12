@@ -114,9 +114,10 @@ PORT=3000
 # Absente ou inconnue : `prod`.
 RUNIQUE_ENV=dev
 
-# Affiche les pages d'erreur détaillées, sans rien changer d'autre. Possible aussi avec
-# RUNIQUE_ENV=prod pour diagnostiquer en direct, mais tous les visiteurs voient ces pages :
-# déconseillé, à couper dès que le problème est trouvé.
+# Affiche les pages d'erreur détaillées et allume tous les canaux de log. Possible aussi avec
+# RUNIQUE_ENV=prod pour diagnostiquer en direct, mais tous les visiteurs voient ces pages, et
+# les journaux contiennent ce que les visiteurs saisissent dans les formulaires (mots de passe
+# exceptés) : déconseillé, à couper dès que le problème est trouvé.
 DEBUG=true
 
 # Signe les jetons CSRF et les sessions : propre à ce projet, à garder secret

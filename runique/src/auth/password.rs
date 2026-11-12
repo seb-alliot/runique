@@ -424,10 +424,7 @@ pub async fn handle_forgot_password(
     let host = request.public_url();
     let link = ResetLinkConfig::from(config);
     let email_template = email_template.map(str::to_string);
-    let log_level = crate::utils::runique_log::get_log()
-        .auth
-        .as_ref()
-        .and_then(|a| a.reset);
+    let log_level = crate::utils::runique_log::log_level!(auth.reset);
     tokio::spawn(async move {
         let Some(user) = BuiltinUserEntity::find_by_email(&engine.db, &email).await else {
             return;
@@ -500,11 +497,7 @@ pub async fn handle_password_reset(
 
     // Resolve the account bound to this token without consuming it yet.
     let Some(user_id) = crate::utils::reset_token::resolve(&db, &token).await else {
-        if let Some(level) = crate::utils::runique_log::get_log()
-            .auth
-            .as_ref()
-            .and_then(|a| a.reset)
-        {
+        if let Some(level) = crate::utils::runique_log::log_level!(auth.reset) {
             crate::runique_log!(level, "reset token invalid or expired");
         }
         request
@@ -558,7 +551,10 @@ pub async fn handle_password_reset(
         // another one would leave the account unable to sign in.
         match PasswordService::new(crate::utils::password::password_get()).hash(&new_password) {
             Ok(hash) => hash,
-            Err(_) => {
+            Err(error) => {
+                if let Some(level) = crate::utils::runique_log::log_level!(auth.reset) {
+                    crate::runique_log!(level, error = %error, "{}", crate::utils::trad::t("log.auth.hash_failed"));
+                }
                 if let Some(field) = form.forms_mut().fields.get_mut("password") {
                     field.set_error(t("reset.invalid_or_expired").to_string());
                 }
@@ -650,17 +646,10 @@ pub async fn handle_password_reset(
                 // `load` refuses them against the database anyway.
                 request.engine.forget_user_sessions(consumed_user_id).await;
                 logout(&request.session, None).await.trace(
-                    crate::utils::runique_log::get_log()
-                        .session
-                        .as_ref()
-                        .and_then(|s| s.store),
+                    crate::utils::runique_log::log_level!(session.store),
                     "clear this browser's session after the reset",
                 );
-                if let Some(level) = crate::utils::runique_log::get_log()
-                    .auth
-                    .as_ref()
-                    .and_then(|a| a.reset)
-                {
+                if let Some(level) = crate::utils::runique_log::log_level!(auth.reset) {
                     crate::runique_log!(level, email = %email_clean, "password reset ok");
                 }
                 form.clear();
@@ -681,11 +670,7 @@ pub async fn handle_password_reset(
             if let Err(rollback_error) = txn.rollback().await {
                 tracing::error!(error = %rollback_error, "password reset rollback failed");
             }
-            if let Some(level) = crate::utils::runique_log::get_log()
-                .auth
-                .as_ref()
-                .and_then(|a| a.reset)
-            {
+            if let Some(level) = crate::utils::runique_log::log_level!(auth.reset) {
                 crate::runique_log!(level, email = %email_clean, error = %e, "password reset db error");
             }
             form.forms_mut().database_error(&e);

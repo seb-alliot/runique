@@ -639,5 +639,81 @@
   "auth": {
     "login_cannot_sign_in": "Ce compte ne peut pas se connecter : il est inactif ou n'a jamais été activé.",
     "login_session_failed": "La session n'a pas pu être enregistrée : {}"
+  },
+  "log": {
+    "csrf": {
+      "refused": "CSRF refusé",
+      "reason_header_invalid": "jeton invalide dans l'en-tête X-CSRF-Token",
+      "reason_not_a_form": "aucun jeton, et le corps n'est pas un formulaire",
+      "reason_cross_site": "formulaire envoyé depuis un autre site",
+      "reason_form_mismatch": "formulaire : le jeton envoyé n'est pas celui de la session (session expirée, ou page ouverte avant une connexion)",
+      "reason_form_missing": "formulaire : aucun jeton dans le corps ni dans X-CSRF-Token",
+      "reason_admin_login_missing": "connexion à l'admin : aucun jeton dans le formulaire",
+      "reason_admin_login_mismatch": "connexion à l'admin : le jeton envoyé n'est pas celui de la session",
+      "reason_admin_logout": "déconnexion de l'admin : aucun jeton valide",
+      "reason_upload": "envoi de fichier : un fichier est arrivé avant un champ csrf_token valide, rien n'a été écrit",
+      "token_dropped": "jeton CSRF abandonné (connexion ou déconnexion) : les pages ouvertes avant portent un jeton mort",
+      "token_new": "nouveau jeton CSRF pour cette session",
+      "read_token": "lecture du jeton CSRF dans la session",
+      "keep_token": "conservation du jeton CSRF dans la session",
+      "read_account": "lecture du compte connecté pour le jeton CSRF",
+      "write_token": "écriture d'un nouveau jeton CSRF dans la session",
+      "set_value": "set_value [jeton CSRF reçu : son contrôle est sur le canal middleware.csrf]"
+    },
+    "session": {
+      "read_account": "lecture du compte connecté dans la session",
+      "read_version": "lecture de la version de la session",
+      "read_flash": "lecture des messages flash dans la session",
+      "read_dashboard_template": "lecture du gabarit de tableau de bord choisi dans la session",
+      "decode_user_memory": "décodage du user_id de la session (chargement depuis la mémoire)",
+      "decode_user_db": "décodage du user_id de la session (chargement depuis la base)"
+    },
+    "anti_bot": {
+      "read_name": "lecture du nom du champ piège dans la session",
+      "filled": "champ piège rempli : formulaire refusé"
+    },
+    "https": {
+      "redirected": "requête reçue en HTTP : redirigée vers HTTPS",
+      "port80_stopped": "le serveur HTTP du port 80 (défi ACME et redirection HTTPS) s'est arrêté"
+    },
+    "auth": {
+      "hash_failed": "échec du hachage du mot de passe à la réinitialisation",
+      "account_not_read": "compte non lu : session gardée, requête répondue par un 503",
+      "admin_account_not_read": "compte de l'admin non lu : session gardée, requête répondue par un 503"
+    },
+    "forms": {
+      "validation_failed": "échec de la validation du formulaire",
+      "remove_oversized": "suppression d'un fichier en transit trop volumineux"
+    },
+    "mailer": {
+      "init_twice": "mailer_init() appelé plusieurs fois : la configuration initiale est gardée"
+    },
+    "db": {
+      "read_reset_token": "lecture d'un jeton de réinitialisation de mot de passe"
+    },
+    "admin": {
+      "write": "écriture dans l'admin",
+      "outcome_saved": "enregistré",
+      "outcome_save_refused": "enregistrement refusé",
+      "outcome_deleted": "supprimé",
+      "outcome_delete_refused": "suppression refusée",
+      "bulk_done": "action groupée effectuée",
+      "bulk_refused": "action groupée refusée",
+      "list": "liste de l'admin"
+    },
+    "boot": {
+      "admin": "admin",
+      "model": "modèle de l'admin",
+      "route": "route déclarée de l'admin",
+      "no_guard": "la connexion de l'admin n'a ni LoginGuard ni limiteur de débit : les essais de mot de passe sont illimités (`with_login_guard`, `with_rate_limiter`)",
+      "options_without_effect": "options de liste de l'admin acceptées, mais affichées par aucune page pour l'instant",
+      "stylesheets_missing": "feuilles de style de Runique introuvables pour l'admin : vérifiez STATIC_RUNIQUE_PATH",
+      "debug_in_prod": "DEBUG=true en production : tous les visiteurs voient les pages d'erreur détaillées, et tous les canaux de log sont allumés : les journaux contiennent ce que les visiteurs saisissent dans les formulaires (mots de passe exceptés). À couper dès que le problème est trouvé",
+      "prune_failed": "échec de l'élagage des droits orphelins : des droits périmés peuvent rester"
+    },
+    "server": {
+      "ctrl_c_not_installed": "gestionnaire de Ctrl+C non installé",
+      "sigterm_not_installed": "gestionnaire de SIGTERM non installé"
+    }
   }
 }

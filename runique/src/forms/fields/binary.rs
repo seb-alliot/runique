@@ -7,6 +7,7 @@
 use crate::forms::base::{FieldConfig, FormField};
 use crate::forms::fields::file::is_staged_upload;
 use crate::utils::aliases::ATera;
+use crate::utils::config::TraceResult;
 use crate::utils::trad::{t, tf};
 use async_trait::async_trait;
 use base64::{Engine, engine::general_purpose::STANDARD};
@@ -111,7 +112,10 @@ impl FormField for BinaryField {
         if let Some(max) = self.max_size
             && size > max
         {
-            let _ = tokio::fs::remove_file(&val).await;
+            tokio::fs::remove_file(&val).await.trace(
+                crate::utils::runique_log::log_level!(forms.finalize),
+                "log.forms.remove_oversized",
+            );
             self.base.value.clear();
             self.set_error(tf(
                 "forms.file_too_large",

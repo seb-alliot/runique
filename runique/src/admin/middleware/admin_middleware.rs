@@ -48,11 +48,7 @@ pub(crate) async fn admin_access(
     // most fundamental auth decision — "may this user enter the admin at all" — is
     // visible even on routes that don't run a per-resource access check (dashboard,
     // history). `admin.auth` channel.
-    if let Some(level) = crate::utils::runique_log::get_log()
-        .admin
-        .as_ref()
-        .and_then(|a| a.auth)
-    {
+    if let Some(level) = crate::utils::runique_log::log_level!(admin.auth) {
         let cu = request
             .extensions()
             .get::<crate::auth::current_user::CurrentUser>();
@@ -119,11 +115,7 @@ pub(crate) async fn load_admin_user(
         // A valid account of the site without admin access, the login page
         // included: back to the site, its session left open.
         Some(current_user) => {
-            if let Some(level) = crate::utils::runique_log::get_log()
-                .admin
-                .as_ref()
-                .and_then(|a| a.auth)
-            {
+            if let Some(level) = crate::utils::runique_log::log_level!(admin.auth) {
                 crate::runique_log!(level, user = %current_user.username, "admin refused: no admin access, sent to the site");
             }
             let notices = crate::flash::flash_manager::Message { session };
@@ -132,11 +124,7 @@ pub(crate) async fn load_admin_user(
         }
         // The account is gone or may no longer sign in: its session ends.
         None => {
-            if let Some(level) = crate::utils::runique_log::get_log()
-                .admin
-                .as_ref()
-                .and_then(|a| a.auth)
-            {
+            if let Some(level) = crate::utils::runique_log::log_level!(admin.auth) {
                 crate::runique_log!(level, user_id = %user_id, "admin account gone or inactive — session closed");
             }
             let db_store = engine
@@ -146,11 +134,9 @@ pub(crate) async fn load_admin_user(
                 .and_then(|g| g.as_ref().cloned());
             // Logged, not fatal: the account is read again on every request and
             // refused here each time, so a row that survives grants nothing.
-            logout(&session, db_store.as_deref()).await.trace(
-                crate::utils::runique_log::get_log()
-                    .session
-                    .as_ref()
-                    .and_then(|s| s.store),
+            logout(&session, db_store.as_deref()).await.trace_or(
+                crate::utils::runique_log::log_level!(session.store),
+                tracing::Level::WARN,
                 "close the session of an account that may no longer sign in",
             );
         }
@@ -196,7 +182,7 @@ fn account_not_read(user_id: Pk, error: &sea_orm::DbErr) -> Response {
         tracing::Level::WARN,
         user_id = %user_id,
         error = %error,
-        "admin account not read — session kept, request answered 503"
+        "{}", crate::utils::trad::t("log.auth.admin_account_not_read")
     );
     axum::http::StatusCode::SERVICE_UNAVAILABLE.into_response()
 }
@@ -236,11 +222,7 @@ pub(crate) async fn declared_route_access(
             next.run(request).await
         }
         Some(user) => {
-            if let Some(level) = crate::utils::runique_log::get_log()
-                .admin
-                .as_ref()
-                .and_then(|a| a.auth)
-            {
+            if let Some(level) = crate::utils::runique_log::log_level!(admin.auth) {
                 crate::runique_log!(level, user = %user.username, "declared admin route refused: no admin access");
             }
             let notices = crate::flash::flash_manager::Message { session };

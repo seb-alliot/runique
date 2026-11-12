@@ -18,7 +18,7 @@ pub struct RuniqueConfig {
     #[serde(skip)]
     pub log: RuniqueLog,
     pub base_dir: String,
-    /// Shows the detailed error pages (env: `DEBUG`), and changes nothing else.
+    /// Shows the detailed error pages and turns every log channel on (env: `DEBUG`).
     pub debug: bool,
     /// Development mode (env: `RUNIQUE_ENV=dev`); `false` means production.
     pub dev: bool,

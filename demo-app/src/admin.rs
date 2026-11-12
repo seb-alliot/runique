@@ -54,7 +54,6 @@ pub fn config(admin: AdminStaging) -> AdminStaging {
             "code_example",
         ])
         // Other staging declarations, left at their defaults here:
-        //   .hot_reload(true)   — reload admin templates on each render (dev only)
         //   .no_robots_txt()    — stop serving the admin's robots.txt
         //   .templates(|t| …)   — replace admin pages or blocks site-wide
         .site(site)

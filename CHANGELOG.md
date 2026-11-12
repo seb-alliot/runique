@@ -16,9 +16,18 @@ All notable changes to this project will be documented in this file.
 * **URL field: only `http` and `https` pass**: `TextField::url` accepted any scheme, and relied on the word `javascript:` being removed from the text, which could be bypassed (`java<TAB>script:`, read as `javascript:` by a browser). The URL is now read by the parser browsers follow and must be absolute, in `http` or `https`. **To check**: a URL field that received `ftp://`, `mailto:` or a relative URL now refuses them.
 * **Empty host**: an empty `Host` (`Host: .`) no longer matches any entry of the list, even an empty one.
 
+### Breaking changes
+
+* **Log channels `admin.filter_fn` and `admin.daemon` removed**: they came from the former admin (filter functions, code generator) and no longer produced anything. Drop `.filter_fn(...)` and `.daemon(...)` from `with_log(|l| l.admin(...))` calls. A list's filters now show in the `admin.list` log.
+
+* **Admin `hot_reload` removed**: `AdminConfig.hot_reload` and `.hot_reload(...)` in `with_admin` had done nothing since the new admin (in development, templates are reloaded on every render, with or without this setting). Drop the call.
+
 ### Added
 
 * **`ExclusiveLogin`**: the last parameter of `login` takes `ExclusiveLogin::{Off, On, Strict}` as well as a `bool` (`false` = `Off`, `true` = `On`, unchanged). `Strict` refuses the sign-in (`LoginError::Session`) and closes its session when the account's other sessions could not be closed; `On` logs the failure and signs in.
+* **Logs follow `.env`**: with nothing written in `with_log`, `RUNIQUE_ENV=dev` turns the useful channels on (`INFO`) and `DEBUG=true` turns them all on, chatty ones included, **in production too**. A channel set by hand keeps its level; `.manual()` switches this off. **To check**: with `DEBUG=true`, the logs hold the value of the fields visitors type in (passwords excepted), and the global filter moves to `debug`. Production without `DEBUG` is unchanged.
+* **Admin boot log** (`builder.registry`): the configuration kept, each registered model (columns, filters, actions, form fields) and each route declared `admin`. Three warnings are never silent: an admin sign-in with neither a `LoginGuard` nor a rate limiter (outside development), list options with no effect (`links`, `search_help`, `empty_value`), and Runique's stylesheets not found (a `STATIC_RUNIQUE_PATH` that doesn't hold them).
+* **Translated logs**: the log messages added in this version (CSRF, admin, sessions, startup, traced errors) go through i18n, in the 9 languages (`log` section of the language files). They follow the application's language (`set_lang`); field names stay in English, the value of `reason` (CSRF refusal) and `outcome` (admin write) is translated. In English, the default language, the text doesn't change. **To check**: a filter or an alert set on a log's text only holds while the language stays the same.
 * **A "required" message per field**: a required choice, number or file field left empty shows its own message (`forms.select_required`, `forms.number_required`, `forms.file_required`) instead of the generic one, and the custom message of `set_required(true, Some("…"))` is now honoured inside a form.
 
 ### Fixed
@@ -28,6 +37,9 @@ All notable changes to this project will be documented in this file.
 * **Server shutdown**: only Ctrl+C triggered the graceful shutdown. `SIGTERM` (`systemctl stop`, `docker stop`) is now listened to, and the HTTPS (ACME) server, which had none, gives requests in flight 30 seconds.
 * **Typed text damaged**: the words `javascript:`, `vbscript:`, `data:` and `file:` were removed from every text field ("data: 2024" lost "data:"). The text is kept as typed; only HTML tags are removed. `sanitize_strict` follows the same rule.
 * **Case-sensitive allowed hosts**: `Host: Example.COM` or `example.com.` (trailing dot) were refused. The comparison now ignores case and the trailing dot.
+* **Errors dropped without a trace**: about fifteen errors were silently ignored (`.ok()`, `let _ =`): reading a session, the CSRF token, the flash messages, a reset token during a database outage, a hashing failure at reset, a form's validation error. They now go through their domain's log (`session.store`, `middleware.csrf`, `db.query`, `auth.reset`, `forms.validate`…). Four failures are never silent any more (at least `WARN`): closing the session of a deactivated account, saving a session to the database, pruning rights at boot, and the port 80 server stopping in ACME mode.
+* **Silent log channels**: `middleware.csrf`, `middleware.anti_bot`, `middleware.https`, `admin.crud` and `admin.bulk` could be set in `with_log` and produced nothing. They now report the whole of CSRF (each refusal with its reason, whether it comes from the middleware, a form, the admin or a file upload, each new token and each rotation), a filled honeypot, a redirect to HTTPS, an admin write and an admin bulk action. `admin.list` reports each list shown (page, rows, total, filters, search). **To check**: a blocked redirect is reported under `middleware.open_redirect` (no longer `host_validation`), a session purge error under `session.cleanup` (no longer `store`).
+* **Rollback of a migration plan**: "lib.rs restored" was printed even when the restore had failed. The message now follows the real outcome.
 * **`OG_IMAGE` had two defaults**: the configuration gave `favicon_runique.ico`, the rendering `runique_320.avif`. There is now one read and one value: `/runique/static/runique_320.avif`.
 * **docs.rs without the admin**: the published documentation was built without the `admin` feature. It is now built with `all-databases`, `admin` and `acme`.
 

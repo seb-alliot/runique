@@ -6,7 +6,7 @@
 //! - CoreStaging (sans et avec DB)
 //! - MiddlewareStaging builder methods
 //! - MiddlewareConfig (development / production)
-//! - AdminStaging (new, enable/disable, validate, is_ready, hot_reload, routes…)
+//! - AdminStaging (new, enable/disable, validate, is_ready, routes…)
 //! - RuniqueAppBuilder (construction, méthodes chainables, build())
 
 use axum::{Router, routing::get};
@@ -842,13 +842,6 @@ fn test_admin_staging_with_rate_limiter_is_kept() {
 
 #[cfg(feature = "admin")]
 #[test]
-fn test_admin_staging_hot_reload() {
-    let a = AdminStaging::new().hot_reload(true);
-    assert!(a.config.hot_reload);
-}
-
-#[cfg(feature = "admin")]
-#[test]
 fn test_admin_staging_site_title() {
     let a = AdminStaging::new().site_title("Mon Admin");
     assert_eq!(a.config.site_title, "Mon Admin");
@@ -895,13 +888,6 @@ fn test_admin_staging_validate_enabled_ok() {
 fn test_admin_config_new_prefix_defaut() {
     let c = AdminConfig::new();
     assert_eq!(c.prefix, "/admin");
-}
-
-#[cfg(feature = "admin")]
-#[test]
-fn test_admin_config_hot_reload() {
-    let c = AdminConfig::new().hot_reload(true);
-    assert!(c.hot_reload);
 }
 
 #[cfg(feature = "admin")]

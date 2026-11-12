@@ -4,7 +4,6 @@ use std::sync::Arc;
 use crate::admin::template::AdminTemplate;
 use crate::auth::guard::LoginGuard;
 use crate::middleware::security::RateLimiter;
-use crate::utils::env::is_dev;
 
 /// Configuration for the admin panel: route prefix, branding, hot reload,
 /// template overrides, and per-panel security settings
@@ -12,9 +11,6 @@ use crate::utils::env::is_dev;
 pub struct AdminConfig {
     /// Prefix for admin routes (default: "/admin")
     pub prefix: String,
-
-    /// Enables the hot reload daemon in development
-    pub hot_reload: bool,
 
     /// Title displayed in the admin interface (browser tab + sidebar).
     /// Empty when the developer has not called [`AdminConfig::site_title`]:
@@ -67,7 +63,6 @@ impl Clone for AdminConfig {
     fn clone(&self) -> Self {
         Self {
             prefix: self.prefix.clone(),
-            hot_reload: self.hot_reload,
             site_title: self.site_title.clone(),
             view_site_url: self.view_site_url.clone(),
             enabled: self.enabled,
@@ -88,7 +83,6 @@ impl std::fmt::Debug for AdminConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("AdminConfig")
             .field("prefix", &self.prefix)
-            .field("hot_reload", &self.hot_reload)
             .field("site_title", &self.site_title)
             .field("view_site_url", &self.view_site_url)
             .field("enabled", &self.enabled)
@@ -98,13 +92,11 @@ impl std::fmt::Debug for AdminConfig {
 }
 
 impl AdminConfig {
-    /// Builds the default admin configuration: prefix `/admin`, hot reload
-    /// following `is_dev()`, 10 rows per page, and
-    /// framework-default templates.
+    /// Builds the default admin configuration: prefix `/admin`, 10 rows per
+    /// page, and framework-default templates.
     pub fn new() -> Self {
         Self {
             prefix: "/admin".to_string(),
-            hot_reload: is_dev(),
             site_title: String::new(),
             view_site_url: None,
             enabled: true,
@@ -143,12 +135,6 @@ impl AdminConfig {
     /// Sets the URL prefix under which every admin route is mounted (default `/admin`).
     pub fn prefix(mut self, prefix: &str) -> Self {
         self.prefix = prefix.to_string();
-        self
-    }
-
-    /// Enables or disables the admin hot reload daemon.
-    pub fn hot_reload(mut self, enabled: bool) -> Self {
-        self.hot_reload = enabled;
         self
     }
 

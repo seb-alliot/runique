@@ -12,7 +12,7 @@ Ce que Runique fait sans réglage de ta part. Chaque valeur se change, sur la pa
 | Échappement des templates (Tera) | actif sur `.html` et `.xml` ; `{{ var }}` toujours échappé, sauf avec le filtre `safe` | [Syntaxe des templates](/docs/fr/template/syntaxe) |
 | CSRF | exigé pour toute méthode sauf `GET` et `HEAD` | [CSRF](/docs/fr/middleware/csrf) |
 | CSP | `default-src 'none'`, `script-src 'self'`, `style-src 'self' 'unsafe-inline'` | [CSP](/docs/fr/middleware/csp) |
-| Session anonyme | 5 minutes d'inactivité, en mémoire seulement | [Sessions](/docs/fr/session) |
+| Session anonyme | 5 minutes d'inactivité, en mémoire seulement | [Durées de session](/docs/fr/middleware/sessions) |
 | Session connectée | 24 heures d'inactivité, aussi enregistrée en base | [Sessions](/docs/fr/session) |
 | `LoginGuard` | 5 essais, puis 5 minutes de blocage | [LoginGuard](/docs/fr/auth/login-guard) |
 | `RateLimiter` | 60 requêtes par minute, sur les routes où il est attaché | [Rate limit](/docs/fr/middleware/rate-limit) |

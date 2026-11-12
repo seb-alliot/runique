@@ -639,5 +639,81 @@
   "auth": {
     "login_cannot_sign_in": "This account cannot sign in: it is inactive or has never been activated.",
     "login_session_failed": "The session could not be saved: {}"
+  },
+  "log": {
+    "csrf": {
+      "refused": "csrf refused",
+      "reason_header_invalid": "invalid token in the X-CSRF-Token header",
+      "reason_not_a_form": "no token, and the body is not a form",
+      "reason_cross_site": "form sent from another site",
+      "reason_form_mismatch": "form: the token sent is not the session's (expired session, or page opened before a sign-in)",
+      "reason_form_missing": "form: no token in the body nor in X-CSRF-Token",
+      "reason_admin_login_missing": "admin sign-in: no token in the form",
+      "reason_admin_login_mismatch": "admin sign-in: the token sent is not the session's",
+      "reason_admin_logout": "admin sign-out: no valid token",
+      "reason_upload": "upload: a file arrived before a valid csrf_token field — nothing was written",
+      "token_dropped": "csrf token dropped (sign-in or sign-out): pages opened before now hold a dead one",
+      "token_new": "new csrf token for this session",
+      "read_token": "read the CSRF token from the session",
+      "keep_token": "keep the CSRF token in the session",
+      "read_account": "read the signed-in account for the CSRF token",
+      "write_token": "write a new CSRF token to the session",
+      "set_value": "set_value [csrf token received — its check is on the middleware.csrf channel]"
+    },
+    "session": {
+      "read_account": "read the signed-in account from the session",
+      "read_version": "read the session's version",
+      "read_flash": "read the flash messages from the session",
+      "read_dashboard_template": "read the dashboard template choice from the session",
+      "decode_user_memory": "decode session user_id (load from memory)",
+      "decode_user_db": "decode session user_id (load from the database)"
+    },
+    "anti_bot": {
+      "read_name": "read the honeypot field name from the session",
+      "filled": "honeypot field filled — form refused"
+    },
+    "https": {
+      "redirected": "request received over HTTP — redirected to HTTPS",
+      "port80_stopped": "HTTP server on port 80 (ACME challenge and HTTPS redirect) stopped"
+    },
+    "auth": {
+      "hash_failed": "password hash failed at reset",
+      "account_not_read": "account not read — session kept, request answered 503",
+      "admin_account_not_read": "admin account not read — session kept, request answered 503"
+    },
+    "forms": {
+      "validation_failed": "form validation failed",
+      "remove_oversized": "remove an oversized staged upload"
+    },
+    "mailer": {
+      "init_twice": "mailer_init() called multiple times — initial configuration is kept"
+    },
+    "db": {
+      "read_reset_token": "read a password reset token"
+    },
+    "admin": {
+      "write": "admin write",
+      "outcome_saved": "saved",
+      "outcome_save_refused": "save refused",
+      "outcome_deleted": "deleted",
+      "outcome_delete_refused": "delete refused",
+      "bulk_done": "bulk action done",
+      "bulk_refused": "bulk action refused",
+      "list": "admin list"
+    },
+    "boot": {
+      "admin": "admin",
+      "model": "admin model",
+      "route": "admin declared route",
+      "no_guard": "admin sign-in has neither a LoginGuard nor a rate limiter: password attempts are unlimited (`with_login_guard`, `with_rate_limiter`)",
+      "options_without_effect": "admin list options accepted but shown by no page yet",
+      "stylesheets_missing": "admin stylesheets of Runique not found: check STATIC_RUNIQUE_PATH",
+      "debug_in_prod": "DEBUG=true in production: every visitor sees the detailed error pages, and every log channel is on — the logs hold what visitors type in forms (passwords excepted). Turn it off once the problem is found",
+      "prune_failed": "orphan rights prune failed — stale grants may remain"
+    },
+    "server": {
+      "ctrl_c_not_installed": "Ctrl+C handler not installed",
+      "sigterm_not_installed": "SIGTERM handler not installed"
+    }
   }
 }

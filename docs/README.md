@@ -2,9 +2,9 @@
 # Runique — Framework Rust inspiré de Django
 
 ![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-3443%20passing-green)
+![Tests passing](https://img.shields.io/badge/tests-3703%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-4.0.0-blue)
+![Version](https://img.shields.io/badge/version-4.1.0--preview-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
 [![GitHub stars](https://img.shields.io/github/stars/seb-alliot/runique?style=social)](https://github.com/seb-alliot/runique)
 [![Runique](https://img.shields.io/badge/Runique-brightgreen)](https://runique.io)
@@ -24,7 +24,7 @@ Runique est un framework web construit sur Axum, axé sur les formulaires fortem
 - `demo-app/` → application de test/validation pour le développement du framework
 - `docs/` → documentation EN/FR
 
-Version du workspace (source de vérité) : **4.0.0**.
+Version du workspace (source de vérité) : **4.1.0-preview**, en développement. Dernière version publiée sur crates.io : **4.0.0**.
 
 ---
 
@@ -131,7 +131,7 @@ Backends sélectionnables (mutuellement exclusifs) :
 
 ## Aperçu des tests et de la couverture
 
-- Tests rapportés : **3443 passants** (108 ignorés)
+- Tests rapportés : **3703 passants** (98 ignorés) sur le workspace, dont 3463 pour `runique`
 - Aperçu de la couverture (`2026-11-08`, package `runique`, module admin inclus) :
   - Fonctions : **92,93 %**
   - Lignes : **93,00 %**
@@ -196,7 +196,7 @@ Référence complète : [Variables d'environnement](https://runique.io/docs/en/e
 
 ## État du projet
 
-Pour l'avancement du chantier `makemigrations`, voir [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/PROJECT_STATUS.md). Pour les limites connues, voir [la page dédiée](https://runique.io/docs/fr/limites).
+Pour l'avancement des versions 4.1 et 4.2, voir [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/PROJECT_STATUS.md). Pour les limites connues, voir [la page dédiée](https://runique.io/docs/fr/limites).
 
 ## Ressources
 

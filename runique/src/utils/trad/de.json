@@ -639,5 +639,81 @@
   "auth": {
     "login_cannot_sign_in": "Dieses Konto kann sich nicht anmelden: Es ist inaktiv oder wurde nie aktiviert.",
     "login_session_failed": "Die Sitzung konnte nicht gespeichert werden: {}"
+  },
+  "log": {
+    "csrf": {
+      "refused": "CSRF abgelehnt",
+      "reason_header_invalid": "ungültiges Token im Header X-CSRF-Token",
+      "reason_not_a_form": "kein Token, und der Body ist kein Formular",
+      "reason_cross_site": "Formular von einer anderen Website gesendet",
+      "reason_form_mismatch": "Formular: das gesendete Token ist nicht das der Sitzung (Sitzung abgelaufen oder Seite vor einer Anmeldung geöffnet)",
+      "reason_form_missing": "Formular: kein Token im Body und keines in X-CSRF-Token",
+      "reason_admin_login_missing": "Admin-Anmeldung: kein Token im Formular",
+      "reason_admin_login_mismatch": "Admin-Anmeldung: das gesendete Token ist nicht das der Sitzung",
+      "reason_admin_logout": "Admin-Abmeldung: kein gültiges Token",
+      "reason_upload": "Upload: eine Datei kam vor einem gültigen csrf_token-Feld an, nichts wurde geschrieben",
+      "token_dropped": "CSRF-Token verworfen (An- oder Abmeldung): zuvor geöffnete Seiten tragen ein totes Token",
+      "token_new": "neues CSRF-Token für diese Sitzung",
+      "read_token": "CSRF-Token aus der Sitzung lesen",
+      "keep_token": "CSRF-Token in der Sitzung behalten",
+      "read_account": "angemeldetes Konto für das CSRF-Token lesen",
+      "write_token": "neues CSRF-Token in die Sitzung schreiben",
+      "set_value": "set_value [CSRF-Token empfangen — seine Prüfung steht im Kanal middleware.csrf]"
+    },
+    "session": {
+      "read_account": "angemeldetes Konto aus der Sitzung lesen",
+      "read_version": "Version der Sitzung lesen",
+      "read_flash": "Flash-Nachrichten aus der Sitzung lesen",
+      "read_dashboard_template": "gewählte Dashboard-Vorlage aus der Sitzung lesen",
+      "decode_user_memory": "user_id der Sitzung dekodieren (Laden aus dem Speicher)",
+      "decode_user_db": "user_id der Sitzung dekodieren (Laden aus der Datenbank)"
+    },
+    "anti_bot": {
+      "read_name": "Namen des Honeypot-Felds aus der Sitzung lesen",
+      "filled": "Honeypot-Feld ausgefüllt — Formular abgelehnt"
+    },
+    "https": {
+      "redirected": "Anfrage über HTTP empfangen — auf HTTPS umgeleitet",
+      "port80_stopped": "HTTP-Server auf Port 80 (ACME-Challenge und HTTPS-Umleitung) wurde beendet"
+    },
+    "auth": {
+      "hash_failed": "Passwort-Hashing beim Zurücksetzen fehlgeschlagen",
+      "account_not_read": "Konto nicht gelesen — Sitzung behalten, Anfrage mit 503 beantwortet",
+      "admin_account_not_read": "Admin-Konto nicht gelesen — Sitzung behalten, Anfrage mit 503 beantwortet"
+    },
+    "forms": {
+      "validation_failed": "Formularvalidierung fehlgeschlagen",
+      "remove_oversized": "zu großen zwischengespeicherten Upload entfernen"
+    },
+    "mailer": {
+      "init_twice": "mailer_init() mehrfach aufgerufen — die ursprüngliche Konfiguration bleibt"
+    },
+    "db": {
+      "read_reset_token": "Token zum Zurücksetzen des Passworts lesen"
+    },
+    "admin": {
+      "write": "Schreibvorgang im Admin",
+      "outcome_saved": "gespeichert",
+      "outcome_save_refused": "Speichern abgelehnt",
+      "outcome_deleted": "gelöscht",
+      "outcome_delete_refused": "Löschen abgelehnt",
+      "bulk_done": "Sammelaktion ausgeführt",
+      "bulk_refused": "Sammelaktion abgelehnt",
+      "list": "Admin-Liste"
+    },
+    "boot": {
+      "admin": "Admin",
+      "model": "Admin-Modell",
+      "route": "deklarierte Admin-Route",
+      "no_guard": "die Admin-Anmeldung hat weder LoginGuard noch Rate-Limiter: Passwortversuche sind unbegrenzt (`with_login_guard`, `with_rate_limiter`)",
+      "options_without_effect": "Admin-Listenoptionen akzeptiert, aber noch von keiner Seite angezeigt",
+      "stylesheets_missing": "Runique-Stylesheets für den Admin nicht gefunden: STATIC_RUNIQUE_PATH prüfen",
+      "debug_in_prod": "DEBUG=true in Produktion: Alle Besucher sehen die detaillierten Fehlerseiten, und alle Log-Kanäle sind an — die Logs enthalten, was Besucher in Formulare eingeben (Passwörter ausgenommen). Abschalten, sobald das Problem gefunden ist",
+      "prune_failed": "Bereinigung verwaister Rechte fehlgeschlagen — veraltete Rechte können bleiben"
+    },
+    "server": {
+      "ctrl_c_not_installed": "Ctrl+C-Handler nicht installiert",
+      "sigterm_not_installed": "SIGTERM-Handler nicht installiert"
+    }
   }
 }

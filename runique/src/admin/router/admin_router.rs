@@ -153,7 +153,7 @@ struct AdminLoginData {
 }
 
 /// Builds the complete admin Axum router: public login routes, protected
-/// dashboard/history/logout routes, and the daemon-generated CRUD router —
+/// dashboard/history/logout routes, and the CRUD router of the registered models —
 /// all mounted under the resolved public prefix (`mount_prefix` + admin's own
 /// `path`) and wrapped with the auth-required, session-loading and
 /// `X-Robots-Tag: noindex` layers.
@@ -311,10 +311,7 @@ async fn admin_dashboard(
         .counts(&req.engine.db, &current_user)
         .await
         .trace(
-            crate::utils::runique_log::get_log()
-                .admin
-                .as_ref()
-                .and_then(|a| a.list),
+            crate::utils::runique_log::log_level!(admin.list),
             "dashboard counts",
         )
         .unwrap_or_default();
@@ -325,7 +322,11 @@ async fn admin_dashboard(
         .session
         .get(ADMIN_TEMPLATE_SESSION_KEY)
         .await
-        .unwrap_or(None);
+        .trace(
+            crate::utils::runique_log::log_level!(session.store),
+            "log.session.read_dashboard_template",
+        )
+        .flatten();
 
     // The menu, rights applied, as on every page; its resources list the
     // models the dashboard counts.
@@ -473,6 +474,14 @@ async fn admin_login_post(
         })
         .unwrap_or(false);
     if !csrf_valid {
+        crate::middleware::security::csrf::log_refusal(
+            &admin.paths.login,
+            if data.csrf_token.is_empty() {
+                "log.csrf.reason_admin_login_missing"
+            } else {
+                "log.csrf.reason_admin_login_mismatch"
+            },
+        );
         insert_admin_messages(&mut req.context, "login");
         req.context.insert(
             "stylesheets",
@@ -580,11 +589,12 @@ async fn admin_toggle_template(
         .session
         .get::<String>(ADMIN_TEMPLATE_SESSION_KEY)
         .await
-        .unwrap_or(None);
-    let session_level = crate::utils::runique_log::get_log()
-        .session
-        .as_ref()
-        .and_then(|s| s.store);
+        .trace(
+            crate::utils::runique_log::log_level!(session.store),
+            "log.session.read_dashboard_template",
+        )
+        .flatten();
+    let session_level = crate::utils::runique_log::log_level!(session.store);
     if current.is_some() {
         req.session
             .remove::<String>(ADMIN_TEMPLATE_SESSION_KEY)
@@ -606,6 +616,10 @@ async fn admin_logout(
     // A form sent from another site without the token (an older browser sends
     // no `Sec-Fetch-Site`) must not sign the user out.
     if !req.prisme.csrf_valid {
+        crate::middleware::security::csrf::log_refusal(
+            &admin.paths.logout,
+            "log.csrf.reason_admin_logout",
+        );
         return Ok(Redirect::to(&admin.paths.dashboard).into_response());
     }
     let session = &req.session;

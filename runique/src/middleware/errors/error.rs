@@ -24,21 +24,14 @@ use tracing_futures::Instrument;
 /// Level for non-critical HTTP error diagnostics (status/path of handled errors).
 /// `None` (disabled) by default — opt-in observability via `errors.http`.
 fn errors_http_level() -> Option<Level> {
-    crate::utils::runique_log::get_log()
-        .errors
-        .as_ref()
-        .and_then(|e| e.http)
+    crate::utils::runique_log::log_level!(errors.http)
 }
 
 /// Level for error-template render failures. Floored at `WARN`: a broken error
 /// template still serves a fallback, but the dev must see it. Configurable via
 /// `errors.render`.
 fn errors_render_level() -> Level {
-    crate::utils::runique_log::get_log()
-        .errors
-        .as_ref()
-        .and_then(|e| e.render)
-        .unwrap_or(Level::WARN)
+    crate::utils::runique_log::log_level!(errors.render).unwrap_or(Level::WARN)
 }
 
 /// A header whose name holds one of these is left off the debug page: such a

@@ -1,4 +1,4 @@
-use crate::utils::{aliases::AEngine, runique_log::get_log};
+use crate::utils::aliases::AEngine;
 use axum::{
     body::Body,
     extract::State,
@@ -39,11 +39,7 @@ pub async fn open_redirect_middleware(
         return response;
     };
 
-    if let Some(level) = get_log()
-        .middleware
-        .as_ref()
-        .and_then(|m| m.host_validation)
-    {
+    if let Some(level) = crate::utils::runique_log::log_level!(middleware.open_redirect) {
         crate::runique_log!(level, location = %unsafe_target, "open redirect blocked");
     }
 

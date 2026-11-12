@@ -34,16 +34,16 @@ impl Message {
             .session
             .get::<Messages>(FLASH_KEY)
             .await
-            .ok()
+            .trace(
+                crate::utils::runique_log::log_level!(session.store),
+                "log.session.read_flash",
+            )
             .flatten()
             .unwrap_or_default();
 
         messages.push(msg);
         self.session.insert(FLASH_KEY, messages).await.trace(
-            crate::utils::runique_log::get_log()
-                .session
-                .as_ref()
-                .and_then(|s| s.store),
+            crate::utils::runique_log::log_level!(session.store),
             "flash message insert into session",
         );
     }
@@ -65,16 +65,16 @@ impl Message {
             .session
             .get::<Messages>(FLASH_KEY)
             .await
-            .ok()
+            .trace(
+                crate::utils::runique_log::log_level!(session.store),
+                "log.session.read_flash",
+            )
             .flatten()
             .unwrap_or_default();
 
         // Deletes after reading for “flash” effect
         self.session.remove::<Messages>(FLASH_KEY).await.trace(
-            crate::utils::runique_log::get_log()
-                .session
-                .as_ref()
-                .and_then(|s| s.store),
+            crate::utils::runique_log::log_level!(session.store),
             "flash message remove from session",
         );
         messages
