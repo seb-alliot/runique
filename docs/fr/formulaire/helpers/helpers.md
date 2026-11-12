@@ -86,19 +86,23 @@ let id = request.get_path("id");         // Option<&str>
 let page = request.get_query("page");    // Option<&str>
 ```
 
-### Depuis le formulaire (Recommandé)
+### `cleaned` ne lit jamais l'URL
 
-Les variantes `cleaned_*` fusionnent automatiquement les données du corps de la requête et de l'URL.
+`cleaned::<T>` rend la valeur d'un **champ** du formulaire, et rien d'autre : ce que le visiteur a envoyé dans ce formulaire, passé par les règles du champ. Un paramètre de chemin ou de query string du même nom n'est pas lu. Une valeur de l'URL se lit par `request.get_path` / `request.get_query`, et vous savez alors qu'elle est brute.
 
-Exemple — pré-remplir un champ depuis l'URL (`GET /edit?title=Mon+Article`) :
+Un formulaire de recherche envoyé en `GET` n'est pas concerné : ses champs sont remplis depuis la query string comme ceux d'un `POST` le sont depuis le corps.
+
+Exemple — pré-remplir un champ depuis un lien (`GET /edit?title=Mon+Article`) :
 
 ```rust
-if request.method.is_safe() {
-    if let Some(t) = form.cleaned::<String>("title") {
-        form.add_value("title", &t); // `form` déclaré `let mut`
-    }
+if request.method.is_safe()
+    && let Some(title) = request.get_query("title").map(str::to_owned)
+{
+    form.add_value("title", &title); // `form` déclaré `let mut`
 }
 ```
+
+La valeur est seulement affichée dans le champ : elle sera validée quand le visiteur enverra le formulaire.
 
 ---
 

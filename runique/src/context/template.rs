@@ -473,7 +473,7 @@ impl Request {
             crate::forms::field::build_form::<T>(self.engine.tera.clone(), masked.as_str());
         let forms = form.forms_mut();
         forms.set_name(name);
-        forms.set_url_params(&self.path_params, &self.query_params);
+        forms.set_path_params(&self.path_params);
         let statics = &self.engine.config.static_files;
         forms.cap_uploads_to_server(
             statics

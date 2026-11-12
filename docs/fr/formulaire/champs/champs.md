@@ -347,6 +347,8 @@ form.field(
 
 `finalize()` prépare le chemin relatif, mais garde le fichier dans son dossier temporaire, sous `MEDIA_ROOT`, nommé `{uuid}.extension`. Avec `ValidationForm::save`, Runique écrit la ligne, déplace le fichier vers sa destination, puis valide la transaction. Tant que la ligne n'est pas validée, personne d'autre ne la voit : aucun lecteur ne tombe sur un chemin dont le fichier n'est pas encore en place. Une écriture refusée (valeur déjà prise, clé étrangère…) laisse le fichier dans le dossier temporaire, supprimé à la fin de la requête ; seul un échec du commit lui-même retire le fichier déjà déplacé. La destination doit être relative à `MEDIA_ROOT` et ne peut contenir de composant `.` ou `..`, de séparateur Windows ni de préfixe de volume. Le dossier est créé automatiquement s'il n'existe pas encore.
 
+**Le fichier d'une ligne supprimée.** Supprimer une ligne, par votre code ou depuis l'admin, ne supprime pas ses fichiers : Runique ne sait pas si vous devez les garder (archive, obligation légale) ou les effacer (droit à l'effacement). Si le fichier doit disparaître, lisez son chemin avant la suppression et effacez-le une fois celle-ci validée.
+
 **Le fichier remplacé.** Runique ne supprime jamais le fichier qu'un nouvel envoi remplace : il peut encore vous servir (historique, archive). Pour le supprimer, lisez l'ancien chemin avant le `save`, puis supprimez-le une fois l'écriture faite :
 
 ```rust

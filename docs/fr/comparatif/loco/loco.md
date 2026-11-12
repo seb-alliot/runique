@@ -38,7 +38,7 @@ Vérifié le 5 novembre 2026 dans [la documentation](https://loco.rs/docs/) et [
 |----------------|------|---------|
 | Handler | `async fn hello() -> Result<Response>` | `async fn ma_vue(mut request: Request) -> AppResult<Response>` |
 | Accès DB | `State(ctx): State<AppContext>`, puis `ctx.db` | `request.engine.db` |
-| Rendu | `format::view(&v, "home/hello.html", data!({...}))` | `request.render("template.html")` |
+| Rendu | `format::render().view(&v, "home/hello.html", data)` | `request.render("template.html")` |
 | Réponse JSON | `format::json(res)` | `Json` d'Axum |
 | Redirection | `format::redirect("/url")` | `Redirect::to("/url")` |
 | Messages flash | — | macros `success!`, `error!`, `info!`, `warning!` |

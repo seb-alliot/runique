@@ -1,6 +1,6 @@
 # Admin Runique
 
-L'administration Runique construit un CRUD complet à partir d'un **builder typé** (`ModelAdmin`). Plus de macro `admin!`, plus de génération de fichiers : tu déclares des colonnes SeaORM, le framework sert les routes, la liste, les formulaires et les permissions.
+L'administration Runique construit un CRUD complet à partir d'un **builder typé** (`ModelAdmin`). Pas de macro, pas de génération de fichiers : tu déclares des colonnes SeaORM, le framework sert les routes, la liste, les formulaires et les permissions.
 
 Les colonnes sont des enums (`blog::Column::Title`) : le compilateur refuse une colonne inexistante, et le démarrage refuse un secret exposé ou une action incohérente.
 

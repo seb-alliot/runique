@@ -214,7 +214,7 @@ Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `n
 ## Ce qu'il manque encore (comparé à Django)
 
 - **Redimensionnement automatique d'images** : resize/cropping côté serveur non natif.
-- **Vues CRUD publiques génériques** : pas d'équivalent aux `DetailView`, `ListView`, `CreateView` de Django pour les vues publiques — envisagé via `crud!{}` (feuille de route, sans engagement). Le panel admin couvre le CRUD backoffice via `ModelAdmin`.
+- **Vues CRUD publiques génériques** : pas d'équivalent aux `DetailView`, `ListView`, `CreateView` de Django pour les vues publiques — envisagé (feuille de route, sans engagement). Le panel admin couvre le CRUD backoffice via `ModelAdmin`.
 - **Signals / hooks modèles** : `before_save`, `after_save`, `before_delete`, `after_delete` ne se déclarent pas dans `model!{}`. La structure interne `HooksDef` existe, sans lien avec le DSL ; le comportement généré par `model!{}` ne remplit que les colonnes `auto_now`. Prévu à la feuille de route, sans engagement.
 - **Management commands** : pas d'équivalent à `manage.py custom_command` — les opérations one-shot passent par `src/bin/`.
 - **Test client intégré** : pas de client HTTP de test natif. `runique test` et `runique_test` couvrent le lancement et l'isolation de la base ; les requêtes passent par `reqwest` ou `tower::ServiceExt::oneshot`.

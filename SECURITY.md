@@ -19,8 +19,8 @@ Runique 4.0 keeps the 3.0.x security fixes and adds more (listed below). Runique
 #### `extend!{}` of the accounts table puts `password` and `is_active` in its admin form — High, fixed in 4.0
 
 - **What it does**: the form generated for an `extend!` of `eihwaz_users` (a user profile, say) takes both columns from the account. An admin can then set a user's password at creation or edit, and so know it, and deactivate any account, their own included, past the account rules.
-- **Who is affected**: Runique 3.0.x projects that register such an `extend!` in `admin!{}`.
-- **How to protect yourself now**: keep the extended accounts out of `admin!{}`, and manage those columns through your own views.
+- **Who is affected**: Runique 3.0.x projects that register such an `extend!` in the admin.
+- **How to protect yourself now**: keep the extended accounts out of the admin, and manage those columns through your own views.
 - **Fix**: Runique 4.0 never puts either column in a form, like the rank flags: a new account gets a random password nobody knows (its owner sets theirs from the email link), and an edit leaves both untouched whatever the request carries.
 
 #### `csrf.js` sends the CSRF token to other origins — Medium, fixed in 4.0

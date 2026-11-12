@@ -15,12 +15,15 @@ All notable changes to this project will be documented in this file.
 * **Rate limit bypass over IPv6**: each address had its own allowance, while an IPv6 subscriber holds a whole `/64`. An IPv6 address is now counted by its `/64` prefix; an IPv4 address seen through an IPv6 socket (`::ffff:1.2.3.4`) is still counted alone.
 * **URL field: only `http` and `https` pass**: `TextField::url` accepted any scheme, and relied on the word `javascript:` being removed from the text, which could be bypassed (`java<TAB>script:`, read as `javascript:` by a browser). The URL is now read by the parser browsers follow and must be absolute, in `http` or `https`. **To check**: a URL field that received `ftp://`, `mailto:` or a relative URL now refuses them.
 * **Empty host**: an empty `Host` (`Host: .`) no longer matches any entry of the list, even an empty one.
+* **`cleaned` could return a URL value that was never validated**: when a field was empty, `cleaned("x")` returned the path or query string parameter of the same name instead, with none of the field's rules applied. A link `/profile/edit?bio=text` was enough: the victim left the field empty, sent the form to the current address, and `cleaned("bio")` returned the link's text. `cleaned` now reads fields only. `save()` wasn't concerned (it reads fields).
 
 ### Breaking changes
 
 * **Log channels `admin.filter_fn` and `admin.daemon` removed**: they came from the former admin (filter functions, code generator) and no longer produced anything. Drop `.filter_fn(...)` and `.daemon(...)` from `with_log(|l| l.admin(...))` calls. A list's filters now show in the `admin.list` log.
 
 * **Admin `hot_reload` removed**: `AdminConfig.hot_reload` and `.hot_reload(...)` in `with_admin` had done nothing since the new admin (in development, templates are reloaded on every render, with or without this setting). Drop the call.
+
+* **`cleaned` no longer reads the URL, `Forms::set_url_params` replaced by `set_path_params`**: `cleaned::<T>("x")` returns the value of field `x` and nothing else. For a value of the URL, use `request.get_path("x")` / `request.get_path_as::<T>("x")` or `request.get_query("x")`; to pre-fill a field from a link, `form.add_value("x", value)`. A search form sent with `GET` doesn't change (its fields are filled from the query string). `Forms::set_url_params(path, query)` becomes `Forms::set_path_params(path)`: the query string is no longer given to the form.
 
 ### Added
 

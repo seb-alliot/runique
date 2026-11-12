@@ -45,7 +45,6 @@ pub struct Forms {
     submitted: bool,
     validated: bool,
     pub(crate) path_params: StrMap,
-    pub(crate) query_params: StrMap,
     /// Set to true by anti-bot middleware when honeypot field was filled.
     pub(crate) force_invalid: bool,
     /// Honeypot field name injected by anti-bot middleware (for rendering).
@@ -285,7 +284,6 @@ impl Forms {
             submitted: false,
             validated: false,
             path_params: StrMap::new(),
-            query_params: StrMap::new(),
             force_invalid: false,
             honeypot_field_name: None,
             save_comportement: SaveComportement::Open,
@@ -322,10 +320,10 @@ impl Forms {
         self.honeypot_field_name = Some(name.to_string());
     }
 
-    /// Injects path and query parameters so `cleaned_*` methods can read them (GET search forms).
-    pub fn set_url_params(&mut self, path: &StrMap, query: &StrMap) {
+    /// Gives the form the route's path parameters: `save()` and `delete()`
+    /// read the row they point at there (`{<name>_<pk>}`).
+    pub fn set_path_params(&mut self, path: &StrMap) {
         self.path_params = path.clone();
-        self.query_params = query.clone();
     }
 
     /// Attaches the Tera-based HTML renderer. Required for `form.html` in templates.

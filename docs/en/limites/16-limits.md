@@ -17,7 +17,7 @@ What Runique doesn't do yet (4.1 in development), or does with a restriction. Ea
 | Limit | Details |
 | --- | --- |
 | A failed session write loses the flash message; the failure only shows in the log (`session.store` channel) | [Flash macros](/docs/en/flash/macros) |
-| A published file followed by a hard stop before the database commit can leave an orphan file | [Fields](/docs/en/formulaire/fields) |
+| A published file followed by a hard stop before the database commit can leave an orphan file<br>Deleting a row doesn't delete its files, from the admin included: it is up to the project to keep or remove them | [Fields](/docs/en/formulaire/fields) |
 
 ## Security, sessions, authentication
 
@@ -25,7 +25,7 @@ What Runique doesn't do yet (4.1 in development), or does with a restriction. Ea
 | --- | --- |
 | `RateLimiter` and `LoginGuard` have no memory cap<br>`RateLimiter` and `LoginGuard` count per process: with several instances, the quota is multiplied | [Rate limiting](/docs/en/middleware/rate-limit) |
 | `LoginGuard` locks by username: someone can lock an account whose name they know | [LoginGuard](/docs/en/auth/login-guard) |
-| The in-memory session store belongs to one process | [Session store](/docs/en/session/store) |
+| The in-memory session store belongs to one process<br>Every request without a cookie opens an anonymous session (the CSRF token is kept there): a flood of such requests can fill the store, which then refuses new sessions | [Session store](/docs/en/session/store) |
 | A custom store (`with_session_store`) can't be walked per user: after a password reset, its sessions only close at their next request, and only if the user model returns `session_version` | [Session](/docs/en/auth/session) |
 | Session duration: one for every signed-in account; "remember me" (a duration per session) is not possible yet | [Sessions](/docs/en/middleware/sessions) |
 | At most 5 custom middlewares (a 6th makes startup panic); they run before the session, without the signed-in account | [Middleware stack](/docs/en/architecture/middleware) |
@@ -55,6 +55,7 @@ What Runique doesn't do yet (4.1 in development), or does with a restriction. Ea
 | --- | --- |
 | `RateLimiter` and `LoginGuard` have no memory cap, counters per process | Also limit at the reverse proxy (example below) |
 | `LoginGuard` blocks by username | Pair it with a limit per IP, at the reverse proxy or with `RateLimiter` |
+| Anonymous sessions opened by a flood of cookieless requests | Limit per IP at the reverse proxy, as for `/login` (example below), and size the store's cap |
 | The memory session store belongs to one process | One instance, or a reverse proxy sending each visitor to the same one (`ip_hash` with nginx) |
 | ACME: one site per machine | Hand TLS to a reverse proxy as soon as there are several sites |
 | SQLite: one writer at a time | PostgreSQL for a sustained write load |

@@ -86,19 +86,23 @@ let id = request.get_path("id");         // Option<&str>
 let page = request.get_query("page");    // Option<&str>
 ```
 
-### From the form (Recommended)
+### `cleaned` never reads the URL
 
-The `cleaned_*` variants automatically merge data from the request body and the URL.
+`cleaned::<T>` returns the value of a form **field**, and nothing else: what the visitor sent in that form, checked by the field's rules. A path or query string parameter of the same name isn't read. A value of the URL is read with `request.get_path` / `request.get_query`, and you then know it is raw.
 
-Example — pre-fill a field from the URL (`GET /edit?title=My+Article`):
+A search form sent with `GET` isn't concerned: its fields are filled from the query string the way a `POST`'s are from the body.
+
+Example — pre-fill a field from a link (`GET /edit?title=My+Article`):
 
 ```rust
-if request.method.is_safe() {
-    if let Some(t) = form.cleaned::<String>("title") {
-        form.add_value("title", &t); // `form` declared `let mut`
-    }
+if request.method.is_safe()
+    && let Some(title) = request.get_query("title").map(str::to_owned)
+{
+    form.add_value("title", &title); // `form` declared `let mut`
 }
 ```
+
+The value is only shown in the field: it is validated when the visitor sends the form.
 
 ---
 
