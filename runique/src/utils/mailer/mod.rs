@@ -44,7 +44,7 @@ pub struct MailerConfig {
     pub starttls: bool,
 }
 
-// Debug manuel : ne jamais imprimer le mot de passe SMTP en clair (fuite via logs).
+// Manual Debug: never print the SMTP password in clear text (it would leak through logs).
 impl std::fmt::Debug for MailerConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MailerConfig")

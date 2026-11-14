@@ -211,7 +211,7 @@ pub(crate) fn group_rows_within(
 /// Group (includes its permissions per resource).
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Groupe {
-    // Toujours INTEGER, indépendant de `Pk` (big-pk/pk-uuid) — cf.
+    // Always INTEGER, whatever `Pk` is (big-pk/pk-uuid) — see
     // groupe.rs::Model::id / auth/migrations_table.rs::create_eihwaz_groupes_table.
     pub id: i32,
     pub nom: String,

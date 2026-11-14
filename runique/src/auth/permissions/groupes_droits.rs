@@ -11,7 +11,7 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    // Toujours INTEGER, indépendant de `Pk` — cf. groupe.rs::Model::id.
+    // Always INTEGER, whatever `Pk` is — see groupe.rs::Model::id.
     pub groupe_id: Option<i32>,
     pub user_id: Option<Pk>,
     pub resource_key: String,

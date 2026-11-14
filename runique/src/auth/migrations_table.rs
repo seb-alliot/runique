@@ -323,8 +323,8 @@ pub fn create_droits_unique_par_compte() -> IndexCreateStatement {
 pub fn create_eihwaz_users_groupes_table() -> TableCreateStatement {
     let fk_name = "fk_eihwaz_users_groupes_eihwaz_users_id";
 
-    // user_id doit suivre le type de eihwaz_users.id (BIGINT sous big-pk, UUID sous pk-uuid),
-    // sinon la FK est de type incompatible et échoue à la création (Postgres strict).
+    // user_id must match the type of eihwaz_users.id (BIGINT under big-pk, UUID under pk-uuid),
+    // otherwise the FK types are incompatible and creation fails (Postgres is strict).
     let mut user_id_col = user_pk_reference("user_id");
     user_id_col.not_null();
 

@@ -6,11 +6,11 @@
 extern crate self as runique;
 
 // ---------------------------------------------------------------------------
-// Moteurs de base de données mutuellement exclusifs
+// Mutually exclusive database engines
 // ---------------------------------------------------------------------------
-// Exemptions : cfg(doc) (docs.rs/`cargo doc`, qui compile avec `all-databases`
-// pour documenter chaque backend) et la feature `all-databases` elle-même,
-// demandée explicitement (outils multi-moteur — voir scripts/smoke_migrations.sh).
+// Exemptions: cfg(doc) (docs.rs/`cargo doc`, which builds with `all-databases`
+// to document every backend) and the `all-databases` feature itself,
+// requested explicitly (multi-engine tooling — see scripts/smoke_migrations.sh).
 #[cfg(all(
     not(doc),
     not(feature = "all-databases"),
@@ -43,6 +43,7 @@ compile_error!(
 // Main Modules
 // ---------------------------------------------------------------------------*
 pub mod app;
+pub mod atomic;
 pub mod auth;
 pub mod config;
 pub mod context;

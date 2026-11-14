@@ -173,10 +173,10 @@ impl Serialize for Forms {
                 field_map.insert("label".to_string(), json!(field.label()));
                 field_map.insert("field_type".to_string(), json!(field.field_type()));
                 field_map.insert("template_name".to_string(), json!(field.template_name()));
-                // La valeur d'un champ sensible ne sort pas, même dans un contexte
-                // de template : `form_fields` est inséré tel quel dans les pages
-                // create/edit, et rien ne garantit qu'un template utilisateur ne
-                // l'affichera pas.
+                // A sensitive field's value never leaves, not even in a template
+                // context: `form_fields` is inserted as is in the create/edit
+                // pages, and nothing guarantees a user template won't
+                // display it.
                 let is_password = field.is_password();
                 field_map.insert(
                     "value".to_string(),
@@ -416,9 +416,9 @@ impl Forms {
             if field.is_locked() {
                 continue;
             }
-            // `is_password()` et non `field_type() == "password"` : un champ portant
-            // un secret sans être de type password (clé d'API, jeton) hérite ainsi
-            // du même saut en GET et du même relâchement de contrainte en édition.
+            // `is_password()` rather than `field_type() == "password"`: a field holding
+            // a secret without being a password type (API key, token) thus gets
+            // the same skip on GET and the same relaxed constraint on edit.
             let is_password = field.is_password();
             if is_password && !allow_password {
                 continue;

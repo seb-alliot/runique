@@ -205,9 +205,9 @@ pub fn register_asset_filters(
 ) {
     let version = crate::utils::env::css_token();
 
-    // Filtres hérités de la feature `builtins` de Tera 1 (urlencode, slug, date…),
-    // déplacés dans `tera-contrib` en 2.0. Enregistrés d'abord : ils font partie du
-    // socle sur lequel les templates internes comptent.
+    // Filters inherited from Tera 1's `builtins` feature (urlencode, slug, date…),
+    // moved to `tera-contrib` in 2.0. Registered first: the internal templates
+    // rely on them.
     crate::context::tera::contrib::register_contrib(tera);
 
     tera.register_filter("mask", mask_filter);

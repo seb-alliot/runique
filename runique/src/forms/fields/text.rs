@@ -271,7 +271,7 @@ impl FormField for TextField {
                 let has_only_valid_chars = val
                     .chars()
                     .all(|c| c.is_ascii_digit() || matches!(c, '+' | ' ' | '-' | '(' | ')'));
-                // '+' autorisé uniquement en première position
+                // '+' is only allowed in first position
                 let plus_only_at_start = val.match_indices('+').all(|(i, _)| i == 0);
                 if !has_only_valid_chars || !plus_only_at_start || !(7..=15).contains(&digit_count)
                 {
@@ -313,16 +313,16 @@ impl FormField for TextField {
         let mut context = self.base_context();
 
         // Prepare a "secured" version of the base.
-        // Le vidage est piloté par `is_password` et non par `SpecialFormat`, pour
-        // qu'un champ marqué sensible autrement qu'en `SpecialField::password`
-        // bénéficie de la même règle.
+        // Clearing is driven by `is_password`, not by `SpecialFormat`, so that
+        // a field flagged as sensitive some other way than `SpecialField::password`
+        // gets the same rule.
         let mut base_data = self.base.clone();
         if base_data.is_password() {
             base_data.value = String::new();
         }
 
-        // Écrase le `field` du contexte de base : la valeur d'un mot de passe ne
-        // doit jamais repartir dans le HTML rendu.
+        // Overrides the `field` of the base context: a password value must
+        // never make its way back into the rendered HTML.
         context.insert("field", &base_data);
         context.insert("input_type", &self.base.type_field);
 

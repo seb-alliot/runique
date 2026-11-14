@@ -188,7 +188,7 @@ impl StaticConfig {
 mod tests {
     use super::*;
     // std::env::set_var is not thread-safe — serialize all env-mutating tests
-    // (partagé avec les tests de file.rs via le mutex au niveau module).
+    // (shared with the tests in file.rs through the module-level mutex).
     use super::MEDIA_ENV_LOCK as ENV_LOCK;
 
     #[test]

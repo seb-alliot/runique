@@ -4,7 +4,7 @@ use crate::model::{ModelInput, RelationDef};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
-// ── FK dans generate_schema ───────────────────────────────────
+// ── FK in generate_schema ───────────────────────────────────
 
 pub fn generate_schema(model: &ModelInput) -> TokenStream2 {
     let name = &model.name;

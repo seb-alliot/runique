@@ -152,7 +152,7 @@ mod hsts_tests {
 
     #[test]
     fn hsts_value_default_has_no_preload() {
-        // Default : max-age 1 an + includeSubDomains, JAMAIS preload par défaut.
+        // Default: one-year max-age + includeSubDomains, NEVER preload by default.
         assert_eq!(
             cfg(true, false).hsts_header_value().as_deref(),
             Some("max-age=31536000; includeSubDomains")
@@ -175,12 +175,12 @@ mod hsts_tests {
     fn preload_misconfig_detected() {
         let mut c = cfg(true, false);
         c.hsts_preload = true;
-        c.hsts_include_subdomains = false; // preload sans includeSubDomains → invalide
+        c.hsts_include_subdomains = false; // preload without includeSubDomains → invalid
         assert!(c.hsts_preload_misconfigured());
         c.hsts_include_subdomains = true;
         c.hsts_max_age = 31_536_000;
         assert!(!c.hsts_preload_misconfigured());
-        c.hsts_max_age = 31_535_999; // un an moins une seconde → refusé par la liste
+        c.hsts_max_age = 31_535_999; // one year minus one second → rejected by the preload list
         assert!(c.hsts_preload_misconfigured());
         c.hsts_max_age = 63_072_000;
         assert!(!c.hsts_preload_misconfigured());

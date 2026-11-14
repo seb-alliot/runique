@@ -195,7 +195,7 @@ impl UploadMedia {
         let media_root = PathBuf::from(resolve_media_root());
         let dest_dir = media_root.join(&upload_rel_clean);
 
-        // Construit le chemin relatif stocké ("filename" en racine, sinon "rel/filename").
+        // Builds the stored relative path ("filename" at the root, "rel/filename" otherwise).
         let to_rel = |filename: &str| -> String {
             if upload_rel_clean.is_empty() {
                 filename.to_string()
