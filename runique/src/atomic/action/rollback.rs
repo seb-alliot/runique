@@ -20,6 +20,7 @@ pub(in crate::atomic) fn remove(item: &ItemsPath) -> io::Result<AtomicStep> {
 pub(in crate::atomic) fn restore(item: &ItemsPath) -> io::Result<AtomicStep> {
     disk::remove(&item.path)?;
     disk::place(&item.backup_path, &item.path)?;
+    disk::remove(&item.temp_path)?;
     disk::remove(&item.backup_path)?;
-    remove_temp(item)
+    Ok(AtomicStep::Waiting)
 }
