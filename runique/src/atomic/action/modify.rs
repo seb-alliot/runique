@@ -10,7 +10,10 @@ pub(in crate::atomic) fn prepare(item: &ItemsPath) -> io::Result<AtomicStep> {
         SourceItems::Bytes(content) => {
             disk::write_temp(&item.temp_path, content, item.private_file)?
         }
-        SourceItems::File(source) => disk::place(source, &item.temp_path)?,
+        SourceItems::File(source) => {
+            disk::remove(&item.temp_path)?;
+            disk::place(source, &item.temp_path)?
+        }
     }
     Ok(AtomicStep::Prepared)
 }

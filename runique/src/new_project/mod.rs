@@ -1,4 +1,5 @@
 //! `new` command — scaffolds a new Runique project (files, dependencies, SECRET_KEY).
+use crate::atomic::{AtomicBuilder, SourceItems};
 use crate::migration::cli_migration::init_migrate::{
     self, Engine, SEA_ORM_MIGRATION_REQ, SEA_ORM_REQ,
 };
@@ -23,10 +24,7 @@ pub fn create_new_project(name: &str) -> Result<()> {
     println!("🦀 {}", tf("cli.creating_project", &[&name]));
     let runique_version = env!("CARGO_PKG_VERSION");
 
-    // Create all necessary folders
-    create_project_dirs(project_dir)?;
-
-    // Copy static files and templates
+    // Every file of the project in one batch: all of them, or nothing at all
     write_project_files(project_dir, name, runique_version)?;
 
     println!("  {}", tf("cli.project_created", &[&name]));
@@ -159,21 +157,6 @@ fn validate_project_name(name: &str) -> Result<()> {
     Ok(())
 }
 
-fn create_project_dirs(project_dir: &Path) -> Result<()> {
-    let dirs = [
-        "src/entities",
-        "src/forms",
-        "static/css/forms",
-        "static/js",
-        "media/favicon",
-        "templates",
-    ];
-    for d in dirs {
-        fs::create_dir_all(project_dir.join(d))?;
-    }
-    Ok(())
-}
-
 fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<()> {
     // Files -> destination mapping
     let files: &[(&[u8], &str)] = &[
@@ -246,10 +229,19 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
         (include_bytes!("composant-bin/config/ignore"), ".gitignore"),
     ];
 
+    let mut batch = AtomicBuilder::create();
     for (content, path) in files {
-        fs::write(project_dir.join(path), content)?;
+        batch = batch.add(
+            project_dir.join(path),
+            SourceItems::Bytes(content.to_vec()),
+            false,
+        )?;
     }
-    fs::write(project_dir.join("src/entities/mod.rs"), "")?;
+    batch = batch.add(
+        project_dir.join("src/entities/mod.rs"),
+        SourceItems::Bytes(Vec::new()),
+        false,
+    )?;
     // Cargo.toml, READMEs and .env with substitutions
     for (template, path) in [
         (include_str!("composant-bin/config/apiconfig"), "Cargo.toml"),
@@ -264,17 +256,33 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
             .replace("{{RUNIQUE_VERSION}}", version)
             .replace("{{SEA_ORM_REQ}}", SEA_ORM_REQ)
             .replace("{{SEA_ORM_MIGRATION_REQ}}", SEA_ORM_MIGRATION_REQ);
-        fs::write(project_dir.join(path), content)?;
+        batch = batch.add(
+            project_dir.join(path),
+            SourceItems::Bytes(content.into_bytes()),
+            false,
+        )?;
     }
 
-    // SQLite, as the `.env` and the `Cargo.toml` written above.
-    init_migrate::write(&project_dir.join("migration"), Engine::Sqlite, version)?;
+    // SQLite, as the `.env` and the `Cargo.toml` above.
+    for (path, content) in
+        init_migrate::files(&project_dir.join("migration"), Engine::Sqlite, version)
+    {
+        batch = batch.add(path, SourceItems::Bytes(content), false)?;
+    }
 
     let secret_key: String = generate_secret_key();
     let env_file =
         include_str!("composant-bin/config/secret").replace("your_secret_key_here", &secret_key);
-    crate::utils::private_file::write(&project_dir.join(".env"), env_file.as_bytes())?;
+    batch
+        .add(
+            project_dir.join(".env"),
+            SourceItems::Bytes(env_file.into_bytes()),
+            true,
+        )?
+        .start()?;
 
+    // The only folder of the layout that holds no file: made once the project exists.
+    fs::create_dir_all(project_dir.join("static/js"))?;
     Ok(())
 }
 
@@ -339,12 +347,11 @@ mod name_tests {
 /// placeholder is left in it (the README once said "v1.1.54" and "{}/").
 #[cfg(test)]
 mod generated_files_tests {
-    use super::{SEA_ORM_MIGRATION_REQ, SEA_ORM_REQ, create_project_dirs, write_project_files};
+    use super::{SEA_ORM_MIGRATION_REQ, SEA_ORM_REQ, write_project_files};
 
     #[test]
     fn no_placeholder_is_left_in_the_generated_files() {
         let dir = std::env::temp_dir().join(format!("rq_new_{}", uuid::Uuid::new_v4()));
-        create_project_dirs(&dir).unwrap();
         write_project_files(&dir, "shop", "9.8.7").unwrap();
         for file in [
             "Cargo.toml",
@@ -384,7 +391,6 @@ mod generated_files_tests {
     fn the_generated_env_is_readable_by_its_owner_only() {
         use std::os::unix::fs::PermissionsExt;
         let dir = std::env::temp_dir().join(format!("rq_new_{}", uuid::Uuid::new_v4()));
-        create_project_dirs(&dir).unwrap();
         write_project_files(&dir, "shop", "9.8.7").unwrap();
         let mode = |file: &str| {
             std::fs::metadata(dir.join(file))
@@ -405,7 +411,6 @@ mod generated_files_tests {
     #[test]
     fn the_generated_env_sets_the_mode_and_the_error_pages() {
         let dir = std::env::temp_dir().join(format!("rq_new_env_{}", uuid::Uuid::new_v4()));
-        create_project_dirs(&dir).unwrap();
         write_project_files(&dir, "shop", "9.8.7").unwrap();
         let env = std::fs::read_to_string(dir.join(".env")).unwrap();
         let _ = std::fs::remove_dir_all(&dir);
@@ -435,7 +440,6 @@ mod generated_files_tests {
     fn the_generated_project_compiles() {
         let runique = env!("CARGO_MANIFEST_DIR");
         let dir = std::env::temp_dir().join(format!("rq_new_build_{}", uuid::Uuid::new_v4()));
-        create_project_dirs(&dir).unwrap();
         write_project_files(&dir, "generated_app", "0.0.0").unwrap();
         for manifest in ["Cargo.toml", "migration/Cargo.toml"] {
             let path = dir.join(manifest);

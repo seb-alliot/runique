@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if title %}{% set tr_text = title %}{% include "utils/tr.html" %} — Runique{% elif lang == "fr" %}Runique — Framework web Rust inspiré de Django{% else %}Runique — Rust web framework inspired by Django{% endif %}</title>
+    <title>{% if title %}{% set tr_text = title %}{% include "utils/tr.html" %} — Runique{% elif lang == "fr" %}Runique — Framework web Rust inspiré de Django, sur Axum{% else %}Runique — Rust web framework inspired by Django, on Axum{% endif %}</title>
 
     {% block meta %}
         {% if lang == "fr" %}
-            <meta name="description" content="{% if description %}{% set tr_text = description %}{% include "utils/tr.html" %}{% else %}Runique — Framework web Rust inspiré de Django. Basé sur Axum, SeaORM et Tera. Formulaires typés, admin typé vérifié par le compilateur, middleware CSRF/CSP, sessions persistantes.{% endif %}">
+            <meta name="description" content="{% if description %}{% set tr_text = description %}{% include "utils/tr.html" %}{% else %}Runique : framework web Rust inspiré de Django, sur Axum, SeaORM et Tera. Formulaires typés, admin vérifié par le compilateur, CSRF/CSP, sessions persistantes.{% endif %}">
         {% else %}
-            <meta name="description" content="{% if description %}{% set tr_text = description %}{% include "utils/tr.html" %}{% else %}Runique — Rust web framework inspired by Django, built on Axum, SeaORM and Tera. Type-safe forms, typed admin checked by the compiler, CSRF/CSP middleware, persistent sessions.{% endif %}">
+            <meta name="description" content="{% if description %}{% set tr_text = description %}{% include "utils/tr.html" %}{% else %}Runique: Rust web framework inspired by Django, on Axum, SeaORM and Tera. Type-safe forms, compiler-checked admin, CSRF/CSP middleware, persistent sessions.{% endif %}">
         {% endif %}
             {# Sign-in, sign-up and the error test pages are no search results. #}
             <meta name="robots" content="{% if current_path is defined and current_path in ["/login", "/inscription", "/erreurs/propose-error", "/erreurs/502"] %}noindex, follow{% else %}index, follow{% endif %}">
@@ -20,7 +20,7 @@
             <meta property="og:type" content="website">
             <meta property="og:site_name" content="Runique">
             <meta property="og:url" content="https://runique.io{% if canonical %}{{ canonical }}{% elif current_path %}{{ current_path }}{% else %}/{% endif %}">
-            <meta property="og:title" content="{% if title %}{% set tr_text = title %}{% include "utils/tr.html" %} — Runique{% elif lang == "fr" %}Runique — Framework web Rust inspiré de Django{% else %}Runique — Rust web framework inspired by Django{% endif %}">
+            <meta property="og:title" content="{% if title %}{% set tr_text = title %}{% include "utils/tr.html" %} — Runique{% elif lang == "fr" %}Runique — Framework web Rust inspiré de Django, sur Axum{% else %}Runique — Rust web framework inspired by Django, on Axum{% endif %}">
         {% if lang == "fr" %}
             <meta property="og:description" content="{% if description %}{% set tr_text = description %}{% include "utils/tr.html" %}{% else %}Framework web Rust inspiré de Django — Axum, SeaORM, Tera. Formulaires typés, admin typé, sécurité intégrée.{% endif %}">
         {% else %}
@@ -51,6 +51,14 @@
         "https://github.com/seb-alliot/runique",
         "https://crates.io/crates/runique"
       ],
+      "author": {
+        "@type": "Person",
+        "name": "Sébastien Alliot",
+        "url": "https://github.com/seb-alliot",
+        "sameAs": [
+          "https://dev.to/seballiot"
+        ]
+      },
       "programmingLanguage": "Rust",
       "keywords": "{% if lang == "fr" %}framework web Rust, Rust web framework, Django Rust, Axum framework, SeaORM{% else %}Rust web framework, Django Rust, Axum framework, SeaORM{% endif %}"
     }
@@ -135,7 +143,7 @@
         {% endblock %}
     </footer>
     <script {% csp %} src="{% static "js/theme.js" %}"></script>
-    <script {% csp %} src="{% static "js/site_nav.js" %}"></script>
+    <script defer {% csp %} src="{% static "js/site_nav.js" %}"></script>
     {% if not debug %}
     {% else %}
     <script defer {% csp %} src="https://static.cloudflareinsights.com/beacon.min.js"

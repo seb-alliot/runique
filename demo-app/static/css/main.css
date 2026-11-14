@@ -959,7 +959,7 @@ footer {
     grid-column: 1 / -1;
 }
 
-.footer-links h4 {
+.footer-links h2 {
     margin-bottom: 0.5rem;
     font-size: 0.8125rem;
     font-weight: 600;

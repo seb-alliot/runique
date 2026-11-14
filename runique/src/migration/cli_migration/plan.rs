@@ -1,12 +1,11 @@
 //! The migration plan: computing every change, then writing it in one atomic commit.
-use super::lib_file::{ensure_admin_migration_positioned, update_migration_lib};
+use super::lib_file::{planned_lib, strip_sea_orm_cli_placeholder_file};
 use super::scan::{merge_extend_schemas, scan_extend_blocks};
 use super::snapshot::{extend_snapshot_content, previous_snapshot};
+use crate::atomic::{AtomicBuilder, SourceItems};
 use crate::migration::*;
-use crate::utils::StrMap;
-use anyhow::{Context, Result};
-use std::fs;
-use std::path::Path;
+use anyhow::Result;
+use std::path::{Path, PathBuf};
 
 /// A fully-computed migration plan: everything to create/write/register, no side effects.
 /// Built before any IO so the destructive guard and a single atomic commit can run on it.
@@ -14,8 +13,6 @@ use std::path::Path;
 pub(super) struct Plan {
     /// (path, content) files to write
     pub(super) files: Vec<(String, String)>,
-    /// directories to create before writing
-    pub(super) dirs: Vec<String>,
     /// migration modules to register in `lib.rs`, in order
     pub(super) lib_modules: Vec<String>,
 }
@@ -145,7 +142,6 @@ pub(super) fn build_extend_plan(
     if planned.is_empty() {
         return;
     }
-    plan.dirs.push(extend_snapshot_dir(migrations_path));
 
     for (ext_schema, changes) in planned {
         // Snapshot updated (without PK, just extension columns)
@@ -162,88 +158,28 @@ pub(super) fn build_extend_plan(
     }
 }
 
-/// Writes the whole plan atomically: create dirs, back up existing targets, write files,
-/// register lib.rs modules, position AdminTableMigration — all under a single rollback.
+/// Writes the whole plan as one batch — generated files, snapshots and the
+/// `lib.rs` that registers them: all of it, or the project as it was.
 pub(super) fn commit_plan(plan: &Plan, migrations_path: &str) -> Result<()> {
-    // Directory creation (idempotent)
-    for dir in &plan.dirs {
-        fs::create_dir_all(dir)?;
+    let mut batch = AtomicBuilder::modify();
+    for (path, content) in &plan.files {
+        batch = batch.add(
+            PathBuf::from(path),
+            SourceItems::Bytes(content.clone().into_bytes()),
+            false,
+        )?;
     }
-
-    // lib.rs backup for rollback in case of partial error.
-    let lib_file = lib_path(migrations_path);
-    let lib_backup: Option<String> = if Path::new(&lib_file).exists() {
-        Some(fs::read_to_string(&lib_file)?)
-    } else {
-        None
-    };
-
-    // Back up the previous content of any target that already exists (snapshots especially),
-    // so the rollback restores it instead of deleting it — a deleted snapshot would make the
-    // next run regenerate a full CREATE for an already-migrated table.
-    let mut file_backups: StrMap = StrMap::new();
-    for (path, _) in &plan.files {
-        if Path::new(path).exists()
-            && let Ok(prev) = fs::read_to_string(path)
-        {
-            file_backups.insert(path.clone(), prev);
-        }
+    if let Some(lib) = planned_lib(migrations_path, &plan.lib_modules)? {
+        batch = batch.add(
+            PathBuf::from(lib_path(migrations_path)),
+            SourceItems::Bytes(lib.into_bytes()),
+            false,
+        )?;
     }
-
-    let mut written: Vec<String> = Vec::new();
-    let write_result: Result<()> = (|| {
-        for (path, content) in &plan.files {
-            fs::write(path, content).with_context(|| format!("Failed to write: {}", path))?;
-            written.push(path.clone());
-        }
-        for module_name in &plan.lib_modules {
-            update_migration_lib(migrations_path, module_name)?;
-        }
-        // AdminTableMigration positioning rewrites lib.rs — kept inside the protected
-        // scope so a failure here also triggers the rollback below.
-        ensure_admin_migration_positioned(migrations_path)?;
-        Ok(())
-    })();
-
-    if let Err(e) = write_result {
-        eprintln!(
-            "\n[makemigrations] Error: {}. Rollback generated files...",
-            e
-        );
-        for path in &written {
-            match file_backups.get(path) {
-                Some(prev) => {
-                    if let Err(re) = fs::write(path, prev) {
-                        eprintln!("  warning: cannot restore {} : {}", path, re);
-                    } else {
-                        eprintln!("  restored: {}", path);
-                    }
-                }
-                None => {
-                    if let Err(re) = fs::remove_file(path) {
-                        eprintln!("  warning: cannot delete {} : {}", path, re);
-                    } else {
-                        eprintln!("  deleted: {}", path);
-                    }
-                }
-            }
-        }
-        match lib_backup {
-            Some(content) => match fs::write(&lib_file, content) {
-                Ok(()) => eprintln!("  lib.rs restored"),
-                Err(re) => eprintln!("  warning: cannot restore {} : {}", lib_file, re),
-            },
-            None => {
-                if let Err(re) = fs::remove_file(&lib_file)
-                    && re.kind() != std::io::ErrorKind::NotFound
-                {
-                    eprintln!("  warning: cannot delete {} : {}", lib_file, re);
-                }
-            }
-        }
-        return Err(e);
-    }
-
+    batch.start()?;
+    // Runs whether `lib.rs` pre-existed or not: `sea-orm-cli migrate init` always
+    // leaves this placeholder behind, and the `lib.rs` just written no longer names it.
+    strip_sea_orm_cli_placeholder_file(migrations_path);
     Ok(())
 }
 
