@@ -1,5 +1,5 @@
 use crate::atomic::{
-    action::{create, modify},
+    action::prepare,
     struct_atomic::{ActionAtomic, AtomicStep, ItemsPath},
 };
 use std::io;
@@ -9,11 +9,11 @@ pub(in crate::atomic) fn run(action: &ActionAtomic, item: &ItemsPath) -> io::Res
     match action {
         ActionAtomic::Create => {
             check(item)?;
-            create::prepare(item)
+            prepare(item)
         }
         ActionAtomic::Modify => {
             check(item)?;
-            modify::prepare(item)
+            prepare(item)
         }
         ActionAtomic::Rollback => Ok(AtomicStep::Waiting),
         ActionAtomic::Finish => Err(io::ErrorKind::InvalidInput.into()),
