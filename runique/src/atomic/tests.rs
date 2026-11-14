@@ -2,6 +2,7 @@
 //! the step × action table on a disk laid out by hand.
 use super::{
     action::rollback,
+    disk,
     step::{done, placed, prepared, replaced, waiting},
     struct_atomic::{ActionAtomic, AtomicBuilder, AtomicStep, ItemsPath, SourceItems},
 };
@@ -315,21 +316,24 @@ fn a_file_source_ends_up_at_the_path_and_stays_where_it_was() {
 }
 
 #[test]
-fn a_file_source_in_a_create_batch_fails_and_leaves_nothing() {
+fn a_file_source_in_a_create_batch_never_overwrites() {
     let dir = TempDir::new();
     write(&dir.join("staged"), "upload");
+    write(&dir.join("final.bin"), "mine");
 
     let outcome = AtomicBuilder::create()
         .add(
-            dir.join("made/final.bin"),
+            dir.join("final.bin"),
             SourceItems::File(dir.join("staged")),
             false,
         )
         .unwrap()
         .start();
 
-    assert!(matches!(outcome, Err(error) if error.kind() == io::ErrorKind::InvalidInput));
-    assert_eq!(dir.entries(), ["staged"]);
+    assert!(already_exists(outcome));
+    assert_eq!(read(&dir.join("final.bin")), "mine");
+    assert_eq!(read(&dir.join("staged")), "upload");
+    assert_eq!(dir.entries(), ["final.bin", "staged"]);
 }
 
 #[cfg(unix)]
@@ -391,28 +395,20 @@ fn waiting_refuses_to_start_over_a_leftover_backup() {
 }
 
 #[test]
-fn a_creation_refuses_a_file_source() {
-    let dir = TempDir::new();
-    write(&dir.join("staged"), "upload");
-    let item = item(&dir, SourceItems::File(dir.join("staged")));
+fn waiting_links_a_file_source_without_touching_it() {
+    for action in [ActionAtomic::Create, ActionAtomic::Modify] {
+        let dir = TempDir::new();
+        write(&dir.join("staged"), "upload");
+        let item = item(&dir, SourceItems::File(dir.join("staged")));
 
-    assert!(refused(waiting::run(&ActionAtomic::Create, &item)));
-    assert_eq!(dir.entries(), ["staged"]);
-}
-
-#[test]
-fn a_modification_links_a_file_source_without_touching_it() {
-    let dir = TempDir::new();
-    write(&dir.join("staged"), "upload");
-    let item = item(&dir, SourceItems::File(dir.join("staged")));
-
-    assert!(matches!(
-        waiting::run(&ActionAtomic::Modify, &item),
-        Ok(AtomicStep::Prepared)
-    ));
-    assert_eq!(read(&item.temp_path), "upload");
-    assert_eq!(read(&dir.join("staged")), "upload");
-    assert_eq!(dir.entries(), [TEMP, "staged"]);
+        assert!(matches!(
+            waiting::run(&action, &item),
+            Ok(AtomicStep::Prepared)
+        ));
+        assert_eq!(read(&item.temp_path), "upload");
+        assert_eq!(read(&dir.join("staged")), "upload");
+        assert_eq!(dir.entries(), [TEMP, "staged"]);
+    }
 }
 
 // ── Prepared ─────────────────────────────────────────────────────────────────
@@ -906,4 +902,291 @@ fn a_failure_names_the_file_it_happened_on() {
     let message = error.to_string();
     assert!(message.contains("taken.txt"), "{message}");
     assert!(!message.contains("new.txt"), "{message}");
+}
+
+// ── An upload, as the form fields would hand it over ─────────────────────────
+//
+// The media root holds a `.staging-*` folder with the received files, already
+// renamed. The field has checked them; the batch only has to publish them.
+
+/// A media root with `names` received in its staging folder, content = name.
+fn staged(dir: &TempDir, names: &[&str]) -> Vec<PathBuf> {
+    fs::create_dir(dir.join(".staging-1")).unwrap();
+    names
+        .iter()
+        .map(|name| {
+            let path = dir.join(&format!(".staging-1/{name}"));
+            write(&path, name);
+            path
+        })
+        .collect()
+}
+
+#[test]
+fn an_upload_is_published_under_a_folder_made_for_it() {
+    let dir = TempDir::new();
+    let files = staged(&dir, &["photo-9c41.jpg"]);
+
+    AtomicBuilder::create()
+        .add(
+            dir.join("avatars/photo-9c41.jpg"),
+            SourceItems::File(files[0].clone()),
+            false,
+        )
+        .unwrap()
+        .start()
+        .unwrap();
+
+    assert_eq!(read(&dir.join("avatars/photo-9c41.jpg")), "photo-9c41.jpg");
+    assert_eq!(
+        dir.entries(),
+        [
+            ".staging-1",
+            ".staging-1/photo-9c41.jpg",
+            "avatars",
+            "avatars/photo-9c41.jpg"
+        ]
+    );
+}
+
+// Same inode on both names: the content was linked, not read and written again.
+#[cfg(unix)]
+#[test]
+fn an_upload_is_linked_not_copied() {
+    use std::os::unix::fs::MetadataExt;
+    let dir = TempDir::new();
+    let files = staged(&dir, &["video.mp4"]);
+
+    AtomicBuilder::create()
+        .add(
+            dir.join("video.mp4"),
+            SourceItems::File(files[0].clone()),
+            false,
+        )
+        .unwrap()
+        .start()
+        .unwrap();
+
+    assert_eq!(
+        fs::metadata(dir.join("video.mp4")).unwrap().ino(),
+        fs::metadata(&files[0]).unwrap().ino()
+    );
+}
+
+// What the request does once the form is saved: the staging folder goes, the
+// published file stays whole.
+#[test]
+fn a_published_upload_outlives_its_staging_folder() {
+    let dir = TempDir::new();
+    let files = staged(&dir, &["photo.jpg"]);
+
+    AtomicBuilder::create()
+        .add(
+            dir.join("avatars/photo.jpg"),
+            SourceItems::File(files[0].clone()),
+            false,
+        )
+        .unwrap()
+        .start()
+        .unwrap();
+    fs::remove_dir_all(dir.join(".staging-1")).unwrap();
+
+    assert_eq!(read(&dir.join("avatars/photo.jpg")), "photo.jpg");
+    assert_eq!(dir.entries(), ["avatars", "avatars/photo.jpg"]);
+}
+
+#[test]
+fn several_uploads_of_one_field_are_published_together() {
+    let dir = TempDir::new();
+    let files = staged(&dir, &["a.jpg", "b.jpg", "c.jpg"]);
+    let mut batch = AtomicBuilder::create();
+    for (file, name) in files.iter().zip(["a.jpg", "b.jpg", "c.jpg"]) {
+        batch = batch
+            .add(
+                dir.join(&format!("gallery/{name}")),
+                SourceItems::File(file.clone()),
+                false,
+            )
+            .unwrap();
+    }
+
+    batch.start().unwrap();
+
+    for name in ["a.jpg", "b.jpg", "c.jpg"] {
+        assert_eq!(read(&dir.join(&format!("gallery/{name}"))), name);
+    }
+}
+
+// One name of three is already taken: none is published, the folder made for
+// them is gone, and the three received files are still in staging.
+#[test]
+fn several_uploads_are_published_all_or_none() {
+    let dir = TempDir::new();
+    let files = staged(&dir, &["a.jpg", "b.jpg", "c.jpg"]);
+    fs::create_dir(dir.join("kept")).unwrap();
+    write(&dir.join("kept/b.jpg"), "mine");
+
+    let outcome = AtomicBuilder::create()
+        .add(
+            dir.join("gallery/a.jpg"),
+            SourceItems::File(files[0].clone()),
+            false,
+        )
+        .unwrap()
+        .add(
+            dir.join("kept/b.jpg"),
+            SourceItems::File(files[1].clone()),
+            false,
+        )
+        .unwrap()
+        .add(
+            dir.join("gallery/c.jpg"),
+            SourceItems::File(files[2].clone()),
+            false,
+        )
+        .unwrap()
+        .start();
+
+    assert!(already_exists(outcome));
+    assert_eq!(read(&dir.join("kept/b.jpg")), "mine");
+    assert_eq!(
+        dir.entries(),
+        [
+            ".staging-1",
+            ".staging-1/a.jpg",
+            ".staging-1/b.jpg",
+            ".staging-1/c.jpg",
+            "kept",
+            "kept/b.jpg"
+        ]
+    );
+}
+
+// The request's staging folder was swept before the save reached the files.
+#[test]
+fn an_upload_gone_from_staging_publishes_nothing() {
+    let dir = TempDir::new();
+    let files = staged(&dir, &["a.jpg", "b.jpg"]);
+    fs::remove_file(&files[1]).unwrap();
+
+    let outcome = AtomicBuilder::create()
+        .add(
+            dir.join("gallery/a.jpg"),
+            SourceItems::File(files[0].clone()),
+            false,
+        )
+        .unwrap()
+        .add(
+            dir.join("gallery/b.jpg"),
+            SourceItems::File(files[1].clone()),
+            false,
+        )
+        .unwrap()
+        .start();
+
+    let error = outcome.unwrap_err();
+    assert_eq!(error.kind(), io::ErrorKind::NotFound);
+    assert!(error.to_string().contains("b.jpg"), "{error}");
+    assert_eq!(dir.entries(), [".staging-1", ".staging-1/a.jpg"]);
+}
+
+// The files are published, then the database refuses the commit: taking each
+// one back is a plain removal, since a creation never had anything to restore.
+#[test]
+fn published_uploads_are_taken_back_when_the_commit_fails() {
+    let dir = TempDir::new();
+    let files = staged(&dir, &["a.jpg", "b.jpg"]);
+    let published = [dir.join("gallery/a.jpg"), dir.join("gallery/b.jpg")];
+    AtomicBuilder::create()
+        .add(
+            published[0].clone(),
+            SourceItems::File(files[0].clone()),
+            false,
+        )
+        .unwrap()
+        .add(
+            published[1].clone(),
+            SourceItems::File(files[1].clone()),
+            false,
+        )
+        .unwrap()
+        .start()
+        .unwrap();
+
+    for path in &published {
+        disk::remove(path).unwrap();
+        disk::remove(path).unwrap();
+    }
+
+    assert_eq!(read(&files[0]), "a.jpg");
+    assert_eq!(read(&files[1]), "b.jpg");
+    assert_eq!(
+        dir.entries(),
+        [
+            ".staging-1",
+            ".staging-1/a.jpg",
+            ".staging-1/b.jpg",
+            "gallery"
+        ]
+    );
+}
+
+// A profile picture replaced: the new one is published by the batch, the old
+// one is removed afterwards by whoever decided it was no longer wanted.
+#[test]
+fn the_file_an_upload_replaces_is_removed_on_request_only() {
+    let dir = TempDir::new();
+    let files = staged(&dir, &["photo-new.jpg"]);
+    fs::create_dir(dir.join("avatars")).unwrap();
+    write(&dir.join("avatars/photo-old.jpg"), "old");
+    write(&dir.join("avatars/background.avif"), "background");
+
+    AtomicBuilder::create()
+        .add(
+            dir.join("avatars/photo-new.jpg"),
+            SourceItems::File(files[0].clone()),
+            false,
+        )
+        .unwrap()
+        .start()
+        .unwrap();
+    assert_eq!(read(&dir.join("avatars/photo-old.jpg")), "old");
+
+    disk::remove(&dir.join("avatars/photo-old.jpg")).unwrap();
+
+    assert_eq!(read(&dir.join("avatars/photo-new.jpg")), "photo-new.jpg");
+    assert_eq!(read(&dir.join("avatars/background.avif")), "background");
+    assert_eq!(
+        dir.entries(),
+        [
+            ".staging-1",
+            ".staging-1/photo-new.jpg",
+            "avatars",
+            "avatars/background.avif",
+            "avatars/photo-new.jpg"
+        ]
+    );
+}
+
+// The same upload published twice under one name: the second attempt is
+// refused and the first file is left as it was.
+#[test]
+fn publishing_the_same_upload_twice_is_refused() {
+    let dir = TempDir::new();
+    let files = staged(&dir, &["photo.jpg"]);
+    let publish = || {
+        AtomicBuilder::create()
+            .add(
+                dir.join("avatars/photo.jpg"),
+                SourceItems::File(files[0].clone()),
+                false,
+            )
+            .unwrap()
+            .start()
+    };
+
+    publish().unwrap();
+    assert!(already_exists(publish()));
+
+    assert_eq!(read(&dir.join("avatars/photo.jpg")), "photo.jpg");
 }

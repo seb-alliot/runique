@@ -32,7 +32,7 @@ pub(crate) enum AtomicStep {
 pub(crate) enum SourceItems {
     /// Content already in memory: `runique new`, `makemigrations`.
     Bytes(Vec<u8>),
-    /// File already on the same filesystem (staged upload): nothing is loaded in memory.
+    /// File already on the same filesystem (staged upload): linked, never loaded in memory.
     File(PathBuf),
 }
 

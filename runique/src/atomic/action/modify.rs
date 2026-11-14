@@ -1,22 +1,8 @@
 use crate::atomic::{
     disk,
-    struct_atomic::{AtomicStep, ItemsPath, SourceItems},
+    struct_atomic::{AtomicStep, ItemsPath},
 };
 use std::{fs, io};
-
-/// Writes the temp file, from memory or from a file already on disk.
-pub(in crate::atomic) fn prepare(item: &ItemsPath) -> io::Result<AtomicStep> {
-    match &item.source {
-        SourceItems::Bytes(content) => {
-            disk::write_temp(&item.temp_path, content, item.private_file)?
-        }
-        SourceItems::File(source) => {
-            disk::remove(&item.temp_path)?;
-            disk::place(source, &item.temp_path)?
-        }
-    }
-    Ok(AtomicStep::Prepared)
-}
 
 /// Puts the new content at `path`. If a file was there, it is kept at `backup_path`.
 pub(in crate::atomic) fn replace(item: &ItemsPath) -> io::Result<AtomicStep> {
