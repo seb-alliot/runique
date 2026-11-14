@@ -1,4 +1,7 @@
-use std::{fs, io, path::Path};
+use std::{
+    fs, io,
+    path::{Path, PathBuf},
+};
 
 /// Writes the content to the temp file and flushes it to disk.
 pub(super) fn write_temp(temp_path: &Path, content: &[u8], private_file: bool) -> io::Result<()> {
@@ -55,6 +58,28 @@ fn copy_content(source: &mut fs::File, target: &mut fs::File) -> io::Result<()> 
 /// Removes a file. A missing file is not an error, so a rollback can safely run twice.
 pub(super) fn remove(path: &Path) -> io::Result<()> {
     match fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error),
+    }
+}
+
+/// Creates `dir` and its missing parents, recording each on it creates.
+pub(crate) fn create_dirs(dir: &Path, created: &mut Vec<PathBuf>) -> io::Result<()> {
+    if dir.as_os_str().is_empty() || dir.try_exists()? {
+        return Ok(());
+    }
+    if let Some(parent) = dir.parent() {
+        create_dirs(parent, created)?;
+    }
+    fs::create_dir(dir)?;
+    created.push(dir.to_path_buf());
+    Ok(())
+}
+
+/// Removes an empty directory. Already goe is not an error.
+pub(super) fn remove_dir(dir: &Path) -> io::Result<()> {
+    match fs::remove_dir(dir) {
         Ok(()) => Ok(()),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
         Err(error) => Err(error),
