@@ -64,18 +64,17 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     )?;
 
     if main_changes.is_empty() && extend_planned.is_empty() {
-        for (path, content) in &upgrades {
-            fs::write(path, content)?;
-        }
         // A project without a model of its own still needs the framework's
         // tables (accounts, sessions): wired into `lib.rs` even then, and the
         // `sea-orm-cli migrate init` placeholder dropped.
-        ensure_admin_migration_positioned(migrations_path)?;
-        if !upgrades.is_empty() {
-            println!(
-                "{}",
-                tf("makemigrations.snapshots_upgraded", &[upgrades.len()])
-            );
+        let upgraded = upgrades.len();
+        let plan = Plan {
+            files: upgrades,
+            ..Plan::default()
+        };
+        commit_plan(&plan, migrations_path)?;
+        if upgraded != 0 {
+            println!("{}", tf("makemigrations.snapshots_upgraded", &[upgraded]));
         }
         // Silent, a run looked like it did nothing at all; the framework's
         // tables may still be waiting to be applied.

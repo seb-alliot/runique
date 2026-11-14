@@ -33,6 +33,32 @@ pub fn update_migration_lib(migrations_path: &str, module_name: &str) -> Result<
     Ok(())
 }
 
+/// The `lib.rs` once `modules` are registered and the framework's migrations
+/// put first, or `None` when there is nothing to write: no `lib.rs` and no
+/// module to register, or a `lib.rs` already as it should be. Reads, never writes.
+pub(super) fn planned_lib(migrations_path: &str, modules: &[String]) -> Result<Option<String>> {
+    let current = match fs::read_to_string(lib_path(migrations_path)) {
+        Ok(content) => Some(content),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) => return Err(error.into()),
+    };
+    if current.is_none() && modules.is_empty() {
+        return Ok(None);
+    }
+    let mut state = current.as_deref().map(parse_lib_state).unwrap_or_default();
+    for module_name in modules {
+        if !state.mods.contains(module_name) {
+            state.mods.push(module_name.clone());
+            state
+                .entries
+                .push(format!("Box::new({module_name}::Migration)"));
+        }
+    }
+    position_framework_migrations(&mut state);
+    let planned = render_lib(&state);
+    Ok((current.as_deref() != Some(planned.as_str())).then_some(planned))
+}
+
 // ── lib.rs canonical rewriting ───────────────────────────────────────────────
 //
 // `sea-orm-cli migrate init` is the documented first step to bootstrap the
@@ -226,4 +252,96 @@ fn position_framework_migrations(state: &mut LibState) {
     state
         .entries
         .splice(0..0, FRAMEWORK_MIGRATIONS.map(String::from));
+}
+
+#[cfg(test)]
+mod planned_lib_tests {
+    use super::*;
+    use crate::atomic::tests::TempDir;
+
+    const OLD_LIB: &str = "use sea_orm_migration::prelude::*;
+mod m20250101_000000_create_old_table;
+
+pub struct Migrator;
+
+#[async_trait::async_trait]
+impl MigratorTrait for Migrator {
+    fn migrations() -> Vec<Box<dyn MigrationTrait>> {
+        vec![Box::new(m20250101_000000_create_old_table::Migration)]
+    }
+}
+";
+
+    /// A `migration/src` folder holding `lib`, when given.
+    fn migrations(dir: &TempDir, lib: Option<&str>) -> String {
+        let src = dir.join("src");
+        fs::create_dir_all(&src).unwrap();
+        let path = src.to_str().unwrap().to_string();
+        if let Some(content) = lib {
+            fs::write(lib_path(&path), content).unwrap();
+        }
+        path
+    }
+
+    #[test]
+    fn nothing_is_planned_without_a_lib_and_without_a_module() {
+        let dir = TempDir::new();
+        let path = migrations(&dir, None);
+
+        assert!(planned_lib(&path, &[]).unwrap().is_none());
+    }
+
+    #[test]
+    fn a_lib_already_as_it_should_be_is_left_alone() {
+        let dir = TempDir::new();
+        let path = migrations(&dir, Some(&initial_lib()));
+
+        assert!(planned_lib(&path, &[]).unwrap().is_none());
+    }
+
+    #[test]
+    fn a_lib_without_the_framework_migrations_is_planned_even_without_a_module() {
+        let dir = TempDir::new();
+        let path = migrations(&dir, Some(OLD_LIB));
+
+        let planned = planned_lib(&path, &[]).unwrap().unwrap();
+
+        assert!(planned.contains("migrations_table::EihwazUsersMigration"));
+        assert!(planned.contains("m20250101_000000_create_old_table::Migration"));
+    }
+
+    // Planning reads only: the file on disk is the one from before.
+    #[test]
+    fn planning_writes_nothing() {
+        let dir = TempDir::new();
+        let path = migrations(&dir, Some(OLD_LIB));
+
+        planned_lib(&path, &["m20260101_000000_create_shop_table".to_string()]).unwrap();
+
+        assert_eq!(fs::read_to_string(lib_path(&path)).unwrap(), OLD_LIB);
+        assert_eq!(dir.entries(), ["src", "src/lib.rs"]);
+    }
+
+    // The single write must give the very file the step-by-step writes gave,
+    // whether `lib.rs` existed or not, and with a module registered twice.
+    #[test]
+    fn the_planned_lib_is_what_the_step_by_step_writes_produce() {
+        let modules = [
+            "m20260101_000000_create_shop_table".to_string(),
+            "m20260101_000001_create_item_table".to_string(),
+            "m20260101_000000_create_shop_table".to_string(),
+        ];
+        for existing in [None, Some(OLD_LIB)] {
+            let dir = TempDir::new();
+            let path = migrations(&dir, existing);
+
+            let planned = planned_lib(&path, &modules).unwrap().unwrap();
+
+            for module_name in &modules {
+                update_migration_lib(&path, module_name).unwrap();
+            }
+            ensure_admin_migration_positioned(&path).unwrap();
+            assert_eq!(planned, fs::read_to_string(lib_path(&path)).unwrap());
+        }
+    }
 }

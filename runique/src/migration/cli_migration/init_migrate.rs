@@ -2,9 +2,10 @@
 //! `makemigrations` of a project that has none. Runique writes it itself rather
 //! than `sea-orm-cli migrate init`, whose template pins neither the SeaORM
 //! version runique is built with nor any database driver, and lacks runique.
+use crate::atomic::{AtomicBuilder, SourceItems};
 use crate::utils::trad::{t, tf};
 use anyhow::Result;
-use std::{fs, path::Path};
+use std::path::{Path, PathBuf};
 
 /// The exact SeaORM requirement runique is built with, read from its manifest
 /// by `build.rs`.
@@ -56,25 +57,40 @@ impl Engine {
     }
 }
 
-/// Writes `Cargo.toml`, `src/main.rs` and `src/lib.rs` under `migration_dir`.
-/// The `lib.rs` holds the framework's migrations only, exactly what
-/// `makemigrations` would write for a project without a model of its own.
-pub(crate) fn write(migration_dir: &Path, engine: Engine, runique_version: &str) -> Result<()> {
-    fs::create_dir_all(migration_dir.join("src"))?;
+/// `Cargo.toml`, `src/main.rs` and `src/lib.rs` of the crate under
+/// `migration_dir`, as (path, content). The `lib.rs` holds the framework's
+/// migrations only, exactly what `makemigrations` would write for a project
+/// without a model of its own.
+pub(crate) fn files(
+    migration_dir: &Path,
+    engine: Engine,
+    runique_version: &str,
+) -> Vec<(PathBuf, Vec<u8>)> {
     let cargo = include_str!("composant-bin/migration_cargo")
         .replace("{{RUNIQUE_VERSION}}", runique_version)
         .replace("{{DB_FEATURE}}", engine.feature())
         .replace("{{SEA_ORM_MIGRATION_REQ}}", SEA_ORM_MIGRATION_REQ)
         .replace("{{SQLX_FEATURE}}", engine.sqlx_feature());
-    fs::write(migration_dir.join("Cargo.toml"), cargo)?;
-    fs::write(
-        migration_dir.join("src/main.rs"),
-        include_str!("composant-bin/migration_main.rs"),
-    )?;
-    fs::write(
-        migration_dir.join("src/lib.rs"),
-        crate::migration::cli_migration::initial_lib(),
-    )?;
+    vec![
+        (migration_dir.join("Cargo.toml"), cargo.into_bytes()),
+        (
+            migration_dir.join("src/main.rs"),
+            include_bytes!("composant-bin/migration_main.rs").to_vec(),
+        ),
+        (
+            migration_dir.join("src/lib.rs"),
+            crate::migration::cli_migration::initial_lib().into_bytes(),
+        ),
+    ]
+}
+
+/// Writes the migration crate as one batch: all three files, or none.
+pub(crate) fn write(migration_dir: &Path, engine: Engine, runique_version: &str) -> Result<()> {
+    let mut batch = AtomicBuilder::create();
+    for (path, content) in files(migration_dir, engine, runique_version) {
+        batch = batch.add(path, SourceItems::Bytes(content), false)?;
+    }
+    batch.start()?;
     Ok(())
 }
 
@@ -118,6 +134,7 @@ pub(crate) fn ensure(migrations_path: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
 
     #[test]
     fn the_requirements_come_from_the_manifest() {
