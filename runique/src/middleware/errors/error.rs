@@ -287,7 +287,7 @@ fn inject_security_headers(headers: &mut axum::http::HeaderMap, config: &Runique
         }
     }
 
-    // HSTS gaté + configurable (même source que le reste du framework).
+    // HSTS is gated and configurable (same source as the rest of the framework).
     if let Some(hsts) = config.security.hsts_header_value()
         && let Ok(val) = HeaderValue::from_str(&hsts)
     {

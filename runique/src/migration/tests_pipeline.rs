@@ -650,9 +650,9 @@ fn model_pk(pk: &str) -> String {
     )
 }
 
-// `pk: id => Pk` défère à l'alias global `runique::utils::config::Pk` — le SQL
-// généré doit suivre big-pk/pk-uuid, cf. runique/tests/migration/test_parser.rs
-// pour la même vérification côté proc-macro.
+// `pk: id => Pk` defers to the global alias `runique::utils::config::Pk` — the generated
+// SQL must follow big-pk/pk-uuid, see runique/tests/migration/test_parser.rs
+// for the same check on the proc-macro side.
 #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
 #[test]
 fn pk_generic_alias_is_autoincrement_integer_by_default() {

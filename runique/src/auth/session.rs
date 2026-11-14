@@ -272,10 +272,10 @@ pub async fn login(
 
     // DB persistence
     if let Some(store) = db_store {
-        // cycle_id() (session fixation protection) invalide l'ID courant et diffère la
-        // régénération du nouvel ID au prochain save(). Sans ce save() explicite,
-        // session.id() == None ici → cookie_id vide → collision sur la contrainte unique
-        // eihwaz_sessions_cookie_id_key dès le 2ᵉ login.
+        // cycle_id() (session fixation protection) invalidates the current ID and defers
+        // generating the new one until the next save(). Without this explicit save(),
+        // session.id() == None here → empty cookie_id → collision on the unique constraint
+        // eihwaz_sessions_cookie_id_key from the second login on.
         session.save().await?;
 
         let Some(cookie_id) = session.id().map(|id| id.to_string()) else {

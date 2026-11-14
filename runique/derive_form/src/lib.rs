@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 
-// Mêmes garde-fous que `runique` (features forwardées) — voir runique/src/lib.rs
-// pour l'explication des exemptions cfg(doc) / `all-databases`.
+// Same guards as `runique` (forwarded features) — see runique/src/lib.rs
+// for the cfg(doc) / `all-databases` exemptions.
 #[cfg(all(
     not(doc),
     not(feature = "all-databases"),

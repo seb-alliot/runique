@@ -652,8 +652,8 @@ impl ColumnDef {
                 }
                 ColumnType::Json | ColumnType::JsonBinary => JSONField::new(name).into(),
                 ColumnType::Char(_) => TextField::text(name).into(),
-                // Type non géré (binary/blob/inet/cidr/interval…) : dégradé en champ texte.
-                // Loggé pour rester visible (dégradation silencieuse sinon), pas une erreur fatale.
+                // Unsupported type (binary/blob/inet/cidr/interval…): falls back to a text field.
+                // Logged so it stays visible (silent fallback otherwise), not a fatal error.
                 other => {
                     tracing::debug!(
                         field = %name,

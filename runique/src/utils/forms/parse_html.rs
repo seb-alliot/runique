@@ -334,7 +334,7 @@ pub(crate) async fn parse_multipart_guarded(
     let mut tmp_dir: Option<Lease> = None;
     let mut csrf_checked = csrf_session.is_none();
 
-    // Dossiers laissés par un processus mort avant la fin de sa requête.
+    // Directories left behind by a process that died before its request finished.
     sweep_stale_staging(upload_dir).await;
 
     loop {
@@ -505,11 +505,11 @@ pub(crate) async fn parse_multipart_guarded(
         }
     }
 
-    // Pas de publication ici. Le dossier est rendu à l'appelant : la requête le
-    // supprime en se terminant, quel que soit le résultat, et un formulaire qui
-    // n'atteint pas `finalize` retire avant ça les fichiers encore dedans.
-    // `publish_uploads` est l'étape qui les rend servis, juste avant l'écriture DB. Le
-    // balayage ne retire que les dossiers qu'aucun processus vivant ne tient.
+    // Nothing is published here. The directory is handed back to the caller: the request
+    // removes it when it ends, whatever the outcome, and a form that never
+    // reaches `finalize` removes the files still in it before that.
+    // `publish_uploads` is the step that makes them served, right before the DB write. The
+    // sweep only removes directories no live process holds.
 
     Ok((data, tmp_dir))
 }
@@ -520,7 +520,7 @@ pub(crate) async fn parse_multipart_guarded(
 async fn sweep_stale_staging(upload_dir: &Path) {
     let mut entries = match tokio::fs::read_dir(upload_dir).await {
         Ok(e) => e,
-        Err(_) => return, // upload_dir pas encore créé : rien à purger
+        Err(_) => return, // upload_dir not created yet: nothing to purge
     };
     loop {
         let entry = match entries.next_entry().await {
@@ -736,8 +736,8 @@ mod staging_tests {
         );
         assert!(p.exists(), "fichier présent en staging");
 
-        // Pas de commit eager : la racine media_root ne contient que le dossier staging,
-        // pas le fichier final directement.
+        // No eager commit: the media_root root only holds the staging directory,
+        // not the final file itself.
         let filename = p.file_name().unwrap();
         assert!(
             !media.join(filename).exists(),
@@ -960,7 +960,7 @@ mod direct_parse_tests {
         let upload_dir = std::env::temp_dir().join("runique_test_upload");
         match parse_multipart(multipart, &upload_dir, 100, 1024).await {
             Ok(data) => {
-                // Retourne le nombre de champs parsés dans le body
+                // Returns the number of fields parsed from the body
                 let count = data.len().to_string();
                 (StatusCode::OK, count)
             }
@@ -972,7 +972,7 @@ mod direct_parse_tests {
         Router::new().route("/upload", post(multipart_handler))
     }
 
-    // ── Helper : construction d'une requête multipart texte ──────────────────────
+    // ── Helper: builds a text multipart request ──────────────────────
 
     fn multipart_text_request(fields: &[(&str, &str)]) -> Request<Body> {
         let boundary = "----boundary123456";
@@ -1028,7 +1028,7 @@ mod direct_parse_tests {
         assert_eq!(resp.status(), StatusCode::OK);
     }
 
-    // ── Tests — upload de fichier ─────────────────────────────────────────────────
+    // ── Tests — file upload ─────────────────────────────────────────────────
 
     fn multipart_file_request(field_name: &str, filename: &str, content: &str) -> Request<Body> {
         let boundary = "----fileboundary789";

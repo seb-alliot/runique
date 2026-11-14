@@ -1,9 +1,9 @@
 //! Password hashing and verification — Argon2, bcrypt, scrypt via `PasswordHasher` trait.
 
 // === password/hasher.rs ===
-// argon2 et scrypt sont désormais tous deux sur password-hash 0.6 — un seul
-// jeu d'imports partagé (contrairement à avant : scrypt était resté sur 0.5,
-// une version incompatible malgré le nom identique des traits/types).
+// argon2 and scrypt are now both on password-hash 0.6 — a single
+// shared set of imports (unlike before: scrypt was stuck on 0.5,
+// an incompatible version despite identically named traits/types).
 use argon2::{
     Argon2,
     password_hash::{PasswordHasher as _, PasswordVerifier as _, phc::PasswordHash},
@@ -149,8 +149,8 @@ impl BaseHash {
         if password.is_empty() {
             return Err(t("forms.password_empty").into_owned());
         }
-        // argon2 0.6 : `hash_password` génère le sel en interne (via `getrandom`),
-        // il ne prend plus de `SaltString`/RNG explicite en paramètre.
+        // argon2 0.6: `hash_password` generates the salt internally (via `getrandom`),
+        // it no longer takes an explicit `SaltString`/RNG.
         Argon2::default()
             .hash_password(password.as_bytes())
             .map(|h| h.to_string())
@@ -182,9 +182,9 @@ impl BaseHash {
     }
 
     fn verify_bcrypt(&self, password: &str, hash: &str) -> bool {
-        // `bcrypt::verify` ne renvoie `Err` que si le hash ne parse pas (`split_hash`) —
-        // jamais pour "mot de passe faux", qui donne `Ok(false)`. Même traitement que
-        // les autres algorithmes : brûler le même temps sur un hash mal formé.
+        // `bcrypt::verify` only returns `Err` when the hash fails to parse (`split_hash`) —
+        // never for a wrong password, which yields `Ok(false)`. Same handling as
+        // the other algorithms: burn the same time on a malformed hash.
         verify_constant_time(
             |h| {
                 if !bcrypt_cost_allowed(h) {
@@ -201,8 +201,8 @@ impl BaseHash {
         if password.is_empty() {
             return Err(t("forms.password_empty").into_owned());
         }
-        // Comme argon2 0.6, `hash_password` génère le sel en interne (`getrandom`).
-        // `Scrypt` 0.12 n'est plus un unit struct (champ `params` privé) — passer par `default()`.
+        // Like argon2 0.6, `hash_password` generates the salt internally (`getrandom`).
+        // `Scrypt` 0.12 is no longer a unit struct (private `params` field) — go through `default()`.
         Scrypt::default()
             .hash_password(password.as_bytes())
             .map(|h| h.to_string())
