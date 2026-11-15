@@ -7,7 +7,7 @@
 //! FK columns are named `parent_id`/`tag_id` rather than the fuller
 //! `test_relation_parent_id`/`test_relation_tag_id` — combined with the table
 //! name, the longer form pushes the generated `unique_together` index name
-//! past MariaDB/MySQL's 64-character identifier limit (`makemigrations`
+//! past MySQL's 64-character identifier limit (`makemigrations`
 //! fails loudly rather than silently truncating it, see `helpers.rs`'s
 //! `check_sql_identifier_len`). Real schemas rarely stack this many
 //! long, repeated name segments — this is a test-only naming quirk.

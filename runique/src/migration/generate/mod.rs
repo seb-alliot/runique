@@ -124,7 +124,7 @@ pub fn generate_create_file_in_cycle(schema: &ParsedSchema, keys: &CycleKeys<'_>
         down.push_str("        }\n");
     }
     // No explicit drop_index here: DROP TABLE already removes every index defined on it,
-    // and dropping one by name first fails on MariaDB/MySQL when it's still backing an
+    // and dropping one by name first fails on MySQL when it's still backing an
     // active FK constraint (error 1553) — the FK's own drop only happens implicitly with
     // the table, never explicitly before this point in a CREATE-table migration's down().
     down.push_str("        manager\n");

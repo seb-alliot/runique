@@ -43,8 +43,8 @@ async-trait = "0.1"
 
 Ce qui est obligatoire :
 
-- **`runique`** avec la même feature de moteur que l'application (`sqlite`, `postgres`, `mysql` ou `mariadb`) : il fournit les tables du framework.
-- **`sea-orm-migration`** à la **même version exacte** que celle de Runique, avec `runtime-tokio-rustls` et le pilote du moteur : `sqlx-sqlite`, `sqlx-postgres`, ou `sqlx-mysql` (MySQL comme MariaDB).
+- **`runique`** avec la même feature de moteur que l'application (`sqlite`, `postgres`, `mysql`) : il fournit les tables du framework.
+- **`sea-orm-migration`** à la **même version exacte** que celle de Runique, avec `runtime-tokio-rustls` et le pilote du moteur : `sqlx-sqlite`, `sqlx-postgres`, ou `sqlx-mysql`.
 - **Les features par défaut de `sea-orm-migration`** : elles apportent `cli::run_cli`, appelé par `src/main.rs`. Avec `default-features = false`, ajoutez `"cli"` à la liste, sinon le crate ne compile plus.
 - **`tokio`** avec `macros` et `rt-multi-thread` (`#[tokio::main]` de `main.rs`), et **`async-trait`** (les migrations générées).
 - **`[lib] name = "migration"`** : `main.rs` appelle `migration::Migrator`.
@@ -112,7 +112,7 @@ Le contrôle couvre les tables de l'application (`model!{}`) comme les extension
 Les fichiers générés sont **communs à tous les moteurs** : ce qui ne concerne qu'un moteur est choisi à l'exécution, dans le fichier.
 
 - Les FK sont déclarées **dans le `CREATE TABLE`**, et les tables référencées sont créées avant celles qui les référencent.
-- **Cycle** (deux nouvelles tables qui se référencent l'une l'autre) : sous SQLite, la clé reste dans le `CREATE TABLE` ; sous PostgreSQL / MySQL / MariaDB, la clé qui ferme le cycle est ajoutée par un `ALTER TABLE` une fois la table visée créée.
+- **Cycle** (deux nouvelles tables qui se référencent l'une l'autre) : sous SQLite, la clé reste dans le `CREATE TABLE` ; sous PostgreSQL / MySQL, la clé qui ferme le cycle est ajoutée par un `ALTER TABLE` une fois la table visée créée.
 - Chaque colonne de `belongs_to` reçoit un index `idx_<table>_<colonne>`.
 - Les enums deviennent un `CREATE TYPE … AS ENUM` sous PostgreSQL, un `VARCHAR` ailleurs.
 
@@ -169,8 +169,8 @@ Les changements des modèles et des blocs `extend!{}` sont d'abord planifiés en
 - **La suppression d'une table n'est pas détectée.** Retirer un modèle ne génère rien : `makemigrations` répond « aucun changement », et la table reste en base. Pour la supprimer, écrivez une migration à la main (`drop_table`, à enregistrer dans `lib.rs`), retirez son snapshot de `migration/src/snapshots/`, et enlevez d'abord tout `belongs_to` qui la vise. Prévu pour la 4.1.
 - **La génération n'est pas encore protégée contre un arrêt brutal** (coupure, `kill -9`) en plein milieu de l'écriture : une erreur ordinaire est annulée, une interruption peut laisser des fichiers partiellement mis à jour. Le dossier `migration/` étant versionné, `git` permet de le restaurer.
 - **Ne copiez pas les snapshots d'un autre projet sans ses migrations** : un snapshot signifie « déjà migré ». `makemigrations` ne génère alors rien pour ces modèles, alors qu'aucune migration ne crée leurs tables.
-- **Les noms d'index et de clés étrangères sont limités à 63 caractères, sur tous les moteurs** (ils sont générés à partir des noms de tables et de colonnes ; 63 est la limite de PostgreSQL, MySQL / MariaDB acceptent 64) : `makemigrations` refuse un nom trop long avant d'écrire le moindre fichier, plutôt que de le tronquer ; raccourcissez les noms en cause.
-- **`runique migration up` n'applique une migration de façon atomique que sous Postgres.** sea-orm-migration n'enveloppe chaque migration (et son inscription dans `seaql_migrations`) dans une transaction que sur ce moteur. Sous SQLite et MySQL / MariaDB, une migration qui échoue en cours de route peut rester à moitié appliquée ; sous MySQL / MariaDB, aucune transaction n'y changerait rien (chaque instruction DDL valide d'elle-même). En développement sous SQLite, supprimez le fichier de base et relancez `runique migration up` ; ailleurs, corrigez la base à la main avant de relancer.
+- **Les noms d'index et de clés étrangères sont limités à 63 caractères, sur tous les moteurs** (ils sont générés à partir des noms de tables et de colonnes ; 63 est la limite de PostgreSQL, MySQL acceptent 64) : `makemigrations` refuse un nom trop long avant d'écrire le moindre fichier, plutôt que de le tronquer ; raccourcissez les noms en cause.
+- **`runique migration up` n'applique une migration de façon atomique que sous Postgres.** sea-orm-migration n'enveloppe chaque migration (et son inscription dans `seaql_migrations`) dans une transaction que sur ce moteur. Sous SQLite et MySQL, une migration qui échoue en cours de route peut rester à moitié appliquée ; sous MySQL, aucune transaction n'y changerait rien (chaque instruction DDL valide d'elle-même). En développement sous SQLite, supprimez le fichier de base et relancez `runique migration up` ; ailleurs, corrigez la base à la main avant de relancer.
 
 ---
 
@@ -178,7 +178,7 @@ Les changements des modèles et des blocs `extend!{}` sont d'abord planifiés en
 
 | Section | Description |
 | --- | --- |
-| [Base de données](/docs/fr/installation/base-de-donnees) | SQLite, PostgreSQL, MySQL / MariaDB |
+| [Base de données](/docs/fr/installation/base-de-donnees) | SQLite, PostgreSQL, MySQL |
 | [CLI Runique](/docs/fr/installation/cli) | Commandes disponibles |
 | [Modèles](/docs/fr/model) | DSL `model!{}` |
 | [Fonctionnement de makemigrations](/docs/fr/architecture/makemigrations) | Snapshots, diff, génération |

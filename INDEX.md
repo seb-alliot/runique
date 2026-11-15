@@ -181,13 +181,13 @@ tests/
 │   ├── db.rs                 # fresh_db() (SQLite)
 │   ├── db_isolation.rs       # per-test transaction isolation
 │   ├── db_postgres.rs        # fresh_db_postgres()
-│   └── db_mariadb.rs         # fresh_db_mariadb()
+│   └── db_mysql.rs         # fresh_db_mysql()
 ├── admin/                    # registry, form filter, renderer, URL registry
 ├── app/                      # robots.txt, runique_app
 ├── auth/                     # admin auth, current user, login form, middlewares, session
 ├── config/                   # app config, builder, router, security, server, static
 ├── context/                  # app error, request extensions, Tera context, URL function
-├── db/                       # SQLite, Postgres, MariaDB config tests
+├── db/                       # SQLite, Postgres, MySQL config tests
 ├── errors/                   # error rendering
 ├── flash/                    # flash manager
 ├── formulaire/               # all form tests (aegis, fields, prisme, validator, renderer…)
@@ -281,7 +281,6 @@ cargo test --tests                         # integration only (no inline)
 | `sqlite`         | SQLite — pick exactly one engine          |
 | `postgres`       | PostgreSQL                               |
 | `mysql`          | MySQL                                    |
-| `mariadb`        | MariaDB (alias of `mysql`)               |
 | `all-databases`  | All three engines, explicit opt-in only (multi-engine tooling, docs.rs) |
 | `big-pk`         | `Pk = i64` instead of `i32`          |
 | `pk-uuid`        | `Pk = Uuid` (`Uuid::now_v7()`), mutually exclusive with `big-pk` |

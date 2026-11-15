@@ -1443,7 +1443,11 @@ fn a_batch_with_a_journal_leaves_none_once_it_is_undone() {
 
     let outcome = AtomicBuilder::create()
         .journal(dir.join("project"))
-        .add(dir.join("project/src/main.rs"), bytes("fn main() {}"), false)
+        .add(
+            dir.join("project/src/main.rs"),
+            bytes("fn main() {}"),
+            false,
+        )
         .unwrap()
         .add(
             dir.join("project/src/../src/main.rs"),
@@ -1465,7 +1469,11 @@ fn a_journal_folder_several_levels_down_is_created_with_its_parents() {
 
     AtomicBuilder::create()
         .journal(dir.join("apps/blog/migration"))
-        .add(dir.join("apps/blog/migration/Cargo.toml"), bytes("x"), false)
+        .add(
+            dir.join("apps/blog/migration/Cargo.toml"),
+            bytes("x"),
+            false,
+        )
         .unwrap()
         .start()
         .unwrap();
@@ -1483,7 +1491,11 @@ fn a_journal_folder_several_levels_down_is_created_with_its_parents() {
         .journal(dir.join("other/deep/migration"))
         .add(dir.join("other/deep/migration/a.txt"), bytes("a"), false)
         .unwrap()
-        .add(dir.join("other/deep/migration/sub/../a.txt"), bytes("a"), false)
+        .add(
+            dir.join("other/deep/migration/sub/../a.txt"),
+            bytes("a"),
+            false,
+        )
         .unwrap()
         .start();
     assert!(outcome.is_err());
@@ -1496,7 +1508,11 @@ fn a_journal_in_a_folder_the_batch_creates_is_removed_from_it() {
 
     AtomicBuilder::create()
         .journal(dir.join("project"))
-        .add(dir.join("project/src/main.rs"), bytes("fn main() {}"), false)
+        .add(
+            dir.join("project/src/main.rs"),
+            bytes("fn main() {}"),
+            false,
+        )
         .unwrap()
         .start()
         .unwrap();
@@ -1527,10 +1543,7 @@ fn a_file_outside_the_journal_s_folder_is_refused() {
 #[test]
 fn an_empty_batch_writes_no_journal() {
     let dir = TempDir::new();
-    AtomicBuilder::modify()
-        .journal(dir.path())
-        .start()
-        .unwrap();
+    AtomicBuilder::modify().journal(dir.path()).start().unwrap();
     assert!(dir.entries().is_empty());
 }
 
@@ -1770,12 +1783,7 @@ fn a_file_edited_since_the_cut_stops_the_repair() {
     write(&dir.join("first.txt.runique-bak"), "original first");
     let cut = item(&dir, bytes("new"));
     lay_out(&cut, Some("edited by hand"), Some("new"), Some("original"));
-    cut_journal(
-        dir.path(),
-        false,
-        &[("first.txt", true), (PATH, true)],
-        &[],
-    );
+    cut_journal(dir.path(), false, &[("first.txt", true), (PATH, true)], &[]);
     let before = dir.entries();
 
     let error = recover(dir.path()).unwrap_err();
@@ -1784,7 +1792,11 @@ fn a_file_edited_since_the_cut_stops_the_repair() {
     assert!(error.to_string().contains(PATH), "{error}");
     assert_eq!(read(&dir.join(PATH)), "edited by hand");
     assert_eq!(read(&dir.join(BACKUP)), "original");
-    assert_eq!(read(&dir.join("first.txt")), "new first", "not even the first");
+    assert_eq!(
+        read(&dir.join("first.txt")),
+        "new first",
+        "not even the first"
+    );
     assert_eq!(dir.entries(), before);
 }
 
@@ -1798,7 +1810,9 @@ fn a_journal_naming_a_path_outside_its_folder_is_refused() {
     write(&dir.join("victim.txt"), "theirs");
     write(&dir.join("victim.txt.runique-tmp"), "theirs");
     let absolute = dir.join("victim.txt");
-    let cases: [(&[(&str, bool)], &[&str]); 5] = [
+    // The files a journal names, then the folders.
+    type Named<'a> = (&'a [(&'a str, bool)], &'a [&'a str]);
+    let cases: [Named; 5] = [
         (&[("../victim.txt", false)], &[]),
         (&[(absolute.to_str().unwrap(), false)], &[]),
         (&[("file.txt.runique-bak", false)], &[]),
@@ -1810,7 +1824,11 @@ fn a_journal_naming_a_path_outside_its_folder_is_refused() {
 
         let error = recover(&dir.join("project")).unwrap_err();
 
-        assert_eq!(error.kind(), io::ErrorKind::InvalidData, "{files:?} {dirs:?}");
+        assert_eq!(
+            error.kind(),
+            io::ErrorKind::InvalidData,
+            "{files:?} {dirs:?}"
+        );
         assert_eq!(read(&dir.join("victim.txt")), "theirs", "{files:?}");
         assert!(dir.join("victim.txt.runique-tmp").exists(), "{files:?}");
         assert!(dir.join("project").is_dir(), "{files:?} {dirs:?}");
@@ -1897,7 +1915,10 @@ fn a_temp_file_made_by_hand_is_never_removed() {
         .unwrap_err();
 
     assert_eq!(error.kind(), io::ErrorKind::AlreadyExists);
-    assert!(error.to_string().contains("notes.txt.runique-tmp"), "{error}");
+    assert!(
+        error.to_string().contains("notes.txt.runique-tmp"),
+        "{error}"
+    );
     assert_eq!(read(&dir.join("notes.txt")), "notes");
     assert_eq!(
         read(&dir.join("notes.txt.runique-tmp")),
@@ -1988,7 +2009,10 @@ fn every_file_that_does_not_match_is_listed() {
     let message = recover(dir.path()).unwrap_err().to_string();
 
     assert_eq!(message.lines().count(), 2, "{message}");
-    assert!(message.contains("a.txt") && message.contains("b.txt"), "{message}");
+    assert!(
+        message.contains("a.txt") && message.contains("b.txt"),
+        "{message}"
+    );
     assert!(!message.contains("c.txt"), "{message}");
     assert_eq!(read(&dir.join("c.txt")), "new", "nothing was touched");
 }
@@ -2024,4 +2048,121 @@ fn a_folder_is_interrupted_while_its_journal_is_there() {
 
     assert!(recover(dir.path()).unwrap());
     assert!(!super::interrupted(dir.path()));
+}
+
+// ── Survivors of the mutation run ────────────────────────────────────────────
+
+/// A file on another filesystem than the temp folder's (`/dev/shm` is kept in
+/// memory), removed on drop: a hard link can't reach it, so placing it has to
+/// fall back on a copy. `None` where both sit on the same filesystem, or where
+/// there is no `/dev/shm`: the test then has nothing to check.
+#[cfg(target_os = "linux")]
+pub(crate) struct Elsewhere(pub(crate) PathBuf);
+
+#[cfg(target_os = "linux")]
+impl Elsewhere {
+    pub(crate) fn new(content: &str) -> Option<Self> {
+        use std::os::unix::fs::MetadataExt;
+        let shared = Path::new("/dev/shm");
+        let here = fs::metadata(std::env::temp_dir()).ok()?.dev();
+        if fs::metadata(shared).ok()?.dev() == here {
+            return None;
+        }
+        let path = shared.join(format!("rq_atomic_{}", uuid::Uuid::new_v4()));
+        fs::write(&path, content).ok()?;
+        Some(Self(path))
+    }
+}
+
+#[cfg(target_os = "linux")]
+impl Drop for Elsewhere {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.0);
+    }
+}
+
+// The whole batch on a source that can't be hard-linked: the content is
+// copied, the source stays, and nothing of the batch's own is left.
+#[cfg(target_os = "linux")]
+#[test]
+fn a_file_source_on_another_filesystem_is_copied() {
+    let Some(source) = Elsewhere::new("upload") else {
+        return;
+    };
+    let dir = TempDir::new();
+
+    AtomicBuilder::create()
+        .add(
+            dir.join("made/final.bin"),
+            SourceItems::File(source.0.clone()),
+            false,
+        )
+        .unwrap()
+        .start()
+        .unwrap();
+
+    assert_eq!(read(&dir.join("made/final.bin")), "upload");
+    assert_eq!(read(&source.0), "upload");
+    assert_eq!(dir.entries(), ["made", "made/final.bin"]);
+}
+
+// The same, with a file already at the destination: never written over,
+// whether the content would have been linked or copied.
+#[cfg(target_os = "linux")]
+#[test]
+fn a_file_source_on_another_filesystem_never_overwrites() {
+    let Some(source) = Elsewhere::new("upload") else {
+        return;
+    };
+    let dir = TempDir::new();
+    write(&dir.join("final.bin"), "mine");
+
+    let outcome = AtomicBuilder::create()
+        .add(
+            dir.join("final.bin"),
+            SourceItems::File(source.0.clone()),
+            false,
+        )
+        .unwrap()
+        .start();
+
+    assert!(already_exists(outcome));
+    assert_eq!(read(&dir.join("final.bin")), "mine");
+    assert_eq!(dir.entries(), ["final.bin"]);
+}
+
+// A directory at `path`: its backup can't be made. The error is the backup's
+// own, not "a file is in the way" from placing the new content over it, and
+// no half-made backup is left.
+#[cfg(unix)]
+#[test]
+fn prepared_modify_reports_the_backup_that_failed() {
+    let dir = TempDir::new();
+    let item = item(&dir, bytes("new"));
+    fs::create_dir(&item.path).unwrap();
+    write(&item.temp_path, "new");
+
+    let error = prepared::run(&ActionAtomic::Modify, &item).err().unwrap();
+
+    assert_ne!(error.kind(), io::ErrorKind::AlreadyExists);
+    assert!(item.path.is_dir());
+    assert_eq!(dir.entries(), [PATH, TEMP]);
+}
+
+// An empty batch is the everyday case of a command that finds nothing to
+// write: it makes no folder for a journal it has no use for.
+#[test]
+fn an_empty_batch_does_not_even_make_the_journal_s_folder() {
+    let dir = TempDir::new();
+
+    AtomicBuilder::create()
+        .journal(dir.join("not/made"))
+        .start()
+        .unwrap();
+    AtomicBuilder::modify()
+        .journal(dir.join("not/made"))
+        .start()
+        .unwrap();
+
+    assert!(dir.entries().is_empty());
 }

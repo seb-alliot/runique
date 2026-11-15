@@ -4,11 +4,10 @@ version = "1.0.0"
 edition = "2024"
 
 [features]
-# Le site tourne sur Postgres ; MariaDB / MySQL servent aux tests :
-# `cargo test -p demo-app --no-default-features --features mariadb`.
+# Le site tourne sur Postgres ; MySQL sert aux tests :
+# `cargo test -p demo-app --no-default-features --features mysql`.
 default = ["postgres"]
 postgres = ["runique/postgres"]
-mariadb = ["runique/mariadb"]
 mysql = ["runique/mysql"]
 big-pk = ["runique/big-pk"]
 pk-uuid = ["runique/pk-uuid"]

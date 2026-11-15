@@ -1,9 +1,9 @@
-//! Tests MariaDB via Docker
-//! Nécessite `docker compose up -d` et DATABASE_URL_MARIADB dans .env.test
+//! Tests MySQL via Docker
+//! Nécessite `docker compose up -d` et DATABASE_URL_MYSQL dans .env.test
 //! Si la variable est absente, chaque test retourne immédiatement (skip implicite).
 //! Les tests tournent en série (#[serial]) car ils partagent la même base Docker.
 
-use crate::helpers::db_mariadb as db;
+use crate::helpers::db_mysql as db;
 use serial_test::serial;
 
 const SCHEMA: &str = "CREATE TABLE utilisateur (
@@ -18,7 +18,7 @@ const DROP: &str = "DROP TABLE IF EXISTS utilisateur";
 
 #[tokio::test]
 #[serial]
-async fn test_connexion_mariadb_ouvre() {
+async fn test_connexion_mysql_ouvre() {
     let Some(_db) = db::connect().await else {
         return;
     };
@@ -26,7 +26,7 @@ async fn test_connexion_mariadb_ouvre() {
 
 #[tokio::test]
 #[serial]
-async fn test_creation_de_table_mariadb() {
+async fn test_creation_de_table_mysql() {
     let Some(db) = db::connect().await else {
         return;
     };
@@ -37,7 +37,7 @@ async fn test_creation_de_table_mariadb() {
 
 #[tokio::test]
 #[serial]
-async fn test_insertion_simple_mariadb() {
+async fn test_insertion_simple_mysql() {
     let Some(db) = db::connect().await else {
         return;
     };
@@ -55,7 +55,7 @@ async fn test_insertion_simple_mariadb() {
 
 #[tokio::test]
 #[serial]
-async fn test_insertion_multiple_mariadb() {
+async fn test_insertion_multiple_mysql() {
     let Some(db) = db::connect().await else {
         return;
     };
@@ -73,7 +73,7 @@ async fn test_insertion_multiple_mariadb() {
 
 #[tokio::test]
 #[serial]
-async fn test_mise_a_jour_mariadb() {
+async fn test_mise_a_jour_mysql() {
     let Some(db) = db::connect().await else {
         return;
     };
@@ -90,7 +90,7 @@ async fn test_mise_a_jour_mariadb() {
 
 #[tokio::test]
 #[serial]
-async fn test_suppression_mariadb() {
+async fn test_suppression_mysql() {
     let Some(db) = db::connect().await else {
         return;
     };

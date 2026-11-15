@@ -24,7 +24,7 @@ Ce que Runique fait sans réglage de ta part. Chaque valeur se change, sur la pa
 - Utiliser **exactement** la version de SeaORM épinglée ci-dessus dans ton projet et dans son crate `migration/` : `runique new` l'écrit pour toi.
 - Générer les migrations en développement (`runique makemigrations`), les commiter, et n'appliquer en production que `migration up`.
 - Tester sur le moteur de production, pas seulement sur SQLite : certains comportements (fuseaux horaires, casse des textes, index des clés étrangères) diffèrent d'un moteur à l'autre.
-- Sous MySQL et MariaDB, sauvegarder la base avant chaque `migration up` : un `CREATE` ou un `ALTER` n'y est jamais annulé.
+- Sous MySQL, sauvegarder la base avant chaque `migration up` : un `CREATE` ou un `ALTER` n'y est jamais annulé.
 
 ## À éviter
 

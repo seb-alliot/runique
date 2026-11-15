@@ -167,17 +167,17 @@ Le type Rust indiqué est celui d'une colonne NOT NULL ; une colonne `nullable` 
 | `checkbox`         | — (liste, voir plus bas)   | idem `multichoice`, rendu en cases à cocher |
 
 `VARCHAR` sans longueur prend la valeur par défaut du moteur : illimité sous Postgres,
-`VARCHAR(255)` sous MySQL/MariaDB, `TEXT` sous SQLite. `ip`, `cidr`, `mac_address` et
+`VARCHAR(255)` sous MySQL, `TEXT` sous SQLite. `ip`, `cidr`, `mac_address` et
 `interval` restent des `VARCHAR` : leurs types natifs n'existent que sous Postgres.
 
 **Limites des moteurs**, refusées à la compilation quand une seule feature de moteur est
 active : `i8` et `u32` sous Postgres, `u64` sous Postgres et SQLite (la valeur ne peut pas être
-relue dans le type Rust). Sous MySQL/MariaDB, `binary` est une colonne à **longueur fixe**,
+relue dans le type Rust). Sous MySQL, `binary` est une colonne à **longueur fixe**,
 complétée par des `0x00` : utilisez `var_binary` pour relire exactement les octets écrits.
 
 > **`decimal` exige sa précision et son échelle** : `max_digits` (tous les chiffres) et
 > `decimal_places` (ceux après la virgule), sinon erreur de compilation. Sans elles,
-> MySQL/MariaDB créeraient `DECIMAL(10, 0)` et arrondiraient chaque valeur à l'entier.
+> MySQL créeraient `DECIMAL(10, 0)` et arrondiraient chaque valeur à l'entier.
 > Bornes : `1 ≤ max_digits ≤ 65`, `decimal_places ≤ 30` et `≤ max_digits`.
 >
 > ```rust
@@ -288,7 +288,7 @@ title: text [renamed_from: "job_title"],
 ```
 
 `makemigrations` génère alors un `ALTER TABLE … RENAME COLUMN job_title TO title` (supporté par
-PostgreSQL, MySQL/MariaDB et SQLite), sans perte de données. L'attribut est une directive de
+PostgreSQL, MySQL et SQLite), sans perte de données. L'attribut est une directive de
 migration uniquement : il n'a aucun effet sur l'entité ou le formulaire générés. Garde-fou : si
 l'ancienne colonne existe toujours dans le snapshot (hint périmé), aucun rename n'est émis.
 
@@ -512,7 +512,7 @@ search!(livre::Entity => !Genres has Genre::Roman, Titre icontains "nuit")
 livre::Entity::objects.filter(livre::List::Genres.has(Genre::Roman))   // sans search!
 ```
 
-Les filtres sont des sous-requêtes portables (Postgres, MySQL/MariaDB, SQLite) et sont typés :
+Les filtres sont des sous-requêtes portables (Postgres, MySQL, SQLite) et sont typés :
 passer une valeur d'un autre enum ne compile pas.
 
 ### Postgres : lignes et listes en une requête

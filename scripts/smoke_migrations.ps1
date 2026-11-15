@@ -1,10 +1,10 @@
 <#
   Smoke-test multi-moteur de makemigrations (version PowerShell, machines lentes a compiler).
 
-  Pour chaque moteur demande (sqlite, postgres, mariadb) :
+  Pour chaque moteur demande (sqlite, postgres, mysql) :
     1. clean slate : suppression des migrations + snapshots + lib.rs de demo-app
     2. regeneration via `runique makemigrations` AVEC le DbKind du moteur
-       (CREATE TYPE/triggers pour PG, ENUM inline pour MariaDB, TEXT pour SQLite)
+       (CREATE TYPE/triggers pour PG, ENUM inline pour MySQL, TEXT pour SQLite)
     3. execution reelle : `cargo run -p migration -- fresh` puis `reset`
 
   Les migrations de demo-app sont sauvegardees au debut et RESTAUREES a la fin.
@@ -17,9 +17,9 @@
   Usage :
     powershell -ExecutionPolicy Bypass -File scripts\smoke_migrations.ps1 sqlite
     powershell -ExecutionPolicy Bypass -File scripts\smoke_migrations.ps1
-    powershell -ExecutionPolicy Bypass -File scripts\smoke_migrations.ps1 postgres mariadb
+    powershell -ExecutionPolicy Bypass -File scripts\smoke_migrations.ps1 postgres mysql
 
-  Override URLs : $env:DATABASE_URL_PG / $env:DATABASE_URL_MARIADB
+  Override URLs : $env:DATABASE_URL_PG / $env:DATABASE_URL_MYSQL
 #>
 
 $ErrorActionPreference = "Continue"
@@ -31,7 +31,7 @@ $MigSrc     = Join-Path $Root "demo-app\migration\src"
 $RuniqueBin = Join-Path $Root "target\debug\runique.exe"
 
 $PgUrl    = if ($env:DATABASE_URL_PG)      { $env:DATABASE_URL_PG }      else { "postgres://runique:runique_test@localhost:5433/runique_test" }
-$MariaUrl = if ($env:DATABASE_URL_MARIADB) { $env:DATABASE_URL_MARIADB } else { "mysql://runique:runique_test@localhost:3307/runique_test" }
+$MysqlUrl = if ($env:DATABASE_URL_MYSQL) { $env:DATABASE_URL_MYSQL } else { "mysql://runique:runique_test@localhost:3307/runique_test" }
 
 # Forme canonique Runique : `sqlite://<nom_relatif>?mode=rwc` (cf. db/config.rs).
 # Un chemin ABSOLU casse le parsing d'URL sur Windows (le `C:` est pris pour un host).
@@ -44,7 +44,7 @@ $SqliteUrl  = 'sqlite://' + $SqliteName + '?mode=rwc'
 
 # Moteurs demandes (args), sinon les 3.
 $Engines = $args
-if ($Engines.Count -eq 0) { $Engines = @("sqlite", "postgres", "mariadb") }
+if ($Engines.Count -eq 0) { $Engines = @("sqlite", "postgres", "mysql") }
 function Want($name) { return ($Engines -contains $name) }
 
 # Sauvegarde de l'environnement DB pour le restaurer ensuite.
@@ -122,13 +122,13 @@ try {
     cargo build -q -p runique --bin runique
     if ($LASTEXITCODE -ne 0) { Write-Host "ECHEC: build du CLI runique"; exit 1 }
 
-    # Docker uniquement si PG/MariaDB sont demandes.
-    if ((Want "postgres") -or (Want "mariadb")) {
+    # Docker uniquement si PG/MySQL sont demandes.
+    if ((Want "postgres") -or (Want "mysql")) {
         $hasDocker = Get-Command docker -ErrorAction SilentlyContinue
         if ($hasDocker -and (Test-Path (Join-Path $Root "docker-compose.yml"))) {
             $svc = @()
             if (Want "postgres") { $svc += "postgres" }
-            if (Want "mariadb")  { $svc += "mariadb" }
+            if (Want "mysql")  { $svc += "mysql" }
             Write-Host "--- docker compose up -d --wait $($svc -join ' ') ---"
             docker compose up -d --wait @svc
             if ($LASTEXITCODE -ne 0) { Write-Host "ATTENTION: docker compose a echoue - moteur(s) concerne(s) echoueront s'ils ne repondent pas" }
@@ -137,7 +137,7 @@ try {
 
     if (Want "sqlite")   { $Result["SQLite"]   = (Invoke-Engine "SQLite"   $SqliteUrl "sqlite") }
     if (Want "postgres") { $Result["Postgres"] = (Invoke-Engine "Postgres" $PgUrl     "postgres") }
-    if (Want "mariadb")  { $Result["MariaDB"]  = (Invoke-Engine "MariaDB"  $MariaUrl  "mariadb") }
+    if (Want "mysql")  { $Result["MySQL"]  = (Invoke-Engine "MySQL"  $MysqlUrl  "mysql") }
 }
 finally {
     Remove-Item -Recurse -Force $MigSrc
@@ -159,7 +159,7 @@ finally {
 Write-Host ""
 Write-Host "==================== RESUME ===================="
 $fail = 0
-foreach ($engine in @("SQLite", "Postgres", "MariaDB")) {
+foreach ($engine in @("SQLite", "Postgres", "MySQL")) {
     if (-not $Result.ContainsKey($engine)) { continue }
     $status = if ($Result[$engine]) { "OK" } else { "ECHEC" }
     "{0,-10} : {1}" -f $engine, $status | Write-Host

@@ -24,7 +24,7 @@ What Runique does without any setting on your side. Each value can be changed, o
 - Use **exactly** the SeaORM version pinned above in your project and in its `migration/` crate: `runique new` writes it for you.
 - Generate migrations in development (`runique makemigrations`), commit them, and only run `migration up` in production.
 - Test on your production engine, not only on SQLite: some behaviours (time zones, text case, foreign-key indexes) differ from one engine to another.
-- On MySQL and MariaDB, back the database up before each `migration up`: a `CREATE` or an `ALTER` is never rolled back there.
+- On MySQL, back the database up before each `migration up`: a `CREATE` or an `ALTER` is never rolled back there.
 
 ## To avoid
 

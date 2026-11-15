@@ -6,10 +6,11 @@
 |---|---|
 | `orm` (default) | SeaORM: entities, queries, migrations, sessions. **No driver**: the code compiles and `makemigrations` works, but the app can't connect to any database. |
 | `sqlite`, `postgres`, `mysql` | The engine's driver. Each one also turns `orm` on. |
-| `mariadb` | Alias of `mysql`. |
 | `all-databases` | All three drivers at once, for multi-engine tools (CLI, CI). |
 
 An app turns on **one** engine: turning on two is a compile error (except through `all-databases`). `orm` needn't be written.
+
+MariaDB is not supported: SeaORM only knows these three engines, and refuses a `mariadb://` URL.
 
 ---
 
@@ -53,7 +54,6 @@ sea-orm-migration = { version = "=2.0.4", features = [
 | SQLite | `sqlite` | `sqlx-sqlite` |
 | PostgreSQL | `postgres` | `sqlx-postgres` |
 | MySQL | `mysql` | `sqlx-mysql` |
-| MariaDB | `mariadb` | `sqlx-mysql` |
 
 **3. `.env`** — `DB_ENGINE` and `DATABASE_URL`:
 
@@ -71,7 +71,7 @@ Then apply the migrations to the new database: `runique migration up`.
 ```env
 DATABASE_URL="sqlite://data.db?mode=rwc"                        # file created if missing
 DATABASE_URL=postgres://user:password@localhost:5432/my_db
-DATABASE_URL=mysql://user:password@localhost:3306/my_db         # MySQL and MariaDB
+DATABASE_URL=mysql://user:password@localhost:3306/my_db
 ```
 
 A relative SQLite path is read from the folder the app runs in: run `cargo run` and `runique migration` from the project root.

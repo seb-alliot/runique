@@ -75,7 +75,7 @@ Vérifié le 5 novembre 2026 dans [la documentation](https://loco.rs/docs/) et [
 | Fonctionnalité | Loco | Runique |
 |----------------|------|---------|
 | ORM | SeaORM | SeaORM |
-| Moteurs | SQLite, PostgreSQL (features par défaut) | SQLite, PostgreSQL, MySQL/MariaDB, un moteur par compilation |
+| Moteurs | SQLite, PostgreSQL (features par défaut) | SQLite, PostgreSQL, MySQL, un moteur par compilation |
 | Définition modèle | entités générées depuis les migrations | macro `model!{}` |
 | Migrations | DSL `loco_rs::schema`, écrites ou générées | `runique makemigrations` compare au dernier instantané |
 | Requêtes | `query::condition()` et SeaORM | `search!` et SeaORM |

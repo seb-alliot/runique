@@ -4,7 +4,7 @@
 //! Raw SQL, without the ORM, on every engine available.
 
 use crate::helpers::pk::{pk_sql_literal, pk_sql_literal_pg};
-use crate::helpers::{db, db_mariadb, db_postgres};
+use crate::helpers::{db, db_mysql, db_postgres};
 use runique::migrations_table::{
     AdminTableMigration, DROITS_COLUMN_ROW_FLAGS, DROITS_GROUP_NEVER_FRAMEWORK, DROITS_ONE_HOLDER,
     EihwazUsersMigration,
@@ -36,7 +36,7 @@ fn refused(r: Result<u64, String>, check: &str) {
     assert!(e.contains(check), "refused by {check}: {e}");
 }
 
-/// Postgres and MariaDB name the index; SQLite only lists its columns.
+/// Postgres and MySQL name the index; SQLite only lists its columns.
 fn duplicate(r: Result<u64, String>, index: &str, holder: &str) {
     let e = r.expect_err("a duplicate");
     let sqlite = format!("UNIQUE constraint failed: eihwaz_groupes_droits.{holder}");
@@ -243,15 +243,15 @@ async fn postgres_rights_table_guarantees() {
     drop_postgres(&conn).await;
 }
 
-/// Same pinning as `drop_users_mariadb`: `FOREIGN_KEY_CHECKS` is per
+/// Same pinning as `drop_users_mysql`: `FOREIGN_KEY_CHECKS` is per
 /// connection, the transaction keeps `SET`/`DROP`/`SET` on one.
 ///
 /// Other tests leave tables on this database (`contributions` from the demo
 /// migrations, `eihwaz_reset_tokens`, …) with a foreign key onto these.
-/// MariaDB keeps that key when the parent is dropped with checks off, then
+/// MySQL keeps that key when the parent is dropped with checks off, then
 /// refuses to recreate the parent if the key's type differs — errno 150.
 /// Under `pk-uuid` the new `id` is `binary(16)` and a leftover key is `int`.
-async fn drop_mariadb(db: &DatabaseConnection) {
+async fn drop_mysql(db: &DatabaseConnection) {
     let txn = db.begin().await.unwrap();
     txn.execute_unprepared("SET FOREIGN_KEY_CHECKS = 0")
         .await
@@ -300,11 +300,11 @@ async fn drop_mariadb(db: &DatabaseConnection) {
 
 #[tokio::test]
 #[serial]
-async fn mariadb_rights_table_guarantees() {
-    let Some(conn) = db_mariadb::connect().await else {
+async fn mysql_rights_table_guarantees() {
+    let Some(conn) = db_mysql::connect().await else {
         return;
     };
-    drop_mariadb(&conn).await;
+    drop_mysql(&conn).await;
     check_rights_table(&conn, pk_sql_literal).await;
-    drop_mariadb(&conn).await;
+    drop_mysql(&conn).await;
 }

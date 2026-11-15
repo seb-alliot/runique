@@ -163,7 +163,7 @@ impl LoginGuard {
     ///
     /// - Non-empty username → key by username (targeted account protection),
     ///   trimmed and lowercased: a database comparing names without case or
-    ///   trailing spaces (MySQL/MariaDB collations) opens the same account for
+    ///   trailing spaces (MySQL collations) opens the same account for
     ///   `admin`, `Admin` and `admin `, which must share one counter.
     /// - Empty or absent username → `"anonym:{ip}"` (anonymous protection by IP)
     #[must_use]

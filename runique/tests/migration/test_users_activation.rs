@@ -2,10 +2,10 @@
 //! active account that was never activated (`is_active` without
 //! `activated_at`), and an account holding two ranks, whatever writes it:
 //! checked here in raw SQL, without the ORM, on every engine available
-//! (SQLite always, Postgres and MariaDB when their container is).
+//! (SQLite always, Postgres and MySQL when their container is).
 
 use crate::helpers::pk::{pk_sql_literal, pk_sql_literal_pg};
-use crate::helpers::{db, db_mariadb, db_postgres};
+use crate::helpers::{db, db_mysql, db_postgres};
 use runique::migrations_table::{ACTIVE_NEEDS_ACTIVATION, EihwazUsersMigration, ONE_RANK_AT_MOST};
 use runique::sea_orm::{ConnectionTrait, DatabaseConnection};
 use sea_orm_migration::{MigrationTrait, SchemaManager};
@@ -137,24 +137,24 @@ async fn postgres_refuses_an_active_account_never_activated() {
 }
 
 /// Drops `eihwaz_users` despite the tables of other tests referencing it on the
-/// shared MariaDB. `FOREIGN_KEY_CHECKS` is a per-connection variable and the
+/// shared MySQL. `FOREIGN_KEY_CHECKS` is a per-connection variable and the
 /// connection is a pool: the transaction pins `SET`/`DROP`/`SET` to a single
 /// connection (the `DROP` commits it implicitly, the connection stays the same).
-async fn drop_users_mariadb(db: &DatabaseConnection) {
-    crate::helpers::db_mariadb::drop_users_and_dependents(db).await;
+async fn drop_users_mysql(db: &DatabaseConnection) {
+    crate::helpers::db_mysql::drop_users_and_dependents(db).await;
 }
 
 #[tokio::test]
 #[serial]
-async fn mariadb_refuses_an_active_account_never_activated() {
-    let Some(conn) = db_mariadb::connect().await else {
+async fn mysql_refuses_an_active_account_never_activated() {
+    let Some(conn) = db_mysql::connect().await else {
         return;
     };
-    drop_users_mariadb(&conn).await;
-    // A UUID is stored as BINARY(16) on MariaDB: the hex literal, as on SQLite.
+    drop_users_mysql(&conn).await;
+    // A UUID is stored as BINARY(16) on MySQL: the hex literal, as on SQLite.
     check_guarantee(&conn, pk_sql_literal).await;
     check_one_rank(&conn, pk_sql_literal).await;
-    drop_users_mariadb(&conn).await;
+    drop_users_mysql(&conn).await;
 }
 
 // An account inserted without an id gets one: from the database for an

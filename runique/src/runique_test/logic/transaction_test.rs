@@ -121,14 +121,12 @@ impl TestTransaction for ADb {
                     _ => Ok(true),
                 }
             }
-            // MariaDB has the variable; MySQL doesn't, and then there's no way to tell.
-            // sea-query has no system variable, `custom_keyword` is its documented way out.
-            DbBackend::MySql => {
-                match scalar(self, Expr::custom_keyword(Alias::new("@@in_transaction"))).await {
-                    Ok(v) => Ok(v != "0"),
-                    Err(_) => Ok(true),
-                }
-            }
+            // A savepoint only lives inside a transaction: once the handler has ended
+            // it, the server still accepts `SAVEPOINT` but refuses to release it.
+            DbBackend::MySql => match self.begin().await {
+                Ok(mark) => Ok(mark.commit().await.is_ok()),
+                Err(_) => Ok(false),
+            },
             // SQLite already refuses to roll back a transaction that's gone.
             _ => Ok(true),
         }

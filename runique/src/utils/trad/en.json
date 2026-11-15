@@ -577,7 +577,7 @@
   "makemigrations": {
     "destructive_detected": "Destructive changes detected:",
     "destructive_require_force": "Use --force to apply these destructive changes.",
-    "long_identifier_detected": "Generated SQL identifiers are too long (MariaDB/MySQL limit: 64 characters):",
+    "long_identifier_detected": "Generated SQL identifiers are too long (MySQL limit: 64 characters):",
     "long_identifier_rename_required": "Shorten the table/column names involved — Runique doesn't auto-truncate identifiers.",
     "files_ready": "{} file(s) ready to migrate.",
     "snapshots_upgraded": "{} snapshot(s) updated to record column lengths (no migration).",
@@ -595,7 +595,7 @@
     "failed": "The migration crate failed on 'migrate {}' (exit code: {}).",
     "crate_created": "Migration crate created in '{}'.",
     "interrupted": "A makemigrations run was interrupted in '{}'. Run makemigrations again before applying the migrations.",
-    "engine_defaulted": "DB_ENGINE is not set: the migration crate uses SQLite. Change the runique feature in '{}' if needed."
+    "engine_defaulted": "Neither DATABASE_URL nor DB_ENGINE names a known engine: the migration crate uses SQLite. Change the runique feature in '{}' if needed."
   },
   "runique_test": {
     "connect_failed": "can't connect: {}",
@@ -613,7 +613,7 @@
     "nested": "runique_test can't run inside another runique_test: it would wait for its own caller forever",
     "timed_out": "the handler didn't finish within {} s: a deadlock, or a row another connection keeps locked? RUNIQUE_TEST_TIMEOUT in the env file changes the limit",
     "bad_timeout": "{} must be a whole number of seconds above 0, got \"{}\"",
-    "transaction_ended": "the test's transaction was ended from inside the test (a COMMIT, or DDL on MariaDB/MySQL): everything written before that is now in the database",
+    "transaction_ended": "the test's transaction was ended from inside the test (a COMMIT, or DDL on MySQL): everything written before that is now in the database",
     "swallowed_failures": "failed queries: {}, yet the handler returned Ok: an error got swallowed somewhere (wrap the failures you expect in expect_db_error)",
     "rollback_timed_out": "the rollback didn't finish within {} s",
     "expected": "expected",

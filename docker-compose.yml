@@ -19,17 +19,19 @@ services:
       timeout: 5s
       retries: 10
 
-  mariadb:
-    image: mariadb:11
+  mysql:
+    image: mysql:8.4
     environment:
-      MARIADB_ROOT_PASSWORD: root
-      MARIADB_USER: runique
-      MARIADB_PASSWORD: runique_test
-      MARIADB_DATABASE: runique_test
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: runique
+      MYSQL_PASSWORD: runique_test
+      MYSQL_DATABASE: runique_test
     ports:
       - "3307:3306"
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      # Over TCP: the image first starts a server without networking to
+      # initialise itself, which would answer a socket ping too early.
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
       interval: 5s
       timeout: 5s
       retries: 10

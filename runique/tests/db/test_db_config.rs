@@ -6,7 +6,7 @@
 //!   - DatabaseConfig::from_url() — tous types + invalide
 //!   - DatabaseConfigBuilder — max_connections, min_connections, pool_size, logging, timeout
 //!   - DatabaseConfig::from_env() — sqlite par défaut, postgres complet, cas d'erreur
-//!   - DatabaseConfig::connect() — Postgres Docker, MariaDB Docker
+//!   - DatabaseConfig::connect() — Postgres Docker, MySQL Docker
 
 use crate::utils::env::{del_env, set_env};
 use runique::db::{DatabaseConfig, DatabaseEngine};
@@ -41,12 +41,10 @@ fn test_detect_mysql() {
     );
 }
 
+// MariaDB n'est pas un moteur de Runique : SeaORM ne connaît que `mysql://`.
 #[test]
-fn test_detect_mariadb() {
-    assert_eq!(
-        DatabaseEngine::detect_from_url("mariadb://user:pass@localhost/db").unwrap(),
-        DatabaseEngine::MariaDB
-    );
+fn test_detect_mariadb_est_refuse() {
+    assert!(DatabaseEngine::detect_from_url("mariadb://user:pass@localhost/db").is_err());
 }
 
 #[test]
@@ -92,11 +90,6 @@ fn test_name_mysql() {
 }
 
 #[test]
-fn test_name_mariadb() {
-    assert_eq!(DatabaseEngine::MariaDB.name(), "MariaDB");
-}
-
-#[test]
 fn test_name_sqlite() {
     assert_eq!(DatabaseEngine::SQLite.name(), "SQLite");
 }
@@ -131,11 +124,8 @@ fn test_from_url_mysql_detecte_engine() {
 }
 
 #[test]
-fn test_from_url_mariadb_detecte_engine() {
-    let config = DatabaseConfig::from_url("mariadb://user:pass@localhost/db")
-        .unwrap()
-        .build();
-    assert_eq!(config.engine, DatabaseEngine::MariaDB);
+fn test_from_url_mariadb_est_refuse() {
+    assert!(DatabaseConfig::from_url("mariadb://user:pass@localhost/db").is_err());
 }
 
 #[test]
@@ -370,17 +360,17 @@ fn test_from_env_mysql_complet() {
 
 #[test]
 #[serial]
-fn test_from_env_mariadb_complet() {
+fn test_from_env_mariadb_est_refuse() {
     set_env("DB_ENGINE", "mariadb");
-    set_env("DB_USER", "mariauser");
-    set_env("DB_PASSWORD", "mariapass");
+    set_env("DB_USER", "user");
+    set_env("DB_PASSWORD", "pass");
     set_env("DB_HOST", "localhost");
     set_env("DB_PORT", "3306");
-    set_env("DB_NAME", "mariadb");
+    set_env("DB_NAME", "app");
     let result = DatabaseConfig::from_env();
-    assert!(result.is_ok(), "mariadb complet doit Ok");
-    let config = result.unwrap().build();
-    assert_eq!(config.engine, DatabaseEngine::MariaDB);
+    let message = result.err().expect("mariadb n'est pas un moteur accepte");
+    assert!(message.contains("Unsupported DB_ENGINE"), "{message}");
+    assert!(message.contains("mariadb"), "{message}");
 
     for var in &[
         "DB_ENGINE",
@@ -429,19 +419,11 @@ async fn test_connect_postgres_docker() {
 }
 
 #[tokio::test]
-async fn test_connect_mariadb_docker() {
+async fn test_connect_mysql_docker() {
     let _ = dotenvy::from_filename(".env.test");
-    let Some(mariadb_url) =
-        crate::helpers::db_isolation::isolated_url("DATABASE_URL_MARIADB").await
+    let Some(mysql_url) = crate::helpers::db_isolation::isolated_url("DATABASE_URL_MYSQL").await
     else {
         return; // skip si Docker non disponible
-    };
-
-    // Le driver SeaORM utilise mysql:// même pour MariaDB
-    let mysql_url = if mariadb_url.starts_with("mysql://") {
-        mariadb_url
-    } else {
-        mariadb_url.replacen("mariadb://", "mysql://", 1)
     };
 
     let config = DatabaseConfig::from_url(&mysql_url)

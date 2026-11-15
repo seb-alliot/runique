@@ -557,7 +557,7 @@
   "makemigrations": {
     "destructive_detected": "Alterações destrutivas detectadas:",
     "destructive_require_force": "Use --force para aplicar estas alterações destrutivas.",
-    "long_identifier_detected": "Os identificadores SQL gerados são muito longos (limite do MariaDB/MySQL: 64 caracteres):",
+    "long_identifier_detected": "Os identificadores SQL gerados são muito longos (limite do MySQL: 64 caracteres):",
     "long_identifier_rename_required": "Encurte os nomes de tabela/coluna envolvidos — o Runique não trunca identificadores automaticamente.",
     "files_ready": "{} arquivo(s) pronto(s) para migrar.",
     "snapshots_upgraded": "{} snapshot(s) atualizado(s) para registrar o comprimento das colunas (sem migração).",
@@ -575,7 +575,7 @@
     "failed": "O crate de migrações falhou em 'migrate {}' (código de saída: {}).",
     "crate_created": "Crate de migrações criado em '{}'.",
     "interrupted": "Um makemigrations foi interrompido em '{}'. Volte a executar makemigrations antes de aplicar as migrações.",
-    "engine_defaulted": "DB_ENGINE não está definido: o crate de migrações usa SQLite. Altere a feature do runique em '{}' se necessário."
+    "engine_defaulted": "Nem DATABASE_URL nem DB_ENGINE indicam um motor conhecido: o crate de migrações usa SQLite. Altere a feature do runique em '{}' se necessário."
   },
   "reset": {
     "forgot_title": "Esqueceu a senha",
@@ -613,7 +613,7 @@
     "nested": "runique_test não pode rodar dentro de outro runique_test: esperaria indefinidamente pelo próprio chamador",
     "timed_out": "o handler não terminou em {} s: um deadlock, ou uma linha bloqueada por outra conexão? RUNIQUE_TEST_TIMEOUT no arquivo env altera o limite",
     "bad_timeout": "{} deve ser um número inteiro de segundos maior que 0, recebido \"{}\"",
-    "transaction_ended": "a transação do teste foi encerrada de dentro do próprio teste (um COMMIT, ou DDL no MariaDB/MySQL): tudo o que foi escrito antes agora está no banco",
+    "transaction_ended": "a transação do teste foi encerrada de dentro do próprio teste (um COMMIT, ou DDL no MySQL): tudo o que foi escrito antes agora está no banco",
     "swallowed_failures": "consultas com falha: {}, e mesmo assim o handler retornou Ok: um erro foi engolido em algum lugar (envolva as falhas esperadas em expect_db_error)",
     "rollback_timed_out": "o rollback não terminou em {} s",
     "expected": "esperado",

@@ -28,13 +28,13 @@
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_URL` | — | Full URL. **Read first**: when set, `DB_ENGINE`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` and `DB_NAME` are ignored, and the engine comes from the URL's scheme (`postgres://`, `mysql://`, `mariadb://`, `sqlite://`) |
-| `DB_ENGINE` | `sqlite` | Engine, when `DATABASE_URL` is unset: `postgres`, `mysql`, `mariadb`, `sqlite`. Must match the compiled `runique` feature, or startup fails with "driver not enabled" |
+| `DATABASE_URL` | — | Full URL. **Read first**: when set, `DB_ENGINE`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` and `DB_NAME` are ignored, and the engine comes from the URL's scheme (`postgres://`, `mysql://`, `sqlite://`) |
+| `DB_ENGINE` | `sqlite` | Engine, when `DATABASE_URL` is unset: `postgres`, `mysql`, `sqlite`. Must match the compiled `runique` feature, or startup fails with "driver not enabled" |
 | `DB_USER` | — | Username (required except for SQLite) |
 | `DB_PASSWORD` | — | Password (required except for SQLite) |
 | `DB_HOST` | `localhost` | Host |
 | `DB_PORT` | `5432` / `3306` | Port (default depends on engine) |
-| `DB_NAME` | `local_base.sqlite` (SQLite only) | Database name — **required** for postgres/mysql/mariadb, startup fails if absent |
+| `DB_NAME` | `local_base.sqlite` (SQLite only) | Database name — **required** for postgres/mysql, startup fails if absent |
 
 ### Connection pool
 

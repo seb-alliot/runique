@@ -9,7 +9,7 @@ Ce que Runique ne fait pas encore (4.1 en cours de développement), ou fait avec
 | Limite | Détail |
 | --- | --- |
 | Un moteur par compilation (`sqlite`, `postgres`, `mysql`)<br>SQLite : un seul écrivain à la fois, `SQLITE_BUSY` sous forte charge<br>Changer de moteur demande une base neuve : les données ne sont pas transférées | [Base de données](/docs/fr/installation/base-de-donnees) |
-| Le changement de type d'une colonne n'est pas migré (`--force` écrit une migration vide, à compléter à la main)<br>Des snapshots copiés sans leurs migrations font croire que les tables existent<br>Noms d'index et de clés étrangères limités à 63 caractères, sur tous les moteurs : `makemigrations` refuse au-delà<br>`migration up` : une migration n'est atomique que sous Postgres (SQLite, MySQL / MariaDB : une migration qui échoue peut rester à moitié appliquée)<br>Un arrêt brutal pendant `makemigrations` peut laisser des fichiers à moitié écrits (`git` pour restaurer) | [Migrations](/docs/fr/installation/migrations), [Makemigrations](/docs/fr/architecture/makemigrations) |
+| Le changement de type d'une colonne n'est pas migré (`--force` écrit une migration vide, à compléter à la main)<br>Des snapshots copiés sans leurs migrations font croire que les tables existent<br>Noms d'index et de clés étrangères limités à 63 caractères, sur tous les moteurs : `makemigrations` refuse au-delà<br>`migration up` : une migration n'est atomique que sous Postgres (SQLite, MySQL : une migration qui échoue peut rester à moitié appliquée)<br>Un arrêt brutal pendant `makemigrations` peut laisser des fichiers à moitié écrits (`git` pour restaurer) | [Migrations](/docs/fr/installation/migrations), [Makemigrations](/docs/fr/architecture/makemigrations) |
 | `search!` : `in (vec)` avec un vec vide, pas de filtre conditionnel inline | [Requêtes](/docs/fr/orm/requetes) |
 
 ## Formulaires et messages
@@ -59,7 +59,7 @@ Ce que Runique ne fait pas encore (4.1 en cours de développement), ou fait avec
 | Store de sessions mémoire propre à un processus | Une seule instance, ou un reverse proxy qui renvoie chaque visiteur vers la même (`ip_hash` avec nginx) |
 | ACME : un seul site par machine | Confier le TLS à un reverse proxy dès qu'il y a plusieurs sites |
 | SQLite : un seul écrivain à la fois | PostgreSQL pour une charge en écriture soutenue |
-| Migration atomique seulement sous PostgreSQL | Sauvegarder la base avant `migration up` sur SQLite et MySQL / MariaDB |
+| Migration atomique seulement sous PostgreSQL | Sauvegarder la base avant `migration up` sur SQLite et MySQL |
 | Changement de type de colonne non migré | Compléter à la main la migration écrite par `--force` |
 | Cookies communs à deux projets sur `127.0.0.1` | Ouvrir l'un sur `127.0.0.1`, l'autre sur `localhost` |
 

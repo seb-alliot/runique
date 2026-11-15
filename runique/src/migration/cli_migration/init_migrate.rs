@@ -3,6 +3,7 @@
 //! than `sea-orm-cli migrate init`, whose template pins neither the SeaORM
 //! version runique is built with nor any database driver, and lacks runique.
 use crate::atomic::{AtomicBuilder, SourceItems};
+use crate::db::engine::DatabaseEngine;
 use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
@@ -19,24 +20,29 @@ pub(crate) enum Engine {
     Sqlite,
     Postgres,
     Mysql,
-    Mariadb,
+}
+
+impl From<DatabaseEngine> for Engine {
+    fn from(engine: DatabaseEngine) -> Self {
+        match engine {
+            DatabaseEngine::SQLite => Self::Sqlite,
+            DatabaseEngine::PostgreSQL => Self::Postgres,
+            DatabaseEngine::MySQL => Self::Mysql,
+        }
+    }
 }
 
 impl Engine {
-    /// From `DB_ENGINE`, as the app reads it; `None` when unset or unknown.
+    /// The project's engine, read from its environment the way the app
+    /// reads it.
     pub(crate) fn from_env() -> Option<Self> {
-        match std::env::var("DB_ENGINE")
-            .ok()?
-            .trim()
-            .to_ascii_lowercase()
-            .as_str()
-        {
-            "sqlite" => Some(Self::Sqlite),
-            "postgres" | "postgresql" => Some(Self::Postgres),
-            "mysql" => Some(Self::Mysql),
-            "mariadb" => Some(Self::Mariadb),
-            _ => None,
-        }
+        Self::from_lookup(|key| std::env::var(key).ok())
+    }
+
+    /// The engine the app will connect to, so the crate is built for it:
+    /// [`DatabaseEngine::from_lookup`], the app's own rule.
+    fn from_lookup(get: impl Fn(&str) -> Option<String>) -> Option<Self> {
+        DatabaseEngine::from_lookup(get).map(Self::from)
     }
 
     fn feature(self) -> &'static str {
@@ -44,7 +50,6 @@ impl Engine {
             Self::Sqlite => "sqlite",
             Self::Postgres => "postgres",
             Self::Mysql => "mysql",
-            Self::Mariadb => "mariadb",
         }
     }
 
@@ -52,7 +57,7 @@ impl Engine {
         match self {
             Self::Sqlite => "sqlx-sqlite",
             Self::Postgres => "sqlx-postgres",
-            Self::Mysql | Self::Mariadb => "sqlx-mysql",
+            Self::Mysql => "sqlx-mysql",
         }
     }
 }
@@ -98,8 +103,8 @@ pub(crate) fn write(migration_dir: &Path, engine: Engine, runique_version: &str)
 /// anything there. When files changed since, the repair touches nothing: they
 /// are listed for the user to put right.
 pub(crate) fn repair(dir: &Path) -> Result<()> {
-    let repaired = crate::atomic::recover(dir)
-        .with_context(|| tf("cli.interrupted_run", &[dir.display()]))?;
+    let repaired =
+        crate::atomic::recover(dir).with_context(|| tf("cli.interrupted_run", &[dir.display()]))?;
     if repaired {
         println!("{}", tf("cli.run_repaired", &[dir.display()]));
     }
@@ -233,13 +238,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn mariadb_and_mysql_share_the_mysql_driver() {
-        assert_eq!(Engine::Mariadb.sqlx_feature(), "sqlx-mysql");
-        assert_eq!(Engine::Mysql.sqlx_feature(), "sqlx-mysql");
-        assert_eq!(Engine::Mariadb.feature(), "mariadb");
-    }
-
     // A `Cargo.toml` is already there: the crate is not written around it.
     #[test]
     fn the_crate_is_written_whole_or_not_at_all() {
@@ -313,4 +311,95 @@ mod tests {
         );
     }
 
+    /// A project's environment, as `key=value` pairs.
+    fn engine_of(vars: &[(&str, &str)]) -> Option<Engine> {
+        Engine::from_lookup(|key| {
+            vars.iter()
+                .find(|(name, _)| *name == key)
+                .map(|(_, value)| value.to_string())
+        })
+    }
+
+    #[test]
+    fn the_engine_is_the_one_the_database_url_names() {
+        for (url, engine) in [
+            ("sqlite://data.db?mode=rwc", Engine::Sqlite),
+            ("postgres://user:pass@localhost/app", Engine::Postgres),
+            ("postgresql://user:pass@localhost/app", Engine::Postgres),
+            ("mysql://user:pass@localhost/app", Engine::Mysql),
+        ] {
+            assert_eq!(engine_of(&[("DATABASE_URL", url)]), Some(engine), "{url}");
+        }
+    }
+
+    // What `runique new` writes is both, in agreement. Switching to Postgres
+    // by its URL alone, the keyword left as it was: the app follows the URL,
+    // and so does the crate, which reads that same URL to run.
+    #[test]
+    fn the_database_url_wins_over_the_engine_keyword() {
+        assert_eq!(
+            engine_of(&[
+                ("DB_ENGINE", "sqlite"),
+                ("DATABASE_URL", "postgres://user:pass@localhost/app"),
+            ]),
+            Some(Engine::Postgres)
+        );
+    }
+
+    #[test]
+    fn without_a_database_url_the_engine_keyword_decides() {
+        for (keyword, engine) in [
+            ("sqlite", Engine::Sqlite),
+            ("postgres", Engine::Postgres),
+            ("postgresql", Engine::Postgres),
+            ("mysql", Engine::Mysql),
+            ("  Postgres ", Engine::Postgres),
+            ("MYSQL", Engine::Mysql),
+        ] {
+            assert_eq!(
+                engine_of(&[("DB_ENGINE", keyword)]),
+                Some(engine),
+                "{keyword}"
+            );
+        }
+    }
+
+    // Nothing set, or something set that names no engine: the caller falls
+    // back on SQLite and says so. A URL that names none is not rescued by the
+    // keyword: the app would not start on it either.
+    #[test]
+    fn no_engine_is_guessed_from_what_names_none() {
+        assert_eq!(engine_of(&[]), None);
+        assert_eq!(engine_of(&[("DB_ENGINE", "oracle")]), None);
+        assert_eq!(engine_of(&[("DB_ENGINE", "mariadb")]), None);
+        assert_eq!(
+            engine_of(&[("DATABASE_URL", "mariadb://localhost/app")]),
+            None
+        );
+        assert_eq!(engine_of(&[("DB_ENGINE", "")]), None);
+        assert_eq!(
+            engine_of(&[("DATABASE_URL", "oracle://localhost/app")]),
+            None
+        );
+        assert_eq!(
+            engine_of(&[
+                ("DATABASE_URL", "oracle://localhost/app"),
+                ("DB_ENGINE", "postgres"),
+            ]),
+            None
+        );
+    }
+
+    // Each engine gets the runique feature of its own name, and its driver.
+    #[test]
+    fn each_engine_of_the_app_has_its_feature_and_its_driver() {
+        for (engine, feature, driver) in [
+            (DatabaseEngine::SQLite, "sqlite", "sqlx-sqlite"),
+            (DatabaseEngine::PostgreSQL, "postgres", "sqlx-postgres"),
+            (DatabaseEngine::MySQL, "mysql", "sqlx-mysql"),
+        ] {
+            let engine = Engine::from(engine);
+            assert_eq!((engine.feature(), engine.sqlx_feature()), (feature, driver));
+        }
+    }
 }

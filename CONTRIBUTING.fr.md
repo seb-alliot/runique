@@ -29,12 +29,12 @@ La CI lance ces vérifications ; lancez-les d'abord en local :
 
 ```bash
 cargo fmt --all -- --check
-cargo clippy --all-targets --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin -- -D warnings
+cargo clippy --all-targets --features orm,sqlite,postgres,mysql,all-databases,acme,admin -- -D warnings
 
 cd runique
 DB_ENGINE=postgres cargo clippy --all-targets --features big-pk -- -D warnings
 DB_ENGINE=postgres cargo clippy --all-targets --features pk-uuid -- -D warnings
-cargo test --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin
+cargo test --features orm,sqlite,postgres,mysql,all-databases,acme,admin
 cargo test --features big-pk,all-databases,admin
 cargo test --features pk-uuid,all-databases,admin
 cargo test --features all-databases

@@ -97,7 +97,7 @@ impl FormFieldKind {
 
     /// Engines that can't read this type back into its Rust field: Postgres
     /// has no unsigned or one-byte integers (sqlx sends an `i8` as `"char"`),
-    /// and sqlx only decodes `u64` on MySQL/MariaDB.
+    /// and sqlx only decodes `u64` on MySQL.
     pub fn unsupported_on(self) -> &'static [Engine] {
         use FormFieldKind::*;
         match self {

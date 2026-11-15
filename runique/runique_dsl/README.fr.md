@@ -165,7 +165,7 @@ bornes.
 | `Pk` | même type que les clés primaires | entier ou uuid |
 
 Limites des moteurs, refusées à la compilation quand une seule feature de moteur est active :
-`i8` et `u32` sous Postgres, `u64` sous Postgres et SQLite. Sous MySQL/MariaDB, `binary` est une
+`i8` et `u32` sous Postgres, `u64` sous Postgres et SQLite. Sous MySQL, `binary` est une
 colonne à longueur fixe complétée par des `0x00` : utilisez `var_binary` pour relire les octets
 exacts.
 

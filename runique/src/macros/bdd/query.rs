@@ -169,7 +169,7 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         self
     }
 
-    /// Orders results randomly (`RANDOM()`, or `RAND()` on MySQL/MariaDB —
+    /// Orders results randomly (`RANDOM()`, or `RAND()` on MySQL —
     /// sea-query picks it from the backend).
     pub fn order_by_random(mut self) -> Self {
         use sea_orm::Order;

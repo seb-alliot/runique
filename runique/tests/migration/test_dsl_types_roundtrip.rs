@@ -6,9 +6,9 @@
 //! A mismatch between the two (say, an `i32` Rust field on a `SMALLINT` column)
 //! only shows up here, on the engine that's strict about it.
 //!
-//! Postgres/MariaDB need `docker compose up -d` and `DATABASE_URL_PG` /
-//! `DATABASE_URL_MARIADB` in `.env.test`; without them those tests return early.
-use crate::helpers::{db_mariadb, db_postgres};
+//! Postgres/MySQL need `docker compose up -d` and `DATABASE_URL_PG` /
+//! `DATABASE_URL_MYSQL` in `.env.test`; without them those tests return early.
+use crate::helpers::{db_mysql, db_postgres};
 use runique::migration::col_type_method;
 use runique::migration::parse_schema_from_source;
 use runique::sea_orm::{
@@ -90,7 +90,7 @@ case!(t_u32, u32, "rq_types_u32", 3_000_000_000);
 case!(t_u64, u64, "rq_types_u64", 5);
 case!(t_f32, f32, "rq_types_f32", 1.5);
 case!(t_char, char, "rq_types_char", "a".to_string());
-// Whole seconds: MariaDB's `TIMESTAMP` drops the fraction.
+// Whole seconds: MySQL's `TIMESTAMP` drops the fraction.
 case!(
     t_timestamp_tz,
     timestamp_tz,
@@ -271,13 +271,13 @@ async fn run_all(db: &DatabaseConnection, engine: &str) -> Vec<String> {
 /// `all-databases`, where no engine is refused.
 /// - `i8`: Postgres has no one-byte integer; sqlx sends an `i8` as `"char"`.
 /// - `u32`: sea-query's `unsigned()` is `BIGINT` on Postgres, read back as `i32`.
-/// - `u64`: sqlx only handles it on MySQL/MariaDB.
+/// - `u64`: sqlx only handles it on MySQL.
 const KNOWN_FAILING_SQLITE: &[&str] = &["u64"];
 const KNOWN_FAILING_POSTGRES: &[&str] = &["i8", "u32", "u64"];
-/// - `binary` (MariaDB): `BINARY(n)` is fixed-length — MariaDB pads the
+/// - `binary` (MySQL): `BINARY(n)` is fixed-length — MySQL pads the
 ///   value with `0x00` up to `n` bytes, so 4 bytes written come back as 255.
 ///   `var_binary` keeps the exact bytes.
-const KNOWN_FAILING_MARIADB: &[&str] = &["binary"];
+const KNOWN_FAILING_MYSQL: &[&str] = &["binary"];
 
 fn check(engine: &str, failures: Vec<String>, known: &[&str]) {
     assert_eq!(
@@ -307,13 +307,9 @@ async fn dsl_types_round_trip_on_postgres() {
 
 #[tokio::test]
 #[serial]
-async fn dsl_types_round_trip_on_mariadb() {
-    let Some(db) = db_mariadb::connect().await else {
+async fn dsl_types_round_trip_on_mysql() {
+    let Some(db) = db_mysql::connect().await else {
         return;
     };
-    check(
-        "MariaDB",
-        run_all(&db, "mariadb").await,
-        KNOWN_FAILING_MARIADB,
-    );
+    check("MySQL", run_all(&db, "mysql").await, KNOWN_FAILING_MYSQL);
 }

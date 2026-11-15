@@ -9,7 +9,7 @@ use sea_query::{Alias, Condition, Expr, ExprTrait, Func, LikeExpr};
 /// `sea_query::Expr::cast_as`/`Expr::cust` take an arbitrary type-name string and
 /// emit it verbatim — unlike `ColumnType::Enum`, which sea-query's own per-backend
 /// renderer does translate automatically, a raw `CAST(x AS ...)` target name is
-/// never dialect-aware. MariaDB/MySQL reject `TEXT` as a `CAST` target (`CAST(x AS
+/// never dialect-aware. MySQL reject `TEXT` as a `CAST` target (`CAST(x AS
 /// CHAR)` is the equivalent there); PostgreSQL and SQLite both accept `TEXT`.
 /// `db.get_database_backend()` is sea-orm's own detection — this function only
 /// supplies the one mapping sea-orm has no way to know on its own.
@@ -116,7 +116,7 @@ pub fn eq_ci<C: sea_orm::ColumnTrait>(col: C, val: &str) -> Expr {
 
 /// Case-insensitive `LIKE` of `search!`'s `ilike` / `not_ilike`
 /// (`not_ilike` when `negate`), the pattern written by the developer, on every engine: sea-query renders `ILIKE` on
-/// Postgres only and panics on MySQL/MariaDB and SQLite. `LOWER(col) LIKE`
+/// Postgres only and panics on MySQL and SQLite. `LOWER(col) LIKE`
 /// with the pattern lowered here, like `search_cond!`.
 pub fn ci_like<C: sea_orm::ColumnTrait>(col: C, pattern: &str, negate: bool) -> Expr {
     let lowered = Expr::expr(Func::lower(Expr::col(col.as_column_ref())));

@@ -72,7 +72,7 @@ pub struct Changes {
     pub dropped_columns: Vec<ParsedColumn>, // <- CHANGED
     pub modified_columns: Vec<(ParsedColumn, ParsedColumn)>,
     /// Column renames via `[renamed_from: "old"]`: (old_name, new_name). Emitted as
-    /// `ALTER TABLE … RENAME COLUMN` (PG/MySQL/MariaDB/SQLite all support it).
+    /// `ALTER TABLE … RENAME COLUMN` (PG/MySQL/SQLite all support it).
     pub renamed_columns: Vec<(String, String)>,
     pub added_fks: Vec<ParsedFk>,
     pub dropped_fks: Vec<ParsedFk>,

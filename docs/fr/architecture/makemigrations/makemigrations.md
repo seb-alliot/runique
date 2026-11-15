@@ -61,7 +61,7 @@ Les phases ci-dessus ne font que *calculer* un plan en mémoire — rien n'est �
 
    Le contrôle couvre les changements `model!{}` comme `extend!{}`.
 
-   > **Exception — changement de type de colonne** : `--force` débloque l'exécution de la commande, mais ne génère **jamais** l'`ALTER` réel pour un changement de type (`String → Decimal`, etc.). Le fichier généré contient uniquement un commentaire `// Manual migration required.` — à écrire vous-même. La console le signale en jaune après la génération, colonne par colonne. Les autres catégories destructives génèrent le vrai SQL dès que `--force` est passé. Cette exception est volontaire : une conversion de type générique n'a pas de règle de cast fiable inter-moteurs (Postgres exige un `USING` explicite, MariaDB caste silencieusement sans erreur en cas de valeur invalide, SQLite ne supporte pas `ALTER COLUMN TYPE` du tout).
+   > **Exception — changement de type de colonne** : `--force` débloque l'exécution de la commande, mais ne génère **jamais** l'`ALTER` réel pour un changement de type (`String → Decimal`, etc.). Le fichier généré contient uniquement un commentaire `// Manual migration required.` — à écrire vous-même. La console le signale en jaune après la génération, colonne par colonne. Les autres catégories destructives génèrent le vrai SQL dès que `--force` est passé. Cette exception est volontaire : une conversion de type générique n'a pas de règle de cast fiable inter-moteurs (Postgres exige un `USING` explicite, MySQL convertit selon son mode SQL, SQLite ne supporte pas `ALTER COLUMN TYPE` du tout).
 2. **Écriture protégée** : l'écriture des fichiers, l'enregistrement dans `lib.rs` et le positionnement des migrations du framework s'exécutent sous un rollback commun. En cas d'erreur d'écriture, les fichiers générés sont supprimés, et les snapshots ainsi que `lib.rs` préexistants sont restaurés dans leur état précédent.
 
    **Limites actuelles** : les dossiers sont créés avant cette protection, la mise à niveau des seuls snapshots (sans migration) s'écrit sans rollback, et un arrêt brutal (coupure, `kill -9`) en pleine écriture n'est pas rattrapé. Une protection complète (écriture dans un dossier temporaire, puis reprise au lancement suivant) est prévue. D'ici là, `migration/` étant versionné, `git` permet de le restaurer.
@@ -101,7 +101,7 @@ model! {
 }
 ```
 
-`makemigrations` émet alors `ALTER TABLE employes RENAME COLUMN job_title TO title` (PostgreSQL, MySQL/MariaDB, SQLite). L'attribut est une directive de migration uniquement : aucun effet sur l'entité ou le formulaire générés. Garde-fou : si l'ancienne colonne existe encore dans le snapshot (hint périmé), aucun rename n'est émis.
+`makemigrations` émet alors `ALTER TABLE employes RENAME COLUMN job_title TO title` (PostgreSQL, MySQL, SQLite). L'attribut est une directive de migration uniquement : aucun effet sur l'entité ou le formulaire générés. Garde-fou : si l'ancienne colonne existe encore dans le snapshot (hint périmé), aucun rename n'est émis.
 
 ### Étendre une table framework avec `extend!{}`
 

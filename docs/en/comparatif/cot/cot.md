@@ -68,7 +68,7 @@ Checked on November 5, 2026 in [the guide](https://cot.rs/guide/latest/) and [th
 | Feature | Cot | Runique |
 |---------|-----|---------|
 | ORM | its own ORM (`sea-query`, `sqlx`) | SeaORM |
-| Engines | SQLite, PostgreSQL, MySQL, all on by default | SQLite, PostgreSQL, MySQL/MariaDB, one engine per build |
+| Engines | SQLite, PostgreSQL, MySQL, all on by default | SQLite, PostgreSQL, MySQL, one engine per build |
 | Model definition | `#[model]` on a struct | `model!{}` macro |
 | Foreign key | `ForeignKey<User>` | `belongs_to`, with a required on-delete action |
 | Queries | `query!(Customer, $id == 5)`, `Customer::objects()` | `search!`, `Model::objects` |

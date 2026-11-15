@@ -97,7 +97,7 @@ Real commands of the `runique` binary (see `runique/src/bin/runique.rs`): `new`,
 | Expression ordering | `order_by(Lower("title").desc())` | `.order_by_expr(expr, order)` |
 | Relations | ForeignKey, ManyToMany, OneToOne | Standard SeaORM relations |
 | Transactions | `with transaction.atomic()` | `request.db_atomic()` or a SeaORM transaction |
-| Multi-engine SQL | yes | PostgreSQL, MySQL/MariaDB, SQLite (3 SeaORM backends; MariaDB rides the MySQL driver with its own migration dialect) |
+| Multi-engine SQL | yes | PostgreSQL, MySQL, SQLite (3 SeaORM backends) |
 | Secondary connections | `DATABASES` multiple entries | `.with_custom_db(client)`, one client per type (TypeMap) |
 | Framework table extension | — | `extend!{}` — `ALTER TABLE ADD COLUMN` on `eihwaz_*` tables |
 

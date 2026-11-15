@@ -56,23 +56,21 @@ impl PathManager {
         self.mark_placed()
     }
 
-    /// Writes the journal before any file is touched. An empty batch has
-    /// nothing a cut could interrupt.
+    /// Writes the journal before any file is touched.
     fn record(&self) -> io::Result<()> {
         match &self.journal {
-            Some(dir) if !self.items.is_empty() => journal::write(dir, &Journal::of(dir, self)?)
-                .map_err(|error| named(dir, error)),
-            Some(_) | None => Ok(()),
+            Some(dir) => {
+                journal::write(dir, &Journal::of(dir, self)?).map_err(|error| named(dir, error))
+            }
+            None => Ok(()),
         }
     }
 
     /// The point of no return: from here a cut finishes the batch.
     fn mark_placed(&self) -> io::Result<()> {
         match &self.journal {
-            Some(dir) if !self.items.is_empty() => {
-                journal::mark_placed(dir).map_err(|error| named(dir, error))
-            }
-            Some(_) | None => Ok(()),
+            Some(dir) => journal::mark_placed(dir).map_err(|error| named(dir, error)),
+            None => Ok(()),
         }
     }
 
@@ -108,6 +106,10 @@ impl PathManager {
 
     /// Run the batch: any error undoes everything, success ends with the cleanup.
     pub(super) fn run(mut self, action: ActionAtomic) -> io::Result<()> {
+        // Nothing to write: no folder is made, no journal kept.
+        if self.items.is_empty() {
+            return Ok(());
+        }
         if let Err(error) = self.advance(action) {
             self.undo()?;
             return Err(error);
@@ -341,7 +343,10 @@ mod tests {
                 "pass {passes}"
             );
             assert_eq!(dir.entries(), ["a.txt"], "pass {passes}");
-            assert!(!journal::recover(dir.path()).unwrap(), "nothing left to repair");
+            assert!(
+                !journal::recover(dir.path()).unwrap(),
+                "nothing left to repair"
+            );
         }
     }
 
@@ -386,8 +391,11 @@ mod tests {
 
     use crate::atomic::struct_atomic::AtomicBuilder;
 
+    /// What a folder holds: each entry, and for a file its content.
+    type Disk = Vec<(String, Option<String>)>;
+
     /// Everything under `dir`: each folder, and each file with what it holds.
-    fn disk(dir: &TempDir) -> Vec<(String, Option<String>)> {
+    fn disk(dir: &TempDir) -> Disk {
         dir.entries()
             .into_iter()
             .map(|entry| {
@@ -537,7 +545,11 @@ mod tests {
     // there and the command, run again, refuses to touch them.
     #[test]
     fn a_creation_cut_after_any_step_is_repaired_then_runs_again() {
-        let files = [("a.txt", "same"), ("sub/b.txt", "same"), ("sub/c.txt", "same")];
+        let files = [
+            ("a.txt", "same"),
+            ("sub/b.txt", "same"),
+            ("sub/c.txt", "same"),
+        ];
         let after = {
             let dir = TempDir::new();
             whole_batch(&dir, false, &files).unwrap();
@@ -571,7 +583,7 @@ mod tests {
     /// Past the last thing a batch of `REPLACED` does: the journal is gone.
     const FINISHED: usize = POINT_OF_NO_RETURN + 1 + REPLACED.len() + 1;
 
-    fn before_and_after() -> (Vec<(String, Option<String>)>, Vec<(String, Option<String>)>) {
+    fn before_and_after() -> (Disk, Disk) {
         let dir = TempDir::new();
         originals(&dir);
         let before = disk(&dir);
@@ -742,7 +754,11 @@ mod tests {
 
         let dir = TempDir::new();
         originals(&dir);
-        fs::write(dir.join(".runique-journal.runique-tmp"), "{ \"placed\": fal").unwrap();
+        fs::write(
+            dir.join(".runique-journal.runique-tmp"),
+            "{ \"placed\": fal",
+        )
+        .unwrap();
         assert!(!journal::recover(dir.path()).unwrap());
         whole_batch(&dir, true, &REPLACED).unwrap();
         assert_eq!(disk(&dir), after);
@@ -750,7 +766,11 @@ mod tests {
         let dir = TempDir::new();
         originals(&dir);
         cut_at(&dir, &ActionAtomic::Modify, &REPLACED, POINT_OF_NO_RETURN);
-        fs::write(dir.join(".runique-journal.runique-tmp"), "{ \"placed\": tru").unwrap();
+        fs::write(
+            dir.join(".runique-journal.runique-tmp"),
+            "{ \"placed\": tru",
+        )
+        .unwrap();
         assert!(journal::recover(dir.path()).unwrap());
         assert_eq!(disk(&dir), before);
     }
@@ -913,5 +933,20 @@ mod tests {
         whole_batch(&dir, true, &REPLACED).unwrap();
 
         assert_eq!(disk(&dir), after);
+    }
+
+    // An action that moves no file forward never brings the batch to its end:
+    // it is refused once the passes are spent, it does not spin, and it is
+    // undone like any failure, journal included.
+    #[test]
+    fn an_action_that_never_reaches_the_end_is_refused_and_leaves_no_journal() {
+        let dir = TempDir::new();
+        let mut manager = manager(vec![item(&dir, "a.txt", AtomicStep::Waiting)]);
+        manager.journal = Some(dir.path().to_path_buf());
+
+        let error = manager.run(ActionAtomic::Rollback).unwrap_err();
+
+        assert_eq!(error.kind(), io::ErrorKind::InvalidInput);
+        assert!(dir.entries().is_empty());
     }
 }

@@ -557,7 +557,7 @@
   "makemigrations": {
     "destructive_detected": "Destruktive Änderungen erkannt:",
     "destructive_require_force": "Verwenden Sie --force, um diese destruktiven Änderungen anzuwenden.",
-    "long_identifier_detected": "Generierte SQL-Bezeichner sind zu lang (MariaDB/MySQL-Limit: 64 Zeichen):",
+    "long_identifier_detected": "Generierte SQL-Bezeichner sind zu lang (MySQL-Limit: 64 Zeichen):",
     "long_identifier_rename_required": "Kürzen Sie die betroffenen Tabellen-/Spaltennamen — Runique kürzt Bezeichner nicht automatisch.",
     "files_ready": "{} Datei(en) bereit für die Migration.",
     "snapshots_upgraded": "{} Snapshot(s) aktualisiert, um Spaltenlängen zu speichern (keine Migration).",
@@ -575,7 +575,7 @@
     "failed": "Das Migrations-Crate ist bei 'migrate {}' fehlgeschlagen (Exit-Code: {}).",
     "crate_created": "Migrations-Crate in '{}' erstellt.",
     "interrupted": "Ein makemigrations-Lauf wurde in '{}' unterbrochen. Führen Sie makemigrations erneut aus, bevor Sie die Migrationen anwenden.",
-    "engine_defaulted": "DB_ENGINE ist nicht gesetzt: Das Migrations-Crate verwendet SQLite. Ändern Sie bei Bedarf das runique-Feature in '{}'."
+    "engine_defaulted": "Weder DATABASE_URL noch DB_ENGINE nennen eine bekannte Engine: Das Migrations-Crate verwendet SQLite. Ändern Sie bei Bedarf das runique-Feature in '{}'."
   },
   "reset": {
     "forgot_title": "Passwort vergessen",
@@ -613,7 +613,7 @@
     "nested": "runique_test kann nicht innerhalb eines anderen runique_test laufen: Es würde endlos auf seinen eigenen Aufrufer warten",
     "timed_out": "Der Handler wurde nicht innerhalb von {} s fertig: ein Deadlock oder eine von einer anderen Verbindung gesperrte Zeile? RUNIQUE_TEST_TIMEOUT in der env-Datei ändert das Limit",
     "bad_timeout": "{} muss eine ganze Anzahl Sekunden größer als 0 sein, erhalten: \"{}\"",
-    "transaction_ended": "Die Transaktion des Tests wurde innerhalb des Tests beendet (ein COMMIT oder DDL unter MariaDB/MySQL): Alles, was davor geschrieben wurde, ist jetzt in der Datenbank",
+    "transaction_ended": "Die Transaktion des Tests wurde innerhalb des Tests beendet (ein COMMIT oder DDL unter MySQL): Alles, was davor geschrieben wurde, ist jetzt in der Datenbank",
     "swallowed_failures": "Fehlgeschlagene Abfragen: {}, trotzdem hat der Handler Ok zurückgegeben: Irgendwo wurde ein Fehler verschluckt (umschließen Sie erwartete Fehler mit expect_db_error)",
     "rollback_timed_out": "Das Rollback wurde nicht innerhalb von {} s fertig",
     "expected": "erwartet",

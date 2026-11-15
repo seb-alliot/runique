@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 /// What can be asked of a file in the batch.
 /// Shared by `runique new` (create) and `makemigrations` (create or modify).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ActionAtomic {
     /// Create a file that must not exist yet.
     Create,
@@ -15,6 +16,7 @@ pub(crate) enum ActionAtomic {
 }
 
 /// How far a file of the batch has progressed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum AtomicStep {
     /// Nothing has been done for this file.
     Waiting,
@@ -29,6 +31,7 @@ pub(crate) enum AtomicStep {
 }
 
 /// Where the content of a file comes from.
+#[derive(Debug)]
 pub(crate) enum SourceItems {
     /// Content already in memory: `runique new`, `makemigrations`.
     Bytes(Vec<u8>),
@@ -37,6 +40,7 @@ pub(crate) enum SourceItems {
 }
 
 /// One file of the batch: its three paths, its content, its step.
+#[derive(Debug)]
 pub(crate) struct ItemsPath {
     pub(super) path: PathBuf,
     pub(super) backup_path: PathBuf,
@@ -47,6 +51,7 @@ pub(crate) struct ItemsPath {
 }
 
 /// Holds the paths of the files and directories of a batch.
+#[derive(Debug)]
 pub(crate) struct PathManager {
     /// Files of the batch in insertion order: the key is the path, the position is the index.
     pub(super) items: IndexMap<PathBuf, ItemsPath>,
@@ -57,6 +62,7 @@ pub(crate) struct PathManager {
 }
 
 /// Describes a batch: the action to apply and the files it applies to.
+#[derive(Debug)]
 pub(crate) struct AtomicBuilder {
     pub(super) strategy: ActionAtomic,
     /// Adding the same path twice is caught at insertion.

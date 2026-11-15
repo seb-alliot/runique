@@ -6,7 +6,7 @@ Le dépôt contient deux choses distinctes :
 
 | Quoi | Base de données | Docker |
 | --- | --- | --- |
-| La suite de tests (`runique/`) | SQLite en mémoire, plus Postgres et MariaDB quand ils sont disponibles | Facultatif |
+| La suite de tests (`runique/`) | SQLite en mémoire, plus Postgres et MySQL quand ils sont disponibles | Facultatif |
 | Le site de démonstration (`demo-app/`, runique.io) | **Postgres uniquement** | Recommandé |
 
 ---
@@ -16,7 +16,7 @@ Le dépôt contient deux choses distinctes :
 | Outil | Pour | Installation |
 | --- | --- | --- |
 | Rust 1.94+ | Les tests, demo-app sur la machine | [rustup](https://rustup.rs) |
-| Docker | Postgres et MariaDB (facultatif pour les tests), ou demo-app en entier | [docs.docker.com](https://docs.docker.com/get-docker/) |
+| Docker | Postgres et MySQL (facultatif pour les tests), ou demo-app en entier | [docs.docker.com](https://docs.docker.com/get-docker/) |
 | `psql` | demo-app sur la machine : le seed charge `seed.sql` (pages, exemples de code) par cet outil | paquet `postgresql-client` (`apt install postgresql-client`) |
 | CLI `runique` | demo-app sur la machine : migrations et compte administrateur | `cargo install --path runique --features postgres` |
 | Node 22+ | Les tests JavaScript (facultatif) | [nodejs.org](https://nodejs.org) |
@@ -33,16 +33,16 @@ après chaque mise à jour du workspace.
 ### SQLite seul — rien à installer
 
 Chaque test qui a besoin d'une base en reçoit une neuve, en SQLite en mémoire. Les tests
-Postgres et MariaDB sont ignorés, pas en échec, quand aucune URL n'est configurée.
+Postgres et MySQL sont ignorés, pas en échec, quand aucune URL n'est configurée.
 
 ```bash
 cd runique
-cargo test --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin,test-utils
+cargo test --features orm,sqlite,postgres,mysql,all-databases,acme,admin,test-utils
 ```
 
 C'est exactement le jeu de features du job de tests principal de la CI.
 
-### Avec Postgres et MariaDB
+### Avec Postgres et MySQL
 
 Le `docker-compose.yml` de la racine démarre les deux moteurs pour les tests :
 
@@ -54,7 +54,7 @@ Créez ensuite `runique/.env.test` :
 
 ```env
 DATABASE_URL_PG=postgres://runique:runique_test@localhost:5433/runique_test
-DATABASE_URL_MARIADB=mysql://runique:runique_test@localhost:3307/runique_test
+DATABASE_URL_MYSQL=mysql://runique:runique_test@localhost:3307/runique_test
 ```
 
 Chaque clone du dépôt, et chaque variante de clé primaire (voir plus bas), reçoit sa propre
@@ -65,7 +65,7 @@ temps depuis la même copie : les deux passes partageraient cette base.
 ### Variantes de clé primaire
 
 La CI lance chaque jeu de features ci-dessous dans son propre job, en parallèle, chacun avec une
-MariaDB et un Postgres neufs (aucune table laissée par un type de clé ne gêne le suivant) :
+MySQL et un Postgres neufs (aucune table laissée par un type de clé ne gêne le suivant) :
 
 ```bash
 cd runique

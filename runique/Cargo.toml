@@ -161,7 +161,6 @@ orm = ["dep:sea-orm", "dep:sea-orm-migration"]
 sqlite = ["orm", "sea-orm/sqlx-sqlite", "sea-orm/runtime-tokio-rustls", "derive_form/sqlite"]
 postgres = ["orm", "sea-orm/sqlx-postgres", "sea-orm/runtime-tokio-rustls", "derive_form/postgres"]
 mysql = ["orm", "sea-orm/sqlx-mysql", "sea-orm/runtime-tokio-rustls", "derive_form/mysql"]
-mariadb = ["mysql"]
 # Échappatoire explicite au compile_error! de mutuelle exclusion (lib.rs) — pour
 # docs.rs et les outils multi-moteur (ex: scripts/smoke_migrations.sh, un seul
 # binaire CLI parlant aux 3 moteurs au runtime via DATABASE_URL/DB_ENGINE).

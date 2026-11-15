@@ -7,7 +7,7 @@ Guide complet pour installer Runique, créer un projet et le lancer.
 | Module | Description |
 | --- | --- |
 | [Prérequis & premier projet](/docs/fr/installation/prerequis) | Rust, `cargo install runique`, `runique new`, `migration up`, `cargo run` |
-| [Base de données](/docs/fr/installation/base-de-donnees) | Choisir le moteur (SQLite, PostgreSQL, MySQL/MariaDB), versions de SeaORM |
+| [Base de données](/docs/fr/installation/base-de-donnees) | Choisir le moteur (SQLite, PostgreSQL, MySQL), versions de SeaORM |
 | [Migrations](/docs/fr/installation/migrations) | `makemigrations`, `migration up / down / status`, tables du framework |
 | [CLI Runique](/docs/fr/installation/cli) | `new`, `makemigrations`, `migration`, `create-superuser`, `test` |
 | [Troubleshooting](/docs/fr/installation/troubleshooting) | Erreurs courantes et solutions |

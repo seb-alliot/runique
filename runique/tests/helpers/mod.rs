@@ -8,7 +8,7 @@
 //! | `assert`      | Assertions HTTP : `assert_status`, `assert_has_header`, …   |
 //! | `db`          | SQLite en mémoire : `fresh_db()`, `exec()`, `count()`, …    |
 //! | `db_postgres` | PostgreSQL Docker : `connect()`, `exec()`, `count()`, …     |
-//! | `db_mariadb`  | MariaDB Docker : `connect()`, `exec()`, `count()`, …        |
+//! | `db_mysql`  | MySQL Docker : `connect()`, `exec()`, `count()`, …        |
 //! | `tera`        | Appel direct de filtres/fonctions : `kwargs()`, `no_kwargs()` |
 //! | `user`        | `TestUser`/`test_user(...)` : `RuniqueUser` minimal pour `login()` |
 //! | `temp`        | `TempDir` : dossier temporaire supprimé au drop, même si le test échoue |
@@ -16,7 +16,7 @@
 pub mod assert;
 pub mod db;
 pub mod db_isolation;
-pub mod db_mariadb;
+pub mod db_mysql;
 pub mod db_postgres;
 pub mod framework_tables;
 #[cfg(feature = "test-utils")]

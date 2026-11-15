@@ -125,7 +125,6 @@ Backends sélectionnables (mutuellement exclusifs) :
 - `sqlite`
 - `postgres`
 - `mysql`
-- `mariadb`
 
 ---
 

@@ -206,12 +206,12 @@ pub(super) fn validate_form_field_attrs(
     Ok(())
 }
 
-/// Largest precision and scale MySQL/MariaDB accept, the lowest of the three
+/// Largest precision and scale MySQL accept, the lowest of the three
 /// engines: a model valid here creates the same column everywhere.
 const MAX_DIGITS: u32 = 65;
 const MAX_DECIMAL_PLACES: u32 = 30;
 
-/// A decimal states both its precision and its scale: left out, MySQL/MariaDB
+/// A decimal states both its precision and its scale: left out, MySQL
 /// create `DECIMAL(10, 0)` and round every value to an integer.
 fn validate_decimal_len(name: &Ident, attrs: &[FormFieldAttr]) -> Result<()> {
     use FormFieldAttr::*;

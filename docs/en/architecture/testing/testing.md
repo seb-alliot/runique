@@ -75,7 +75,7 @@ async fn created_article_is_found_by_id() -> Result<(), TestFailure> {
 
 - the handler returns `Err`, panics, or runs past the time limit (`RUNIQUE_TEST_TIMEOUT` in the env file, 30 s by default) — `runique_test` never panics, it returns `Err(TestFailure)` with its message;
 - **a query failed while the handler returned `Ok`**: an error got swallowed somewhere (`.ok()`, `unwrap_or_default()`…);
-- the transaction was ended from inside the test (a raw `COMMIT`, or DDL on MariaDB/MySQL, which commits implicitly).
+- the transaction was ended from inside the test (a raw `COMMIT`, or DDL on MySQL, which commits implicitly).
 
 ### Expected refusals
 
@@ -102,7 +102,7 @@ runique test blog created_article_is_found_by_id   # a single test
 
 `runique test` first checks the setup — `test-utils` only in `[dev-dependencies]` (refused when it reaches a release build through `[dependencies]`, `[workspace.dependencies]` or a `[features]` entry), the `runique_test` module behind `cfg(test)`, every file declared in `mod.rs` — then runs `cargo test` one test at a time, with its output shown. Plain `cargo test` works too: tests are serialized within the process.
 
-`ADb` (SeaORM) is the only implementation provided: it covers PostgreSQL, MySQL/MariaDB and SQLite. Another engine (MongoDB…) needs two separate things:
+`ADb` (SeaORM) is the only implementation provided: it covers PostgreSQL, MySQL and SQLite. Another engine (MongoDB…) needs two separate things:
 
 - **in the app**, plug it in with `.with_custom_db(client)` and read it with `request.engine.extension::<Client>()` (see [Builder](/docs/en/configuration/builder));
 - **in the tests**, implement the `TestTransaction` trait for a type of yours (connecting, opening and rolling back a test transaction), then call `runique_test::<YourType>(...)`.

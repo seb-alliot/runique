@@ -557,7 +557,7 @@
   "makemigrations": {
     "destructive_detected": "破壊的な変更が検出されました:",
     "destructive_require_force": "--force を使用してこれらの破壊的な変更を適用してください。",
-    "long_identifier_detected": "生成されたSQL識別子が長すぎます（MariaDB/MySQLの上限：64文字）：",
+    "long_identifier_detected": "生成されたSQL識別子が長すぎます（MySQLの上限：64文字）：",
     "long_identifier_rename_required": "関係するテーブル名/カラム名を短くしてください — Runiqueは識別子を自動的に切り詰めません。",
     "files_ready": "{}個のファイルが移行の準備ができています。",
     "snapshots_upgraded": "{}個のスナップショットを列の長さを記録するよう更新しました（マイグレーションなし）。",
@@ -575,7 +575,7 @@
     "failed": "マイグレーションクレートが 'migrate {}' で失敗しました（終了コード: {}）。",
     "crate_created": "マイグレーションクレートを '{}' に作成しました。",
     "interrupted": "'{}' で makemigrations が中断されました。マイグレーションを適用する前に、makemigrations を再実行してください。",
-    "engine_defaulted": "DB_ENGINE が設定されていません：マイグレーションクレートは SQLite を使用します。必要に応じて '{}' の runique feature を変更してください。"
+    "engine_defaulted": "DATABASE_URL も DB_ENGINE も既知のエンジンを示していません。マイグレーションクレートは SQLite を使用します。必要に応じて '{}' の runique feature を変更してください。"
   },
   "reset": {
     "forgot_title": "パスワードを忘れた",
@@ -613,7 +613,7 @@
     "nested": "runique_test は別の runique_test の中では実行できません。自分の呼び出し元を永遠に待つことになります",
     "timed_out": "ハンドラーが {} 秒以内に終わりませんでした。デッドロック、または別の接続にロックされた行ではありませんか？ env ファイルの RUNIQUE_TEST_TIMEOUT で上限を変更できます",
     "bad_timeout": "{} は 0 より大きい整数の秒数である必要があります。受け取った値: \"{}\"",
-    "transaction_ended": "テストのトランザクションがテスト内部で終了されました（COMMIT、または MariaDB/MySQL での DDL）。それ以前に書き込まれた内容はすべてデータベースに残っています",
+    "transaction_ended": "テストのトランザクションがテスト内部で終了されました（COMMIT、または MySQL での DDL）。それ以前に書き込まれた内容はすべてデータベースに残っています",
     "swallowed_failures": "失敗したクエリ: {}。それでもハンドラーは Ok を返しました。どこかでエラーが握りつぶされています（想定内の失敗は expect_db_error で囲んでください）",
     "rollback_timed_out": "ロールバックが {} 秒以内に終わりませんでした",
     "expected": "想定内",
