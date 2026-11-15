@@ -9,7 +9,7 @@ use crate::migration::types::{ParsedColumn, ParsedSchema};
 // fixed forever once written; deciding "include this or not" from whatever engine
 // `makemigrations` happened to target freezes the file to that ONE engine
 // (confirmed in practice: a Postgres-generated `CREATE TYPE ... AS ENUM` run against
-// MariaDB is a straight syntax error). Checking the real backend at migration-RUN
+// MySQL is a straight syntax error). Checking the real backend at migration-RUN
 // time instead makes the same generated file portable across all three.
 
 pub(super) fn build_enum_type_stmts(schema: &ParsedSchema) -> String {

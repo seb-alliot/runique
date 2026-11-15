@@ -2,13 +2,13 @@
 //! `makemigrations` writes the column as a Postgres enum type on Postgres and
 //! a plain string elsewhere (see `tests_pipeline.rs`), and a value added
 //! later as `ALTER TYPE … ADD VALUE` on Postgres, nothing elsewhere. A native
-//! `ENUM(...)` on MySQL/MariaDB would keep its first list and refuse the new
+//! `ENUM(...)` on MySQL would keep its first list and refuse the new
 //! value.
 //!
-//! Postgres/MariaDB need `docker compose -f docker-compose.yml up -d` and their
+//! Postgres/MySQL need `docker compose -f docker-compose.yml up -d` and their
 //! URL in `.env.test`; without it, those tests return early.
 
-use crate::helpers::{db, db_mariadb, db_postgres};
+use crate::helpers::{db, db_mysql, db_postgres};
 use runique::sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend};
 use sea_query::extension::postgres::Type;
 use sea_query::{Alias, ColumnDef, ColumnType, Expr, ExprTrait, IntoIden, Query, Table};
@@ -133,8 +133,8 @@ async fn an_added_enum_value_is_stored_on_postgres() {
 
 #[tokio::test]
 #[serial]
-async fn an_added_enum_value_is_stored_on_mariadb() {
-    let Some(db) = db_mariadb::connect().await else {
+async fn an_added_enum_value_is_stored_on_mysql() {
+    let Some(db) = db_mysql::connect().await else {
         return;
     };
     assert_eq!(added_value_round_trip(&db).await, "Archived");

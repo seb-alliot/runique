@@ -75,9 +75,13 @@ fn invalid(kind: io::ErrorKind, path: &Path, reason: &str) -> io::Error {
 /// `path` as seen from `dir`. A batch with a journal keeps to its folder: a
 /// path outside could not be found again from another working directory.
 fn relative(dir: &Path, path: &Path) -> io::Result<PathBuf> {
-    let inside = path
-        .strip_prefix(dir)
-        .map_err(|_| invalid(io::ErrorKind::InvalidInput, path, "outside the journal's folder"))?;
+    let inside = path.strip_prefix(dir).map_err(|_| {
+        invalid(
+            io::ErrorKind::InvalidInput,
+            path,
+            "outside the journal's folder",
+        )
+    })?;
     if plain(inside) {
         Ok(inside.to_path_buf())
     } else {
@@ -255,7 +259,11 @@ pub(super) fn examine(dir: &Path) -> io::Result<Option<Repair>> {
     Ok(Some(Repair {
         manager: PathManager {
             items: items.into_iter().collect(),
-            created_dirs: journal.dirs.iter().map(|created| dir.join(created)).collect(),
+            created_dirs: journal
+                .dirs
+                .iter()
+                .map(|created| dir.join(created))
+                .collect(),
             journal: Some(dir.to_path_buf()),
         },
         placed: journal.placed,
@@ -286,7 +294,9 @@ fn found(
 ) -> io::Result<Result<Found, &'static str>> {
     let backup = exists(backup_path)?;
     if !existed && backup {
-        return Ok(Err("has a backup, though nothing was there before the batch"));
+        return Ok(Err(
+            "has a backup, though nothing was there before the batch",
+        ));
     }
     if !exists(path)? {
         return Ok(if existed && !backup {
@@ -346,10 +356,10 @@ fn stays_inside(dir: &Path, path: &Path) -> io::Result<()> {
     let Some(parent) = path.parent() else {
         return Ok(());
     };
-    let real = match fs::canonicalize(parent) {
-        Ok(real) => real,
-        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
-        Err(error) => return Err(error),
+    // A folder that can't be resolved, missing or unreachable, leads nowhere:
+    // whatever looks at the file next fails on it, before anything is touched.
+    let Ok(real) = fs::canonicalize(parent) else {
+        return Ok(());
     };
     if real.starts_with(fs::canonicalize(dir)?) {
         Ok(())
@@ -359,5 +369,67 @@ fn stays_inside(dir: &Path, path: &Path) -> io::Result<()> {
             path,
             "is no longer in the journal's folder",
         ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::atomic::tests::TempDir;
+
+    // Absent is an answer; a path that can't be looked at is an error.
+    #[test]
+    fn exists_tells_what_is_absent_from_what_it_cannot_reach() {
+        let dir = TempDir::new();
+        fs::write(dir.join("file"), "content").unwrap();
+
+        assert!(exists(&dir.join("file")).unwrap());
+        assert!(!exists(&dir.join("missing")).unwrap());
+        assert!(exists(&dir.join("file/child")).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_dangling_symlink_is_something_at_the_path() {
+        let dir = TempDir::new();
+        std::os::unix::fs::symlink(dir.join("nowhere"), dir.join("link")).unwrap();
+
+        assert!(exists(&dir.join("link")).unwrap());
+    }
+
+    // A directory where the journal is expected: not "no journal", which would
+    // let the command go on over a batch that may be waiting.
+    #[test]
+    fn a_journal_that_cannot_be_read_is_not_an_absent_one() {
+        let dir = TempDir::new();
+        fs::create_dir(dir.join(NAME)).unwrap();
+
+        assert!(read(dir.path()).is_err());
+        assert!(recover(dir.path()).is_err());
+        assert!(dir.join(NAME).is_dir());
+    }
+
+    // A folder the batch created can't be opened: what is in it is unknown,
+    // so the repair stops rather than take the folder for an empty one.
+    #[cfg(unix)]
+    #[test]
+    fn a_folder_the_repair_cannot_look_into_stops_it() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = TempDir::new();
+        fs::create_dir(dir.join("made")).unwrap();
+        let journal = Journal {
+            placed: false,
+            files: Vec::new(),
+            dirs: vec![PathBuf::from("made")],
+        };
+        write(dir.path(), &journal).unwrap();
+        fs::set_permissions(dir.join("made"), fs::Permissions::from_mode(0o000)).unwrap();
+
+        let outcome = recover(dir.path());
+        fs::set_permissions(dir.join("made"), fs::Permissions::from_mode(0o755)).unwrap();
+
+        assert_eq!(outcome.unwrap_err().kind(), io::ErrorKind::PermissionDenied);
+        assert!(dir.join("made").is_dir());
+        assert!(dir.join(NAME).exists());
     }
 }

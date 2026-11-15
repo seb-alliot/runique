@@ -141,7 +141,7 @@ code, pre {
     top: 0;
     right: 0;
     height: 100%;
-    width: min(18rem, 85vw);
+    width: min(15rem, 50vw);
     background: var(--bg-surface);
     border-left: 1px solid var(--border);
     z-index: 151;

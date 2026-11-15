@@ -2,7 +2,7 @@
 use super::indent;
 use crate::migration::types::{ParsedFk, ParsedIndex, ParsedSchema};
 
-/// Builds the FK constraint name. Length (MariaDB/MySQL hard-reject over 64 characters) is
+/// Builds the FK constraint name. Length (MySQL hard-reject over 64 characters) is
 /// validated upfront, over the whole change set, before any file generation runs — see
 /// `check_identifier_lengths` in `migration/cli_migration/report.rs` — so this stays a pure formatter.
 /// The create and drop statements for the same FK must always agree on the exact name, so
@@ -67,7 +67,7 @@ fn fk_index_column<'a>(table: &str, idx: &'a ParsedIndex) -> Option<&'a str> {
     }
 }
 
-/// Runs `stmt` unless the database is MySQL/MariaDB and `column` holds a
+/// Runs `stmt` unless the database is MySQL and `column` holds a
 /// foreign key there. InnoDB already indexes every foreign key column: an
 /// explicit index would replace that one and then couldn't be dropped while
 /// the key exists (error 1553, which broke `migrate down`). Checked at run time

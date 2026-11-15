@@ -384,7 +384,7 @@ let result = users::Entity::delete_many()
 
 Returns a `sea_orm::Condition` to inject into an existing query builder, instead of creating a new one.
 
-Every arm takes the connection, `&ADb` (`request.db()`), as its first argument (even the two `?Col in`/`not_in` arms that don't use it internally) — `all_columns`/`or(...)` need it to pick the right `CAST` type per engine (`CHAR` on MariaDB/MySQL, `TEXT` elsewhere, via `text_cast_type`), and a macro can't have arms with differing signatures without parsing ambiguity.
+Every arm takes the connection, `&ADb` (`request.db()`), as its first argument (even the two `?Col in`/`not_in` arms that don't use it internally) — `all_columns`/`or(...)` need it to pick the right `CAST` type per engine (`CHAR` on MySQL, `TEXT` elsewhere, via `text_cast_type`), and a macro can't have arms with differing signatures without parsing ambiguity.
 
 | Syntax | Result |
 | ------ | ------ |

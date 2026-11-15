@@ -9,7 +9,7 @@ What Runique doesn't do yet (4.1 in development), or does with a restriction. Ea
 | Limit | Details |
 | --- | --- |
 | One engine per build (`sqlite`, `postgres`, `mysql`)<br>SQLite: one writer at a time, `SQLITE_BUSY` under heavy write load<br>Switching engines needs a fresh database: data isn't carried over | [Database](/docs/en/installation/database) |
-| A column type change isn't migrated (`--force` writes an empty migration, to complete by hand)<br>Snapshots copied without their migrations make the tables look created<br>Index and foreign key names capped at 63 characters, on every engine: `makemigrations` refuses beyond<br>`migration up`: a migration is atomic under Postgres only (SQLite, MySQL / MariaDB: a failing migration can stay half applied)<br>A hard stop during `makemigrations` can leave half-written files (`git` to restore) | [Migrations](/docs/en/installation/migrations), [Makemigrations](/docs/en/architecture/makemigrations) |
+| A column type change isn't migrated (`--force` writes an empty migration, to complete by hand)<br>Snapshots copied without their migrations make the tables look created<br>Index and foreign key names capped at 63 characters, on every engine: `makemigrations` refuses beyond<br>`migration up`: a migration is atomic under Postgres only (SQLite, MySQL: a failing migration can stay half applied)<br>A hard stop during `makemigrations` can leave half-written files (`git` to restore) | [Migrations](/docs/en/installation/migrations), [Makemigrations](/docs/en/architecture/makemigrations) |
 | `search!`: `in (vec)` with an empty vec, no inline conditional filter | [Queries](/docs/en/orm/queries) |
 
 ## Forms and messages
@@ -59,7 +59,7 @@ What Runique doesn't do yet (4.1 in development), or does with a restriction. Ea
 | The memory session store belongs to one process | One instance, or a reverse proxy sending each visitor to the same one (`ip_hash` with nginx) |
 | ACME: one site per machine | Hand TLS to a reverse proxy as soon as there are several sites |
 | SQLite: one writer at a time | PostgreSQL for a sustained write load |
-| A migration is atomic only on PostgreSQL | Back up the database before `migration up` on SQLite and MySQL / MariaDB |
+| A migration is atomic only on PostgreSQL | Back up the database before `migration up` on SQLite and MySQL |
 | A column's type change isn't migrated | Complete by hand the migration written by `--force` |
 | Cookies shared by two projects on `127.0.0.1` | Open one on `127.0.0.1`, the other on `localhost` |
 

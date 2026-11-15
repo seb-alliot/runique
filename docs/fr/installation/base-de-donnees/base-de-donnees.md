@@ -6,10 +6,11 @@
 |---|---|
 | `orm` (par défaut) | SeaORM : entités, requêtes, migrations, sessions. **Aucun pilote** : le code compile et `makemigrations` fonctionne, mais l'application ne peut se connecter à aucune base. |
 | `sqlite`, `postgres`, `mysql` | Le pilote du moteur. Chacun active aussi `orm`. |
-| `mariadb` | Alias de `mysql`. |
 | `all-databases` | Les trois pilotes à la fois, pour les outils multi-moteurs (CLI, CI). |
 
 Une application active **un seul** moteur : en activer deux est une erreur de compilation (sauf via `all-databases`). `orm` n'a pas besoin d'être écrite.
+
+MariaDB n'est pas pris en charge : SeaORM ne connaît que ces trois moteurs, et refuse une adresse `mariadb://`.
 
 ---
 
@@ -53,7 +54,6 @@ sea-orm-migration = { version = "=2.0.4", features = [
 | SQLite | `sqlite` | `sqlx-sqlite` |
 | PostgreSQL | `postgres` | `sqlx-postgres` |
 | MySQL | `mysql` | `sqlx-mysql` |
-| MariaDB | `mariadb` | `sqlx-mysql` |
 
 **3. `.env`** — `DB_ENGINE` et `DATABASE_URL` :
 
@@ -71,7 +71,7 @@ Puis appliquez les migrations sur la nouvelle base : `runique migration up`.
 ```env
 DATABASE_URL="sqlite://data.db?mode=rwc"                        # fichier créé s'il n'existe pas
 DATABASE_URL=postgres://user:password@localhost:5432/ma_base
-DATABASE_URL=mysql://user:password@localhost:3306/ma_base       # MySQL et MariaDB
+DATABASE_URL=mysql://user:password@localhost:3306/ma_base
 ```
 
 Un chemin SQLite relatif est lu depuis le dossier où l'application est lancée : lancez `cargo run` et `runique migration` depuis la racine du projet.

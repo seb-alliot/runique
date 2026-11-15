@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - **Rust 1.94+** — [install rustup](https://rustup.rs/)
-- A database: **SQLite** (nothing to install, the default), **PostgreSQL 12+**, or **MySQL / MariaDB**
+- A database: **SQLite** (nothing to install, the default), **PostgreSQL 12+**, or **MySQL**
 
 ```bash
 rustc --version    # 1.94 or later
@@ -17,7 +17,7 @@ rustc --version    # 1.94 or later
 cargo install runique --features sqlite --locked
 ```
 
-The CLI connects to the database (`create-superuser`): it must be compiled with your engine's driver. Replace `sqlite` with `postgres`, `mysql` or `mariadb`, or use `all-databases` for a binary that talks to all three. Without an engine feature, every connection fails with "driver not enabled".
+The CLI connects to the database (`create-superuser`): it must be compiled with your engine's driver. Replace `sqlite` with `postgres`, `mysql`, or use `all-databases` for a binary that talks to all three. Without an engine feature, every connection fails with "driver not enabled".
 
 `--locked` uses the dependency versions published with the crate; without it, Cargo may pick newer versions that don't work together.
 

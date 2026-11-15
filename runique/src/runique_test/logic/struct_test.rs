@@ -53,7 +53,7 @@ pub enum Reason<E> {
 /// Something the builder caught on its own, whatever the handler returned.
 pub enum Issue {
     /// The transaction was ended from inside the test (a `COMMIT`, or DDL on
-    /// MariaDB/MySQL): what the test wrote before that is now in the database.
+    /// MySQL): what the test wrote before that is now in the database.
     TransactionEnded,
     /// Queries failed but the handler still returned `Ok`: an error got
     /// swallowed somewhere. Failures inside `expect_db_error` don't count.

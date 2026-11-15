@@ -557,7 +557,7 @@
   "makemigrations": {
     "destructive_detected": "检测到破坏性更改:",
     "destructive_require_force": "使用 --force 应用这些破坏性更改。",
-    "long_identifier_detected": "生成的 SQL 标识符过长（MariaDB/MySQL 限制：64 个字符）：",
+    "long_identifier_detected": "生成的 SQL 标识符过长（MySQL 限制：64 个字符）：",
     "long_identifier_rename_required": "请缩短相关的表名/列名 — Runique 不会自动截断标识符。",
     "files_ready": "{}个文件已准备好迁移。",
     "snapshots_upgraded": "已更新 {} 个快照以记录列长度（无迁移）。",
@@ -575,7 +575,7 @@
     "failed": "迁移 crate 在 'migrate {}' 上失败（退出码：{}）。",
     "crate_created": "已在 '{}' 创建迁移 crate。",
     "interrupted": "makemigrations 在 '{}' 中被中断。请在应用迁移之前重新运行 makemigrations。",
-    "engine_defaulted": "未设置 DB_ENGINE：迁移 crate 使用 SQLite。如有需要，请修改 '{}' 中的 runique feature。"
+    "engine_defaulted": "DATABASE_URL 和 DB_ENGINE 都未指明已知的数据库引擎：迁移 crate 使用 SQLite。如有需要，请修改 '{}' 中的 runique feature。"
   },
   "reset": {
     "forgot_title": "忘记密码",
@@ -613,7 +613,7 @@
     "nested": "runique_test 不能在另一个 runique_test 内部运行：它会永远等待自己的调用者",
     "timed_out": "处理函数未在 {} 秒内完成：是死锁，还是某行被另一个连接锁住？可通过 env 文件中的 RUNIQUE_TEST_TIMEOUT 修改上限",
     "bad_timeout": "{} 必须是大于 0 的整数秒数，实际收到 \"{}\"",
-    "transaction_ended": "测试的事务在测试内部被结束（COMMIT，或 MariaDB/MySQL 上的 DDL）：此前写入的所有内容现在都留在数据库中",
+    "transaction_ended": "测试的事务在测试内部被结束（COMMIT，或 MySQL 上的 DDL）：此前写入的所有内容现在都留在数据库中",
     "swallowed_failures": "失败的查询：{}，但处理函数仍返回了 Ok：某处吞掉了错误（请用 expect_db_error 包裹预期的失败）",
     "rollback_timed_out": "回滚未在 {} 秒内完成",
     "expected": "预期",

@@ -111,7 +111,6 @@ fn engines_markdown(compose: &str, lang: &str) -> String {
     {
         let engine = match image.split(':').next() {
             Some("postgres") => "PostgreSQL",
-            Some("mariadb") => "MariaDB",
             Some("mysql") => "MySQL",
             Some(other) => other,
             None => continue,
@@ -198,7 +197,7 @@ mod tests {
     fn the_real_compose_file_lists_its_engines_and_sqlite() {
         let md = engines_markdown(COMPOSE, "en");
         assert!(md.contains("| PostgreSQL |"), "{md}");
-        assert!(md.contains("| MariaDB |"), "{md}");
+        assert!(md.contains("| MySQL |"), "{md}");
         assert!(md.contains("| SQLite |"), "{md}");
     }
 }

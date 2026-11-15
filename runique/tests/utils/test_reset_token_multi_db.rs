@@ -1,15 +1,15 @@
-//! Tests — `reset_token::generate` on Postgres and MariaDB (Docker), against the
+//! Tests — `reset_token::generate` on Postgres and MySQL (Docker), against the
 //! table the real migration creates: its `UNIQUE (user_id)` is what makes a
 //! second request overwrite the first link. Postgres refuses `ON CONFLICT
-//! (user_id)` without that index; MariaDB's `ON DUPLICATE KEY UPDATE` would
+//! (user_id)` without that index; MySQL's `ON DUPLICATE KEY UPDATE` would
 //! silently insert a second row. SQLite is covered by `test_reset_token.rs`.
 //!
-//! Needs `docker compose up -d` and `DATABASE_URL_PG` / `DATABASE_URL_MARIADB`
+//! Needs `docker compose up -d` and `DATABASE_URL_PG` / `DATABASE_URL_MYSQL`
 //! in `.env.test`; without them each test returns at once.
 
 #[cfg(feature = "pk-uuid")]
 use crate::helpers::pk::pk;
-use crate::helpers::{db_mariadb, db_postgres};
+use crate::helpers::{db_mysql, db_postgres};
 use runique::auth::migrations_table::create_eihwaz_reset_tokens_table;
 use runique::auth::user;
 use runique::sea_orm::{
@@ -22,7 +22,7 @@ use std::time::Duration;
 
 /// Drops then recreates `eihwaz_reset_tokens` and `eihwaz_users`. The shared
 /// Docker databases hold other tables pointing at `eihwaz_users`: Postgres
-/// needs CASCADE, MariaDB needs its FK checks off, on one pinned connection.
+/// needs CASCADE, MySQL needs its FK checks off, on one pinned connection.
 async fn recreate_tables(db: &DatabaseConnection) {
     let backend = db.get_database_backend();
     match backend {
@@ -35,7 +35,7 @@ async fn recreate_tables(db: &DatabaseConnection) {
         }
         DbBackend::MySql => {
             // `eihwaz_reset_tokens` is among the tables pointing at `eihwaz_users`.
-            crate::helpers::db_mariadb::drop_users_and_dependents(db).await;
+            crate::helpers::db_mysql::drop_users_and_dependents(db).await;
         }
         other => unimplemented!("engine not covered here: {other:?}"),
     }
@@ -109,8 +109,8 @@ async fn test_a_new_token_replaces_the_previous_one_pg() {
 
 #[tokio::test]
 #[serial]
-async fn test_a_new_token_replaces_the_previous_one_mariadb() {
-    let Some(db) = db_mariadb::connect().await else {
+async fn test_a_new_token_replaces_the_previous_one_mysql() {
+    let Some(db) = db_mysql::connect().await else {
         return;
     };
     a_new_token_replaces_the_previous_one(db).await;

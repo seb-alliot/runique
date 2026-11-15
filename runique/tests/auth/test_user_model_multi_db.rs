@@ -1,9 +1,9 @@
 //! Tests — `BuiltinUserEntity::find_by_id` sur les 3 moteurs (SQLite, Postgres,
-//! MariaDB via Docker), avec la MÊME rigueur d'assertion partout : égalité
+//! MySQL via Docker), avec la MÊME rigueur d'assertion partout : égalité
 //! champ à champ (`assert_eq!(found, alice)`), pas juste `username`.
 //! `test_user_model.rs` a déjà des tests SQLite mais ne vérifie que
 //! `username` — ce fichier ajoute l'équivalent complet pour SQLite (parité,
-//! pas de doublon fonctionnel) et couvre Postgres/MariaDB qui n'avaient
+//! pas de doublon fonctionnel) et couvre Postgres/MySQL qui n'avaient
 //! aucun test.
 //!
 //! Objectif : vérifier que l'insertion puis la relecture des données passe
@@ -15,19 +15,19 @@
 //! fichier couvre l'autre moitié : les données sont-elles bien écrites et
 //! relues à l'identique, sur les 3 moteurs.
 //!
-//! Postgres/MariaDB nécessitent `docker compose up -d` et
-//! `DATABASE_URL_PG`/`DATABASE_URL_MARIADB` dans `.env.test`. Si absentes,
+//! Postgres/MySQL nécessitent `docker compose up -d` et
+//! `DATABASE_URL_PG`/`DATABASE_URL_MYSQL` dans `.env.test`. Si absentes,
 //! chaque test retourne immédiatement (skip implicite) — même convention que
-//! `tests/db/test_postgres.rs`/`test_mariadb.rs`. SQLite (`:memory:`) tourne
+//! `tests/db/test_postgres.rs`/`test_mysql.rs`. SQLite (`:memory:`) tourne
 //! toujours, sans dépendance externe.
 //!
 //! Table créée via `Schema::create_table_from_entity(user::Entity)` plutôt que
 //! du DDL écrit à la main : le type de colonne `id` (SERIAL/UUID sous Postgres,
-//! AUTO_INCREMENT/CHAR sous MariaDB…) suit alors automatiquement les attributs
+//! AUTO_INCREMENT/CHAR sous MySQL…) suit alors automatiquement les attributs
 //! réels de l'entité (et les features `big-pk`/`pk-uuid`), sans avoir à
 //! réécrire à la main le mapping par moteur.
 
-use crate::helpers::{db, db_mariadb, db_postgres, pk::pk};
+use crate::helpers::{db, db_mysql, db_postgres, pk::pk};
 use runique::auth::{BuiltinUserEntity, user};
 use runique::sea_orm::{
     ActiveModelTrait, ActiveValue::Set, ConnectionTrait, DatabaseConnection, DbBackend, Schema,
@@ -39,11 +39,11 @@ use serial_test::serial;
 // (`test_sea_migrate.rs` y fait tourner la vraie migration : `eihwaz_users_groupes`,
 // `eihwaz_sessions`, `eihwaz_reset_tokens`, `contributions`... → `eihwaz_users`).
 // Un DROP nu échoue si ce schéma plus large traîne encore. Postgres exige CASCADE
-// explicite ; MariaDB n'a pas cette syntaxe et refuse le DROP tant que
+// explicite ; MySQL n'a pas cette syntaxe et refuse le DROP tant que
 // `foreign_key_checks` reste actif — désactivé le temps du DROP. SQLite n'a ni
 // CASCADE ni FK actives par défaut, un DROP nu suffit.
 //
-// MariaDB's `SET`/`DROP`/`SET` runs inside a transaction (`db.begin()`) to pin
+// MySQL's `SET`/`DROP`/`SET` runs inside a transaction (`db.begin()`) to pin
 // all three statements to the *same* pooled connection — `FOREIGN_KEY_CHECKS`
 // is a session variable, and `DatabaseConnection` is backed by a connection
 // pool, so three separate `execute_unprepared()` calls on `db` directly are
@@ -60,7 +60,7 @@ async fn recreate_users_table(db: &DatabaseConnection) {
                 .expect("drop eihwaz_users");
         }
         DbBackend::MySql => {
-            crate::helpers::db_mariadb::drop_users_and_dependents(db).await;
+            crate::helpers::db_mysql::drop_users_and_dependents(db).await;
         }
         DbBackend::Sqlite => {
             db.execute_unprepared("DROP TABLE IF EXISTS eihwaz_users")
@@ -172,13 +172,13 @@ async fn test_find_by_id_not_found_pg() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MariaDB
+// MySQL
 // ═══════════════════════════════════════════════════════════════
 
 #[tokio::test]
 #[serial]
-async fn test_find_by_id_found_mariadb() {
-    let Some(db) = db_mariadb::connect().await else {
+async fn test_find_by_id_found_mysql() {
+    let Some(db) = db_mysql::connect().await else {
         return;
     };
     recreate_users_table(&db).await;
@@ -188,7 +188,7 @@ async fn test_find_by_id_found_mariadb() {
         BuiltinUserEntity::find_by_id(&runique::db::ADb::from_connection(db.clone()), alice.id)
             .await;
 
-    let found = found.expect("alice doit être relue depuis MariaDB");
+    let found = found.expect("alice doit être relue depuis MySQL");
     // Comparaison champ à champ complète (id inclus) contre ce qui a été
     // inséré — pas juste un sous-ensemble des colonnes.
     assert_eq!(found, alice);
@@ -208,8 +208,8 @@ async fn test_find_by_id_found_mariadb() {
 
 #[tokio::test]
 #[serial]
-async fn test_find_by_id_not_found_mariadb() {
-    let Some(db) = db_mariadb::connect().await else {
+async fn test_find_by_id_not_found_mysql() {
+    let Some(db) = db_mysql::connect().await else {
         return;
     };
     recreate_users_table(&db).await;

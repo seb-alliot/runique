@@ -17,7 +17,7 @@ use serial_test::serial;
 // toutes les tables). Sans serialisation, un `migrate fresh` concurrent peut
 // dropper `eihwaz_users_groupes` entre le CREATE et l'INSERT d'un test d'ici —
 // "relation does not exist" observé en pratique. Même convention que
-// `tests/db/test_postgres.rs`/`test_mariadb.rs`.
+// `tests/db/test_postgres.rs`/`test_mysql.rs`.
 
 // ═══════════════════════════════════════════════════════════════
 // Helpers

@@ -321,7 +321,7 @@ fn enum_create_type_is_postgres_only() {
 #[test]
 fn enum_column_is_a_native_enum_on_postgres_only() {
     // sea-query renders `ColumnType::Enum` as a native `ENUM(...)` on MySQL /
-    // MariaDB, whose value list no later migration updates: off Postgres the
+    // MySQL, whose value list no later migration updates: off Postgres the
     // column must be a plain string, like the entity reads it.
     let sql = generate_create_file(&parse_model(ENUM_V2));
     let guarded = "new_with_type(Alias::new(\"status\"), if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres { ColumnType::Enum { name: Alias::new(\"Status\").into_iden()";
@@ -565,7 +565,7 @@ fn column_rename_without_hint_is_drop_add() {
 
 #[test]
 fn column_rename_sql_is_portable_across_engines() {
-    // RENAME COLUMN is supported by PG / MySQL+MariaDB / SQLite → same builder for all.
+    // RENAME COLUMN is supported by PG / MySQL / SQLite → same builder for all.
     let changes = diff_schemas(&parse_model(COL_BEFORE), &parse_model(COL_RENAMED));
     let sql = generate_alter_file(&changes);
     assert!(

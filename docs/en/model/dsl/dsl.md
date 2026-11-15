@@ -166,17 +166,17 @@ The Rust type shown is the one of a NOT NULL column; a `nullable` column gives `
 | `checkbox`         | — (list, see below)        | same as `multichoice`, rendered as checkboxes |
 
 A `VARCHAR` without a length takes the engine's default: unbounded on Postgres, `VARCHAR(255)`
-on MySQL/MariaDB, `TEXT` on SQLite. `ip`, `cidr`, `mac_address` and `interval` stay `VARCHAR`:
+on MySQL, `TEXT` on SQLite. `ip`, `cidr`, `mac_address` and `interval` stay `VARCHAR`:
 their native types only exist on Postgres.
 
 **Engine limits**, refused at compile time when a single engine feature is enabled: `i8` and
 `u32` on Postgres, `u64` on Postgres and SQLite (the value can't be read back into the Rust
-type). On MySQL/MariaDB, `binary` is a **fixed-length** column padded with `0x00`: use
+type). On MySQL, `binary` is a **fixed-length** column padded with `0x00`: use
 `var_binary` to read back exactly the bytes written.
 
 > **`decimal` needs its precision and scale**: `max_digits` (all digits) and
 > `decimal_places` (those after the point), otherwise a compile error. Without them,
-> MySQL/MariaDB would create `DECIMAL(10, 0)` and round every value to an integer.
+> MySQL would create `DECIMAL(10, 0)` and round every value to an integer.
 > Bounds: `1 ≤ max_digits ≤ 65`, `decimal_places ≤ 30` and `≤ max_digits`.
 >
 > ```rust
@@ -283,7 +283,7 @@ title: text [renamed_from: "job_title"],
 ```
 
 `makemigrations` then emits `ALTER TABLE … RENAME COLUMN job_title TO title` (supported by
-PostgreSQL, MySQL/MariaDB and SQLite), with no data loss. The attribute is a migration-only
+PostgreSQL, MySQL and SQLite), with no data loss. The attribute is a migration-only
 directive: it has no effect on the generated entity or form. Guard: if the old column still
 exists in the snapshot (stale hint), no rename is emitted.
 
@@ -505,7 +505,7 @@ search!(book::Entity => !Genres has Genre::Novel, Title icontains "night")
 book::Entity::objects.filter(book::List::Genres.has(Genre::Novel))   // without search!
 ```
 
-The filters are portable subqueries (Postgres, MySQL/MariaDB, SQLite) and are typed: passing a
+The filters are portable subqueries (Postgres, MySQL, SQLite) and are typed: passing a
 value of another enum doesn't compile.
 
 ### Postgres: rows and lists in one query

@@ -11,7 +11,7 @@ members = ["migration"]
 
 [dependencies]
 
-# Database: sqlite (default), postgres, mysql, mariadb or all-databases.
+# Database: sqlite (default), postgres, mysql or all-databases.
 # Change it here AND in migration/Cargo.toml, along with DB_ENGINE in .env.
 #
 # Primary keys are i32 by default. Want i64 or UUIDs instead? Add "big-pk" or

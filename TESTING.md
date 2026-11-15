@@ -6,7 +6,7 @@ Two separate things live in this repository:
 
 | What | Database | Docker |
 | --- | --- | --- |
-| The test suite (`runique/`) | SQLite in memory, plus Postgres and MariaDB when available | Optional |
+| The test suite (`runique/`) | SQLite in memory, plus Postgres and MySQL when available | Optional |
 | The demo site (`demo-app/`, runique.io) | **Postgres only** | Recommended |
 
 ---
@@ -16,7 +16,7 @@ Two separate things live in this repository:
 | Tool | For | Install |
 | --- | --- | --- |
 | Rust 1.94+ | The tests, demo-app on the machine | [rustup](https://rustup.rs) |
-| Docker | Postgres and MariaDB (optional for the tests), or demo-app entirely | [docs.docker.com](https://docs.docker.com/get-docker/) |
+| Docker | Postgres and MySQL (optional for the tests), or demo-app entirely | [docs.docker.com](https://docs.docker.com/get-docker/) |
 | `psql` | demo-app on the machine: the seed loads `seed.sql` (pages, code examples) through it | `postgresql-client` package (`apt install postgresql-client`) |
 | `runique` CLI | demo-app on the machine: migrations and the admin account | `cargo install --path runique --features postgres` |
 | Node 22+ | JavaScript tests (optional) | [nodejs.org](https://nodejs.org) |
@@ -32,17 +32,17 @@ it after each update of the workspace.
 
 ### SQLite only — nothing to install
 
-Every test that needs a database gets a fresh in-memory SQLite one. The Postgres and MariaDB
+Every test that needs a database gets a fresh in-memory SQLite one. The Postgres and MySQL
 tests are skipped, not failed, when no URL is configured.
 
 ```bash
 cd runique
-cargo test --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin,test-utils
+cargo test --features orm,sqlite,postgres,mysql,all-databases,acme,admin,test-utils
 ```
 
 This is the exact feature set of the CI's main test job.
 
-### With Postgres and MariaDB
+### With Postgres and MySQL
 
 The root `docker-compose.yml` starts both engines for the tests:
 
@@ -54,7 +54,7 @@ Then create `runique/.env.test`:
 
 ```env
 DATABASE_URL_PG=postgres://runique:runique_test@localhost:5433/runique_test
-DATABASE_URL_MARIADB=mysql://runique:runique_test@localhost:3307/runique_test
+DATABASE_URL_MYSQL=mysql://runique:runique_test@localhost:3307/runique_test
 ```
 
 Each clone of the repository, and each primary key variant (see below), gets its own database,
@@ -64,7 +64,7 @@ would share that database.
 
 ### Primary key variants
 
-The CI runs each feature set below in its own job, in parallel, each with a fresh MariaDB and
+The CI runs each feature set below in its own job, in parallel, each with a fresh MySQL and
 Postgres (so no table left by one key type gets in the way of the next):
 
 ```bash

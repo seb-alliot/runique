@@ -41,7 +41,7 @@ pub(super) fn render_column_def(col: &ParsedColumn) -> String {
 /// The type of an enum column, chosen when the migration runs: the Postgres
 /// enum type there, a plain string elsewhere — the entity `model!{}`
 /// generates reads it as a string off Postgres, and sea-query would render
-/// `ColumnType::Enum` as a native `ENUM(...)` on MySQL/MariaDB, whose value
+/// `ColumnType::Enum` as a native `ENUM(...)` on MySQL, whose value
 /// list the later migrations (value added, renamed) never update.
 pub(super) fn enum_column_type(col: &ParsedColumn) -> String {
     let enum_name = col.enum_name.as_deref().unwrap_or(&col.name);

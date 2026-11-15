@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 /// - `sqlite` - For SQLite (enabled by default)
 /// - `postgres` - For PostgreSQL
 /// - `mysql` - For MySQL
-/// - `mariadb` - For MariaDB (uses MySQL driver)
 ///
 /// # Examples
 ///
@@ -28,8 +27,6 @@ pub enum DatabaseEngine {
     PostgreSQL,
     /// MySQL database
     MySQL,
-    /// MariaDB database (MySQL-compatible)
-    MariaDB,
     /// SQLite embedded database
     SQLite,
 }
@@ -58,12 +55,60 @@ impl DatabaseEngine {
             Ok(DatabaseEngine::PostgreSQL)
         } else if url.starts_with("mysql://") {
             Ok(DatabaseEngine::MySQL)
-        } else if url.starts_with("mariadb://") {
-            Ok(DatabaseEngine::MariaDB)
         } else if url.starts_with("sqlite://") {
             Ok(DatabaseEngine::SQLite)
         } else {
             Err("Unsupported database URL scheme".to_string())
+        }
+    }
+
+    /// The engine a `DB_ENGINE` keyword names, whatever its case and the
+    /// spaces around it: `postgres` or `postgresql`, `mysql`, `sqlite`.
+    /// `None` for anything else.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use runique::prelude::DatabaseEngine;
+    ///
+    /// assert_eq!(DatabaseEngine::from_keyword(" Postgres "), Some(DatabaseEngine::PostgreSQL));
+    /// assert_eq!(DatabaseEngine::from_keyword("oracle"), None);
+    /// ```
+    pub fn from_keyword(keyword: &str) -> Option<Self> {
+        match keyword.trim().to_ascii_lowercase().as_str() {
+            "postgres" | "postgresql" => Some(DatabaseEngine::PostgreSQL),
+            "mysql" => Some(DatabaseEngine::MySQL),
+            "sqlite" => Some(DatabaseEngine::SQLite),
+            _ => None,
+        }
+    }
+
+    /// The engine a project's variables name, by the one rule every part of
+    /// runique follows: `DATABASE_URL` decides when it is set, `DB_ENGINE`
+    /// otherwise. `None` when neither names an engine.
+    pub(crate) fn from_lookup(get: impl Fn(&str) -> Option<String>) -> Option<Self> {
+        match get("DATABASE_URL") {
+            Some(url) => Self::detect_from_url(&url).ok(),
+            None => Self::from_keyword(&get("DB_ENGINE")?),
+        }
+    }
+
+    /// What a connection URL to this engine starts with.
+    pub(crate) fn scheme(&self) -> &'static str {
+        match self {
+            DatabaseEngine::PostgreSQL => "postgres",
+            DatabaseEngine::MySQL => "mysql",
+            DatabaseEngine::SQLite => "sqlite",
+        }
+    }
+
+    /// The port the engine's server listens on unless told otherwise. `None`
+    /// for SQLite: a file, with no server and no account.
+    pub(crate) fn default_port(&self) -> Option<&'static str> {
+        match self {
+            DatabaseEngine::PostgreSQL => Some("5432"),
+            DatabaseEngine::MySQL => Some("3306"),
+            DatabaseEngine::SQLite => None,
         }
     }
 
@@ -81,7 +126,6 @@ impl DatabaseEngine {
         match self {
             DatabaseEngine::PostgreSQL => "PostgreSQL",
             DatabaseEngine::MySQL => "MySQL",
-            DatabaseEngine::MariaDB => "MariaDB",
             DatabaseEngine::SQLite => "SQLite",
         }
     }
@@ -98,9 +142,6 @@ pub(super) fn verify_database_driver(engine: &DatabaseEngine) -> Result<(), Stri
         DatabaseEngine::PostgreSQL => Err(driver_not_enabled(engine, "postgres")),
         #[cfg(not(feature = "mysql"))]
         DatabaseEngine::MySQL => Err(driver_not_enabled(engine, "mysql")),
-        // MariaDB goes through the MySQL driver: `all-databases` enables `mysql`, not `mariadb`.
-        #[cfg(not(feature = "mysql"))]
-        DatabaseEngine::MariaDB => Err(driver_not_enabled(engine, "mariadb")),
         #[cfg(not(feature = "sqlite"))]
         DatabaseEngine::SQLite => Err(driver_not_enabled(engine, "sqlite")),
         #[allow(unreachable_patterns)]
@@ -175,5 +216,88 @@ mod tests {
     fn a_compiled_driver_passes() {
         use super::*;
         assert!(verify_database_driver(&DatabaseEngine::SQLite).is_ok());
+    }
+
+    #[test]
+    fn a_keyword_names_its_engine_whatever_its_case() {
+        use super::DatabaseEngine;
+        for (keyword, engine) in [
+            ("sqlite", DatabaseEngine::SQLite),
+            ("postgres", DatabaseEngine::PostgreSQL),
+            ("postgresql", DatabaseEngine::PostgreSQL),
+            ("mysql", DatabaseEngine::MySQL),
+            ("  PostgreSQL\t", DatabaseEngine::PostgreSQL),
+            ("SQLite", DatabaseEngine::SQLite),
+        ] {
+            assert_eq!(
+                DatabaseEngine::from_keyword(keyword),
+                Some(engine),
+                "{keyword:?}"
+            );
+        }
+        for unknown in [
+            "",
+            "oracle",
+            "mariadb",
+            "postgres://localhost/app",
+            "my sql",
+        ] {
+            assert_eq!(DatabaseEngine::from_keyword(unknown), None, "{unknown:?}");
+        }
+    }
+
+    #[test]
+    fn the_database_url_decides_before_the_keyword() {
+        use super::DatabaseEngine;
+        let engine_of = |vars: &[(&str, &str)]| {
+            DatabaseEngine::from_lookup(|key| {
+                vars.iter()
+                    .find(|(name, _)| *name == key)
+                    .map(|(_, value)| value.to_string())
+            })
+        };
+
+        assert_eq!(engine_of(&[]), None);
+        assert_eq!(
+            engine_of(&[("DB_ENGINE", "mysql")]),
+            Some(DatabaseEngine::MySQL)
+        );
+        assert_eq!(
+            engine_of(&[("DATABASE_URL", "sqlite://data.db")]),
+            Some(DatabaseEngine::SQLite)
+        );
+        assert_eq!(
+            engine_of(&[
+                ("DB_ENGINE", "sqlite"),
+                ("DATABASE_URL", "postgres://localhost/app"),
+            ]),
+            Some(DatabaseEngine::PostgreSQL)
+        );
+        assert_eq!(
+            engine_of(&[
+                ("DB_ENGINE", "postgres"),
+                ("DATABASE_URL", "oracle://localhost/app"),
+            ]),
+            None
+        );
+    }
+
+    // A URL made of an engine's scheme is read back as that engine: the two
+    // can't drift apart.
+    #[test]
+    fn each_engine_reads_back_from_its_own_scheme() {
+        use super::DatabaseEngine;
+        for (engine, scheme, port) in [
+            (DatabaseEngine::PostgreSQL, "postgres", Some("5432")),
+            (DatabaseEngine::MySQL, "mysql", Some("3306")),
+            (DatabaseEngine::SQLite, "sqlite", None),
+        ] {
+            assert_eq!(engine.scheme(), scheme);
+            assert_eq!(engine.default_port(), port);
+            assert_eq!(
+                DatabaseEngine::detect_from_url(&format!("{scheme}://app")),
+                Ok(engine)
+            );
+        }
     }
 }

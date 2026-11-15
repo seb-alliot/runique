@@ -1,12 +1,12 @@
 //! Tests — cli/migrate.rs : `up()` délègue à `sea-orm-cli migrate up`.
 
-use crate::helpers::db_mariadb as db_maria;
+use crate::helpers::db_mysql;
 use crate::helpers::db_postgres as db_pg;
 use runique::cli::migrate::up;
 use serial_test::serial;
 
 // ═══════════════════════════════════════════════════════════════
-// up() — teste les deux DB (Postgres + MariaDB)
+// up() — teste les deux DB (Postgres + MySQL)
 // ═══════════════════════════════════════════════════════════════
 
 // Ignoré sur Windows avec code page non-UTF-8 (bug SQLx sur Windows français)
@@ -39,24 +39,24 @@ async fn test_up_retourne_ok() {
 #[tokio::test]
 #[ignore]
 #[serial]
-async fn test_up_mariadb_retourne_ok() {
+async fn test_up_mysql_retourne_ok() {
     dotenvy::from_filename(".env.test").ok();
-    let Some(maria_url) = crate::helpers::db_isolation::isolated_url("DATABASE_URL_MARIADB").await
+    let Some(mysql_url) = crate::helpers::db_isolation::isolated_url("DATABASE_URL_MYSQL").await
     else {
         return; // skip si pas de Docker
     };
-    unsafe { std::env::set_var("DATABASE_URL", &maria_url) };
+    unsafe { std::env::set_var("DATABASE_URL", &mysql_url) };
     let migration_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../demo-app/migration");
     let result = up(migration_dir).await;
-    assert!(result.is_ok(), "up() MariaDB doit Ok: {:?}", result);
+    assert!(result.is_ok(), "up() MySQL doit Ok: {:?}", result);
 
     // Idem Postgres : `count()` panique si la table n'existe pas, donc son succès
     // prouve que le schéma a réellement été créé, pas juste que `up()` a retourné Ok.
-    let Some(db) = db_maria::connect().await else {
+    let Some(db) = db_mysql::connect().await else {
         return;
     };
-    db_maria::count(&db, "eihwaz_users").await;
-    db_maria::count(&db, "blog").await;
+    db_mysql::count(&db, "eihwaz_users").await;
+    db_mysql::count(&db, "blog").await;
 }
 
 #[tokio::test]

@@ -75,7 +75,7 @@ Checked on November 5, 2026 in [the documentation](https://loco.rs/docs/) and [t
 | Feature | Loco | Runique |
 |---------|------|---------|
 | ORM | SeaORM | SeaORM |
-| Engines | SQLite, PostgreSQL (default features) | SQLite, PostgreSQL, MySQL/MariaDB, one engine per build |
+| Engines | SQLite, PostgreSQL (default features) | SQLite, PostgreSQL, MySQL, one engine per build |
 | Model definition | entities generated from the migrations | `model!{}` macro |
 | Migrations | `loco_rs::schema` DSL, written or generated | `runique makemigrations` compares with the last snapshot |
 | Queries | `query::condition()` and SeaORM | `search!` and SeaORM |

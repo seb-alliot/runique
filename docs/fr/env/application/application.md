@@ -28,13 +28,13 @@
 
 | Variable | Défaut | Description |
 |----------|--------|-------------|
-| `DATABASE_URL` | — | URL complète. **Lue en premier** : quand elle est définie, `DB_ENGINE`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` et `DB_NAME` sont ignorés, et le moteur est déduit du schéma de l'URL (`postgres://`, `mysql://`, `mariadb://`, `sqlite://`) |
-| `DB_ENGINE` | `sqlite` | Moteur, quand `DATABASE_URL` est absente : `postgres`, `mysql`, `mariadb`, `sqlite`. Doit correspondre à la feature de `runique` compilée, sinon « driver not enabled » au démarrage |
+| `DATABASE_URL` | — | URL complète. **Lue en premier** : quand elle est définie, `DB_ENGINE`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` et `DB_NAME` sont ignorés, et le moteur est déduit du schéma de l'URL (`postgres://`, `mysql://`, `sqlite://`) |
+| `DB_ENGINE` | `sqlite` | Moteur, quand `DATABASE_URL` est absente : `postgres`, `mysql`, `sqlite`. Doit correspondre à la feature de `runique` compilée, sinon « driver not enabled » au démarrage |
 | `DB_USER` | — | Utilisateur (requis sauf SQLite) |
 | `DB_PASSWORD` | — | Mot de passe (requis sauf SQLite) |
 | `DB_HOST` | `localhost` | Host |
 | `DB_PORT` | `5432` / `3306` | Port (défaut selon le moteur) |
-| `DB_NAME` | `local_base.sqlite` (SQLite uniquement) | Nom de la base — **requis** pour postgres/mysql/mariadb, échec au démarrage si absent |
+| `DB_NAME` | `local_base.sqlite` (SQLite uniquement) | Nom de la base — **requis** pour postgres/mysql, échec au démarrage si absent |
 
 ### Pool de connexions
 

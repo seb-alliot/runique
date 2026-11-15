@@ -116,7 +116,7 @@ Durée du verrouillage en secondes.
 
 Retourne la clé à utiliser selon le contexte :
 
-- Username non vide → clé par username, `trim()` puis en minuscules (protection compte ciblé ; une base qui compare les noms sans tenir compte de la casse, comme MySQL/MariaDB, ouvre le même compte pour `admin` et `Admin`)
+- Username non vide → clé par username, `trim()` puis en minuscules (protection compte ciblé ; une base qui compare les noms sans tenir compte de la casse, comme MySQL, ouvre le même compte pour `admin` et `Admin`)
 - Username vide ou absent → `"anonym:{ip}"` (protection anonyme par IP)
 
 Garantit que deux IPs anonymes différentes ont des compteurs indépendants — bloquer `"anonym:1.2.3.4"` n'affecte pas `"anonym:5.6.7.8"`.

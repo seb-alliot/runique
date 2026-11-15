@@ -583,5 +583,4 @@ mod generated_files_tests {
         assert!(dir.join(".runique-journal").exists());
         assert!(!dir.join("Cargo.toml").exists());
     }
-
 }

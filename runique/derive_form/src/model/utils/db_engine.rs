@@ -67,7 +67,7 @@ impl DbEngine {
         if let Ok(engine) = std::env::var("DB_ENGINE") {
             match engine.to_ascii_lowercase().as_str() {
                 "postgres" | "postgresql" => return DbEngine::Postgres,
-                "mysql" | "mariadb" => return DbEngine::Mysql,
+                "mysql" => return DbEngine::Mysql,
                 "sqlite" => return DbEngine::Sqlite,
                 _ => {}
             }
@@ -78,7 +78,7 @@ impl DbEngine {
             if url.starts_with("postgres://") || url.starts_with("postgresql://") {
                 return DbEngine::Postgres;
             }
-            if url.starts_with("mysql://") || url.starts_with("mariadb://") {
+            if url.starts_with("mysql://") {
                 return DbEngine::Mysql;
             }
             if url.starts_with("sqlite:") || url.starts_with("sqlite://") {
@@ -208,7 +208,6 @@ mod tests {
             ("postgres", Postgres),
             ("PostgreSQL", Postgres),
             ("mysql", Mysql),
-            ("mariadb", Mysql),
             ("sqlite", Sqlite),
         ] {
             assert_eq!(detect_with(Some(value), None), engine, "{value}");
@@ -222,7 +221,6 @@ mod tests {
             ("postgres://u@h/db", Postgres),
             ("postgresql://u@h/db", Postgres),
             ("mysql://u@h/db", Mysql),
-            ("mariadb://u@h/db", Mysql),
             ("sqlite:db.sqlite", Sqlite),
             ("sqlite://db.sqlite", Sqlite),
         ] {

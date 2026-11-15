@@ -552,7 +552,11 @@ fn a_run_cut_short_is_taken_back_before_the_next_one() {
     fs::write(format!("{path}/lib.rs.runique-bak"), &before).unwrap();
     fs::write(format!("{path}/lib.rs.runique-tmp"), "// half done").unwrap();
     fs::write(format!("{path}/m1_create_shop_table.rs"), "// shop").unwrap();
-    fs::write(format!("{path}/m1_create_shop_table.rs.runique-tmp"), "// shop").unwrap();
+    fs::write(
+        format!("{path}/m1_create_shop_table.rs.runique-tmp"),
+        "// shop",
+    )
+    .unwrap();
     crate::atomic::tests::cut_journal(
         Path::new(&path),
         false,
@@ -581,10 +585,18 @@ fn cut_run(dir: &TempDir) -> (String, String, String) {
     fs::create_dir(&entities).unwrap();
     let before = initial_lib();
     let path = migrations_src(dir, Some("// lib.rs with the new migration"));
-    fs::write(format!("{path}/lib.rs.runique-tmp"), "// lib.rs with the new migration").unwrap();
+    fs::write(
+        format!("{path}/lib.rs.runique-tmp"),
+        "// lib.rs with the new migration",
+    )
+    .unwrap();
     fs::write(format!("{path}/lib.rs.runique-bak"), &before).unwrap();
     fs::write(format!("{path}/m1_create_shop_table.rs"), "// shop").unwrap();
-    fs::write(format!("{path}/m1_create_shop_table.rs.runique-tmp"), "// shop").unwrap();
+    fs::write(
+        format!("{path}/m1_create_shop_table.rs.runique-tmp"),
+        "// shop",
+    )
+    .unwrap();
     crate::atomic::tests::cut_journal(
         Path::new(&path),
         false,
@@ -678,7 +690,11 @@ fn a_file_added_in_a_folder_the_run_created_stops_the_command() {
     fs::create_dir(&entities).unwrap();
     let path = migrations_src(&dir, Some(&initial_lib()));
     fs::create_dir(format!("{path}/snapshots")).unwrap();
-    fs::write(format!("{path}/snapshots/shop.rs.runique-tmp"), "// snapshot").unwrap();
+    fs::write(
+        format!("{path}/snapshots/shop.rs.runique-tmp"),
+        "// snapshot",
+    )
+    .unwrap();
     fs::write(format!("{path}/snapshots/notes.md"), "the developer's").unwrap();
     crate::atomic::tests::cut_journal(
         Path::new(&path),

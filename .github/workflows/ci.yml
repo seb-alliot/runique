@@ -52,7 +52,7 @@ jobs:
       # sont actives) — --all-features les active toutes les deux à la fois, donc le
       # sweep principal les exclut ici et chacune est testée séparément juste après.
       - name: Run clippy
-        run: cargo clippy --all-targets --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin,test-utils -- -D warnings
+        run: cargo clippy --all-targets --features orm,sqlite,postgres,mysql,all-databases,acme,admin,test-utils -- -D warnings
 
       # working-directory: runique — sans ça, cargo cible tout le workspace (demo-app
       # inclus), qui hérite de la feature par unification et casse pour du code qui
@@ -66,10 +66,10 @@ jobs:
         working-directory: runique
 
       - name: Build
-        run: cargo build --verbose --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin
+        run: cargo build --verbose --features orm,sqlite,postgres,mysql,all-databases,acme,admin
 
   # One job per feature set, in parallel, each on its own runner with a fresh
-  # MariaDB and Postgres: no table left by one key type (int, bigint, uuid)
+  # MySQL and Postgres: no table left by one key type (int, bigint, uuid)
   # in the way of the next.
   test:
     name: Tests (${{ matrix.name }})
@@ -82,7 +82,7 @@ jobs:
           # run): test_validation_form, test_form_guarantees, test_hooks,
           # test_login_form, test_builder and the handler_req helper.
           - name: all features
-            features: orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin,test-utils
+            features: orm,sqlite,postgres,mysql,all-databases,acme,admin,test-utils
           - name: big-pk
             features: big-pk,all-databases,admin
           - name: pk-uuid
@@ -92,17 +92,17 @@ jobs:
           - name: without admin
             features: all-databases
     services:
-      mariadb:
-        image: mariadb:11
+      mysql:
+        image: mysql:8.4
         env:
-          MARIADB_ROOT_PASSWORD: root
-          MARIADB_USER: runique
-          MARIADB_PASSWORD: runique_test
-          MARIADB_DATABASE: runique_test
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_USER: runique
+          MYSQL_PASSWORD: runique_test
+          MYSQL_DATABASE: runique_test
         ports:
           - 3307:3306
         options: >-
-          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
           --health-interval=5s
           --health-timeout=5s
           --health-retries=10
@@ -123,7 +123,7 @@ jobs:
           --health-timeout=5s
           --health-retries=10
     env:
-      DATABASE_URL_MARIADB: mysql://runique:runique_test@127.0.0.1:3307/runique_test
+      DATABASE_URL_MYSQL: mysql://runique:runique_test@127.0.0.1:3307/runique_test
       DATABASE_URL_PG: postgres://runique:runique_test@127.0.0.1:5433/runique_test
       RUST_BACKTRACE: "1"
     steps:
@@ -138,10 +138,10 @@ jobs:
 
       # Each test run works in its own database (`runique_test_<id>`): the
       # account needs to create them.
-      - name: Configure MariaDB test permissions
+      - name: Configure MySQL test permissions
         run: |
-          docker exec ${{ job.services.mariadb.id }} \
-            mariadb -uroot -proot -e \
+          docker exec ${{ job.services.mysql.id }} \
+            mysql -uroot -proot -e \
             "GRANT ALL PRIVILEGES ON *.* TO 'runique'@'%' WITH GRANT OPTION; FLUSH PRIVILEGES;"
 
       - name: Cache cargo registry

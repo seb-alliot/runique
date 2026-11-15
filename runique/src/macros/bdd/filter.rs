@@ -481,7 +481,7 @@ macro_rules! search_cond {
         // The value is bound through a typed expression so sea-query emits the
         // backend-correct placeholder ($1 on Postgres, ? on MySQL/SQLite). The
         // cast target itself is NOT portable (sea-query never translates it),
-        // hence the runtime lookup via `text_cast_type` (CHAR on MySQL/MariaDB,
+        // hence the runtime lookup via `text_cast_type` (CHAR on MySQL,
         // TEXT elsewhere).
         let __cast_ty = $crate::db::sql_dialect::text_cast_type($db);
         let __val = $crate::db::sql_dialect::like_pattern("%", &$val.to_lowercase(), "%");

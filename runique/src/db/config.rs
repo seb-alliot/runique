@@ -1,7 +1,7 @@
 //! Database configuration and connection management.
 //!
 //! This module provides flexible configuration for connecting to different
-//! databases (PostgreSQL, MySQL, MariaDB, SQLite) via SeaORM.
+//! databases (PostgreSQL, MySQL, SQLite) via SeaORM.
 #![doc = include_str!("../../doc-tests/db/db_config_module.md")]
 
 use dotenvy::dotenv;
@@ -24,7 +24,7 @@ pub struct DatabaseConfig {
     // Holds the password in plain text, so it's never serialized and the hand-written `Debug` masks it.
     #[serde(skip_serializing)]
     pub url: String,
-    /// Database type (PostgreSQL, MySQL, MariaDB, SQLite)
+    /// Database type (PostgreSQL, MySQL, SQLite)
     pub engine: DatabaseEngine,
     /// Maximum number of connections in the pool
     pub max_connections: u32,
@@ -101,11 +101,11 @@ impl DatabaseConfig {
     /// - `DATABASE_URL` - Full connection URL (e.g., `postgres://user:pass@host/db`). Takes priority over all component variables. Compatible with `sea-orm-cli`.
     ///
     /// **Connection (variables composantes)**
-    /// - `DB_ENGINE` - Database type: `postgres`, `mysql`, `mariadb`, `sqlite` (default: `sqlite`)
+    /// - `DB_ENGINE` - Database type: `postgres`, `mysql`, `sqlite` (default: `sqlite`)
     /// - `DB_USER` - Username (required for non-SQLite)
     /// - `DB_PASSWORD` - Password (required for non-SQLite)
     /// - `DB_HOST` - Host (default: `localhost`)
-    /// - `DB_PORT` - Port (default: `5432` for PostgreSQL, `3306` for MySQL/MariaDB)
+    /// - `DB_PORT` - Port (default: `5432` for PostgreSQL, `3306` for MySQL)
     /// - `DB_NAME` - Database name (default: `local_base.sqlite` for SQLite)
     ///
     /// **Connection pool**
@@ -156,44 +156,42 @@ impl DatabaseConfig {
         let url = if let Some(direct_url) = get("DATABASE_URL") {
             direct_url
         } else {
-            let engine = get("DB_ENGINE")
-                .map(|engine| engine.trim().to_ascii_lowercase())
-                .unwrap_or_else(|| "sqlite".to_string());
+            let keyword = get("DB_ENGINE").unwrap_or_else(|| "sqlite".to_string());
+            let engine = DatabaseEngine::from_keyword(&keyword).ok_or_else(|| {
+                format!(
+                    " Unsupported DB_ENGINE: {}\n\nSupported engines: postgres, mysql, sqlite\nOr set DATABASE_URL directly.",
+                    keyword.trim().to_ascii_lowercase()
+                )
+            })?;
 
-            match engine.as_str() {
-                "postgres" | "postgresql" | "mysql" | "mariadb" => {
-                    let db_type = match engine.as_str() {
-                        "postgres" | "postgresql" => ("postgres", "5432", "PostgreSQL"),
-                        "mysql" => ("mysql", "3306", "MySQL"),
-                        "mariadb" => ("mariadb", "3306", "MariaDB"),
-                        _ => unreachable!(),
-                    };
-
+            match engine.default_port() {
+                // A server: an account, a host and a port.
+                Some(default_port) => {
                     let user = get("DB_USER")
-                        .ok_or_else(|| format!(" DB_USER not set for {}\n\nRequired variables:\n  - DB_USER\n  - DB_PASSWORD\n  - DB_HOST (optional, default: localhost)\n  - DB_PORT (optional, default: {})\n  - DB_NAME", db_type.2, db_type.1))?;
+                        .ok_or_else(|| format!(" DB_USER not set for {}\n\nRequired variables:\n  - DB_USER\n  - DB_PASSWORD\n  - DB_HOST (optional, default: localhost)\n  - DB_PORT (optional, default: {})\n  - DB_NAME", engine.name(), default_port))?;
 
                     let password = get("DB_PASSWORD")
-                        .ok_or_else(|| format!(" DB_PASSWORD not set for {}", db_type.2))?;
+                        .ok_or_else(|| format!(" DB_PASSWORD not set for {}", engine.name()))?;
 
                     let host = get("DB_HOST").unwrap_or_else(|| "localhost".to_string());
-                    let port = get("DB_PORT").unwrap_or_else(|| db_type.1.to_string());
+                    let port = get("DB_PORT").unwrap_or_else(|| default_port.to_string());
                     let name = get("DB_NAME")
-                        .ok_or_else(|| format!(" DB_NAME not set for {}", db_type.2))?;
+                        .ok_or_else(|| format!(" DB_NAME not set for {}", engine.name()))?;
 
                     format!(
                         "{}://{}:{}@{}:{}/{}",
-                        db_type.0, user, password, host, port, name
+                        engine.scheme(),
+                        user,
+                        password,
+                        host,
+                        port,
+                        name
                     )
                 }
-                "sqlite" => {
+                // SQLite: a file.
+                None => {
                     let name = get("DB_NAME").unwrap_or_else(|| "local_base.sqlite".to_string());
-                    format!("sqlite://{}?mode=rwc", name)
-                }
-                other => {
-                    return Err(format!(
-                        " Unsupported DB_ENGINE: {}\n\nSupported engines: postgres, mysql, mariadb, sqlite\nOr set DATABASE_URL directly.",
-                        other
-                    ));
+                    format!("{}://{}?mode=rwc", engine.scheme(), name)
                 }
             }
         };

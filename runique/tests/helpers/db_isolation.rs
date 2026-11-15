@@ -1,13 +1,13 @@
 //! One Docker database per copy of the project.
 //!
 //! cargo-mutants runs several copies of the workspace at once against the same
-//! Postgres and MariaDB containers, and the tests create and drop the same
+//! Postgres and MySQL containers, and the tests create and drop the same
 //! tables (`eihwaz_*`, `items`, `rq_types_*`): left on one database, the copies
 //! would run into each other and fail at random. Each copy gets its own
 //! database instead, named after where this crate is built (`runique_test` →
 //! `runique_test_1a2b3c4d`), so every run from a given copy reuses it.
 //!
-//! The MariaDB user needs the right to create those databases:
+//! The MySQL user needs the right to create those databases:
 //! `GRANT ALL PRIVILEGES ON \`runique\_test\_%\`.* TO 'runique'@'%';`
 use runique::sea_orm::{ConnectionTrait, Database};
 use std::collections::HashMap;
@@ -19,7 +19,7 @@ static READY: LazyLock<tokio::sync::Mutex<HashMap<String, String>>> =
     LazyLock::new(Default::default);
 
 /// The URL of this copy's own database for the engine `key` names
-/// (`DATABASE_URL_PG`, `DATABASE_URL_MARIADB`), created if missing. `None`
+/// (`DATABASE_URL_PG`, `DATABASE_URL_MYSQL`), created if missing. `None`
 /// when `key` isn't set: the tests needing it are skipped.
 pub async fn isolated_url(key: &str) -> Option<String> {
     let _ = dotenvy::from_filename(".env.test");

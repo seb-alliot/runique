@@ -161,7 +161,7 @@ macro generates `model.genres(&db)`, `model.set_genres(&db, values)`,
 | `Pk` | same type as the primary keys | integer or uuid |
 
 Engine limits, refused at compile time when a single engine feature is enabled: `i8` and
-`u32` on Postgres, `u64` on Postgres and SQLite. On MySQL/MariaDB, `binary` is a fixed-length
+`u32` on Postgres, `u64` on Postgres and SQLite. On MySQL, `binary` is a fixed-length
 column padded with `0x00`: use `var_binary` to get the exact bytes back.
 
 ## Breaking changes in 3.0

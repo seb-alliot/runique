@@ -116,7 +116,7 @@ Lockout duration in seconds.
 
 Returns the key to use based on context:
 
-- Non-empty username → key by username, `trim()`ed then lowercased (targeted account protection; a database comparing names without case, like MySQL/MariaDB, opens the same account for `admin` and `Admin`)
+- Non-empty username → key by username, `trim()`ed then lowercased (targeted account protection; a database comparing names without case, like MySQL, opens the same account for `admin` and `Admin`)
 - Empty or missing username → `"anonym:{ip}"` (anonymous protection per IP)
 
 Guarantees that two different anonymous IPs have independent counters — locking `"anonym:1.2.3.4"` does not affect `"anonym:5.6.7.8"`.

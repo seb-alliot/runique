@@ -949,7 +949,7 @@ fn test_alter_file_string_to_enum_create_type_is_runtime_guarded() {
     let content = generate_alter_file(&changes);
     // Un seul fichier généré sert les 3 moteurs désormais — le CREATE TYPE est
     // toujours présent dans le texte, gardé par un check du backend réel à
-    // l'exécution (MySQL/MariaDB ignore la branche, pas de type nommé séparé
+    // l'exécution (MySQL ignore la branche, pas de type nommé séparé
     // nécessaire). Le `modify_column` via `.using()` est lui aussi gardé, mais à
     // l'exclusion de SQLite (sea-query panique sur tout modify_column sur ce
     // backend) — pas de perte fonctionnelle : SQLite n'a pas d'enum natif.
@@ -1000,10 +1000,10 @@ fn snapshot_avec_fk_contient_add_fk() {
     assert!(content.contains("users"));
 }
 
-// ── Foreign key indexes on MySQL/MariaDB (fixed 2026-10-07) ──────────────────
+// ── Foreign key indexes on MySQL (fixed 2026-10-07) ──────────────────
 // InnoDB indexes every foreign key column itself; an explicit index replaced
 // that one and then couldn't be dropped while the key existed (error 1553,
-// `migrate down`/`reset` failed on MariaDB). A foreign key's own index is now
+// `migrate down`/`reset` failed on MySQL). A foreign key's own index is now
 // skipped there, checked at run time.
 
 fn fk_index(table: &str, col: &str) -> ParsedIndex {

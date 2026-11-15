@@ -43,8 +43,8 @@ async-trait = "0.1"
 
 What is required:
 
-- **`runique`** with the same engine feature as the app (`sqlite`, `postgres`, `mysql` or `mariadb`): it provides the framework's tables.
-- **`sea-orm-migration`** at the **exact same version** as Runique's, with `runtime-tokio-rustls` and the engine's driver: `sqlx-sqlite`, `sqlx-postgres`, or `sqlx-mysql` (MySQL and MariaDB alike).
+- **`runique`** with the same engine feature as the app (`sqlite`, `postgres`, `mysql`): it provides the framework's tables.
+- **`sea-orm-migration`** at the **exact same version** as Runique's, with `runtime-tokio-rustls` and the engine's driver: `sqlx-sqlite`, `sqlx-postgres`, or `sqlx-mysql`.
 - **`sea-orm-migration`'s default features**: they bring `cli::run_cli`, called by `src/main.rs`. With `default-features = false`, add `"cli"` to the list, or the crate no longer compiles.
 - **`tokio`** with `macros` and `rt-multi-thread` (`#[tokio::main]` in `main.rs`), and **`async-trait`** (the generated migrations).
 - **`[lib] name = "migration"`**: `main.rs` calls `migration::Migrator`.
@@ -112,7 +112,7 @@ The check covers the app's tables (`model!{}`) as well as the extensions of the 
 The generated files are **shared by every engine**: what concerns one engine only is chosen at run time, in the file.
 
 - FKs are declared **in the `CREATE TABLE`**, and referenced tables are created before the tables referencing them.
-- **Cycle** (two new tables referencing each other): under SQLite, the key stays in the `CREATE TABLE`; under PostgreSQL / MySQL / MariaDB, the key closing the cycle is added by an `ALTER TABLE` once its target table exists.
+- **Cycle** (two new tables referencing each other): under SQLite, the key stays in the `CREATE TABLE`; under PostgreSQL / MySQL, the key closing the cycle is added by an `ALTER TABLE` once its target table exists.
 - Each `belongs_to` column gets an `idx_<table>_<column>` index.
 - Enums become a `CREATE TYPE … AS ENUM` under PostgreSQL, a `VARCHAR` elsewhere.
 
@@ -169,8 +169,8 @@ The changes of the models and of the `extend!{}` blocks are first planned in mem
 - **Dropping a table isn't detected.** Removing a model generates nothing: `makemigrations` answers "no changes", and the table stays in the database. To drop it, write a migration by hand (`drop_table`, registered in `lib.rs`), remove its snapshot from `migration/src/snapshots/`, and first remove any `belongs_to` pointing at it. Planned for 4.1.
 - **Generation isn't protected yet against a hard stop** (power cut, `kill -9`) in the middle of writing: an ordinary error is undone, an interruption may leave files partly updated. `migration/` being versioned, `git` restores it.
 - **Don't copy another project's snapshots without its migrations**: a snapshot means "already migrated". `makemigrations` then writes nothing for those models, while no migration creates their tables.
-- **Index and foreign key names are capped at 63 characters, on every engine** (they are built from table and column names; 63 is PostgreSQL's limit, MySQL / MariaDB accept 64): `makemigrations` refuses a name that is too long before writing any file, rather than truncate it; shorten the names involved.
-- **`runique migration up` applies a migration atomically under Postgres only.** sea-orm-migration wraps each migration (and its row in `seaql_migrations`) in a transaction on that engine alone. Under SQLite and MySQL / MariaDB, a migration failing midway can stay half applied; under MySQL / MariaDB no transaction would help (each DDL statement commits on its own). In development under SQLite, delete the database file and run `runique migration up` again; elsewhere, fix the database by hand before running it again.
+- **Index and foreign key names are capped at 63 characters, on every engine** (they are built from table and column names; 63 is PostgreSQL's limit, MySQL accept 64): `makemigrations` refuses a name that is too long before writing any file, rather than truncate it; shorten the names involved.
+- **`runique migration up` applies a migration atomically under Postgres only.** sea-orm-migration wraps each migration (and its row in `seaql_migrations`) in a transaction on that engine alone. Under SQLite and MySQL, a migration failing midway can stay half applied; under MySQL no transaction would help (each DDL statement commits on its own). In development under SQLite, delete the database file and run `runique migration up` again; elsewhere, fix the database by hand before running it again.
 
 ---
 
@@ -178,7 +178,7 @@ The changes of the models and of the `extend!{}` blocks are first planned in mem
 
 | Section | Description |
 | --- | --- |
-| [Database](/docs/en/installation/database) | SQLite, PostgreSQL, MySQL / MariaDB |
+| [Database](/docs/en/installation/database) | SQLite, PostgreSQL, MySQL |
 | [Runique CLI](/docs/en/installation/cli) | Available commands |
 | [Models](/docs/en/model) | The `model!{}` DSL |
 | [How makemigrations works](/docs/en/architecture/makemigrations) | Snapshots, diff, generation |

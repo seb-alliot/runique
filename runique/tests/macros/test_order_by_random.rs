@@ -1,9 +1,9 @@
 //! Tests — `RuniqueQueryBuilder::order_by_random()` on the 3 supported engines
-//! (SQLite, Postgres, MariaDB via Docker).
+//! (SQLite, Postgres, MySQL via Docker).
 //!
 //! This is a regression test for the 2026-09-20 fix: `order_by_random()` used
 //! to emit a hardcoded `RANDOM()`, which SQLite/Postgres accept but MySQL/
-//! MariaDB reject (they require `RAND()`). A syntax read isn't proof — this
+//! MySQL reject (they require `RAND()`). A syntax read isn't proof — this
 //! actually executes the query against each live engine and checks two real
 //! properties of the result, not just "it didn't error":
 //!   1. completeness — every seeded row comes back, none lost/duplicated
@@ -11,13 +11,13 @@
 //!      (if `order_by_random()` silently degraded to a no-op/default order,
 //!      this would catch it; a plain "not empty" check would not)
 //!
-//! Postgres/MariaDB need `docker compose up -d` and `DATABASE_URL_PG`/
-//! `DATABASE_URL_MARIADB` in `.env.test`. Absent → each test returns
+//! Postgres/MySQL need `docker compose up -d` and `DATABASE_URL_PG`/
+//! `DATABASE_URL_MYSQL` in `.env.test`. Absent → each test returns
 //! immediately (skip), same convention as `test_user_model_multi_db.rs`.
 
 #[cfg(feature = "pk-uuid")]
 use crate::helpers::pk::pk;
-use crate::helpers::{db, db_mariadb, db_postgres};
+use crate::helpers::{db, db_mysql, db_postgres};
 use runique::auth::user;
 use runique::macros::bdd::query::RuniqueQueryBuilder;
 use runique::sea_orm::{
@@ -29,10 +29,10 @@ use serial_test::serial;
 use std::collections::HashSet;
 
 // Same multi-engine DROP/CREATE dance as `test_user_model_multi_db.rs` — see
-// that file's comment for why Postgres needs CASCADE and MariaDB needs the
+// that file's comment for why Postgres needs CASCADE and MySQL needs the
 // FK-checks toggle.
 //
-// MariaDB's `SET`/`DROP`/`SET` sequence runs inside a transaction (`db.begin()`)
+// MySQL's `SET`/`DROP`/`SET` sequence runs inside a transaction (`db.begin()`)
 // specifically to pin all three statements to the *same* pooled connection.
 // `FOREIGN_KEY_CHECKS` is a session variable — `DatabaseConnection` is backed
 // by a connection pool, so three separate `execute_unprepared()` calls on `db`
@@ -40,7 +40,7 @@ use std::collections::HashSet;
 // `DROP` lands on a different one than the `SET`, the constraint is still
 // enforced there and the drop fails with error 1451. A `DatabaseTransaction`
 // owns one connection for its whole lifetime, so routing all three through it
-// closes that gap. (MariaDB implicitly commits DDL anyway, so this isn't about
+// closes that gap. (MySQL implicitly commits DDL anyway, so this isn't about
 // rollback semantics — only about connection pinning.)
 async fn recreate_users_table(db: &DatabaseConnection) {
     let backend = db.get_database_backend();
@@ -51,7 +51,7 @@ async fn recreate_users_table(db: &DatabaseConnection) {
                 .expect("drop eihwaz_users");
         }
         DbBackend::MySql => {
-            crate::helpers::db_mariadb::drop_users_and_dependents(db).await;
+            crate::helpers::db_mysql::drop_users_and_dependents(db).await;
         }
         DbBackend::Sqlite => {
             db.execute_unprepared("DROP TABLE IF EXISTS eihwaz_users")
@@ -164,13 +164,13 @@ async fn test_order_by_random_pg() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MariaDB
+// MySQL
 // ═══════════════════════════════════════════════════════════════
 
 #[tokio::test]
 #[serial]
-async fn test_order_by_random_mariadb() {
-    let Some(db) = db_mariadb::connect().await else {
+async fn test_order_by_random_mysql() {
+    let Some(db) = db_mysql::connect().await else {
         return;
     };
     recreate_users_table(&db).await;

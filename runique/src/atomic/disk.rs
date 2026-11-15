@@ -27,12 +27,11 @@ pub(super) fn sync_dir(dir: &Path) -> io::Result<()> {
     }
 }
 
+/// Puts the content of `temp_path` at `path` without moving it: a hard link,
+/// or a copy where the filesystem has none. Either way `path` must not exist:
+/// nothing is ever written over here.
 pub(super) fn place(temp_path: &Path, path: &Path) -> io::Result<()> {
-    match fs::hard_link(temp_path, path) {
-        Ok(()) => Ok(()),
-        Err(error) if error.kind() == io::ErrorKind::AlreadyExists => Err(error),
-        Err(_) => copy_new(temp_path, path),
-    }
+    fs::hard_link(temp_path, path).or_else(|_| copy_new(temp_path, path))
 }
 
 /// Fallback for filesystems without hard links: copies without overwriting,
@@ -309,5 +308,38 @@ mod tests {
         assert!(!same(&dir.join("a"), &dir.join("missing")).unwrap());
         assert!(!same(&dir.join("missing"), &dir.join("a")).unwrap());
         assert!(!same(&dir.join("missing"), &dir.join("gone")).unwrap());
+    }
+
+    // A hard link can't cross from one filesystem to another: the content is
+    // copied instead, and the source is left where it was.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn place_copies_what_it_cannot_link() {
+        let Some(source) = crate::atomic::tests::Elsewhere::new("content") else {
+            return;
+        };
+        let dir = TempDir::new();
+        assert!(
+            fs::hard_link(&source.0, dir.join("probe")).is_err(),
+            "the two folders are expected on different filesystems"
+        );
+
+        place(&source.0, &dir.join("target")).unwrap();
+
+        assert_eq!(read(&dir.join("target")), "content");
+        assert_eq!(read(&source.0), "content");
+        assert_eq!(dir.entries(), ["target"]);
+    }
+
+    // Unreadable is not missing: a file that can't be read is an error, never
+    // "not the same".
+    #[test]
+    fn same_fails_on_what_it_cannot_read() {
+        let dir = TempDir::new();
+        fs::write(dir.join("a"), "content").unwrap();
+        fs::create_dir(dir.join("folder")).unwrap();
+
+        assert!(same(&dir.join("folder"), &dir.join("a")).is_err());
+        assert!(same(&dir.join("a"), &dir.join("folder")).is_err());
     }
 }

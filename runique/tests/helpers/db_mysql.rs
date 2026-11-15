@@ -1,6 +1,6 @@
-//! Helper MariaDB pour les tests d'intégration Docker.
+//! Helper MySQL pour les tests d'intégration Docker.
 //!
-//! Nécessite que le container Docker soit actif et que `DATABASE_URL_MARIADB`
+//! Nécessite que le container Docker soit actif et que `DATABASE_URL_MYSQL`
 //! soit défini dans `.env.test` ou dans l'environnement.
 //!
 //! Si la variable est absente, les tests appelant ce module retournent
@@ -17,11 +17,11 @@
 //! # Exemple
 //! ```rust
 //! #[tokio::test]
-//! async fn mon_test_mariadb() {
-//!     let Some(db) = db_mariadb::connect().await else { return };
-//!     db_mariadb::exec(&db, "CREATE TABLE t (id INT AUTO_INCREMENT PRIMARY KEY, val TEXT)").await;
-//!     db_mariadb::exec(&db, "INSERT INTO t (val) VALUES ('hello')").await;
-//!     db_mariadb::assert_count(&db, "t", 1).await;
+//! async fn mon_test_mysql() {
+//!     let Some(db) = db_mysql::connect().await else { return };
+//!     db_mysql::exec(&db, "CREATE TABLE t (id INT AUTO_INCREMENT PRIMARY KEY, val TEXT)").await;
+//!     db_mysql::exec(&db, "INSERT INTO t (val) VALUES ('hello')").await;
+//!     db_mysql::assert_count(&db, "t", 1).await;
 //! }
 //! ```
 
@@ -30,15 +30,15 @@ use runique::sea_orm::{
     sea_query::{Alias, Asterisk, Expr, ExprTrait, Func, Query},
 };
 
-/// Charge `.env.test` si présent, puis retourne une connexion MariaDB.
-/// Retourne `None` si `DATABASE_URL_MARIADB` n'est pas défini (test ignoré).
+/// Charge `.env.test` si présent, puis retourne une connexion MySQL.
+/// Retourne `None` si `DATABASE_URL_MYSQL` n'est pas défini (test ignoré).
 pub async fn connect() -> Option<DatabaseConnection> {
-    let url = super::db_isolation::isolated_url("DATABASE_URL_MARIADB").await?;
+    let url = super::db_isolation::isolated_url("DATABASE_URL_MYSQL").await?;
     match Database::connect(&url).await {
         Ok(db) => Some(db),
         Err(e) => panic!(
-            "DATABASE_URL_MARIADB is set ({url}) but the MariaDB container is unreachable: {e}\n\
-             Run `docker compose up -d`, or unset DATABASE_URL_MARIADB in .env.test to skip MariaDB tests."
+            "DATABASE_URL_MYSQL is set ({url}) but the MySQL container is unreachable: {e}\n\
+             Run `docker compose up -d`, or unset DATABASE_URL_MYSQL in .env.test to skip MySQL tests."
         ),
     }
 }
@@ -47,7 +47,7 @@ pub async fn connect() -> Option<DatabaseConnection> {
 pub async fn exec(db: &DatabaseConnection, sql: &str) -> u64 {
     db.execute_unprepared(sql)
         .await
-        .unwrap_or_else(|e| panic!("exec SQL (mariadb) échoué : {e}\n  SQL : {sql}"))
+        .unwrap_or_else(|e| panic!("exec SQL (mysql) échoué : {e}\n  SQL : {sql}"))
         .rows_affected()
 }
 
@@ -56,7 +56,7 @@ pub async fn exec_expect(db: &DatabaseConnection, sql: &str, n: u64) {
     let affected = exec(db, sql).await;
     assert_eq!(
         affected, n,
-        "exec_expect (mariadb) : attendu {n} ligne(s), reçu {affected}\n  SQL : {sql}"
+        "exec_expect (mysql) : attendu {n} ligne(s), reçu {affected}\n  SQL : {sql}"
     );
 }
 
@@ -70,11 +70,11 @@ pub async fn count(db: &DatabaseConnection, table: &str) -> i64 {
     let row = db
         .query_one(&stmt)
         .await
-        .unwrap_or_else(|e| panic!("count(mariadb:{table}) échoué : {e}"))
-        .unwrap_or_else(|| panic!("count(mariadb:{table}) : aucune ligne retournée"));
+        .unwrap_or_else(|e| panic!("count(mysql:{table}) échoué : {e}"))
+        .unwrap_or_else(|| panic!("count(mysql:{table}) : aucune ligne retournée"));
 
     row.try_get::<i64>("", "n")
-        .unwrap_or_else(|e| panic!("count(mariadb:{table}) : lecture échouée : {e}"))
+        .unwrap_or_else(|e| panic!("count(mysql:{table}) : lecture échouée : {e}"))
 }
 
 /// Vérifie que la table `table` contient exactement `expected` lignes.
@@ -82,7 +82,7 @@ pub async fn assert_count(db: &DatabaseConnection, table: &str, expected: i64) {
     let n = count(db, table).await;
     assert_eq!(
         n, expected,
-        "assert_count(mariadb:{table}) : attendu {expected} ligne(s), reçu {n}"
+        "assert_count(mysql:{table}) : attendu {expected} ligne(s), reçu {n}"
     );
 }
 
@@ -91,7 +91,7 @@ pub async fn assert_count(db: &DatabaseConnection, table: &str, expected: i64) {
 /// The test databases are shared across runs and feature sets: other tests
 /// leave tables pointing at `eihwaz_users` (`eihwaz_reset_tokens`,
 /// `eihwaz_sessions`, `contributions`…), their key typed by that run's
-/// primary key. MariaDB keeps such a key when the parent is dropped with
+/// primary key. MySQL keeps such a key when the parent is dropped with
 /// checks off, then refuses to recreate the parent under another key type
 /// (`int` → `bigint` → `binary(16)`): errno 150. Postgres has `CASCADE`.
 ///

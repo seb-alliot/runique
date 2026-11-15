@@ -17,7 +17,7 @@ pub(super) fn build_alter_bodies(change: &Changes) -> (String, String) {
     let mut down = String::new();
 
     // 0) RENAME columns first — later ops (modify/add) may target the new name.
-    // `ALTER TABLE … RENAME COLUMN` is portable (PG / MySQL 8+ / MariaDB 10.5+ / SQLite 3.25+).
+    // `ALTER TABLE … RENAME COLUMN` is portable (PG / MySQL 8+ / SQLite 3.25+).
     for (old, new) in &change.renamed_columns {
         push_rename_column(&mut up, &change.table_name, old, new);
     }

@@ -2,7 +2,7 @@
 use crate::migration::types::Changes;
 
 /// Scans a set of changes for FK constraint / index names that would exceed
-/// MariaDB/MySQL's 64-character identifier limit (63 used here as the shared safe bound —
+/// MySQL's 64-character identifier limit (63 used here as the shared safe bound —
 /// Postgres's own NAMEDATALEN-1 limit is one byte tighter). Checked once, upfront, over
 /// the whole plan — before any migration file is generated — so the string-building
 /// generators (`migration/generate/`) and the DSL-to-schema conversion (`to_schema.rs`) stay

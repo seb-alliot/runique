@@ -77,7 +77,7 @@ Runique 4.0 keeps the 3.0.x security fixes and adds more (listed below). Runique
 One known advisory, ignored in the CI's `cargo audit` and not fixable from Runique today:
 
 #### RUSTSEC-2026-0459: libsqlite3-sys < 0.39
-- **Affects**: the `sqlite` feature only (SQLite bundled in C). PostgreSQL and MySQL/MariaDB projects don't pull it in.
+- **Affects**: the `sqlite` feature only (SQLite bundled in C). PostgreSQL and MySQL projects don't pull it in.
 - **Chain**: `runique` → `sea-orm` 2.0.4 → `sqlx` 0.9.0 → `sqlx-sqlite` 0.9.0 → `libsqlite3-sys` 0.37.
 - **Why it can't be fixed here**: `sqlx-sqlite` 0.9.0, the latest release, requires `libsqlite3-sys < 0.38`; the fix is in 0.39.
 - **What Runique does**: the advisory is listed, with this reason, in `.cargo/audit.toml`, and comes out as soon as sqlx accepts 0.39. It is reviewed at each release.

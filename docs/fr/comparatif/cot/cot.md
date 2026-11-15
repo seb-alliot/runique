@@ -68,7 +68,7 @@ Vérifié le 5 novembre 2026 dans [le guide](https://cot.rs/guide/latest/) et [l
 | Fonctionnalité | Cot | Runique |
 |----------------|-----|---------|
 | ORM | ORM propre (`sea-query`, `sqlx`) | SeaORM |
-| Moteurs | SQLite, PostgreSQL, MySQL, activés ensemble par défaut | SQLite, PostgreSQL, MySQL/MariaDB, un moteur par compilation |
+| Moteurs | SQLite, PostgreSQL, MySQL, activés ensemble par défaut | SQLite, PostgreSQL, MySQL, un moteur par compilation |
 | Définition modèle | `#[model]` sur une struct | macro `model!{}` |
 | Clé étrangère | `ForeignKey<User>` | `belongs_to`, avec action de suppression obligatoire |
 | Requêtes | `query!(Customer, $id == 5)`, `Customer::objects()` | `search!`, `Model::objects` |

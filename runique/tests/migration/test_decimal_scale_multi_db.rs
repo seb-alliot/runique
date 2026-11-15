@@ -1,12 +1,12 @@
 //! A `decimal` field keeps its cents on every engine. `makemigrations` writes
 //! it as `.decimal_len(max_digits, decimal_places)` (see `tests_pipeline.rs`):
-//! a bare `.decimal()` is what MySQL/MariaDB read as `DECIMAL(10, 0)`, where
+//! a bare `.decimal()` is what MySQL read as `DECIMAL(10, 0)`, where
 //! 9.99 came back as 10, silently.
 //!
-//! Postgres/MariaDB need `docker compose -f docker-compose.yml up -d` and their
+//! Postgres/MySQL need `docker compose -f docker-compose.yml up -d` and their
 //! URL in `.env.test`; without it, those tests return early.
 
-use crate::helpers::{db, db_mariadb, db_postgres};
+use crate::helpers::{db, db_mysql, db_postgres};
 use runique::sea_orm::{ConnectionTrait, DatabaseConnection, prelude::Decimal};
 use sea_query::{Alias, ColumnDef, Expr, Query, Table};
 use serial_test::serial;
@@ -67,8 +67,8 @@ async fn a_decimal_keeps_its_cents_on_postgres() {
 
 #[tokio::test]
 #[serial]
-async fn a_decimal_keeps_its_cents_on_mariadb() {
-    let Some(db) = db_mariadb::connect().await else {
+async fn a_decimal_keeps_its_cents_on_mysql() {
+    let Some(db) = db_mysql::connect().await else {
         return;
     };
     assert_eq!(round_trip(&db, price()).await, price());

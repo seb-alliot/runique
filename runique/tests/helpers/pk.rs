@@ -30,7 +30,7 @@ pub fn pk_sql_literal(n: u32) -> String {
     pk(n).to_string()
 }
 
-/// Littéral SQL pour `pk(n)` adapté à Postgres/MariaDB (par opposition à
+/// Littéral SQL pour `pk(n)` adapté à Postgres/MySQL (par opposition à
 /// `pk_sql_literal` ci-dessus, spécifique au stockage BLOB brut de SQLite) : un
 /// `Uuid` s'y écrit en chaîne hyphénée classique entre quotes (cast implicite
 /// vers `uuid`/`char(36)`), pas en littéral BLOB `X'...'` qui n'existe pas côté

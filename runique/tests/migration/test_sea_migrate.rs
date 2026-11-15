@@ -3,10 +3,10 @@
 //! Flux : fresh (applique toutes les migrations) → vérification tables → reset (rollback tout)
 //!
 //! On utilise exclusivement les commandes sea-orm pour up/down.
-//! Docker Postgres et MariaDB requis (DATABASE_URL_PG / DATABASE_URL_MARIADB dans .env.test).
+//! Docker Postgres et MySQL requis (DATABASE_URL_PG / DATABASE_URL_MYSQL dans .env.test).
 //! SQLite : pas de Docker, fichier temporaire local.
 
-use crate::helpers::db_mariadb as db_maria;
+use crate::helpers::db_mysql;
 use crate::helpers::db_postgres as db_pg;
 use sea_orm::ConnectionTrait;
 use serial_test::serial;
@@ -45,8 +45,8 @@ async fn pg_table_exists(db: &sea_orm::DatabaseConnection, table: &str) -> bool 
         .is_ok()
 }
 
-/// Vérifie qu'une table existe en MariaDB/MySQL (backticks).
-async fn maria_table_exists(db: &sea_orm::DatabaseConnection, table: &str) -> bool {
+/// Vérifie qu'une table existe en MySQL (backticks).
+async fn mysql_table_exists(db: &sea_orm::DatabaseConnection, table: &str) -> bool {
     db.execute_unprepared(&format!("SELECT 1 FROM `{}` LIMIT 1", table))
         .await
         .is_ok()
@@ -139,36 +139,31 @@ async fn test_sea_migrate_reset_postgres() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MariaDB — fresh → vérification → reset
+// MySQL — fresh → vérification → reset
 // ═══════════════════════════════════════════════════════════════
 
 #[tokio::test]
 #[serial]
-async fn test_sea_migrate_fresh_mariadb() {
+async fn test_sea_migrate_fresh_mysql() {
     let _ = dotenvy::from_filename(".env.test");
-    let Some(db) = db_maria::connect().await else {
+    let Some(db) = db_mysql::connect().await else {
         return;
     };
-    let mariadb_url = crate::helpers::db_isolation::isolated_url("DATABASE_URL_MARIADB")
+    let mysql_url = crate::helpers::db_isolation::isolated_url("DATABASE_URL_MYSQL")
         .await
         .unwrap();
-    let mysql_url = if mariadb_url.starts_with("mysql://") {
-        mariadb_url
-    } else {
-        mariadb_url.replacen("mariadb://", "mysql://", 1)
-    };
 
     let out = sea_migrate(&mysql_url, &["fresh"]);
     assert!(
         out.status.success(),
-        "sea migrate fresh (mariadb) doit Ok:\n{}",
+        "sea migrate fresh (mysql) doit Ok:\n{}",
         String::from_utf8_lossy(&out.stderr)
     );
 
     for table in TABLES {
         assert!(
-            maria_table_exists(&db, table).await,
-            "table '{}' doit exister après fresh (mariadb)",
+            mysql_table_exists(&db, table).await,
+            "table '{}' doit exister après fresh (mysql)",
             table
         );
     }
@@ -176,33 +171,28 @@ async fn test_sea_migrate_fresh_mariadb() {
 
 #[tokio::test]
 #[serial]
-async fn test_sea_migrate_reset_mariadb() {
+async fn test_sea_migrate_reset_mysql() {
     let _ = dotenvy::from_filename(".env.test");
-    let Some(db) = db_maria::connect().await else {
+    let Some(db) = db_mysql::connect().await else {
         return;
     };
-    let mariadb_url = crate::helpers::db_isolation::isolated_url("DATABASE_URL_MARIADB")
+    let mysql_url = crate::helpers::db_isolation::isolated_url("DATABASE_URL_MYSQL")
         .await
         .unwrap();
-    let mysql_url = if mariadb_url.starts_with("mysql://") {
-        mariadb_url
-    } else {
-        mariadb_url.replacen("mariadb://", "mysql://", 1)
-    };
 
     sea_migrate(&mysql_url, &["fresh"]);
 
     let out = sea_migrate(&mysql_url, &["reset"]);
     assert!(
         out.status.success(),
-        "sea migrate reset (mariadb) doit Ok:\n{}",
+        "sea migrate reset (mysql) doit Ok:\n{}",
         String::from_utf8_lossy(&out.stderr)
     );
 
     for table in TABLES {
         assert!(
-            !maria_table_exists(&db, table).await,
-            "table '{}' doit être supprimée après reset (mariadb)",
+            !mysql_table_exists(&db, table).await,
+            "table '{}' doit être supprimée après reset (mysql)",
             table
         );
     }

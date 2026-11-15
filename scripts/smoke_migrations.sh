@@ -2,10 +2,10 @@
 #
 # Smoke-test multi-moteur de makemigrations (adapté aux machines lentes à compiler).
 #
-# Pour chaque moteur demandé (SQLite, Postgres, MariaDB) :
+# Pour chaque moteur demandé (SQLite, Postgres, MySQL) :
 #   1. clean slate : suppression des migrations + snapshots + lib.rs de demo-app
 #   2. régénération via `runique makemigrations` AVEC le DbKind du moteur
-#      (CREATE TYPE/triggers pour PG, ENUM inline pour MariaDB, TEXT pour SQLite)
+#      (CREATE TYPE/triggers pour PG, ENUM inline pour MySQL, TEXT pour SQLite)
 #   3. exécution réelle : `cargo run -p migration -- fresh` puis `reset`
 #
 # Les migrations de demo-app sont sauvegardées au début et RESTAURÉES à la fin.
@@ -20,9 +20,9 @@
 # Usage :
 #   bash scripts/smoke_migrations.sh              # les 3 moteurs
 #   bash scripts/smoke_migrations.sh sqlite       # SQLite seul (rapide, sans Docker)
-#   bash scripts/smoke_migrations.sh postgres mariadb
+#   bash scripts/smoke_migrations.sh postgres mysql
 #
-# Override des URLs : DATABASE_URL_PG / DATABASE_URL_MARIADB
+# Override des URLs : DATABASE_URL_PG / DATABASE_URL_MYSQL
 
 set -uo pipefail
 
@@ -31,14 +31,14 @@ cd "$ROOT"
 
 MIG_SRC="demo-app/migration/src"
 PG_URL="${DATABASE_URL_PG:-postgres://runique:runique_test@localhost:5433/runique_test}"
-MARIA_URL="${DATABASE_URL_MARIADB:-mysql://runique:runique_test@localhost:3307/runique_test}"
+MYSQL_URL="${DATABASE_URL_MYSQL:-mysql://runique:runique_test@localhost:3307/runique_test}"
 SQLITE_FILE="$(mktemp -u)_runique_smoke.db"
 SQLITE_URL="sqlite://${SQLITE_FILE}?mode=rwc"
 RUNIQUE_BIN="$ROOT/target/debug/runique"
 
 # Moteurs demandés (args), sinon les 3.
 ENGINES=("$@")
-[ "${#ENGINES[@]}" -eq 0 ] && ENGINES=(sqlite postgres mariadb)
+[ "${#ENGINES[@]}" -eq 0 ] && ENGINES=(sqlite postgres mysql)
 
 want() { for e in "${ENGINES[@]}"; do [ "$e" = "$1" ] && return 0; done; return 1; }
 
@@ -116,11 +116,11 @@ if ! cargo build -q -p runique --bin runique --features all-databases; then
     exit 1
 fi
 
-# ── Docker uniquement si PG/MariaDB sont demandés ─────────────────────────────
-if (want postgres || want mariadb) && command -v docker >/dev/null 2>&1 && [ -f docker-compose.yml ]; then
+# ── Docker uniquement si PG/MySQL sont demandés ─────────────────────────────
+if (want postgres || want mysql) && command -v docker >/dev/null 2>&1 && [ -f docker-compose.yml ]; then
     svc=()
     want postgres && svc+=(postgres)
-    want mariadb && svc+=(mariadb)
+    want mysql && svc+=(mysql)
     echo "--- docker compose up -d --wait ${svc[*]} ---"
     docker compose up -d --wait "${svc[@]}" || \
         echo "ATTENTION: docker compose a échoué — le(s) moteur(s) concerné(s) échoueront s'ils ne répondent pas"
@@ -129,12 +129,12 @@ fi
 declare -A RESULT
 want sqlite   && { run_engine "SQLite"   "$SQLITE_URL" "sqlite"   && RESULT[SQLite]=OK   || RESULT[SQLite]=ECHEC; }
 want postgres && { run_engine "Postgres" "$PG_URL"     "postgres" && RESULT[Postgres]=OK || RESULT[Postgres]=ECHEC; }
-want mariadb  && { run_engine "MariaDB"  "$MARIA_URL"  "mariadb"  && RESULT[MariaDB]=OK  || RESULT[MariaDB]=ECHEC; }
+want mysql  && { run_engine "MySQL"  "$MYSQL_URL"  "mysql"  && RESULT[MySQL]=OK  || RESULT[MySQL]=ECHEC; }
 
 echo ""
 echo "==================== RÉSUMÉ ===================="
 fail=0
-for engine in SQLite Postgres MariaDB; do
+for engine in SQLite Postgres MySQL; do
     [ -v "RESULT[$engine]" ] || continue
     printf "  %-10s : %s\n" "$engine" "${RESULT[$engine]}"
     [ "${RESULT[$engine]}" = "OK" ] || fail=1
