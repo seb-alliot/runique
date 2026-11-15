@@ -3,6 +3,7 @@
 use super::{
     action::rollback,
     disk,
+    journal::{self, Journal, JournalFile, recover},
     step::{done, placed, prepared, replaced, waiting},
     struct_atomic::{ActionAtomic, AtomicBuilder, AtomicStep, ItemsPath, SourceItems},
 };
@@ -23,6 +24,10 @@ impl TempDir {
 
     pub(crate) fn join(&self, name: &str) -> PathBuf {
         self.0.join(name)
+    }
+
+    pub(crate) fn path(&self) -> &Path {
+        &self.0
     }
 
     /// Every entry left under the directory, relative and sorted.
@@ -1189,4 +1194,834 @@ fn publishing_the_same_upload_twice_is_refused() {
     assert!(already_exists(publish()));
 
     assert_eq!(read(&dir.join("avatars/photo.jpg")), "photo.jpg");
+}
+
+// ── After a power cut ────────────────────────────────────────────────────────
+//
+// A cut can't be triggered from a test, but what it leaves on disk can be laid
+// out by hand: each test starts from such a state and runs a batch again.
+
+const MB: usize = 1024 * 1024;
+
+// 10 MB of a 20 MB temp file were written when the power went. `path` was not
+// reached yet. Without a journal the batch can't tell that file is its own:
+// the next one is refused, and nothing is removed.
+#[test]
+fn after_a_cut_in_a_half_written_temp_file_the_next_batch_is_refused() {
+    for creating in [true, false] {
+        let dir = TempDir::new();
+        let content = vec![7u8; 20 * MB];
+        fs::write(dir.join(TEMP), &content[..10 * MB]).unwrap();
+        if !creating {
+            write(&dir.join(PATH), "original");
+        }
+        let before = dir.entries();
+
+        let batch = if creating {
+            AtomicBuilder::create()
+        } else {
+            AtomicBuilder::modify()
+        };
+        let error = batch
+            .add(dir.join(PATH), SourceItems::Bytes(content.clone()), false)
+            .unwrap()
+            .start()
+            .unwrap_err();
+
+        assert_eq!(error.kind(), io::ErrorKind::AlreadyExists);
+        assert!(error.to_string().contains(TEMP), "{error}");
+        assert_eq!(fs::read(dir.join(TEMP)).unwrap().len(), 10 * MB);
+        assert_eq!(dir.entries(), before);
+    }
+}
+
+// The cut came while the temp file was being written: the file itself was
+// never touched, whatever the size.
+#[test]
+fn after_a_cut_in_a_half_written_temp_file_the_original_is_whole() {
+    let dir = TempDir::new();
+    let original = vec![1u8; 20 * MB];
+    fs::write(dir.join(PATH), &original).unwrap();
+    fs::write(dir.join(TEMP), vec![2u8; 10 * MB]).unwrap();
+
+    assert!(fs::read(dir.join(PATH)).unwrap() == original);
+    assert_eq!(dir.entries(), [PATH, TEMP]);
+}
+
+// Three files to create, the cut after the first was placed: the first is on
+// disk with its temp file, the second has its temp file only. Without a
+// journal a creation is not resumed: the next batch is refused and leaves all
+// of it as it found it.
+#[test]
+fn after_a_cut_between_two_placements_a_creation_is_not_resumed() {
+    let dir = TempDir::new();
+    write(&dir.join("a.bin"), "a");
+    fs::hard_link(dir.join("a.bin"), dir.join("a.bin.runique-tmp")).unwrap();
+    write(&dir.join("b.bin.runique-tmp"), "b");
+
+    let error = AtomicBuilder::create()
+        .add(dir.join("a.bin"), bytes("a"), false)
+        .unwrap()
+        .add(dir.join("b.bin"), bytes("b"), false)
+        .unwrap()
+        .add(dir.join("c.bin"), bytes("c"), false)
+        .unwrap()
+        .start()
+        .unwrap_err();
+
+    assert_eq!(error.kind(), io::ErrorKind::AlreadyExists);
+    assert!(error.to_string().contains("a.bin"), "{error}");
+    assert_eq!(read(&dir.join("a.bin")), "a");
+    assert_eq!(
+        dir.entries(),
+        ["a.bin", "a.bin.runique-tmp", "b.bin.runique-tmp"]
+    );
+}
+
+// A replacement cut at each of its three moments: the backup just made, the
+// original taken away, the new content placed. Each time a backup is left, and
+// each time the next batch is refused without touching anything.
+#[test]
+fn after_a_cut_in_a_replacement_the_next_batch_is_refused() {
+    for at_path in [Some("original"), None, Some("new")] {
+        let dir = TempDir::new();
+        let cut = item(&dir, bytes("new"));
+        lay_out(&cut, at_path, Some("new"), Some("original"));
+        let before = dir.entries();
+
+        let outcome = AtomicBuilder::modify()
+            .add(dir.join(PATH), bytes("newer"), false)
+            .unwrap()
+            .start();
+
+        assert!(already_exists(outcome), "{at_path:?}");
+        assert_eq!(read(&dir.join(BACKUP)), "original", "{at_path:?}");
+        assert_eq!(read(&dir.join(TEMP)), "new", "{at_path:?}");
+        assert_eq!(dir.join(PATH).exists(), at_path.is_some());
+        if let Some(text) = at_path {
+            assert_eq!(read(&dir.join(PATH)), text);
+        }
+        assert_eq!(dir.entries(), before, "{at_path:?}");
+    }
+}
+
+// The worst moment: the original is in the backup and nothing is at `path`.
+// Nothing is lost: put back by hand, and the temp file cleared, the file is
+// whole and the batch goes through.
+#[test]
+fn after_a_cut_the_original_can_be_put_back_from_the_backup_by_hand() {
+    let dir = TempDir::new();
+    let cut = item(&dir, bytes("new"));
+    lay_out(&cut, None, Some("new"), Some("original"));
+
+    fs::rename(dir.join(BACKUP), dir.join(PATH)).unwrap();
+    fs::remove_file(dir.join(TEMP)).unwrap();
+    assert_eq!(read(&dir.join(PATH)), "original");
+
+    AtomicBuilder::modify()
+        .add(dir.join(PATH), bytes("newer"), false)
+        .unwrap()
+        .start()
+        .unwrap();
+    assert_eq!(read(&dir.join(PATH)), "newer");
+    assert_eq!(dir.entries(), [PATH]);
+}
+
+// The cut came during the final cleanup: the backup is gone, a temp file is
+// left. Without a journal, that temp file stops the next batch too.
+#[test]
+fn after_a_cut_in_the_cleanup_the_leftover_temp_file_stops_the_next_batch() {
+    let dir = TempDir::new();
+    let cut = item(&dir, bytes("new"));
+    lay_out(&cut, Some("new"), Some("new"), None);
+
+    let outcome = AtomicBuilder::modify()
+        .add(dir.join(PATH), bytes("newer"), false)
+        .unwrap()
+        .start();
+
+    assert!(already_exists(outcome));
+    assert_eq!(read(&dir.join(PATH)), "new");
+    assert_eq!(dir.entries(), [PATH, TEMP]);
+}
+
+// On a disk without hard links the file is copied, and a cut can leave half of
+// it at `path`: 10 MB of 20. A creation refuses to touch it; a modification
+// takes it for the original and replaces it with the whole file.
+#[test]
+fn after_a_cut_in_a_copy_the_half_written_file_is_never_taken_for_a_whole_one() {
+    let content = vec![9u8; 20 * MB];
+
+    let dir = TempDir::new();
+    fs::write(dir.join(PATH), &content[..10 * MB]).unwrap();
+    let outcome = AtomicBuilder::create()
+        .add(dir.join(PATH), SourceItems::Bytes(content.clone()), false)
+        .unwrap()
+        .start();
+    assert!(already_exists(outcome));
+    assert_eq!(fs::read(dir.join(PATH)).unwrap().len(), 10 * MB);
+    assert_eq!(dir.entries(), [PATH]);
+
+    AtomicBuilder::modify()
+        .add(dir.join(PATH), SourceItems::Bytes(content.clone()), false)
+        .unwrap()
+        .start()
+        .unwrap();
+    assert!(fs::read(dir.join(PATH)).unwrap() == content);
+    assert_eq!(dir.entries(), [PATH]);
+}
+
+// ── A path without a folder ──────────────────────────────────────────────────
+
+// No parent to create, and the folder to sync is the current one.
+#[test]
+fn a_file_without_a_parent_folder_is_written_in_the_current_one() {
+    struct Cleanup(String);
+    impl Drop for Cleanup {
+        fn drop(&mut self) {
+            for suffix in ["", ".runique-tmp", ".runique-bak"] {
+                let _ = fs::remove_file(format!("{}{suffix}", self.0));
+            }
+        }
+    }
+    let name = Cleanup(format!("rq_atomic_bare_{}.txt", uuid::Uuid::new_v4()));
+
+    AtomicBuilder::create()
+        .add(PathBuf::from(&name.0), bytes("bare"), false)
+        .unwrap()
+        .start()
+        .unwrap();
+
+    assert_eq!(read(Path::new(&name.0)), "bare");
+    assert!(!Path::new(&format!("{}.runique-tmp", name.0)).exists());
+}
+
+// ── The journal ──────────────────────────────────────────────────────────────
+
+/// Leaves in `dir` the journal of a batch cut short: each file by its name
+/// and whether it was there before, then the folders the batch had created.
+pub(crate) fn cut_journal(dir: &Path, placed: bool, files: &[(&str, bool)], dirs: &[&str]) {
+    let journal = Journal {
+        placed,
+        files: files
+            .iter()
+            .map(|(name, existed)| JournalFile {
+                path: PathBuf::from(name),
+                existed: *existed,
+            })
+            .collect(),
+        dirs: dirs.iter().map(PathBuf::from).collect(),
+    };
+    journal::write(dir, &journal).unwrap();
+}
+
+#[test]
+fn a_batch_with_a_journal_leaves_none_once_it_is_done() {
+    let dir = TempDir::new();
+    write(&dir.join("old.txt"), "before");
+
+    AtomicBuilder::modify()
+        .journal(dir.path())
+        .add(dir.join("old.txt"), bytes("after"), false)
+        .unwrap()
+        .add(dir.join("sub/new.txt"), bytes("new"), false)
+        .unwrap()
+        .start()
+        .unwrap();
+
+    assert_eq!(read(&dir.join("old.txt")), "after");
+    assert_eq!(dir.entries(), ["old.txt", "sub", "sub/new.txt"]);
+    assert!(!recover(dir.path()).unwrap());
+}
+
+// The journal's folder does not exist yet: it is created with the batch, and
+// goes with it when the batch is undone. (A path that climbs with `..` is
+// refused by the journal, once the folders are made.)
+#[test]
+fn a_batch_with_a_journal_leaves_none_once_it_is_undone() {
+    let dir = TempDir::new();
+
+    let outcome = AtomicBuilder::create()
+        .journal(dir.join("project"))
+        .add(dir.join("project/src/main.rs"), bytes("fn main() {}"), false)
+        .unwrap()
+        .add(
+            dir.join("project/src/../src/main.rs"),
+            bytes("fn main() {}"),
+            false,
+        )
+        .unwrap()
+        .start();
+
+    assert!(outcome.is_err());
+    assert!(dir.entries().is_empty());
+}
+
+// The folders above the journal's own had to be made too: they are undone
+// with the batch while it runs, and a batch that succeeds keeps them.
+#[test]
+fn a_journal_folder_several_levels_down_is_created_with_its_parents() {
+    let dir = TempDir::new();
+
+    AtomicBuilder::create()
+        .journal(dir.join("apps/blog/migration"))
+        .add(dir.join("apps/blog/migration/Cargo.toml"), bytes("x"), false)
+        .unwrap()
+        .start()
+        .unwrap();
+    assert_eq!(
+        dir.entries(),
+        [
+            "apps",
+            "apps/blog",
+            "apps/blog/migration",
+            "apps/blog/migration/Cargo.toml"
+        ]
+    );
+
+    let outcome = AtomicBuilder::create()
+        .journal(dir.join("other/deep/migration"))
+        .add(dir.join("other/deep/migration/a.txt"), bytes("a"), false)
+        .unwrap()
+        .add(dir.join("other/deep/migration/sub/../a.txt"), bytes("a"), false)
+        .unwrap()
+        .start();
+    assert!(outcome.is_err());
+    assert!(!dir.join("other").exists());
+}
+
+#[test]
+fn a_journal_in_a_folder_the_batch_creates_is_removed_from_it() {
+    let dir = TempDir::new();
+
+    AtomicBuilder::create()
+        .journal(dir.join("project"))
+        .add(dir.join("project/src/main.rs"), bytes("fn main() {}"), false)
+        .unwrap()
+        .start()
+        .unwrap();
+
+    assert_eq!(
+        dir.entries(),
+        ["project", "project/src", "project/src/main.rs"]
+    );
+}
+
+// A path outside the journal's folder could not be found again from another
+// working directory: the batch is refused before it touches anything.
+#[test]
+fn a_file_outside_the_journal_s_folder_is_refused() {
+    let dir = TempDir::new();
+
+    let error = AtomicBuilder::create()
+        .journal(dir.join("inner"))
+        .add(dir.join("outer.txt"), bytes("x"), false)
+        .unwrap()
+        .start()
+        .unwrap_err();
+
+    assert_eq!(error.kind(), io::ErrorKind::InvalidInput);
+    assert!(dir.entries().is_empty());
+}
+
+#[test]
+fn an_empty_batch_writes_no_journal() {
+    let dir = TempDir::new();
+    AtomicBuilder::modify()
+        .journal(dir.path())
+        .start()
+        .unwrap();
+    assert!(dir.entries().is_empty());
+}
+
+#[test]
+fn without_a_journal_there_is_nothing_to_repair() {
+    let dir = TempDir::new();
+    write(&dir.join(PATH), "mine");
+
+    assert!(!recover(dir.path()).unwrap());
+    assert!(!recover(&dir.join("missing")).unwrap());
+
+    assert_eq!(dir.entries(), [PATH]);
+}
+
+// A file that was there before the batch, cut at each moment of its
+// replacement: not reached yet, backed up, taken away, replaced.
+#[test]
+fn a_cut_replacement_gives_the_original_back() {
+    for (at_path, backup) in [
+        (Some("original"), None),
+        (Some("original"), Some("original")),
+        (None, Some("original")),
+        (Some("new"), Some("original")),
+    ] {
+        let dir = TempDir::new();
+        let cut = item(&dir, bytes("new"));
+        lay_out(&cut, at_path, Some("new"), backup);
+        cut_journal(dir.path(), false, &[(PATH, true)], &[]);
+
+        assert!(recover(dir.path()).unwrap());
+
+        assert_eq!(read(&dir.join(PATH)), "original", "{at_path:?} {backup:?}");
+        assert_eq!(dir.entries(), [PATH], "{at_path:?} {backup:?}");
+    }
+}
+
+// A file that was not there before: whatever the batch left is taken away,
+// and the folders it had made with it.
+#[test]
+fn a_cut_creation_leaves_nothing() {
+    for (at_path, temp) in [(None, None), (None, Some("ne")), (Some("new"), Some("new"))] {
+        let dir = TempDir::new();
+        fs::create_dir_all(dir.join("sub/deep")).unwrap();
+        for (name, text) in [
+            ("sub/deep/file.txt", at_path),
+            ("sub/deep/file.txt.runique-tmp", temp),
+        ] {
+            if let Some(text) = text {
+                write(&dir.join(name), text);
+            }
+        }
+        cut_journal(
+            dir.path(),
+            false,
+            &[("sub/deep/file.txt", false)],
+            &["sub", "sub/deep"],
+        );
+
+        assert!(recover(dir.path()).unwrap());
+
+        assert!(dir.entries().is_empty(), "{at_path:?} {temp:?}");
+    }
+}
+
+// A creation that met a file of the user's and was cut before it could fail:
+// that file was there before, the repair leaves it alone.
+#[test]
+fn a_file_that_was_there_before_a_cut_creation_is_left_alone() {
+    let dir = TempDir::new();
+    let cut = item(&dir, bytes("new"));
+    lay_out(&cut, Some("mine"), Some("new"), None);
+    cut_journal(dir.path(), false, &[(PATH, true)], &[]);
+
+    assert!(recover(dir.path()).unwrap());
+
+    assert_eq!(read(&dir.join(PATH)), "mine");
+    assert_eq!(dir.entries(), [PATH]);
+}
+
+// Every file was in place: the new content stays, only what the cleanup had
+// not removed yet goes.
+#[test]
+fn a_cut_cleanup_is_finished_and_keeps_the_new_content() {
+    for (temp, backup) in [
+        (Some("new"), Some("original")),
+        (Some("new"), None),
+        (None, None),
+    ] {
+        let dir = TempDir::new();
+        let cut = item(&dir, bytes("new"));
+        lay_out(&cut, Some("new"), temp, backup);
+        cut_journal(dir.path(), true, &[(PATH, true)], &[]);
+
+        assert!(recover(dir.path()).unwrap());
+
+        assert_eq!(read(&dir.join(PATH)), "new");
+        assert_eq!(dir.entries(), [PATH], "{temp:?} {backup:?}");
+    }
+}
+
+// A directory where the placed file is expected: the repair can't remove it.
+// The journal stays, and the repair goes through once the way is clear.
+#[test]
+fn a_repair_that_fails_keeps_the_journal_for_the_next_start() {
+    let dir = TempDir::new();
+    fs::create_dir(dir.join(PATH)).unwrap();
+    cut_journal(dir.path(), false, &[(PATH, false)], &[]);
+
+    assert!(recover(dir.path()).is_err());
+    assert!(dir.join(".runique-journal").exists());
+
+    fs::remove_dir(dir.join(PATH)).unwrap();
+    assert!(recover(dir.path()).unwrap());
+    assert!(dir.entries().is_empty());
+}
+
+#[test]
+fn a_journal_that_cannot_be_read_stops_everything_and_touches_nothing() {
+    let dir = TempDir::new();
+    write(&dir.join(PATH), "mine");
+    write(&dir.join(".runique-journal"), "not a journal");
+
+    let error = recover(dir.path()).unwrap_err();
+
+    assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+    assert!(error.to_string().contains(".runique-journal"), "{error}");
+    assert_eq!(read(&dir.join(PATH)), "mine");
+    assert_eq!(dir.entries(), [".runique-journal", PATH]);
+}
+
+// A project moved since the cut: the journal names its files from its own
+// folder, so the repair finds them where the folder now is.
+#[test]
+fn a_journal_is_repaired_wherever_its_folder_is() {
+    let dir = TempDir::new();
+    fs::create_dir(dir.join("here")).unwrap();
+    write(&dir.join("here/file.txt"), "new");
+    write(&dir.join("here/file.txt.runique-tmp"), "new");
+    write(&dir.join("here/file.txt.runique-bak"), "original");
+    cut_journal(&dir.join("here"), false, &[(PATH, true)], &[]);
+
+    fs::rename(dir.join("here"), dir.join("there")).unwrap();
+    assert!(recover(&dir.join("there")).unwrap());
+
+    assert_eq!(read(&dir.join("there/file.txt")), "original");
+    assert_eq!(dir.entries(), ["there", "there/file.txt"]);
+}
+
+// ── What the batch refuses to take, and what a repair refuses to touch ───────
+
+// The names the batch works under: a file of the batch carrying one would be
+// taken for the temp file or the backup of another, and removed with it.
+#[test]
+fn a_file_under_a_name_the_batch_keeps_for_itself_is_refused() {
+    let dir = TempDir::new();
+    for name in [
+        "a.txt.runique-tmp",
+        "a.txt.runique-bak",
+        ".runique-journal",
+        ".runique-journal.runique-tmp",
+        "sub/b.runique-bak",
+    ] {
+        let outcome = AtomicBuilder::modify().add(dir.join(name), bytes("x"), false);
+        assert!(
+            matches!(outcome, Err(error) if error.kind() == io::ErrorKind::InvalidInput),
+            "{name}"
+        );
+    }
+    assert!(dir.entries().is_empty());
+}
+
+#[test]
+fn a_path_that_names_no_file_is_refused() {
+    let dir = TempDir::new();
+    for path in [PathBuf::new(), PathBuf::from("/"), dir.join("..")] {
+        let outcome = AtomicBuilder::create().add(path.clone(), bytes("x"), false);
+        assert!(
+            matches!(outcome, Err(error) if error.kind() == io::ErrorKind::InvalidInput),
+            "{path:?}"
+        );
+    }
+}
+
+// Close to a kept name, but not one: these are ordinary files.
+#[test]
+fn a_name_that_only_looks_like_a_kept_one_is_an_ordinary_file() {
+    let dir = TempDir::new();
+    let names = [
+        "runique-tmp",
+        "a.runique-tmp.txt",
+        "a.runique-bakery",
+        "runique-journal",
+    ];
+    let mut batch = AtomicBuilder::create();
+    for name in names {
+        batch = batch.add(dir.join(name), bytes(name), false).unwrap();
+    }
+
+    batch.start().unwrap();
+
+    for name in names {
+        assert_eq!(read(&dir.join(name)), name);
+    }
+}
+
+// Nothing was there before the batch, and what is there now is not what the
+// batch was placing: someone put a file there since the cut. The repair stops
+// and touches nothing; once that file is out of the way, it goes through.
+#[test]
+fn a_file_the_batch_did_not_place_stops_the_repair() {
+    let dir = TempDir::new();
+    let cut = item(&dir, bytes("new"));
+    lay_out(&cut, Some("theirs"), Some("new"), None);
+    cut_journal(dir.path(), false, &[(PATH, false)], &[]);
+    let before = dir.entries();
+
+    let error = recover(dir.path()).unwrap_err();
+
+    assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+    assert!(error.to_string().contains(PATH), "{error}");
+    assert_eq!(read(&dir.join(PATH)), "theirs");
+    assert_eq!(dir.entries(), before);
+
+    fs::rename(dir.join(PATH), dir.join("theirs.txt")).unwrap();
+    assert!(recover(dir.path()).unwrap());
+    assert_eq!(dir.entries(), ["theirs.txt"]);
+}
+
+// The file is neither the new content nor what its backup holds: it was edited
+// since the cut. Putting the backup back would lose the edit, dropping the
+// backup would lose the original: the repair stops and touches nothing.
+#[test]
+fn a_file_edited_since_the_cut_stops_the_repair() {
+    let dir = TempDir::new();
+    write(&dir.join("first.txt"), "new first");
+    write(&dir.join("first.txt.runique-tmp"), "new first");
+    write(&dir.join("first.txt.runique-bak"), "original first");
+    let cut = item(&dir, bytes("new"));
+    lay_out(&cut, Some("edited by hand"), Some("new"), Some("original"));
+    cut_journal(
+        dir.path(),
+        false,
+        &[("first.txt", true), (PATH, true)],
+        &[],
+    );
+    let before = dir.entries();
+
+    let error = recover(dir.path()).unwrap_err();
+
+    assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+    assert!(error.to_string().contains(PATH), "{error}");
+    assert_eq!(read(&dir.join(PATH)), "edited by hand");
+    assert_eq!(read(&dir.join(BACKUP)), "original");
+    assert_eq!(read(&dir.join("first.txt")), "new first", "not even the first");
+    assert_eq!(dir.entries(), before);
+}
+
+// A journal is a file on the disk like any other: one naming a path that
+// climbs out of its folder, an absolute one, or one of the batch's own names
+// is refused whole, and nothing it names is touched.
+#[test]
+fn a_journal_naming_a_path_outside_its_folder_is_refused() {
+    let dir = TempDir::new();
+    fs::create_dir(dir.join("project")).unwrap();
+    write(&dir.join("victim.txt"), "theirs");
+    write(&dir.join("victim.txt.runique-tmp"), "theirs");
+    let absolute = dir.join("victim.txt");
+    let cases: [(&[(&str, bool)], &[&str]); 5] = [
+        (&[("../victim.txt", false)], &[]),
+        (&[(absolute.to_str().unwrap(), false)], &[]),
+        (&[("file.txt.runique-bak", false)], &[]),
+        (&[("sub/../../victim.txt", false)], &[]),
+        (&[("file.txt", false)], &[".."]),
+    ];
+    for (files, dirs) in cases {
+        cut_journal(&dir.join("project"), false, files, dirs);
+
+        let error = recover(&dir.join("project")).unwrap_err();
+
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData, "{files:?} {dirs:?}");
+        assert_eq!(read(&dir.join("victim.txt")), "theirs", "{files:?}");
+        assert!(dir.join("victim.txt.runique-tmp").exists(), "{files:?}");
+        assert!(dir.join("project").is_dir(), "{files:?} {dirs:?}");
+    }
+}
+
+// A folder of the project was replaced by a symlink to somewhere else: the
+// file the journal names is no longer in the project, and is left alone.
+#[cfg(unix)]
+#[test]
+fn a_symlinked_folder_does_not_lead_a_repair_out_of_the_project() {
+    let dir = TempDir::new();
+    fs::create_dir(dir.join("project")).unwrap();
+    fs::create_dir(dir.join("outside")).unwrap();
+    write(&dir.join("outside/file.txt"), "theirs");
+    write(&dir.join("outside/file.txt.runique-tmp"), "theirs");
+    std::os::unix::fs::symlink(dir.join("outside"), dir.join("project/src")).unwrap();
+    cut_journal(&dir.join("project"), false, &[("src/file.txt", false)], &[]);
+
+    let error = recover(&dir.join("project")).unwrap_err();
+
+    assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+    assert_eq!(read(&dir.join("outside/file.txt")), "theirs");
+    assert!(dir.join("outside/file.txt.runique-tmp").exists());
+}
+
+// The batch itself, while it runs, only ever removes what it created: a file
+// that was there, a folder that was there, a folder it made but someone else
+// filled.
+#[test]
+fn a_batch_undone_removes_only_what_it_created() {
+    let dir = TempDir::new();
+    fs::create_dir(dir.join("kept")).unwrap();
+    write(&dir.join("kept/theirs.txt"), "theirs");
+    write(&dir.join("taken.txt"), "mine");
+
+    let outcome = AtomicBuilder::create()
+        .journal(dir.path())
+        .add(dir.join("kept/new.txt"), bytes("new"), false)
+        .unwrap()
+        .add(dir.join("made/deep/new.txt"), bytes("new"), false)
+        .unwrap()
+        .add(dir.join("taken.txt"), bytes("theirs"), false)
+        .unwrap()
+        .start();
+
+    assert!(already_exists(outcome));
+    assert_eq!(read(&dir.join("kept/theirs.txt")), "theirs");
+    assert_eq!(read(&dir.join("taken.txt")), "mine");
+    assert_eq!(dir.entries(), ["kept", "kept/theirs.txt", "taken.txt"]);
+}
+
+// ── Only the states a cut can leave ──────────────────────────────────────────
+
+// A temp file is the batch's own name: one that is already there when the
+// batch starts was not made by it, and is neither written over nor removed.
+#[test]
+fn waiting_refuses_to_start_over_a_leftover_temp_file() {
+    for action in [ActionAtomic::Create, ActionAtomic::Modify] {
+        let dir = TempDir::new();
+        let item = item(&dir, bytes("new"));
+        lay_out(&item, None, Some("theirs"), None);
+
+        assert!(already_exists(waiting::run(&action, &item)));
+        assert_eq!(read(&item.temp_path), "theirs");
+        assert_eq!(dir.entries(), [TEMP]);
+    }
+}
+
+// Someone made `x.runique-tmp` by hand, with no batch in progress: the batch
+// on `x` is refused, and names the file that is in the way.
+#[test]
+fn a_temp_file_made_by_hand_is_never_removed() {
+    let dir = TempDir::new();
+    write(&dir.join("notes.txt"), "notes");
+    write(&dir.join("notes.txt.runique-tmp"), "a file of the user's");
+
+    let error = AtomicBuilder::modify()
+        .add(dir.join("other.txt"), bytes("other"), false)
+        .unwrap()
+        .add(dir.join("notes.txt"), bytes("new notes"), false)
+        .unwrap()
+        .start()
+        .unwrap_err();
+
+    assert_eq!(error.kind(), io::ErrorKind::AlreadyExists);
+    assert!(error.to_string().contains("notes.txt.runique-tmp"), "{error}");
+    assert_eq!(read(&dir.join("notes.txt")), "notes");
+    assert_eq!(
+        read(&dir.join("notes.txt.runique-tmp")),
+        "a file of the user's"
+    );
+    assert_eq!(dir.entries(), ["notes.txt", "notes.txt.runique-tmp"]);
+}
+
+// A file that was there before the batch is gone, and no backup holds it:
+// not a state a cut leaves. Nothing is touched.
+#[test]
+fn an_original_that_is_gone_without_a_backup_stops_the_repair() {
+    let dir = TempDir::new();
+    let cut = item(&dir, bytes("new"));
+    lay_out(&cut, None, Some("new"), None);
+    cut_journal(dir.path(), false, &[(PATH, true)], &[]);
+    let before = dir.entries();
+
+    let error = recover(dir.path()).unwrap_err();
+
+    assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+    assert_eq!(dir.entries(), before);
+}
+
+// A backup next to a file that did not exist before the batch: no batch makes
+// one. Removing it could lose something, so the repair stops.
+#[test]
+fn a_backup_of_a_file_that_was_not_there_stops_the_repair() {
+    let dir = TempDir::new();
+    let cut = item(&dir, bytes("new"));
+    lay_out(&cut, Some("new"), Some("new"), Some("whose?"));
+    cut_journal(dir.path(), false, &[(PATH, false)], &[]);
+    let before = dir.entries();
+
+    assert!(recover(dir.path()).is_err());
+
+    assert_eq!(read(&dir.join(BACKUP)), "whose?");
+    assert_eq!(dir.entries(), before);
+}
+
+// A file was added in a folder the batch had created: that folder could not
+// be taken away with the rest. The repair stops before it removes anything.
+#[test]
+fn a_file_added_in_a_folder_the_batch_created_stops_the_repair() {
+    let dir = TempDir::new();
+    fs::create_dir_all(dir.join("made/deep")).unwrap();
+    write(&dir.join("made/deep/file.txt"), "new");
+    write(&dir.join("made/deep/file.txt.runique-tmp"), "new");
+    write(&dir.join("made/notes.md"), "a file of the user's");
+    cut_journal(
+        dir.path(),
+        false,
+        &[("made/deep/file.txt", false)],
+        &["made", "made/deep"],
+    );
+    let before = dir.entries();
+
+    let error = recover(dir.path()).unwrap_err();
+
+    assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+    assert!(error.to_string().contains("notes.md"), "{error}");
+    assert_eq!(dir.entries(), before);
+
+    fs::rename(dir.join("made/notes.md"), dir.join("notes.md")).unwrap();
+    assert!(recover(dir.path()).unwrap());
+    assert_eq!(dir.entries(), ["notes.md"]);
+}
+
+// Two files don't match: both are named, one per line, for the command to show.
+#[test]
+fn every_file_that_does_not_match_is_listed() {
+    let dir = TempDir::new();
+    for name in ["a.txt", "b.txt"] {
+        write(&dir.join(name), "edited by hand");
+        write(&dir.join(&format!("{name}.runique-tmp")), "new");
+        write(&dir.join(&format!("{name}.runique-bak")), "original");
+    }
+    write(&dir.join("c.txt"), "new");
+    write(&dir.join("c.txt.runique-tmp"), "new");
+    write(&dir.join("c.txt.runique-bak"), "original");
+    cut_journal(
+        dir.path(),
+        false,
+        &[("a.txt", true), ("b.txt", true), ("c.txt", true)],
+        &[],
+    );
+
+    let message = recover(dir.path()).unwrap_err().to_string();
+
+    assert_eq!(message.lines().count(), 2, "{message}");
+    assert!(message.contains("a.txt") && message.contains("b.txt"), "{message}");
+    assert!(!message.contains("c.txt"), "{message}");
+    assert_eq!(read(&dir.join("c.txt")), "new", "nothing was touched");
+}
+
+// A file the journal does not know, next to the batch's: not in a folder the
+// batch created, it is no business of the repair.
+#[test]
+fn a_file_the_journal_does_not_know_is_left_where_it_is() {
+    let dir = TempDir::new();
+    let cut = item(&dir, bytes("new"));
+    lay_out(&cut, Some("new"), Some("new"), Some("original"));
+    write(&dir.join("by_hand.rs"), "// the developer's");
+    cut_journal(dir.path(), false, &[(PATH, true)], &[]);
+
+    assert!(recover(dir.path()).unwrap());
+
+    assert_eq!(read(&dir.join(PATH)), "original");
+    assert_eq!(read(&dir.join("by_hand.rs")), "// the developer's");
+    assert_eq!(dir.entries(), ["by_hand.rs", PATH]);
+}
+
+// What a command that only reads the folder asks: is a batch waiting here?
+#[test]
+fn a_folder_is_interrupted_while_its_journal_is_there() {
+    let dir = TempDir::new();
+    assert!(!super::interrupted(dir.path()));
+    assert!(!super::interrupted(&dir.join("missing")));
+
+    let cut = item(&dir, bytes("new"));
+    lay_out(&cut, Some("new"), Some("new"), Some("original"));
+    cut_journal(dir.path(), false, &[(PATH, true)], &[]);
+    assert!(super::interrupted(dir.path()));
+
+    assert!(recover(dir.path()).unwrap());
+    assert!(!super::interrupted(dir.path()));
 }

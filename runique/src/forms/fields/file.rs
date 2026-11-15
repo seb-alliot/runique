@@ -511,6 +511,14 @@ impl FileField {
         self
     }
 
+    /// Once a new upload is saved, removes the stored file it takes the place
+    /// of. Without it that file stays on disk, and removing it is your call.
+    /// No effect on a field taking several files (`max_files` above 1).
+    pub fn replace(mut self) -> Self {
+        self.upload.replace = true;
+        self
+    }
+
     /// Marks the field as required (no file fails validation).
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
@@ -608,7 +616,7 @@ impl FormField for FileField {
     }
 
     async fn complete_uploads(&mut self) {
-        self.upload.complete();
+        self.upload.complete().await;
     }
 
     fn render(&self, tera: &ATera) -> Result<String, String> {
@@ -989,6 +997,89 @@ mod finalize_tests {
         assert!(media.root.join("old.png").exists());
         assert!(media.root.join("new.png").exists());
         assert_eq!(field.upload.prev_value, None);
+    }
+
+    // ── `.replace()` ─────────────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn a_field_that_replaces_removes_the_old_file_once_the_write_committed() {
+        use sea_orm::TransactionTrait;
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        fs::write(media.root.join("old.png"), b"old bytes").unwrap();
+        let staged = media.staged("new.png", b"new bytes");
+        let mut field = FileField::any("doc").replace();
+        field.set_value("old.png");
+        field.set_value(&staged);
+        field.finalize().await.unwrap();
+
+        let mut forms = crate::forms::form::Forms::new("");
+        forms.field(&field);
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        let (old, new) = (media.root.join("old.png"), media.root.join("new.png"));
+
+        let result = crate::forms::form::write_with_uploads(&mut forms, async {
+            let txn = db.begin().await?;
+            assert!(old.exists(), "kept while the write is open");
+            Ok(txn)
+        })
+        .await;
+
+        assert!(result.is_ok());
+        assert!(new.exists());
+        assert!(!old.exists(), "removed once committed");
+        assert_eq!(forms.fields["doc"].value(), "new.png");
+    }
+
+    #[tokio::test]
+    async fn a_refused_write_keeps_the_file_a_replacing_field_holds() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        fs::write(media.root.join("old.png"), b"old bytes").unwrap();
+        let staged = media.staged("new.png", b"new bytes");
+        let mut field = FileField::any("doc").replace();
+        field.set_value("old.png");
+        field.set_value(&staged);
+        field.finalize().await.unwrap();
+
+        let mut forms = crate::forms::form::Forms::new("");
+        forms.field(&field);
+        let result = crate::forms::form::write_with_uploads(&mut forms, async {
+            Err(sea_orm::DbErr::Custom(
+                "simulated write failure".to_string(),
+            ))
+        })
+        .await;
+
+        assert!(result.is_err());
+        assert!(media.root.join("old.png").exists());
+        assert!(!media.root.join("new.png").exists());
+        assert_eq!(forms.fields["doc"].value(), "old.png");
+    }
+
+    #[tokio::test]
+    async fn a_field_replaces_inside_its_upload_folder() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        fs::create_dir(media.root.join("docs")).unwrap();
+        fs::write(media.root.join("docs/old.pdf"), b"old bytes").unwrap();
+        fs::write(media.root.join("old.pdf"), b"another file").unwrap();
+        let staged = media.staged("new.pdf", b"new bytes");
+        let mut field = FileField::any("doc").upload_to("docs").replace();
+        field.set_value("docs/old.pdf");
+        field.set_value(&staged);
+        field.finalize().await.unwrap();
+
+        field.publish_uploads().await.unwrap();
+        field.complete_uploads().await;
+
+        assert_eq!(field.base.value, "docs/new.pdf");
+        assert!(media.root.join("docs/new.pdf").exists());
+        assert!(!media.root.join("docs/old.pdf").exists());
+        assert!(
+            media.root.join("old.pdf").exists(),
+            "same name, other folder"
+        );
     }
 
     #[tokio::test]

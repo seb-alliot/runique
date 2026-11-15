@@ -214,6 +214,8 @@
     "name_invalid": "El nombre del proyecto solo debe contener letras, números, _ o -",
     "name_dash": "El nombre del proyecto no puede comenzar con -",
     "folder_exists": "La carpeta '{}' ya existe",
+    "interrupted_run": "Una ejecución se interrumpió en '{}' y algunos archivos han cambiado desde entonces. No se ha tocado nada. Corrija los que se indican a continuación y vuelva a ejecutar el comando:",
+    "run_repaired": "Se ha reparado una ejecución interrumpida en '{}'.",
     "project_created": "¡Proyecto '{}' creado con éxito!",
     "getting_started": "Para comenzar:",
     "cd_hint": "cd {}",
@@ -572,6 +574,7 @@
     "cargo_missing": "No se puede iniciar cargo. ¿Está Rust instalado y cargo en el PATH?",
     "failed": "El crate de migraciones falló en 'migrate {}' (código de salida: {}).",
     "crate_created": "Crate de migraciones creado en '{}'.",
+    "interrupted": "Un makemigrations se interrumpió en '{}'. Vuelva a ejecutar makemigrations antes de aplicar las migraciones.",
     "engine_defaulted": "DB_ENGINE no está definido: el crate de migraciones usa SQLite. Cambie la feature de runique en '{}' si es necesario."
   },
   "reset": {
@@ -683,7 +686,8 @@
     },
     "forms": {
       "validation_failed": "fallo de la validación del formulario",
-      "remove_oversized": "eliminación de un archivo en tránsito demasiado grande"
+      "remove_oversized": "eliminación de un archivo en tránsito demasiado grande",
+      "remove_replaced": "eliminación del archivo que una nueva subida sustituye"
     },
     "mailer": {
       "init_twice": "mailer_init() llamado varias veces: se conserva la configuración inicial"

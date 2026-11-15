@@ -214,6 +214,8 @@
     "name_invalid": "プロジェクト名には文字、数字、_ または - のみ使用できます",
     "name_dash": "プロジェクト名は - で始めることができません",
     "folder_exists": "フォルダー '{}' はすでに存在します",
+    "interrupted_run": "'{}' での実行が中断され、その後ファイルが変更されています。何も変更していません。以下のファイルを修正してから、コマンドを再実行してください:",
+    "run_repaired": "'{}' で中断された実行を修復しました。",
     "project_created": "プロジェクト '{}' を作成しました！",
     "getting_started": "始めるには：",
     "cd_hint": "cd {}",
@@ -572,6 +574,7 @@
     "cargo_missing": "cargo を起動できません。Rust がインストールされ、cargo が PATH にありますか？",
     "failed": "マイグレーションクレートが 'migrate {}' で失敗しました（終了コード: {}）。",
     "crate_created": "マイグレーションクレートを '{}' に作成しました。",
+    "interrupted": "'{}' で makemigrations が中断されました。マイグレーションを適用する前に、makemigrations を再実行してください。",
     "engine_defaulted": "DB_ENGINE が設定されていません：マイグレーションクレートは SQLite を使用します。必要に応じて '{}' の runique feature を変更してください。"
   },
   "reset": {
@@ -683,7 +686,8 @@
     },
     "forms": {
       "validation_failed": "フォームの検証に失敗",
-      "remove_oversized": "大きすぎる一時アップロードを削除"
+      "remove_oversized": "大きすぎる一時アップロードを削除",
+      "remove_replaced": "新しいアップロードで置き換えられたファイルを削除"
     },
     "mailer": {
       "init_twice": "mailer_init() が複数回呼ばれた：最初の設定を維持"

@@ -214,6 +214,8 @@
     "name_invalid": "项目名称只能包含字母、数字、下划线或连字符",
     "name_dash": "项目名称不能以连字符开头",
     "folder_exists": "文件夹 '{}' 已存在",
+    "interrupted_run": "在 '{}' 中的一次运行被中断，此后文件发生了变化。未做任何改动。请修正下面列出的文件，然后重新运行命令：",
+    "run_repaired": "已修复 '{}' 中被中断的运行。",
     "project_created": "项目 '{}' 创建成功！",
     "getting_started": "开始使用：",
     "cd_hint": "cd {}",
@@ -572,6 +574,7 @@
     "cargo_missing": "无法启动 cargo。是否已安装 Rust 且 cargo 在 PATH 中？",
     "failed": "迁移 crate 在 'migrate {}' 上失败（退出码：{}）。",
     "crate_created": "已在 '{}' 创建迁移 crate。",
+    "interrupted": "makemigrations 在 '{}' 中被中断。请在应用迁移之前重新运行 makemigrations。",
     "engine_defaulted": "未设置 DB_ENGINE：迁移 crate 使用 SQLite。如有需要，请修改 '{}' 中的 runique feature。"
   },
   "reset": {
@@ -683,7 +686,8 @@
     },
     "forms": {
       "validation_failed": "表单校验失败",
-      "remove_oversized": "删除过大的暂存上传文件"
+      "remove_oversized": "删除过大的暂存上传文件",
+      "remove_replaced": "删除被新上传文件替换的文件"
     },
     "mailer": {
       "init_twice": "mailer_init() 被多次调用：保留初始配置"

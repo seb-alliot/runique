@@ -340,3 +340,356 @@ fn extend_blocks_are_planned_until_their_snapshot_matches() {
         fs::remove_dir_all(&migrations),
     );
 }
+
+// ── `commit_plan`: the plan written as one batch ─────────────────────────────
+
+use crate::atomic::tests::TempDir;
+
+/// A `migration/src` folder holding `lib`, when given; its path.
+fn migrations_src(dir: &TempDir, lib: Option<&str>) -> String {
+    let src = dir.join("src");
+    fs::create_dir_all(&src).unwrap();
+    let path = src.to_str().unwrap().to_string();
+    if let Some(content) = lib {
+        fs::write(lib_path(&path), content).unwrap();
+    }
+    path
+}
+
+fn file(path: &str, name: &str, content: &str) -> (String, String) {
+    (format!("{path}/{name}"), content.to_string())
+}
+
+#[test]
+fn a_plan_writes_its_files_and_registers_its_modules() {
+    let dir = TempDir::new();
+    let path = migrations_src(&dir, Some(&initial_lib()));
+    let plan = Plan {
+        files: vec![
+            file(&path, "m1_create_shop_table.rs", "// shop"),
+            file(&path, "snapshots/shop.rs", "// snapshot"),
+        ],
+        lib_modules: vec!["m1_create_shop_table".to_string()],
+    };
+
+    commit_plan(&plan, &path).unwrap();
+
+    let lib = fs::read_to_string(lib_path(&path)).unwrap();
+    assert!(lib.contains("mod m1_create_shop_table;"), "{lib}");
+    assert!(
+        lib.contains("Box::new(m1_create_shop_table::Migration)"),
+        "{lib}"
+    );
+    assert!(
+        lib.contains("migrations_table::EihwazUsersMigration"),
+        "{lib}"
+    );
+    assert_eq!(
+        fs::read_to_string(format!("{path}/snapshots/shop.rs")).unwrap(),
+        "// snapshot"
+    );
+    assert_eq!(
+        dir.entries(),
+        [
+            "src",
+            "src/lib.rs",
+            "src/m1_create_shop_table.rs",
+            "src/snapshots",
+            "src/snapshots/shop.rs"
+        ]
+    );
+}
+
+// A directory sits where the last file of the plan goes: by then the snapshot
+// has been replaced and the migration file placed. Everything comes back.
+#[cfg(unix)]
+#[test]
+fn a_plan_that_fails_leaves_the_project_as_it_was() {
+    let dir = TempDir::new();
+    let before = initial_lib();
+    let path = migrations_src(&dir, Some(&before));
+    fs::create_dir(format!("{path}/snapshots")).unwrap();
+    fs::write(format!("{path}/snapshots/shop.rs"), "// old snapshot").unwrap();
+    fs::create_dir(format!("{path}/blocked.rs")).unwrap();
+    let plan = Plan {
+        files: vec![
+            file(&path, "snapshots/shop.rs", "// new snapshot"),
+            file(&path, "m1_create_shop_table.rs", "// shop"),
+            file(&path, "blocked.rs", "// never written"),
+        ],
+        lib_modules: vec!["m1_create_shop_table".to_string()],
+    };
+
+    let error = commit_plan(&plan, &path).unwrap_err();
+
+    assert!(format!("{error:#}").contains("blocked.rs"), "{error:#}");
+    assert_eq!(fs::read_to_string(lib_path(&path)).unwrap(), before);
+    assert_eq!(
+        fs::read_to_string(format!("{path}/snapshots/shop.rs")).unwrap(),
+        "// old snapshot"
+    );
+    assert_eq!(
+        dir.entries(),
+        [
+            "src",
+            "src/blocked.rs",
+            "src/lib.rs",
+            "src/snapshots",
+            "src/snapshots/shop.rs"
+        ]
+    );
+}
+
+#[test]
+fn a_plan_naming_one_file_twice_is_refused_and_writes_nothing() {
+    let dir = TempDir::new();
+    let before = initial_lib();
+    let path = migrations_src(&dir, Some(&before));
+    let plan = Plan {
+        files: vec![
+            file(&path, "m1_create_shop_table.rs", "// first"),
+            file(&path, "m1_create_shop_table.rs", "// second"),
+        ],
+        lib_modules: vec!["m1_create_shop_table".to_string()],
+    };
+
+    assert!(commit_plan(&plan, &path).is_err());
+
+    assert_eq!(fs::read_to_string(lib_path(&path)).unwrap(), before);
+    assert_eq!(dir.entries(), ["src", "src/lib.rs"]);
+}
+
+#[test]
+fn a_plan_without_a_module_creates_no_lib() {
+    let dir = TempDir::new();
+    let path = migrations_src(&dir, None);
+    let plan = Plan {
+        files: vec![file(&path, "snapshots/shop.rs", "// snapshot")],
+        lib_modules: vec![],
+    };
+
+    commit_plan(&plan, &path).unwrap();
+
+    assert_eq!(
+        dir.entries(),
+        ["src", "src/snapshots", "src/snapshots/shop.rs"]
+    );
+}
+
+// What `run` does when no model changed: the framework's migrations are still
+// wired into a `lib.rs` that lacks them, and a `lib.rs` already right is not rewritten.
+#[test]
+fn an_empty_plan_only_puts_the_framework_migrations_first() {
+    let dir = TempDir::new();
+    let path = migrations_src(&dir, Some("use sea_orm_migration::prelude::*;\n"));
+
+    commit_plan(&Plan::default(), &path).unwrap();
+    let wired = fs::read_to_string(lib_path(&path)).unwrap();
+    assert_eq!(wired, initial_lib());
+
+    let written = fs::metadata(lib_path(&path)).unwrap().modified().unwrap();
+    commit_plan(&Plan::default(), &path).unwrap();
+    assert_eq!(
+        fs::metadata(lib_path(&path)).unwrap().modified().unwrap(),
+        written
+    );
+    assert_eq!(dir.entries(), ["src", "src/lib.rs"]);
+}
+
+// The `sea-orm-cli migrate init` placeholder goes once the plan is written,
+// and stays when it is not: a failed run changes nothing at all.
+#[test]
+fn the_placeholder_file_goes_only_with_a_plan_that_is_written() {
+    let dir = TempDir::new();
+    let path = migrations_src(&dir, Some(&initial_lib()));
+    let placeholder = format!("{path}/{SEA_ORM_CLI_PLACEHOLDER_MODULE}.rs");
+    fs::write(&placeholder, "// todo!()").unwrap();
+    let twice = Plan {
+        files: vec![
+            file(&path, "m1_create_shop_table.rs", "// first"),
+            file(&path, "m1_create_shop_table.rs", "// second"),
+        ],
+        lib_modules: vec![],
+    };
+
+    assert!(commit_plan(&twice, &path).is_err());
+    assert!(Path::new(&placeholder).exists());
+
+    commit_plan(&Plan::default(), &path).unwrap();
+    assert!(!Path::new(&placeholder).exists());
+}
+
+// The whole command, on a project whose `lib.rs` can't be read (a directory
+// by that name): it fails before writing a single file.
+#[test]
+fn a_run_that_cannot_read_lib_writes_no_file() {
+    let dir = TempDir::new();
+    let entities = dir.join("entities");
+    fs::create_dir(&entities).unwrap();
+    let path = migrations_src(&dir, None);
+    fs::create_dir(lib_path(&path)).unwrap();
+
+    assert!(run(entities.to_str().unwrap(), &path, false).is_err());
+
+    let files: Vec<String> = dir
+        .entries()
+        .into_iter()
+        .filter(|entry| dir.join(entry).is_file())
+        .collect();
+    assert!(files.is_empty(), "{files:?}");
+}
+
+// The power went in the middle of a run: `lib.rs` taken away, its content in
+// the backup, one migration file placed. The next run takes all of it back
+// before it reads anything, then finds nothing to do.
+#[test]
+fn a_run_cut_short_is_taken_back_before_the_next_one() {
+    let dir = TempDir::new();
+    let entities = dir.join("entities");
+    fs::create_dir(&entities).unwrap();
+    let before = initial_lib();
+    let path = migrations_src(&dir, None);
+    fs::write(format!("{path}/lib.rs.runique-bak"), &before).unwrap();
+    fs::write(format!("{path}/lib.rs.runique-tmp"), "// half done").unwrap();
+    fs::write(format!("{path}/m1_create_shop_table.rs"), "// shop").unwrap();
+    fs::write(format!("{path}/m1_create_shop_table.rs.runique-tmp"), "// shop").unwrap();
+    crate::atomic::tests::cut_journal(
+        Path::new(&path),
+        false,
+        &[("m1_create_shop_table.rs", false), ("lib.rs", true)],
+        &[],
+    );
+
+    run(entities.to_str().unwrap(), &path, false).unwrap();
+
+    assert_eq!(fs::read_to_string(lib_path(&path)).unwrap(), before);
+    assert!(!Path::new(&format!("{path}/m1_create_shop_table.rs")).exists());
+    let leftovers: Vec<String> = dir
+        .entries()
+        .into_iter()
+        .filter(|entry| entry.contains(".runique-"))
+        .collect();
+    assert!(leftovers.is_empty(), "{leftovers:?}");
+}
+
+// ── A run cut short, and a developer who came by before the next one ─────────
+
+/// A run interrupted once `lib.rs` was replaced and one migration placed.
+/// Returns the entities folder, the migrations path and the original `lib.rs`.
+fn cut_run(dir: &TempDir) -> (String, String, String) {
+    let entities = dir.join("entities");
+    fs::create_dir(&entities).unwrap();
+    let before = initial_lib();
+    let path = migrations_src(dir, Some("// lib.rs with the new migration"));
+    fs::write(format!("{path}/lib.rs.runique-tmp"), "// lib.rs with the new migration").unwrap();
+    fs::write(format!("{path}/lib.rs.runique-bak"), &before).unwrap();
+    fs::write(format!("{path}/m1_create_shop_table.rs"), "// shop").unwrap();
+    fs::write(format!("{path}/m1_create_shop_table.rs.runique-tmp"), "// shop").unwrap();
+    crate::atomic::tests::cut_journal(
+        Path::new(&path),
+        false,
+        &[("m1_create_shop_table.rs", false), ("lib.rs", true)],
+        &[],
+    );
+    (entities.to_str().unwrap().to_string(), path, before)
+}
+
+fn leftovers(dir: &TempDir) -> Vec<String> {
+    dir.entries()
+        .into_iter()
+        .filter(|entry| entry.contains(".runique-"))
+        .collect()
+}
+
+// Before the next run, the developer wrote a migration of their own, under a
+// name the journal does not know: the run is taken back around it.
+#[test]
+fn a_migration_written_by_hand_before_the_repair_is_left_alone() {
+    let dir = TempDir::new();
+    let (entities, path, before) = cut_run(&dir);
+    fs::write(format!("{path}/m0_by_hand.rs"), "// the developer's").unwrap();
+
+    run(&entities, &path, false).unwrap();
+
+    assert_eq!(fs::read_to_string(lib_path(&path)).unwrap(), before);
+    assert_eq!(
+        fs::read_to_string(format!("{path}/m0_by_hand.rs")).unwrap(),
+        "// the developer's"
+    );
+    assert!(!Path::new(&format!("{path}/m1_create_shop_table.rs")).exists());
+    assert!(leftovers(&dir).is_empty());
+}
+
+// The developer edited `lib.rs` after the cut: it is neither what the run was
+// writing nor what the backup holds. The command stops, names it, and has
+// changed nothing: choosing between the two is the developer's call.
+#[test]
+fn a_lib_edited_by_hand_after_the_cut_stops_the_command() {
+    let dir = TempDir::new();
+    let (entities, path, before) = cut_run(&dir);
+    fs::write(lib_path(&path), "// edited by hand").unwrap();
+    let on_disk = dir.entries();
+
+    let error = run(&entities, &path, false).unwrap_err();
+
+    assert!(format!("{error:#}").contains("lib.rs"), "{error:#}");
+    assert_eq!(
+        fs::read_to_string(lib_path(&path)).unwrap(),
+        "// edited by hand"
+    );
+    assert_eq!(
+        fs::read_to_string(format!("{path}/lib.rs.runique-bak")).unwrap(),
+        before
+    );
+    assert!(Path::new(&format!("{path}/m1_create_shop_table.rs")).exists());
+    assert_eq!(dir.entries(), on_disk);
+}
+
+// A first repair stopped on the edited `lib.rs`; the journal is still there.
+// The developer drops their edit and writes a migration by hand, then runs the
+// command again: the repair starts over, and goes around the new file.
+#[test]
+fn a_file_added_between_two_repairs_is_left_alone() {
+    let dir = TempDir::new();
+    let (entities, path, before) = cut_run(&dir);
+    fs::write(lib_path(&path), "// edited by hand").unwrap();
+    assert!(run(&entities, &path, false).is_err());
+    assert!(Path::new(&format!("{path}/.runique-journal")).exists());
+
+    fs::remove_file(lib_path(&path)).unwrap();
+    fs::write(format!("{path}/m0_by_hand.rs"), "// the developer's").unwrap();
+    run(&entities, &path, false).unwrap();
+
+    assert_eq!(fs::read_to_string(lib_path(&path)).unwrap(), before);
+    assert_eq!(
+        fs::read_to_string(format!("{path}/m0_by_hand.rs")).unwrap(),
+        "// the developer's"
+    );
+    assert!(!Path::new(&format!("{path}/m1_create_shop_table.rs")).exists());
+    assert!(leftovers(&dir).is_empty());
+}
+
+// The developer put a file in the snapshots folder the cut run had created:
+// that folder can't be taken away with the rest, so nothing is.
+#[test]
+fn a_file_added_in_a_folder_the_run_created_stops_the_command() {
+    let dir = TempDir::new();
+    let entities = dir.join("entities");
+    fs::create_dir(&entities).unwrap();
+    let path = migrations_src(&dir, Some(&initial_lib()));
+    fs::create_dir(format!("{path}/snapshots")).unwrap();
+    fs::write(format!("{path}/snapshots/shop.rs.runique-tmp"), "// snapshot").unwrap();
+    fs::write(format!("{path}/snapshots/notes.md"), "the developer's").unwrap();
+    crate::atomic::tests::cut_journal(
+        Path::new(&path),
+        false,
+        &[("snapshots/shop.rs", false)],
+        &["snapshots"],
+    );
+    let on_disk = dir.entries();
+
+    let error = run(entities.to_str().unwrap(), &path, false).unwrap_err();
+
+    assert!(format!("{error:#}").contains("notes.md"), "{error:#}");
+    assert_eq!(dir.entries(), on_disk);
+}

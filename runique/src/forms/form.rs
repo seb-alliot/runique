@@ -622,7 +622,8 @@ impl Forms {
     }
 
     /// Forgets the pending uploads once the write is committed. The file a new
-    /// one replaced stays on disk: removing it is the developer's call.
+    /// one replaced stays on disk, removing it is the developer's call, unless
+    /// the field was declared with `.replace()`.
     pub async fn complete_uploads(&mut self) {
         for field in self.fields.values_mut() {
             field.complete_uploads().await;
