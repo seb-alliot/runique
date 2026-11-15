@@ -67,6 +67,7 @@
             <a href="{% if ui_lang == "fr" %}/docs/fr/session{% else %}/docs/en/session{% endif %}" class="btn btn-secondary">Documentation</a>
             {# Strict CSP: use class="form-inline", not an inline style="display:inline" #}
             <form method="post" action='{% link "logout" %}' class="form-inline">
+                {% csrf %}
                 <button type="submit" class="btn btn-danger">{% if ui_lang == "fr" %}Se déconnecter{% else %}Sign out{% endif %}</button>
             </form>
         </div>
