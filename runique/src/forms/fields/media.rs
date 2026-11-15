@@ -7,9 +7,11 @@ use super::file::{
     cleanup_files, ensure_safe_upload_dir, is_staged_upload, is_valid_image_content,
     parse_file_list, read_image_dimensions,
 };
+use crate::atomic::{AtomicBuilder, SourceItems};
 use crate::config::static_files::resolve_media_root;
 use crate::forms::base::{FieldConfig, FormField};
 use crate::utils::aliases::ATera;
+use crate::utils::config::TraceResult;
 use crate::utils::trad::{t, tf};
 
 /// What the visitor reads when an upload can't be written: the detail (a
@@ -18,7 +20,7 @@ pub(crate) fn upload_failed(detail: String) -> String {
     tracing::warn!(error = %detail, "upload not written");
     t("forms.upload_failed").into_owned()
 }
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 /// A staged upload and where `publish` moves it.
 #[derive(Clone, Debug)]
@@ -39,6 +41,9 @@ pub struct UploadMedia {
     pub model_max_size: Option<u64>,
     pub max_files: Option<usize>,
     pub prev_value: Option<String>,
+    /// Whether the stored file a new upload takes the place of is removed once
+    /// the write is committed. Off by default: that file then stays on disk.
+    pub replace: bool,
     pending_uploads: Vec<PendingUpload>,
     published_uploads: Vec<PathBuf>,
 }
@@ -64,6 +69,7 @@ impl UploadMedia {
             model_max_size: None,
             max_files: None,
             prev_value: None,
+            replace: false,
             pending_uploads: Vec::new(),
             published_uploads: Vec::new(),
         }
@@ -262,6 +268,8 @@ impl UploadMedia {
             .await
             .map_err(|e| format!("media root '{}': {e}", media_root.display()))?;
 
+        let mut batch = AtomicBuilder::create();
+        let mut destinations = Vec::with_capacity(self.pending_uploads.len());
         for upload in &self.pending_uploads {
             if !is_staged_upload(&upload.staged.to_string_lossy()) {
                 return Err(format!(
@@ -294,12 +302,26 @@ impl UploadMedia {
             })?;
             let destination = safe_parent.join(filename);
 
-            // Staging is under MEDIA_ROOT, so a hard link publishes the complete
-            // file atomically and fails rather than overwriting an existing file.
-            tokio::fs::hard_link(&upload.staged, &destination)
-                .await
+            batch = batch
+                .add(
+                    destination.clone(),
+                    SourceItems::File(upload.staged.clone()),
+                    false,
+                )
                 .map_err(|e| format!("publish '{}': {e}", destination.display()))?;
-            self.published_uploads.push(destination);
+            destinations.push(destination);
+        }
+
+        // Staging is under MEDIA_ROOT, so each file is hard-linked: published
+        // whole, and never over an existing file. One batch for the field:
+        // every file, or none. The batch does blocking IO, hence the thread.
+        tokio::task::spawn_blocking(move || batch.start())
+            .await
+            .map_err(|e| format!("publish: {e}"))?
+            .map_err(|e| format!("publish: {e}"))?;
+        self.published_uploads.extend(destinations);
+
+        for upload in &self.pending_uploads {
             if let Err(error) = tokio::fs::remove_file(&upload.staged).await {
                 return Err(format!(
                     "remove staged upload '{}': {error}",
@@ -325,10 +347,68 @@ impl UploadMedia {
         }
     }
 
-    pub(crate) fn complete(&mut self) {
+    /// The write is committed: forgets the pending uploads and, for a field
+    /// declared with `replace`, removes the file the new upload took the place
+    /// of. Never on a field taking several files: which one a new file
+    /// replaces can't be told.
+    pub(crate) async fn complete(&mut self) {
+        if self.replace
+            && self.max_files.unwrap_or(1) <= 1
+            && !self.published_uploads.is_empty()
+            && let Some(previous) = self.prev_value.take()
+        {
+            remove_replaced(&previous).await;
+        }
         self.published_uploads.clear();
         self.pending_uploads.clear();
         self.prev_value = None;
+    }
+}
+
+/// Removes the stored file `previous`, a path relative to `MEDIA_ROOT` as the
+/// column holds it. Best effort: the write is committed, so a file that is
+/// missing, refused or impossible to remove never fails the request.
+///
+/// The value comes from the database, yet nothing is assumed of it: only a
+/// single regular file, really under `MEDIA_ROOT` once resolved on disk and
+/// outside staging, is ever removed.
+async fn remove_replaced(previous: &str) {
+    let files = parse_file_list(previous);
+    let [file] = files.as_slice() else {
+        return;
+    };
+    let relative = Path::new(file);
+    let plain = relative.components().all(|part| match part {
+        Component::Normal(name) => !name.to_string_lossy().starts_with(".staging-"),
+        Component::Prefix(_) | Component::RootDir | Component::CurDir | Component::ParentDir => {
+            false
+        }
+    });
+    let (Some(parent), Some(name)) = (relative.parent(), relative.file_name()) else {
+        return;
+    };
+    if !plain {
+        return;
+    }
+    let Ok(root) = tokio::fs::canonicalize(resolve_media_root()).await else {
+        return;
+    };
+    // Resolved on disk, so a symlinked folder can't lead out of MEDIA_ROOT.
+    let Ok(folder) = tokio::fs::canonicalize(root.join(parent)).await else {
+        return;
+    };
+    if !folder.starts_with(&root) {
+        return;
+    }
+    let path = folder.join(name);
+    let regular = tokio::fs::symlink_metadata(&path)
+        .await
+        .is_ok_and(|metadata| metadata.file_type().is_file());
+    if regular {
+        crate::atomic::remove(&path).trace(
+            crate::utils::runique_log::log_level!(forms.finalize),
+            "log.forms.remove_replaced",
+        );
     }
 }
 
@@ -418,6 +498,14 @@ impl MediaField {
                 .html_attributes
                 .insert("multiple".to_string(), "multiple".to_string());
         }
+        self
+    }
+
+    /// Once a new upload is saved, removes the stored file it takes the place
+    /// of. Without it that file stays on disk, and removing it is your call.
+    /// No effect on a field taking several files (`max_files` above 1).
+    pub fn replace(mut self) -> Self {
+        self.upload.replace = true;
         self
     }
 
@@ -617,7 +705,7 @@ impl FormField for MediaField {
     }
 
     async fn complete_uploads(&mut self) {
-        self.upload.complete();
+        self.upload.complete().await;
     }
 
     fn render(&self, tera: &ATera) -> Result<String, String> {
@@ -1001,6 +1089,251 @@ mod tests {
             MediaField::audio("a").field_type(),
             "file",
             "cleaned up like any file field"
+        );
+    }
+
+    // ── `.replace()` ─────────────────────────────────────────────────────────
+
+    /// `field` holding `old.mp3`, then a new upload saved up to its publication.
+    async fn replaced_by_new(media: &Media, field: &mut MediaField) {
+        fs::write(media.root.join("old.mp3"), MP3_ID3).unwrap();
+        field.set_value("old.mp3");
+        finalized(field, &media.staged("new.mp3", MP3_ID3)).await;
+        field.publish_uploads().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn a_field_that_replaces_removes_the_old_file_once_the_write_is_committed() {
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let mut field = MediaField::audio("podcast").replace();
+
+        replaced_by_new(&media, &mut field).await;
+        assert!(media.root.join("old.mp3").exists(), "kept until the commit");
+
+        field.complete_uploads().await;
+        assert!(media.root.join("new.mp3").exists());
+        assert!(!media.root.join("old.mp3").exists());
+        assert_eq!(field.value(), "new.mp3");
+    }
+
+    #[tokio::test]
+    async fn a_field_that_does_not_replace_leaves_the_old_file() {
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let mut field = MediaField::audio("podcast");
+
+        replaced_by_new(&media, &mut field).await;
+        field.complete_uploads().await;
+
+        assert!(media.root.join("new.mp3").exists());
+        assert!(media.root.join("old.mp3").exists());
+    }
+
+    #[tokio::test]
+    async fn a_field_that_replaces_keeps_the_old_file_when_the_write_is_rolled_back() {
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let mut field = MediaField::audio("podcast").replace();
+
+        replaced_by_new(&media, &mut field).await;
+        field.rollback_uploads().await;
+
+        assert!(!media.root.join("new.mp3").exists());
+        assert!(media.root.join("old.mp3").exists());
+        assert_eq!(field.value(), "old.mp3");
+    }
+
+    // Nothing stored before, or a stored file already gone from the disk: the
+    // new one is saved all the same.
+    #[tokio::test]
+    async fn replacing_with_nothing_to_remove_is_not_an_error() {
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+
+        let mut first = MediaField::audio("podcast").replace();
+        finalized(&mut first, &media.staged("first.mp3", MP3_ID3)).await;
+        first.publish_uploads().await.unwrap();
+        first.complete_uploads().await;
+        assert!(media.root.join("first.mp3").exists());
+
+        let mut gone = MediaField::audio("podcast").replace();
+        gone.set_value("vanished.mp3");
+        finalized(&mut gone, &media.staged("second.mp3", MP3_ID3)).await;
+        gone.publish_uploads().await.unwrap();
+        gone.complete_uploads().await;
+        assert!(media.root.join("second.mp3").exists());
+    }
+
+    // The form is saved again without a new file: nothing was replaced.
+    #[tokio::test]
+    async fn a_field_saved_without_a_new_upload_keeps_its_file() {
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        fs::write(media.root.join("old.mp3"), MP3_ID3).unwrap();
+        let mut field = MediaField::audio("podcast").replace();
+        field.set_value("old.mp3");
+
+        field.publish_uploads().await.unwrap();
+        field.complete_uploads().await;
+
+        assert!(media.root.join("old.mp3").exists());
+    }
+
+    #[tokio::test]
+    async fn a_field_taking_several_files_never_removes_one() {
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let mut field = MediaField::audio("podcast").max_files(3).replace();
+
+        replaced_by_new(&media, &mut field).await;
+        field.complete_uploads().await;
+
+        assert!(media.root.join("new.mp3").exists());
+        assert!(media.root.join("old.mp3").exists());
+    }
+
+    // The value a column holds is not trusted: a path leaving MEDIA_ROOT, an
+    // absolute one, a staged one or several at once remove nothing.
+    #[tokio::test]
+    async fn a_previous_value_outside_the_media_root_removes_nothing() {
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let outside = media
+            .root
+            .parent()
+            .unwrap()
+            .join(format!("rq_victim_{}.mp3", uuid::Uuid::new_v4()));
+        fs::write(&outside, MP3_ID3).unwrap();
+        let name = outside.file_name().unwrap().to_str().unwrap().to_string();
+        fs::create_dir(media.root.join(".staging-other")).unwrap();
+        fs::write(media.root.join(".staging-other/theirs.mp3"), MP3_ID3).unwrap();
+        fs::write(media.root.join("b.mp3"), MP3_ID3).unwrap();
+
+        for (index, previous) in [
+            format!("../{name}"),
+            outside.to_string_lossy().into_owned(),
+            ".staging-other/theirs.mp3".to_string(),
+            "old.mp3,b.mp3".to_string(),
+            "./old.mp3".to_string(),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let mut field = MediaField::audio("podcast").replace();
+            fs::write(media.root.join("old.mp3"), MP3_ID3).unwrap();
+            field.set_value("old.mp3");
+            let staged = media.staged(&format!("new{index}.mp3"), MP3_ID3);
+            finalized(&mut field, &staged).await;
+            field.publish_uploads().await.unwrap();
+            field.upload.prev_value = Some(previous.clone());
+
+            field.complete_uploads().await;
+
+            assert!(outside.exists(), "{previous}");
+            assert!(
+                media.root.join(".staging-other/theirs.mp3").exists(),
+                "{previous}"
+            );
+            assert!(media.root.join("old.mp3").exists(), "{previous}");
+            assert!(media.root.join("b.mp3").exists(), "{previous}");
+        }
+        let _ = fs::remove_file(&outside);
+    }
+
+    // A symlink stored as the previous file is left alone, and so is its target.
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn a_previous_value_that_is_a_symlink_removes_nothing() {
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        fs::write(media.root.join("target.mp3"), MP3_ID3).unwrap();
+        std::os::unix::fs::symlink(media.root.join("target.mp3"), media.root.join("link.mp3"))
+            .unwrap();
+        let mut field = MediaField::audio("podcast").replace();
+
+        replaced_by_new(&media, &mut field).await;
+        field.upload.prev_value = Some("link.mp3".into());
+        field.complete_uploads().await;
+
+        assert!(media.root.join("target.mp3").exists());
+        assert!(media.root.join("link.mp3").exists());
+    }
+
+    // ── Publication through the batch ────────────────────────────────────────
+
+    #[tokio::test]
+    async fn publishing_leaves_none_of_the_batch_s_own_files_in_the_media_root() {
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let mut field = MediaField::audio("podcast");
+
+        finalized(&mut field, &media.staged("ep.mp3", MP3_ID3)).await;
+        field.publish_uploads().await.unwrap();
+
+        let leftovers: Vec<_> = fs::read_dir(&media.root)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .filter(|name| name.contains(".runique-"))
+            .collect();
+        assert!(leftovers.is_empty(), "{leftovers:?}");
+    }
+
+    // The name of the second file is already taken: the first one is not
+    // published either, and both are still in staging for the request to remove.
+    #[tokio::test]
+    async fn the_files_of_one_field_are_published_all_or_none() {
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let first = media.staged("a.mp3", MP3_ID3);
+        let second = media.staged("b.mp3", MP3_ID3);
+        let mut field = MediaField::audio("podcast").max_files(2);
+        finalized(&mut field, &format!("{first},{second}")).await;
+        fs::write(media.root.join("b.mp3"), TEXT).unwrap();
+
+        assert!(field.publish_uploads().await.is_err());
+
+        assert!(!media.root.join("a.mp3").exists());
+        assert_eq!(fs::read(media.root.join("b.mp3")).unwrap(), TEXT);
+        assert!(Path::new(&first).exists());
+        assert!(Path::new(&second).exists());
+    }
+
+    // The file is already published under that name: publishing again is
+    // refused, and the published file is the first one.
+    #[tokio::test]
+    async fn a_published_name_is_never_overwritten() {
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        fs::write(media.root.join("ep.mp3"), TEXT).unwrap();
+        let mut field = MediaField::audio("podcast");
+        finalized(&mut field, &media.staged("ep.mp3", MP3_ID3)).await;
+
+        assert!(field.publish_uploads().await.is_err());
+
+        assert_eq!(fs::read(media.root.join("ep.mp3")).unwrap(), TEXT);
+    }
+
+    #[tokio::test]
+    async fn a_media_field_replaces_inside_its_upload_folder() {
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        fs::create_dir(media.root.join("shows")).unwrap();
+        fs::write(media.root.join("shows/old.mp3"), MP3_ID3).unwrap();
+        fs::write(media.root.join("old.mp3"), MP3_ID3).unwrap();
+        let mut field = MediaField::audio("podcast").upload_to("shows").replace();
+        field.set_value("shows/old.mp3");
+
+        finalized(&mut field, &media.staged("new.mp3", MP3_ID3)).await;
+        field.publish_uploads().await.unwrap();
+        field.complete_uploads().await;
+
+        assert_eq!(field.value(), "shows/new.mp3");
+        assert!(media.root.join("shows/new.mp3").exists());
+        assert!(!media.root.join("shows/old.mp3").exists());
+        assert!(
+            media.root.join("old.mp3").exists(),
+            "same name, other folder"
         );
     }
 }

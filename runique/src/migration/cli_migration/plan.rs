@@ -161,7 +161,7 @@ pub(super) fn build_extend_plan(
 /// Writes the whole plan as one batch — generated files, snapshots and the
 /// `lib.rs` that registers them: all of it, or the project as it was.
 pub(super) fn commit_plan(plan: &Plan, migrations_path: &str) -> Result<()> {
-    let mut batch = AtomicBuilder::modify();
+    let mut batch = AtomicBuilder::modify().journal(migrations_path);
     for (path, content) in &plan.files {
         batch = batch.add(
             PathBuf::from(path),

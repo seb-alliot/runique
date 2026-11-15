@@ -47,6 +47,9 @@ use snapshot::snapshot_upgrades;
 pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()> {
     let schemas = scan_entities(entities_path)?;
     init_migrate::ensure(migrations_path)?;
+    // Before anything reads the snapshots: a run the power cut short is taken
+    // back, so the changes are computed on migrations that are whole.
+    init_migrate::repair(std::path::Path::new(migrations_path))?;
 
     fs::create_dir_all(snapshot_dir(migrations_path))?;
 

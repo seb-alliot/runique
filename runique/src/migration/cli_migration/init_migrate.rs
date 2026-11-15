@@ -4,7 +4,7 @@
 //! version runique is built with nor any database driver, and lacks runique.
 use crate::atomic::{AtomicBuilder, SourceItems};
 use crate::utils::trad::{t, tf};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 
 /// The exact SeaORM requirement runique is built with, read from its manifest
@@ -86,11 +86,23 @@ pub(crate) fn files(
 
 /// Writes the migration crate as one batch: all three files, or none.
 pub(crate) fn write(migration_dir: &Path, engine: Engine, runique_version: &str) -> Result<()> {
-    let mut batch = AtomicBuilder::create();
+    let mut batch = AtomicBuilder::create().journal(migration_dir);
     for (path, content) in files(migration_dir, engine, runique_version) {
         batch = batch.add(path, SourceItems::Bytes(content), false)?;
     }
     batch.start()?;
+    Ok(())
+}
+
+/// Repairs a run the power cut short in `dir`, before the command reads
+/// anything there. When files changed since, the repair touches nothing: they
+/// are listed for the user to put right.
+pub(crate) fn repair(dir: &Path) -> Result<()> {
+    let repaired = crate::atomic::recover(dir)
+        .with_context(|| tf("cli.interrupted_run", &[dir.display()]))?;
+    if repaired {
+        println!("{}", tf("cli.run_repaired", &[dir.display()]));
+    }
     Ok(())
 }
 
@@ -109,6 +121,9 @@ pub(crate) fn ensure(migrations_path: &str) -> Result<()> {
     else {
         return Ok(());
     };
+    // A crate half written when the power went is taken back first: its folder
+    // would otherwise pass for one that may hold migrations.
+    repair(migration_dir)?;
     if migration_dir.exists() {
         return Ok(());
     }
@@ -224,4 +239,78 @@ mod tests {
         assert_eq!(Engine::Mysql.sqlx_feature(), "sqlx-mysql");
         assert_eq!(Engine::Mariadb.feature(), "mariadb");
     }
+
+    // A `Cargo.toml` is already there: the crate is not written around it.
+    #[test]
+    fn the_crate_is_written_whole_or_not_at_all() {
+        let root = crate::atomic::tests::TempDir::new();
+        let dir = root.join("migration");
+        fs::create_dir(&dir).unwrap();
+        fs::write(dir.join("Cargo.toml"), "# mine").unwrap();
+
+        assert!(write(&dir, Engine::Sqlite, "9.8.7").is_err());
+
+        assert_eq!(
+            fs::read_to_string(dir.join("Cargo.toml")).unwrap(),
+            "# mine"
+        );
+        assert_eq!(root.entries(), ["migration", "migration/Cargo.toml"]);
+    }
+
+    #[test]
+    fn the_crate_leaves_none_of_the_batch_s_own_files() {
+        let root = crate::atomic::tests::TempDir::new();
+
+        write(&root.join("migration"), Engine::Sqlite, "9.8.7").unwrap();
+
+        assert_eq!(
+            root.entries(),
+            [
+                "migration",
+                "migration/Cargo.toml",
+                "migration/src",
+                "migration/src/lib.rs",
+                "migration/src/main.rs"
+            ]
+        );
+    }
+
+    // The power went while the crate was being written: a folder with half of
+    // it is left, which `ensure` would take for one holding migrations. The
+    // journal says otherwise: it is taken back, then written whole.
+    #[test]
+    fn a_crate_cut_short_is_taken_back_then_written_whole() {
+        let root = crate::atomic::tests::TempDir::new();
+        let dir = root.join("migration");
+        fs::create_dir_all(dir.join("src")).unwrap();
+        fs::write(dir.join("Cargo.toml"), "placed").unwrap();
+        fs::write(dir.join("Cargo.toml.runique-tmp"), "placed").unwrap();
+        fs::write(dir.join("src/main.rs.runique-tmp"), "half").unwrap();
+        crate::atomic::tests::cut_journal(
+            &dir,
+            false,
+            &[
+                ("Cargo.toml", false),
+                ("src/main.rs", false),
+                ("src/lib.rs", false),
+            ],
+            &["", "src"],
+        );
+
+        ensure(dir.join("src").to_str().unwrap()).unwrap();
+
+        let cargo = fs::read_to_string(dir.join("Cargo.toml")).unwrap();
+        assert!(cargo.contains("sea-orm-migration"), "{cargo}");
+        assert_eq!(
+            root.entries(),
+            [
+                "migration",
+                "migration/Cargo.toml",
+                "migration/src",
+                "migration/src/lib.rs",
+                "migration/src/main.rs"
+            ]
+        );
+    }
+
 }

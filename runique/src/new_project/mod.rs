@@ -17,6 +17,9 @@ pub fn create_new_project(name: &str) -> Result<()> {
     validate_project_name(name)?;
 
     let project_dir = Path::new(name);
+    // A creation the power cut short is taken back first: the folder it left
+    // would otherwise be refused as an existing project.
+    init_migrate::repair(project_dir)?;
     if project_dir.exists() {
         anyhow::bail!("{}", tf("cli.folder_exists", &[&name]));
     }
@@ -229,7 +232,7 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
         (include_bytes!("composant-bin/config/ignore"), ".gitignore"),
     ];
 
-    let mut batch = AtomicBuilder::create();
+    let mut batch = AtomicBuilder::create().journal(project_dir);
     for (content, path) in files {
         batch = batch.add(
             project_dir.join(path),
@@ -467,4 +470,118 @@ mod generated_files_tests {
         let _ = std::fs::remove_dir_all(&dir);
         assert!(status.success(), "the generated project does not compile");
     }
+
+    // A file of the user's sits where one of the project's goes: nothing of
+    // the project is left next to it, not even the folders made on the way.
+    #[test]
+    fn a_project_that_cannot_be_written_leaves_nothing_behind() {
+        let root = crate::atomic::tests::TempDir::new();
+        let project = root.join("shop");
+        std::fs::create_dir_all(project.join("src")).unwrap();
+        std::fs::write(project.join("src/main.rs"), "// mine").unwrap();
+
+        let error = write_project_files(&project, "shop", "9.8.7").unwrap_err();
+
+        assert!(format!("{error:#}").contains("main.rs"), "{error:#}");
+        assert_eq!(
+            std::fs::read_to_string(project.join("src/main.rs")).unwrap(),
+            "// mine"
+        );
+        assert_eq!(root.entries(), ["shop", "shop/src", "shop/src/main.rs"]);
+    }
+
+    // Every folder of the layout is there, the empty one too, and the batch
+    // left none of its own files behind.
+    #[test]
+    fn the_whole_layout_is_written_and_nothing_else() {
+        let root = crate::atomic::tests::TempDir::new();
+        let project = root.join("shop");
+
+        write_project_files(&project, "shop", "9.8.7").unwrap();
+
+        let entries = root.entries();
+        for expected in [
+            "shop/.env",
+            "shop/Cargo.toml",
+            "shop/migration/Cargo.toml",
+            "shop/migration/src/lib.rs",
+            "shop/migration/src/main.rs",
+            "shop/src/entities/mod.rs",
+            "shop/src/main.rs",
+            "shop/static/js",
+            "shop/templates/index.html",
+            "shop/media/favicon/favicon.ico",
+        ] {
+            assert!(entries.iter().any(|entry| entry == expected), "{expected}");
+        }
+        assert!(project.join("static/js").is_dir());
+        let leftovers: Vec<_> = entries
+            .iter()
+            .filter(|entry| entry.contains(".runique-"))
+            .collect();
+        assert!(leftovers.is_empty(), "{leftovers:?}");
+    }
+
+    /// A project the command creates in the current folder, removed on drop.
+    struct Project(String);
+
+    impl Project {
+        fn new() -> Self {
+            Self(format!("rq_new_cut_{}", uuid::Uuid::new_v4().simple()))
+        }
+
+        /// The state a cut leaves: `src/main.rs` placed, the journal still there.
+        fn cut_short(&self, main: &str) {
+            let dir = std::path::Path::new(&self.0);
+            std::fs::create_dir_all(dir.join("src")).unwrap();
+            std::fs::write(dir.join("src/main.rs"), main).unwrap();
+            std::fs::write(dir.join("src/main.rs.runique-tmp"), "// placed").unwrap();
+            crate::atomic::tests::cut_journal(dir, false, &[("src/main.rs", false)], &["", "src"]);
+        }
+    }
+
+    impl Drop for Project {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    // The whole command: the folder a cut left would be refused as an existing
+    // project. It is taken back first, then the project is created.
+    #[test]
+    fn a_creation_cut_short_is_taken_back_then_the_project_is_created() {
+        let project = Project::new();
+        project.cut_short("// placed");
+
+        super::create_new_project(&project.0).unwrap();
+
+        let dir = std::path::Path::new(&project.0);
+        assert!(dir.join("Cargo.toml").is_file());
+        assert_ne!(
+            std::fs::read_to_string(dir.join("src/main.rs")).unwrap(),
+            "// placed"
+        );
+        assert!(!dir.join(".runique-journal").exists());
+        assert!(!dir.join("src/main.rs.runique-tmp").exists());
+    }
+
+    // The same, but the file was edited since the cut: the command stops,
+    // names it, and leaves the folder exactly as it found it.
+    #[test]
+    fn a_creation_cut_short_then_edited_by_hand_stops_the_command() {
+        let project = Project::new();
+        project.cut_short("// edited by hand");
+
+        let error = super::create_new_project(&project.0).unwrap_err();
+
+        let dir = std::path::Path::new(&project.0);
+        assert!(format!("{error:#}").contains("main.rs"), "{error:#}");
+        assert_eq!(
+            std::fs::read_to_string(dir.join("src/main.rs")).unwrap(),
+            "// edited by hand"
+        );
+        assert!(dir.join(".runique-journal").exists());
+        assert!(!dir.join("Cargo.toml").exists());
+    }
+
 }

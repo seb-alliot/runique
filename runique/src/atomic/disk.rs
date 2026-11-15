@@ -57,12 +57,26 @@ fn copy_content(source: &mut fs::File, target: &mut fs::File) -> io::Result<()> 
 }
 
 /// Removes a file. A missing file is not an error, so a rollback can safely run twice.
-pub(super) fn remove(path: &Path) -> io::Result<()> {
+pub(crate) fn remove(path: &Path) -> io::Result<()> {
     match fs::remove_file(path) {
         Ok(()) => Ok(()),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
         Err(error) => Err(error),
     }
+}
+
+/// Whether `first` and `second` hold the same content: one file under two
+/// names, or two files that read alike. A missing file is the same as nothing.
+pub(super) fn same(first: &Path, second: &Path) -> io::Result<bool> {
+    let read = |path: &Path| match fs::read(path) {
+        Ok(content) => Ok(Some(content)),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error),
+    };
+    Ok(match (read(first)?, read(second)?) {
+        (Some(first), Some(second)) => first == second,
+        (Some(_), None) | (None, Some(_)) | (None, None) => false,
+    })
 }
 
 /// Creates `dir` and its missing parents, recording each on it creates.
@@ -277,5 +291,23 @@ mod tests {
 
         sync_dir(&dir.join("")).unwrap();
         assert!(sync_dir(&dir.join("missing")).is_err());
+    }
+
+    #[test]
+    fn same_tells_one_content_from_another() {
+        let dir = TempDir::new();
+        fs::write(dir.join("a"), "content").unwrap();
+        fs::write(dir.join("copy"), "content").unwrap();
+        fs::write(dir.join("other"), "contenu").unwrap();
+        fs::write(dir.join("longer"), "content and more").unwrap();
+        fs::hard_link(dir.join("a"), dir.join("link")).unwrap();
+
+        assert!(same(&dir.join("a"), &dir.join("link")).unwrap());
+        assert!(same(&dir.join("a"), &dir.join("copy")).unwrap());
+        assert!(!same(&dir.join("a"), &dir.join("other")).unwrap());
+        assert!(!same(&dir.join("a"), &dir.join("longer")).unwrap());
+        assert!(!same(&dir.join("a"), &dir.join("missing")).unwrap());
+        assert!(!same(&dir.join("missing"), &dir.join("a")).unwrap());
+        assert!(!same(&dir.join("missing"), &dir.join("gone")).unwrap());
     }
 }

@@ -214,6 +214,8 @@
     "name_invalid": "The project name must contain only letters, numbers, _ or -",
     "name_dash": "The project name cannot start with -",
     "folder_exists": "The folder '{}' already exists",
+    "interrupted_run": "A run was interrupted in '{}' and files changed since. Nothing was touched. Put right the ones listed below, then run the command again:",
+    "run_repaired": "An interrupted run was repaired in '{}'.",
     "project_created": "Project '{}' created successfully!",
     "getting_started": "To get started:",
     "cd_hint": "cd {}",
@@ -592,6 +594,7 @@
     "cargo_missing": "Unable to launch cargo. Is Rust installed and cargo on the PATH?",
     "failed": "The migration crate failed on 'migrate {}' (exit code: {}).",
     "crate_created": "Migration crate created in '{}'.",
+    "interrupted": "A makemigrations run was interrupted in '{}'. Run makemigrations again before applying the migrations.",
     "engine_defaulted": "DB_ENGINE is not set: the migration crate uses SQLite. Change the runique feature in '{}' if needed."
   },
   "runique_test": {
@@ -683,7 +686,8 @@
     },
     "forms": {
       "validation_failed": "form validation failed",
-      "remove_oversized": "remove an oversized staged upload"
+      "remove_oversized": "remove an oversized staged upload",
+      "remove_replaced": "remove the file a new upload replaced"
     },
     "mailer": {
       "init_twice": "mailer_init() called multiple times — initial configuration is kept"

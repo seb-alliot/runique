@@ -20,11 +20,18 @@ pub(in crate::atomic) fn run(action: &ActionAtomic, item: &ItemsPath) -> io::Res
     }
 }
 
-/// A leftover backup belongs to an earlier batch: starting over it could
-/// put stale content back in place of the user's file.
+/// A backup or a temp file already there is not this batch's: left by an
+/// earlier one, or put there by hand. Starting over a backup could put stale
+/// content back in place of the user's file, and writing over a temp file
+/// would remove a file the batch did not create.
 fn check(item: &ItemsPath) -> io::Result<()> {
-    if item.backup_path.try_exists()? {
-        return Err(io::ErrorKind::AlreadyExists.into());
+    for leftover in [&item.backup_path, &item.temp_path] {
+        if leftover.try_exists()? {
+            return Err(io::Error::new(
+                io::ErrorKind::AlreadyExists,
+                format!("{} is in the way", leftover.display()),
+            ));
+        }
     }
     Ok(())
 }

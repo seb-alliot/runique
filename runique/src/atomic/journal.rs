@@ -1,1 +1,363 @@
+//! The batch's journal: what has to be on disk for a power cut to be repaired.
+//! Written before the first file is touched, removed last. Found at the next
+//! start, it tells which files to put back, or, when every file was already in
+//! place, that only the cleanup is left to finish.
+use crate::atomic::{
+    builder::{backup_of, is_reserved, temp_of},
+    disk,
+    struct_atomic::{AtomicStep, ItemsPath, PathManager, SourceItems},
+};
+use serde::{Deserialize, Serialize};
+use std::{
+    fs, io,
+    path::{Component, Path, PathBuf},
+};
 
+pub(super) const NAME: &str = ".runique-journal";
+const TEMP_NAME: &str = ".runique-journal.runique-tmp";
+
+/// A batch as a cut may find it. Paths are relative to the journal's folder:
+/// the batch is repaired wherever the command is run from.
+#[derive(Serialize, Deserialize)]
+pub(super) struct Journal {
+    /// Every file is in place and the cleanup may have removed backups: from
+    /// here on the batch is finished, never undone.
+    pub(super) placed: bool,
+    pub(super) files: Vec<JournalFile>,
+    /// Directories the batch created in the journal's folder, that folder
+    /// included, outermost first.
+    pub(super) dirs: Vec<PathBuf>,
+}
+
+/// A file of the batch. Only its path is kept: where its temp file and its
+/// backup are is worked out again, never read, so a journal can't point the
+/// repair at anything else.
+#[derive(Serialize, Deserialize)]
+pub(super) struct JournalFile {
+    pub(super) path: PathBuf,
+    /// Whether something was at `path` before the batch.
+    pub(super) existed: bool,
+}
+
+impl Journal {
+    /// The batch `manager` is about to run, nothing placed yet.
+    pub(super) fn of(dir: &Path, manager: &PathManager) -> io::Result<Self> {
+        let files = manager
+            .items
+            .values()
+            .map(|item| {
+                Ok(JournalFile {
+                    path: relative(dir, &item.path)?,
+                    existed: exists(&item.path)?,
+                })
+            })
+            .collect::<io::Result<_>>()?;
+        // Folders above the journal's own are not noted: made so that it could
+        // exist, a repair leaves them, empty, where they are.
+        let dirs = manager
+            .created_dirs
+            .iter()
+            .filter_map(|created| created.strip_prefix(dir).ok())
+            .map(Path::to_path_buf)
+            .collect();
+        Ok(Self {
+            placed: false,
+            files,
+            dirs,
+        })
+    }
+}
+
+fn invalid(kind: io::ErrorKind, path: &Path, reason: &str) -> io::Error {
+    io::Error::new(kind, format!("{}: {reason}", path.display()))
+}
+
+/// `path` as seen from `dir`. A batch with a journal keeps to its folder: a
+/// path outside could not be found again from another working directory.
+fn relative(dir: &Path, path: &Path) -> io::Result<PathBuf> {
+    let inside = path
+        .strip_prefix(dir)
+        .map_err(|_| invalid(io::ErrorKind::InvalidInput, path, "outside the journal's folder"))?;
+    if plain(inside) {
+        Ok(inside.to_path_buf())
+    } else {
+        Err(invalid(
+            io::ErrorKind::InvalidInput,
+            path,
+            "leaves the journal's folder",
+        ))
+    }
+}
+
+/// Only names, one after the other: nothing that climbs (`..`) or starts over
+/// from a root, so `dir.join(path)` stays under `dir`.
+fn plain(path: &Path) -> bool {
+    path.components()
+        .all(|part| matches!(part, Component::Normal(_)))
+}
+
+/// Whether anything is at `path`, a dangling symlink included.
+fn exists(path: &Path) -> io::Result<bool> {
+    match fs::symlink_metadata(path) {
+        Ok(_) => Ok(true),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error),
+    }
+}
+
+/// Writes the journal whole: a cut leaves the previous one or this one, never
+/// half of it.
+pub(super) fn write(dir: &Path, journal: &Journal) -> io::Result<()> {
+    let content = serde_json::to_vec_pretty(journal).map_err(io::Error::other)?;
+    let temp = dir.join(TEMP_NAME);
+    disk::write_temp(&temp, &content, false)?;
+    fs::rename(&temp, dir.join(NAME))?;
+    disk::sync_dir(dir)
+}
+
+/// The journal of `dir`, if a batch left one. It is read from the disk like
+/// any other file: what it names is checked before anything is done with it.
+pub(super) fn read(dir: &Path) -> io::Result<Option<Journal>> {
+    let path = dir.join(NAME);
+    let content = match fs::read(&path) {
+        Ok(content) => content,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(error),
+    };
+    let journal: Journal = serde_json::from_slice(&content)
+        .map_err(|error| invalid(io::ErrorKind::InvalidData, &path, &error.to_string()))?;
+    let named_file = |file: &JournalFile| {
+        plain(&file.path) && file.path.file_name().is_some_and(|name| !is_reserved(name))
+    };
+    if journal.files.iter().all(named_file) && journal.dirs.iter().all(|created| plain(created)) {
+        Ok(Some(journal))
+    } else {
+        Err(invalid(
+            io::ErrorKind::InvalidData,
+            &path,
+            "names a path the batch could not have written",
+        ))
+    }
+}
+
+/// Marks the point of no return: every file is in place.
+pub(super) fn mark_placed(dir: &Path) -> io::Result<()> {
+    let Some(mut journal) = read(dir)? else {
+        return Err(io::ErrorKind::NotFound.into());
+    };
+    journal.placed = true;
+    write(dir, &journal)
+}
+
+pub(super) fn remove(dir: &Path) -> io::Result<()> {
+    disk::remove(&dir.join(TEMP_NAME))?;
+    disk::remove(&dir.join(NAME))
+}
+
+/// Whether a batch was cut short in `dir` and still waits to be repaired.
+/// For a command that reads the folder without writing in it: it can refuse
+/// to go on, and leave the repair to the command that wrote.
+pub(crate) fn interrupted(dir: &Path) -> bool {
+    dir.join(NAME).exists()
+}
+
+/// Repairs the batch a power cut interrupted in `dir`, if there is one: the
+/// project is put back as it was, or, when every file was already in place,
+/// the cleanup is finished. Returns whether there was anything to repair.
+///
+/// To call before anything reads the folder: what follows then works on a
+/// project that is whole. A repair that fails keeps the journal, so the next
+/// call starts it again.
+///
+/// The repair only knows the states an interrupted batch can leave. Anything
+/// else means someone has been there since: it then touches nothing and
+/// returns every file that does not match, one per line, for the command to
+/// show. Choosing between a file edited by hand and its original is not the
+/// repair's call.
+pub(crate) fn recover(dir: &Path) -> io::Result<bool> {
+    let Some(mut repair) = examine(dir)? else {
+        return Ok(false);
+    };
+    for backup in &repair.spare_backups {
+        disk::remove(backup)?;
+    }
+    if repair.placed {
+        repair.manager.finish()?;
+    } else {
+        repair.manager.undo()?;
+    }
+    Ok(true)
+}
+
+/// What a repair is about to do, once every file has been looked at and
+/// nothing touched yet.
+pub(super) struct Repair {
+    /// The batch as the cut left it: each file at the step whose rollback, or
+    /// cleanup, does what the disk needs.
+    pub(super) manager: PathManager,
+    /// Every file was in place: the batch is finished, not undone.
+    pub(super) placed: bool,
+    /// Backups that hold the very content still at `path`: dropped first.
+    pub(super) spare_backups: Vec<PathBuf>,
+}
+
+/// Reads the journal of `dir` and looks at every file it names, without
+/// touching any: the whole disk is known to be in a state a cut can leave
+/// before the first thing is put back.
+pub(super) fn examine(dir: &Path) -> io::Result<Option<Repair>> {
+    let Some(journal) = read(dir)? else {
+        return Ok(None);
+    };
+    let mut items = Vec::with_capacity(journal.files.len());
+    let mut spare_backups = Vec::new();
+    let mut unexpected = Vec::new();
+    for file in &journal.files {
+        let path = dir.join(&file.path);
+        stays_inside(dir, &path)?;
+        let (temp_path, backup_path) = (temp_of(&path), backup_of(&path));
+        let step = if journal.placed {
+            AtomicStep::Done
+        } else {
+            match found(&path, &temp_path, &backup_path, file.existed)? {
+                Ok(Found::Placed) if !file.existed => AtomicStep::Placed,
+                Ok(Found::Placed | Found::Nothing | Found::Original) => AtomicStep::Prepared,
+                Ok(Found::OriginalAndBackup) => {
+                    spare_backups.push(backup_path.clone());
+                    AtomicStep::Prepared
+                }
+                Err(reason) => {
+                    unexpected.push(format!("{}: {reason}", path.display()));
+                    AtomicStep::Waiting
+                }
+            }
+        };
+        items.push((
+            path.clone(),
+            ItemsPath {
+                path,
+                temp_path,
+                backup_path,
+                private_file: false,
+                source: SourceItems::Bytes(Vec::new()),
+                step,
+            },
+        ));
+    }
+    if !journal.placed {
+        unexpected.extend(strangers(dir, &journal)?);
+    }
+    if !unexpected.is_empty() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            unexpected.join("\n"),
+        ));
+    }
+    Ok(Some(Repair {
+        manager: PathManager {
+            items: items.into_iter().collect(),
+            created_dirs: journal.dirs.iter().map(|created| dir.join(created)).collect(),
+            journal: Some(dir.to_path_buf()),
+        },
+        placed: journal.placed,
+        spare_backups,
+    }))
+}
+
+/// What a cut left at `path`.
+enum Found {
+    /// Nothing: the original, if there was one, is in the backup.
+    Nothing,
+    /// The batch's own content, the same as its temp file.
+    Placed,
+    /// The original, never reached.
+    Original,
+    /// The original, and a backup that holds the very same content: the cut
+    /// came right after the backup was made.
+    OriginalAndBackup,
+}
+
+/// Tells what is at `path` by comparing it with the batch's two other files,
+/// or why it is none of the states a cut can leave.
+fn found(
+    path: &Path,
+    temp_path: &Path,
+    backup_path: &Path,
+    existed: bool,
+) -> io::Result<Result<Found, &'static str>> {
+    let backup = exists(backup_path)?;
+    if !existed && backup {
+        return Ok(Err("has a backup, though nothing was there before the batch"));
+    }
+    if !exists(path)? {
+        return Ok(if existed && !backup {
+            Err("is gone, and no backup holds it")
+        } else {
+            Ok(Found::Nothing)
+        });
+    }
+    if disk::same(path, temp_path)? {
+        return Ok(Ok(Found::Placed));
+    }
+    if !existed {
+        return Ok(Err("is not the file the batch was creating"));
+    }
+    if !backup {
+        return Ok(Ok(Found::Original));
+    }
+    Ok(if disk::same(path, backup_path)? {
+        Ok(Found::OriginalAndBackup)
+    } else {
+        Err("changed since the batch was interrupted, and its backup holds something else")
+    })
+}
+
+/// What sits in a folder the batch created without being one of its files:
+/// that folder could then not be taken away with the rest.
+fn strangers(dir: &Path, journal: &Journal) -> io::Result<Vec<String>> {
+    let mut known = vec![dir.join(NAME), dir.join(TEMP_NAME)];
+    for file in &journal.files {
+        let path = dir.join(&file.path);
+        known.extend([temp_of(&path), backup_of(&path), path]);
+    }
+    known.extend(journal.dirs.iter().map(|created| dir.join(created)));
+    let mut strangers = Vec::new();
+    for created in &journal.dirs {
+        let entries = match fs::read_dir(dir.join(created)) {
+            Ok(entries) => entries,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
+            Err(error) => return Err(error),
+        };
+        for entry in entries {
+            let path = entry?.path();
+            if !known.contains(&path) {
+                strangers.push(format!(
+                    "{}: not a file of the batch, in a folder the batch created",
+                    path.display()
+                ));
+            }
+        }
+    }
+    Ok(strangers)
+}
+
+/// A folder of the project replaced by a symlink would lead the repair out of
+/// the journal's folder: where the file really is must still be under it.
+fn stays_inside(dir: &Path, path: &Path) -> io::Result<()> {
+    let Some(parent) = path.parent() else {
+        return Ok(());
+    };
+    let real = match fs::canonicalize(parent) {
+        Ok(real) => real,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(error),
+    };
+    if real.starts_with(fs::canonicalize(dir)?) {
+        Ok(())
+    } else {
+        Err(invalid(
+            io::ErrorKind::InvalidData,
+            path,
+            "is no longer in the journal's folder",
+        ))
+    }
+}

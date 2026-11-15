@@ -52,6 +52,8 @@ pub(crate) struct PathManager {
     pub(super) items: IndexMap<PathBuf, ItemsPath>,
     /// Directories created by the batch, to be removed on rollback.
     pub(super) created_dirs: Vec<PathBuf>,
+    /// The folder holding the batch's journal, when it keeps one.
+    pub(super) journal: Option<PathBuf>,
 }
 
 /// Describes a batch: the action to apply and the files it applies to.
@@ -59,4 +61,6 @@ pub(crate) struct AtomicBuilder {
     pub(super) strategy: ActionAtomic,
     /// Adding the same path twice is caught at insertion.
     pub(super) items: IndexMap<PathBuf, ItemsPath>,
+    /// The folder holding the batch's journal, when it keeps one.
+    pub(super) journal: Option<PathBuf>,
 }
