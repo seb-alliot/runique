@@ -30,7 +30,7 @@ pub fn routes() -> Routes {
 
         // Auth
         // POST only, with the page's CSRF token: a GET could be triggered by another site.
-        "/logout"                        => view !{ deconnexion },            name = "logout",
+        "/logout"                        => post(deconnexion),                name = "logout",
         "/activate/{token}"              => view! { activate_account },       name = "activate_account",
 
         // Profil
