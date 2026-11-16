@@ -159,7 +159,12 @@ extend! {
 
 ## Atomic generation
 
-The changes of the models and of the `extend!{}` blocks are first planned in memory, checked (destructive check, identifier lengths), then written in one batch. On a write error, the files already written are undone, and the snapshots as well as `lib.rs` are restored.
+The changes of the models and of the `extend!{}` blocks are first planned in memory, checked (destructive check, identifier lengths), then written as one batch: migrations, snapshots and `lib.rs`, all of them or none.
+
+- **A write error** undoes everything: the `migration/src/` folder goes back to what it was.
+- **A hard stop** (power cut, `kill -9`) is repaired the next time `runique makemigrations` runs. Until then, `runique migration up` refuses to start.
+
+Files left by a cut, refusals to repair, what to do: [Atomic file writes](/docs/en/architecture/atomic).
 
 ---
 
@@ -167,7 +172,6 @@ The changes of the models and of the `extend!{}` blocks are first planned in mem
 
 - **A column's type change isn't migrated yet.** `makemigrations` blocks it; with `--force`, the migration it writes holds only a warning comment, no `ALTER`, while the snapshot already records the new type. The console says so in yellow. Before `runique migration up`, write that migration's `up()` and `down()` by hand (SeaORM's `alter_table` / `modify_column`), or add a new column, copy the data over, then drop the old one. A change to or from an enum is migrated.
 - **Dropping a table isn't detected.** Removing a model generates nothing: `makemigrations` answers "no changes", and the table stays in the database. To drop it, write a migration by hand (`drop_table`, registered in `lib.rs`), remove its snapshot from `migration/src/snapshots/`, and first remove any `belongs_to` pointing at it. Planned for 4.1.
-- **Generation isn't protected yet against a hard stop** (power cut, `kill -9`) in the middle of writing: an ordinary error is undone, an interruption may leave files partly updated. `migration/` being versioned, `git` restores it.
 - **Don't copy another project's snapshots without its migrations**: a snapshot means "already migrated". `makemigrations` then writes nothing for those models, while no migration creates their tables.
 - **Index and foreign key names are capped at 63 characters, on every engine** (they are built from table and column names; 63 is PostgreSQL's limit, MySQL accept 64): `makemigrations` refuses a name that is too long before writing any file, rather than truncate it; shorten the names involved.
 - **`runique migration up` applies a migration atomically under Postgres only.** sea-orm-migration wraps each migration (and its row in `seaql_migrations`) in a transaction on that engine alone. Under SQLite and MySQL, a migration failing midway can stay half applied; under MySQL no transaction would help (each DDL statement commits on its own). In development under SQLite, delete the database file and run `runique migration up` again; elsewhere, fix the database by hand before running it again.

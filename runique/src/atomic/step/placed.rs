@@ -10,6 +10,6 @@ pub(in crate::atomic) fn run(action: &ActionAtomic, item: &ItemsPath) -> io::Res
         ActionAtomic::Create => Ok(AtomicStep::Done),
         ActionAtomic::Modify => Ok(AtomicStep::Done),
         ActionAtomic::Rollback => rollback::remove(item),
-        ActionAtomic::Finish => Err(io::ErrorKind::InvalidInput.into()),
+        ActionAtomic::Finish => super::wrong_step(),
     }
 }

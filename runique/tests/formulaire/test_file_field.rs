@@ -362,9 +362,12 @@ fn test_override_exceeds_limit_err() {
     let result = f.set_max_size_bounded(FileSize::mb(6));
     assert!(result.is_err());
     let msg = result.unwrap_err();
-    // Translated: the sizes, not the unit, are what every language shows.
-    assert!(msg.contains("6.0"), "message attendu: {msg}");
-    assert!(msg.contains("5.0"), "message attendu: {msg}");
+    // Le message entier : `contains("6.0")` accepte aussi une taille mal
+    // calculée qui finit par le même chiffre (6597069766656.0).
+    assert_eq!(
+        msg,
+        runique::utils::trad::tf("forms.max_size_above_model", &["6.0", "5.0"])
+    );
     // plafond modèle inchangé
     assert_eq!(f.upload.model_max_size, Some(5 * 1024 * 1024));
     // valeur effective inchangée (rollback implicite)

@@ -566,6 +566,24 @@
     "no_changes": "Nessuna modifica rilevata: i tuoi modelli corrispondono ai loro snapshot.",
     "apply_hint": "Applica le migrazioni in sospeso con: runique migration up"
   },
+  "atomic": {
+    "reserved_name": "{}: questo nome è riservato a Runique",
+    "not_a_file": "{}: non è il percorso di un file",
+    "duplicate": "{}: questo file è già nel lotto",
+    "in_the_way": "{} occupa il posto: questo file non viene dall'esecuzione in corso",
+    "outside_journal": "{}: fuori dalla cartella del giornale",
+    "leaves_journal": "{}: questo percorso esce dalla cartella del giornale",
+    "journal_forged": "{}: il giornale indica un percorso che Runique non può aver scritto",
+    "no_journal": "{}: nessun giornale da contrassegnare",
+    "stray_backup": "{}: esiste un backup, anche se prima dell'esecuzione non c'era nulla",
+    "gone": "{}: il file è sparito e nessun backup lo contiene",
+    "not_created": "{}: non è il file che Runique stava creando",
+    "changed": "{}: modificato dopo l'interruzione, e il suo backup contiene altro",
+    "stranger": "{}: questo file non viene da Runique, in una cartella creata da Runique",
+    "moved_out": "{}: questo file non è più nella cartella del giornale",
+    "unfinished": "il lotto non è terminato dopo i suoi passaggi",
+    "wrong_step": "questa azione non è possibile in questa fase del file"
+  },
   "migrate": {
     "complete_up": "Migrazione completata.",
     "crate_missing": "Crate delle migrazioni non trovato: '{}' non contiene Cargo.toml.",

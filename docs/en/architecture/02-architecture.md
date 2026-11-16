@@ -186,6 +186,7 @@ What each part of the generated project is yours to change:
 | --- | --- |
 | [Core Concepts](/docs/en/architecture/concepts) | `RuniqueEngine`, `Request`, `request.form("name")` |
 | [Makemigrations Internals](/docs/en/architecture/makemigrations) | Three-pass pipeline: AST extraction, diffing, SeaQuery generation |
+| [Atomic file writes](/docs/en/architecture/atomic) | A batch of files written whole or not at all; repair after a power cut; what to do when a command refuses to go on |
 | [Macros](/docs/en/architecture/macros) | Context, flash, routing, and error macros |
 | [Tera Tags & Filters](/docs/en/architecture/tera) | Django-like tags, filters, functions |
 | [Middleware Stack](/docs/en/architecture/middleware) | Slot order and dependency injection |

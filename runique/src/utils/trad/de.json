@@ -566,6 +566,24 @@
     "no_changes": "Keine Änderungen erkannt: Ihre Modelle entsprechen ihren Snapshots.",
     "apply_hint": "Wenden Sie die ausstehenden Migrationen an mit: runique migration up"
   },
+  "atomic": {
+    "reserved_name": "{}: Dieser Name ist Runique vorbehalten",
+    "not_a_file": "{}: Das ist kein Dateipfad",
+    "duplicate": "{}: Diese Datei ist bereits im Stapel",
+    "in_the_way": "{} ist im Weg: Diese Datei stammt nicht aus dem aktuellen Lauf",
+    "outside_journal": "{}: außerhalb des Journalordners",
+    "leaves_journal": "{}: Dieser Pfad verlässt den Journalordner",
+    "journal_forged": "{}: Das Journal nennt einen Pfad, den Runique nicht geschrieben haben kann",
+    "no_journal": "{}: kein Journal zum Markieren",
+    "stray_backup": "{}: Es gibt eine Sicherung, obwohl vor dem Lauf nichts vorhanden war",
+    "gone": "{}: Die Datei ist verschwunden, und keine Sicherung enthält sie",
+    "not_created": "{}: Das ist nicht die Datei, die Runique gerade erstellte",
+    "changed": "{}: seit der Unterbrechung geändert, und die Sicherung enthält etwas anderes",
+    "stranger": "{}: Diese Datei stammt nicht von Runique, in einem Ordner, den Runique erstellt hat",
+    "moved_out": "{}: Diese Datei liegt nicht mehr im Journalordner",
+    "unfinished": "Der Stapel wurde nach seinen Durchläufen nicht fertig",
+    "wrong_step": "Diese Aktion ist in diesem Schritt der Datei nicht möglich"
+  },
   "migrate": {
     "complete_up": "Migration abgeschlossen.",
     "crate_missing": "Migrations-Crate nicht gefunden: '{}' enthält keine Cargo.toml.",

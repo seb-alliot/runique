@@ -23,6 +23,8 @@ Pas de `runique start` : l'application se lance avec `cargo run`. L'admin se dé
 
 Crée le projet complet : application, crate `migration/`, templates, CSS, `.env` avec un `SECRET_KEY` aléatoire. Voir [Prérequis & premier projet](/docs/fr/installation/prerequis).
 
+Le projet est écrit en un seul lot : en entier, ou pas du tout. Après une coupure en plein milieu, relancez la même commande avec le même nom : elle retire le projet inachevé, puis le crée. Voir [Écriture atomique des fichiers](/docs/fr/architecture/atomic).
+
 Noms refusés : vide, caractères autres que lettres / chiffres / `_` / `-`, commençant par un chiffre ou `-`, mots-clés Rust, crates intégrés (`std`, `core`, `alloc`, `proc_macro`, `test`), dossiers de cargo (`build`, `deps`, `examples`, `incremental`), noms de périphériques Windows (`con`, `nul`, `com1`…), et `migration` / `runique`. La comparaison ignore la casse et traite `-` comme `_`.
 
 ---
@@ -35,6 +37,8 @@ runique makemigrations [--entities src/entities] [--migrations migration/src] [-
 
 Lit les `model!{}` et `extend!{}` de `src/entities/`, les compare à leurs snapshots, et écrit les migrations. Si le crate `migration/` n'existe pas encore (projet non créé par `runique new`), il est créé, avec le moteur de `DB_ENGINE` (SQLite si la variable est absente). Détails : [Migrations](/docs/fr/installation/migrations).
 
+Les fichiers sont écrits en un seul lot. Un lancement interrompu par une coupure est réparé au lancement suivant, avant tout calcul.
+
 ---
 
 ## `runique migration up | down | status`
@@ -46,6 +50,8 @@ runique migration status [--migrations migration/src]
 ```
 
 Lance le crate `migration` du projet (`cargo run` sur `migration/Cargo.toml`), qui lit `DATABASE_URL` dans `.env`. `sea-orm-cli` n'est pas nécessaire : la version de SeaORM qui applique les migrations est celle de `migration/Cargo.toml`, alignée sur Runique.
+
+Ces trois commandes refusent de partir tant qu'un `makemigrations` interrompu n'a pas été réparé : relancez `runique makemigrations` d'abord.
 
 ---
 

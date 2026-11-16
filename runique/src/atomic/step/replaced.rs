@@ -6,9 +6,9 @@ use std::io;
 
 pub(in crate::atomic) fn run(action: &ActionAtomic, item: &ItemsPath) -> io::Result<AtomicStep> {
     match action {
-        ActionAtomic::Create => Err(io::ErrorKind::InvalidInput.into()),
+        ActionAtomic::Create => super::wrong_step(),
         ActionAtomic::Modify => Ok(AtomicStep::Done),
         ActionAtomic::Rollback => rollback::restore(item),
-        ActionAtomic::Finish => Err(io::ErrorKind::InvalidInput.into()),
+        ActionAtomic::Finish => super::wrong_step(),
     }
 }

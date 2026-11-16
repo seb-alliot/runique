@@ -54,18 +54,21 @@ impl AtomicBuilder {
             Some(_) => {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
-                    format!("{}: a name the batch keeps for itself", path.display()),
+                    crate::utils::trad::tf("atomic.reserved_name", &[path.display()]),
                 ));
             }
             None => {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
-                    format!("{}: not the path of a file", path.display()),
+                    crate::utils::trad::tf("atomic.not_a_file", &[path.display()]),
                 ));
             }
         }
         if self.items.contains_key(&path) {
-            return Err(io::ErrorKind::AlreadyExists.into());
+            return Err(io::Error::new(
+                io::ErrorKind::AlreadyExists,
+                crate::utils::trad::tf("atomic.duplicate", &[path.display()]),
+            ));
         }
         let item = ItemsPath {
             temp_path: temp_of(&path),

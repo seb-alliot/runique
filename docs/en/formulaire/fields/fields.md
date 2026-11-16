@@ -349,21 +349,18 @@ form.field(
 
 **The file of a deleted row.** Deleting a row, from your code or from the admin, doesn't delete its files: Runique can't know whether you must keep them (archive, legal duty) or remove them (right to erasure). If the file has to go, read its path before the deletion and remove it once the deletion is committed.
 
-**The replaced file.** Runique never deletes the file a new upload replaces: you may still need it (history, archive). To delete it, read the old path before the `save`, then remove it once the write is done:
+**The replaced file.** By default, Runique doesn't delete the file a new upload replaces: you may still need it (history, archive). To have it deleted, declare the field with `.replace()`:
 
 ```rust
-let old = profile::Entity::find_by_id(id).one(&request.engine.db).await?.and_then(|p| p.avatar);
-match form.save(&request.engine.db).await {
-    Ok(form) => {
-        let new = form.forms().fields["avatar"].value().to_string();
-        if let Some(old) = old.filter(|o| *o != new) {
-            let _ = tokio::fs::remove_file(std::path::Path::new(&runique::config::static_files::resolve_media_root()).join(old)).await;
-        }
-        Ok(Redirect::to("/profile").into_response())
-    }
-    Err(form) => { /* the form with its errors */ }
-}
+MediaField::image("avatar").upload_to("avatars").replace()
 ```
+
+When the form edits a row that already had a file, the old one is deleted once the new one is saved and the write committed. What bounds `.replace()`:
+
+- **a single file**: no effect on a field taking several (`max_files` above 1), where nothing tells which one a new file replaces;
+- **only after a new upload**: a form sent back without a new file keeps its own;
+- **never blocking**: if the old file is missing or can't be deleted, the request still succeeds, and the failure is traced;
+- **under `MEDIA_ROOT` only**: a path that would leave it is never deleted.
 
 **Without `save`.** A form without a model (a plain file upload) or a hand-written save handles the file itself: `form.forms_mut().publish_uploads().await` inside your transaction, after the write and before the `commit()`, then `complete_uploads().await` once committed, or `rollback_uploads().await` if the commit fails. With no database write, `publish_uploads()` then `complete_uploads()` is enough.
 

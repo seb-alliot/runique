@@ -62,9 +62,7 @@ The passes above only *compute* an in-memory plan — nothing is written until t
    The check covers both `model!{}` and `extend!{}` changes.
 
    > **Exception — column type change**: `--force` unblocks the command, but **never** generates the real `ALTER` for a type change (`String → Decimal`, etc.). The generated file only contains a `// Manual migration required.` comment — write it yourself. The console says so in yellow after the generation, column by column. The other destructive categories generate the real SQL as soon as `--force` is passed. This exception is deliberate: a generic type conversion has no reliable cross-engine cast rule (Postgres needs an explicit `USING`, MySQL converts according to its SQL mode, SQLite doesn't support `ALTER COLUMN TYPE` at all).
-2. **Protected writing**: writing the files, registering them in `lib.rs` and positioning the framework migrations run under one shared rollback. On a write error, the generated files are removed, and the existing snapshots and `lib.rs` are restored to their previous state.
-
-   **Current limits**: the folders are created before that protection, upgrading only the snapshots (with no migration) is written without rollback, and a hard stop (power cut, `kill -9`) mid-write isn't recovered. Full protection (writing to a temporary folder, then resuming on the next run) is planned. Until then, `migration/` being versioned, `git` restores it.
+2. **Protected writing**: the migrations, the snapshots, `lib.rs` and the folders created for them are written as one batch. On a write error, everything is undone: the generated files are removed, the existing snapshots and `lib.rs` go back to their previous state. A hard stop (power cut, `kill -9`) is repaired by the next run, from the journal left in `migration/src/`. See [Atomic file writes](/docs/en/architecture/atomic).
 
 ---
 
