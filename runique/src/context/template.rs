@@ -458,8 +458,8 @@ impl Request {
     /// only when that request is its own submission — `name` came back in its
     /// hidden `FORM_NAME_KEY` field. Another form of the page, or a first
     /// display, is left as built: it never shows what was typed in another
-    /// form, nor that form's CSRF error. `cleaned` still falls back on the
-    /// URL's path and query.
+    /// form, nor that form's CSRF error. `cleaned` then reads nothing: it
+    /// never falls back on the URL (`get_path` / `get_query` give those).
     ///
     /// `name` is rendered as that hidden field and prefixes the fields' HTML
     /// ids. Then [`ValidationForm::try_form`](crate::forms::ValidationForm::try_form)

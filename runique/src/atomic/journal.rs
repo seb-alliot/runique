@@ -69,7 +69,7 @@ impl Journal {
 }
 
 fn invalid(kind: io::ErrorKind, path: &Path, reason: &str) -> io::Error {
-    io::Error::new(kind, format!("{}: {reason}", path.display()))
+    io::Error::new(kind, crate::utils::trad::tf(reason, &[path.display()]))
 }
 
 /// `path` as seen from `dir`. A batch with a journal keeps to its folder: a
@@ -79,7 +79,7 @@ fn relative(dir: &Path, path: &Path) -> io::Result<PathBuf> {
         invalid(
             io::ErrorKind::InvalidInput,
             path,
-            "outside the journal's folder",
+            "atomic.outside_journal",
         )
     })?;
     if plain(inside) {
@@ -88,7 +88,7 @@ fn relative(dir: &Path, path: &Path) -> io::Result<PathBuf> {
         Err(invalid(
             io::ErrorKind::InvalidInput,
             path,
-            "leaves the journal's folder",
+            "atomic.leaves_journal",
         ))
     }
 }
@@ -129,7 +129,12 @@ pub(super) fn read(dir: &Path) -> io::Result<Option<Journal>> {
         Err(error) => return Err(error),
     };
     let journal: Journal = serde_json::from_slice(&content)
-        .map_err(|error| invalid(io::ErrorKind::InvalidData, &path, &error.to_string()))?;
+        .map_err(|error| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("{}: {error}", path.display()),
+            )
+        })?;
     let named_file = |file: &JournalFile| {
         plain(&file.path) && file.path.file_name().is_some_and(|name| !is_reserved(name))
     };
@@ -139,7 +144,7 @@ pub(super) fn read(dir: &Path) -> io::Result<Option<Journal>> {
         Err(invalid(
             io::ErrorKind::InvalidData,
             &path,
-            "names a path the batch could not have written",
+            "atomic.journal_forged",
         ))
     }
 }
@@ -147,7 +152,7 @@ pub(super) fn read(dir: &Path) -> io::Result<Option<Journal>> {
 /// Marks the point of no return: every file is in place.
 pub(super) fn mark_placed(dir: &Path) -> io::Result<()> {
     let Some(mut journal) = read(dir)? else {
-        return Err(io::ErrorKind::NotFound.into());
+        return Err(invalid(io::ErrorKind::NotFound, dir, "atomic.no_journal"));
     };
     journal.placed = true;
     write(dir, &journal)
@@ -230,7 +235,7 @@ pub(super) fn examine(dir: &Path) -> io::Result<Option<Repair>> {
                     AtomicStep::Prepared
                 }
                 Err(reason) => {
-                    unexpected.push(format!("{}: {reason}", path.display()));
+                    unexpected.push(crate::utils::trad::tf(reason, &[path.display()]));
                     AtomicStep::Waiting
                 }
             }
@@ -285,7 +290,7 @@ enum Found {
 }
 
 /// Tells what is at `path` by comparing it with the batch's two other files,
-/// or why it is none of the states a cut can leave.
+/// or, as a translation key, why it is none of the states a cut can leave.
 fn found(
     path: &Path,
     temp_path: &Path,
@@ -295,12 +300,12 @@ fn found(
     let backup = exists(backup_path)?;
     if !existed && backup {
         return Ok(Err(
-            "has a backup, though nothing was there before the batch",
+            "atomic.stray_backup",
         ));
     }
     if !exists(path)? {
         return Ok(if existed && !backup {
-            Err("is gone, and no backup holds it")
+            Err("atomic.gone")
         } else {
             Ok(Found::Nothing)
         });
@@ -309,7 +314,7 @@ fn found(
         return Ok(Ok(Found::Placed));
     }
     if !existed {
-        return Ok(Err("is not the file the batch was creating"));
+        return Ok(Err("atomic.not_created"));
     }
     if !backup {
         return Ok(Ok(Found::Original));
@@ -317,7 +322,7 @@ fn found(
     Ok(if disk::same(path, backup_path)? {
         Ok(Found::OriginalAndBackup)
     } else {
-        Err("changed since the batch was interrupted, and its backup holds something else")
+        Err("atomic.changed")
     })
 }
 
@@ -340,9 +345,9 @@ fn strangers(dir: &Path, journal: &Journal) -> io::Result<Vec<String>> {
         for entry in entries {
             let path = entry?.path();
             if !known.contains(&path) {
-                strangers.push(format!(
-                    "{}: not a file of the batch, in a folder the batch created",
-                    path.display()
+                strangers.push(crate::utils::trad::tf(
+                    "atomic.stranger",
+                    &[path.display()],
                 ));
             }
         }
@@ -367,7 +372,7 @@ fn stays_inside(dir: &Path, path: &Path) -> io::Result<()> {
         Err(invalid(
             io::ErrorKind::InvalidData,
             path,
-            "is no longer in the journal's folder",
+            "atomic.moved_out",
         ))
     }
 }

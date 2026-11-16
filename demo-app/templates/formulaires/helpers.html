@@ -40,13 +40,17 @@
 
         <!-- Typed whitelisted helpers -->
         <div class="demo-code">
-            <div class="demo-code-title">{% if ui_lang == "fr" %}Helpers cleaned — champs du formulaire uniquement{% else %}Cleaned helpers — form fields only{% endif %}</div>
-            <pre><code><span class="cm">// All methods return Option&lt;T&gt; (None if unknown or empty)</span>
+            <div class="demo-code-title">{% if ui_lang == "fr" %}cleaned() — typé, champs du formulaire uniquement{% else %}cleaned() — typed, form fields only{% endif %}</div>
+            <pre><code><span class="cm">// Option&lt;T&gt;: None if the field is unknown, empty, or doesn't read as T.
+// Reads the form's fields only, never the URL.
+// T is the Rust type of the field's column:
+// cleaned::&lt;i64&gt; on an i32 column is None, whatever the value.</span>
 form.<span class="fn_">cleaned</span>::&lt;<span class="ty">String</span>&gt;(<span class="st">"username"</span>)   <span class="cm">// -> Option&lt;String&gt;</span>
 form.<span class="fn_">cleaned</span>::&lt;<span class="ty">i32</span>&gt;(<span class="st">"age"</span>)         <span class="cm">// -> Option&lt;i32&gt;</span>
-form.<span class="fn_">cleaned</span>::&lt;<span class="ty">f64</span>&gt;(<span class="st">"price"</span>)       <span class="cm">// -> Option&lt;f64&gt;</span>
+form.<span class="fn_">cleaned</span>::&lt;<span class="ty">f64</span>&gt;(<span class="st">"price"</span>)       <span class="cm">// -> Option&lt;f64&gt;  (handles , → .)</span>
 form.<span class="fn_">cleaned</span>::&lt;<span class="ty">bool</span>&gt;(<span class="st">"active"</span>)      <span class="cm">// -> Option&lt;bool&gt;</span>
 form.<span class="fn_">cleaned</span>::&lt;<span class="ty">Uuid</span>&gt;(<span class="st">"ref"</span>)        <span class="cm">// -> Option&lt;Uuid&gt;</span>
+form.<span class="fn_">cleaned</span>::&lt;<span class="ty">String</span>&gt;(<span class="st">"is_admin"</span>)  <span class="cm">// None — not a field of the form</span>
 
 <span class="cm">// Handling default values:</span>
 let user = form.<span class="fn_">cleaned</span>::&lt;<span class="ty">String</span>&gt;(<span class="st">"user"</span>).<span class="fn_">unwrap_or_default</span>(); <span class="cm">// String</span>
@@ -91,44 +95,27 @@ form.cleaned::&lt;<span class="ty">DateTime</span>&lt;<span class="ty">Utc</span
 <span class="kw">let</span> page = request.<span class="fn_">get_query</span>(<span class="st">"page"</span>); <span class="cm">// Option&lt;&amp;str&gt;</span></code></pre>
         </div>
 
-        <!-- cleaned_* — whitelisted and typed -->
-        <div class="demo-code">
-            <div class="demo-code-title">{% if ui_lang == "fr" %}cleaned() — typé, champs du formulaire uniquement{% else %}cleaned() — typed, form fields only{% endif %}</div>
-            <pre><code><span class="cm">// Reads the form's fields only, never the URL
-// None if field is not declared in the form or is empty</span>
-
-form.<span class="fn_">cleaned</span>::&lt;<span class="ty">String</span>&gt;(<span class="st">"search"</span>)    <span class="cm">// Option&lt;String&gt;</span>
-form.<span class="fn_">cleaned</span>::&lt;<span class="ty">i32</span>&gt;(<span class="st">"page"</span>)        <span class="cm">// Option&lt;i32&gt;</span>
-form.<span class="fn_">cleaned</span>::&lt;<span class="ty">i64</span>&gt;(<span class="st">"id"</span>)          <span class="cm">// Option&lt;i64&gt;</span>
-form.<span class="fn_">cleaned</span>::&lt;<span class="ty">f64</span>&gt;(<span class="st">"price"</span>)       <span class="cm">// Option&lt;f64&gt;  (handles , → .)</span>
-form.<span class="fn_">cleaned</span>::&lt;<span class="ty">bool</span>&gt;(<span class="st">"active"</span>)     <span class="cm">// Option&lt;bool&gt;</span>
-form.<span class="fn_">cleaned</span>::&lt;<span class="ty">Uuid</span>&gt;(<span class="st">"ref"</span>)       <span class="cm">// Option&lt;Uuid&gt;</span>
-form.<span class="fn_">cleaned</span>::&lt;<span class="ty">String</span>&gt;(<span class="st">"is_admin"</span>) <span class="cm">// None — unknown field</span></code></pre>
-        </div>
-
         <!-- Real example: blog search -->
         <div class="demo-code">
-            <div class="demo-code-title">{% if ui_lang == "fr" %}Exemple réel — recherche GET /blog/list?search=rust{% else %}Real example — GET search /blog/list?search=rust{% endif %}</div>
-            <pre><code><span class="cm">// views.rs — filter articles according to query string</span>
+            <div class="demo-code-title">{% if ui_lang == "fr" %}Exemple réel — la recherche du blog, envoyée en GET{% else %}Real example — the blog search, sent with GET{% endif %}</div>
+            <pre><code><span class="cm">// views.rs — the search form of /blog/liste, sent by its own page</span>
 <span class="kw">pub async fn</span> <span class="fn_">blog_list</span>(
     <span class="kw">mut</span> request: <span class="ty">Request</span>,
 ) -> <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
     <span class="kw">let</span> form: <span class="ty">SearchDemoForm</span> = request.<span class="fn_">form</span>(<span class="st">"search"</span>);
+    <span class="cm">// Filled only when this form was sent (its name comes back with it),
+    // then validated: cleaned reads a value that went through the rules.</span>
+    <span class="kw">let</span> form = <span class="kw">match</span> <span class="ty">ValidationForm</span>::<span class="fn_">try_form</span>(form, &amp;request).<span class="kw">await</span> {
+        <span class="ty">Ok</span>(validated) => validated.<span class="fn_">into_form</span>(),
+        <span class="ty">Err</span>(form) => form,
+    };
     <span class="kw">let</span> search = form.<span class="fn_">cleaned</span>::&lt;<span class="ty">String</span>&gt;(<span class="st">"search"</span>);
-
-    <span class="kw">let mut</span> query = <span class="ty">BlogEntity</span>::<span class="fn_">find</span>();
-    <span class="kw">if let</span> <span class="ty">Some</span>(<span class="kw">ref</span> term) = search {
-        query = query.<span class="fn_">filter</span>(
-            <span class="ty">Condition</span>::<span class="fn_">any</span>()
-                .<span class="fn_">add</span>(<span class="ty">Column</span>::<span class="ty">Title</span>.<span class="fn_">contains</span>(term))
-                .<span class="fn_">add</span>(<span class="ty">Column</span>::<span class="ty">Summary</span>.<span class="fn_">contains</span>(term)),
-        );
-    }
+    <span class="kw">let</span> articles = <span class="fn_">list_articles</span>(&amp;request.engine.db, search.<span class="fn_">as_deref</span>()).<span class="kw">await</span>;
     <span class="cm">// ...</span>
 }
 
-<span class="cm">// Example: user search /users?username=alice</span>
-<span class="kw">let</span> username = form.<span class="fn_">cleaned</span>::&lt;<span class="ty">String</span>&gt;(<span class="st">"username"</span>).<span class="fn_">unwrap_or_default</span>();</code></pre>
+<span class="cm">// /blog/liste?search=rust typed by hand: the form was not sent,
+// so search is None and every article is listed.</span></code></pre>
         </div>
 
     </div>

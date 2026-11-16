@@ -50,7 +50,10 @@ impl PathManager {
             self.apply(&action)?;
         }
         if !self.all_done() {
-            return Err(io::ErrorKind::InvalidInput.into());
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                crate::utils::trad::t("atomic.unfinished").into_owned(),
+            ));
         }
         self.sync_dirs()?;
         self.mark_placed()

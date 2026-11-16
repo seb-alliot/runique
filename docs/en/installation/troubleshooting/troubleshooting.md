@@ -55,6 +55,24 @@ The snapshots in `migration/src/snapshots/` describe a schema "already migrated"
 
 ---
 
+## "A makemigrations run was interrupted"
+
+`runique migration up` found a `.runique-journal` in `migration/` or `migration/src/`: a power cut interrupted a write. Run `runique makemigrations` again, which repairs before it computes, then `runique migration up`.
+
+---
+
+## "A run was interrupted… and files changed since"
+
+After a power cut, a file was edited, removed or added by hand: Runique doesn't repair, so as not to choose for you. Each line shown names a file and says why. What to do in each case: [Atomic file writes](/docs/en/architecture/atomic).
+
+---
+
+## "… is in the way"
+
+A `.runique-tmp` or `.runique-bak` file sits where a command has to write. If it holds something to keep, save it; otherwise delete it, then run the command again.
+
+---
+
 ## `Connection refused` (PostgreSQL)
 
 ```bash

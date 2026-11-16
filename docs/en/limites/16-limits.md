@@ -9,7 +9,7 @@ What Runique doesn't do yet (4.1 in development), or does with a restriction. Ea
 | Limit | Details |
 | --- | --- |
 | One engine per build (`sqlite`, `postgres`, `mysql`)<br>SQLite: one writer at a time, `SQLITE_BUSY` under heavy write load<br>Switching engines needs a fresh database: data isn't carried over | [Database](/docs/en/installation/database) |
-| A column type change isn't migrated (`--force` writes an empty migration, to complete by hand)<br>Snapshots copied without their migrations make the tables look created<br>Index and foreign key names capped at 63 characters, on every engine: `makemigrations` refuses beyond<br>`migration up`: a migration is atomic under Postgres only (SQLite, MySQL: a failing migration can stay half applied)<br>A hard stop during `makemigrations` can leave half-written files (`git` to restore) | [Migrations](/docs/en/installation/migrations), [Makemigrations](/docs/en/architecture/makemigrations) |
+| A column type change isn't migrated (`--force` writes an empty migration, to complete by hand)<br>Snapshots copied without their migrations make the tables look created<br>Index and foreign key names capped at 63 characters, on every engine: `makemigrations` refuses beyond<br>`migration up`: a migration is atomic under Postgres only (SQLite, MySQL: a failing migration can stay half applied) | [Migrations](/docs/en/installation/migrations), [Makemigrations](/docs/en/architecture/makemigrations) |
 | `search!`: `in (vec)` with an empty vec, no inline conditional filter | [Queries](/docs/en/orm/queries) |
 
 ## Forms and messages

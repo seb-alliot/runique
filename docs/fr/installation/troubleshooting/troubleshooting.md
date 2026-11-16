@@ -55,6 +55,24 @@ Les snapshots de `migration/src/snapshots/` indiquent un schéma « déjà migr�
 
 ---
 
+## « Un makemigrations a été interrompu »
+
+`runique migration up` a trouvé un journal `.runique-journal` dans `migration/` ou `migration/src/` : une coupure a interrompu une écriture. Relancez `runique makemigrations`, qui répare avant de calculer, puis `runique migration up`.
+
+---
+
+## « Un lancement a été interrompu… et des fichiers ont changé depuis »
+
+Après une coupure, un fichier a été modifié, supprimé ou ajouté à la main : Runique ne répare pas, pour ne pas choisir à votre place. Chaque ligne affichée nomme un fichier et dit pourquoi. Marche à suivre pour chaque cas : [Écriture atomique des fichiers](/docs/fr/architecture/atomic).
+
+---
+
+## « … occupe la place »
+
+Un fichier `.runique-tmp` ou `.runique-bak` se trouve là où une commande doit écrire. S'il contient quelque chose à garder, récupérez-le ; sinon supprimez-le, puis relancez.
+
+---
+
 ## `Connection refused` (PostgreSQL)
 
 ```bash

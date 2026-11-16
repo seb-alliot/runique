@@ -159,7 +159,12 @@ extend! {
 
 ## Génération atomique
 
-Les changements des modèles et des blocs `extend!{}` sont d'abord planifiés en mémoire, validés (contrôle destructif, longueur des identifiants), puis écrits en un seul lot. En cas d'erreur d'écriture, les fichiers déjà écrits sont annulés, et les snapshots comme `lib.rs` sont restaurés.
+Les changements des modèles et des blocs `extend!{}` sont d'abord planifiés en mémoire, validés (contrôle destructif, longueur des identifiants), puis écrits en un seul lot : migrations, snapshots et `lib.rs`, tous ou aucun.
+
+- **Une erreur d'écriture** annule tout : le dossier `migration/src/` revient à son état d'avant.
+- **Une coupure** (courant, `kill -9`) est réparée au lancement suivant de `runique makemigrations`. D'ici là, `runique migration up` refuse de partir.
+
+Fichiers laissés par une coupure, refus de réparer, marche à suivre : [Écriture atomique des fichiers](/docs/fr/architecture/atomic).
 
 ---
 
@@ -167,7 +172,6 @@ Les changements des modèles et des blocs `extend!{}` sont d'abord planifiés en
 
 - **Le changement de type d'une colonne n'est pas encore migré.** `makemigrations` le bloque ; avec `--force`, la migration écrite ne contient qu'un commentaire d'avertissement, aucun `ALTER`, alors que le snapshot enregistre déjà le nouveau type. La console l'affiche en jaune. Avant `runique migration up`, écrivez à la main le `up()` et le `down()` de cette migration (`alter_table` / `modify_column` de SeaORM), ou ajoutez une nouvelle colonne, recopiez les données, puis supprimez l'ancienne. Le passage vers ou depuis un enum, lui, est migré.
 - **La suppression d'une table n'est pas détectée.** Retirer un modèle ne génère rien : `makemigrations` répond « aucun changement », et la table reste en base. Pour la supprimer, écrivez une migration à la main (`drop_table`, à enregistrer dans `lib.rs`), retirez son snapshot de `migration/src/snapshots/`, et enlevez d'abord tout `belongs_to` qui la vise. Prévu pour la 4.1.
-- **La génération n'est pas encore protégée contre un arrêt brutal** (coupure, `kill -9`) en plein milieu de l'écriture : une erreur ordinaire est annulée, une interruption peut laisser des fichiers partiellement mis à jour. Le dossier `migration/` étant versionné, `git` permet de le restaurer.
 - **Ne copiez pas les snapshots d'un autre projet sans ses migrations** : un snapshot signifie « déjà migré ». `makemigrations` ne génère alors rien pour ces modèles, alors qu'aucune migration ne crée leurs tables.
 - **Les noms d'index et de clés étrangères sont limités à 63 caractères, sur tous les moteurs** (ils sont générés à partir des noms de tables et de colonnes ; 63 est la limite de PostgreSQL, MySQL acceptent 64) : `makemigrations` refuse un nom trop long avant d'écrire le moindre fichier, plutôt que de le tronquer ; raccourcissez les noms en cause.
 - **`runique migration up` n'applique une migration de façon atomique que sous Postgres.** sea-orm-migration n'enveloppe chaque migration (et son inscription dans `seaql_migrations`) dans une transaction que sur ce moteur. Sous SQLite et MySQL, une migration qui échoue en cours de route peut rester à moitié appliquée ; sous MySQL, aucune transaction n'y changerait rien (chaque instruction DDL valide d'elle-même). En développement sous SQLite, supprimez le fichier de base et relancez `runique migration up` ; ailleurs, corrigez la base à la main avant de relancer.

@@ -349,21 +349,18 @@ form.field(
 
 **Le fichier d'une ligne supprimée.** Supprimer une ligne, par votre code ou depuis l'admin, ne supprime pas ses fichiers : Runique ne sait pas si vous devez les garder (archive, obligation légale) ou les effacer (droit à l'effacement). Si le fichier doit disparaître, lisez son chemin avant la suppression et effacez-le une fois celle-ci validée.
 
-**Le fichier remplacé.** Runique ne supprime jamais le fichier qu'un nouvel envoi remplace : il peut encore vous servir (historique, archive). Pour le supprimer, lisez l'ancien chemin avant le `save`, puis supprimez-le une fois l'écriture faite :
+**Le fichier remplacé.** Par défaut, Runique ne supprime pas le fichier qu'un nouvel envoi remplace : il peut encore vous servir (historique, archive). Pour qu'il soit supprimé, déclarez le champ avec `.replace()` :
 
 ```rust
-let ancien = profil::Entity::find_by_id(id).one(&request.engine.db).await?.and_then(|p| p.avatar);
-match form.save(&request.engine.db).await {
-    Ok(form) => {
-        let nouveau = form.forms().fields["avatar"].value().to_string();
-        if let Some(ancien) = ancien.filter(|a| *a != nouveau) {
-            let _ = tokio::fs::remove_file(std::path::Path::new(&runique::config::static_files::resolve_media_root()).join(ancien)).await;
-        }
-        Ok(Redirect::to("/profil").into_response())
-    }
-    Err(form) => { /* le formulaire avec ses erreurs */ }
-}
+MediaField::image("avatar").upload_to("avatars").replace()
 ```
+
+Quand le formulaire modifie une ligne qui avait déjà un fichier, l'ancien est supprimé une fois le nouveau enregistré et l'écriture validée. Ce qui borne `.replace()` :
+
+- **un seul fichier** : sans effet sur un champ qui en accepte plusieurs (`max_files` au-dessus de 1), où rien ne dit lequel un nouveau fichier remplace ;
+- **seulement après un nouvel envoi** : un formulaire renvoyé sans nouveau fichier garde le sien ;
+- **jamais bloquant** : si l'ancien fichier est absent ou ne peut pas être supprimé, la requête réussit quand même, et l'échec est tracé ;
+- **sous `MEDIA_ROOT` uniquement** : un chemin qui en sortirait n'est jamais supprimé.
 
 **Sans `save`.** Un formulaire sans modèle (simple dépôt de fichier) ou une sauvegarde écrite à la main gère le fichier lui-même : `form.forms_mut().publish_uploads().await` dans votre transaction, après l'écriture et avant le `commit()`, puis `complete_uploads().await` une fois validé, ou `rollback_uploads().await` si le commit échoue. Sans écriture en base, `publish_uploads()` puis `complete_uploads()` suffisent.
 

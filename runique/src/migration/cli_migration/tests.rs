@@ -341,6 +341,44 @@ fn extend_blocks_are_planned_until_their_snapshot_matches() {
     );
 }
 
+#[test]
+fn an_extend_change_enters_the_plan_with_its_snapshot_and_its_module() {
+    let (entities, migrations) = (temp("ext_plan_ent"), temp("ext_plan_mig"));
+    let (e, m) = (entities.to_str().unwrap(), migrations.to_str().unwrap());
+    fs::write(
+        entities.join("ext.rs"),
+        r#"extend! { table: "eihwaz_users", fields: { bio: text } }"#,
+    )
+    .unwrap();
+    let planned = plan_extend_changes(e, m).unwrap();
+    let _ = (
+        fs::remove_dir_all(&entities),
+        fs::remove_dir_all(&migrations),
+    );
+
+    let mut plan = Plan::default();
+    build_extend_plan(&mut plan, &planned, m, "20260101_000000");
+
+    let paths: Vec<&str> = plan.files.iter().map(|(path, _)| path.as_str()).collect();
+    assert_eq!(
+        paths,
+        [
+            extend_snapshot_file_path(m, "eihwaz_users"),
+            seaorm_extend_file_path(m, "20260101_000000", "eihwaz_users"),
+        ]
+    );
+    assert!(plan.files[1].1.contains("bio"), "{}", plan.files[1].1);
+    assert_eq!(
+        plan.lib_modules,
+        ["m20260101_000000_extend_eihwaz_users_table"]
+    );
+
+    // Nothing to extend: the plan is left as it was.
+    let mut empty = Plan::default();
+    build_extend_plan(&mut empty, &[], m, "20260101_000000");
+    assert!(empty.files.is_empty() && empty.lib_modules.is_empty());
+}
+
 // ── `commit_plan`: the plan written as one batch ─────────────────────────────
 
 use crate::atomic::tests::TempDir;

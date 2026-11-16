@@ -23,6 +23,8 @@ No `runique start`: the app runs with `cargo run`. The admin is declared in Rust
 
 Creates the whole project: the app, the `migration/` crate, templates, CSS, and a `.env` with a random `SECRET_KEY`. See [Prerequisites & first project](/docs/en/installation/prerequisites).
 
+The project is written as one batch: whole, or not at all. After a power cut halfway through, run the same command again with the same name: it removes the unfinished project, then creates it. See [Atomic file writes](/docs/en/architecture/atomic).
+
 Refused names: empty, characters other than letters / digits / `_` / `-`, starting with a digit or `-`, Rust keywords, built-in crates (`std`, `core`, `alloc`, `proc_macro`, `test`), cargo's folders (`build`, `deps`, `examples`, `incremental`), Windows device names (`con`, `nul`, `com1`…), and `migration` / `runique`. The comparison ignores case and reads `-` as `_`.
 
 ---
@@ -35,6 +37,8 @@ runique makemigrations [--entities src/entities] [--migrations migration/src] [-
 
 Reads the `model!{}` and `extend!{}` blocks of `src/entities/`, compares them to their snapshots, and writes the migrations. When the `migration/` crate doesn't exist yet (a project not created by `runique new`), it is created, with the engine of `DB_ENGINE` (SQLite when unset). Details: [Migrations](/docs/en/installation/migrations).
 
+The files are written as one batch. A run a power cut interrupted is repaired by the next one, before anything is computed.
+
 ---
 
 ## `runique migration up | down | status`
@@ -46,6 +50,8 @@ runique migration status [--migrations migration/src]
 ```
 
 Runs the project's `migration` crate (`cargo run` on `migration/Cargo.toml`), which reads `DATABASE_URL` from `.env`. `sea-orm-cli` isn't needed: the SeaORM version that applies the migrations is the one `migration/Cargo.toml` pins, the same as runique's.
+
+These three commands refuse to start as long as an interrupted `makemigrations` hasn't been repaired: run `runique makemigrations` again first.
 
 ---
 

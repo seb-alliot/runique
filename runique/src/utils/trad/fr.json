@@ -586,6 +586,24 @@
     "no_changes": "Aucun changement détecté : vos modèles correspondent à leurs snapshots.",
     "apply_hint": "Appliquez les migrations en attente avec : runique migration up"
   },
+  "atomic": {
+    "reserved_name": "{} : ce nom est réservé à Runique",
+    "not_a_file": "{} : ce n'est pas le chemin d'un fichier",
+    "duplicate": "{} : ce fichier est déjà dans le lot",
+    "in_the_way": "{} occupe la place : ce fichier ne vient pas du lancement en cours",
+    "outside_journal": "{} : hors du dossier du journal",
+    "leaves_journal": "{} : ce chemin sort du dossier du journal",
+    "journal_forged": "{} : le journal nomme un chemin que Runique n'a pas pu écrire",
+    "no_journal": "{} : aucun journal à marquer",
+    "stray_backup": "{} : une sauvegarde existe, alors qu'il n'y avait rien avant le lancement",
+    "gone": "{} : le fichier a disparu, et aucune sauvegarde ne le contient",
+    "not_created": "{} : ce n'est pas le fichier que Runique était en train de créer",
+    "changed": "{} : modifié depuis l'interruption, et sa sauvegarde contient autre chose",
+    "stranger": "{} : ce fichier ne vient pas de Runique, dans un dossier que Runique a créé",
+    "moved_out": "{} : ce fichier n'est plus dans le dossier du journal",
+    "unfinished": "le lot n'a pas abouti après ses passes",
+    "wrong_step": "cette action est impossible à cette étape du fichier"
+  },
   "migrate": {
     "complete_up": "Migration terminé.",
     "crate_missing": "Crate de migrations introuvable : '{}' ne contient pas de Cargo.toml.",

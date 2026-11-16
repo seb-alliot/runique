@@ -16,7 +16,7 @@ pub(in crate::atomic) fn run(action: &ActionAtomic, item: &ItemsPath) -> io::Res
             prepare(item)
         }
         ActionAtomic::Rollback => Ok(AtomicStep::Waiting),
-        ActionAtomic::Finish => Err(io::ErrorKind::InvalidInput.into()),
+        ActionAtomic::Finish => super::wrong_step(),
     }
 }
 
@@ -29,7 +29,7 @@ fn check(item: &ItemsPath) -> io::Result<()> {
         if leftover.try_exists()? {
             return Err(io::Error::new(
                 io::ErrorKind::AlreadyExists,
-                format!("{} is in the way", leftover.display()),
+                crate::utils::trad::tf("atomic.in_the_way", &[leftover.display()]),
             ));
         }
     }

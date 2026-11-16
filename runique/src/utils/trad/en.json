@@ -586,6 +586,24 @@
     "no_changes": "No changes detected: your models match their snapshots.",
     "apply_hint": "Apply the pending migrations with: runique migration up"
   },
+  "atomic": {
+    "reserved_name": "{}: a name Runique keeps for itself",
+    "not_a_file": "{}: not the path of a file",
+    "duplicate": "{}: this file is already in the batch",
+    "in_the_way": "{} is in the way",
+    "outside_journal": "{}: outside the journal's folder",
+    "leaves_journal": "{}: leaves the journal's folder",
+    "journal_forged": "{}: names a path the batch could not have written",
+    "no_journal": "{}: no journal to mark",
+    "stray_backup": "{}: has a backup, though nothing was there before the batch",
+    "gone": "{}: is gone, and no backup holds it",
+    "not_created": "{}: is not the file the batch was creating",
+    "changed": "{}: changed since the batch was interrupted, and its backup holds something else",
+    "stranger": "{}: not a file of the batch, in a folder the batch created",
+    "moved_out": "{}: is no longer in the journal's folder",
+    "unfinished": "the batch did not finish after its passes",
+    "wrong_step": "this action cannot be done at this step of the file"
+  },
   "migrate": {
     "complete_up": "Migration complete.",
     "crate_missing": "Migration crate not found: '{}' has no Cargo.toml.",

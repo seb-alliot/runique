@@ -25,6 +25,10 @@ All notable changes to this project will be documented in this file.
 
 * **`cleaned` no longer reads the URL, `Forms::set_url_params` replaced by `set_path_params`**: `cleaned::<T>("x")` returns the value of field `x` and nothing else. For a value of the URL, use `request.get_path("x")` / `request.get_path_as::<T>("x")` or `request.get_query("x")`; to pre-fill a field from a link, `form.add_value("x", value)`. A search form sent with `GET` doesn't change (its fields are filled from the query string). `Forms::set_url_params(path, query)` becomes `Forms::set_path_params(path)`: the query string is no longer given to the form.
 
+### Removed
+
+* **MariaDB**: SeaORM only knows PostgreSQL, MySQL and SQLite, and refuses a `mariadb://` URL; MariaDB was therefore never really supported. The `mariadb` feature, the `DatabaseEngine::MariaDB` variant and the `mariadb` values of `DB_ENGINE` and `DATABASE_URL` are removed; Runique's tests run on MySQL 8.4. **To check**: a project that turned the `mariadb` feature on moves to `mysql`, with `DB_ENGINE=mysql` and a `mysql://` URL.
+
 ### Added
 
 * **`ExclusiveLogin`**: the last parameter of `login` takes `ExclusiveLogin::{Off, On, Strict}` as well as a `bool` (`false` = `Off`, `true` = `On`, unchanged). `Strict` refuses the sign-in (`LoginError::Session`) and closes its session when the account's other sessions could not be closed; `On` logs the failure and signs in.
@@ -32,6 +36,8 @@ All notable changes to this project will be documented in this file.
 * **Admin boot log** (`builder.registry`): the configuration kept, each registered model (columns, filters, actions, form fields) and each route declared `admin`. Three warnings are never silent: an admin sign-in with neither a `LoginGuard` nor a rate limiter (outside development), list options with no effect (`links`, `search_help`, `empty_value`), and Runique's stylesheets not found (a `STATIC_RUNIQUE_PATH` that doesn't hold them).
 * **Translated logs**: the log messages added in this version (CSRF, admin, sessions, startup, traced errors) go through i18n, in the 9 languages (`log` section of the language files). They follow the application's language (`set_lang`); field names stay in English, the value of `reason` (CSRF refusal) and `outcome` (admin write) is translated. In English, the default language, the text doesn't change. **To check**: a filter or an alert set on a log's text only holds while the language stays the same.
 * **A "required" message per field**: a required choice, number or file field left empty shows its own message (`forms.select_required`, `forms.number_required`, `forms.file_required`) instead of the generic one, and the custom message of `set_required(true, Some("…"))` is now honoured inside a form.
+* **Atomic file writes**: `runique new`, `runique makemigrations` and the creation of the `migration/` crate write their files as one batch, all of them or none. An error undoes everything; a hard stop (power cut, `kill -9`) is repaired the next time the same command runs, from a `.runique-journal` left in the folder. If a file was edited by hand since the cut, the repair touches nothing and lists the files involved. `runique migration up`, `down` and `status` refuse to start as long as an interrupted `makemigrations` isn't repaired. The messages are translated in the 9 languages (`atomic` section). See [Atomic file writes](https://runique.io/docs/en/architecture/atomic). **To check**: the names `.runique-journal`, `*.runique-tmp` and `*.runique-bak` belong to Runique.
+* **`.replace()` on `FileField` and `MediaField`**: when a new upload replaces a row's file, the old one is deleted once the write is committed. No effect on a field taking several files; an old file that is missing or can't be deleted never fails the request; nothing is deleted outside `MEDIA_ROOT`. Without `.replace()`, nothing changes: the old file stays.
 
 ### Fixed
 
@@ -45,6 +51,9 @@ All notable changes to this project will be documented in this file.
 * **Rollback of a migration plan**: "lib.rs restored" was printed even when the restore had failed. The message now follows the real outcome.
 * **`OG_IMAGE` had two defaults**: the configuration gave `favicon_runique.ico`, the rendering `runique_320.avif`. There is now one read and one value: `/runique/static/runique_320.avif`.
 * **docs.rs without the admin**: the published documentation was built without the `admin` feature. It is now built with `all-databases`, `admin` and `acme`.
+* **`runique migration` with the `DB_*` keys alone**: the migration crate only reads `DATABASE_URL`. When `.env` gave only `DB_ENGINE`, `DB_USER`…, the app connected but the migrations couldn't find the database. The command now passes on the URL built from the keys; a `DATABASE_URL` that is set is still read as is.
+* **Engine of the `migration/` crate**: when it creates it, `makemigrations` picks its engine the way the app picks its own, from `DATABASE_URL` first, then `DB_ENGINE`.
+* **`runique_test` on MySQL: DDL inside a test was no longer caught**: the check read a variable only MariaDB has. It now sets and releases a savepoint, which the server refuses to release once the test's transaction was committed along the way.
 
 ---
 

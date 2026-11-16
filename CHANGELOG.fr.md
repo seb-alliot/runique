@@ -25,6 +25,10 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 * **`cleaned` ne lit plus l'URL, `Forms::set_url_params` remplacé par `set_path_params`** : `cleaned::<T>("x")` rend la valeur du champ `x` et rien d'autre. Pour une valeur de l'URL, utiliser `request.get_path("x")` / `request.get_path_as::<T>("x")` ou `request.get_query("x")` ; pour pré-remplir un champ depuis un lien, `form.add_value("x", valeur)`. Un formulaire de recherche envoyé en `GET` ne change pas (ses champs sont remplis depuis la query string). `Forms::set_url_params(chemin, query)` devient `Forms::set_path_params(chemin)` : la query string n'est plus donnée au formulaire.
 
+### Retiré
+
+* **MariaDB** : SeaORM ne connaît que PostgreSQL, MySQL et SQLite, et refuse une adresse `mariadb://` ; MariaDB n'a donc jamais été réellement pris en charge. La feature `mariadb`, la variante `DatabaseEngine::MariaDB` et les valeurs `mariadb` de `DB_ENGINE` et de `DATABASE_URL` sont retirées ; les tests de Runique tournent sur MySQL 8.4. **À vérifier** : un projet qui activait la feature `mariadb` passe à `mysql`, avec `DB_ENGINE=mysql` et une adresse `mysql://`.
+
 ### Ajouté
 
 * **`ExclusiveLogin`** : le dernier paramètre de `login` accepte `ExclusiveLogin::{Off, On, Strict}` en plus d'un `bool` (`false` = `Off`, `true` = `On`, sans changement). `Strict` refuse la connexion (`LoginError::Session`) et ferme sa session quand les autres sessions du compte n'ont pas pu être fermées ; `On` journalise l'échec et connecte.
@@ -32,6 +36,8 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 * **Journal de démarrage de l'admin** (`builder.registry`) : la configuration retenue, chaque modèle enregistré (colonnes, filtres, actions, champs du formulaire) et chaque route déclarée `admin`. Trois avertissements ne sont jamais silencieux : une connexion de l'admin sans `LoginGuard` ni limiteur de débit (hors développement), des options de liste sans effet (`links`, `search_help`, `empty_value`), et les feuilles de style de Runique introuvables (`STATIC_RUNIQUE_PATH` qui ne les contient pas).
 * **Journaux traduits** : les messages de journal ajoutés dans cette version (CSRF, admin, sessions, démarrage, erreurs tracées) passent par l'i18n, dans les 9 langues (section `log` des fichiers de langue). Ils suivent la langue de l'application (`set_lang`) ; les noms de champs restent en anglais, la valeur de `reason` (refus CSRF) et de `outcome` (écriture admin) est traduite. En anglais, langue par défaut, le texte ne change pas. **À vérifier** : un filtre ou une alerte posés sur le texte d'un journal ne tiennent que si la langue reste la même.
 * **Messages « requis » propres à chaque champ** : un champ de choix, un nombre ou un fichier requis et vide affiche son propre message (`forms.select_required`, `forms.number_required`, `forms.file_required`) au lieu du message générique, et le message personnalisé de `set_required(true, Some("…"))` est maintenant respecté dans un formulaire.
+* **Écriture atomique des fichiers** : `runique new`, `runique makemigrations` et la création de la crate `migration/` écrivent leurs fichiers en un seul lot, tous ou aucun. Une erreur annule tout ; une coupure (courant, `kill -9`) est réparée au lancement suivant de la même commande, à partir d'un journal `.runique-journal` laissé dans le dossier. Si un fichier a été modifié à la main depuis la coupure, la réparation ne touche à rien et liste les fichiers en cause. `runique migration up`, `down` et `status` refusent de partir tant qu'un `makemigrations` interrompu n'est pas réparé. Les messages sont traduits dans les 9 langues (section `atomic`). Voir [Écriture atomique des fichiers](https://runique.io/docs/fr/architecture/atomic). **À vérifier** : les noms `.runique-journal`, `*.runique-tmp` et `*.runique-bak` sont réservés à Runique.
+* **`.replace()` sur `FileField` et `MediaField`** : quand un nouvel envoi remplace le fichier d'une ligne, l'ancien est supprimé une fois l'écriture validée. Sans effet sur un champ à plusieurs fichiers ; un ancien fichier absent ou impossible à supprimer ne fait jamais échouer la requête ; rien n'est supprimé hors de `MEDIA_ROOT`. Sans `.replace()`, le comportement ne change pas : l'ancien fichier reste.
 
 ### Corrigé
 
@@ -45,6 +51,9 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 * **Annulation d'un plan de migration** : « lib.rs restored » s'affichait même quand la restauration avait échoué. Le message suit maintenant le résultat réel.
 * **`OG_IMAGE` avait deux valeurs par défaut** : la configuration donnait `favicon_runique.ico`, le rendu `runique_320.avif`. Il n'y a plus qu'une lecture et une valeur : `/runique/static/runique_320.avif`.
 * **docs.rs sans l'admin** : la documentation publiée était construite sans la feature `admin`. Elle l'est maintenant avec `all-databases`, `admin` et `acme`.
+* **`runique migration` avec les seules clés `DB_*`** : la crate de migration ne lit que `DATABASE_URL`. Quand le `.env` ne donnait que `DB_ENGINE`, `DB_USER`…, l'application se connectait mais les migrations ne trouvaient pas la base. La commande transmet maintenant l'adresse construite à partir des clés ; une `DATABASE_URL` présente reste lue telle quelle.
+* **Moteur de la crate `migration/`** : à sa création, `makemigrations` choisit son moteur comme l'application choisit le sien, d'après `DATABASE_URL` d'abord, puis `DB_ENGINE`.
+* **`runique_test` sous MySQL : du DDL dans un test n'était plus détecté** : la détection lisait une variable propre à MariaDB. Elle pose et retire maintenant un point de sauvegarde, que le serveur refuse de retirer quand la transaction du test a été validée en cours de route.
 
 ---
 
