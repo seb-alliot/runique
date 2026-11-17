@@ -265,9 +265,21 @@ impl<P> RuniqueAppBuilder<P> {
         // The admin's emailed reset links point to the reset page this app
         // serves. Its "view site" link stays `/` unless set: on the host the
         // browser is on, so the session cookie follows.
+        // An enabled admin never needs `with_password_reset` to open the
+        // accounts it creates: without it, the reset page alone is served,
+        // with Runique's template and default limits. The "forgot password"
+        // form is the site's to open, by declaring it.
+        #[cfg(feature = "admin")]
+        let admin_reset = (self.admin.enabled && self.password_reset.is_none())
+            .then(crate::auth::password::PasswordResetConfig::default);
+        #[cfg(not(feature = "admin"))]
+        let admin_reset: Option<crate::auth::password::PasswordResetConfig> = None;
+
         #[cfg(feature = "admin")]
         if let Some(pr) = &self.password_reset {
             self.admin.config.reset_link = Some((&pr.config).into());
+        } else if let Some(config) = &admin_reset {
+            self.admin.config.reset_link = Some(config.into());
         }
 
         let router = if let Some(pr) = self.password_reset {
@@ -277,6 +289,11 @@ impl<P> RuniqueAppBuilder<P> {
             register_name_url(&engine, "forgot_password", &forgot_path);
             register_name_url(&engine, "reset_password", &reset_path);
             router.merge(pr_router)
+        } else if let Some(config) = admin_reset {
+            let reset_path = format!("{}/{{token}}", config.reset_route.trim_end_matches('/'));
+            let reset_router = crate::auth::password::build_reset_router(Arc::new(config));
+            register_name_url(&engine, "reset_password", &reset_path);
+            router.merge(reset_router)
         } else {
             router
         };
@@ -503,7 +520,10 @@ impl<P> RuniqueAppBuilder<P> {
         }
 
         // No mailer, no reset email: the page could never send its link.
-        if self.password_reset.is_some() && !self.mailer {
+        // The mailer lives in the `.env` alone. Asked of the environment
+        // itself, not of the process-wide mailer another app may have set.
+        let mailer_ready = crate::utils::mailer::MailerConfig::from_env().is_some();
+        if self.password_reset.is_some() && !mailer_ready {
             report.add(
                 CheckError::new(
                     "Mailer",

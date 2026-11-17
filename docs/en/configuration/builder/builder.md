@@ -324,7 +324,6 @@ Some settings replace their value on every call: declaring them twice would sile
 | `.with_password_reset(…)` | |
 | `.with_database(…)` / `.with_database_config(…)` | one **or** the other, once |
 | `.with_session_duration(…)` | |
-| `.with_mailer(…)` / `.with_mailer_from_env()` | one **or** the other, once |
 
 The error names the setting, for instance:
 

@@ -537,11 +537,17 @@ Sur un autre moteur, elle renvoie une erreur ; utilisez `load_genres` après avo
 
 ### Formulaires et admin
 
-**L'admin ne gère pas encore les champs liste** : il n'enregistre pas les valeurs cochées et ne
-pré-remplit pas le formulaire d'édition. `save()` n'écrit pas la liste non plus : elle vit dans
-sa propre table, pas dans une colonne.
+**Dans l'admin**, le champ est affiché (cases ou sélection multiple), enregistré avec sa ligne dans
+la même transaction, et pré-rempli sur la page de modification. Il suit les droits de son nom,
+comme une colonne : affiché si le compte peut le lire, verrouillé s'il ne peut pas le modifier.
+L'historique trace une liste modifiée comme une colonne, avec ses valeurs avant et après, et la
+grille des droits d'un admin propose les champs liste à la suite des colonnes.
 
-En attendant, écrivez-la depuis votre vue. Dans un formulaire, les valeurs cochées se lisent avec
+Une limite : `.form(|f| f.fields([...]))` ne prend que des colonnes. Un modèle qui déclare ainsi
+ses champs n'affiche pas ses champs liste.
+
+**Hors de l'admin**, `save()` n'écrit pas la liste : elle vit dans sa propre table, pas dans une
+colonne. Écrivez-la depuis votre vue. Dans un formulaire, les valeurs cochées se lisent avec
 `cleaned_enums::<Genre>("genres")`, puis s'enregistrent avec `set_genres` (voir « Lire et
 écrire » plus haut) :
 

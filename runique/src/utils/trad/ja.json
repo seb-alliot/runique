@@ -161,7 +161,7 @@
       "suggestion": "提案",
       "context": "コンテキスト",
       "mailer_missing": "メーラーなしのパスワードリセット：リンクを送信できません",
-      "mailer_missing_hint": "builder で設定してください：.with_mailer_from_env()（SMTP_HOST、SMTP_USER…）または .with_mailer(…)"
+      "mailer_missing_hint": ".env で設定してください：EMAIL_BACKEND、または SMTP_HOST・SMTP_USER・SMTP_PASS"
     }
   },
   "server": {
@@ -387,6 +387,7 @@
       "success_email": "リセットリンクを送信しました。",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
+      "error_no_mailer": "このサイトではメール送信が設定されていません。この操作は実行できません。",
       "error_unavailable": "この項目ではパスワードをリセットできません。",
       "error_send": "Error sending email: {}",
       "email_subject": "パスワードのリセット",

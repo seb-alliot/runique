@@ -324,7 +324,6 @@ Certains réglages remplacent leur valeur à chaque appel : les déclarer deux f
 | `.with_password_reset(…)` | |
 | `.with_database(…)` / `.with_database_config(…)` | l'une **ou** l'autre, une fois |
 | `.with_session_duration(…)` | |
-| `.with_mailer(…)` / `.with_mailer_from_env()` | l'une **ou** l'autre, une fois |
 
 L'erreur nomme le réglage, par exemple :
 

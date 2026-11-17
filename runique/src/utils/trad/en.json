@@ -161,7 +161,7 @@
       "suggestion": "Suggestion",
       "context": "Context",
       "mailer_missing": "Password reset without a mailer: the link could never be sent",
-      "mailer_missing_hint": "Set it in the builder: .with_mailer_from_env() (SMTP_HOST, SMTP_USER…) or .with_mailer(…)"
+      "mailer_missing_hint": "Set it in .env: EMAIL_BACKEND, or SMTP_HOST, SMTP_USER and SMTP_PASS"
     }
   },
   "server": {
@@ -387,6 +387,7 @@
       "success_email": "Reset link sent.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
+      "error_no_mailer": "Email sending is not configured on this site: this action cannot be done.",
       "error_unavailable": "A password reset isn't available for this item.",
       "error_send": "Error sending email: {}",
       "email_subject": "Reset your password",

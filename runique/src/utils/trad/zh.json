@@ -161,7 +161,7 @@
       "suggestion": "建议",
       "context": "上下文",
       "mailer_missing": "没有邮件服务的密码重置：链接永远无法发送",
-      "mailer_missing_hint": "在 builder 中配置：.with_mailer_from_env()（SMTP_HOST、SMTP_USER…）或 .with_mailer(…)"
+      "mailer_missing_hint": "在 .env 中配置：EMAIL_BACKEND，或 SMTP_HOST、SMTP_USER 和 SMTP_PASS"
     }
   },
   "server": {
@@ -387,6 +387,7 @@
       "success_email": "重置链接已发送。",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
+      "error_no_mailer": "此站点未配置邮件发送：无法执行此操作。",
       "error_unavailable": "此项目无法重置密码。",
       "error_send": "Error sending email: {}",
       "email_subject": "重置您的密码",

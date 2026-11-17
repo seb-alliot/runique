@@ -26,7 +26,6 @@ Runique includes a complete, ready-to-use system:
 ```rust
 RuniqueApp::builder(config)
     .with_public_url("https://mysite.com")
-    .with_mailer_from_env()
     .with_password_reset(|pr| pr)
     .build()
     .await?
@@ -34,7 +33,11 @@ RuniqueApp::builder(config)
 
 The links sent by email are built on the site's public URL, set in the builder with `.with_public_url("https://mysite.com")` (see [Builder](/docs/en/configuration/builder)).
 
-In production, the app refuses to boot without it, and without a mailer. The link is **never** built from the request's `Host` header, which an attacker chooses (`Host: evil.com` → the victim's token would go to them). In development (`RUNIQUE_ENV=dev`), the address is always `http://127.0.0.1:{PORT}`, whatever the builder was given: a test link never leads to the production site.
+`with_password_reset` opens the "forgot password" form to visitors and lets you set the routes, the templates and the rate limit. The mailer itself is configured in `.env` only (see [Mailer](/docs/en/mailer)).
+
+Without this declaration, an enabled admin still serves the page its links lead to (`/reset-password/{token}`), with Runique's template and the default rate limit: it can open the accounts it creates. The request form is not served: nobody can ask for a link.
+
+In production, the app refuses to boot without a public address, and without a complete mailer in `.env` when `with_password_reset` is declared. The link is **never** built from the request's `Host` header, which an attacker chooses (`Host: evil.com` → the victim's token would go to them). In development (`RUNIQUE_ENV=dev`), the address is always `http://127.0.0.1:{PORT}`, whatever the builder was given: a test link never leads to the production site.
 
 > Accounts are those of `eihwaz_users`, the framework's user table — extend it with `extend!{ table: "eihwaz_users", ... }`.
 
@@ -53,6 +56,16 @@ All options are optional — the defaults work without any changes.
     .email_template("emails/reset.html")        // default: built-in template
     .token_ttl(Duration::from_secs(1800))       // default: 1h (std::time::Duration)
 )
+```
+
+The rate limit of both pages is set by two fields, in the same closure:
+
+```rust
+.with_password_reset(|mut pr| {
+    pr.max_requests = 10;   // default: 5 requests…
+    pr.retry_after = 600;   // …per window of 300 seconds, per address
+    pr
+})
 ```
 
 ---

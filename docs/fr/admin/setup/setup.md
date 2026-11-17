@@ -12,6 +12,7 @@ Guide pas à pas pour activer l'interface d'administration avec le builder `Mode
   ```
 
 - Des modèles déclarés via `model!` (entités SeaORM générées)
+- Un mailer complet dans le `.env` (`EMAIL_BACKEND=console` suffit en développement) pour créer des comptes depuis l'admin : sans lui, l'admin refuse la création. Voir [Création d'utilisateurs](/docs/fr/admin/user-creation)
 
 ## Étape 1 — Créer `src/admin.rs`
 

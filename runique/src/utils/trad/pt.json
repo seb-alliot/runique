@@ -161,7 +161,7 @@
       "suggestion": "Sugestão",
       "context": "Contexto",
       "mailer_missing": "Redefinição de senha sem mailer: o link nunca poderia ser enviado",
-      "mailer_missing_hint": "Configure-o no builder: .with_mailer_from_env() (SMTP_HOST, SMTP_USER…) ou .with_mailer(…)"
+      "mailer_missing_hint": "Configure-o no .env: EMAIL_BACKEND, ou SMTP_HOST, SMTP_USER e SMTP_PASS"
     }
   },
   "server": {
@@ -387,6 +387,7 @@
       "success_email": "Link de redefinição enviado.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
+      "error_no_mailer": "O envio de email não está configurado neste site: ação impossível.",
       "error_unavailable": "A redefinição de senha não está disponível para este item.",
       "error_send": "Error sending email: {}",
       "email_subject": "Redefina sua senha",

@@ -1,55 +1,239 @@
 /* Pages "mot de passe oublié" et "nouveau mot de passe" de Runique : servies
-   comme fichier, la CSP par défaut refusant les styles en ligne. */
+   comme fichier, la CSP par défaut refusant les styles en ligne.
+
+   Les couleurs sont des variables : un projet qui garde ces pages les accorde
+   à son site en les redéfinissant, sans réécrire la feuille. Le thème sombre
+   suit le réglage du visiteur. */
+
+:root {
+    color-scheme: light dark;
+
+    --auth-bg: #f4f5f7;
+    --auth-card: #ffffff;
+    --auth-text: #111827;
+    --auth-muted: #5b6472;
+    --auth-border: #d5d9e0;
+    --auth-field: #ffffff;
+    --auth-accent: #c2410c;
+    --auth-accent-hover: #9a3412;
+    --auth-on-accent: #ffffff;
+    --auth-ring: rgba(194, 65, 12, 0.25);
+    --auth-error: #b91c1c;
+    --auth-error-bg: #fee2e2;
+    --auth-success: #166534;
+    --auth-success-bg: #dcfce7;
+    --auth-info: #1e40af;
+    --auth-info-bg: #dbeafe;
+    --auth-warning: #92400e;
+    --auth-warning-bg: #fef3c7;
+    --auth-shadow: 0 1px 2px rgba(17, 24, 39, 0.06), 0 12px 32px rgba(17, 24, 39, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --auth-bg: #0b0f17;
+        --auth-card: #131a26;
+        --auth-text: #f3f4f6;
+        --auth-muted: #9aa4b2;
+        --auth-border: #2a3444;
+        --auth-field: #0e1420;
+        --auth-accent: #fb923c;
+        --auth-accent-hover: #fdba74;
+        --auth-on-accent: #1a1207;
+        --auth-ring: rgba(251, 146, 60, 0.3);
+        --auth-error: #fca5a5;
+        --auth-error-bg: rgba(185, 28, 28, 0.2);
+        --auth-success: #86efac;
+        --auth-success-bg: rgba(22, 101, 52, 0.25);
+        --auth-info: #93c5fd;
+        --auth-info-bg: rgba(30, 64, 175, 0.25);
+        --auth-warning: #fcd34d;
+        --auth-warning-bg: rgba(146, 64, 14, 0.25);
+        --auth-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.35);
+    }
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
 body {
-    font-family: system-ui, sans-serif;
-    background: #f5f5f5;
     display: flex;
     align-items: center;
     justify-content: center;
     min-height: 100vh;
     margin: 0;
+    padding: 1.5rem 1rem;
+    background: var(--auth-bg);
+    color: var(--auth-text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 1rem;
+    line-height: 1.5;
 }
 
 .card {
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-    padding: 2rem;
     width: 100%;
-    max-width: 420px;
+    max-width: 26rem;
+    padding: 2rem;
+    background: var(--auth-card);
+    border: 1px solid var(--auth-border);
+    border-radius: 0.75rem;
+    box-shadow: var(--auth-shadow);
 }
 
 h1 {
-    margin-top: 0;
+    margin: 0 0 1.5rem;
     font-size: 1.5rem;
-}
-
-.alert {
-    padding: 0.75rem 1rem;
-    border-radius: 4px;
-    margin-bottom: 1rem;
-}
-
-.alert-success {
-    background: #d1fae5;
-    color: #065f46;
-}
-
-.alert-error {
-    background: #fee2e2;
-    color: #991b1b;
+    font-weight: 650;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
 }
 
 a {
-    color: #3b82f6;
+    color: var(--auth-accent);
+    text-underline-offset: 0.15em;
 }
 
+a:hover {
+    color: var(--auth-accent-hover);
+}
+
+/* ── Champs (HTML des champs de Runique) ─────────────────── */
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.125rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.form-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.form-control {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--auth-field);
+    border: 1px solid var(--auth-border);
+    border-radius: 0.5rem;
+    color: var(--auth-text);
+    font: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-control:focus {
+    border-color: var(--auth-accent);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--auth-ring);
+}
+
+.form-control.is-invalid {
+    border-color: var(--auth-error);
+}
+
+.invalid-feedback,
+.form-error {
+    color: var(--auth-error);
+    font-size: 0.875rem;
+}
+
+.form-text {
+    color: var(--auth-muted);
+    font-size: 0.875rem;
+}
+
+/* ── Bouton ──────────────────────────────────────────────── */
+
 .auth-submit {
-    margin-top: 1rem;
+    width: 100%;
+    min-height: 2.75rem;
+    margin-top: 0.25rem;
     padding: 0.5rem 1.25rem;
-    background: #3b82f6;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
+    background: var(--auth-accent);
+    border: 0;
+    border-radius: 0.5rem;
+    color: var(--auth-on-accent);
+    font: inherit;
+    font-weight: 600;
     cursor: pointer;
+    transition: background 0.15s;
+}
+
+.auth-submit:hover {
+    background: var(--auth-accent-hover);
+}
+
+.auth-submit:focus-visible,
+a:focus-visible {
+    outline: 3px solid var(--auth-ring);
+    outline-offset: 2px;
+}
+
+/* ── Messages ────────────────────────────────────────────── */
+
+.flash-messages {
+    display: grid;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.message,
+.alert {
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.9375rem;
+}
+
+.alert {
+    margin-bottom: 1rem;
+}
+
+.message-success,
+.alert-success {
+    background: var(--auth-success-bg);
+    color: var(--auth-success);
+}
+
+.message-error,
+.alert-error {
+    background: var(--auth-error-bg);
+    color: var(--auth-error);
+}
+
+.message-info {
+    background: var(--auth-info-bg);
+    color: var(--auth-info);
+}
+
+.message-warning {
+    background: var(--auth-warning-bg);
+    color: var(--auth-warning);
+}
+
+.alert a {
+    color: inherit;
+    font-weight: 600;
+}
+
+@media (max-width: 30rem) {
+    .card {
+        padding: 1.5rem 1.25rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .form-control,
+    .auth-submit {
+        transition: none;
+    }
 }

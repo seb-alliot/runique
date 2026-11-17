@@ -12,6 +12,7 @@ Step-by-step guide to enable the admin with the `ModelAdmin` builder.
   ```
 
 - Models declared via `model!` (generated SeaORM entities)
+- A complete mailer in `.env` (`EMAIL_BACKEND=console` is enough in development) to create accounts from the admin: without it, the admin refuses the creation. See [User creation](/docs/en/admin/user-creation)
 
 ## Step 1 — Create `src/admin.rs`
 

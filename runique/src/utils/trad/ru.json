@@ -161,7 +161,7 @@
       "suggestion": "Рекомендация",
       "context": "Контекст",
       "mailer_missing": "Сброс пароля без почтовой службы: ссылку невозможно отправить",
-      "mailer_missing_hint": "Настройте в builder: .with_mailer_from_env() (SMTP_HOST, SMTP_USER…) или .with_mailer(…)"
+      "mailer_missing_hint": "Задайте в .env: EMAIL_BACKEND либо SMTP_HOST, SMTP_USER и SMTP_PASS"
     }
   },
   "server": {
@@ -387,6 +387,7 @@
       "success_email": "Ссылка для сброса отправлена.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
+      "error_no_mailer": "Отправка почты на этом сайте не настроена: действие невозможно.",
       "error_unavailable": "Сброс пароля для этого элемента недоступен.",
       "error_send": "Error sending email: {}",
       "email_subject": "Сброс пароля",

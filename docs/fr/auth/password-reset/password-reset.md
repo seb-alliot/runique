@@ -26,7 +26,6 @@ Runique intègre un système complet, prêt à l'emploi :
 ```rust
 RuniqueApp::builder(config)
     .with_public_url("https://monsite.com")
-    .with_mailer_from_env()
     .with_password_reset(|pr| pr)
     .build()
     .await?
@@ -34,7 +33,11 @@ RuniqueApp::builder(config)
 
 Les liens envoyés par email partent de l'URL publique du site, définie dans le builder par `.with_public_url("https://monsite.com")` (voir [Builder](/docs/fr/configuration/builder)).
 
-En production, l'application refuse de démarrer sans elle, et sans mailer. Le lien n'est **jamais** construit à partir de l'en-tête `Host` de la requête, qu'un attaquant choisit (`Host: evil.com` → le jeton de la victime partirait chez lui). En développement (`RUNIQUE_ENV=dev`), l'adresse est toujours `http://127.0.0.1:{PORT}`, quelle que soit celle donnée au builder : un lien de test ne mène jamais au site de production.
+`with_password_reset` ouvre aux visiteurs le formulaire « mot de passe oublié » et permet de régler les routes, les gabarits et la limite de débit. Le mailer, lui, se configure dans le `.env` seulement (voir [Mailer](/docs/fr/mailer)).
+
+Sans cette déclaration, un admin actif sert quand même la page d'arrivée de ses liens (`/reset-password/{token}`), avec le gabarit de Runique et la limite de débit par défaut : il peut ouvrir les comptes qu'il crée. Le formulaire de demande, lui, n'est pas servi : personne ne peut demander un lien.
+
+En production, l'application refuse de démarrer sans adresse publique, et sans mailer complet dans le `.env` quand `with_password_reset` est déclaré. Le lien n'est **jamais** construit à partir de l'en-tête `Host` de la requête, qu'un attaquant choisit (`Host: evil.com` → le jeton de la victime partirait chez lui). En développement (`RUNIQUE_ENV=dev`), l'adresse est toujours `http://127.0.0.1:{PORT}`, quelle que soit celle donnée au builder : un lien de test ne mène jamais au site de production.
 
 > Les comptes sont ceux de `eihwaz_users`, la table utilisateur du framework — à enrichir avec `extend!{ table: "eihwaz_users", ... }`.
 
@@ -53,6 +56,16 @@ Toutes les options sont optionnelles — les valeurs par défaut fonctionnent sa
     .email_template("emails/reset.html")         // défaut : template intégré
     .token_ttl(Duration::from_secs(1800))        // défaut : 1h (std::time::Duration)
 )
+```
+
+La limite de débit des deux pages se règle par deux champs, dans la même fermeture :
+
+```rust
+.with_password_reset(|mut pr| {
+    pr.max_requests = 10;   // défaut : 5 requêtes…
+    pr.retry_after = 600;   // …par fenêtre de 300 secondes, par adresse
+    pr
+})
 ```
 
 ---
