@@ -433,12 +433,22 @@ mod tests {
                 file
             })
             .collect();
+        stopped_with(dir, action, items, cut_at)
+    }
+
+    /// The same for a batch whose files are already described.
+    fn stopped_with(
+        dir: &TempDir,
+        action: &ActionAtomic,
+        items: Vec<ItemsPath>,
+        cut_at: usize,
+    ) -> PathManager {
+        let count = items.len();
         let mut manager = manager(items);
         manager.journal = Some(dir.path().to_path_buf());
         manager.create_dirs().unwrap();
         manager.record().unwrap();
 
-        let count = files.len();
         let events = (0..PASSES)
             .flat_map(|_| (0..count).map(Event::Step))
             .chain([Event::Mark])
@@ -539,6 +549,78 @@ mod tests {
             assert_eq!(&disk(&dir), expected, "cut {cut}");
 
             whole_batch(&dir, true, &REPLACED).unwrap();
+            assert_eq!(disk(&dir), after, "cut {cut}, run again");
+        }
+    }
+
+    /// A file taken away, one replaced by the text the first one held, one new.
+    fn removal_originals(dir: &TempDir) {
+        fs::write(dir.join("gone.txt"), "identical").unwrap();
+        fs::write(dir.join("kept.txt"), "identical").unwrap();
+    }
+
+    fn removal_items(dir: &TempDir) -> Vec<ItemsPath> {
+        let mut gone = item(dir, "gone.txt", AtomicStep::Waiting);
+        gone.source = SourceItems::Remove;
+        vec![
+            gone,
+            item(dir, "kept.txt", AtomicStep::Waiting),
+            item(dir, "sub/fresh.txt", AtomicStep::Waiting),
+        ]
+    }
+
+    fn removal_batch(dir: &TempDir) -> io::Result<()> {
+        AtomicBuilder::modify()
+            .journal(dir.path())
+            .add(dir.join("gone.txt"), SourceItems::Remove, false)?
+            .add(dir.join("kept.txt"), SourceItems::Bytes(b"new".to_vec()), false)?
+            .add(
+                dir.join("sub/fresh.txt"),
+                SourceItems::Bytes(b"new".to_vec()),
+                false,
+            )?
+            .start()
+    }
+
+    // The same with a file the batch takes away. Undone, the file is back and
+    // the command runs again; finished, the file is gone for good, and the
+    // command run again finds nothing to take away and changes nothing.
+    #[test]
+    fn a_removal_cut_after_any_step_is_repaired_then_runs_again() {
+        let before = {
+            let dir = TempDir::new();
+            removal_originals(&dir);
+            disk(&dir)
+        };
+        let after = {
+            let dir = TempDir::new();
+            removal_originals(&dir);
+            removal_batch(&dir).unwrap();
+            disk(&dir)
+        };
+        assert!(!after.iter().any(|(entry, _)| entry == "gone.txt"));
+        let count = 3;
+        let point_of_no_return = PASSES * count;
+        let last = point_of_no_return + 1 + count + 1;
+
+        for cut in 0..=last {
+            let dir = TempDir::new();
+            removal_originals(&dir);
+            drop(stopped_with(
+                &dir,
+                &ActionAtomic::Modify,
+                removal_items(&dir),
+                cut,
+            ));
+
+            let repaired = journal::recover(dir.path()).unwrap();
+
+            assert_eq!(repaired, cut < last, "cut {cut}");
+            let undone = cut <= point_of_no_return;
+            let expected = if undone { &before } else { &after };
+            assert_eq!(&disk(&dir), expected, "cut {cut}");
+
+            assert_eq!(removal_batch(&dir).is_ok(), undone, "cut {cut}");
             assert_eq!(disk(&dir), after, "cut {cut}, run again");
         }
     }

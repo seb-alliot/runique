@@ -259,6 +259,11 @@ impl<E: ModelMeta> ModelAdmin<E> {
                     errors.push(format!(
                         "fields: `{name}` is a secret column needed to create a row (NOT NULL, no default): the admin can never fill it, give it a default"
                     ));
+                } else if self.form.has_field(name) {
+                    // Listed, but `readonly` takes it out of the create form too.
+                    errors.push(format!(
+                        "fields: `{name}` is needed to create a row (NOT NULL, no default) but is `readonly`: use `create_only` to freeze it after creation, or give it a default"
+                    ));
                 } else {
                     errors.push(format!(
                         "fields: `{name}` is needed to create a row (NOT NULL, no default): add it to `fields` or give it a default"
@@ -1136,6 +1141,8 @@ mod tests {
             error.contains("`title` is needed to create a row"),
             "{error}"
         );
+        assert!(error.contains("add it to `fields`"), "{error}");
+        assert!(!error.contains("create_only"), "{error}");
     }
 
     #[test]
@@ -1157,6 +1164,9 @@ mod tests {
             error.contains("`title` is needed to create a row"),
             "{error}"
         );
+        // Already listed: told about `create_only`, not to add it again.
+        assert!(error.contains("use `create_only`"), "{error}");
+        assert!(!error.contains("add it to `fields`"), "{error}");
     }
 
     /// One mutation per `||` of `filled_elsewhere`: dropping any of them

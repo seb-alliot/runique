@@ -14,6 +14,7 @@ use crate::auth::history::{ActionLog, log_action, redact_sensitive};
 use crate::auth::meta::ModelMeta;
 use crate::auth::permissions::groupe;
 use crate::auth::permissions::rang::Rang;
+use crate::auth::permissions::rights::ColumnRights;
 use crate::auth::user;
 use crate::forms::form::{Forms, SaveComportement, write_with_uploads};
 use crate::forms::save::{SaveAction, on_fields, url_key};
@@ -130,6 +131,29 @@ async fn keeps_responsable<E: ModelMeta, C: ConnectionTrait>(
     take_back(db, actor, keys).await
 }
 
+/// The list fields of `E` the form writes, with their values as the form
+/// holds them: in the form, not locked, ticked for this kind of write — the
+/// rule [`changes`] applies to a column, under the same name. A list has no
+/// column, so `changes` never sees it.
+fn list_changes<E: ModelMeta>(
+    form: &Forms,
+    rights: &ColumnRights,
+    kind: WriteKind,
+) -> std::collections::HashMap<String, String> {
+    E::LISTS
+        .iter()
+        .filter_map(|name| {
+            let field = form.fields.get(*name)?;
+            let allowed = match kind {
+                WriteKind::Create => rights.can_create(name),
+                WriteKind::Update => rights.can_update(name),
+            };
+            (allowed && !field.is_locked())
+                .then(|| ((*name).to_string(), field.value().to_string()))
+        })
+        .collect()
+}
+
 /// The gated write of `form` on `E`, as the account its constraint carries.
 /// Without a key in the URL `save` creates, with one it updates; `delete`
 /// needs one. A key that doesn't read as `E`'s is refused as not found.
@@ -169,11 +193,13 @@ where
                 model.try_set(password, Value::from(hash))?;
             }
             missing_required::<E>(&model).map_err(|e| on_fields(form, e))?;
+            let lists = list_changes::<E>(form, &rights.columns, WriteKind::Create);
             write_with_uploads(form, async {
                 let txn = db.begin().await?;
                 let row = write::insert::<E, E::ActiveModel, _>(proof, model, &txn)
                     .await
                     .map_err(refused)?;
+                E::save_lists(&row, &txn, &lists).await?;
                 trace::<E, _>(&txn, &user, &row, "create", None, None).await?;
                 Ok(txn)
             })
@@ -192,7 +218,8 @@ where
             {
                 model.not_set(owner);
             }
-            if !model.is_changed() {
+            let lists = list_changes::<E>(form, &rights.columns, WriteKind::Update);
+            if !model.is_changed() && lists.is_empty() {
                 return Ok(());
             }
             write_with_uploads(form, async {
@@ -204,7 +231,14 @@ where
                 };
                 keeps_responsable::<E, _>(&txn, &user, &old, deactivates::<E>(&model)).await?;
                 let summary = summary::<E>(&old, &model);
-                write::update(proof, model, &txn).await.map_err(refused)?;
+                if model.is_changed() {
+                    write::update(proof, model, &txn).await.map_err(refused)?;
+                } else {
+                    // Only a list changes: no column to write, the proof is
+                    // still replayed on the row.
+                    write::still_granted(proof, &txn).await.map_err(refused)?;
+                }
+                E::save_lists(&old, &txn, &lists).await?;
                 trace::<E, _>(&txn, &user, &old, "update", summary, None).await?;
                 Ok(txn)
             })

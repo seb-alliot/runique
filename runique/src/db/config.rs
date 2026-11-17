@@ -80,10 +80,14 @@ impl DatabaseConfig {
             config: DatabaseConfig {
                 url,
                 engine,
-                max_connections: 100,
-                min_connections: 20,
+                // Small on purpose: a first connection to a server can take
+                // longer than half a second in a debug build, and one site
+                // must not hold the whole server (100 connections by default
+                // on PostgreSQL). A busy site raises them in its `.env`.
+                max_connections: 10,
+                min_connections: 2,
                 connect_timeout: Duration::from_secs(2),
-                acquire_timeout: Duration::from_millis(500),
+                acquire_timeout: Duration::from_secs(5),
                 idle_timeout: Duration::from_secs(300),
                 max_lifetime: Duration::from_secs(3600),
                 sqlx_logging: false,
@@ -109,12 +113,12 @@ impl DatabaseConfig {
     /// - `DB_NAME` - Database name (default: `local_base.sqlite` for SQLite)
     ///
     /// **Connection pool**
-    /// - `DB_MAX_CONNECTIONS` - Maximum pool size (default: `100`)
-    /// - `DB_MIN_CONNECTIONS` - Minimum pool size (default: `20`)
+    /// - `DB_MAX_CONNECTIONS` - Maximum pool size (default: `10`)
+    /// - `DB_MIN_CONNECTIONS` - Minimum pool size (default: `2`)
     ///
     /// **Timeouts (in seconds)**
     /// - `DB_CONNECT_TIMEOUT` - Connection timeout (default: `2`)
-    /// - `DB_ACQUIRE_TIMEOUT` - Pool acquire timeout in milliseconds (default: `500`)
+    /// - `DB_ACQUIRE_TIMEOUT` - Pool acquire timeout in milliseconds (default: `5000`)
     /// - `DB_IDLE_TIMEOUT` - Idle connection lifetime (default: `300`)
     /// - `DB_MAX_LIFETIME` - Maximum connection lifetime (default: `3600`)
     ///
@@ -302,6 +306,67 @@ impl DatabaseConfig {
     }
 }
 
+impl DatabaseConfig {
+    /// The name of the database this configuration connects to, read from its
+    /// URL: what follows the host for a server (or `?dbname=` on PostgreSQL),
+    /// the file for SQLite. `None` when the URL names none, or when it can be
+    /// read two ways (see [`database_name`]).
+    pub(crate) fn database_name(&self) -> Option<String> {
+        database_name(&self.url, &self.engine)
+    }
+
+    /// The name the startup message shows: the one of the configuration the
+    /// environment gives, read the way [`from_env`](Self::from_env) connects
+    /// (`DATABASE_URL` first, then the `DB_*` keys, then SQLite's default
+    /// file). `None` when the environment gives no usable configuration.
+    pub(crate) fn displayed_name() -> Option<String> {
+        Self::from_env().ok()?.build().database_name()
+    }
+}
+
+/// The database a connection URL names, for display only.
+///
+/// The user and the password sit before the last `@` and the query may hold
+/// a `password=`: neither must come out. A raw `?` or `@` inside a secret
+/// makes the URL readable two ways, so the name is read both ways (`@` first,
+/// then `?` first) and shown only when they agree.
+fn database_name(url: &str, engine: &DatabaseEngine) -> Option<String> {
+    let (_, rest) = url.split_once(':')?;
+    let after_at = |s: &'_ str| -> String {
+        s.rsplit_once('@').map_or(s, |(_, after)| after).to_string()
+    };
+    let before_query = |s: &'_ str| -> String {
+        s.split_once('?').map_or(s, |(before, _)| before).to_string()
+    };
+    let name_of = |location: String| -> String {
+        let location = location.trim_start_matches("//");
+        match engine {
+            DatabaseEngine::SQLite => location.to_string(),
+            _ => location
+                .split_once('/')
+                .map_or("", |(_, name)| name)
+                .to_string(),
+        }
+    };
+
+    let name = name_of(before_query(&after_at(rest)));
+    if name != name_of(after_at(&before_query(rest))) {
+        return None;
+    }
+    if !name.is_empty() {
+        return Some(name);
+    }
+    if !matches!(engine, DatabaseEngine::PostgreSQL) {
+        return None;
+    }
+    let (_, query) = rest.split_once('?')?;
+    query
+        .split('&')
+        .find_map(|param| param.strip_prefix("dbname="))
+        .filter(|name| !name.is_empty())
+        .map(String::from)
+}
+
 impl std::fmt::Debug for DatabaseConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DatabaseConfig")
@@ -451,6 +516,96 @@ mod tests {
         let debug = format!("{config:?}");
         assert!(!debug.contains("secret123"));
         assert!(debug.contains("myuser:****@localhost"));
+    }
+
+    fn name_of(url: &str) -> Option<String> {
+        DatabaseConfig::from_url(url)
+            .unwrap()
+            .build()
+            .database_name()
+    }
+
+    #[test]
+    fn test_database_name_of_a_server_url() {
+        assert_eq!(
+            name_of("postgres://bob:secret@localhost:5432/shop").as_deref(),
+            Some("shop")
+        );
+        assert_eq!(
+            name_of("mysql://bob:secret@db:3306/shop?ssl-mode=required").as_deref(),
+            Some("shop")
+        );
+        assert_eq!(name_of("postgres://localhost/shop").as_deref(), Some("shop"));
+    }
+
+    #[test]
+    fn test_database_name_absent_from_a_server_url() {
+        assert_eq!(name_of("postgres://bob:secret@localhost:5432"), None);
+        assert_eq!(name_of("postgres://bob:secret@localhost:5432/"), None);
+        assert_eq!(name_of("mysql://bob:secret@db:3306/?ssl-mode=required"), None);
+    }
+
+    #[test]
+    fn test_database_name_from_the_dbname_parameter_on_postgres_only() {
+        assert_eq!(
+            name_of("postgres://db.local?user=bob&dbname=shop").as_deref(),
+            Some("shop")
+        );
+        assert_eq!(name_of("postgres://db.local?user=bob&dbname="), None);
+        assert_eq!(name_of("mysql://db.local?dbname=shop"), None);
+    }
+
+    #[test]
+    fn test_database_name_of_sqlite_is_its_file() {
+        assert_eq!(
+            name_of("sqlite://data.db?mode=rwc").as_deref(),
+            Some("data.db")
+        );
+        assert_eq!(name_of("sqlite://:memory:").as_deref(), Some(":memory:"));
+        assert_eq!(name_of("sqlite://"), None);
+    }
+
+    #[test]
+    fn test_database_name_never_shows_a_secret() {
+        // `@` in the password: still read after the last one.
+        assert_eq!(
+            name_of("postgres://bob:p@ss/word@localhost/shop").as_deref(),
+            Some("shop")
+        );
+        // Raw `?` and `/` in the password: `?` first would show `word`.
+        assert_eq!(name_of("postgres://bob:pass/word?x@localhost/shop"), None);
+        // `@` and `/` in a query password: `@` first would show `er2`.
+        assert_eq!(
+            name_of("postgres://db.local/shop?password=hu@nt/er2"),
+            None
+        );
+        for url in [
+            "postgres://bob:secret123@localhost/shop",
+            "postgres://db.local/shop?user=bob&password=secret123",
+            "postgres://bob:secret123@localhost",
+        ] {
+            let shown = name_of(url).unwrap_or_default();
+            assert!(!shown.contains("secret123") && !shown.contains("bob"), "{shown}");
+        }
+    }
+
+    #[test]
+    fn test_database_name_follows_the_url_built_from_components() {
+        let vars: std::collections::HashMap<&str, &str> = [
+            ("DB_ENGINE", "postgres"),
+            ("DB_USER", "bob"),
+            ("DB_PASSWORD", "secret"),
+            ("DB_NAME", "app"),
+        ]
+        .into();
+        let config = DatabaseConfig::from_lookup(|key| vars.get(key).map(|v| v.to_string()))
+            .unwrap()
+            .build();
+        assert_eq!(config.database_name().as_deref(), Some("app"));
+
+        // Nothing set: SQLite's default file, the one actually opened.
+        let config = DatabaseConfig::from_lookup(|_| None).unwrap().build();
+        assert_eq!(config.database_name().as_deref(), Some("local_base.sqlite"));
     }
 
     #[test]

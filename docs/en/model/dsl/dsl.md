@@ -122,7 +122,7 @@ The Rust type shown is the one of a NOT NULL column; a `nullable` column gives `
 | `char`             | `String`                  | `VARCHAR`                       |
 | `email`            | `String`                  | `VARCHAR(254)` — format validated |
 | `password`         | `String`                  | `VARCHAR` — hashed automatically |
-| `richtext`         | `String`                  | `TEXT` — HTML editor (sanitized) |
+| `richtext`         | `String`                  | `TEXT` — HTML written in a text area, sanitized on save (no visual editor) |
 | `textarea`         | `String`                  | `TEXT` — multi-line             |
 | `url`              | `String`                  | `VARCHAR` — format validated    |
 | `slug`             | `String`                  | `VARCHAR`                       |
@@ -238,14 +238,22 @@ parser refuses, at compile time:
 - `nullable` on `auto_now` / `auto_now_update`: the framework always fills them;
 - a field that isn't text-like (number, date, choice, uuid, json…) declared without `required`,
   `nullable` or `default` — an optional field left empty would have nothing to store in a NOT
-  NULL column. Text, file, binary and `bool` fields can stay optional: they always submit a
-  storable value (empty text, no file, unchecked box).
+  NULL column. Text, file, binary and `bool` fields are accepted without these attributes.
+
+> **A text or file field left empty writes nothing to its column.** Runique does not store an
+> empty text. On a NOT NULL column with no default:
+>
+> - on creation, the database refuses the row ("A required value is missing");
+> - on update, the former value is kept: emptying the field does not clear it.
+>
+> For a truly optional field, declare it `nullable`: left empty, it is `NULL`, on creation and on
+> update alike. An unchecked `bool` box does store `false`.
 
 ```rust
 {
     title:        text  [required],          // NOT NULL, mandatory in the form
-    subtitle:     text,                      // NOT NULL, optional (empty text)
-    summary:      text  [nullable],          // may be NULL — Option<String>
+    subtitle:     text,                      // NOT NULL: to fill on creation (see the note)
+    summary:      text  [nullable],          // optional: NULL when left empty — Option<String>
     score:        int   [default: 0],        // NOT NULL, 0 when nothing is typed
     published_on: date  [nullable],          // may be NULL — Option<NaiveDate>
 }
@@ -522,9 +530,17 @@ On another engine it returns an error; use `load_genres` after reading the page.
 
 ### Forms and admin
 
-The admin shows the field (checkboxes or multiple select), saves the row and its list in the
-same transaction, and pre-fills the edit form. In a form, the checked values are read with
-`cleaned_enums::<Genre>("genres")`.
+**The admin does not handle list fields yet**: it neither saves the checked values nor pre-fills
+the edit form. `save()` does not write the list either: it lives in its own table, not in a
+column.
+
+Until then, write it from your view. In a form, the checked values are read with
+`cleaned_enums::<Genre>("genres")`, then saved with `set_genres` (see "Reading and writing" above):
+
+```rust
+let genres = form.cleaned_enums::<Genre>("genres");
+book.set_genres(&db, genres).await?;
+```
 
 ---
 

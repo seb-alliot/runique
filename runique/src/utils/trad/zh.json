@@ -168,6 +168,7 @@
     "operational": "Runique 正在运行",
     "launched": "服务器已启动于 {}",
     "connected_db": "已连接到数据库 {} -> {}",
+    "connected_engine": "已连接到数据库 {}",
     "stop_hint": "按 Ctrl + C 停止",
     "shutting_down": "正在关闭 Runique 服务器...",
     "acme_not_compiled": "ACME_ENABLED=true，但未编译 `acme` 功能。",

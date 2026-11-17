@@ -2166,3 +2166,183 @@ fn an_empty_batch_does_not_even_make_the_journal_s_folder() {
 
     assert!(dir.entries().is_empty());
 }
+
+// ── Files taken away ─────────────────────────────────────────────────────────
+
+#[test]
+fn a_modify_batch_takes_a_file_away_and_leaves_no_backup() {
+    let dir = TempDir::new();
+    write(&dir.join("gone.txt"), "old");
+    write(&dir.join("kept.txt"), "before");
+
+    AtomicBuilder::modify()
+        .add(dir.join("gone.txt"), SourceItems::Remove, false)
+        .unwrap()
+        .add(dir.join("kept.txt"), bytes("after"), false)
+        .unwrap()
+        .start()
+        .unwrap();
+
+    assert_eq!(read(&dir.join("kept.txt")), "after");
+    assert_eq!(dir.entries(), ["kept.txt"]);
+}
+
+// A directory can't be backed up as a file: `b.txt` fails once `gone.txt` has
+// already been taken away.
+#[cfg(unix)]
+#[test]
+fn a_file_taken_away_comes_back_when_the_batch_fails() {
+    let dir = TempDir::new();
+    write(&dir.join("gone.txt"), "old");
+    fs::create_dir(dir.join("b.txt")).unwrap();
+
+    let outcome = AtomicBuilder::modify()
+        .add(dir.join("gone.txt"), SourceItems::Remove, false)
+        .unwrap()
+        .add(dir.join("b.txt"), bytes("new"), false)
+        .unwrap()
+        .start();
+
+    assert!(outcome.is_err());
+    assert_eq!(read(&dir.join("gone.txt")), "old");
+    assert_eq!(dir.entries(), ["b.txt", "gone.txt"]);
+}
+
+// Nothing to take away: the plan no longer matches the disk, so the file
+// already replaced goes back to what it was.
+#[test]
+fn a_file_to_take_away_that_is_not_there_undoes_the_batch() {
+    let dir = TempDir::new();
+    write(&dir.join("kept.txt"), "before");
+
+    let outcome = AtomicBuilder::modify()
+        .add(dir.join("kept.txt"), bytes("after"), false)
+        .unwrap()
+        .add(dir.join("missing.txt"), SourceItems::Remove, false)
+        .unwrap()
+        .start();
+
+    assert_eq!(outcome.unwrap_err().kind(), io::ErrorKind::NotFound);
+    assert_eq!(read(&dir.join("kept.txt")), "before");
+    assert_eq!(dir.entries(), ["kept.txt"]);
+}
+
+#[test]
+fn a_create_batch_takes_nothing_away() {
+    let dir = TempDir::new();
+    write(&dir.join("gone.txt"), "old");
+
+    let error = AtomicBuilder::create()
+        .add(dir.join("gone.txt"), SourceItems::Remove, false)
+        .unwrap_err();
+
+    assert_eq!(error.kind(), io::ErrorKind::InvalidInput);
+    assert_eq!(
+        error.to_string(),
+        crate::utils::trad::t("atomic.wrong_step")
+    );
+    assert_eq!(read(&dir.join("gone.txt")), "old");
+}
+
+#[test]
+fn waiting_writes_nothing_for_a_file_to_take_away() {
+    let dir = TempDir::new();
+    let item = item(&dir, SourceItems::Remove);
+    lay_out(&item, Some("old"), None, None);
+
+    assert!(matches!(
+        waiting::run(&ActionAtomic::Modify, &item),
+        Ok(AtomicStep::Prepared)
+    ));
+    assert_eq!(read(&item.path), "old");
+    assert_eq!(dir.entries(), [PATH]);
+}
+
+#[test]
+fn prepared_modify_takes_the_file_away_and_keeps_it_as_a_backup() {
+    let dir = TempDir::new();
+    let item = item(&dir, SourceItems::Remove);
+    lay_out(&item, Some("old"), None, None);
+
+    assert!(matches!(
+        prepared::run(&ActionAtomic::Modify, &item),
+        Ok(AtomicStep::Replaced)
+    ));
+    assert_eq!(read(&item.backup_path), "old");
+    assert_eq!(dir.entries(), [BACKUP]);
+}
+
+#[test]
+fn prepared_modify_refuses_to_take_away_a_file_that_is_not_there() {
+    let dir = TempDir::new();
+    let item = item(&dir, SourceItems::Remove);
+
+    let outcome = prepared::run(&ActionAtomic::Modify, &item);
+
+    assert!(matches!(outcome, Err(error) if error.kind() == io::ErrorKind::NotFound));
+    assert!(dir.entries().is_empty());
+}
+
+#[test]
+fn a_file_taken_away_is_put_back_by_a_rollback() {
+    let dir = TempDir::new();
+    let item = item(&dir, SourceItems::Remove);
+    lay_out(&item, None, None, Some("old"));
+
+    assert!(matches!(
+        replaced::run(&ActionAtomic::Rollback, &item),
+        Ok(AtomicStep::Waiting)
+    ));
+    assert_eq!(read(&item.path), "old");
+    assert_eq!(dir.entries(), [PATH]);
+}
+
+#[test]
+fn a_file_taken_away_loses_its_backup_at_the_cleanup() {
+    let dir = TempDir::new();
+    let mut item = item(&dir, SourceItems::Remove);
+    item.step = AtomicStep::Done;
+    lay_out(&item, None, None, Some("old"));
+
+    assert!(matches!(
+        done::run(&ActionAtomic::Finish, &item),
+        Ok(AtomicStep::Done)
+    ));
+    assert!(dir.entries().is_empty());
+}
+
+// A file the batch was taking away, cut at each moment: not reached yet,
+// backed up, taken away.
+#[test]
+fn a_cut_removal_gives_the_file_back() {
+    for (at_path, backup) in [
+        (Some("original"), None),
+        (Some("original"), Some("original")),
+        (None, Some("original")),
+    ] {
+        let dir = TempDir::new();
+        let cut = item(&dir, SourceItems::Remove);
+        lay_out(&cut, at_path, None, backup);
+        cut_journal(dir.path(), false, &[(PATH, true)], &[]);
+
+        assert!(recover(dir.path()).unwrap());
+
+        assert_eq!(read(&dir.join(PATH)), "original", "{at_path:?} {backup:?}");
+        assert_eq!(dir.entries(), [PATH], "{at_path:?} {backup:?}");
+    }
+}
+
+// Every file was in place: the file stays gone, and its backup with it.
+#[test]
+fn a_cut_cleanup_finishes_taking_the_file_away() {
+    for backup in [Some("original"), None] {
+        let dir = TempDir::new();
+        let cut = item(&dir, SourceItems::Remove);
+        lay_out(&cut, None, None, backup);
+        cut_journal(dir.path(), true, &[(PATH, true)], &[]);
+
+        assert!(recover(dir.path()).unwrap());
+
+        assert!(dir.entries().is_empty(), "{backup:?}");
+    }
+}

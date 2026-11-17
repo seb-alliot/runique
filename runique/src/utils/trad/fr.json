@@ -168,6 +168,7 @@
     "operational": "Runique est opérationnel",
     "launched": "Serveur lancé sur {}",
     "connected_db": "Connecté à la base de données {} -> {}",
+    "connected_engine": "Connecté à la base de données {}",
     "stop_hint": "ctrl + c pour arrêter",
     "shutting_down": "Arrêt du serveur Runique...",
     "acme_not_compiled": "ACME_ENABLED=true mais la feature `acme` n'est pas compilée.",

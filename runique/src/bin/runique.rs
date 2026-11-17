@@ -10,7 +10,7 @@ use runique::{
 };
 
 #[derive(Parser)]
-#[command(name = "runique")]
+#[command(name = "runique", version)]
 #[command(about = "Runique framework CLI", long_about = None)]
 struct Cli {
     #[command(subcommand)]

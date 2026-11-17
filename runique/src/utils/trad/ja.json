@@ -168,6 +168,7 @@
     "operational": "Runique は稼働中です",
     "launched": "サーバーを {} で起動しました",
     "connected_db": "データベースに接続しました {} -> {}",
+    "connected_engine": "データベースに接続しました {}",
     "stop_hint": "停止するには Ctrl + C",
     "shutting_down": "Runique サーバーをシャットダウンしています...",
     "acme_not_compiled": "ACME_ENABLED=true ですが、`acme` フィーチャーがコンパイルされていません。",

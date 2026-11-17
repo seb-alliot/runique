@@ -24,6 +24,18 @@ pub struct RuniqueApp {
     pub _log_guards: Vec<tracing_appender::non_blocking::WorkerGuard>,
 }
 
+/// The startup line naming the database: its engine and, when the environment
+/// tells it, its name. A connection built another way shows the engine alone
+/// rather than a name that may not be its own.
+#[cfg(feature = "orm")]
+fn connected_db_message(backend: sea_orm::DbBackend) -> String {
+    let engine = format!("{backend:?}");
+    match crate::db::DatabaseConfig::displayed_name() {
+        Some(name) => tf("server.connected_db", &[engine, name]),
+        None => tf("server.connected_engine", &[engine]),
+    }
+}
+
 /// Resolves when the server is asked to stop: Ctrl+C, or SIGTERM on Unix —
 /// what `systemctl stop` and `docker stop` send. Without the second, those
 /// cut the requests in flight (and a container, deaf to SIGTERM as PID 1,
@@ -98,11 +110,9 @@ impl RuniqueApp {
 
         #[cfg(feature = "orm")]
         {
-            let moteur_db = self.engine.db.get_database_backend();
-            let db_name = std::env::var("DB_NAME").unwrap_or_else(|_| "runique_db".to_string());
             println!(
                 "          └──>  {}",
-                tf("server.connected_db", &[format!("{moteur_db:?}"), db_name])
+                connected_db_message(self.engine.db.get_database_backend())
             );
             #[cfg(feature = "test-utils")]
             eprintln!("          └──>  {}", t("server.test_utils_feature_enabled"));
@@ -363,11 +373,9 @@ impl RuniqueApp {
         );
         #[cfg(feature = "orm")]
         {
-            let moteur_db = self.engine.db.get_database_backend();
-            let db_name = std::env::var("DB_NAME").unwrap_or_else(|_| "runique_db".to_string());
             println!(
                 "          └──>  {}",
-                tf("server.connected_db", &[format!("{moteur_db:?}"), db_name])
+                connected_db_message(self.engine.db.get_database_backend())
             );
             #[cfg(feature = "test-utils")]
             eprintln!("          └──>  {}", t("server.test_utils_feature_enabled"));

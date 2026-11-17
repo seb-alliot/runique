@@ -39,7 +39,7 @@ form.field(
 // Textarea
 form.field(&TextField::textarea("summary").label("Summary"));
 
-// RichText — automatic XSS sanitization before validation
+// RichText — hand-written HTML, sanitized before validation (see below)
 form.field(&TextField::richtext("content").label("Content"));
 
 // Phone — digits/spaces/dashes/parentheses, leading '+' only, 7 to 15 digits
@@ -70,6 +70,37 @@ TextField::text("name")
 | `Csrf`     | Session token              | —                                                                                              |
 | Text (`text`, `textarea`) | Standard | HTML tags removed, the rest kept as typed |
 | `Phone`    | Allowed chars (digits/spaces/`-`/`()`), leading `+` only, 7 to 15 digits | — |
+
+**The `richtext` field expects hand-written HTML**
+
+Runique ships no visual editor. The field is rendered as a text area (`<textarea class="richtext-editor">`) and its value is HTML, sanitized on every save. A JavaScript editor of your choice can hook onto the `richtext-editor` class.
+
+Text without tags is kept as it is: its line breaks produce neither paragraphs nor lists, and the browser shows it as a single block. To structure it, write the tags:
+
+```html
+<h2>Title</h2>
+<p>A paragraph with an <strong>important word</strong> and a <a href="https://example.com" target="_blank">link</a>.</p>
+<ul>
+<li>First point</li>
+<li>Second point</li>
+</ul>
+```
+
+What the sanitizer keeps. A tag missing from this list is removed and its text is kept; the content of a `<script>` or `<style>` tag is deleted:
+
+| | Allowed |
+| --- | --- |
+| Text | `p`, `br`, `hr`, `strong`, `em`, `b`, `i`, `u`, `del`, `s`, `sub`, `sup`, `code`, `a`, `img` |
+| Headings | `h1` to `h6` |
+| Blocks and lists | `ul`, `ol`, `li`, `blockquote`, `pre` |
+| Tables | `table`, `thead`, `tbody`, `tr`, `th`, `td` |
+| Attributes | `a`: `href`, `title`, `target` · `img`: `src`, `alt`, `title` · `code`: `class` |
+
+- Link and image addresses must be absolute, in `http` or `https`: a relative address or another scheme (`javascript:`, `data:`) is removed.
+- `target` only accepts `_blank`, and `rel="noopener noreferrer"` is added to every link.
+- No `style` attribute, no event handler (`onclick`…), no HTML comment.
+
+In a template, the value is shown with `{{ article.content | safe }}`: without `| safe`, Tera escapes the tags and the visitor sees them as text. Use `| safe` on a `richtext` field only, never on an ordinary text field.
 
 **Password utilities:**
 

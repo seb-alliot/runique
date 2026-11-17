@@ -28,7 +28,7 @@ Tests performed on laptop (weaker CPU than Ryzen 7 5800X), release build, route 
 
 **Key finding**: with default pool (min=20), 80% of connections at 100 concurrency must wait for a slot → bimodal latency (P50=15ms vs P90=837ms). With min=100 pre-opened connections, P90 drops from 837ms to **21ms** (+40x). P50 unchanged (15ms) — the handler itself is fast, the bottleneck is pool acquisition.
 
-Pool is fully configurable via `.env`: `DB_MIN_CONNECTIONS`, `DB_MAX_CONNECTIONS`, `DB_ACQUIRE_TIMEOUT`. Default values (20/100) are safe for most deployments. Increase `DB_MIN_CONNECTIONS` on high-traffic servers.
+Pool is fully configurable via `.env`: `DB_MIN_CONNECTIONS`, `DB_MAX_CONNECTIONS`, `DB_ACQUIRE_TIMEOUT`. Since 4.1 the default values are small (2 kept open, 10 at most): these measurements were taken with the former ones (20/100). Increase `DB_MIN_CONNECTIONS` and `DB_MAX_CONNECTIONS` on high-traffic servers.
 
 ## Session memory management — before/after fix
 
@@ -128,7 +128,7 @@ Tests réalisés sur laptop (CPU moins puissant qu'un Ryzen 7 5800X), build rele
 
 **Enseignement clé** : avec le pool par défaut (min=20), 80% des connexions à 100 concurrents doivent attendre un slot → latence bimodale (P50=15ms vs P90=837ms). Avec 100 connexions pré-ouvertes, le P90 chute de 837ms à **21ms** (÷40). Le P50 reste identique (15ms) — le handler lui-même est rapide, le goulot est l'acquisition du pool.
 
-Le pool est entièrement configurable via `.env` : `DB_MIN_CONNECTIONS`, `DB_MAX_CONNECTIONS`, `DB_ACQUIRE_TIMEOUT`. Les valeurs par défaut (20/100) sont sûres pour la plupart des déploiements. Augmenter `DB_MIN_CONNECTIONS` sur les serveurs à fort trafic.
+Le pool est entièrement configurable via `.env` : `DB_MIN_CONNECTIONS`, `DB_MAX_CONNECTIONS`, `DB_ACQUIRE_TIMEOUT`. Depuis la 4.1, les valeurs par défaut sont petites (2 gardées ouvertes, 10 au maximum) : ces mesures ont été prises avec les anciennes (20/100). Augmenter `DB_MIN_CONNECTIONS` et `DB_MAX_CONNECTIONS` sur les serveurs à fort trafic.
 
 ## Gestion mémoire des sessions — avant/après correctif
 

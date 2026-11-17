@@ -147,6 +147,29 @@ where
     one_row(result.rows_affected)
 }
 
+/// Replays the proof for a write that sets no column of the row itself (its
+/// list fields live in tables of their own): the row must still be there
+/// under the proof's conditions, read in the write's transaction. Consumes
+/// the proof like [`update`]: nothing is written on a row out of reach since.
+pub(in crate::auth::gate) async fn still_granted<E: EntityTrait, C: ConnectionTrait>(
+    proof: Authorized<Update, E>,
+    db: &C,
+) -> Result<(), Refusal> {
+    let (Some(id), conditions) = proof.into_parts() else {
+        return Err(Refusal::new(RefusalReason::StaleRow));
+    };
+    let found = E::find()
+        .filter(pk_condition::<E>(id))
+        .filter(conditions)
+        .one(db)
+        .await
+        .map_err(write_failed)?;
+    match found {
+        Some(_) => Ok(()),
+        None => Err(Refusal::new(RefusalReason::StaleRow)),
+    }
+}
+
 pub async fn delete<E: EntityTrait, C: ConnectionTrait>(
     proof: Authorized<Delete, E>,
     db: &C,
