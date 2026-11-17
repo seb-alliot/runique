@@ -450,6 +450,12 @@ mod tests {
             [Genre::Roman, Genre::Policier],
             "the list ticked in the form is written with its row"
         );
+
+        // What the edit page reads back, by the row's key.
+        let read = <shelf::Entity as crate::auth::meta::ModelMeta>::list_values(row.id, &*db)
+            .await
+            .unwrap();
+        assert_eq!(read, [("genres", "Roman,Policier".to_string())]);
     }
 
     /// On update the list is replaced by what the form holds, even when no
@@ -488,6 +494,10 @@ mod tests {
         let (row, genres) = the_shelf(&db).await;
         assert_eq!(row.title, "Dune III");
         assert!(genres.is_empty(), "{genres:?}");
+        let read = <shelf::Entity as crate::auth::meta::ModelMeta>::list_values(row.id, &*db)
+            .await
+            .unwrap();
+        assert_eq!(read, [("genres", String::new())], "an empty list reads empty");
     }
 
     /// A list follows the rights of its name, like a column: an admin not

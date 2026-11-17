@@ -58,16 +58,17 @@ pub trait ModelMeta:
         let _ = (row, db, values);
         async { Ok(()) }
     }
-    /// The values of `row`'s list fields, by name, comma-separated as a form
-    /// holds them.
+    /// The values of the list fields of the row `key`, by name,
+    /// comma-separated as a form holds them. By the key, not the row: the
+    /// edit page reads only the columns its account may see.
     fn list_values<C>(
-        row: &Self::Model,
+        key: <Self::PrimaryKey as PrimaryKeyTrait>::ValueType,
         db: &C,
     ) -> impl Future<Output = Result<Vec<(&'static str, String)>, DbErr>> + Send
     where
         C: ConnectionTrait,
     {
-        let _ = (row, db);
+        let _ = (key, db);
         async { Ok(Vec::new()) }
     }
 }

@@ -567,13 +567,19 @@ where
         // The page leads to an update: without that right on this row, it
         // shows nothing either.
         authorize_row::<Update, E>(&gate, key.clone()).await?;
-        let view = authorize_view::<E>(&gate, key)?;
+        let view = authorize_view::<E>(&gate, key.clone())?;
         let readable = view.readable().preserve::<E>(&self.form_columns());
+        // The list fields this account may read, by name: they have no column.
+        let lists: Vec<&'static str> = E::LISTS
+            .iter()
+            .copied()
+            .filter(|name| view.readable().allows(name))
+            .collect();
 
         let mut form = req.form::<E::Form>(admin_form::UPDATE);
         let forms = form.forms_mut();
         crate::auth::gate::change::type_fields::<E>(forms);
-        self.shape_for_edit(forms, &readable, &user.rights_on(E::KEY).columns);
+        self.shape_for_edit(forms, &readable, &lists, &user.rights_on(E::KEY).columns);
         // `save_as` looks for the row under the form's name and the key's; the
         // route calls it `{id}` whatever the model names it.
         forms.path_params.insert(
@@ -582,7 +588,18 @@ where
         );
 
         if req.method.is_safe() {
-            let row = self.fetch_detail(db, &view).await?.ok_or_else(not_found)?;
+            let mut row = self.fetch_detail(db, &view).await?.ok_or_else(not_found)?;
+            // The row is read above under the proof's conditions; its lists
+            // follow, only those the gate lets this account read.
+            if !lists.is_empty()
+                && let Some(read) = row.as_object_mut()
+            {
+                for (name, values) in E::list_values(key, &**db).await? {
+                    if lists.contains(&name) {
+                        read.insert(name.to_string(), serde_json::Value::String(values));
+                    }
+                }
+            }
             prefill(forms, &row);
             return Ok(FormOutcome::Show(shown(forms)));
         }
