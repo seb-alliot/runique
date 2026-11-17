@@ -42,6 +42,7 @@ pub fn generate_model_meta(model: &ModelInput) -> TokenStream2 {
     // The list fields: the gate writes them through the functions the
     // model already has (`admin_save_lists`, `admin_list_values`).
     let list_names: Vec<String> = model.lists.iter().map(|l| l.name.to_string()).collect();
+    let list_idents: Vec<_> = model.lists.iter().map(|l| l.name.clone()).collect();
     let lists = (!list_names.is_empty()).then(|| {
         quote! {
             const LISTS: &'static [&'static str] = &[#(#list_names),*];
@@ -58,7 +59,7 @@ pub fn generate_model_meta(model: &ModelInput) -> TokenStream2 {
             }
 
             fn list_values<C>(
-                row: &Model,
+                key: <<Entity as ::sea_orm::EntityTrait>::PrimaryKey as ::sea_orm::PrimaryKeyTrait>::ValueType,
                 db: &C,
             ) -> impl ::std::future::Future<
                 Output = ::std::result::Result<
@@ -70,21 +71,24 @@ pub fn generate_model_meta(model: &ModelInput) -> TokenStream2 {
                 C: ::sea_orm::ConnectionTrait,
             {
                 async move {
-                    let mut read = ::runique::serde_json::Value::Object(::std::default::Default::default());
-                    row.admin_list_values(db, &mut read).await?;
-                    ::std::result::Result::Ok(
-                        <Entity as ::runique::auth::meta::ModelMeta>::LISTS
-                            .iter()
-                            .map(|name| {
-                                let joined = read
-                                    .get(*name)
-                                    .and_then(|value| value.as_str())
-                                    .unwrap_or_default()
-                                    .to_string();
-                                (*name, joined)
-                            })
-                            .collect(),
-                    )
+                    use ::sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
+                    let mut read = ::std::vec::Vec::new();
+                    #(
+                        let values = #list_idents::Entity::find()
+                            .filter(#list_idents::Column::OwnerId.eq(key.clone()))
+                            .order_by_asc(#list_idents::Column::Id)
+                            .all(db)
+                            .await?;
+                        read.push((
+                            #list_names,
+                            values
+                                .iter()
+                                .map(|row| row.value.form_value())
+                                .collect::<::std::vec::Vec<_>>()
+                                .join(","),
+                        ));
+                    )*
+                    ::std::result::Result::Ok(read)
                 }
             }
         }

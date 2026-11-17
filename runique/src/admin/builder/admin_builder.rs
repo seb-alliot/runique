@@ -424,11 +424,14 @@ impl<E: ModelMeta> ModelAdmin<E> {
         &self,
         form: &mut Forms,
         readable: &[E::Column],
+        lists: &[&'static str],
         columns: &ColumnRights,
     ) {
         self.shape(
             form,
-            |name| readable.iter().any(|c| c.as_str() == name),
+            // A list field has no column: it is shown by its name, when the
+            // gate lets it be read (`lists`).
+            |name| readable.iter().any(|c| c.as_str() == name) || lists.contains(&name),
             |name| {
                 columns.can_update(name)
                     && (self.form.is_empty() || self.form.writable_on_edit(name))
@@ -1230,5 +1233,80 @@ mod tests {
         });
         let error = admin.validate().unwrap_err();
         assert!(!error.contains("`title`"), "{error}");
+    }
+
+    /// A model with a list field: `genres` has no column.
+    // `model!` also writes `Shelf::objects`, which these tests don't use.
+    #[allow(dead_code)]
+    mod shelf {
+        use runique::prelude::*;
+
+        model! {
+            Shelf,
+            table: "admin_shelves",
+            pk: id => Pk,
+            enums: {
+                Genre: [Roman, Policier],
+            },
+            {
+                title: text [required],
+                genres: checkbox [enum(Genre)],
+            }
+        }
+    }
+
+    /// The shelf's form as the edit page shapes it: `title` readable, the
+    /// lists the gate lets read in `lists`.
+    fn shelf_edit_form(
+        lists: &[&'static str],
+        columns: &crate::auth::permissions::rights::ColumnRights,
+    ) -> crate::forms::form::Forms {
+        use crate::forms::field::FormAccess;
+        let mut form = crate::forms::form::Forms::new("");
+        <shelf::Form as FormAccess>::register_fields(&mut form);
+        ModelAdmin::<shelf::Entity>::new().shape_for_edit(
+            &mut form,
+            &[shelf::Column::Id, shelf::Column::Title],
+            lists,
+            columns,
+        );
+        form
+    }
+
+    #[test]
+    fn the_edit_form_shows_a_list_field_only_when_the_gate_lets_it_be_read() {
+        use crate::auth::permissions::rights::ColumnRights;
+
+        let form = shelf_edit_form(&["genres"], &ColumnRights::All);
+        let genres = form.fields.get("genres").expect("readable: shown");
+        assert!(!genres.is_locked(), "every right: writable");
+
+        let form = shelf_edit_form(&[], &ColumnRights::All);
+        assert!(form.fields.get("genres").is_none(), "not readable: not shown");
+        assert!(form.fields.get("title").is_some(), "the columns still are");
+    }
+
+    #[test]
+    fn a_list_field_shown_without_the_update_right_is_locked() {
+        use crate::auth::permissions::ColumnRight;
+        use crate::auth::permissions::rights::ColumnRights;
+
+        let only = |can_update: bool| {
+            ColumnRights::Only(vec![ColumnRight {
+                colonne: "genres".to_string(),
+                can_read: true,
+                can_create: true,
+                can_update,
+            }])
+        };
+        let locked = |columns: &ColumnRights| {
+            shelf_edit_form(&["genres"], columns)
+                .fields
+                .get("genres")
+                .expect("shown")
+                .is_locked()
+        };
+        assert!(locked(&only(false)), "read without update: shown, locked");
+        assert!(!locked(&only(true)), "update: writable");
     }
 }
