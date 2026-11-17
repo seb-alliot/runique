@@ -312,4 +312,253 @@ mod tests {
         assert!(deleted.is_ok(), "deleted through the gate");
         assert!(!note_ids(&db).await.contains(&1));
     }
+
+    /// A model with a list field: `genres` has no column on `gate_shelves`,
+    /// its values live in `gate_shelves_genres`.
+    // `model!` also writes `Shelf::objects`, which this test doesn't use.
+    #[cfg(feature = "admin")]
+    #[allow(dead_code)]
+    mod shelf {
+        use runique::prelude::*;
+
+        model! {
+            Shelf,
+            table: "gate_shelves",
+            pk: id => Pk,
+            enums: {
+                Genre: [Roman, Policier],
+            },
+            {
+                title: text [required],
+                genres: checkbox [enum(Genre)],
+            }
+        }
+    }
+
+    #[cfg(feature = "admin")]
+    async fn shelf_db() -> ADb {
+        use sea_orm::{ConnectionTrait, Schema};
+        let conn = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        let schema = Schema::new(sea_orm::DatabaseBackend::Sqlite);
+        conn.execute(&schema.create_table_from_entity(shelf::Entity))
+            .await
+            .unwrap();
+        conn.execute(&schema.create_table_from_entity(shelf::genres::Entity))
+            .await
+            .unwrap();
+        // Every gated write leaves its history row in the same transaction.
+        conn.execute(&crate::auth::migrations_table::create_eihwaz_history_table())
+            .await
+            .unwrap();
+        ADb::from_connection(conn)
+    }
+
+    /// The model's own form, as the admin builds it, written as `user`;
+    /// `target` is the row in the URL (none: a create).
+    #[cfg(feature = "admin")]
+    fn shelf_form(
+        user: &crate::auth::current_user::CurrentUser,
+        target: Option<&str>,
+        values: &[(&str, &str)],
+    ) -> shelf::Form {
+        let mut forms = Forms::new("");
+        <shelf::Form as FormAccess>::register_fields(&mut forms);
+        crate::auth::gate::change::type_fields::<shelf::Entity>(&mut forms);
+        forms.save_comportement = SaveComportement::Gated { user: user.clone() };
+        if let Some(id) = target {
+            forms.set_name("shelf");
+            forms
+                .path_params
+                .insert(crate::forms::save::row_param("shelf", "id"), id.to_string());
+        }
+        for (name, value) in values {
+            forms.add_value(name, value);
+        }
+        <shelf::Form as FormAccess>::from_form(forms)
+    }
+
+    /// A dirigeant: every right on every field.
+    #[cfg(feature = "admin")]
+    fn boss() -> crate::auth::current_user::CurrentUser {
+        use crate::auth::gate::test_support::fixtures::as_rank;
+        as_rank(32, crate::auth::permissions::rang::Rang::Dirigeant)
+    }
+
+    /// An admin who may create and update shelves, on the fields `ticked`
+    /// alone (name, create, update).
+    #[cfg(feature = "admin")]
+    fn delegate(ticked: &[(&str, bool, bool)]) -> crate::auth::current_user::CurrentUser {
+        use crate::auth::gate::test_support::fixtures::as_rank;
+        use crate::auth::permissions::{ColumnRight, Permission};
+
+        let mut right = Permission::zeroed("gate_shelves".to_string());
+        right.can_create = true;
+        right.can_read = true;
+        right.can_update = true;
+        right.colonnes = ticked
+            .iter()
+            .map(|(name, create, update)| ColumnRight {
+                colonne: (*name).to_string(),
+                can_read: true,
+                can_create: *create,
+                can_update: *update,
+            })
+            .collect();
+        let mut user = as_rank(33, crate::auth::permissions::rang::Rang::Admin);
+        user.droits = vec![right];
+        user
+    }
+
+    #[cfg(feature = "admin")]
+    async fn write(db: &ADb, form: shelf::Form) {
+        if let Err(refused) = gated_write(form, SaveAction::Save, db).await {
+            panic!("the gate refused the form: {:?}", refused.forms().errors);
+        }
+    }
+
+    /// The only shelf of the table, with its genres.
+    #[cfg(feature = "admin")]
+    async fn the_shelf(db: &ADb) -> (shelf::Model, Vec<shelf::Genre>) {
+        let mut rows = shelf::Entity::find().all(&**db).await.unwrap();
+        assert_eq!(rows.len(), 1, "one shelf in the table");
+        let row = rows.remove(0);
+        let genres = row.genres(&**db).await.unwrap();
+        (row, genres)
+    }
+
+    /// The admin writes a model's form through this path (`save_through_gate`
+    /// → `ValidationForm::save` → `gated_write`). The values ticked in a list
+    /// field must be written with their row, in the list's own table.
+    #[cfg(feature = "admin")]
+    #[tokio::test]
+    async fn a_gated_form_writes_the_values_of_a_list_field() {
+        use shelf::Genre;
+
+        let db = shelf_db().await;
+        let form = shelf_form(&boss(), None, &[("title", "Dune"), ("genres", "Roman,Policier")]);
+        assert_eq!(
+            form.forms().fields.get("genres").map(|f| f.value()),
+            Some("Roman,Policier"),
+            "the form holds both values before the write"
+        );
+        write(&db, form).await;
+
+        let (row, genres) = the_shelf(&db).await;
+        assert_eq!(row.title, "Dune");
+        assert_eq!(
+            genres,
+            [Genre::Roman, Genre::Policier],
+            "the list ticked in the form is written with its row"
+        );
+    }
+
+    /// On update the list is replaced by what the form holds, even when no
+    /// column of the row changes; nothing ticked clears it.
+    #[cfg(feature = "admin")]
+    #[tokio::test]
+    async fn a_gated_form_replaces_then_clears_a_list_on_update() {
+        use shelf::Genre;
+
+        let db = shelf_db().await;
+        write(
+            &db,
+            shelf_form(&boss(), None, &[("title", "Dune"), ("genres", "Roman,Policier")]),
+        )
+        .await;
+        let id = the_shelf(&db).await.0.id.to_string();
+
+        // The list alone: no column is set, the row keeps its title.
+        write(&db, shelf_form(&boss(), Some(&id), &[("genres", "Policier")])).await;
+        let (row, genres) = the_shelf(&db).await;
+        assert_eq!(row.title, "Dune");
+        assert_eq!(genres, [Genre::Policier]);
+
+        // A column and the list together.
+        write(
+            &db,
+            shelf_form(&boss(), Some(&id), &[("title", "Dune II"), ("genres", "Roman")]),
+        )
+        .await;
+        let (row, genres) = the_shelf(&db).await;
+        assert_eq!(row.title, "Dune II");
+        assert_eq!(genres, [Genre::Roman]);
+
+        // Nothing ticked: the form holds an empty value, the list is cleared.
+        write(&db, shelf_form(&boss(), Some(&id), &[("title", "Dune III")])).await;
+        let (row, genres) = the_shelf(&db).await;
+        assert_eq!(row.title, "Dune III");
+        assert!(genres.is_empty(), "{genres:?}");
+    }
+
+    /// A list follows the rights of its name, like a column: an admin not
+    /// ticked for it writes the row and leaves the list alone.
+    #[cfg(feature = "admin")]
+    #[tokio::test]
+    async fn a_list_is_written_only_with_the_right_on_its_name() {
+        use shelf::Genre;
+        let values = [("title", "Dune"), ("genres", "Roman,Policier")];
+
+        // Create: `title` ticked, `genres` not.
+        let db = shelf_db().await;
+        let without = delegate(&[("title", true, true)]);
+        write(&db, shelf_form(&without, None, &values)).await;
+        let (row, genres) = the_shelf(&db).await;
+        assert_eq!(row.title, "Dune", "the row is written");
+        assert!(genres.is_empty(), "no right on the list: {genres:?}");
+
+        // Update: `genres` ticked for create only is not enough. The list
+        // holds a value first, so an unwanted write would show.
+        let id = row.id.to_string();
+        write(&db, shelf_form(&boss(), Some(&id), &[("genres", "Policier")])).await;
+        let create_only = delegate(&[("title", true, true), ("genres", true, false)]);
+        write(
+            &db,
+            shelf_form(&create_only, Some(&id), &[("title", "Dune II"), ("genres", "Roman")]),
+        )
+        .await;
+        let (row, genres) = the_shelf(&db).await;
+        assert_eq!(row.title, "Dune II");
+        assert_eq!(genres, [Genre::Policier], "create is not update");
+
+        // The other side: ticked for update, the same form writes the list.
+        let with = delegate(&[("title", true, true), ("genres", true, true)]);
+        write(&db, shelf_form(&with, Some(&id), &[("genres", "Roman")])).await;
+        assert_eq!(the_shelf(&db).await.1, [Genre::Roman]);
+
+        // And ticked for create, a new row gets its list.
+        let db = shelf_db().await;
+        write(&db, shelf_form(&with, None, &values)).await;
+        assert_eq!(the_shelf(&db).await.1, [Genre::Roman, Genre::Policier]);
+    }
+
+    /// A locked field is shown, never written: a list too, whatever the
+    /// request sends for it.
+    #[cfg(feature = "admin")]
+    #[tokio::test]
+    async fn a_locked_list_field_is_not_written() {
+        use shelf::Genre;
+
+        let db = shelf_db().await;
+        write(
+            &db,
+            shelf_form(&boss(), None, &[("title", "Dune"), ("genres", "Roman")]),
+        )
+        .await;
+        let id = the_shelf(&db).await.0.id.to_string();
+
+        for readonly in [true, false] {
+            let mut form = shelf_form(&boss(), Some(&id), &[("title", "x"), ("genres", "Policier")]);
+            if readonly {
+                form.forms_mut().field_readonly("genres", true);
+            } else {
+                form.forms_mut().field_disabled("genres", true);
+            }
+            write(&db, form).await;
+            assert_eq!(the_shelf(&db).await.1, [Genre::Roman], "locked: untouched");
+        }
+
+        // The other side: unlocked, the same form replaces the list.
+        write(&db, shelf_form(&boss(), Some(&id), &[("genres", "Policier")])).await;
+        assert_eq!(the_shelf(&db).await.1, [Genre::Policier]);
+    }
 }

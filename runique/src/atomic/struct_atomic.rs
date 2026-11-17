@@ -37,6 +37,9 @@ pub(crate) enum SourceItems {
     Bytes(Vec<u8>),
     /// File already on the same filesystem (staged upload): linked, never loaded in memory.
     File(PathBuf),
+    /// No content: the file is taken  away. Its original kept as the backup.
+    #[allow(dead_code)]
+    Remove,
 }
 
 /// One file of the batch: its three paths, its content, its step.

@@ -12,47 +12,42 @@
     <h1>{% set tr_text = title %}{% include "utils/tr.html" %}</h1>
 
     {% if field_groups %}
-    <div class="field-toolbar">
-        <select id="field-type-filter">
-            <option value="">All types</option>
-            {% for group in field_groups %}
-            <option value="{{ group.type_name }}">{{ group.type_name }}</option>
-            {% endfor %}
-        </select>
-
-        <nav class="field-nav">
+    <div class="field-layout">
+        <nav class="field-nav" aria-label="{% if ui_lang == "fr" %}Types de champ{% else %}Field types{% endif %}">
             {% for group in field_groups %}
             <a href="#{{ group.type_name | lower }}">{{ group.type_name }}</a>
             {% endfor %}
         </nav>
-    </div>
 
-    <div class="field-groups-row">
-    {% for group in field_groups %}
-    <details class="field-section" id="{{ group.type_name | lower }}" data-section="{{ group.type_name }}">
-        <summary class="field-section-title">{{ group.type_name }}</summary>
-        {% for field in group.fields %}
-        <details class="field-details">
-            <summary><code>{{ field.name }}</code></summary>
-            <div class="field-body">
-                <p>{{ field.description }}</p>
-                {% if field.html_preview %}
-                <div class="field-visual">{{ field.html_preview | safe }}</div>
-                {% endif %}
-                {% if field.example %}
-                <pre><code class="language-rust">{{ field.example }}</code></pre>
-                {% endif %}
-            </div>
-        </details>
-        {% endfor %}
-    </details>
-    {% endfor %}
+        <div class="field-groups">
+            {% for group in field_groups %}
+            <section class="field-section" id="{{ group.type_name | lower }}">
+                <h2 class="field-section-title">{{ group.type_name }}</h2>
+                {% for field in group.fields %}
+                <details class="field-details">
+                    <summary><code>{{ field.name }}</code></summary>
+                    <div class="field-body">
+                        <div class="field-about">
+                            <p>{{ field.description }}</p>
+                            {% if field.html_preview %}
+                            <div class="field-visual">{{ field.html_preview | safe }}</div>
+                            {% endif %}
+                        </div>
+                        {% if field.example %}
+                        <pre><code class="language-rust">{{ field.example }}</code></pre>
+                        {% endif %}
+                    </div>
+                </details>
+                {% endfor %}
+            </section>
+            {% endfor %}
+        </div>
     </div>
     {% endif %}
 
     <div class="back-link">
         <a href="{% if ui_lang == "fr" %}/docs/fr/formulaire/champs{% else %}/docs/en/formulaire/fields{% endif %}" class="btn btn-secondary">Documentation</a>
-        <a href="{% link "formulaires_champs" %}">← Back to declaration</a>
+        <a href="{% link "formulaires_champs" %}">{% if ui_lang == "fr" %}← Retour à la déclaration{% else %}← Back to declaration{% endif %}</a>
     </div>
 </div>
 {% endblock %}
@@ -60,5 +55,4 @@
 {% block scripts %}
 <script {% csp %} src="{% static "js/highlight.min.js" %}"></script>
 <script {% csp %}>hljs.highlightAll();</script>
-<script {% csp %} src="{% static "js/field_test.js" %}"></script>
 {% endblock %}

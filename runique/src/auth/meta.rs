@@ -5,7 +5,9 @@
 //! `model!{}`, from the same source as the forms; Runique implements it by
 //! hand for its own tables. Kept thin: display belongs to the builder.
 use crate::utils::constante::resource_key;
-use sea_orm::{EntityTrait, PrimaryKeyTrait};
+use sea_orm::{ConnectionTrait, DbErr, EntityTrait, PrimaryKeyTrait, TransactionTrait};
+use std::collections::HashMap;
+use std::future::Future;
 use std::str::FromStr;
 
 /// `FromStr` on the key: a row's id arrives as URL text, each model parses it
@@ -37,6 +39,37 @@ pub trait ModelMeta:
     fn schema() -> crate::migration::schema::ModelSchema;
     /// Column a row is known by in the history; its key when there is none.
     const LABEL: Option<Self::Column> = None;
+    /// The model's list fields (`checkbox` / `multichoice`). Each has a table
+    /// of its own and no column: the gate reaches them by these names, the
+    /// ones their rights and their form fields carry.
+    const LISTS: &'static [&'static str] = &[];
+    /// Replaces, for `row`, each list field `values` names: its values
+    /// comma-separated, as a form holds them; an empty text clears the list.
+    /// A list `values` doesn't name is left as it is. Run in the transaction
+    /// that writes `row`.
+    fn save_lists<C>(
+        row: &Self::Model,
+        db: &C,
+        values: &HashMap<String, String>,
+    ) -> impl Future<Output = Result<(), DbErr>> + Send
+    where
+        C: ConnectionTrait + TransactionTrait,
+    {
+        let _ = (row, db, values);
+        async { Ok(()) }
+    }
+    /// The values of `row`'s list fields, by name, comma-separated as a form
+    /// holds them.
+    fn list_values<C>(
+        row: &Self::Model,
+        db: &C,
+    ) -> impl Future<Output = Result<Vec<(&'static str, String)>, DbErr>> + Send
+    where
+        C: ConnectionTrait,
+    {
+        let _ = (row, db);
+        async { Ok(Vec::new()) }
+    }
 }
 
 impl ModelMeta for crate::auth::user::Entity {

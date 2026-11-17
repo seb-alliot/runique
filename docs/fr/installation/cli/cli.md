@@ -13,7 +13,10 @@ runique migration down -n 1       # Annuler la dernière migration (son down() s
 runique migration status          # Lister les migrations et leur état
 runique create-superuser          # Créer un superutilisateur
 runique test [fichier] [test]     # Lancer src/runique_test/ (voir Tests)
+runique --version                 # Version de la commande installée (aussi : -V)
 ```
+
+`runique --version` affiche la version de Runique avec laquelle la commande a été compilée : c'est celle que `runique new` écrit dans le `Cargo.toml` d'un nouveau projet. Si elle diffère de la version de `runique` de votre projet, réinstallez la commande.
 
 Pas de `runique start` : l'application se lance avec `cargo run`. L'admin se déclare en Rust (`ModelAdmin` + `.with_admin(...)`), sans daemon ni génération de code.
 

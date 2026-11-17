@@ -123,7 +123,7 @@ Le type Rust indiqué est celui d'une colonne NOT NULL ; une colonne `nullable` 
 | `char`             | `String`                  | `VARCHAR`                       |
 | `email`            | `String`                  | `VARCHAR(254)` — format validé  |
 | `password`         | `String`                  | `VARCHAR` — haché automatiquement |
-| `richtext`         | `String`                  | `TEXT` — éditeur HTML (nettoyé) |
+| `richtext`         | `String`                  | `TEXT` — HTML écrit dans une zone de texte, nettoyé à l'enregistrement (pas d'éditeur visuel) |
 | `textarea`         | `String`                  | `TEXT` — multi-ligne            |
 | `url`              | `String`                  | `VARCHAR` — format validé       |
 | `slug`             | `String`                  | `VARCHAR`                       |
@@ -240,15 +240,23 @@ le formulaire. Le parseur refuse, à la compilation :
 - `nullable` sur `auto_now` / `auto_now_update` : le framework les remplit toujours ;
 - un champ qui n'est pas de type texte (nombre, date, choix, uuid, json…) déclaré sans
   `required`, `nullable` ni `default` — un champ facultatif laissé vide n'aurait rien à
-  enregistrer dans une colonne NOT NULL. Les champs texte, fichier, binaire et `bool` peuvent
-  rester facultatifs : ils envoient toujours une valeur enregistrable (texte vide, aucun fichier,
-  case décochée).
+  enregistrer dans une colonne NOT NULL. Les champs texte, fichier, binaire et `bool` sont
+  acceptés sans ces attributs.
+
+> **Un champ texte ou fichier laissé vide n'écrit rien dans sa colonne.** Runique n'enregistre pas
+> de texte vide. Sur une colonne NOT NULL sans valeur par défaut :
+>
+> - à la création, la base refuse la ligne (« Une valeur obligatoire est manquante ») ;
+> - à la modification, l'ancienne valeur est conservée : vider le champ ne l'efface pas.
+>
+> Pour un champ réellement facultatif, déclarez-le `nullable` : laissé vide, il vaut `NULL`, à la
+> création comme à la modification. Une case `bool` décochée, elle, enregistre `false`.
 
 ```rust
 {
     titre:      text  [required],          // NOT NULL, obligatoire dans le formulaire
-    sous_titre: text,                      // NOT NULL, facultatif (texte vide)
-    resume:     text  [nullable],          // NULL possible — Option<String>
+    sous_titre: text,                      // NOT NULL : à remplir à la création (voir l'encadré)
+    resume:     text  [nullable],          // facultatif : NULL si laissé vide — Option<String>
     note:       int   [default: 0],        // NOT NULL, 0 si rien n'est saisi
     publie_le:  date  [nullable],          // NULL possible — Option<NaiveDate>
 }
@@ -529,9 +537,18 @@ Sur un autre moteur, elle renvoie une erreur ; utilisez `load_genres` après avo
 
 ### Formulaires et admin
 
-L'admin affiche le champ (cases ou sélection multiple), enregistre la ligne et sa liste dans la
-même transaction, et pré-remplit le formulaire d'édition. Dans un formulaire, les valeurs
-cochées se lisent avec `cleaned_enums::<Genre>("genres")`.
+**L'admin ne gère pas encore les champs liste** : il n'enregistre pas les valeurs cochées et ne
+pré-remplit pas le formulaire d'édition. `save()` n'écrit pas la liste non plus : elle vit dans
+sa propre table, pas dans une colonne.
+
+En attendant, écrivez-la depuis votre vue. Dans un formulaire, les valeurs cochées se lisent avec
+`cleaned_enums::<Genre>("genres")`, puis s'enregistrent avec `set_genres` (voir « Lire et
+écrire » plus haut) :
+
+```rust
+let genres = form.cleaned_enums::<Genre>("genres");
+livre.set_genres(&db, genres).await?;
+```
 
 ---
 

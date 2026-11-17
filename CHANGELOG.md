@@ -25,12 +25,15 @@ All notable changes to this project will be documented in this file.
 
 * **`cleaned` no longer reads the URL, `Forms::set_url_params` replaced by `set_path_params`**: `cleaned::<T>("x")` returns the value of field `x` and nothing else. For a value of the URL, use `request.get_path("x")` / `request.get_path_as::<T>("x")` or `request.get_query("x")`; to pre-fill a field from a link, `form.add_value("x", value)`. A search form sent with `GET` doesn't change (its fields are filled from the query string). `Forms::set_url_params(path, query)` becomes `Forms::set_path_params(path)`: the query string is no longer given to the form.
 
+* **Smaller connection pool by default**: without `DB_MIN_CONNECTIONS`, `DB_MAX_CONNECTIONS` and `DB_ACQUIRE_TIMEOUT`, Runique kept 20 connections open, opened up to 100 and waited 500 ms to obtain one. A new project on PostgreSQL could fail at its first start with `PoolTimedOut` (in a debug build, the first connections take longer than that), and a single site could hold every connection of the server (100 by default on PostgreSQL). The defaults are now 2, 10 and 5000 ms. **To check**: a busy site that relied on the former defaults sets `DB_MIN_CONNECTIONS=20` and `DB_MAX_CONNECTIONS=100` in its `.env`.
+
 ### Removed
 
 * **MariaDB**: SeaORM only knows PostgreSQL, MySQL and SQLite, and refuses a `mariadb://` URL; MariaDB was therefore never really supported. The `mariadb` feature, the `DatabaseEngine::MariaDB` variant and the `mariadb` values of `DB_ENGINE` and `DATABASE_URL` are removed; Runique's tests run on MySQL 8.4. **To check**: a project that turned the `mariadb` feature on moves to `mysql`, with `DB_ENGINE=mysql` and a `mysql://` URL.
 
 ### Added
 
+* **`runique --version`**: the command shows the version of Runique it was built with (also `-V`), the one `runique new` writes in a new project.
 * **`ExclusiveLogin`**: the last parameter of `login` takes `ExclusiveLogin::{Off, On, Strict}` as well as a `bool` (`false` = `Off`, `true` = `On`, unchanged). `Strict` refuses the sign-in (`LoginError::Session`) and closes its session when the account's other sessions could not be closed; `On` logs the failure and signs in.
 * **Logs follow `.env`**: with nothing written in `with_log`, `RUNIQUE_ENV=dev` turns the useful channels on (`INFO`) and `DEBUG=true` turns them all on, chatty ones included, **in production too**. A channel set by hand keeps its level; `.manual()` switches this off. **To check**: with `DEBUG=true`, the logs hold the value of the fields visitors type in (passwords excepted), and the global filter moves to `debug`. Production without `DEBUG` is unchanged.
 * **Admin boot log** (`builder.registry`): the configuration kept, each registered model (columns, filters, actions, form fields) and each route declared `admin`. Three warnings are never silent: an admin sign-in with neither a `LoginGuard` nor a rate limiter (outside development), list options with no effect (`links`, `search_help`, `empty_value`), and Runique's stylesheets not found (a `STATIC_RUNIQUE_PATH` that doesn't hold them).
@@ -41,6 +44,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+* **Startup message naming the wrong database**: it showed `DB_NAME`, or `runique_db` when unset, whatever the connection used. With `DATABASE_URL` alone it named a database that didn't exist; with both, the one that wasn't used. It now shows the name the connection reads (`DATABASE_URL` first, then the `DB_*` keys, then SQLite's default file), and the engine alone when no name can be read. The user and the password of the URL are never shown.
 * **`save()` took any `{id}` for the form's row**: outside the admin, `save()` and `delete()` read the key under `{<name>_<key>}`, then under a plain `{<key>}`. On `/articles/{id}/comment`, the article's number was taken for the comment's: comment `id` was updated, or "not found", where the handler meant to add one. Only `{<name>_<key>}` is read now (`{article_id}` for the form `"article"`); a plain `{id}` is read with `request.get_path_as("id")`. **To check**: a route that updated a row through `{id}` must rename it `{<name>_id}`, or `save()` creates a row.
 * **A database error signed the user out**: when reading the account failed (database down, pool exhausted), the session was closed as for a deleted account. The request now gets a `503` and the session stays open.
 * **Server shutdown**: only Ctrl+C triggered the graceful shutdown. `SIGTERM` (`systemctl stop`, `docker stop`) is now listened to, and the HTTPS (ACME) server, which had none, gives requests in flight 30 seconds.

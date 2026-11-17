@@ -39,7 +39,7 @@ form.field(
 // Textarea
 form.field(&TextField::textarea("summary").label("Résumé"));
 
-// RichText — sanitisation XSS automatique avant validation
+// RichText — du HTML écrit à la main, nettoyé avant validation (voir plus bas)
 form.field(&TextField::richtext("content").label("Contenu"));
 
 // Phone — chiffres/espaces/tirets/parenthèses, '+' en tête uniquement, 7 à 15 chiffres
@@ -70,6 +70,37 @@ TextField::text("nom")
 | `Csrf` | Token session | — |
 | Texte (`text`, `textarea`) | Standard | Balises HTML retirées, le reste est gardé tel que saisi |
 | `Phone` | Caractères autorisés (chiffres/espaces/`-`/`()`), `+` en première position uniquement, 7 à 15 chiffres | — |
+
+**Le champ `richtext` attend du HTML écrit à la main**
+
+Runique ne fournit pas d'éditeur visuel. Le champ est rendu comme une zone de texte (`<textarea class="richtext-editor">`) et sa valeur est du HTML, nettoyé à chaque enregistrement. Un éditeur JavaScript de votre choix peut se brancher sur la classe `richtext-editor`.
+
+Un texte sans balises est gardé tel quel : ses retours à la ligne ne produisent ni paragraphes ni listes, et le navigateur l'affiche d'un seul bloc. Pour le structurer, écrivez les balises :
+
+```html
+<h2>Titre</h2>
+<p>Un paragraphe avec un <strong>mot important</strong> et un <a href="https://exemple.fr" target="_blank">lien</a>.</p>
+<ul>
+<li>Premier point</li>
+<li>Second point</li>
+</ul>
+```
+
+Ce que le nettoyage garde. Une balise absente de cette liste est retirée et son texte est conservé ; le contenu d'une balise `<script>` ou `<style>` est supprimé :
+
+| | Autorisé |
+| --- | --- |
+| Texte | `p`, `br`, `hr`, `strong`, `em`, `b`, `i`, `u`, `del`, `s`, `sub`, `sup`, `code`, `a`, `img` |
+| Titres | `h1` à `h6` |
+| Blocs et listes | `ul`, `ol`, `li`, `blockquote`, `pre` |
+| Tableaux | `table`, `thead`, `tbody`, `tr`, `th`, `td` |
+| Attributs | `a` : `href`, `title`, `target` · `img` : `src`, `alt`, `title` · `code` : `class` |
+
+- Les adresses des liens et des images doivent être absolues, en `http` ou `https` : une adresse relative ou d'un autre schéma (`javascript:`, `data:`) est retirée.
+- `target` n'accepte que `_blank`, et `rel="noopener noreferrer"` est ajouté à chaque lien.
+- Ni attribut `style`, ni gestionnaire d'événement (`onclick`…), ni commentaire HTML.
+
+Dans un template, la valeur s'affiche avec `{{ article.contenu | safe }}` : sans `| safe`, Tera échappe les balises et le visiteur les voit en clair. N'utilisez `| safe` que sur un champ `richtext`, jamais sur un champ texte ordinaire.
 
 **Utilitaires mot de passe :**
 

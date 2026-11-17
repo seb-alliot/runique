@@ -39,6 +39,56 @@ pub fn generate_model_meta(model: &ModelInput) -> TokenStream2 {
             const SECRET: &'static [Column] = &[#(Column::#secrets),*];
         }
     });
+    // The list fields: the gate writes them through the functions the
+    // model already has (`admin_save_lists`, `admin_list_values`).
+    let list_names: Vec<String> = model.lists.iter().map(|l| l.name.to_string()).collect();
+    let lists = (!list_names.is_empty()).then(|| {
+        quote! {
+            const LISTS: &'static [&'static str] = &[#(#list_names),*];
+
+            fn save_lists<C>(
+                row: &Model,
+                db: &C,
+                values: &::std::collections::HashMap<::std::string::String, ::std::string::String>,
+            ) -> impl ::std::future::Future<Output = ::std::result::Result<(), ::sea_orm::DbErr>> + ::std::marker::Send
+            where
+                C: ::sea_orm::ConnectionTrait + ::sea_orm::TransactionTrait,
+            {
+                row.admin_save_lists(db, values)
+            }
+
+            fn list_values<C>(
+                row: &Model,
+                db: &C,
+            ) -> impl ::std::future::Future<
+                Output = ::std::result::Result<
+                    ::std::vec::Vec<(&'static str, ::std::string::String)>,
+                    ::sea_orm::DbErr,
+                >,
+            > + ::std::marker::Send
+            where
+                C: ::sea_orm::ConnectionTrait,
+            {
+                async move {
+                    let mut read = ::runique::serde_json::Value::Object(::std::default::Default::default());
+                    row.admin_list_values(db, &mut read).await?;
+                    ::std::result::Result::Ok(
+                        <Entity as ::runique::auth::meta::ModelMeta>::LISTS
+                            .iter()
+                            .map(|name| {
+                                let joined = read
+                                    .get(*name)
+                                    .and_then(|value| value.as_str())
+                                    .unwrap_or_default()
+                                    .to_string();
+                                (*name, joined)
+                            })
+                            .collect(),
+                    )
+                }
+            }
+        }
+    });
     quote! {
         impl ::runique::auth::meta::ModelMeta for Entity {
             const KEY: &'static str = #key;
@@ -49,6 +99,7 @@ pub fn generate_model_meta(model: &ModelInput) -> TokenStream2 {
             #owner
             #label
             #secret
+            #lists
         }
     }
 }

@@ -40,17 +40,56 @@
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DB_MAX_CONNECTIONS` | `100` | Maximum pool size |
-| `DB_MIN_CONNECTIONS` | `20` | Minimum pool size |
+| `DB_MAX_CONNECTIONS` | `10` | Maximum pool size |
+| `DB_MIN_CONNECTIONS` | `2` | Connections kept open when idle |
 
 ### Timeouts
 
 | Variable | Default | Unit | Description |
 |----------|---------|------|-------------|
 | `DB_CONNECT_TIMEOUT` | `2` | seconds | Connection establishment timeout |
-| `DB_ACQUIRE_TIMEOUT` | `500` | milliseconds | Pool acquire timeout |
+| `DB_ACQUIRE_TIMEOUT` | `5000` | milliseconds | Pool acquire timeout |
 | `DB_IDLE_TIMEOUT` | `300` | seconds | Idle connection lifetime |
 | `DB_MAX_LIFETIME` | `3600` | seconds | Maximum connection lifetime |
+
+### Tuning the pool
+
+The pool is the set of connections the application keeps to the database. An HTTP request that reads or writes borrows one for the time of its SQL query, then gives it back. These settings apply to PostgreSQL and MySQL; with SQLite, Runique opens a single connection and ignores them.
+
+- **`DB_MIN_CONNECTIONS`**: the connections kept open even when nobody visits the site. It is not a limit. The higher the value, the less a request waits for a connection to open after a quiet period; each open connection uses memory on the database server.
+- **`DB_MAX_CONNECTIONS`**: how many SQL queries the application can run at the same time. Beyond it, requests wait for a connection to be freed.
+- **`DB_ACQUIRE_TIMEOUT`**: how long a request waits for a free connection. Past it, the request fails (`PoolTimedOut` error, 500 error page). It also applies at startup, while the first connection opens.
+
+The defaults are small on purpose: a project starts without any setting, and one site cannot hold the whole database server. They suit a site with moderate traffic.
+
+**When to change them**
+
+| Situation | Setting |
+|---|---|
+| `PoolTimedOut` errors at peak hours, slow pages while the database answers fast | raise `DB_MAX_CONNECTIONS` |
+| The first requests after a quiet period are slow | raise `DB_MIN_CONNECTIONS` |
+| You prefer a quick error to a page that waits | lower `DB_ACQUIRE_TIMEOUT`, never under the time a connection takes to open (`PoolTimedOut` at startup otherwise) |
+
+**The database server's own limit**
+
+The server has its own ceiling, for every application together, set by `max_connections`:
+
+| Engine | Default `max_connections` | Available to an application |
+|---|---|---|
+| PostgreSQL | typically 100 (less if the system cannot support it, decided at install time) | 3 fewer: `superuser_reserved_connections` keeps 3 connections for superusers |
+| MySQL | 151 | 151; one extra connection is kept for administration accounts |
+
+The sum of the `DB_MAX_CONNECTIONS` of every application connecting to it (each instance counts, as do administration tools and backups) must stay under it.
+
+When several sites share a server, give each its own account and limit it on the database side, so one site cannot take the others' connections:
+
+```sql
+-- PostgreSQL (the limit does not apply to a superuser)
+ALTER ROLE my_site CONNECTION LIMIT 15;
+
+-- MySQL
+ALTER USER 'my_site'@'localhost' WITH MAX_USER_CONNECTIONS 15;
+```
 
 ### SQL Logging
 

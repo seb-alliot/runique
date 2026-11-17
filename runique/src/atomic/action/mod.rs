@@ -20,6 +20,7 @@ pub(super) fn prepare(item: &ItemsPath) -> io::Result<AtomicStep> {
             disk::remove(&item.temp_path)?;
             disk::place(source, &item.temp_path)?
         }
+        SourceItems::Remove => {}
     }
     Ok(AtomicStep::Prepared)
 }
