@@ -99,6 +99,24 @@ ALTER USER 'mon_site'@'localhost' WITH MAX_USER_CONNECTIONS 15;
 
 ---
 
+## Envoi de courriel
+
+Le mailer se configure ici, et nulle part ailleurs : rien à déclarer dans le builder. Voir [Mailer](/docs/fr/mailer).
+
+| Variable | Défaut | Description |
+|----------|--------|-------------|
+| `EMAIL_BACKEND` | `smtp` | `smtp` (envoi réel) ou `console` (affiche le courriel dans le terminal, pour le développement) |
+| `SMTP_HOST` | — | Serveur SMTP — **requis** avec `smtp` |
+| `SMTP_USER` | — | Identifiant SMTP — **requis** avec `smtp` |
+| `SMTP_PASS` | — | Mot de passe SMTP — **requis** avec `smtp` |
+| `SMTP_PORT` | `587` | Port du serveur |
+| `SMTP_FROM` | `SMTP_USER` (`noreply@localhost` avec `console`) | Adresse d'expédition |
+| `SMTP_STARTTLS` | `true` | Passe la connexion en STARTTLS |
+
+La configuration doit être complète : avec `smtp`, s'il manque une des trois variables requises, il n'y a pas de mailer. L'application démarre quand même ; un envoi rend une erreur, et l'admin refuse de créer un compte.
+
+---
+
 ## Connexions secondaires — `with_custom_db`
 
 Pour attacher une connexion additionnelle (pool Redis, PostgreSQL secondaire, client MongoDB, etc.), utilisez `.with_custom_db()` sur le builder. La valeur est stockée dans une `HashMap<TypeId, Arc<dyn Any>>` interne à `RuniqueEngine` — **pas** injectée comme `Extension` Axum. Accès dans les handlers via `engine.custom_db::<T>()` (ou son alias `engine.extension::<T>()`), qui retourne `Option<Arc<T>>`.

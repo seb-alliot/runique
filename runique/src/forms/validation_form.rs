@@ -500,6 +500,85 @@ mod tests {
         assert_eq!(read, [("genres", String::new())], "an empty list reads empty");
     }
 
+    /// The history rows, oldest first: the action and its summary as JSON.
+    #[cfg(feature = "admin")]
+    async fn history(db: &ADb) -> Vec<(String, Option<serde_json::Value>)> {
+        use crate::auth::history;
+        use sea_orm::QueryOrder;
+        history::Entity::find()
+            .order_by_asc(history::Column::Id)
+            .all(&**db)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|row| {
+                let summary = row
+                    .summary
+                    .map(|text| serde_json::from_str(&text).expect("a JSON summary"));
+                (row.action, summary)
+            })
+            .collect()
+    }
+
+    /// The trace of an update names a list like a column: its values before
+    /// and after, only when they differ.
+    #[cfg(feature = "admin")]
+    #[tokio::test]
+    async fn an_update_traces_a_list_only_when_it_changes() {
+        use serde_json::json;
+
+        let db = shelf_db().await;
+        write(
+            &db,
+            shelf_form(&boss(), None, &[("title", "Dune"), ("genres", "Roman,Policier")]),
+        )
+        .await;
+        let id = the_shelf(&db).await.0.id.to_string();
+        assert_eq!(history(&db).await, [("create".to_string(), None)]);
+
+        // The list alone changes.
+        write(&db, shelf_form(&boss(), Some(&id), &[("genres", "Policier")])).await;
+        let rows = history(&db).await;
+        assert_eq!(rows.len(), 2);
+        assert_eq!(
+            rows[1],
+            (
+                "update".to_string(),
+                Some(json!({ "genres": { "old": "Roman,Policier", "new": "Policier" } }))
+            )
+        );
+
+        // The same list again, no column: nothing written, nothing traced.
+        write(&db, shelf_form(&boss(), Some(&id), &[("genres", "Policier")])).await;
+        assert_eq!(history(&db).await.len(), 2, "an unchanged list leaves no trace");
+
+        // A column changes, the list doesn't: the list stays out of the trace.
+        write(
+            &db,
+            shelf_form(&boss(), Some(&id), &[("title", "Dune II"), ("genres", "Policier")]),
+        )
+        .await;
+        let rows = history(&db).await;
+        assert_eq!(rows.len(), 3);
+        assert_eq!(
+            rows[2].1,
+            Some(json!({ "title": { "old": "Dune", "new": "Dune II" } }))
+        );
+
+        // Both change, the list is cleared: both are in the trace.
+        write(&db, shelf_form(&boss(), Some(&id), &[("title", "Dune III")])).await;
+        let rows = history(&db).await;
+        assert_eq!(rows.len(), 4);
+        assert_eq!(
+            rows[3].1,
+            Some(json!({
+                "title": { "old": "Dune II", "new": "Dune III" },
+                "genres": { "old": "Policier", "new": "" },
+            }))
+        );
+        assert!(the_shelf(&db).await.1.is_empty());
+    }
+
     /// A list follows the rights of its name, like a column: an admin not
     /// ticked for it writes the row and leaves the list alone.
     #[cfg(feature = "admin")]

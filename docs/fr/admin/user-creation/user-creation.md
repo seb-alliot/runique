@@ -31,7 +31,7 @@ L'utilisateur peut se connecter
 | Email | Lien « choisir mon mot de passe » envoyé à l'adresse du formulaire |
 | Définition du mot de passe | Le compte en attente est activé : `is_active = true` et `activated_at` rempli. Un compte déjà activé (désactivé depuis) n'est **pas** réactivé |
 | Connexion | Refusée tant que le compte n'est pas actif et activé (`can_sign_in()`) |
-| Email perdu | L'utilisateur redemande un lien via « mot de passe oublié » |
+| Email perdu | Le staff renvoie le lien depuis la fiche du compte ; l'utilisateur le redemande lui-même via « mot de passe oublié » si le site a ouvert ce formulaire (`with_password_reset`) |
 | Activation par l'admin | Impossible : cocher `is_active` sur un compte en attente est refusé — la première activation appartient au propriétaire de l'email |
 
 ---
@@ -68,13 +68,18 @@ Pas de `create_form:` / `edit_form:` / flag `inject_password` : c'est le comport
 
 ## Envoi de l'email
 
-Le lien de bienvenue n'est envoyé que si les trois conditions sont réunies :
+L'admin n'a besoin d'aucune déclaration dans `main.rs` pour ouvrir les comptes qu'il crée. Il lui faut deux choses :
 
-- un mailer est configuré (variables `SMTP_*` dans `.env`, voir [Mailer](/docs/fr/mailer)) ;
-- la réinitialisation de mot de passe est activée (`.with_password_reset(…)` dans le builder) : le lien mène à sa page ;
-- l'adresse publique est connue (`.with_public_url(…)` ; avec `RUNIQUE_ENV=dev`, c'est `http://127.0.0.1:{PORT}`).
+- **un mailer complet dans le `.env`** (`EMAIL_BACKEND`, ou `SMTP_HOST`, `SMTP_USER` et `SMTP_PASS`, voir [Mailer](/docs/fr/mailer)) ;
+- **l'adresse publique** (`.with_public_url(…)` ; avec `RUNIQUE_ENV=dev`, c'est `http://127.0.0.1:{PORT}`).
 
-Sinon le compte est créé quand même, et l'admin voit un avertissement « lien indisponible ». **Le lien n'est jamais affiché à l'admin**, même en développement : celui qui crée le compte ne doit pas pouvoir choisir le mot de passe à la place de son propriétaire. L'utilisateur peut toujours demander un lien plus tard par « mot de passe oublié ».
+La page où le titulaire choisit son mot de passe est servie par l'admin lui-même, avec le gabarit de Runique. `with_password_reset(…)` sert à la personnaliser et à ouvrir aux visiteurs le formulaire « mot de passe oublié ».
+
+**Sans mailer complet, l'admin ne crée pas de compte.** Le staff ne tient jamais de mot de passe : un compte sans lien envoyé ne pourrait être ouvert par personne. La page de création renvoie donc à la liste avec le message « l'envoi de courriel n'est pas configuré sur ce site », et rien n'est écrit. La relance d'un mot de passe depuis la fiche d'un compte est refusée de la même façon.
+
+Si l'envoi échoue alors que le mailer est configuré (serveur SMTP injoignable, par exemple), le compte existe : le staff relance le lien depuis sa fiche.
+
+**Le lien n'est jamais affiché à l'admin**, même en développement : celui qui crée le compte ne doit pas pouvoir choisir le mot de passe à la place de son propriétaire.
 
 Templates :
 
@@ -95,13 +100,50 @@ L'adresse email n'est jamais mise dans le lien : la page de réinitialisation la
 
 ---
 
+## Personnaliser dans `main.rs`
+
+Sans rien déclarer, l'admin utilise les réglages de base :
+
+| Élément | Valeur de base |
+| --- | --- |
+| Page où le titulaire choisit son mot de passe | `/reset-password/{token}`, gabarit `auth/reset_password.html` de Runique |
+| Durée de vie du lien | 1 heure |
+| Limite de débit de la page | 5 requêtes par 5 minutes et par adresse |
+| Formulaire « mot de passe oublié » pour les visiteurs | non servi |
+
+`with_password_reset(…)` remplace ces réglages et ouvre le formulaire aux visiteurs :
+
+```rust
+use std::time::Duration;
+
+builder::new(config)
+    .with_public_url("https://monsite.com")
+    .with_password_reset(|mut pr| {
+        // Limite de débit des deux pages
+        pr.max_requests = 10;       // défaut : 5
+        pr.retry_after = 600;       // défaut : 300 secondes
+        pr.reset_route("/reinitialiser")            // défaut : /reset-password
+            .reset_template("auth/reset.html")      // défaut : gabarit de Runique
+            .forgot_route("/mot-de-passe-oublie")   // défaut : /forgot-password
+            .forgot_template("auth/oubli.html")     // défaut : gabarit de Runique
+            .token_ttl(Duration::from_secs(1800))   // défaut : 1 heure
+    })
+    .with_admin(admin::config)
+```
+
+Les liens envoyés par l'admin suivent ces réglages : même route, même durée de vie. Un gabarit du même nom que celui de Runique, posé dans votre dossier `templates/`, le remplace sans rien déclarer (`templates/auth/reset_password.html`).
+
+Les deux emails de l'admin ont leurs propres gabarits, listés plus haut. Toutes les options de `with_password_reset` sont décrites dans [Réinitialisation de mot de passe](/docs/fr/auth/password-reset).
+
+---
+
 ## URL du lien
 
 ```
 {public_url}/{reset_route}/{token}
 ```
 
-`public_url` vient de `.with_public_url(…)` ; `reset_route` est celle de `with_password_reset()` (`/reset-password` par défaut). En production, l'application refuse de démarrer sans adresse publique quand l'admin ou la réinitialisation sont actifs. En développement (`RUNIQUE_ENV=dev`), l'adresse est toujours `http://127.0.0.1:{PORT}`, jamais l'en-tête `Host` de la requête.
+`public_url` vient de `.with_public_url(…)` ; `reset_route` vaut `/reset-password`, ou celle donnée à `with_password_reset()`. En production, l'application refuse de démarrer sans adresse publique quand l'admin ou la réinitialisation sont actifs. En développement (`RUNIQUE_ENV=dev`), l'adresse est toujours `http://127.0.0.1:{PORT}`, jamais l'en-tête `Host` de la requête.
 
 ---
 

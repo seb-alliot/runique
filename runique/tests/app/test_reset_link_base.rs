@@ -10,7 +10,7 @@ use sea_orm::Database;
 use serial_test::serial;
 
 /// Database and routes set (their slots taken), everything else still open.
-type Base = RuniqueAppBuilder<(No, Yes, No, No, Yes, No, No)>;
+type Base = RuniqueAppBuilder<(No, Yes, No, No, Yes, No)>;
 
 async fn builder(dev: bool) -> Base {
     let mut config = RuniqueConfig::from_env();
@@ -156,7 +156,8 @@ async fn the_boot_report_follows_the_language() {
 }
 
 /// A reset page that could never send its link: production refuses to boot
-/// without a mailer given to the builder, and boots with one.
+/// without a mailer in the environment, and boots with one. The mailer lives
+/// in the `.env` alone: nothing in the builder sets it.
 #[tokio::test]
 #[serial]
 async fn production_refuses_a_password_reset_without_a_mailer() {
@@ -168,20 +169,24 @@ async fn production_refuses_a_password_reset_without_a_mailer() {
     let components = refused(without).await;
     assert!(has_mailer_error(&components), "{components:?}");
 
+    // An incomplete one is none: the host alone doesn't make a mailer.
+    crate::utils::env::set_env("SMTP_HOST", "smtp.example.com");
+    let partial = builder(false)
+        .await
+        .with_password_reset(|pr| pr)
+        .with_public_url("https://mysite.com");
+    let components = refused(partial).await;
+    crate::utils::env::del_env("SMTP_HOST");
+    assert!(has_mailer_error(&components), "{components:?}");
+
+    // A complete one, as a `.env` gives it.
+    crate::utils::env::set_env("EMAIL_BACKEND", "console");
     let with = builder(false)
         .await
         .with_password_reset(|pr| pr)
-        .with_public_url("https://mysite.com")
-        .with_mailer(runique::utils::mailer::MailerConfig {
-            backend: runique::utils::mailer::MailerBackend::Console,
-            from: "test@runique.rs".to_string(),
-            host: String::new(),
-            port: 0,
-            username: String::new(),
-            password: String::new(),
-            starttls: false,
-        });
+        .with_public_url("https://mysite.com");
     let components = refused(with).await;
+    crate::utils::env::del_env("EMAIL_BACKEND");
     assert!(!has_mailer_error(&components), "{components:?}");
 
     // Development boots without one, to develop without a mail server.

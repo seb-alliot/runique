@@ -154,6 +154,53 @@ fn list_changes<E: ModelMeta>(
         .collect()
 }
 
+/// A list field an update changes: its values before and after,
+/// comma-separated as a form holds them.
+struct ListChange {
+    name: String,
+    old: String,
+    new: String,
+}
+
+/// A list's values as the form sends them, the way they are stored: trimmed,
+/// in their order, an empty one or a repeat dropped.
+fn joined(raw: &str) -> String {
+    let mut values: Vec<&str> = Vec::new();
+    for value in raw.split(',').map(str::trim) {
+        if !value.is_empty() && !values.contains(&value) {
+            values.push(value);
+        }
+    }
+    values.join(",")
+}
+
+/// Among the lists the form writes (`written`), those whose values differ
+/// from `before`: the only ones written and traced, as a column is. Sorted
+/// by name, so the trace doesn't depend on the map's order.
+fn changed_lists(
+    before: &[(&'static str, String)],
+    written: &std::collections::HashMap<String, String>,
+) -> Vec<ListChange> {
+    let mut changed: Vec<ListChange> = written
+        .iter()
+        .filter_map(|(name, raw)| {
+            let new = joined(raw);
+            let old = before
+                .iter()
+                .find(|(list, _)| *list == name.as_str())
+                .map(|(_, values)| values.clone())
+                .unwrap_or_default();
+            (old != new).then(|| ListChange {
+                name: name.clone(),
+                old,
+                new,
+            })
+        })
+        .collect();
+    changed.sort_by(|a, b| a.name.cmp(&b.name));
+    changed
+}
+
 /// The gated write of `form` on `E`, as the account its constraint carries.
 /// Without a key in the URL `save` creates, with one it updates; `delete`
 /// needs one. A key that doesn't read as `E`'s is refused as not found.
@@ -226,11 +273,27 @@ where
                 let txn = db.begin().await?;
                 // The row as it was, read in the write's transaction: the trace
                 // compares against what the update replaces.
-                let Some(old) = E::find_by_id(id).one(&txn).await? else {
+                let Some(old) = E::find_by_id(id.clone()).one(&txn).await? else {
                     return Err(refused(Refusal::new(RefusalReason::StaleRow)));
                 };
+                // The lists as they were, read in the same transaction: only
+                // those the form changes are written, and traced.
+                let changed = if lists.is_empty() {
+                    Vec::new()
+                } else {
+                    changed_lists(&E::list_values(id, &txn).await?, &lists)
+                };
+                let lists: std::collections::HashMap<String, String> = changed
+                    .iter()
+                    .map(|change| (change.name.clone(), change.new.clone()))
+                    .collect();
+                if !model.is_changed() && lists.is_empty() {
+                    // The form holds what the row already does: nothing to
+                    // write, nothing to trace.
+                    return Ok(txn);
+                }
                 keeps_responsable::<E, _>(&txn, &user, &old, deactivates::<E>(&model)).await?;
-                let summary = summary::<E>(&old, &model);
+                let summary = summary::<E>(&old, &model, &changed);
                 if model.is_changed() {
                     write::update(proof, model, &txn).await.map_err(refused)?;
                 } else {
@@ -322,7 +385,7 @@ where
                 let mut model = <E::ActiveModel as ActiveModelTrait>::default();
                 model.try_set(*col, value.clone())?;
                 keeps_responsable::<E, _>(&txn, user, &old, deactivates::<E>(&model)).await?;
-                let summary = summary::<E>(&old, &model);
+                let summary = summary::<E>(&old, &model, &[]);
                 write::update(proof, model, &txn).await.map_err(refused)?;
                 trace::<E, _>(&txn, user, &old, "update", summary, Some(&batch)).await?;
             }
@@ -415,8 +478,13 @@ fn label_of<E: ModelMeta>(row: &E::Model) -> String {
 }
 
 /// `{column: {old, new}}` for the columns `changes` sets to another value
-/// than `old` holds, sensitive ones masked; `None` when none differs.
-fn summary<E: ModelMeta>(old: &E::Model, changes: &E::ActiveModel) -> Option<String> {
+/// than `old` holds, sensitive ones masked, and for the list fields in
+/// `lists`, under their name; `None` when nothing differs.
+fn summary<E: ModelMeta>(
+    old: &E::Model,
+    changes: &E::ActiveModel,
+    lists: &[ListChange],
+) -> Option<String> {
     let mut diff = serde_json::Map::new();
     for column in E::Column::iter() {
         let ActiveValue::Set(new) = changes.get(column) else {
@@ -429,6 +497,12 @@ fn summary<E: ModelMeta>(old: &E::Model, changes: &E::ActiveModel) -> Option<Str
                 serde_json::json!({ "old": shown(&before), "new": shown(&new) }),
             );
         }
+    }
+    for list in lists {
+        diff.insert(
+            list.name.clone(),
+            serde_json::json!({ "old": list.old, "new": list.new }),
+        );
     }
     if diff.is_empty() {
         return None;

@@ -2044,28 +2044,34 @@ async fn the_admin_link_lasts_what_the_site_sets() {
     }
 }
 
-/// Without the site's reset page, a link would lead nowhere: none is made.
+/// Without `with_password_reset`, the admin serves the reset page itself: its
+/// link is made and leads somewhere. The "forgot password" form stays closed:
+/// only the site's declaration opens it to visitors.
 #[tokio::test]
 #[serial]
-async fn without_a_reset_page_the_admin_sends_no_link() {
+async fn without_a_declared_reset_the_admin_serves_its_own_reset_page() {
     console_mailer();
     let base = spawn_with_reset("", probe_routes(), None).await;
-    let client = signed_in(&base, SUPERUSER).await;
-    let resp = press_reset(&client, &base, MEMBER, true).await;
+    let staff = signed_in(&base, SUPERUSER).await;
+    let resp = press_reset(&staff, &base, MEMBER, true).await;
     assert_eq!(resp.status(), reqwest::StatusCode::SEE_OTHER);
     assert_eq!(
-        text(&client, format!("{base}/probe/reset-tokens")).await,
-        ""
+        text(&staff, format!("{base}/probe/reset-tokens")).await,
+        "60",
+        "a link, lasting the default hour"
     );
-    let history = text(
-        &client,
-        format!("{base}/secret-admin/history?action=reset_password"),
-    )
-    .await;
-    assert!(
-        !history.contains(r#"data-action="reset_password""#),
-        "nothing sent, nothing traced"
-    );
+    // Nobody can ask for a link: the form isn't served...
+    let forgot = fetch(&staff, format!("{base}/forgot-password"), None).await;
+    assert_eq!(forgot.status(), reqwest::StatusCode::NOT_FOUND);
+    // ...while the page a link leads to is: an unknown token is answered by
+    // that page, not by a missing route.
+    let landing = fetch(&staff, format!("{base}/reset-password/unknown-token"), None).await;
+    assert_ne!(landing.status(), reqwest::StatusCode::NOT_FOUND);
+
+    // The other side: declared, the site opens the form to its visitors too.
+    let base = spawn_with("", probe_routes()).await;
+    let forgot = fetch(&client(), format!("{base}/forgot-password"), None).await;
+    assert_eq!(forgot.status(), reqwest::StatusCode::OK);
 }
 
 /// The rank rule: an admin never resets a superuser's password; an account

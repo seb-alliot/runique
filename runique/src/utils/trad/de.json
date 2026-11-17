@@ -161,7 +161,7 @@
       "suggestion": "Vorschlag",
       "context": "Kontext",
       "mailer_missing": "Passwort-Zurücksetzung ohne Mailer: der Link könnte nie gesendet werden",
-      "mailer_missing_hint": "Im Builder festlegen: .with_mailer_from_env() (SMTP_HOST, SMTP_USER…) oder .with_mailer(…)"
+      "mailer_missing_hint": "Legen Sie es in .env fest: EMAIL_BACKEND oder SMTP_HOST, SMTP_USER und SMTP_PASS"
     }
   },
   "server": {
@@ -387,6 +387,7 @@
       "success_email": "Link zum Zurücksetzen gesendet.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
+      "error_no_mailer": "Der E-Mail-Versand ist auf dieser Website nicht konfiguriert: Aktion nicht möglich.",
       "error_unavailable": "Für diesen Eintrag ist keine Passwortzurücksetzung möglich.",
       "error_send": "Error sending email: {}",
       "email_subject": "Passwort zurücksetzen",

@@ -31,7 +31,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_public_url("https://runique.io")
         .with_database(db)
         .with_log(|l| l.dev())
-        .with_mailer_from_env()
         .with_password_reset(|mut pr| {
             pr.max_requests = 10;
             pr.retry_after = 600;

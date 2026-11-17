@@ -127,9 +127,23 @@ pub fn mailer_init_from_env() {
     }
 }
 
-/// Whether [`mailer_init`] (or [`mailer_init_from_env`]) has been called.
+/// The mailer's configuration: the one set by code ([`mailer_init`]),
+/// otherwise the `.env`'s, read when first needed and kept once it is
+/// complete. `None` while the `.env` gives none or an incomplete one: nothing
+/// is kept then, so a corrected environment is seen at the next call.
+fn config() -> Option<&'static MailerConfig> {
+    if let Some(config) = MAILER_CONFIG.get() {
+        return Some(config);
+    }
+    let from_env = MailerConfig::from_env()?;
+    Some(MAILER_CONFIG.get_or_init(|| from_env))
+}
+
+/// Whether an email can be sent: the mailer's configuration is complete, in
+/// the `.env` (`EMAIL_BACKEND`, `SMTP_*`) or set by [`mailer_init`]. Nothing
+/// to declare in the application's builder.
 pub fn mailer_configured() -> bool {
-    MAILER_CONFIG.get().is_some()
+    config().is_some()
 }
 
 // ─── Email builder ────────────────────────────────────────────────────────────
@@ -228,12 +242,12 @@ impl Email {
     /// mailer isn't configured, if neither an HTML nor a text body was set, or
     /// if the addresses/transport are invalid.
     pub async fn send(self) -> Result<(), String> {
-        let config = MAILER_CONFIG.get().ok_or_else(|| {
+        let config = config().ok_or_else(|| {
             if let Some(level) = crate::utils::runique_log::log_level!(mailer.send)
             {
                 crate::runique_log!(level, to = %self.to, subject = %self.subject, "send — mailer not configured");
             }
-            "Mailer not configured — call .with_mailer_from_env() in the builder or set EMAIL_BACKEND/SMTP_* in .env"
+            "The mailer configuration is missing or incomplete: set EMAIL_BACKEND and SMTP_* in .env"
                 .to_string()
         })?;
 

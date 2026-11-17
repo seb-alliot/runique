@@ -530,11 +530,17 @@ On another engine it returns an error; use `load_genres` after reading the page.
 
 ### Forms and admin
 
-**The admin does not handle list fields yet**: it neither saves the checked values nor pre-fills
-the edit form. `save()` does not write the list either: it lives in its own table, not in a
-column.
+**In the admin**, the field is shown (checkboxes or multiple select), saved with its row in the
+same transaction, and pre-filled on the edit page. It follows the rights of its name, like a
+column: shown when the account may read it, locked when it may not update it. The history
+traces a changed list like a column, with its values before and after, and an admin's rights
+grid offers the list fields after the columns.
 
-Until then, write it from your view. In a form, the checked values are read with
+One limit: `.form(|f| f.fields([...]))` only takes columns. A model declaring its fields that way
+does not show its list fields.
+
+**Outside the admin**, `save()` does not write the list: it lives in its own table, not in a
+column. Write it from your view. In a form, the checked values are read with
 `cleaned_enums::<Genre>("genres")`, then saved with `set_genres` (see "Reading and writing" above):
 
 ```rust

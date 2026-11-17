@@ -1309,4 +1309,17 @@ mod tests {
         assert!(locked(&only(false)), "read without update: shown, locked");
         assert!(!locked(&only(true)), "update: writable");
     }
+
+    #[test]
+    fn the_rights_grid_offers_the_list_fields_after_the_columns() {
+        use crate::admin::builder::registered::RegisteredModel;
+
+        let grid = ModelAdmin::<shelf::Entity>::new().grid_columns();
+        assert_eq!(grid, ["title", "genres"], "the key is left out");
+
+        // The other side: a model without a list field offers its columns alone.
+        let grid = ModelAdmin::<article::Entity>::new().grid_columns();
+        assert!(grid.contains(&"title"), "{grid:?}");
+        assert!(!grid.contains(&"genres"), "{grid:?}");
+    }
 }

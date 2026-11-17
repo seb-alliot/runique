@@ -161,7 +161,7 @@
       "suggestion": "Sugerencia",
       "context": "Contexto",
       "mailer_missing": "Restablecimiento de contraseña sin mailer: el enlace nunca podría enviarse",
-      "mailer_missing_hint": "Configúrelo en el builder: .with_mailer_from_env() (SMTP_HOST, SMTP_USER…) o .with_mailer(…)"
+      "mailer_missing_hint": "Configúrelo en .env: EMAIL_BACKEND, o SMTP_HOST, SMTP_USER y SMTP_PASS"
     }
   },
   "server": {
@@ -387,6 +387,7 @@
       "success_email": "Enlace de restablecimiento enviado.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
+      "error_no_mailer": "El envío de correo no está configurado en este sitio: acción imposible.",
       "error_unavailable": "No es posible restablecer la contraseña para este elemento.",
       "error_send": "Error sending email: {}",
       "email_subject": "Restablece tu contraseña",

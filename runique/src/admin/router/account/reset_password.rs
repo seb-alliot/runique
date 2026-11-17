@@ -79,6 +79,11 @@ pub(crate) async fn send_account_link(
     kind: AccountLink,
 ) -> Result<String, String> {
     let unavailable = || t("admin.reset_password.error_unavailable").into_owned();
+    // Asked before anything else: no token is written for a link that can't leave.
+    if !crate::utils::mailer_configured() {
+        tracing::warn!("admin link not sent: the mailer configuration is missing or incomplete");
+        return Err(t("admin.reset_password.error_no_mailer").into_owned());
+    }
     let Some(account) = BuiltinUserEntity::find_by_id(&req.engine.db, account_id).await else {
         return Err(unavailable());
     };

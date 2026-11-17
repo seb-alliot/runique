@@ -28,6 +28,16 @@ pub(crate) async fn create_view(
     };
     let key = model.key();
     let list = admin.paths.list_of(key);
+    // The staff never holds a password: a created account is opened by the
+    // link mailed to its owner. Without a complete mailer configuration that
+    // link can't leave, so no account is created at all.
+    if model.is_account_table() && !crate::utils::mailer_configured() {
+        tracing::warn!("account not created: the mailer configuration is missing or incomplete");
+        req.notices
+            .error(t("admin.reset_password.error_no_mailer"))
+            .await;
+        return Ok(Redirect::to(&list).into_response());
+    }
     let form = match model.create(&req, &user).await {
         Ok(FormOutcome::Show(form)) => form,
         Ok(FormOutcome::Saved(account_email)) => {

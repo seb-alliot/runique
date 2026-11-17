@@ -161,7 +161,7 @@
       "suggestion": "Suggerimento",
       "context": "Contesto",
       "mailer_missing": "Reimpostazione della password senza mailer: il link non potrebbe mai essere inviato",
-      "mailer_missing_hint": "Configuralo nel builder: .with_mailer_from_env() (SMTP_HOST, SMTP_USER…) o .with_mailer(…)"
+      "mailer_missing_hint": "Configuralo nel .env: EMAIL_BACKEND, oppure SMTP_HOST, SMTP_USER e SMTP_PASS"
     }
   },
   "server": {
@@ -387,6 +387,7 @@
       "success_email": "Link di reimpostazione inviato.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
+      "error_no_mailer": "L'invio di email non è configurato su questo sito: azione impossibile.",
       "error_unavailable": "Il ripristino della password non è disponibile per questo elemento.",
       "error_send": "Error sending email: {}",
       "email_subject": "Reimposta la tua password",

@@ -20,10 +20,10 @@ use sea_orm::DatabaseConnection;
 
 /// Which once-only settings the builder already holds, carried in its type:
 /// calling one of them a second time doesn't compile, rather than silently
-/// replacing (or, for the mailer, silently ignoring) the first call.
+/// replacing the first call.
 ///
 /// The state is a tuple with one slot per setting — public URL, routes, logs,
-/// password reset, database, session duration, mailer — each [`No`] until
+/// password reset, database, session duration — each [`No`] until
 /// set, [`Yes`] after. Settings that compose (`core`, `middleware`,
 /// `static_files`, `with_admin`, `with_custom_db`, `statics`) take no slot.
 ///
@@ -36,7 +36,7 @@ pub mod state {
     pub struct Yes;
 
     /// A builder that holds none of the once-only settings yet.
-    pub type Fresh = (No, No, No, No, No, No, No);
+    pub type Fresh = (No, No, No, No, No, No);
 
     mod sealed {
         pub trait Sealed {}
@@ -94,13 +94,6 @@ pub mod state {
         "a second `with_session_duration()` would silently replace the first",
         "keep a single `.with_session_duration(...)`"
     );
-    once_only!(
-        /// Neither `with_mailer()` nor `with_mailer_from_env()` called yet.
-        MailerUnset,
-        "the mailer has already been set on this builder",
-        "`with_mailer()` and `with_mailer_from_env()` set the same mailer: the second call would be ignored",
-        "keep a single mailer call"
-    );
 }
 
 use state::{Fresh, Yes};
@@ -119,9 +112,6 @@ pub struct RuniqueAppBuilder<S = Fresh> {
     #[cfg(feature = "admin")]
     pub(super) admin: AdminStaging,
     pub(super) password_reset: Option<PasswordResetStaging>,
-    /// Whether this builder was given a mailer: read by the boot checks, not
-    /// the global mailer another app of the process may have set.
-    pub(super) mailer: bool,
     pub(super) state: PhantomData<S>,
 }
 
@@ -143,7 +133,6 @@ impl RuniqueAppBuilder<Fresh> {
             #[cfg(feature = "admin")]
             admin: AdminStaging::new(),
             password_reset: None,
-            mailer: false,
             state: PhantomData,
         }
     }
@@ -162,7 +151,6 @@ impl<S> RuniqueAppBuilder<S> {
             #[cfg(feature = "admin")]
             admin: self.admin,
             password_reset: self.password_reset,
-            mailer: self.mailer,
             state: PhantomData,
         }
     }
@@ -174,7 +162,7 @@ impl<S> RuniqueAppBuilder<S> {
 // Each one fills its slot of the state: a second call doesn't compile.
 // ═══════════════════════════════════════════════════════════
 
-impl<PU, RT, LG, PR, DB, SD, ML> RuniqueAppBuilder<(PU, RT, LG, PR, DB, SD, ML)> {
+impl<PU, RT, LG, PR, DB, SD> RuniqueAppBuilder<(PU, RT, LG, PR, DB, SD)> {
     /// Sets the public URL of the application (`https://mysite.com`): the
     /// address a visitor types, base of every absolute link the app sends out
     /// — password reset links among them — and of the admin's "view site"
@@ -197,7 +185,7 @@ impl<PU, RT, LG, PR, DB, SD, ML> RuniqueAppBuilder<(PU, RT, LG, PR, DB, SD, ML)>
     ///     .with_public_url("http://localhost:3000")
     ///     .with_public_url("https://mysite.com");
     /// ```
-    pub fn with_public_url(mut self, url: &str) -> RuniqueAppBuilder<(Yes, RT, LG, PR, DB, SD, ML)>
+    pub fn with_public_url(mut self, url: &str) -> RuniqueAppBuilder<(Yes, RT, LG, PR, DB, SD)>
     where
         PU: state::PublicUrlUnset,
     {
@@ -218,7 +206,7 @@ impl<PU, RT, LG, PR, DB, SD, ML> RuniqueAppBuilder<(PU, RT, LG, PR, DB, SD, ML)>
     pub fn routes(
         mut self,
         routes: impl Into<Routes>,
-    ) -> RuniqueAppBuilder<(PU, Yes, LG, PR, DB, SD, ML)>
+    ) -> RuniqueAppBuilder<(PU, Yes, LG, PR, DB, SD)>
     where
         RT: state::RoutesUnset,
     {
@@ -250,7 +238,7 @@ impl<PU, RT, LG, PR, DB, SD, ML> RuniqueAppBuilder<(PU, RT, LG, PR, DB, SD, ML)>
     pub fn with_log(
         mut self,
         f: impl FnOnce(RuniqueLog) -> RuniqueLog,
-    ) -> RuniqueAppBuilder<(PU, RT, Yes, PR, DB, SD, ML)>
+    ) -> RuniqueAppBuilder<(PU, RT, Yes, PR, DB, SD)>
     where
         LG: state::LogUnset,
     {
@@ -280,7 +268,7 @@ impl<PU, RT, LG, PR, DB, SD, ML> RuniqueAppBuilder<(PU, RT, LG, PR, DB, SD, ML)>
     pub fn with_password_reset(
         mut self,
         f: impl FnOnce(PasswordResetConfig) -> PasswordResetConfig,
-    ) -> RuniqueAppBuilder<(PU, RT, LG, Yes, DB, SD, ML)>
+    ) -> RuniqueAppBuilder<(PU, RT, LG, Yes, DB, SD)>
     where
         PR: state::PasswordResetUnset,
     {
@@ -311,7 +299,7 @@ impl<PU, RT, LG, PR, DB, SD, ML> RuniqueAppBuilder<(PU, RT, LG, PR, DB, SD, ML)>
     pub fn with_database(
         mut self,
         db: DatabaseConnection,
-    ) -> RuniqueAppBuilder<(PU, RT, LG, PR, Yes, SD, ML)>
+    ) -> RuniqueAppBuilder<(PU, RT, LG, PR, Yes, SD)>
     where
         DB: state::DatabaseUnset,
     {
@@ -331,7 +319,7 @@ impl<PU, RT, LG, PR, DB, SD, ML> RuniqueAppBuilder<(PU, RT, LG, PR, DB, SD, ML)>
     pub fn with_database_config(
         mut self,
         config: DatabaseConfig,
-    ) -> RuniqueAppBuilder<(PU, RT, LG, PR, Yes, SD, ML)>
+    ) -> RuniqueAppBuilder<(PU, RT, LG, PR, Yes, SD)>
     where
         DB: state::DatabaseUnset,
     {
@@ -351,57 +339,12 @@ impl<PU, RT, LG, PR, DB, SD, ML> RuniqueAppBuilder<(PU, RT, LG, PR, DB, SD, ML)>
     pub fn with_session_duration(
         mut self,
         duration: Duration,
-    ) -> RuniqueAppBuilder<(PU, RT, LG, PR, DB, Yes, ML)>
+    ) -> RuniqueAppBuilder<(PU, RT, LG, PR, DB, Yes)>
     where
         SD: state::SessionDurationUnset,
     {
         self.middleware = self.middleware.with_session_duration(duration);
         self.retype()
-    }
-
-    /// Configures the SMTP mailer manually. The mailer is set once, by this
-    /// method or [`with_mailer_from_env`](Self::with_mailer_from_env): a second
-    /// call doesn't compile.
-    ///
-    /// ```rust,ignore
-    /// builder::new(config)
-    ///     .with_mailer(MailerConfig { host: "smtp.example.com".into(), port: 587, ... })
-    /// ```
-    ///
-    /// ```compile_fail,E0277
-    /// # use runique::{app::RuniqueApp, config::RuniqueConfig};
-    /// # fn mailer() -> runique::utils::mailer::MailerConfig { unimplemented!() }
-    /// let builder = RuniqueApp::builder(RuniqueConfig::default())
-    ///     .with_mailer(mailer())
-    ///     .with_mailer_from_env();
-    /// ```
-    pub fn with_mailer(
-        self,
-        config: crate::utils::mailer::MailerConfig,
-    ) -> RuniqueAppBuilder<(PU, RT, LG, PR, DB, SD, Yes)>
-    where
-        ML: state::MailerUnset,
-    {
-        crate::utils::mailer::mailer_init(config);
-        let mut builder = self;
-        builder.mailer = true;
-        builder.retype()
-    }
-
-    /// Configures the mailer from environment variables
-    /// (SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_PORT, SMTP_STARTTLS).
-    /// The mailer is set once, by this method or [`with_mailer`](Self::with_mailer).
-    pub fn with_mailer_from_env(self) -> RuniqueAppBuilder<(PU, RT, LG, PR, DB, SD, Yes)>
-    where
-        ML: state::MailerUnset,
-    {
-        let config = crate::utils::mailer::MailerConfig::from_env();
-        let mut builder = self;
-        builder.mailer = config.is_some();
-        if let Some(config) = config {
-            crate::utils::mailer::mailer_init(config);
-        }
-        builder.retype()
     }
 }
 

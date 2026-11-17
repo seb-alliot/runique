@@ -99,6 +99,24 @@ ALTER USER 'my_site'@'localhost' WITH MAX_USER_CONNECTIONS 15;
 
 ---
 
+## Email sending
+
+The mailer is configured here, and nowhere else: nothing to declare in the builder. See [Mailer](/docs/en/mailer).
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `EMAIL_BACKEND` | `smtp` | `smtp` (real sending) or `console` (prints the email to the terminal, for development) |
+| `SMTP_HOST` | — | SMTP server — **required** with `smtp` |
+| `SMTP_USER` | — | SMTP username — **required** with `smtp` |
+| `SMTP_PASS` | — | SMTP password — **required** with `smtp` |
+| `SMTP_PORT` | `587` | Server port |
+| `SMTP_FROM` | `SMTP_USER` (`noreply@localhost` with `console`) | Sender address |
+| `SMTP_STARTTLS` | `true` | Upgrades the connection with STARTTLS |
+
+The configuration must be complete: with `smtp`, if one of the three required variables is missing, there is no mailer. The application still starts; a send returns an error, and the admin refuses to create an account.
+
+---
+
 ## Secondary connections — `with_custom_db`
 
 To attach an additional database connection (Redis pool, secondary PostgreSQL, MongoDB client, etc.), use `.with_custom_db()` on the builder. The value is stored in a `HashMap<TypeId, Arc<dyn Any>>` internal to `RuniqueEngine` — **not** injected as an Axum `Extension`. Access it in handlers via `engine.custom_db::<T>()` (or its alias `engine.extension::<T>()`), which returns `Option<Arc<T>>`.

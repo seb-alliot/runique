@@ -715,23 +715,46 @@ async fn reset_view(
     handle_password_reset(&mut request, form, token, &state.config).await
 }
 
-/// The merged forgot + reset router, with rate limiting applied to both routes.
-pub fn build_router(config: Arc<PasswordResetConfig>) -> Router {
-    use crate::middleware::security::rate_limit::{RateLimiter, rate_limit_middleware};
+/// The rate limiter `config` sets, shared by the routes of one router.
+fn limiter_of(
+    config: &PasswordResetConfig,
+) -> Arc<crate::middleware::security::rate_limit::RateLimiter> {
+    Arc::new(
+        crate::middleware::security::rate_limit::RateLimiter::new()
+            .max_requests(u32::try_from(config.max_requests).unwrap_or(u32::MAX))
+            .retry_after(config.retry_after),
+    )
+}
+
+/// The page a link leads to (`{reset_route}/{token}`), rate limited.
+fn reset_route(
+    config: Arc<PasswordResetConfig>,
+    limiter: Arc<crate::middleware::security::rate_limit::RateLimiter>,
+) -> Router {
+    use crate::middleware::security::rate_limit::rate_limit_middleware;
     use axum::middleware;
     use axum::routing::any;
 
-    let limiter = Arc::new(
-        RateLimiter::new()
-            .max_requests(u32::try_from(config.max_requests).unwrap_or(u32::MAX))
-            .retry_after(config.retry_after),
-    );
+    let reset_path = format!("{}/{{token}}", config.reset_route.trim_end_matches('/'));
+    Router::new()
+        .route(&reset_path, any(reset_view))
+        .with_state(ResetState { config })
+        .route_layer(middleware::from_fn_with_state(
+            limiter,
+            rate_limit_middleware,
+        ))
+}
 
+/// The merged forgot + reset router, with rate limiting applied to both routes.
+pub fn build_router(config: Arc<PasswordResetConfig>) -> Router {
+    use crate::middleware::security::rate_limit::rate_limit_middleware;
+    use axum::middleware;
+    use axum::routing::any;
+
+    let limiter = limiter_of(&config);
     let forgot_state = ForgotState {
         config: config.clone(),
     };
-    let reset_state = ResetState { config };
-
     let forgot_route = Router::new()
         .route(&forgot_state.config.forgot_route, any(forgot_view))
         .with_state(forgot_state)
@@ -740,21 +763,17 @@ pub fn build_router(config: Arc<PasswordResetConfig>) -> Router {
             rate_limit_middleware,
         ));
 
-    let reset_path = format!(
-        "{}/{{token}}",
-        reset_state.config.reset_route.trim_end_matches('/')
-    );
-    let reset_route = Router::new()
-        .route(&reset_path, any(reset_view))
-        .with_state(reset_state)
-        .route_layer(middleware::from_fn_with_state(
-            limiter,
-            rate_limit_middleware,
-        ));
-
     forgot_route
-        .merge(reset_route)
+        .merge(reset_route(config, limiter))
         .layer(middleware::from_fn(no_store))
+}
+
+/// The reset page alone, without the "forgot password" form: what the admin
+/// needs for the links it mails, on a site that didn't open the form to its
+/// visitors. Nobody can ask for a link there; only a mailed one leads in.
+pub fn build_reset_router(config: Arc<PasswordResetConfig>) -> Router {
+    let limiter = limiter_of(&config);
+    reset_route(config, limiter).layer(axum::middleware::from_fn(no_store))
 }
 
 /// The reset pages carry a token (in the path, and the form's CSRF token):

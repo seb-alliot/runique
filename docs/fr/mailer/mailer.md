@@ -6,46 +6,31 @@
 
 ## Configuration
 
-Le mailer s'initialise dans le builder de l'application. Deux modes disponibles :
-
-### Via variables d'environnement (recommandé)
-
-```rust
-RuniqueApp::builder(config)
-    .with_mailer_from_env()
-    // ...
-```
-
-Variables `.env` :
+Le mailer se configure dans le `.env`, et nulle part ailleurs : il n'y a rien à déclarer dans le builder de l'application. Runique lit ces variables au premier envoi.
 
 ```env
 # Backend : "smtp" (défaut) ou "console" (dev — affiche dans le terminal)
 EMAIL_BACKEND=smtp
 
 SMTP_HOST=smtp.example.com
-SMTP_PORT=587
+SMTP_PORT=587                   # optionnel, défaut = 587
 SMTP_USER=user@example.com
 SMTP_PASS=secret
 SMTP_FROM=noreply@example.com   # optionnel, défaut = SMTP_USER
 SMTP_STARTTLS=true              # optionnel, défaut = true
 ```
 
-### Manuellement
+**La configuration doit être complète.** Avec le backend `smtp`, `SMTP_HOST`, `SMTP_USER` et `SMTP_PASS` sont tous les trois requis : s'il en manque un, le mailer est considéré comme absent, exactement comme un `.env` vide. Le backend `console` n'a besoin de rien d'autre.
 
-```rust
-use runique::utils::MailerConfig;
+Un mailer absent n'empêche pas l'application de démarrer : un site qui n'envoie aucun email n'a rien à configurer. Ce qui en dépend le dit au moment où il en a besoin :
 
-RuniqueApp::builder(config)
-    .with_mailer(MailerConfig {
-        backend: Default::default(),  // Smtp
-        host: "smtp.example.com".to_string(),
-        port: 587,
-        username: "user@example.com".to_string(),
-        password: "secret".to_string(),
-        from: "noreply@example.com".to_string(),
-        starttls: true,
-    })
-```
+| Qui envoie | Sans mailer complet |
+| --- | --- |
+| Votre code (`Email::new()…send()`, `dispatch_email`) | `send()` rend une erreur |
+| L'admin (création d'un compte, relance d'un mot de passe) | l'action est refusée avant toute écriture, avec un message |
+| La page « mot de passe oublié » déclarée par `with_password_reset` | en production, l'application refuse de démarrer |
+
+`mailer_configured()` dit si le mailer est complet, pour qu'un handler choisisse quoi faire avant d'envoyer.
 
 ---
 
@@ -57,6 +42,25 @@ RuniqueApp::builder(config)
 | `console` | Affiche l'email dans le terminal (développement) |
 
 En dev, `EMAIL_BACKEND=console` évite d'avoir un serveur SMTP local. L'email complet (from, to, subject, body) s'affiche dans les logs.
+
+---
+
+## L'admin et le mailer
+
+L'admin envoie lui-même des emails : il ne tient jamais un mot de passe, donc chaque compte qu'il crée reçoit un lien pour choisir le sien.
+
+**Fonctionnement de base.** Avec un mailer complet dans le `.env`, rien d'autre n'est à écrire. L'admin envoie le lien, et sert lui-même la page où le titulaire choisit son mot de passe, avec le gabarit de Runique.
+
+**Sans mailer complet, l'admin refuse.** Avant toute écriture, il vérifie que le mailer est configuré en entier :
+
+| Action dans l'admin | Sans mailer complet |
+| --- | --- |
+| Créer un compte | refusé : aucun compte n'est créé, la page renvoie à la liste |
+| Relancer le mot de passe d'un compte | refusé : aucun lien n'est créé |
+
+Dans les deux cas, l'admin affiche « L'envoi de courriel n'est pas configuré sur ce site : action impossible. » Un compte sans lien envoyé ne pourrait être ouvert par personne : mieux vaut ne pas le créer.
+
+**Personnaliser.** Les gabarits de la page, la route, la durée de vie du lien et la limite de débit se règlent dans `main.rs`, avec `with_password_reset(…)`. Voir [Création d'utilisateurs](/docs/fr/admin/user-creation).
 
 ---
 

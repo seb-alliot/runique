@@ -397,6 +397,9 @@ where
             .filter(|name| !E::SECRET.iter().any(|s| s.as_str() == *name))
             .filter(|name| !E::PrimaryKey::iter().any(|k| k.into_column().as_str() == *name))
             .filter(|name| !(E::IS_ACCOUNT_TABLE && ACCOUNT_RULES.contains(name)))
+            // The list fields have no column: a right reaches them by their
+            // name, so the grid offers them after the columns.
+            .chain(E::LISTS.iter().copied())
             .collect()
     }
 

@@ -161,7 +161,7 @@
       "suggestion": "Suggestion",
       "context": "Contexte",
       "mailer_missing": "Réinitialisation du mot de passe sans mailer : le lien ne pourrait jamais être envoyé",
-      "mailer_missing_hint": "Configurez-le dans le builder : .with_mailer_from_env() (SMTP_HOST, SMTP_USER…) ou .with_mailer(…)"
+      "mailer_missing_hint": "Renseignez-le dans le .env : EMAIL_BACKEND, ou SMTP_HOST, SMTP_USER et SMTP_PASS"
     }
   },
   "server": {
@@ -387,6 +387,7 @@
       "success_email": "Lien de réinitialisation envoyé.",
       "success_link": "Lien de réinitialisation (mailer non configuré) : {}",
       "error_no_email": "Aucun champ email trouvé pour cet utilisateur.",
+      "error_no_mailer": "L'envoi de courriel n'est pas configuré sur ce site : action impossible.",
       "error_unavailable": "Réinitialisation du mot de passe impossible pour cet élément.",
       "error_send": "Erreur lors de l'envoi de l'email : {}",
       "email_subject": "Réinitialisation de votre mot de passe",
