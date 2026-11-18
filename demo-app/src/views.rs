@@ -8,7 +8,6 @@ use crate::backend::{
     cours::{ExerciceInput, cours_detail, cours_exercice, cours_index, cours_root},
     demo_code_page,
     doc::{doc_index, doc_page, doc_section_index},
-    fetch_known_issues,
     forms::{extract_helpers_data, get_field_groups, handle_upload_image},
     inject_globals, split_markdown_sections,
 };
@@ -316,16 +315,23 @@ pub async fn releases_status(mut request: Request) -> AppResult<Response> {
 
 pub async fn probleme_connu(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    let sections = fetch_known_issues(&request.engine.db).await;
-    context_update!(request => {
-        "title"          => "Known Issues",
-        "description"    => "Known issues of each Runique version, and the release that fixes them.",
-        "sections"       => &sections,
-        "ext_link_label" => "Full CHANGELOG",
-        // The changelog is on the site (`/releases`), no need to leave it.
-        "ext_link_url"   => "/releases",
+    let lang = visitor_lang(&request.headers);
+    let sections = split_markdown_sections(if lang == "fr" {
+        include_str!("../../KNOWN_ISSUES.fr.md")
+    } else {
+        include_str!("../../KNOWN_ISSUES.md")
     });
-    request.render("info/cards.html")
+    context_update!(request => {
+        "title"       => if lang == "fr" { "Problèmes connus" } else { "Known issues" },
+        "description" => if lang == "fr" {
+            "Problèmes connus de chaque version de Runique, leur contournement et la version qui les corrige."
+        } else {
+            "Known issues of each Runique version, their workaround and the release that fixes them."
+        },
+        "sections"    => &sections,
+        "release_tab" => "known_issues",
+    });
+    request.render("info/release_document.html")
 }
 
 pub async fn roadmap() -> Redirect {

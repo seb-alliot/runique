@@ -1,24 +1,3 @@
-use crate::entities::known_issue::Entity as KnownIssueEntity;
-use runique::prelude::*;
-
-#[derive(serde::Serialize)]
-pub struct CardEntry {
-    pub subtitle: Option<String>,
-    pub title: String,
-    pub description: String,
-    pub link_url: Option<String>,
-    pub link_label: Option<String>,
-    pub link_url_2: Option<String>,
-    pub link_label_2: Option<String>,
-}
-
-#[derive(serde::Serialize)]
-pub struct CardSection {
-    pub heading: String,
-    pub heading_class: String,
-    pub entries: Vec<CardEntry>,
-}
-
 #[derive(serde::Serialize)]
 pub struct MarkdownSection {
     pub key: String,
@@ -42,46 +21,6 @@ pub fn split_markdown_sections(markdown: &str) -> Vec<MarkdownSection> {
             current.content.push_str(line);
             current.content.push('\n');
         }
-    }
-    sections
-}
-
-pub async fn fetch_known_issues(db: &ADb) -> Vec<CardSection> {
-    let all = search!(KnownIssueEntity => desc Version, asc SortOrder)
-        .all(db)
-        .await
-        .unwrap_or_default();
-
-    let mut sections: Vec<CardSection> = Vec::new();
-    for entry in all {
-        let heading = format!("v{}", entry.version);
-        if let Some(s) = sections.last_mut()
-            && s.heading == heading
-        {
-            s.entries.push(CardEntry {
-                subtitle: Some(entry.issue_type.to_string()),
-                title: entry.title.clone(),
-                description: entry.description.clone(),
-                link_url: None,
-                link_label: None,
-                link_url_2: None,
-                link_label_2: None,
-            });
-            continue;
-        }
-        sections.push(CardSection {
-            heading,
-            heading_class: "roadmap-active".into(),
-            entries: vec![CardEntry {
-                subtitle: Some(entry.issue_type.to_string()),
-                title: entry.title.clone(),
-                description: entry.description.clone(),
-                link_url: None,
-                link_label: None,
-                link_url_2: None,
-                link_label_2: None,
-            }],
-        });
     }
     sections
 }

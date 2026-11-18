@@ -7,7 +7,7 @@
 //! (`Email`, `Title`…) never meet.
 use crate::entities::{
     blog, chapitre, code_example, contribution, demo_category, demo_page, demo_section, doc_block,
-    doc_page, doc_section, known_issue, page_doc_link, runique_release, user_profile,
+    doc_page, doc_section, page_doc_link, runique_release, user_profile,
 };
 use runique::admin::{AdminSite, ModelAdmin};
 use runique::app::staging::AdminStaging;
@@ -41,7 +41,6 @@ pub fn config(admin: AdminStaging) -> AdminStaging {
             "groupes",
             "blog",
             "runique_release",
-            "known_issue",
             "contribution",
             "demo_category",
             "demo_page",
@@ -89,19 +88,6 @@ fn blog() -> ModelAdmin<blog::Entity> {
             f.fields([Title, Email, Website, Summary, Content, Status, ViewCount])
                 .readonly([ViewCount])
         })
-}
-
-fn known_issue() -> ModelAdmin<known_issue::Entity> {
-    use known_issue::Column::*;
-    ModelAdmin::new()
-        .list(|l| {
-            l.display([Version, Title, IssueType])
-                .sortable([Version])
-                .search([Title])
-                .filter([IssueType, Version])
-                .action(IssueType, "Fix", "Marquer corrigé")
-        })
-        .form(|f| f.fields([Version, Title, Description, IssueType, SortOrder]))
 }
 
 fn contribution() -> ModelAdmin<contribution::Entity> {
@@ -262,7 +248,6 @@ pub fn site(site: AdminSite) -> AdminSite {
         .register(doc_block())
         .register(doc_page())
         .register(doc_section())
-        .register(known_issue())
         .register(page_doc_link())
         .register(runique_release())
 }
