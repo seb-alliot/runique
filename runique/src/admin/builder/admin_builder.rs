@@ -1282,7 +1282,10 @@ mod tests {
         assert!(!genres.is_locked(), "every right: writable");
 
         let form = shelf_edit_form(&[], &ColumnRights::All);
-        assert!(form.fields.get("genres").is_none(), "not readable: not shown");
+        assert!(
+            form.fields.get("genres").is_none(),
+            "not readable: not shown"
+        );
         assert!(form.fields.get("title").is_some(), "the columns still are");
     }
 

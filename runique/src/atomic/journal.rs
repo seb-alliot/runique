@@ -75,13 +75,9 @@ fn invalid(kind: io::ErrorKind, path: &Path, reason: &str) -> io::Error {
 /// `path` as seen from `dir`. A batch with a journal keeps to its folder: a
 /// path outside could not be found again from another working directory.
 fn relative(dir: &Path, path: &Path) -> io::Result<PathBuf> {
-    let inside = path.strip_prefix(dir).map_err(|_| {
-        invalid(
-            io::ErrorKind::InvalidInput,
-            path,
-            "atomic.outside_journal",
-        )
-    })?;
+    let inside = path
+        .strip_prefix(dir)
+        .map_err(|_| invalid(io::ErrorKind::InvalidInput, path, "atomic.outside_journal"))?;
     if plain(inside) {
         Ok(inside.to_path_buf())
     } else {
@@ -128,13 +124,12 @@ pub(super) fn read(dir: &Path) -> io::Result<Option<Journal>> {
         Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
         Err(error) => return Err(error),
     };
-    let journal: Journal = serde_json::from_slice(&content)
-        .map_err(|error| {
-            io::Error::new(
-                io::ErrorKind::InvalidData,
-                format!("{}: {error}", path.display()),
-            )
-        })?;
+    let journal: Journal = serde_json::from_slice(&content).map_err(|error| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("{}: {error}", path.display()),
+        )
+    })?;
     let named_file = |file: &JournalFile| {
         plain(&file.path) && file.path.file_name().is_some_and(|name| !is_reserved(name))
     };
@@ -299,9 +294,7 @@ fn found(
 ) -> io::Result<Result<Found, &'static str>> {
     let backup = exists(backup_path)?;
     if !existed && backup {
-        return Ok(Err(
-            "atomic.stray_backup",
-        ));
+        return Ok(Err("atomic.stray_backup"));
     }
     if !exists(path)? {
         return Ok(if existed && !backup {
@@ -345,10 +338,7 @@ fn strangers(dir: &Path, journal: &Journal) -> io::Result<Vec<String>> {
         for entry in entries {
             let path = entry?.path();
             if !known.contains(&path) {
-                strangers.push(crate::utils::trad::tf(
-                    "atomic.stranger",
-                    &[path.display()],
-                ));
+                strangers.push(crate::utils::trad::tf("atomic.stranger", &[path.display()]));
             }
         }
     }

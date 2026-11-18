@@ -573,7 +573,11 @@ mod tests {
         AtomicBuilder::modify()
             .journal(dir.path())
             .add(dir.join("gone.txt"), SourceItems::Remove, false)?
-            .add(dir.join("kept.txt"), SourceItems::Bytes(b"new".to_vec()), false)?
+            .add(
+                dir.join("kept.txt"),
+                SourceItems::Bytes(b"new".to_vec()),
+                false,
+            )?
             .add(
                 dir.join("sub/fresh.txt"),
                 SourceItems::Bytes(b"new".to_vec()),

@@ -8,7 +8,7 @@
    detail_fields is the one block always present, so detail.css always
    loads on this page regardless of which other blocks a model shows. */
 .admin-detail__column {
-    max-width: 25rem;
+    max-width: 52rem;
     margin-inline: auto;
 }
 
@@ -39,22 +39,35 @@
     color: var(--label);
 }
 
+/* A value may be one word or a whole article: it keeps its line breaks,
+   wraps anywhere, and a long one scrolls inside its row instead of
+   stretching the page. */
 .admin-detail__field-value {
+    min-width: 0;
+    max-height: 18rem;
+    overflow-y: auto;
     color: var(--text-main);
-    word-break: break-word;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
 }
 
 /* Rich/long-form content (rich_fields) — same distinction as the list. */
 .admin-detail__field-value--rich { color: var(--info); }
 
+/* From 40em: the labels in one column, the values in the other, both
+   starting at the same edge. Right-aligned, a value of several lines was
+   unreadable. */
 @media (min-width: 40em) {
     .admin-detail__field {
-        flex-direction: row;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 1rem;
+        display: grid;
+        grid-template-columns: 11rem minmax(0, 1fr);
+        align-items: start;
+        gap: 1.5rem;
     }
 
-    .admin-detail__field-value { text-align: right; }
-    .admin-detail__field-value--rich { text-align: left; }
+    .admin-detail__field-label { padding-top: 0.2rem; }
+
+    /* A badge keeps its own width instead of filling the column. */
+    .admin-detail__field > :not(.admin-detail__field-label) { justify-self: start; }
 }
