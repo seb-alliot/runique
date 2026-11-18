@@ -14,7 +14,6 @@ pub mod doc_block;
 pub mod doc_page;
 pub mod doc_section;
 pub mod form_field;
-pub mod known_issue;
 pub mod page_doc_link;
 pub mod roadmap_entry;
 pub mod runique_release;
