@@ -50,7 +50,7 @@ impl AtomicBuilder {
         if matches!(source, SourceItems::Remove) && self.strategy == ActionAtomic::Create {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                crate::utils::trad::t("atomic.wrong_step").into_owned()
+                crate::utils::trad::t("atomic.wrong_step").into_owned(),
             ));
         }
         // The names the batch works under are its own: a file of the batch

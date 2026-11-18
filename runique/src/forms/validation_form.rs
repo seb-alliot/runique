@@ -435,7 +435,11 @@ mod tests {
         use shelf::Genre;
 
         let db = shelf_db().await;
-        let form = shelf_form(&boss(), None, &[("title", "Dune"), ("genres", "Roman,Policier")]);
+        let form = shelf_form(
+            &boss(),
+            None,
+            &[("title", "Dune"), ("genres", "Roman,Policier")],
+        );
         assert_eq!(
             form.forms().fields.get("genres").map(|f| f.value()),
             Some("Roman,Policier"),
@@ -468,13 +472,21 @@ mod tests {
         let db = shelf_db().await;
         write(
             &db,
-            shelf_form(&boss(), None, &[("title", "Dune"), ("genres", "Roman,Policier")]),
+            shelf_form(
+                &boss(),
+                None,
+                &[("title", "Dune"), ("genres", "Roman,Policier")],
+            ),
         )
         .await;
         let id = the_shelf(&db).await.0.id.to_string();
 
         // The list alone: no column is set, the row keeps its title.
-        write(&db, shelf_form(&boss(), Some(&id), &[("genres", "Policier")])).await;
+        write(
+            &db,
+            shelf_form(&boss(), Some(&id), &[("genres", "Policier")]),
+        )
+        .await;
         let (row, genres) = the_shelf(&db).await;
         assert_eq!(row.title, "Dune");
         assert_eq!(genres, [Genre::Policier]);
@@ -482,7 +494,11 @@ mod tests {
         // A column and the list together.
         write(
             &db,
-            shelf_form(&boss(), Some(&id), &[("title", "Dune II"), ("genres", "Roman")]),
+            shelf_form(
+                &boss(),
+                Some(&id),
+                &[("title", "Dune II"), ("genres", "Roman")],
+            ),
         )
         .await;
         let (row, genres) = the_shelf(&db).await;
@@ -490,14 +506,22 @@ mod tests {
         assert_eq!(genres, [Genre::Roman]);
 
         // Nothing ticked: the form holds an empty value, the list is cleared.
-        write(&db, shelf_form(&boss(), Some(&id), &[("title", "Dune III")])).await;
+        write(
+            &db,
+            shelf_form(&boss(), Some(&id), &[("title", "Dune III")]),
+        )
+        .await;
         let (row, genres) = the_shelf(&db).await;
         assert_eq!(row.title, "Dune III");
         assert!(genres.is_empty(), "{genres:?}");
         let read = <shelf::Entity as crate::auth::meta::ModelMeta>::list_values(row.id, &*db)
             .await
             .unwrap();
-        assert_eq!(read, [("genres", String::new())], "an empty list reads empty");
+        assert_eq!(
+            read,
+            [("genres", String::new())],
+            "an empty list reads empty"
+        );
     }
 
     /// The history rows, oldest first: the action and its summary as JSON.
@@ -530,14 +554,22 @@ mod tests {
         let db = shelf_db().await;
         write(
             &db,
-            shelf_form(&boss(), None, &[("title", "Dune"), ("genres", "Roman,Policier")]),
+            shelf_form(
+                &boss(),
+                None,
+                &[("title", "Dune"), ("genres", "Roman,Policier")],
+            ),
         )
         .await;
         let id = the_shelf(&db).await.0.id.to_string();
         assert_eq!(history(&db).await, [("create".to_string(), None)]);
 
         // The list alone changes.
-        write(&db, shelf_form(&boss(), Some(&id), &[("genres", "Policier")])).await;
+        write(
+            &db,
+            shelf_form(&boss(), Some(&id), &[("genres", "Policier")]),
+        )
+        .await;
         let rows = history(&db).await;
         assert_eq!(rows.len(), 2);
         assert_eq!(
@@ -549,13 +581,25 @@ mod tests {
         );
 
         // The same list again, no column: nothing written, nothing traced.
-        write(&db, shelf_form(&boss(), Some(&id), &[("genres", "Policier")])).await;
-        assert_eq!(history(&db).await.len(), 2, "an unchanged list leaves no trace");
+        write(
+            &db,
+            shelf_form(&boss(), Some(&id), &[("genres", "Policier")]),
+        )
+        .await;
+        assert_eq!(
+            history(&db).await.len(),
+            2,
+            "an unchanged list leaves no trace"
+        );
 
         // A column changes, the list doesn't: the list stays out of the trace.
         write(
             &db,
-            shelf_form(&boss(), Some(&id), &[("title", "Dune II"), ("genres", "Policier")]),
+            shelf_form(
+                &boss(),
+                Some(&id),
+                &[("title", "Dune II"), ("genres", "Policier")],
+            ),
         )
         .await;
         let rows = history(&db).await;
@@ -566,7 +610,11 @@ mod tests {
         );
 
         // Both change, the list is cleared: both are in the trace.
-        write(&db, shelf_form(&boss(), Some(&id), &[("title", "Dune III")])).await;
+        write(
+            &db,
+            shelf_form(&boss(), Some(&id), &[("title", "Dune III")]),
+        )
+        .await;
         let rows = history(&db).await;
         assert_eq!(rows.len(), 4);
         assert_eq!(
@@ -598,11 +646,19 @@ mod tests {
         // Update: `genres` ticked for create only is not enough. The list
         // holds a value first, so an unwanted write would show.
         let id = row.id.to_string();
-        write(&db, shelf_form(&boss(), Some(&id), &[("genres", "Policier")])).await;
+        write(
+            &db,
+            shelf_form(&boss(), Some(&id), &[("genres", "Policier")]),
+        )
+        .await;
         let create_only = delegate(&[("title", true, true), ("genres", true, false)]);
         write(
             &db,
-            shelf_form(&create_only, Some(&id), &[("title", "Dune II"), ("genres", "Roman")]),
+            shelf_form(
+                &create_only,
+                Some(&id),
+                &[("title", "Dune II"), ("genres", "Roman")],
+            ),
         )
         .await;
         let (row, genres) = the_shelf(&db).await;
@@ -636,7 +692,11 @@ mod tests {
         let id = the_shelf(&db).await.0.id.to_string();
 
         for readonly in [true, false] {
-            let mut form = shelf_form(&boss(), Some(&id), &[("title", "x"), ("genres", "Policier")]);
+            let mut form = shelf_form(
+                &boss(),
+                Some(&id),
+                &[("title", "x"), ("genres", "Policier")],
+            );
             if readonly {
                 form.forms_mut().field_readonly("genres", true);
             } else {
@@ -647,7 +707,11 @@ mod tests {
         }
 
         // The other side: unlocked, the same form replaces the list.
-        write(&db, shelf_form(&boss(), Some(&id), &[("genres", "Policier")])).await;
+        write(
+            &db,
+            shelf_form(&boss(), Some(&id), &[("genres", "Policier")]),
+        )
+        .await;
         assert_eq!(the_shelf(&db).await.1, [Genre::Policier]);
     }
 }

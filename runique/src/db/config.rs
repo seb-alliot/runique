@@ -332,11 +332,12 @@ impl DatabaseConfig {
 /// then `?` first) and shown only when they agree.
 fn database_name(url: &str, engine: &DatabaseEngine) -> Option<String> {
     let (_, rest) = url.split_once(':')?;
-    let after_at = |s: &'_ str| -> String {
-        s.rsplit_once('@').map_or(s, |(_, after)| after).to_string()
-    };
+    let after_at =
+        |s: &'_ str| -> String { s.rsplit_once('@').map_or(s, |(_, after)| after).to_string() };
     let before_query = |s: &'_ str| -> String {
-        s.split_once('?').map_or(s, |(before, _)| before).to_string()
+        s.split_once('?')
+            .map_or(s, |(before, _)| before)
+            .to_string()
     };
     let name_of = |location: String| -> String {
         let location = location.trim_start_matches("//");
@@ -535,14 +536,20 @@ mod tests {
             name_of("mysql://bob:secret@db:3306/shop?ssl-mode=required").as_deref(),
             Some("shop")
         );
-        assert_eq!(name_of("postgres://localhost/shop").as_deref(), Some("shop"));
+        assert_eq!(
+            name_of("postgres://localhost/shop").as_deref(),
+            Some("shop")
+        );
     }
 
     #[test]
     fn test_database_name_absent_from_a_server_url() {
         assert_eq!(name_of("postgres://bob:secret@localhost:5432"), None);
         assert_eq!(name_of("postgres://bob:secret@localhost:5432/"), None);
-        assert_eq!(name_of("mysql://bob:secret@db:3306/?ssl-mode=required"), None);
+        assert_eq!(
+            name_of("mysql://bob:secret@db:3306/?ssl-mode=required"),
+            None
+        );
     }
 
     #[test]
@@ -575,17 +582,17 @@ mod tests {
         // Raw `?` and `/` in the password: `?` first would show `word`.
         assert_eq!(name_of("postgres://bob:pass/word?x@localhost/shop"), None);
         // `@` and `/` in a query password: `@` first would show `er2`.
-        assert_eq!(
-            name_of("postgres://db.local/shop?password=hu@nt/er2"),
-            None
-        );
+        assert_eq!(name_of("postgres://db.local/shop?password=hu@nt/er2"), None);
         for url in [
             "postgres://bob:secret123@localhost/shop",
             "postgres://db.local/shop?user=bob&password=secret123",
             "postgres://bob:secret123@localhost",
         ] {
             let shown = name_of(url).unwrap_or_default();
-            assert!(!shown.contains("secret123") && !shown.contains("bob"), "{shown}");
+            assert!(
+                !shown.contains("secret123") && !shown.contains("bob"),
+                "{shown}"
+            );
         }
     }
 
