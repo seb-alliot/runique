@@ -14,13 +14,13 @@
             Ce site est une démonstration technique du framework <strong>Runique</strong>, sans but commercial.
             Voici ce qu'il collecte, pourquoi, combien de temps, et comment exercer vos droits.
         </p>
-        <p class="rgpd-updated">Dernière mise à jour : 9 novembre 2026</p>
+        <p class="rgpd-updated">Dernière mise à jour : 18 novembre 2026</p>
         {% else %}
         <p class="rgpd-lead">
             This site is a technical demonstration of the <strong>Runique</strong> framework, with no commercial purpose.
             Here is what it collects, why, for how long, and how to exercise your rights.
         </p>
-        <p class="rgpd-updated">Last updated: November 9, 2026</p>
+        <p class="rgpd-updated">Last updated: November 18, 2026</p>
         {% endif %}
     </header>
 
@@ -44,6 +44,7 @@
             <li><strong>À la création d'un compte</strong> : nom d'utilisateur, adresse email, mot de passe (haché, jamais stocké en clair).</li>
             <li><strong>Si vous les utilisez</strong> : les articles et contributions que vous publiez, avec les informations que vous y saisissez (l'email et le site web d'un article, par exemple), et les fichiers que vous envoyez.</li>
             <li><strong>Comme pour tout site web</strong> : votre adresse IP, pour acheminer les requêtes, protéger le site contre les abus et tenir les journaux du serveur.</li>
+            <li><strong>Si vous acceptez la mesure d'audience</strong> : les pages que vous consultez, la page d'où vous venez, votre type d'appareil et de navigateur, et votre pays ou région approximative, relevés par Google Analytics.</li>
         </ul>
         <p class="rgpd-note">
             Utilisez une vraie adresse email : votre compte s'active par le lien qui y est envoyé,
@@ -57,19 +58,35 @@
             <li><strong>Votre compte</strong> (création, activation, connexion, réinitialisation du mot de passe, contributions) : exécution du service que vous demandez en vous inscrivant.</li>
             <li><strong>Sécurité et journaux du serveur</strong> (protection contre les abus, limitation des tentatives de connexion) : intérêt légitime à garder le site sûr et disponible.</li>
             <li><strong>Préférences</strong> (langue, thème) : enregistrées à votre demande, quand vous les choisissez.</li>
+            <li><strong>Mesure d'audience</strong> (savoir quelles pages sont lues et d'où viennent les visites) : votre consentement, que vous pouvez retirer à tout moment.</li>
         </ul>
-        <p>Vos données ne servent qu'au fonctionnement de ce site. Elles ne sont <strong>jamais</strong> vendues, utilisées à des fins commerciales, ni pour du profilage ou du marketing.</p>
+        <p>Vos données ne servent qu'au fonctionnement de ce site et, si vous l'acceptez, à la mesure de son audience. Elles ne sont <strong>jamais</strong> vendues, utilisées à des fins commerciales, ni pour du profilage ou du marketing.</p>
     </section>
 
     <section class="rgpd-section">
         <h2>Cookies et stockage local</h2>
-        <p>Ce site n'utilise ni cookie publicitaire, ni outil de mesure d'audience.</p>
+        <p>Ce site n'utilise aucun cookie publicitaire.</p>
         <ul>
             <li><code>id</code> : cookie de session, nécessaire au fonctionnement du site et à sa sécurité.</li>
             <li><code>lang</code> : la langue choisie.</li>
             <li><code>theme</code> : le thème clair ou sombre, gardé dans votre navigateur (stockage local).</li>
+            <li><code>consent</code> : votre réponse à la demande de mesure d'audience, gardée dans votre navigateur (stockage local).</li>
         </ul>
         <p>Ces éléments sont strictement nécessaires ou demandés par vous : ils ne requièrent pas de consentement.</p>
+        <h3>Mesure d'audience, avec votre accord</h3>
+        <p>
+            Ce site utilise <strong>Google Analytics</strong>, chargé par Google Tag Manager, pour compter ses visites.
+            Tant que vous n'avez pas cliqué sur « Accepter », aucun script de Google n'est chargé et rien ne lui est envoyé.
+            Refuser ne change rien au fonctionnement du site.
+        </p>
+        <ul>
+            <li><code>_ga</code> et <code>_ga_…</code> : cookies déposés par Google Analytics après votre accord, pour distinguer les visiteurs.</li>
+        </ul>
+        <p>
+            Votre choix vous est redemandé au bout de six mois. Vous pouvez le modifier à tout moment :
+            <button type="button" class="footer-consent" data-consent-open>gérer mon choix</button>.
+            En refusant, les cookies de mesure déjà déposés sont supprimés.
+        </p>
     </section>
 
     <section class="rgpd-section">
@@ -77,9 +94,10 @@
         <p>Les données sont stockées dans la base du serveur qui héberge ce site. Pour fonctionner, le site s'appuie sur :</p>
         <ul>
             <li><strong>Cloudflare</strong>, par lequel passent les requêtes (protection et acheminement) ;</li>
-            <li><strong>Gmail</strong> (Google), pour envoyer les messages d'activation et de réinitialisation.</li>
+            <li><strong>Gmail</strong> (Google), pour envoyer les messages d'activation et de réinitialisation ;</li>
+            <li><strong>Google Analytics</strong> et <strong>Google Tag Manager</strong> (Google), pour la mesure d'audience, seulement si vous l'acceptez.</li>
         </ul>
-        <p>Ces deux sociétés sont établies aux États-Unis. Les transferts reposent sur le <em>Data Privacy Framework</em> UE–États-Unis, auquel elles adhèrent.</p>
+        <p>Ces sociétés sont établies aux États-Unis. Les transferts reposent sur le <em>Data Privacy Framework</em> UE–États-Unis, auquel elles adhèrent.</p>
     </section>
 
     <section class="rgpd-section">
@@ -92,6 +110,9 @@
                     <tr><th scope="row">Session connectée</th><td>Fermée après 24 heures sans activité</td></tr>
                     <tr><th scope="row">Session anonyme</th><td>5 minutes sans activité</td></tr>
                     <tr><th scope="row">Cookie <code>lang</code></th><td>Un an</td></tr>
+                    <tr><th scope="row">Choix sur la mesure d'audience</th><td>Six mois, puis redemandé</td></tr>
+                    <tr><th scope="row">Cookies <code>_ga</code></th><td>13 mois</td></tr>
+                    <tr><th scope="row">Données de mesure d'audience chez Google</th><td>2 mois</td></tr>
                     <tr><th scope="row">Journaux du serveur</th><td>14 jours</td></tr>
                 </tbody>
             </table>
@@ -150,6 +171,7 @@
             <li><strong>When creating an account</strong>: username, email address, password (hashed, never stored in plain text).</li>
             <li><strong>If you use them</strong>: the articles and contributions you publish, with the information you enter in them (an article's email and website, for example), and the files you upload.</li>
             <li><strong>As on any website</strong>: your IP address, to route requests, protect the site from abuse and keep server logs.</li>
+            <li><strong>If you accept audience measurement</strong>: the pages you view, the page you came from, your device and browser type, and your approximate country or region, recorded by Google Analytics.</li>
         </ul>
         <p class="rgpd-note">
             Use a real email address: your account is activated through the link sent to it,
@@ -163,19 +185,35 @@
             <li><strong>Your account</strong> (sign-up, activation, login, password reset, contributions): performance of the service you ask for by signing up.</li>
             <li><strong>Security and server logs</strong> (protection from abuse, limiting login attempts): legitimate interest in keeping the site safe and available.</li>
             <li><strong>Preferences</strong> (language, theme): stored at your request, when you choose them.</li>
+            <li><strong>Audience measurement</strong> (knowing which pages are read and where visits come from): your consent, which you can withdraw at any time.</li>
         </ul>
-        <p>Your data only serves to run this site. It is <strong>never</strong> sold, used for commercial purposes, or used for profiling or marketing.</p>
+        <p>Your data only serves to run this site and, if you accept it, to measure its audience. It is <strong>never</strong> sold, used for commercial purposes, or used for profiling or marketing.</p>
     </section>
 
     <section class="rgpd-section">
         <h2>Cookies and local storage</h2>
-        <p>This site uses no advertising cookies and no audience measurement tool.</p>
+        <p>This site uses no advertising cookies.</p>
         <ul>
             <li><code>id</code>: session cookie, needed for the site to work and stay secure.</li>
             <li><code>lang</code>: the language you chose.</li>
             <li><code>theme</code>: the light or dark theme, kept in your browser (local storage).</li>
+            <li><code>consent</code>: your answer to the audience measurement request, kept in your browser (local storage).</li>
         </ul>
         <p>These are strictly necessary or requested by you: they need no consent.</p>
+        <h3>Audience measurement, with your agreement</h3>
+        <p>
+            This site uses <strong>Google Analytics</strong>, loaded by Google Tag Manager, to count its visits.
+            Until you click "Accept", no script from Google is loaded and nothing is sent to it.
+            Refusing changes nothing in how the site works.
+        </p>
+        <ul>
+            <li><code>_ga</code> and <code>_ga_…</code>: cookies set by Google Analytics after your agreement, to tell visitors apart.</li>
+        </ul>
+        <p>
+            Your choice is asked again after six months. You can change it at any time:
+            <button type="button" class="footer-consent" data-consent-open>manage my choice</button>.
+            When you refuse, the measurement cookies already set are removed.
+        </p>
     </section>
 
     <section class="rgpd-section">
@@ -183,9 +221,10 @@
         <p>Data is stored in the database of the server hosting this site. To work, the site relies on:</p>
         <ul>
             <li><strong>Cloudflare</strong>, which requests pass through (protection and routing);</li>
-            <li><strong>Gmail</strong> (Google), to send activation and reset messages.</li>
+            <li><strong>Gmail</strong> (Google), to send activation and reset messages;</li>
+            <li><strong>Google Analytics</strong> and <strong>Google Tag Manager</strong> (Google), for audience measurement, only if you accept it.</li>
         </ul>
-        <p>Both companies are based in the United States. Transfers rely on the EU–US <em>Data Privacy Framework</em>, which they have joined.</p>
+        <p>These companies are based in the United States. Transfers rely on the EU–US <em>Data Privacy Framework</em>, which they have joined.</p>
     </section>
 
     <section class="rgpd-section">
@@ -198,6 +237,9 @@
                     <tr><th scope="row">Logged-in session</th><td>Closed after 24 hours without activity</td></tr>
                     <tr><th scope="row">Anonymous session</th><td>5 minutes without activity</td></tr>
                     <tr><th scope="row"><code>lang</code> cookie</th><td>One year</td></tr>
+                    <tr><th scope="row">Audience measurement choice</th><td>Six months, then asked again</td></tr>
+                    <tr><th scope="row"><code>_ga</code> cookies</th><td>13 months</td></tr>
+                    <tr><th scope="row">Audience measurement data at Google</th><td>2 months</td></tr>
                     <tr><th scope="row">Server logs</th><td>14 days</td></tr>
                 </tbody>
             </table>
