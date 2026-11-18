@@ -202,7 +202,7 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
         }
     });
     let behavior =
-        crate::model::utils::generate_active_model_behavior(&extended_defs, account_dates);
+        crate::model::utils::generate_active_model_behavior(&extended_defs, None, account_dates);
     let extended_fields: Vec<TokenStream2> =
         extended_defs.iter().map(generate_model_field).collect();
 

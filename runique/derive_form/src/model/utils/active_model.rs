@@ -1,10 +1,11 @@
-use crate::model::ast::{FieldDef, FieldOption, FieldType, ModelInput};
+use crate::model::ast::{FieldDef, FieldOption, FieldType, ModelInput, PkType};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
 // ── ActiveModel ───────────────────────────────────────────────
 pub fn generate_active_model(model: &ModelInput) -> TokenStream2 {
-    let behavior = generate_active_model_behavior(&model.fields, None);
+    let uuid_key = matches!(model.pk.ty, PkType::Uuid).then_some(&model.pk.name);
+    let behavior = generate_active_model_behavior(&model.fields, uuid_key, None);
     quote! {
         #behavior
         ::runique::impl_objects!(Entity);
@@ -16,8 +17,13 @@ pub fn generate_active_model(model: &ModelInput) -> TokenStream2 {
 /// on every save — in SeaORM, the same on every engine, instead of a database
 /// trigger only some engines had. `extra` runs in the same hook, for the
 /// columns an `extend!{}` inherits instead of declaring.
+///
+/// `uuid_key` names a UUID primary key: no database generates it, so a row
+/// inserted without one gets it here, whoever inserts it (the admin's gate,
+/// a form, a view).
 pub fn generate_active_model_behavior(
     fields: &[FieldDef],
+    uuid_key: Option<&syn::Ident>,
     extra: Option<TokenStream2>,
 ) -> TokenStream2 {
     let stamped = |field: &FieldDef, wanted: fn(&FieldOption) -> bool| {
@@ -27,9 +33,16 @@ pub fn generate_active_model_behavior(
             .any(wanted)
             .then(|| now_value(&field.column_type()))?
     };
-    let on_insert: Vec<TokenStream2> = fields
-        .iter()
-        .filter_map(|f| {
+    let key = uuid_key.map(|name| {
+        quote! {
+            if insert && ::sea_orm::ActiveValue::is_not_set(&self.#name) {
+                self.#name = ::sea_orm::ActiveValue::Set(::sea_orm::prelude::Uuid::now_v7());
+            }
+        }
+    });
+    let on_insert: Vec<TokenStream2> = key
+        .into_iter()
+        .chain(fields.iter().filter_map(|f| {
             let now = stamped(f, |o| matches!(o, FieldOption::AutoNow))?;
             let name = &f.name;
             Some(quote! {
@@ -37,7 +50,7 @@ pub fn generate_active_model_behavior(
                     self.#name = ::sea_orm::ActiveValue::Set(#now);
                 }
             })
-        })
+        }))
         .collect();
     let on_save: Vec<TokenStream2> = fields
         .iter()
