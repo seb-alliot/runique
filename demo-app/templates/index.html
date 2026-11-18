@@ -144,6 +144,8 @@
     </footer>
     <script {% csp %} src="{% static "js/theme.js" %}"></script>
     <script defer {% csp %} src="{% static "js/site_nav.js" %}"></script>
+    {% include "utils/consent.html" %}
+    <script defer {% csp %} src="{% static "js/consent.js" %}"></script>
     {% if not debug %}
     {% else %}
     <script defer {% csp %} src="https://static.cloudflareinsights.com/beacon.min.js"

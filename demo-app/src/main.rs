@@ -51,7 +51,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .with_csp(|c| {
                     c.policy(SecurityPolicy::strict())
                         .scripts(vec!["'strict-dynamic'"])
-                        .connect(vec!["'self'", "https://cloudflareinsights.com"])
+                        // Google Analytics, loaded through Google Tag Manager
+                        // once the visitor accepts (templates/utils/consent.html).
+                        // Its scripts pass by the nonce and 'strict-dynamic':
+                        // nothing of Google's is listed in script-src.
+                        .connect(vec![
+                            "'self'",
+                            "https://cloudflareinsights.com",
+                            "https://*.google-analytics.com",
+                            "https://*.analytics.google.com",
+                            "https://*.googletagmanager.com",
+                        ])
+                        .images(vec![
+                            "'self'",
+                            "https://*.google-analytics.com",
+                            "https://*.googletagmanager.com",
+                        ])
                 })
         })
         .with_admin(admin::config)

@@ -1355,3 +1355,80 @@ footer strong {
 .back-link a:hover {
     color: var(--accent);
 }
+
+/* =========================
+    CONSENTEMENT (mesure d'audience)
+   ========================= */
+.consent {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    left: 1rem;
+    z-index: 1000;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.5rem;
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: 1rem 1.25rem;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.35);
+}
+
+/* `display: flex` above would otherwise show a banner marked `hidden`. */
+.consent[hidden] {
+    display: none;
+}
+
+.consent-text {
+    flex: 1 1 20rem;
+}
+
+.consent-text h2 {
+    margin: 0 0 0.25rem;
+    font-size: 1rem;
+    color: var(--text-main);
+}
+
+.consent-text p {
+    margin: 0;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.consent-text a {
+    color: var(--text-main);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+/* Same weight for both answers: refusing is as easy as accepting. */
+.consent-actions {
+    display: flex;
+    flex: 1 1 auto;
+    gap: 0.75rem;
+}
+
+.consent-actions .btn {
+    flex: 1 1 0;
+}
+
+.footer-consent {
+    padding: 0;
+    font: inherit;
+    color: var(--text-muted);
+    background: none;
+    border: 0;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: color 0.15s;
+}
+
+.footer-consent:hover {
+    color: var(--text-main);
+}

@@ -1,0 +1,20 @@
+{# Audience measurement (Google Analytics, through Google Tag Manager) loads
+   only after "Accept": see static/js/consent.js. `data-gtm` is left out in
+   debug, so a local run never sends anything. #}
+<aside class="consent" id="consent" hidden aria-labelledby="consent-title"{% if not debug %} data-gtm="GTM-NMHDD89C"{% endif %}>
+    <div class="consent-text">
+        <h2 id="consent-title">{% if ui_lang == "fr" %}Mesure d'audience{% else %}Audience measurement{% endif %}</h2>
+        <p>
+            {% if ui_lang == "fr" %}
+            Avec votre accord, ce site utilise Google Analytics pour compter ses visites. Sans accord, rien n'est envoyé à Google et le site fonctionne de la même façon.
+            {% else %}
+            With your agreement, this site uses Google Analytics to count its visits. Without it, nothing is sent to Google and the site works the same way.
+            {% endif %}
+            <a href="{% link "rgpd" %}">{% if ui_lang == "fr" %}En savoir plus{% else %}Learn more{% endif %}</a>
+        </p>
+    </div>
+    <div class="consent-actions">
+        <button type="button" class="btn btn-secondary" data-consent="denied">{% if ui_lang == "fr" %}Refuser{% else %}Refuse{% endif %}</button>
+        <button type="button" class="btn btn-secondary" data-consent="granted">{% if ui_lang == "fr" %}Accepter{% else %}Accept{% endif %}</button>
+    </div>
+</aside>
