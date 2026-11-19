@@ -107,7 +107,7 @@ html-escape = "0.3.0"
 pulldown-cmark = "0.13.4"
 
 # Envoi email
-lettre = { version = "0.11.22", features = ["tokio1", "tokio1-native-tls", "builder"] }
+lettre = { version = "0.11.24", features = ["tokio1", "tokio1-native-tls", "builder"] }
 
 # CSRF
 hmac = "0.13"

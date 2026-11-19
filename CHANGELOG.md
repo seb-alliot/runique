@@ -36,6 +36,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+* **Tunable response compression**: `.middleware(|m| m.with_compression(|c| ...))` turns it off (`enabled(false)`, when a proxy already compresses), sets the smallest response that gets compressed (`min_size(bytes)`) and picks the level (`level(...)`, tower-http's `CompressionLevel`). Without this call nothing changes: compression on, from 32 bytes, default level. Images, SSE and gRPC are never compressed.
 * **The admin opens its accounts without `with_password_reset`**: an enabled admin serves the page its links lead to itself (`/reset-password/{token}`), with Runique's template and the default rate limit. `with_password_reset(…)` keeps its role for the site: opening the "forgot password" form to visitors and setting routes, templates and rate limit. Without it, that form is not served.
 * **Built-in reset pages: a complete stylesheet** (`css/auth.css`): fields, messages, errors and a dark theme, with colors as `--auth-*` variables to redefine.
 * **`runique --version`**: the command shows the version of Runique it was built with (also `-V`), the one `runique new` writes in a new project.
@@ -49,6 +50,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+* **`runique_test`: a `COMMIT` inside a test went unnoticed on SQLite**: the detection relied on the final `ROLLBACK` failing, which sqlx 0.9.1 no longer reports when no transaction is open. The test passed while its writes stayed in the database. SQLite now has its own check, like Postgres and MySQL: an accepted `BEGIN` proves the test's transaction had been ended.
 * **List fields (`checkbox`, `multichoice`) ignored by the admin**: since the typed admin of 4.0, the ticked values were not saved, with no error, and the field did not show on the edit page. The admin now writes them with their row, in the same transaction, on create and on update; the edit page shows the field, pre-filled. A list field follows the rights of its name, like a column: read, created or updated only when the account may, shown locked when it may read it without updating it. The history traces a changed list like a column, with its values before and after. An admin's rights grid offers the list fields after the columns. **Limit of this version**: a model whose admin declares `.form(|f| f.fields([...]))` cannot name a list field there, so it is not shown.
 * **Admin could not create a row with a UUID key (`pk-uuid`)**: since the typed admin of 4.0, the admin inserted a `model!{}` row without its key, which the database only assigns to an integer key; the create was refused ("Action not allowed"). A model with a UUID key now gets its key (UUID v7) on insert when it is missing, whatever the path: admin, form, a SeaORM `insert` in a view. A key that is given is kept.
 * **Admin boot check: misleading message for a `readonly` field**: a field needed to create a row, listed in `fields` but also in `readonly`, was told "add it to `fields`" although it was there. The message now points to `create_only`, which freezes it after creation.

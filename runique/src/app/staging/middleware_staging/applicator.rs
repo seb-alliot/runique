@@ -47,6 +47,7 @@ use crate::utils::aliases::{AEngine, ARuniqueConfig, ATera};
 use axum::{self, Router, middleware};
 use std::sync::Arc;
 use tower_http::compression::CompressionLayer;
+use tower_http::compression::predicate::{NotForContentType, Predicate, SizeAbove};
 use tower_sessions::cookie::time::Duration;
 use tower_sessions::{Expiry, SessionManagerLayer};
 
@@ -140,11 +141,25 @@ impl MiddlewareStaging {
         }
 
         // Slot 5: Compression — before any other middleware
-        entries.push(MiddlewareEntry {
-            slot: SLOT_COMPRESSION,
-            name: "Compression",
-            apply: Box::new(|r| r.layer(CompressionLayer::new())),
-        });
+        let compression = self.compression_config;
+        if compression.enabled {
+            // tower-http's default predicate, with the configured size in place of its own.
+            let predicate = SizeAbove::new(compression.min_size)
+                .and(NotForContentType::GRPC)
+                .and(NotForContentType::IMAGES)
+                .and(NotForContentType::SSE);
+            entries.push(MiddlewareEntry {
+                slot: SLOT_COMPRESSION,
+                name: "Compression",
+                apply: Box::new(move |r| {
+                    r.layer(
+                        CompressionLayer::new()
+                            .quality(compression.level)
+                            .compress_when(predicate),
+                    )
+                }),
+            });
+        }
 
         // Slot 8: CORS — outside ErrorHandler so OPTIONS preflight never reaches CSRF/Session
         if let Some(cors) = self.cors_config {
