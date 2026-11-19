@@ -127,8 +127,10 @@ impl TestTransaction for ADb {
                 Ok(mark) => Ok(mark.commit().await.is_ok()),
                 Err(_) => Ok(false),
             },
-            // SQLite already refuses to roll back a transaction that's gone.
-            _ => Ok(true),
+            // SQLite refuses a `BEGIN` inside a transaction. Once accepted, the
+            // handler had ended its own, and the final rollback closes this one.
+            // The rollback can't tell: sqlx answers `Ok` when none is open.
+            _ => Ok(self.execute_unprepared("BEGIN").await.is_err()),
         }
     }
 

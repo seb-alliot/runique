@@ -1,5 +1,6 @@
 //! Alone in its process: the mailer is process-wide, and the admin's other
 //! tests set one. Here none is ever set, and the environment gives none.
+#![cfg(feature = "admin")]
 #[allow(dead_code)]
 #[path = "helpers/mod.rs"]
 mod helpers;

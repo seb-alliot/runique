@@ -40,6 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .statics()
         .middleware(|m| {
             m.with_session_memory_limit(256 * 1024 * 1024, 512 * 1024 * 1024)
+                .with_compression(|c| c.enabled(false))
                 .with_session_cleanup_interval(60)
                 .with_anonymous_session_duration(300_i64.seconds())
                 .with_allowed_hosts(|h| {

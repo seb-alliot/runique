@@ -1,6 +1,7 @@
 //! Middleware staging: configuration API for the middleware stack.
 mod applicator;
 
+use super::compression_config::CompressionConfig;
 use super::cors_config::CorsConfig;
 use super::csp_config::CspConfig;
 use super::host_config::HostConfig;
@@ -64,6 +65,9 @@ pub struct MiddlewareStaging {
     /// Allowed hosts defined via the builder
     pub(crate) allowed_hosts: Vec<String>,
 
+    /// Response compression (on by default)
+    pub(crate) compression_config: CompressionConfig,
+
     /// CORS configuration (None = CORS disabled)
     pub(crate) cors_config: Option<CorsConfig>,
     /// Paths exempt from CSRF validation (e.g., webhook endpoints)
@@ -98,6 +102,7 @@ impl MiddlewareStaging {
             custom_middlewares: Vec::new(),
             security_policy: None,
             allowed_hosts: Vec::new(),
+            compression_config: CompressionConfig::default(),
             cors_config: None,
             csrf_exempt_paths: Vec::new(),
             permissions_policy: None,
@@ -142,6 +147,7 @@ impl MiddlewareStaging {
             custom_middlewares: Vec::new(),
             security_policy: None,
             allowed_hosts: Vec::new(),
+            compression_config: CompressionConfig::default(),
             cors_config: None,
             csrf_exempt_paths: Vec::new(),
             permissions_policy: None,
@@ -362,6 +368,28 @@ impl MiddlewareStaging {
     /// ```
     pub fn csrf_exempt(mut self, paths: Vec<impl Into<String>>) -> Self {
         self.csrf_exempt_paths = paths.into_iter().map(Into::into).collect();
+        self
+    }
+
+    // ═══════════════════════════════════════════════════
+    // Compression
+    // ═══════════════════════════════════════════════════
+
+    /// Configures response compression via a closure.
+    ///
+    /// Without this call, compression stays on with tower-http's defaults.
+    ///
+    /// # Example
+    /// ```rust,ignore
+    /// .middleware(|m| {
+    ///     m.with_compression(|c| c.min_size(1024).level(CompressionLevel::Fastest))
+    /// })
+    /// ```
+    pub fn with_compression(
+        mut self,
+        f: impl FnOnce(CompressionConfig) -> CompressionConfig,
+    ) -> Self {
+        self.compression_config = f(CompressionConfig::default());
         self
     }
 
