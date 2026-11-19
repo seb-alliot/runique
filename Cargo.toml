@@ -19,7 +19,7 @@ homepage = "https://runique.io/"
 
 [workspace.dependencies]
 # Framework web
-axum = { version = "0.8.9", features = ["macros", "form" ,"multipart"] }
+axum = { version = "0.8.9", features = ["macros", "form", "multipart", "http2"] }
 tower = { version = "0.5.3", features = ["util"] }
 tower-http = { version = "0.7.1", features = ["fs", "util", "trace", "timeout","compression-full", "set-header", "cors"] }
 tower-sessions = "0.15.0"
