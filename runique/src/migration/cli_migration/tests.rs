@@ -379,6 +379,67 @@ fn an_extend_change_enters_the_plan_with_its_snapshot_and_its_module() {
     assert!(empty.files.is_empty() && empty.lib_modules.is_empty());
 }
 
+// ── The tag of a migration nothing applied yet ───────────────────────────────
+
+// Created, altered or extended: the migration starts with the tag, on a line
+// of its own. The snapshot next to it never does.
+#[test]
+fn every_generated_migration_starts_with_the_waiting_tag() {
+    let (menus, plats, users) = (
+        schema("menus", &[]),
+        schema("plats", &[]),
+        schema("eihwaz_users", &[]),
+    );
+    let altered = |s: &ParsedSchema| Changes {
+        is_new_table: false,
+        ..new_table(s)
+    };
+    let tag = format!("{WAIT_MIGRATION}\n");
+
+    let mut plan = Plan::default();
+    build_main_plan(
+        &mut plan,
+        &[new_table(&menus), altered(&plats)],
+        &[menus.clone(), plats.clone()],
+        "m",
+        "20260101_000000",
+    );
+    build_extend_plan(
+        &mut plan,
+        &[(users.clone(), altered(&users))],
+        "m",
+        "20260101_000000",
+    );
+
+    // snapshot, migration: three times.
+    assert_eq!(plan.files.len(), 6);
+    for pair in plan.files.chunks(2) {
+        let ((snapshot_path, snapshot), (path, migration)) = (&pair[0], &pair[1]);
+        assert!(snapshot_path.contains("/snapshots/"), "{snapshot_path}");
+        assert!(!snapshot.contains(WAIT_MIGRATION), "{snapshot_path}");
+        assert!(migration.starts_with(&tag), "{path}: {migration}");
+        assert_eq!(migration.matches(WAIT_MIGRATION).count(), 1, "{path}");
+    }
+}
+
+// The tag is a comment: a tagged migration is read back as before.
+#[test]
+fn a_tagged_migration_is_still_read_back() {
+    let menus = schema("menus", &[]);
+    let mut plan = Plan::default();
+    build_main_plan(
+        &mut plan,
+        &[new_table(&menus)],
+        std::slice::from_ref(&menus),
+        "m",
+        "20260101_000000",
+    );
+
+    let read = parse_seaorm_source(&plan.files[1].1).unwrap();
+    assert_eq!(read.table_name, "menus");
+    assert!(read.columns.iter().any(|c| c.name == "title"));
+}
+
 // ── `commit_plan`: the plan written as one batch ─────────────────────────────
 
 use crate::atomic::tests::TempDir;
@@ -883,7 +944,10 @@ fn a_snapshot_named_after_another_table_is_refused() {
 
     assert_eq!(
         read_all(&path).unwrap_err().to_string(),
-        tf("makemigrations.snapshot_misnamed", &[shown.as_str(), "plats"])
+        tf(
+            "makemigrations.snapshot_misnamed",
+            &[shown.as_str(), "plats"]
+        )
     );
 }
 
