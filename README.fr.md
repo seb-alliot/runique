@@ -180,7 +180,7 @@ Documentation admin : [Admin](https://runique.io/docs/fr/admin)
 
 ## Features et bases de données
 
-Activée par défaut : `orm`, qui apporte SeaORM (entités, requêtes, migrations, sessions) mais **aucun pilote de base de données** : un build avec `orm` seul compile, et `makemigrations` fonctionne, mais l'application ne peut se connecter à rien.
+Activée par défaut : `orm`, qui apporte SeaORM (entités, requêtes, migrations, sessions) mais **aucun pilote de base de données** : un build avec `orm` seul compile, mais ni l'application ni `makemigrations` ne peuvent se connecter à quoi que ce soit.
 
 Choisir explicitement un seul backend : `sqlite`, `postgres`, `mysql` (mutuellement exclusifs — en activer deux à la fois est une erreur de compilation). Chacun active aussi `orm` : `features = ["postgres"]` suffit. La feature `all-databases` reste disponible pour le tooling multi-moteur qui doit parler à tous les backends à la fois.
 

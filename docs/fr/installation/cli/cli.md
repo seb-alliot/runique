@@ -40,6 +40,12 @@ runique makemigrations [--entities src/entities] [--migrations migration/src] [-
 
 Lit les `model!{}` et `extend!{}` de `src/entities/`, les compare à leurs snapshots, et écrit les migrations. Si le crate `migration/` n'existe pas encore (projet non créé par `runique new`), il est créé, avec le moteur de `DB_ENGINE` (SQLite si la variable est absente). Détails : [Migrations](/docs/fr/installation/migrations).
 
+La commande se connecte d'abord à la base du `.env` (`DATABASE_URL`, sinon les clés `DB_*`) : si elle ne répond pas, elle s'arrête avec une erreur et n'écrit rien. Elle ne modifie jamais la base ; c'est `runique migration up` qui applique.
+
+Elle lit ensuite les migrations déjà appliquées (table `seaql_migrations`) et refuse de continuer si l'une d'elles n'est pas dans `migration/src/lib.rs` : la base appartient à un autre projet, ou un fichier de migration déjà appliqué a été supprimé. Les migrations du framework (comptes, sessions, historique) sont toujours reconnues. Le message liste les migrations en cause, et rien n'est écrit.
+
+Avant tout calcul, chaque fichier `.rs` de `migration/src/snapshots/` et de `snapshots/runique/` est relu : un snapshot illisible, ou dont le nom de fichier n'est pas celui de la table qu'il décrit, arrête la commande. Les autres fichiers du dossier sont ignorés.
+
 Les fichiers sont écrits en un seul lot. Un lancement interrompu par une coupure est réparé au lancement suivant, avant tout calcul.
 
 ---

@@ -1,5 +1,6 @@
 //! Scanning the entities directory for `model!{}` and `extend!{}` declarations.
 use crate::migration::*;
+use crate::utils::trad::tf;
 use anyhow::{Context, Result};
 use std::fs;
 
@@ -89,8 +90,8 @@ pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
     for schema in &schemas {
         if !seen.insert(schema.table_name.as_str()) {
             anyhow::bail!(
-                "two tables are named `{}` — a list field's table is `<owner table>_<field>`: rename the field or the other table",
-                schema.table_name
+                "{}",
+                tf("makemigrations.duplicate_table", &[&schema.table_name])
             );
         }
     }

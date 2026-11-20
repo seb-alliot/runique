@@ -120,6 +120,15 @@ pub(super) fn extract_box_entries(vec_content: &str) -> Vec<String> {
     entries
 }
 
+/// The migration modules `lib.rs` declares; none when the file doesn't exist.
+pub(super) fn lib_modules(migrations_path: &str) -> Result<Vec<String>> {
+    let lib = lib_path(migrations_path);
+    if !Path::new(&lib).exists() {
+        return Ok(Vec::new());
+    }
+    Ok(parse_lib_state(&fs::read_to_string(&lib)?).mods)
+}
+
 fn parse_lib_state(content: &str) -> LibState {
     let uses_migrations_table = content.contains("migrations_table");
     let mut mods = Vec::new();

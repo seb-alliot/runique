@@ -68,7 +68,11 @@ The passes above only *compute* an in-memory plan — nothing is written until t
 
 ## Why customized snapshots?
 
-`makemigrations` doesn't connect to the database: it compares your models to **the last state it generated itself**, recorded in the snapshots. The command therefore works with no database available, gives the same result on every machine of the team, and doesn't depend on a database that may have been changed by hand.
+`makemigrations` compares your models to **the last state it generated itself**, recorded in the snapshots. The result is therefore the same on every machine of the team, and doesn't depend on a database that may have been changed by hand.
+
+Since 4.1, the command **connects to the database first** (the one of the `.env`, as the app does) and stops with an error when it doesn't answer, before anything is read or written. It writes nothing there: only `runique migration up` applies a migration.
+
+It reads there the list of applied migrations (`seaql_migrations`): when one of them is unknown to `lib.rs`, the command stops before anything is computed. A database that applied nothing yet (no such table) is a normal case.
 
 The trade-off: a snapshot means "already migrated". Snapshots copied from another project without their migration files make `makemigrations` believe the tables exist; it then writes nothing for them.
 

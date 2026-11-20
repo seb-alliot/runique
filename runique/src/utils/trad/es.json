@@ -566,7 +566,12 @@
     "type_change_not_migrated": "ATENCIÓN: --force dejó pasar estos cambios de tipo de columna, pero TODAVÍA NO se migran. Su migración solo contiene un comentario, mientras que el snapshot ya registra el nuevo tipo:",
     "type_change_write_by_hand": "Escriba a mano el up() y el down() de esa migración (alter_table / modify_column) antes de `runique migration up`: si no, la base de datos conserva los tipos antiguos y nada se lo indicará.",
     "no_changes": "No se detectaron cambios: sus modelos coinciden con sus snapshots.",
-    "apply_hint": "Aplique las migraciones pendientes con: runique migration up"
+    "apply_hint": "Aplique las migraciones pendientes con: runique migration up",
+    "database_unreachable": "No se pudo conectar a la base de datos: {}",
+    "applied_unknown": "Estas migraciones están registradas en la base de datos pero no figuran en lib.rs:\n  {}\nEsta base pertenece a otro proyecto, o se eliminaron archivos de migración. No se ha escrito nada.",
+    "snapshot_unreadable": "El snapshot {} es ilegible o no es un snapshot. No se ha escrito nada.",
+    "snapshot_misnamed": "El snapshot {} describe la tabla `{}`: su nombre de archivo debe ser el de la tabla. No se ha escrito nada.",
+    "duplicate_table": "Dos tablas se llaman `{}`. La tabla de un campo de lista se llama `<tabla del modelo>_<campo>`: renombre el campo o la otra tabla."
   },
   "atomic": {
     "reserved_name": "{}: este nombre está reservado a Runique",

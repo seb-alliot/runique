@@ -1,7 +1,8 @@
-//! Migration commands' logic: `makemigrations` (`run`, generates SeaORM migration
+//! Migration commands' logic: `makemigrations` (connects, then `run` generates SeaORM migration
 //! files from the `model!{}` DSL), `migration up/down/status` (`migrate`) and the
 //! project's `migration` crate (`init_migrate`). The commands themselves are
 //! called through `cli::makemigration` and `cli::migrate`.
+mod applied;
 pub(crate) mod init_migrate;
 mod lib_file;
 pub mod migrate;
@@ -12,6 +13,7 @@ mod snapshot;
 #[cfg(test)]
 mod tests;
 
+use crate::db::DatabaseConfig;
 use crate::migration::*;
 use crate::utils::trad::{t, tf};
 use anyhow::Result;
@@ -51,6 +53,8 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     // back, so the changes are computed on migrations that are whole.
     init_migrate::repair(std::path::Path::new(migrations_path))?;
 
+    snapshot::read_all(migrations_path)?;
+    
     fs::create_dir_all(snapshot_dir(migrations_path))?;
 
     // ── Plan everything up front — nothing is written until the full plan
@@ -119,4 +123,41 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     warn_unmigrated_type_changes(&destructive_set);
 
     Ok(())
+}
+
+/// `makemigrations`: connects first, then plans and writes. An unreachable
+/// database stops the command before anything is read or written.
+pub async fn makemigrations(entities_path: &str, migrations_path: &str, force: bool) -> Result<()> {
+    dotenvy::dotenv().ok();
+    makemigrations_with(
+        |key| std::env::var(key).ok(),
+        entities_path,
+        migrations_path,
+        force,
+    )
+    .await
+}
+
+pub(crate) async fn makemigrations_with(
+    get: impl Fn(&str) -> Option<String>,
+    entities_path: &str,
+    migrations_path: &str,
+    force: bool,
+) -> Result<()> {
+    let mut config = DatabaseConfig::from_lookup(get)
+        .map_err(anyhow::Error::msg)?
+        .build();
+    // The command only ever needs one connection.
+    config.max_connections = 1;
+    config.min_connections = 1;
+    let db = config
+        .connect()
+        .await
+        .map_err(|e| anyhow::anyhow!(tf("makemigrations.database_unreachable", &[e])))?;
+    // Before `lib.rs` is read: a run the power cut short may have left it
+    // half written.
+    init_migrate::repair(std::path::Path::new(migrations_path))?;
+    let applied = applied::read(&db).await?;
+    applied::check_known(&applied, migrations_path)?;
+    run(entities_path, migrations_path, force)
 }

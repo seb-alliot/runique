@@ -100,7 +100,7 @@ async fn main() -> Result<()> {
             migrations,
             force,
         } => {
-            makemigration::run(&entities, &migrations, force)?;
+            makemigration::run(&entities, &migrations, force).await?;
         }
     }
 

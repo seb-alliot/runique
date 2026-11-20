@@ -118,6 +118,16 @@ fn rank_flag(column: &str) -> Expr {
         .into()
 }
 
+/// The names the framework's own migrations are recorded under in
+/// `seaql_migrations`.
+pub const FRAMEWORK_MIGRATION_NAMES: [&str; 5] = [
+    "m000000_000001_runique_eihwaz_users",
+    "m000000_000002_runique_admin_table",
+    "m000000_000003_runique_eihwaz_sessions",
+    "m000000_000004_runique_eihwaz_history",
+    "m000000_000005_runique_reset_tokens",
+];
+
 /// "Turnkey" migration to create the `eihwaz_users` table.
 /// To be placed first in the `Migrator` `vec!`.
 pub struct EihwazUsersMigration;
@@ -649,5 +659,25 @@ impl sea_orm_migration::MigrationTrait for AdminTableMigration {
             .drop_table(Table::drop().table(Alias::new("eihwaz_groupes")).to_owned())
             .await?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod name_tests {
+    use super::*;
+    use sea_orm_migration::MigrationName;
+
+    // The list and the migrations can't drift apart: each name once, no other.
+    #[test]
+    fn the_list_holds_the_name_of_each_framework_migration() {
+        let mut names = [
+            EihwazUsersMigration.name().to_string(),
+            AdminTableMigration.name().to_string(),
+            EihwazSessionsMigration.name().to_string(),
+            EihwazHistoryMigration.name().to_string(),
+            EihwazResetTokensMigration.name().to_string(),
+        ];
+        names.sort();
+        assert_eq!(names, FRAMEWORK_MIGRATION_NAMES);
     }
 }

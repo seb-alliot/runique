@@ -55,7 +55,9 @@ impl DatabaseEngine {
             Ok(DatabaseEngine::PostgreSQL)
         } else if url.starts_with("mysql://") {
             Ok(DatabaseEngine::MySQL)
-        } else if url.starts_with("sqlite://") {
+        } else if url.starts_with("sqlite:") {
+            // No `//` required: `sqlite::memory:` is the only in-memory form
+            // SeaORM accepts.
             Ok(DatabaseEngine::SQLite)
         } else {
             Err("Unsupported database URL scheme".to_string())
@@ -298,6 +300,21 @@ mod tests {
                 DatabaseEngine::detect_from_url(&format!("{scheme}://app")),
                 Ok(engine)
             );
+        }
+    }
+
+    #[test]
+    fn sqlite_is_read_with_or_without_slashes() {
+        use super::DatabaseEngine;
+        for url in ["sqlite::memory:", "sqlite:app.db", "sqlite://app.db"] {
+            assert_eq!(
+                DatabaseEngine::detect_from_url(url),
+                Ok(DatabaseEngine::SQLite),
+                "{url}"
+            );
+        }
+        for url in ["sqlite", "sqlitex://app.db", "file:app.db"] {
+            assert!(DatabaseEngine::detect_from_url(url).is_err(), "{url}");
         }
     }
 }
