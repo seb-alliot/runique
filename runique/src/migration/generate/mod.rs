@@ -160,6 +160,9 @@ pub fn generate_create_file_in_cycle(schema: &ParsedSchema, keys: &CycleKeys<'_>
 /// without it predates them: its `None` lengths mean "unknown", not "none".
 pub const SNAPSHOT_LENGTHS_MARKER: &str = "// runique: column lengths recorded";
 
+/// First line of generated migration that no `migration up` applied yet.
+pub const WAIT_MIGRATION: &str = "// runique: waiting migrate up";
+
 /// Generates the snapshot file (includes FK stmts so diffs detect FK additions/removals).
 pub fn generate_snapshot_file(schema: &ParsedSchema) -> String {
     // Snapshot keeps FKs as separate stmts (never inline) so the `parse/seaorm.rs` round-trip is stable.

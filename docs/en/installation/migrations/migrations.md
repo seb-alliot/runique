@@ -69,6 +69,8 @@ runique makemigrations
 
 The command ends with the number of files written, or "No changes detected" when nothing changed, then gives the next command.
 
+Every generated migration starts with the line `// runique: waiting migrate up`: it marks a migration `runique migration up` hasn't applied yet. Once `runique migration up` succeeded, it removes that line from every migration `lib.rs` declares, leaving the rest of the file untouched. Don't remove it or add it by hand.
+
 ### 2. Apply the migrations
 
 ```bash

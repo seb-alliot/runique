@@ -69,6 +69,8 @@ runique makemigrations
 
 La commande se termine par le nombre de fichiers écrits, ou « No changes detected » si rien n'a changé, puis rappelle la commande suivante.
 
+Chaque migration générée commence par la ligne `// runique: waiting migrate up` : elle marque une migration que `runique migration up` n'a pas encore appliquée. Quand `runique migration up` a réussi, il retire cette ligne de chaque migration déclarée dans `lib.rs`, sans toucher au reste du fichier. Ne la retirez pas et ne l'ajoutez pas à la main.
+
 ### 2. Appliquer les migrations
 
 ```bash

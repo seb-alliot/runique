@@ -9,7 +9,7 @@ use sea_orm_migration::{SchemaManager, seaql_migrations};
 
 /// The migrations `seaql_migrations` records, oldest first. Empty when the
 /// table doesn't exist: nothing was ever applied to this database.
-pub(crate) async fn read(db: &DatabaseConnection) -> Result<Vec<String>> {
+pub async fn read(db: &DatabaseConnection) -> Result<Vec<String>> {
     if !SchemaManager::new(db).has_table("seaql_migrations").await? {
         return Ok(Vec::new());
     }
@@ -53,7 +53,8 @@ mod tests {
     /// A database whose `seaql_migrations` records `versions`.
     async fn database(url: &str, versions: &[&str]) -> DatabaseConnection {
         let db = Database::connect(url).await.unwrap();
-        let table = Schema::new(DbBackend::Sqlite).create_table_from_entity(seaql_migrations::Entity);
+        let table =
+            Schema::new(DbBackend::Sqlite).create_table_from_entity(seaql_migrations::Entity);
         db.execute(&table).await.unwrap();
         for version in versions {
             seaql_migrations::ActiveModel {

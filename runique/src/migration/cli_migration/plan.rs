@@ -16,6 +16,9 @@ pub(super) struct Plan {
     /// migration modules to register in `lib.rs`, in order
     pub(super) lib_modules: Vec<String>,
 }
+fn waiting_migrate(content: String) -> String {
+    format!("{WAIT_MIGRATION}\n{content}")
+}
 
 /// Computes the diff for every scanned model (no writing).
 pub(super) fn compute_main_changes(
@@ -119,14 +122,17 @@ pub(super) fn build_main_plan(
             let keys = cycle_keys
                 .get(change.table_name.as_str())
                 .unwrap_or(&no_cycle);
-            plan.files
-                .push((seaorm_path, generate_create_file_in_cycle(schema, keys)));
+            plan.files.push((
+                seaorm_path,
+                waiting_migrate(generate_create_file_in_cycle(schema, keys)),
+            ));
             plan.lib_modules.push(module_name);
         } else {
             let module_name = seaorm_alter_module_name(timestamp, &change.table_name);
             let seaorm_path =
                 seaorm_alter_file_path(migrations_path, timestamp, &change.table_name);
-            plan.files.push((seaorm_path, generate_alter_file(change)));
+            plan.files
+                .push((seaorm_path, waiting_migrate(generate_alter_file(change))));
             plan.lib_modules.push(module_name);
         }
     }
@@ -153,7 +159,8 @@ pub(super) fn build_extend_plan(
         let module_name = seaorm_extend_module_name(timestamp, &ext_schema.table_name);
         let seaorm_path =
             seaorm_extend_file_path(migrations_path, timestamp, &ext_schema.table_name);
-        plan.files.push((seaorm_path, generate_alter_file(changes)));
+        plan.files
+            .push((seaorm_path, waiting_migrate(generate_alter_file(changes))));
         plan.lib_modules.push(module_name);
     }
 }

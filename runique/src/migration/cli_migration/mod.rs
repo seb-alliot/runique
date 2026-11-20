@@ -32,6 +32,8 @@ pub(crate) use lib_file::initial_lib;
 pub use lib_file::{ensure_admin_migration_positioned, update_migration_lib};
 pub use scan::{merge_extend_schemas, scan_entities, scan_extend_blocks};
 pub use snapshot::parse_create_file;
+// For the integration tests that replay the reading on PostgreSQL and MySQL.
+pub use applied::read as applied_migrations;
 // Only the pipeline tests (`migration/tests_pipeline.rs`) reach it from outside.
 #[cfg(test)]
 pub(crate) use snapshot::previous_snapshot;
@@ -54,7 +56,7 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     init_migrate::repair(std::path::Path::new(migrations_path))?;
 
     snapshot::read_all(migrations_path)?;
-    
+
     fs::create_dir_all(snapshot_dir(migrations_path))?;
 
     // ── Plan everything up front — nothing is written until the full plan

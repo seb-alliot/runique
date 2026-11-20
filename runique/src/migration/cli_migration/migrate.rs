@@ -3,14 +3,45 @@
 //! `sea-orm-cli` installed: the SeaORM version that applies the migrations is
 //! then the one `migration/Cargo.toml` pins, the same as runique's. Its
 //! `down()` keeps `seaql_migrations` in sync with the schema.
+use super::lib_file::lib_modules;
+use crate::atomic::{AtomicBuilder, SourceItems};
 use crate::db::DatabaseConfig;
+use crate::migration::WAIT_MIGRATION;
 use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result};
+use std::fs;
+use std::path::Path;
 
 /// Applies every pending migration.
 pub async fn up(migrations_path: &str) -> Result<()> {
     run(migrations_path, &["up"]).await?;
+    clear_waiting_tags(migrations_path)?;
     println!("{}", t("migrate.complete_up"));
+    Ok(())
+}
+
+/// After a run that succeeded: every migration of `lib.rs` still tagged as
+/// waiting loses its tag, the rest of its file untouched. One batch: all the
+/// files, or none.
+fn clear_waiting_tags(migrations_path: &str) -> Result<()> {
+    let tag = format!("{WAIT_MIGRATION}\n");
+    let mut cleared = Vec::new();
+    for module in lib_modules(migrations_path)? {
+        let path = Path::new(migrations_path).join(format!("{module}.rs"));
+        if let Ok(content) = fs::read_to_string(&path)
+            && let Some(rest) = content.strip_prefix(&tag)
+        {
+            cleared.push((path, rest.to_string()));
+        }
+    }
+    if cleared.is_empty() {
+        return Ok(());
+    }
+    let mut batch = AtomicBuilder::modify().journal(migrations_path);
+    for (path, content) in cleared {
+        batch = batch.add(path, SourceItems::Bytes(content.into_bytes()), false)?;
+    }
+    batch.start()?;
     Ok(())
 }
 
@@ -134,6 +165,84 @@ mod tests {
             up(&path).await.unwrap_err().to_string(),
             tf("migrate.interrupted", &[crate_dir.to_str().unwrap()])
         );
+    }
+
+    // ── The waiting tag, cleared once `up` succeeded ─────────────────────────
+
+    const BODY: &str = "use sea_orm_migration::prelude::*;\n// runique: waiting migrate up, quoted\n";
+
+    /// A `migration/src` whose `lib.rs` declares `modules`, with `files`.
+    fn migrations(dir: &TempDir, modules: &[&str], files: &[(&str, String)]) -> String {
+        let src = dir.join("src");
+        fs::create_dir_all(&src).unwrap();
+        let mods: String = modules.iter().map(|m| format!("mod {m};\n")).collect();
+        fs::write(src.join("lib.rs"), mods).unwrap();
+        for (name, content) in files {
+            fs::write(src.join(name), content).unwrap();
+        }
+        src.to_str().unwrap().to_string()
+    }
+
+    fn tagged() -> String {
+        format!("{WAIT_MIGRATION}\n{BODY}")
+    }
+
+    // Only the first line goes: the rest of the file is the same, byte for
+    // byte, even where it quotes the tag.
+    #[test]
+    fn a_waiting_migration_loses_its_tag_and_nothing_else() {
+        let dir = TempDir::new();
+        let path = migrations(
+            &dir,
+            &["m1_create_a_table", "m2_alter_a_table"],
+            &[
+                ("m1_create_a_table.rs", tagged()),
+                ("m2_alter_a_table.rs", tagged()),
+            ],
+        );
+
+        clear_waiting_tags(&path).unwrap();
+
+        for name in ["m1_create_a_table.rs", "m2_alter_a_table.rs"] {
+            assert_eq!(fs::read_to_string(dir.join("src").join(name)).unwrap(), BODY);
+        }
+        // The batch is over: no journal is left to stop the next command.
+        assert!(!crate::atomic::interrupted(Path::new(&path)));
+    }
+
+    // Untagged, tagged elsewhere than on the first line, declared without a
+    // file, or tagged but unknown to `lib.rs`: nothing is rewritten.
+    #[test]
+    fn only_tagged_migrations_of_lib_are_rewritten() {
+        let dir = TempDir::new();
+        let below = format!("// header\n{WAIT_MIGRATION}\n{BODY}");
+        let path = migrations(
+            &dir,
+            &["m1_applied", "m2_tag_below", "m3_no_file"],
+            &[
+                ("m1_applied.rs", BODY.to_string()),
+                ("m2_tag_below.rs", below.clone()),
+                ("m9_not_in_lib.rs", tagged()),
+            ],
+        );
+        let on_disk = dir.entries();
+
+        clear_waiting_tags(&path).unwrap();
+
+        assert_eq!(dir.entries(), on_disk);
+        let read = |name: &str| fs::read_to_string(dir.join("src").join(name)).unwrap();
+        assert_eq!(read("m1_applied.rs"), BODY);
+        assert_eq!(read("m2_tag_below.rs"), below);
+        assert_eq!(read("m9_not_in_lib.rs"), tagged());
+    }
+
+    // No `lib.rs`: nothing to clear, and no error.
+    #[test]
+    fn without_a_lib_nothing_is_cleared() {
+        let dir = TempDir::new();
+        let path = dir.join("src").to_str().unwrap().to_string();
+        clear_waiting_tags(&path).unwrap();
+        assert!(dir.entries().is_empty());
     }
 
     /// What `database_url` gives for a project's environment.

@@ -1,9 +1,9 @@
 //! Snapshots: reading the previous state of a table, and upgrading old snapshots.
 use super::scan::{merge_extend_schemas, scan_extend_blocks};
 use crate::migration::*;
+use crate::utils::trad::tf;
 use anyhow::{Context, Result};
 use std::{fs, path::Path};
-use crate::utils::trad::tf;
 
 /// Reads a snapshot/migration file from disk and parses it into a `ParsedSchema`.
 pub fn parse_create_file(path: &str) -> Result<ParsedSchema> {
@@ -80,20 +80,34 @@ pub(crate) fn previous_snapshot(path: &str, current: &ParsedSchema) -> Result<Pa
 /// is ignored. Returns the tables found, for the checks that follow.
 pub(super) fn read_all(migrations_path: &str) -> Result<Vec<ParsedSchema>> {
     let mut found = Vec::new();
-    for dir in [snapshot_dir(migrations_path), extend_snapshot_dir(migrations_path)] {
-        let Ok(entries) = fs::read_dir(&dir) else { continue };
+    for dir in [
+        snapshot_dir(migrations_path),
+        extend_snapshot_dir(migrations_path),
+    ] {
+        let Ok(entries) = fs::read_dir(&dir) else {
+            continue;
+        };
         for entry in entries {
             let path = entry?.path();
             if path.extension().is_none_or(|ext| ext != "rs") || !path.is_file() {
                 continue;
             }
             let shown = path.display().to_string();
-            let schema = parse_create_file(&shown)
-                .map_err(|_| anyhow::anyhow!(tf("makemigrations.snapshot_unreadable", &[&shown])))?;
-            let expected = path.file_stem().and_then(|s| s.to_str()).unwrap_or_default();
+            let schema = parse_create_file(&shown).map_err(|_| {
+                anyhow::anyhow!(tf("makemigrations.snapshot_unreadable", &[&shown]))
+            })?;
+            let expected = path
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or_default();
             if schema.table_name != expected {
-                anyhow::bail!("{}", tf("makemigrations.snapshot_misnamed",
-                    &[shown.as_str(), schema.table_name.as_str()]));
+                anyhow::bail!(
+                    "{}",
+                    tf(
+                        "makemigrations.snapshot_misnamed",
+                        &[shown.as_str(), schema.table_name.as_str()]
+                    )
+                );
             }
             found.push(schema);
         }
