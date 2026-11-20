@@ -586,7 +586,12 @@
     "type_change_not_migrated": "WARNING: --force let these column type changes through, but they are NOT migrated yet. Their migration holds a comment only, while the snapshot already records the new type:",
     "type_change_write_by_hand": "Write that migration's up() and down() by hand (alter_table / modify_column) before `runique migration up`: otherwise the database keeps the old types and nothing will tell you.",
     "no_changes": "No changes detected: your models match their snapshots.",
-    "apply_hint": "Apply the pending migrations with: runique migration up"
+    "apply_hint": "Apply the pending migrations with: runique migration up",
+    "database_unreachable": "Could not connect to the database: {}",
+    "applied_unknown": "These migrations are recorded in the database but missing from lib.rs:\n  {}\nThis database belongs to another project, or migration files were deleted. Nothing was written.",
+    "snapshot_unreadable": "The snapshot {} is unreadable or is not a snapshot. Nothing was written.",
+    "snapshot_misnamed": "The snapshot {} describes the table `{}`: its file name must be the table's. Nothing was written.",
+    "duplicate_table": "Two tables are named `{}`. A list field's table is named `<owner table>_<field>`: rename the field or the other table."
   },
   "atomic": {
     "reserved_name": "{}: a name Runique keeps for itself",

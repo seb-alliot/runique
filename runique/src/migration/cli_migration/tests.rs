@@ -747,3 +747,156 @@ fn a_file_added_in_a_folder_the_run_created_stops_the_command() {
     assert!(format!("{error:#}").contains("notes.md"), "{error:#}");
     assert_eq!(dir.entries(), on_disk);
 }
+
+// ── `makemigrations`: the database first ─────────────────────────────────────
+
+#[cfg(feature = "sqlite")]
+#[tokio::test]
+async fn with_a_reachable_database_the_command_runs() {
+    let (entities, migrations) = (temp("ent_db_ok"), temp("mig_db_ok"));
+    let get = |key: &str| (key == "DATABASE_URL").then(|| "sqlite::memory:".to_string());
+
+    let result = makemigrations_with(
+        get,
+        entities.to_str().unwrap(),
+        migrations.to_str().unwrap(),
+        false,
+    )
+    .await;
+    // `run` creates the snapshot folder first: proof the command went on.
+    let reached = Path::new(&snapshot_dir(migrations.to_str().unwrap())).exists();
+    let _ = (
+        fs::remove_dir_all(&entities),
+        fs::remove_dir_all(&migrations),
+    );
+
+    result.unwrap();
+    assert!(reached);
+}
+
+/// Nothing listens on port 1: the command stops before `run`, writes nothing,
+/// and its message never carries the password.
+#[tokio::test]
+async fn with_an_unreachable_database_nothing_is_written() {
+    let (entities, migrations) = (temp("ent_db_ko"), temp("mig_db_ko"));
+    let get = |key: &str| {
+        (key == "DATABASE_URL")
+            .then(|| "postgres://app:s3cr3t-Pw@127.0.0.1:1/shop?password=0ther-Pw".to_string())
+    };
+
+    let error = makemigrations_with(
+        get,
+        entities.to_str().unwrap(),
+        migrations.to_str().unwrap(),
+        false,
+    )
+    .await
+    .unwrap_err();
+    let written = fs::read_dir(&migrations).unwrap().count();
+    let _ = (
+        fs::remove_dir_all(&entities),
+        fs::remove_dir_all(&migrations),
+    );
+
+    let message = format!("{error:#}");
+    assert_eq!(written, 0, "{message}");
+    assert!(!message.contains("s3cr3t-Pw"), "{message}");
+    assert!(!message.contains("0ther-Pw"), "{message}");
+}
+
+// ── `snapshots/`: every snapshot is read before anything is computed ─────────
+
+/// A `migration/src` whose `snapshots/` holds `files` (path under it, content).
+fn with_snapshots(dir: &TempDir, files: &[(&str, &str)]) -> String {
+    let path = migrations_src(dir, None);
+    for (name, content) in files {
+        let file = dir.join("src/snapshots").join(name);
+        fs::create_dir_all(file.parent().unwrap()).unwrap();
+        fs::write(file, content).unwrap();
+    }
+    path
+}
+
+#[test]
+fn well_named_snapshots_are_read_from_both_folders() {
+    let dir = TempDir::new();
+    let (menus, users) = (schema("menus", &[]), schema("eihwaz_users", &[]));
+    let path = with_snapshots(
+        &dir,
+        &[
+            ("menus.rs", &generate_snapshot_file(&menus)),
+            ("runique/eihwaz_users.rs", &extend_snapshot_content(&users)),
+        ],
+    );
+
+    let mut tables: Vec<String> = read_all(&path)
+        .unwrap()
+        .into_iter()
+        .map(|s| s.table_name)
+        .collect();
+    tables.sort();
+    assert_eq!(tables, ["eihwaz_users", "menus"]);
+}
+
+#[test]
+fn without_a_snapshot_folder_nothing_is_read() {
+    let dir = TempDir::new();
+    assert!(read_all(&migrations_src(&dir, None)).unwrap().is_empty());
+}
+
+#[test]
+fn a_file_that_is_not_rust_is_ignored() {
+    let dir = TempDir::new();
+    let path = with_snapshots(&dir, &[("notes.md", "not a snapshot"), ("menus.txt", "{")]);
+    assert!(read_all(&path).unwrap().is_empty());
+}
+
+// Not Rust at all, or Rust that describes no table: the same refusal, in
+// either folder, naming the file.
+#[test]
+fn an_unreadable_snapshot_is_refused_by_its_path() {
+    for (name, content) in [
+        ("menus.rs", "fn broken( {"),
+        ("menus.rs", "fn main() {}"),
+        ("runique/eihwaz_users.rs", "fn main() {}"),
+    ] {
+        let dir = TempDir::new();
+        let path = with_snapshots(&dir, &[(name, content)]);
+        let shown = dir.join("src/snapshots").join(name).display().to_string();
+
+        assert_eq!(
+            read_all(&path).unwrap_err().to_string(),
+            tf("makemigrations.snapshot_unreadable", &[shown]),
+            "{name}: {content}"
+        );
+    }
+}
+
+#[test]
+fn a_snapshot_named_after_another_table_is_refused() {
+    let dir = TempDir::new();
+    let path = with_snapshots(
+        &dir,
+        &[("menus.rs", &generate_snapshot_file(&schema("plats", &[])))],
+    );
+    let shown = dir.join("src/snapshots/menus.rs").display().to_string();
+
+    assert_eq!(
+        read_all(&path).unwrap_err().to_string(),
+        tf("makemigrations.snapshot_misnamed", &[shown.as_str(), "plats"])
+    );
+}
+
+// The whole command: a bad snapshot of a table no model describes stops it
+// before anything is written.
+#[test]
+fn the_command_stops_on_a_bad_snapshot_and_writes_nothing() {
+    let dir = TempDir::new();
+    let path = with_snapshots(&dir, &[("gone.rs", "fn main() {}")]);
+    let entities = dir.join("entities");
+    fs::create_dir_all(&entities).unwrap();
+    let on_disk = dir.entries();
+
+    assert!(run(entities.to_str().unwrap(), &path, false).is_err());
+    assert_eq!(dir.entries(), on_disk);
+}

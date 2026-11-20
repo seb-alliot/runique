@@ -68,7 +68,11 @@ Les phases ci-dessus ne font que *calculer* un plan en mémoire — rien n'est �
 
 ## Pourquoi des snapshots maison ?
 
-`makemigrations` ne se connecte pas à la base : il compare vos modèles au **dernier état qu'il a lui-même généré**, enregistré dans les snapshots. La commande fonctionne donc sans base disponible, donne le même résultat sur toutes les machines de l'équipe, et ne dépend pas d'une base qui aurait pu être modifiée à la main.
+`makemigrations` compare vos modèles au **dernier état qu'il a lui-même généré**, enregistré dans les snapshots. Le résultat est donc le même sur toutes les machines de l'équipe, et ne dépend pas d'une base qui aurait pu être modifiée à la main.
+
+Depuis la 4.1, la commande **se connecte d'abord à la base** (celle du `.env`, comme l'application) et s'arrête avec une erreur si elle ne répond pas, avant d'avoir lu ou écrit quoi que ce soit. Elle n'y écrit rien : seul `runique migration up` applique une migration.
+
+Elle y lit la liste des migrations appliquées (`seaql_migrations`) : si l'une d'elles est inconnue de `lib.rs`, la commande s'arrête avant tout calcul. Une base qui n'a encore rien appliqué (table absente) est un cas normal.
 
 La contrepartie : un snapshot signifie « déjà migré ». Des snapshots copiés d'un autre projet sans leurs fichiers de migration font croire à `makemigrations` que les tables existent ; il ne génère alors rien pour elles.
 

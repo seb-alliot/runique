@@ -566,7 +566,12 @@
     "type_change_not_migrated": "警告：--force 放行了这些列类型变更，但它们尚未被迁移。其迁移只包含一条注释，而快照已记录新类型：",
     "type_change_write_by_hand": "请在 `runique migration up` 之前手动编写该迁移的 up() 和 down()（alter_table / modify_column）：否则数据库将保留旧类型，且不会有任何提示。",
     "no_changes": "未检测到变更：您的模型与其快照一致。",
-    "apply_hint": "使用以下命令应用待执行的迁移：runique migration up"
+    "apply_hint": "使用以下命令应用待执行的迁移：runique migration up",
+    "database_unreachable": "无法连接到数据库：{}",
+    "applied_unknown": "以下迁移已记录在数据库中，但 lib.rs 中不存在：\n  {}\n该数据库属于另一个项目，或迁移文件已被删除。未写入任何内容。",
+    "snapshot_unreadable": "快照 {} 无法读取或不是快照。未写入任何内容。",
+    "snapshot_misnamed": "快照 {} 描述的是表 `{}`：其文件名必须与表名一致。未写入任何内容。",
+    "duplicate_table": "有两个表名为 `{}`。列表字段的表名为 `<模型的表>_<字段>`：请重命名该字段或另一个表。"
   },
   "atomic": {
     "reserved_name": "{}：此名称为 Runique 保留",
