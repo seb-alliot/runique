@@ -21,6 +21,10 @@ been checked on demo-app and on a project created by `runique new`, and when the
   existing values, detecting default value changes, columns both renamed and modified, table
   renames. Constraint names are read from the database, and destructive changes state what they
   affect.
+  `makemigrations` connects to the database before computing, and snapshots are only written
+  when migrations are applied. `migration up` becomes all-or-nothing: when a migration fails, none
+  of that run stays applied (transaction on PostgreSQL and SQLite, compensation on MySQL).
+  `migration down` undoes the last migration and removes the generated migration.
   Queries: `get_or_create`, `update_or_create`, `exists()` and `last()`.
   Security: a cap on the number of keys held in memory by `RateLimiter` and `LoginGuard`, and
   tiered lockout against brute force: a duration that grows at each repeat (5 min, then 15 min,

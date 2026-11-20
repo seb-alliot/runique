@@ -2,7 +2,7 @@
 
 Ce qui reste à faire pour les deux prochaines versions. Un élément peut passer d'une version à l'autre en cours de route, s'il faut les livrer ensemble. La suite du projet est dans la [feuille de route](https://github.com/seb-alliot/runique/blob/main/ROADMAP.fr.md).
 
-**Dernière mise à jour** : 12 novembre 2026
+**Dernière mise à jour** : 20 novembre 2026
 
 ## 4.1 : infrastructure base de données (en cours)
 
@@ -14,14 +14,31 @@ Ce qui reste à faire pour les deux prochaines versions. Un élément peut passe
 | ✓ | Renommage simple d'une colonne (`renamed_from`) |
 | ✓ | Refus sans `--force` des opérations destructives : `DROP COLUMN`, changement de type, nullable vers `NOT NULL`, longueur ou décimale réduite, `DROP FK`, nouvelle FK `CASCADE` |
 | ✓ | Limite de longueur des noms d'index et de clés étrangères : refus au-delà de 63 caractères, sur tous les moteurs |
-| ☐ | Suppression de table quand le modèle disparaît : refus sans `--force`, `DROP TABLE` dans `up`, recréation dans `down`, snapshot retiré, ordre inverse des FK |
+| ☐ | Connexion à la base avant tout calcul : `makemigrations` s'arrête avec une erreur si elle ne répond pas |
+| ☐ | Migration générée marquée « en attente » : relancé avant qu'elle soit appliquée, `makemigrations` la recalcule au lieu d'en empiler une autre |
+| ☐ | Suppression de table quand le modèle disparaît : refus sans `--force`, `DROP TABLE IF EXISTS` dans `up`, recréation dans `down`, ordre inverse des FK, types enum retirés quand plus aucune colonne ne s'en sert |
+| ☐ | `managed: false` dans le `meta` d'un modèle : `makemigrations` ne génère et ne supprime plus rien pour sa table |
+| ☐ | Renommage de table et de champ liste (`rename_to`) |
 | ☐ | Changements destructeurs : indiquer ce qu'ils touchent, relations comprises |
-| ☐ | Vrai `ALTER` lors d'un changement de type (`USING` sur PostgreSQL et MySQL, snapshot fidèle ; reconstruction de table sous SQLite en option) |
+| ☐ | Vrai `ALTER` lors d'un changement de type, après `--force` (`USING` sur PostgreSQL et MySQL, snapshot fidèle) |
+| ☐ | SQLite : reconstruction de la table quand une colonne est modifiée, ou qu'une clé étrangère est ajoutée ou retirée (aujourd'hui la modification de colonne est sautée) |
 | ☐ | Passage de nullable à `NOT NULL` avec défaut : remplir les `NULL` existants avant la contrainte |
+| ☐ | Champ obligatoire ajouté à une table qui contient déjà des lignes : choix en console, donner la valeur des lignes existantes ou ne rien faire |
 | ☐ | Colonne à la fois renommée et modifiée (aujourd'hui seul le renommage est appliqué, et le snapshot enregistre la modification comme faite) |
 | ☐ | Détection d'un changement de valeur par défaut |
 | ☐ | Noms de contraintes lus en base au lieu d'être supposés |
-| ☐ | Renommage de table (`renamed_from`), et message explicite pour un modèle renommé |
+| ☐ | Enums : erreur quand deux modèles déclarent le même nom avec des valeurs différentes ; valeur retirée prise en charge |
+| ☐ | Bloc `extend!{}` retiré : ses colonnes sont retirées de la base, la table du framework reste |
+
+### migration up et down
+
+| État | Étape |
+|:---:|---|
+| ☐ | `migration up` en tout ou rien : si une migration échoue, aucune de celles du lancement ne reste appliquée (transaction sous PostgreSQL et SQLite, compensation sous MySQL) |
+| ☐ | Snapshots écrits à l'application : mis à jour par `migration up` une fois le lancement réussi, ramenés en arrière par `migration down` |
+| ☐ | Tables déjà présentes en base sans être inscrites : vérifiées, puis inscrites sans être recréées |
+| ☐ | `migration down` : défait la dernière migration, sans rien laisser à moitié fait, et supprime la migration générée ; retire aussi une migration générée et pas encore appliquée |
+| ☐ | `makemigrations` et `migration up` ne peuvent pas tourner en même temps |
 
 ### Requêtes
 

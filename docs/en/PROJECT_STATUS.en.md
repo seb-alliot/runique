@@ -2,7 +2,7 @@
 
 What remains for the next two versions. An item may move from one version to the other along the way, when they have to ship together. What comes next for the project is in the [roadmap](https://github.com/seb-alliot/runique/blob/main/ROADMAP.md).
 
-**Last update**: November 12, 2026
+**Last update**: November 20, 2026
 
 ## 4.1: database infrastructure (in progress)
 
@@ -14,14 +14,31 @@ What remains for the next two versions. An item may move from one version to the
 | ✓ | Plain column rename (`renamed_from`) |
 | ✓ | Destructive operations refused without `--force`: `DROP COLUMN`, type change, nullable to `NOT NULL`, reduced length or decimals, `DROP FK`, new `CASCADE` FK |
 | ✓ | Length limit of index and foreign key names: refused beyond 63 characters, on every engine |
-| ☐ | Drop a table when its model disappears: refused without `--force`, `DROP TABLE` in `up`, recreation in `down`, snapshot removed, reverse FK order |
+| ☐ | Connection to the database before any computation: `makemigrations` stops with an error when it does not answer |
+| ☐ | Generated migration marked "pending": run again before it is applied, `makemigrations` recomputes it instead of stacking another one |
+| ☐ | Drop a table when its model disappears: refused without `--force`, `DROP TABLE IF EXISTS` in `up`, recreation in `down`, reverse FK order, enum types removed once no column uses them |
+| ☐ | `managed: false` in a model's `meta`: `makemigrations` no longer generates or drops anything for its table |
+| ☐ | Table and list field rename (`rename_to`) |
 | ☐ | Destructive changes: state what they affect, relations included |
-| ☐ | Real `ALTER` on a type change (`USING` on PostgreSQL and MySQL, faithful snapshot; table rebuild on SQLite as an option) |
+| ☐ | Real `ALTER` on a type change, after `--force` (`USING` on PostgreSQL and MySQL, faithful snapshot) |
+| ☐ | SQLite: table rebuild when a column is modified, or a foreign key is added or removed (today the column change is skipped) |
 | ☐ | Nullable to `NOT NULL` with a default: fill existing `NULL`s before the constraint |
+| ☐ | Required field added to a table that already holds rows: a choice on the console, give the value of the existing rows or do nothing |
 | ☐ | Column both renamed and modified (today only the rename applies, and the snapshot records the change as done) |
 | ☐ | Detect a default value change |
 | ☐ | Constraint names read from the database instead of assumed |
-| ☐ | Table rename (`renamed_from`), and a clear message for a renamed model |
+| ☐ | Enums: error when two models declare the same name with different values; removed value handled |
+| ☐ | Removed `extend!{}` block: its columns are removed from the database, the framework's table stays |
+
+### migration up and down
+
+| Status | Step |
+|:---:|---|
+| ☐ | All-or-nothing `migration up`: when a migration fails, none of that run stays applied (transaction on PostgreSQL and SQLite, compensation on MySQL) |
+| ☐ | Snapshots written when applied: updated by `migration up` once the run succeeded, brought back by `migration down` |
+| ☐ | Tables already in the database without being recorded: checked, then recorded without being recreated |
+| ☐ | `migration down`: undoes the last migration, leaving nothing half done, and removes the generated migration; also removes a generated migration not applied yet |
+| ☐ | `makemigrations` and `migration up` cannot run at the same time |
 
 ### Queries
 

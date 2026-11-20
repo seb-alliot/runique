@@ -21,6 +21,10 @@ documentation (fr/en) et le CHANGELOG sont à jour.
   `NOT NULL` avec remplissage des valeurs existantes, détection des changements de valeur par
   défaut, colonnes à la fois renommées et modifiées, renommage de table. Les noms de contraintes
   sont lus en base, et les changements destructeurs indiquent ce qu'ils touchent.
+  `makemigrations` se connecte à la base avant de calculer, et les snapshots ne sont écrits qu'à
+  l'application. `migration up` passe en tout ou rien : si une migration échoue, aucune de
+  celles du lancement ne reste appliquée (transaction sous PostgreSQL et SQLite, compensation sous
+  MySQL). `migration down` défait la dernière migration et supprime la migration générée.
   Côté requêtes : `get_or_create`, `update_or_create`, `exists()` et `last()`.
   Côté sécurité : plafond du nombre de clés gardées en mémoire par `RateLimiter` et `LoginGuard`,
   et blocage par paliers contre la force brute : une durée qui s'allonge à chaque récidive (5 min,
