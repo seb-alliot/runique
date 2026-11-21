@@ -87,6 +87,21 @@ Une migration déjà appliquée n'est jamais remplacée.
 
 > Une migration en attente retouchée à la main est écrasée au lancement suivant. Si une migration doit être écrite à la main, appliquez-la avant de relancer `makemigrations`.
 
+## Deux migrations écrites en parallèle
+
+Sous le tag, chaque migration générée porte une seconde ligne qui dit d'où elle part pour sa table :
+
+```rust
+// runique: waiting migrate up
+// runique: from m20261120_101500_create_menus_table
+```
+
+C'est la dernière migration déjà en place qui touche cette table, ou `none` pour la première. `runique migration up` retire le tag et laisse cette ligne.
+
+Avant tout calcul, `makemigrations` refuse de continuer si deux migrations de `lib.rs` partent du même point pour la même table : elles ont été écrites chacune de leur côté (deux développeurs sur la même table, puis leurs travaux réunis), et Runique ne peut pas savoir laquelle la table doit suivre. Le message nomme la table et les deux migrations ; rien n'est écrit. Il n'y a pas de commande pour les réunir : c'est au développeur de n'en garder qu'une.
+
+Les migrations écrites avant la 4.1 n'ont pas cette ligne et ne sont pas concernées par ce contrôle.
+
 La contrepartie : un snapshot signifie « déjà migré ». Des snapshots copiés d'un autre projet sans leurs fichiers de migration font croire à `makemigrations` que les tables existent ; il ne génère alors rien pour elles.
 
 ### Logique `extend!{}`

@@ -163,6 +163,20 @@ pub const SNAPSHOT_LENGTHS_MARKER: &str = "// runique: column lengths recorded";
 /// First line of generated migration that no `migration up` applied yet.
 pub const WAIT_MIGRATION: &str = "// runique: waiting migrate up";
 
+/// Start of the line a generated migration carries under its tag: the
+/// migration it starts from for its table, or `none` for the first one. Two
+/// migrations of a table starting from the same one were written in parallel.
+pub const FROM_MIGRATION: &str = "// runique: from ";
+
+/// What a generated migration says it starts from; `None` when it doesn't say
+/// (written by hand, or before that line existed).
+pub fn started_from(content: &str) -> Option<&str> {
+    content
+        .lines()
+        .find_map(|line| line.trim().strip_prefix(FROM_MIGRATION))
+        .map(str::trim)
+}
+
 /// Whether `content` holds `marker` on a line of its own, wherever it is.
 pub fn has_marker(content: &str, marker: &str) -> bool {
     content.lines().any(|line| line.trim() == marker)

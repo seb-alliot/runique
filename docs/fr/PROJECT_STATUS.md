@@ -18,7 +18,7 @@ Ce qui reste à faire pour les deux prochaines versions. Un élément peut passe
 | ✓ | Refus d'une base qui ne correspond pas au projet : une migration inscrite en base et absente de `lib.rs` arrête la commande |
 | ✓ | Contrôle des snapshots avant tout calcul : un snapshot illisible, ou nommé autrement que sa table, arrête la commande |
 | ✓ | Migration générée marquée « en attente » : relancé avant qu'elle soit appliquée, `makemigrations` la recalcule au lieu d'en empiler une autre |
-| ☐ | Deux modifications parallèles d'une même table : refus, avec les tables concernées |
+| ✓ | Deux modifications parallèles d'une même table : refus, avec les tables concernées (chaque migration note celle dont elle part) |
 | ☐ | Suppression de table quand le modèle disparaît : refus sans `--force`, `DROP TABLE IF EXISTS` dans `up`, recréation dans `down`, ordre inverse des FK, types enum retirés quand plus aucune colonne ne s'en sert |
 | ☐ | `managed: false` dans le `meta` d'un modèle : `makemigrations` ne génère et ne supprime plus rien pour sa table |
 | ☐ | Renommage de table et de champ liste (`rename_to`) |

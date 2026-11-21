@@ -4,6 +4,7 @@ use super::scan::{merge_extend_schemas, scan_extend_blocks};
 use super::snapshot::previous_snapshot;
 use crate::atomic::{AtomicBuilder, SourceItems};
 use crate::migration::*;
+use crate::utils::trad::tf;
 use anyhow::Result;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -72,8 +73,64 @@ pub(super) fn replace_waiting(plan: &mut Plan, waiting: &[(String, String)]) -> 
     );
     true
 }
-fn waiting_migrate(content: String) -> String {
-    format!("{WAIT_MIGRATION}\n{content}")
+
+/// The migrations of `lib.rs` that are not waiting, in order: what a new
+/// migration can start from.
+pub(super) fn settled_migrations(
+    migrations_path: &str,
+    waiting: &[(String, String)],
+) -> Result<Vec<String>> {
+    Ok(lib_modules(migrations_path)?
+        .into_iter()
+        .filter(|module| !waiting.iter().any(|(w, _)| w == module))
+        .collect())
+}
+
+/// Refuses two migrations of `lib.rs` that say they start from the same one
+/// for the same table: they were written in parallel, and Runique can't tell
+/// which one the table should follow. A migration that doesn't say where it
+/// starts from is left out.
+pub(super) fn check_parallel(migrations_path: &str) -> Result<()> {
+    // (extend, table, started from, module)
+    let mut seen: Vec<(bool, String, String, String)> = Vec::new();
+    let mut clashes: Vec<String> = Vec::new();
+    for module in lib_modules(migrations_path)? {
+        let Some((extend, table)) = migration_target(&module) else {
+            continue;
+        };
+        let Ok(content) = fs::read_to_string(format!("{migrations_path}/{module}.rs")) else {
+            continue;
+        };
+        let Some(from) = started_from(&content) else {
+            continue;
+        };
+        if let Some((.., other)) = seen
+            .iter()
+            .find(|(e, t, f, _)| *e == extend && t == table && f == from)
+        {
+            clashes.push(format!("{table}: {other}, {module}"));
+        }
+        seen.push((extend, table.to_string(), from.to_string(), module.clone()));
+    }
+    if clashes.is_empty() {
+        return Ok(());
+    }
+    anyhow::bail!(
+        "{}",
+        tf("makemigrations.parallel_changes", &[clashes.join("\n  ")])
+    )
+}
+
+/// A generated migration as it is written: tagged as waiting, and saying
+/// which migration of `settled` it starts from for its table.
+fn waiting_migrate(content: String, module: &str, settled: &[String]) -> String {
+    let target = migration_target(module);
+    let from = settled
+        .iter()
+        .rev()
+        .find(|m| migration_target(m) == target)
+        .map_or("none", String::as_str);
+    format!("{WAIT_MIGRATION}\n{FROM_MIGRATION}{from}\n{content}")
 }
 
 /// Computes the diff for every scanned model (no writing).
@@ -157,6 +214,7 @@ pub(super) fn build_main_plan(
     schemas: &[ParsedSchema],
     migrations_path: &str,
     timestamp: &str,
+    settled: &[String],
 ) {
     let cycle_keys = cycle_keys(all_changes, schemas);
     let no_cycle = CycleKeys::default();
@@ -175,15 +233,21 @@ pub(super) fn build_main_plan(
                 .unwrap_or(&no_cycle);
             plan.files.push((
                 seaorm_path,
-                waiting_migrate(generate_create_file_in_cycle(schema, keys)),
+                waiting_migrate(
+                    generate_create_file_in_cycle(schema, keys),
+                    &module_name,
+                    settled,
+                ),
             ));
             plan.lib_modules.push(module_name);
         } else {
             let module_name = seaorm_alter_module_name(timestamp, &change.table_name);
             let seaorm_path =
                 seaorm_alter_file_path(migrations_path, timestamp, &change.table_name);
-            plan.files
-                .push((seaorm_path, waiting_migrate(generate_alter_file(change))));
+            plan.files.push((
+                seaorm_path,
+                waiting_migrate(generate_alter_file(change), &module_name, settled),
+            ));
             plan.lib_modules.push(module_name);
         }
     }
@@ -196,6 +260,7 @@ pub(super) fn build_extend_plan(
     planned: &[(ParsedSchema, Changes)],
     migrations_path: &str,
     timestamp: &str,
+    settled: &[String],
 ) {
     if planned.is_empty() {
         return;
@@ -205,8 +270,10 @@ pub(super) fn build_extend_plan(
         let module_name = seaorm_extend_module_name(timestamp, &ext_schema.table_name);
         let seaorm_path =
             seaorm_extend_file_path(migrations_path, timestamp, &ext_schema.table_name);
-        plan.files
-            .push((seaorm_path, waiting_migrate(generate_alter_file(changes))));
+        plan.files.push((
+            seaorm_path,
+            waiting_migrate(generate_alter_file(changes), &module_name, settled),
+        ));
         plan.lib_modules.push(module_name);
     }
 }

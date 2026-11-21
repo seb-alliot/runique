@@ -18,7 +18,7 @@ What remains for the next two versions. An item may move from one version to the
 | ✓ | A database that doesn't match the project is refused: a migration recorded in the database and missing from `lib.rs` stops the command |
 | ✓ | Snapshots checked before any computation: a snapshot that can't be read, or named otherwise than its table, stops the command |
 | ✓ | Generated migration marked "pending": run again before it is applied, `makemigrations` recomputes it instead of stacking another one |
-| ☐ | Two parallel changes to the same table: refused, with the tables involved |
+| ✓ | Two parallel changes to the same table: refused, with the tables involved (each migration notes the one it starts from) |
 | ☐ | Drop a table when its model disappears: refused without `--force`, `DROP TABLE IF EXISTS` in `up`, recreation in `down`, reverse FK order, enum types removed once no column uses them |
 | ☐ | `managed: false` in a model's `meta`: `makemigrations` no longer generates or drops anything for its table |
 | ☐ | Table and list field rename (`rename_to`) |

@@ -573,7 +573,8 @@
     "snapshot_misnamed": "O snapshot {} descreve a tabela `{}`: o nome do arquivo deve ser o da tabela. Nada foi escrito.",
     "duplicate_table": "Duas tabelas se chamam `{}`. A tabela de um campo de lista se chama `<tabela do modelo>_<campo>`: renomeie o campo ou a outra tabela.",
     "waiting_removed": "{} migração(ões) pendente(s) removida(s): seus modelos voltaram a corresponder aos snapshots.",
-    "waiting_unchanged": "{} migração(ões) pendente(s), inalterada(s): nada foi reescrito."
+    "waiting_unchanged": "{} migração(ões) pendente(s), inalterada(s): nada foi reescrito.",
+    "parallel_changes": "Duas migrações partem do mesmo ponto para a mesma tabela:\n  {}\nForam escritas em paralelo: o Runique não tem como saber qual delas a tabela deve seguir. Nada foi escrito."
   },
   "atomic": {
     "reserved_name": "{}: este nome está reservado ao Runique",

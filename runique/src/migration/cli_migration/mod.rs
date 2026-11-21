@@ -40,7 +40,8 @@ pub(crate) use snapshot::previous_snapshot;
 
 use plan::{
     Plan, build_extend_plan, build_main_plan, commit_plan, compute_main_changes,
-    plan_extend_changes, replace_waiting, waiting_migrations,
+    check_parallel, plan_extend_changes, replace_waiting, settled_migrations,
+    waiting_migrations,
 };
 use report::{check_destructive, check_identifier_lengths, warn_unmigrated_type_changes};
 use snapshot::snapshot_upgrades;
@@ -61,6 +62,7 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     init_migrate::repair(std::path::Path::new(migrations_path))?;
 
     snapshot::read_all(migrations_path)?;
+    check_parallel(migrations_path)?;
     let waiting = waiting_migrations(migrations_path)?;
 
     fs::create_dir_all(snapshot_dir(migrations_path))?;
@@ -116,6 +118,7 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     main_changes = topological_sort_changes(main_changes);
 
     // ── Build a single unified plan (no writing) ──────────────────────────
+    let settled = settled_migrations(migrations_path, &waiting)?;
     let mut plan = Plan::default();
     build_main_plan(
         &mut plan,
@@ -123,8 +126,15 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
         &schemas,
         migrations_path,
         &timestamp,
+        &settled,
     );
-    build_extend_plan(&mut plan, &extend_planned, migrations_path, &timestamp);
+    build_extend_plan(
+        &mut plan,
+        &extend_planned,
+        migrations_path,
+        &timestamp,
+        &settled,
+    );
     // While the plan holds the migrations and nothing else.
     let rewritten = replace_waiting(&mut plan, &waiting);
     plan.files.extend(upgrades);

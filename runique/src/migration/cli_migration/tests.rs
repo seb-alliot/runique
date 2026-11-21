@@ -422,7 +422,7 @@ fn an_extend_change_enters_the_plan_with_its_module_and_no_snapshot() {
     );
 
     let mut plan = Plan::default();
-    build_extend_plan(&mut plan, &planned, m, "20260101_000000");
+    build_extend_plan(&mut plan, &planned, m, "20260101_000000", &[]);
 
     let paths: Vec<&str> = plan.files.iter().map(|(path, _)| path.as_str()).collect();
     assert_eq!(
@@ -441,7 +441,7 @@ fn an_extend_change_enters_the_plan_with_its_module_and_no_snapshot() {
 
     // Nothing to extend: the plan is left as it was.
     let mut empty = Plan::default();
-    build_extend_plan(&mut empty, &[], m, "20260101_000000");
+    build_extend_plan(&mut empty, &[], m, "20260101_000000", &[]);
     assert!(empty.files.is_empty() && empty.lib_modules.is_empty());
 }
 
@@ -469,12 +469,14 @@ fn every_generated_migration_starts_with_the_waiting_tag() {
         &[menus.clone(), plats.clone()],
         "m",
         "20260101_000000",
+        &[],
     );
     build_extend_plan(
         &mut plan,
         &[(users.clone(), altered(&users))],
         "m",
         "20260101_000000",
+        &[],
     );
 
     assert_eq!(
@@ -504,6 +506,7 @@ fn a_tagged_migration_is_still_read_back() {
         std::slice::from_ref(&menus),
         "m",
         "20260101_000000",
+        &[],
     );
 
     let read = parse_seaorm_source(&plan.files[0].1).unwrap();
@@ -1383,4 +1386,223 @@ fn a_plan_removes_the_modules_it_drops() {
     assert!(!lib.contains("m1_create_shop_table"), "{lib}");
     assert_eq!(lib.matches("m2_create_shop_table").count(), 2, "{lib}");
     assert_eq!(lib.matches("m1_create_menu_table").count(), 2, "{lib}");
+}
+
+// ── Each migration says where it starts from; two from the same point clash ──
+
+#[test]
+fn a_migration_says_what_it_starts_from() {
+    assert_eq!(started_from("// runique: from none\nfn up() {}"), Some("none"));
+    assert_eq!(
+        started_from("// tag\n  // runique: from m1_create_a_table \r\nfn up() {}"),
+        Some("m1_create_a_table")
+    );
+    assert_eq!(started_from("fn up() {}\n"), None);
+    assert_eq!(started_from("// see runique: from m1\n"), None);
+}
+
+// The line sits under the tag: `none` for a table nothing settled touches,
+// otherwise the last settled migration of that very table and kind.
+#[test]
+fn a_planned_migration_starts_from_the_last_settled_one_of_its_table() {
+    let (menus, plats, users) = (
+        schema("menus", &[]),
+        schema("plats", &[]),
+        schema("eihwaz_users", &[]),
+    );
+    let altered = |s: &ParsedSchema| Changes {
+        is_new_table: false,
+        ..new_table(s)
+    };
+    let settled: Vec<String> = [
+        "m20250101_000000_create_plats_table",
+        "m20250102_000000_alter_plats_table",
+        "m20250103_000000_create_other_table",
+        // A model's table of that name is not the extension of it.
+        "m20250104_000000_create_eihwaz_users_table",
+    ]
+    .map(String::from)
+    .to_vec();
+
+    let mut plan = Plan::default();
+    build_main_plan(
+        &mut plan,
+        &[new_table(&menus), altered(&plats)],
+        &[menus.clone(), plats.clone()],
+        "m",
+        "20260101_000000",
+        &settled,
+    );
+    build_extend_plan(
+        &mut plan,
+        &[(users.clone(), altered(&users))],
+        "m",
+        "20260101_000000",
+        &settled,
+    );
+
+    let from: Vec<Option<&str>> = plan.files.iter().map(|(_, c)| started_from(c)).collect();
+    assert_eq!(
+        from,
+        [
+            Some("none"),
+            Some("m20250102_000000_alter_plats_table"),
+            Some("none"),
+        ]
+    );
+    for (path, content) in &plan.files {
+        let second = content.lines().nth(1).unwrap();
+        assert!(second.starts_with(FROM_MIGRATION), "{path}: {second}");
+    }
+}
+
+/// A `migration/src` whose `lib.rs` declares `files` (module, started from).
+fn with_migrations(dir: &TempDir, files: &[(&str, Option<&str>)]) -> String {
+    let mods: String = files.iter().map(|(m, _)| format!("mod {m};\n")).collect();
+    let path = migrations_src(dir, Some(&mods));
+    for (module, from) in files {
+        let line = from.map_or(String::new(), |f| format!("{FROM_MIGRATION}{f}\n"));
+        fs::write(format!("{path}/{module}.rs"), format!("{line}// body\n")).unwrap();
+    }
+    path
+}
+
+// Two migrations of a table from the same point: refused, naming the table
+// and both. That includes two creations of the same table.
+#[test]
+fn two_migrations_of_a_table_from_the_same_point_are_refused() {
+    let (create, a, b) = (
+        "m20260101_000000_create_menus_table",
+        "m20260102_000000_alter_menus_table",
+        "m20260103_000000_alter_menus_table",
+    );
+    let dir = TempDir::new();
+    let path = with_migrations(
+        &dir,
+        &[(create, Some("none")), (a, Some(create)), (b, Some(create))],
+    );
+    assert_eq!(
+        check_parallel(&path).unwrap_err().to_string(),
+        tf(
+            "makemigrations.parallel_changes",
+            &[format!("menus: {a}, {b}")]
+        )
+    );
+
+    let other = "m20260105_000000_create_menus_table";
+    let dir = TempDir::new();
+    let path = with_migrations(&dir, &[(create, Some("none")), (other, Some("none"))]);
+    let error = check_parallel(&path).unwrap_err().to_string();
+    assert!(error.contains(create) && error.contains(other), "{error}");
+}
+
+// A chain, two tables from `none`, a model's table and the extension of the
+// same name, migrations that say nothing, a module without a file: all pass.
+#[test]
+fn migrations_that_follow_each_other_pass() {
+    let dir = TempDir::new();
+    let path = with_migrations(
+        &dir,
+        &[
+            ("m20260101_000000_create_menus_table", Some("none")),
+            ("m20260101_000000_create_plats_table", Some("none")),
+            (
+                "m20260102_000000_alter_menus_table",
+                Some("m20260101_000000_create_menus_table"),
+            ),
+            (
+                "m20260103_000000_alter_menus_table",
+                Some("m20260102_000000_alter_menus_table"),
+            ),
+            ("m20260104_000000_create_eihwaz_users_table", Some("none")),
+            ("m20260104_000000_extend_eihwaz_users_table", Some("none")),
+            ("m20250101_000000_alter_menus_table", None),
+            ("m20250102_000000_alter_menus_table", None),
+            ("m0_by_hand", Some("none")),
+            ("m0_by_hand_too", Some("none")),
+        ],
+    );
+    fs::write(
+        lib_path(&path),
+        format!(
+            "{}mod m20260109_000000_alter_menus_table;\n",
+            fs::read_to_string(lib_path(&path)).unwrap()
+        ),
+    )
+    .unwrap();
+
+    check_parallel(&path).unwrap();
+}
+
+// The whole command: an alteration starts from the applied creation, running
+// again keeps that line, and the next one starts from the applied alteration.
+#[test]
+fn the_command_chains_the_migrations_of_a_table() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    run(&entities, &path, false).unwrap();
+    let create = generated(&path).remove(0);
+    assert_eq!(started_from(&create.1), Some("none"));
+    applied(&entities, &path);
+
+    fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
+    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false).unwrap();
+    let files = generated(&path);
+    let alter = files
+        .iter()
+        .find(|(name, _)| name.ends_with("_alter_users_table.rs"))
+        .unwrap();
+    assert_eq!(
+        started_from(&alter.1),
+        Some(create.0.trim_end_matches(".rs"))
+    );
+    // Applied: the tag goes, the line stays for the next check.
+    applied(&entities, &path);
+    let alter = generated(&path)
+        .into_iter()
+        .find(|(name, _)| name.ends_with("_alter_users_table.rs"))
+        .unwrap();
+    assert!(!has_marker(&alter.1, WAIT_MIGRATION));
+    assert_eq!(
+        started_from(&alter.1),
+        Some(create.0.trim_end_matches(".rs"))
+    );
+}
+
+// The whole command on a project holding two parallel alterations: it stops
+// before anything is computed, and writes nothing.
+#[test]
+fn the_command_refuses_parallel_migrations_and_writes_nothing() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    run(&entities, &path, false).unwrap();
+    applied(&entities, &path);
+    let create = generated(&path).remove(0).0.trim_end_matches(".rs").to_string();
+    for module in [
+        "m20990101_000000_alter_users_table",
+        "m20990102_000000_alter_users_table",
+    ] {
+        fs::write(
+            format!("{path}/{module}.rs"),
+            format!("{FROM_MIGRATION}{create}\n// body\n"),
+        )
+        .unwrap();
+        let lib = fs::read_to_string(lib_path(&path)).unwrap();
+        fs::write(lib_path(&path), format!("{lib}mod {module};\n")).unwrap();
+    }
+    fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
+    let before = everything(&dir);
+
+    let error = run(&entities, &path, false).unwrap_err().to_string();
+
+    assert!(
+        error.contains(
+            "users: m20990101_000000_alter_users_table, m20990102_000000_alter_users_table"
+        ),
+        "{error}"
+    );
+    assert_eq!(everything(&dir), before);
 }
