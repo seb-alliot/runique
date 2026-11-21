@@ -39,6 +39,7 @@ Le `use …::Column::*` reste **dans** la fonction du modèle : deux modèles av
 | `.title("…")` | Nom dans la nav et les pages (sinon `verbose_name_plural`, `verbose_name`, puis le nom de table) |
 | `.list(…)` | Configure la vue liste |
 | `.form(…)` | Configure create / edit |
+| `.with_form::<F>()` | Construit create / edit à partir d'un formulaire du projet, voir « Formulaire du projet » plus bas |
 | `.templates(…)` | Surcharge des blocs ou des pages de ce modèle (HTML, CSS), voir [Surcharge](/docs/fr/admin/template-surcharge) |
 
 ## Liste — `ListConfig`
@@ -91,6 +92,40 @@ Règles au boot :
 ```
 
 Sans `.form()`, tous les champs du formulaire du modèle (`ModelMeta::Form`) sont utilisés. La porte décide encore ce que le compte courant peut lire ou écrire.
+
+## Formulaire du projet — `with_form`
+
+Par défaut, les pages create / edit sont construites à partir du formulaire que `model!{}` génère. `.with_form::<F>()` les construit à partir d'un formulaire `#[form(schema = …)]` du projet : son `customize()` et son `clean` s'appliquent alors aussi dans l'admin.
+
+```rust
+// src/forms.rs
+#[form(schema = article, fields = [title, body, image])]
+pub struct ArticleForm;
+
+impl RuniqueForm for ArticleForm {
+    fn customize(form: &mut Forms) {
+        // L'ancienne image est supprimée quand une nouvelle la remplace.
+        form.field(&MediaField::image("image").upload_to("articles").replace());
+    }
+}
+
+// src/admin.rs : le type du formulaire s'écrit dans le type de retour
+fn article() -> ModelAdmin<article::Entity, ArticleForm> {
+    use article::Column::*;
+    ModelAdmin::new()
+        .with_form::<ArticleForm>()
+        .list(|l| l.display([Title]))
+}
+```
+
+Un formulaire d'un autre modèle ne compile pas. Le reste est vérifié au boot, et l'application refuse de démarrer si :
+
+- un champ du formulaire n'est ni une colonne ni un champ liste du modèle ;
+- un champ porte le nom d'une colonne secrète, ou d'un drapeau de rang sur la table des comptes ;
+- un champ ne peut pas contenir le type de sa colonne ;
+- une colonne nécessaire à la création (NOT NULL, sans défaut) n'a pas de champ.
+
+`.form(…)` se combine avec `with_form` : `fields`, `readonly`, `create_only` et `labels` s'appliquent au formulaire fourni. Les droits ne changent pas : la porte décide toujours ce que le compte lit et écrit, et les colonnes secrètes ne sont jamais écrites par l'admin. Le formulaire ne peut que restreindre.
 
 ## Comptes étendus
 

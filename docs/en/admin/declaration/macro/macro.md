@@ -39,6 +39,7 @@ Keep `use …::Column::*` **inside** the model function so two models with a `Ti
 | `.title("…")` | Name in nav and pages (else `verbose_name_plural`, `verbose_name`, then the table name) |
 | `.list(…)` | List view config |
 | `.form(…)` | Create / edit config |
+| `.with_form::<F>()` | Builds create / edit from a form of the project, see "Project form" below |
 | `.templates(…)` | Overrides of this model's blocks or pages (HTML, CSS), see [Template override](/docs/en/admin/template-surcharge) |
 
 ## List — `ListConfig`
@@ -91,6 +92,40 @@ Boot rules:
 ```
 
 Without `.form()`, every field of the model's form (`ModelMeta::Form`) is used. The gate still decides what the current account may read or write.
+
+## Project form — `with_form`
+
+By default, the create / edit pages are built from the form `model!{}` generates. `.with_form::<F>()` builds them from a `#[form(schema = …)]` form of the project: its `customize()` and its `clean` then apply in the admin too.
+
+```rust
+// src/forms.rs
+#[form(schema = article, fields = [title, body, image])]
+pub struct ArticleForm;
+
+impl RuniqueForm for ArticleForm {
+    fn customize(form: &mut Forms) {
+        // The old image is deleted when a new one replaces it.
+        form.field(&MediaField::image("image").upload_to("articles").replace());
+    }
+}
+
+// src/admin.rs: the form's type is written in the return type
+fn article() -> ModelAdmin<article::Entity, ArticleForm> {
+    use article::Column::*;
+    ModelAdmin::new()
+        .with_form::<ArticleForm>()
+        .list(|l| l.display([Title]))
+}
+```
+
+A form of another model does not compile. The rest is checked at boot, and the application refuses to start if:
+
+- a field of the form is neither a column nor a list field of the model;
+- a field is named after a secret column, or after a rank flag on the accounts table;
+- a field can't hold its column's type;
+- a column needed to create a row (NOT NULL, no default) has no field.
+
+`.form(…)` combines with `with_form`: `fields`, `readonly`, `create_only` and `labels` apply to the form given. Rights don't change: the gate still decides what the account reads and writes, and secret columns are never written by the admin. The form can only narrow.
 
 ## Extended accounts
 

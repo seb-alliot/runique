@@ -118,6 +118,22 @@ impl UploadMedia {
         base.value = value.to_string();
     }
 
+    /// Saving an upload, on a field that removes the file it replaces.
+    pub(crate) fn awaits_replaced_file(&self) -> bool {
+        self.replace && !self.pending_uploads.is_empty()
+    }
+
+    /// Remembers `stored`, the file the row held before this update, as the
+    /// one the pending upload replaces. A request builds its form empty, then
+    /// fills it with the upload: without this, the field never learns what
+    /// the row held, and `complete` has nothing to remove.
+    pub(crate) fn replaced_file(&mut self, stored: &str) {
+        let stored = stored.trim();
+        if self.awaits_replaced_file() && !stored.is_empty() {
+            self.prev_value = Some(stored.to_string());
+        }
+    }
+
     /// Presence, count, extension and size of the files in `base`'s value.
     pub(crate) async fn check(&self, base: &FieldConfig) -> UploadCheck {
         let val = base.value.trim();
@@ -696,6 +712,14 @@ impl FormField for MediaField {
             .map_err(upload_failed)
     }
 
+    fn awaits_replaced_file(&self) -> bool {
+        self.upload.awaits_replaced_file()
+    }
+
+    fn replaced_file(&mut self, stored: &str) {
+        self.upload.replaced_file(stored);
+    }
+
     async fn publish_uploads(&mut self) -> Result<(), String> {
         self.upload.publish().await.map_err(upload_failed)
     }
@@ -1115,6 +1139,62 @@ mod tests {
         assert!(media.root.join("new.mp3").exists());
         assert!(!media.root.join("old.mp3").exists());
         assert_eq!(field.value(), "new.mp3");
+    }
+
+    // ── `.replace()` in a request ────────────────────────────────────────────
+    // A request builds its form empty and fills it with the upload: the field
+    // never held the stored value. The update tells it (`replaced_file`).
+
+    #[tokio::test]
+    async fn an_update_tells_a_replacing_field_which_file_to_remove() {
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        fs::write(media.root.join("old.mp3"), MP3_ID3).unwrap();
+        let mut field = MediaField::audio("podcast").replace();
+        assert!(!field.awaits_replaced_file(), "no upload yet");
+
+        finalized(&mut field, &media.staged("new.mp3", MP3_ID3)).await;
+        assert!(field.awaits_replaced_file());
+        field.replaced_file("old.mp3");
+        field.publish_uploads().await.unwrap();
+        assert!(media.root.join("old.mp3").exists(), "kept until the commit");
+
+        field.complete_uploads().await;
+        assert!(media.root.join("new.mp3").exists());
+        assert!(!media.root.join("old.mp3").exists());
+    }
+
+    #[tokio::test]
+    async fn an_update_removes_nothing_for_a_field_that_does_not_replace() {
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        fs::write(media.root.join("old.mp3"), MP3_ID3).unwrap();
+        let mut field = MediaField::audio("podcast");
+
+        finalized(&mut field, &media.staged("new.mp3", MP3_ID3)).await;
+        assert!(!field.awaits_replaced_file());
+        field.replaced_file("old.mp3");
+        field.publish_uploads().await.unwrap();
+        field.complete_uploads().await;
+
+        assert!(media.root.join("new.mp3").exists());
+        assert!(media.root.join("old.mp3").exists());
+    }
+
+    // Told what the row holds, but no new file was sent: nothing is replaced.
+    #[tokio::test]
+    async fn an_update_without_a_new_upload_removes_nothing() {
+        let _g = MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        fs::write(media.root.join("old.mp3"), MP3_ID3).unwrap();
+        let mut field = MediaField::audio("podcast").replace();
+
+        field.replaced_file("old.mp3");
+        assert_eq!(field.upload.prev_value, None);
+        field.publish_uploads().await.unwrap();
+        field.complete_uploads().await;
+
+        assert!(media.root.join("old.mp3").exists());
     }
 
     #[tokio::test]

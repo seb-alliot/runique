@@ -1,4 +1,4 @@
-//! The bridge between the typed `ModelAdmin<E>` and the type-erased
+//! The bridge between the typed `ModelAdmin<E, F>` and the type-erased
 //! `AdminSite`: what a request can ask of a model without knowing `E`.
 use super::{
     admin_builder::{ListPage, ModelAdmin, OfferedAction, prefill},
@@ -204,8 +204,10 @@ pub(crate) trait RegisteredModel: Send + Sync {
 }
 
 #[async_trait::async_trait]
-impl<E: ModelMeta> RegisteredModel for ModelAdmin<E>
+impl<E, F> RegisteredModel for ModelAdmin<E, F>
 where
+    E: ModelMeta,
+    F: crate::forms::RuniqueForm + crate::forms::FormEntity<Entity = E>,
     E::ActiveModel: Send,
     E::Model: sea_orm::IntoActiveModel<E::ActiveModel>,
 {
@@ -366,7 +368,7 @@ where
         let db = &req.engine.db;
         authorize_create::<E>(&GateCtx { db, user })?;
 
-        let mut form = req.form::<E::Form>(admin_form::CREATE);
+        let mut form = req.form::<F>(admin_form::CREATE);
         let forms = form.forms_mut();
         crate::auth::gate::change::type_fields::<E>(forms);
         self.shape_for_create(forms, &user.rights_on(E::KEY).columns);
@@ -376,7 +378,7 @@ where
         if req.method.is_safe() {
             return Ok(FormOutcome::Show(shown(forms)));
         }
-        save_through_gate::<E>(form, req).await
+        save_through_gate::<E, F>(form, req).await
     }
 
     fn is_account_table(&self) -> bool {
@@ -579,7 +581,7 @@ where
             .filter(|name| view.readable().allows(name))
             .collect();
 
-        let mut form = req.form::<E::Form>(admin_form::UPDATE);
+        let mut form = req.form::<F>(admin_form::UPDATE);
         let forms = form.forms_mut();
         crate::auth::gate::change::type_fields::<E>(forms);
         self.shape_for_edit(forms, &readable, &lists, &user.rights_on(E::KEY).columns);
@@ -606,7 +608,7 @@ where
             prefill(forms, &row);
             return Ok(FormOutcome::Show(shown(forms)));
         }
-        save_through_gate::<E>(form, req).await
+        save_through_gate::<E, F>(form, req).await
     }
 }
 
@@ -632,11 +634,10 @@ fn shown(form: &crate::forms::form::Forms) -> serde_json::Value {
 
 /// Validates the form sent, then saves it: under the admin's constraint,
 /// `save` writes through the gate. `Saved`, or the form back with its errors.
-async fn save_through_gate<E: ModelMeta>(
-    form: E::Form,
-    req: &Request,
-) -> Result<FormOutcome, AdminError>
+async fn save_through_gate<E, F>(form: F, req: &Request) -> Result<FormOutcome, AdminError>
 where
+    E: ModelMeta,
+    F: crate::forms::RuniqueForm + crate::forms::FormEntity<Entity = E>,
     E::ActiveModel: Send,
     E::Model: sea_orm::IntoActiveModel<E::ActiveModel>,
 {

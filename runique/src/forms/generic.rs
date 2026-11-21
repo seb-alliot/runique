@@ -181,6 +181,14 @@ impl FormField for GenericField {
         delegate_to_field!(mut self, finalize).await
     }
 
+    fn awaits_replaced_file(&self) -> bool {
+        delegate_to_field!(self, awaits_replaced_file)
+    }
+
+    fn replaced_file(&mut self, stored: &str) {
+        delegate_to_field!(mut self, replaced_file, stored);
+    }
+
     async fn publish_uploads(&mut self) -> Result<(), String> {
         delegate_to_field!(mut self, publish_uploads).await
     }

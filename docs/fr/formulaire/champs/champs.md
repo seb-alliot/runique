@@ -390,6 +390,7 @@ Quand le formulaire modifie une ligne qui avait déjà un fichier, l'ancien est 
 
 - **un seul fichier** : sans effet sur un champ qui en accepte plusieurs (`max_files` au-dessus de 1), où rien ne dit lequel un nouveau fichier remplace ;
 - **seulement après un nouvel envoi** : un formulaire renvoyé sans nouveau fichier garde le sien ;
+- **seulement si la colonne est réellement écrite** : un champ verrouillé, ou une colonne que le compte n'a pas le droit de modifier (admin), garde son fichier ;
 - **jamais bloquant** : si l'ancien fichier est absent ou ne peut pas être supprimé, la requête réussit quand même, et l'échec est tracé ;
 - **sous `MEDIA_ROOT` uniquement** : un chemin qui en sortirait n'est jamais supprimé.
 

@@ -16,7 +16,7 @@ use crate::auth::permissions::groupe;
 use crate::auth::permissions::rang::Rang;
 use crate::auth::permissions::rights::ColumnRights;
 use crate::auth::user;
-use crate::forms::form::{Forms, SaveComportement, write_with_uploads};
+use crate::forms::form::{Forms, SaveComportement, write_replacing_uploads, write_with_uploads};
 use crate::forms::save::{SaveAction, on_fields, url_key};
 use crate::utils::aliases::ADb;
 use crate::utils::pk::Pk;
@@ -269,13 +269,16 @@ where
             if !model.is_changed() && lists.is_empty() {
                 return Ok(());
             }
-            write_with_uploads(form, async {
+            write_replacing_uploads(form, async {
                 let txn = db.begin().await?;
                 // The row as it was, read in the write's transaction: the trace
                 // compares against what the update replaces.
                 let Some(old) = E::find_by_id(id.clone()).one(&txn).await? else {
                     return Err(refused(Refusal::new(RefusalReason::StaleRow)));
                 };
+                // The files the columns written held: a field declared with
+                // `.replace()` removes its own once the write is committed.
+                let replaced = super::change::replaced_files::<E>(&old, &model);
                 // The lists as they were, read in the same transaction: only
                 // those the form changes are written, and traced.
                 let changed = if lists.is_empty() {
@@ -290,7 +293,7 @@ where
                 if !model.is_changed() && lists.is_empty() {
                     // The form holds what the row already does: nothing to
                     // write, nothing to trace.
-                    return Ok(txn);
+                    return Ok((txn, Vec::new()));
                 }
                 keeps_responsable::<E, _>(&txn, &user, &old, deactivates::<E>(&model)).await?;
                 let summary = summary::<E>(&old, &model, &changed);
@@ -303,7 +306,7 @@ where
                 }
                 E::save_lists(&old, &txn, &lists).await?;
                 trace::<E, _>(&txn, &user, &old, "update", summary, None).await?;
-                Ok(txn)
+                Ok((txn, replaced))
             })
             .await
         }

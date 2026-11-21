@@ -424,6 +424,18 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
         Ok(())
     }
 
+    /// Whether the field is saving an upload and removes the stored file it
+    /// takes the place of (a file field declared with `.replace()`): the
+    /// update then has to tell it which file that is (`replaced_file`).
+    fn awaits_replaced_file(&self) -> bool {
+        false
+    }
+
+    /// The value the field's column held before the update that is writing a
+    /// new one. A field that replaces removes that file once the write is
+    /// committed; any other ignores it.
+    fn replaced_file(&mut self, _stored: &str) {}
+
     /// Publishes external resources prepared by `finalize`, between the form's
     /// database write and its commit.
     async fn publish_uploads(&mut self) -> Result<(), String> {

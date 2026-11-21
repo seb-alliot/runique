@@ -101,6 +101,31 @@ pub(crate) fn changes<E: ModelMeta>(
     }
 }
 
+/// What `old` held in the text columns `model` sets to another value: the
+/// stored files an update takes the place of, for the form's file fields
+/// (`write_replacing_uploads`). Only a column this write really changes: one
+/// the account's rights or a locked field left `NotSet` is never listed, so
+/// its file is never removed.
+pub(crate) fn replaced_files<E: EntityTrait>(
+    old: &E::Model,
+    model: &E::ActiveModel,
+) -> crate::forms::form::ReplacedFiles {
+    use sea_orm::{ActiveValue, ModelTrait, Value};
+
+    E::Column::iter()
+        .filter_map(|column| {
+            let Value::String(Some(stored)) = old.get(column) else {
+                return None;
+            };
+            let ActiveValue::Set(new) = model.get(column) else {
+                return None;
+            };
+            let unchanged = matches!(&new, Value::String(Some(text)) if *text == stored);
+            (!unchanged && !stored.trim().is_empty()).then(|| (column.as_str().to_string(), stored))
+        })
+        .collect()
+}
+
 /// Gives each field of `form` the type of its column in `E`: it then validates
 /// and reads as that column does. Untyped, an integer reads as `i64`, which an
 /// `i32` column refuses whatever the value.
@@ -251,6 +276,59 @@ mod tests {
 
     fn unconvertible() -> String {
         t("forms.value_unconvertible").into_owned()
+    }
+
+    fn stored_item() -> item::Model {
+        item::Model {
+            id: 1,
+            secret: "s".into(),
+            nick: Some("nick".into()),
+            score: Some(3),
+            born: None,
+            title: "t".into(),
+            pass: None,
+            avatar: Some("a/old.png".into()),
+            addr: None,
+        }
+    }
+
+    /// What an update takes the place of: a text column it sets to another
+    /// value, and nothing else.
+    #[test]
+    fn only_a_text_column_set_to_another_value_is_replaced() {
+        let old = stored_item();
+        let mut model = <item::ActiveModel as ActiveModelTrait>::default();
+        model.avatar = ActiveValue::Set(Some("a/new.png".into()));
+        // Set to what the row holds: nothing is replaced.
+        model.title = ActiveValue::Set("t".into());
+        // Not a text column.
+        model.score = ActiveValue::Set(Some(9));
+        // The row held NULL: no file to remove.
+        model.pass = ActiveValue::Set(Some("hash".into()));
+
+        assert_eq!(
+            replaced_files::<E>(&old, &model),
+            [("avatar".to_string(), "a/old.png".to_string())]
+        );
+    }
+
+    /// A column the write leaves `NotSet` (no right on it, a locked field)
+    /// lists nothing: its file is never removed.
+    #[test]
+    fn a_column_the_write_leaves_alone_is_never_replaced() {
+        let old = stored_item();
+        let mut model = <item::ActiveModel as ActiveModelTrait>::default();
+        model.nick = ActiveValue::Set(Some("other".into()));
+
+        let replaced = replaced_files::<E>(&old, &model);
+        assert!(
+            !replaced.iter().any(|(name, _)| name == "avatar"),
+            "{replaced:?}"
+        );
+        assert!(
+            replaced_files::<E>(&old, &<item::ActiveModel as ActiveModelTrait>::default())
+                .is_empty()
+        );
     }
 
     #[test]
