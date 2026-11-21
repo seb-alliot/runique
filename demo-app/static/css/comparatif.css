@@ -38,15 +38,23 @@
     display: flex;
 }
 
-.compare-tabs .hero-tab {
+/* Tabs on the page background, not in the dark code block: the theme's own
+   colours, or the active one stays white on a light page. */
+.compare-tabs .hero-tab,
+.compare-links .hero-tab,
+.release-tabs .hero-tab {
     color: var(--text-muted);
 }
 
-.compare-tabs .hero-tab:hover {
+.compare-tabs .hero-tab:hover,
+.compare-links .hero-tab:hover,
+.release-tabs .hero-tab:hover {
     color: var(--text-main);
 }
 
-.compare-tabs .hero-tab.active {
+.compare-tabs .hero-tab.active,
+.compare-links .hero-tab.active,
+.release-tabs .hero-tab.active {
     color: var(--text-main);
     border-bottom-color: var(--accent);
 }
