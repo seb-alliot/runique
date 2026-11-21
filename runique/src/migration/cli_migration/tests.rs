@@ -427,7 +427,11 @@ fn an_extend_change_enters_the_plan_with_its_module_and_no_snapshot() {
     let paths: Vec<&str> = plan.files.iter().map(|(path, _)| path.as_str()).collect();
     assert_eq!(
         paths,
-        [seaorm_extend_file_path(m, "20260101_000000", "eihwaz_users")]
+        [seaorm_extend_file_path(
+            m,
+            "20260101_000000",
+            "eihwaz_users"
+        )]
     );
     assert!(plan.files[0].1.contains("bio"), "{}", plan.files[0].1);
     assert_eq!(
@@ -1039,8 +1043,7 @@ fn the_command_stops_on_a_bad_snapshot_and_writes_nothing() {
 
 // ── Run again before anything is applied: the waiting migrations are replaced ─
 
-const USERS: &str =
-    r#"model! { User, table: "users", pk: id => i32, { username: text [required], email: text [required], } }"#;
+const USERS: &str = r#"model! { User, table: "users", pk: id => i32, { username: text [required], email: text [required], } }"#;
 const USERS_BIO: &str = r#"model! { User, table: "users", pk: id => i32, { username: text [required], email: text [required], bio: text [nullable], } }"#;
 const USERS_NO_EMAIL: &str = r#"model! { User, table: "users", pk: id => i32, { username: text [required], bio: text [nullable], } }"#;
 const POSTS: &str =
@@ -1220,7 +1223,11 @@ fn an_applied_migration_is_never_replaced() {
         .find(|(name, _)| name.ends_with("_alter_users_table.rs"))
         .unwrap();
     // One alteration, from the applied state to the model: both changes.
-    assert!(alter.1.contains("bio") && alter.1.contains("drop_column"), "{}", alter.1);
+    assert!(
+        alter.1.contains("bio") && alter.1.contains("drop_column"),
+        "{}",
+        alter.1
+    );
 }
 
 // A run that is refused writes nothing: the migration waiting since the run
@@ -1279,26 +1286,44 @@ fn a_plan_replaces_what_waits_unless_it_says_the_same() {
         lib_modules: entries.iter().map(|(m, _)| m.to_string()).collect(),
         ..Plan::default()
     };
-    let (old_a, new_a) = ("m20260101_000000_create_a_table", "m20260202_000000_create_a_table");
-    let (old_b, new_b) = ("m20260101_000000_alter_b_table", "m20260202_000000_alter_b_table");
+    let (old_a, new_a) = (
+        "m20260101_000000_create_a_table",
+        "m20260202_000000_create_a_table",
+    );
+    let (old_b, new_b) = (
+        "m20260101_000000_alter_b_table",
+        "m20260202_000000_alter_b_table",
+    );
 
     // The same, whatever the order and the timestamps.
     let mut same = plan(&[(new_b, "b"), (new_a, "a")]);
-    assert!(!replace_waiting(&mut same, &waiting(&[(old_a, "a"), (old_b, "b")])));
+    assert!(!replace_waiting(
+        &mut same,
+        &waiting(&[(old_a, "a"), (old_b, "b")])
+    ));
     assert!(same.files.is_empty() && same.lib_modules.is_empty());
     assert!(same.dropped_modules.is_empty());
 
     // Each of these differs: a content, a table, one more, one less, a pair.
     for (planned, waits) in [
-        (vec![(new_a, "a2"), (new_b, "b")], vec![(old_a, "a"), (old_b, "b")]),
+        (
+            vec![(new_a, "a2"), (new_b, "b")],
+            vec![(old_a, "a"), (old_b, "b")],
+        ),
         (vec![(new_a, "a")], vec![(old_b, "a")]),
         (vec![(new_a, "a"), (new_b, "b")], vec![(old_a, "a")]),
         (vec![(new_a, "a")], vec![(old_a, "a"), (old_b, "b")]),
-        (vec![(new_a, "a"), (new_b, "b")], vec![(old_a, "a"), (old_a, "a")]),
+        (
+            vec![(new_a, "a"), (new_b, "b")],
+            vec![(old_a, "a"), (old_a, "a")],
+        ),
     ] {
         let mut changed = plan(&planned);
         let waits = waiting(&waits);
-        assert!(replace_waiting(&mut changed, &waits), "{planned:?} / {waits:?}");
+        assert!(
+            replace_waiting(&mut changed, &waits),
+            "{planned:?} / {waits:?}"
+        );
         assert_eq!(changed.files.len(), planned.len());
         // None of these plans reuses a waiting name: every one is dropped.
         let every: Vec<String> = waits.iter().map(|(m, _)| m.clone()).collect();
@@ -1313,7 +1338,10 @@ fn a_plan_replaces_what_waits_unless_it_says_the_same() {
 
     // Written again under the very same name: overwritten, not removed.
     let mut again = plan(&[(old_a, "a2")]);
-    assert!(replace_waiting(&mut again, &waiting(&[(old_a, "a"), (old_b, "b")])));
+    assert!(replace_waiting(
+        &mut again,
+        &waiting(&[(old_a, "a"), (old_b, "b")])
+    ));
     assert_eq!(again.dropped_modules, [old_b]);
 }
 
@@ -1327,7 +1355,10 @@ fn a_plan_removes_the_modules_it_drops() {
             file(&path, "m1_create_shop_table.rs", "// shop"),
             file(&path, "m1_create_menu_table.rs", "// menu"),
         ],
-        lib_modules: vec!["m1_create_shop_table".to_string(), "m1_create_menu_table".to_string()],
+        lib_modules: vec![
+            "m1_create_shop_table".to_string(),
+            "m1_create_menu_table".to_string(),
+        ],
         ..Plan::default()
     };
     commit_plan(&first, &path).unwrap();

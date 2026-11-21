@@ -335,7 +335,12 @@ impl MigratorTrait for Migrator {
         let dir = TempDir::new();
         let path = migrations(&dir, Some(OLD_LIB));
 
-        planned_lib(&path, &["m20260101_000000_create_shop_table".to_string()], &[]).unwrap();
+        planned_lib(
+            &path,
+            &["m20260101_000000_create_shop_table".to_string()],
+            &[],
+        )
+        .unwrap();
 
         assert_eq!(fs::read_to_string(lib_path(&path)).unwrap(), OLD_LIB);
         assert_eq!(dir.entries(), ["src", "src/lib.rs"]);
@@ -395,7 +400,10 @@ impl MigratorTrait for Migrator {
         let without_shop = planned_lib(&path, &[], std::slice::from_ref(&shop))
             .unwrap()
             .unwrap();
-        assert!(!without_shop.contains("create_shop_table"), "{without_shop}");
+        assert!(
+            !without_shop.contains("create_shop_table"),
+            "{without_shop}"
+        );
         assert_eq!(without_shop.matches("create_menu_table").count(), 2);
         assert!(without_shop.contains("migrations_table::EihwazUsersMigration"));
 
@@ -403,12 +411,20 @@ impl MigratorTrait for Migrator {
         let unknown = "m1_unknown".to_string();
         assert!(planned_lib(&path, &[], &[unknown]).unwrap().is_none());
 
-        let moved = planned_lib(&path, std::slice::from_ref(&shop), std::slice::from_ref(&shop))
-            .unwrap()
-            .unwrap();
+        let moved = planned_lib(
+            &path,
+            std::slice::from_ref(&shop),
+            std::slice::from_ref(&shop),
+        )
+        .unwrap()
+        .unwrap();
         assert!(
-            moved.find("mod m20260101_000000_create_menu_table").unwrap()
-                < moved.find("mod m20260101_000000_create_shop_table").unwrap(),
+            moved
+                .find("mod m20260101_000000_create_menu_table")
+                .unwrap()
+                < moved
+                    .find("mod m20260101_000000_create_shop_table")
+                    .unwrap(),
             "{moved}"
         );
         assert_eq!(moved.matches("create_shop_table").count(), 2);
