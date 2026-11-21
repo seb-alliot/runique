@@ -8,6 +8,7 @@ use crate::auth::{
     meta::ModelMeta,
 };
 use crate::forms::form::Forms;
+use crate::forms::{FormEntity, RuniqueForm};
 use crate::utils::aliases::ADb;
 use crate::utils::constante::session_key::session::{CSRF_TOKEN_KEY, FORM_NAME_KEY};
 use sea_orm::{
@@ -37,13 +38,17 @@ fn time_columns_last<C: ColumnTrait>(columns: impl IntoIterator<Item = C>) -> Ve
 const RANK_FLAGS: [&str; 3] = ["is_superuser", "is_dirigeant", "is_admin"];
 
 #[doc = include_str!("../../../doc-tests/admin/model_admin.md")]
-pub struct ModelAdmin<E: ModelMeta> {
+pub struct ModelAdmin<E: ModelMeta, F = <E as ModelMeta>::Form> {
     pub list: ListConfig<E>,
     pub form: FormConfig<E>,
     /// The model's name in the admin, when set with `title()`.
     pub(super) title: Option<String>,
     /// Its pages, or blocks of them, replaced for this model only.
     pub(super) templates: crate::admin::template::ModelTemplates,
+    /// `F` was given to `with_form`: its fields are held to the model at boot.
+    pub(super) custom_form: bool,
+    /// The form the create and edit pages build: `F`.
+    pub(super) form_type: std::marker::PhantomData<fn() -> F>,
 }
 
 /// One filter of a list: its column and the page of values it offers.
@@ -108,6 +113,8 @@ impl<E: ModelMeta> Default for ModelAdmin<E> {
             form: FormConfig::default(),
             title: None,
             templates: Default::default(),
+            custom_form: false,
+            form_type: std::marker::PhantomData,
         }
     }
 }
@@ -115,6 +122,33 @@ impl<E: ModelMeta> Default for ModelAdmin<E> {
 impl<E: ModelMeta> ModelAdmin<E> {
     pub fn new() -> Self {
         Self::default()
+    }
+}
+
+impl<E, F> ModelAdmin<E, F>
+where
+    E: ModelMeta,
+    F: RuniqueForm + FormEntity<Entity = E>,
+{
+    /// Builds the create and edit pages from `G`, a form of this model
+    /// declared in the project (`#[form(schema = …)]`), instead of the
+    /// model's own: its `customize` and its `clean` then apply in the admin
+    /// too. `G` is held to the model when the application starts — every
+    /// field a column or a list field of the model, none secret, none
+    /// missing to create a row. What an account may read and write stays the
+    /// gate's decision: the form can only narrow it.
+    pub fn with_form<G>(self) -> ModelAdmin<E, G>
+    where
+        G: RuniqueForm + FormEntity<Entity = E>,
+    {
+        ModelAdmin {
+            list: self.list,
+            form: self.form,
+            title: self.title,
+            templates: self.templates,
+            custom_form: true,
+            form_type: std::marker::PhantomData,
+        }
     }
 
     /// A list that declares no `display` shows every column but the secret
@@ -222,13 +256,17 @@ impl<E: ModelMeta> ModelAdmin<E> {
             }
         }
 
-        // Each declared column needs its field in the model's form, one that
-        // can hold the column's type: checked once here, not on every write.
+        // Each declared column needs its field in the admin's form (the
+        // model's, or the one given to `with_form`), one that can hold the
+        // column's type: checked once here, not on every write.
         let mut model_form = crate::forms::Forms::new("");
-        <E::Form as crate::forms::FormAccess>::register_fields(&mut model_form);
+        <F as crate::forms::FormAccess>::register_fields(&mut model_form);
         for col in self.form.field_columns() {
             let name = col.as_str();
             match model_form.fields.get(name) {
+                None if self.custom_form => errors.push(format!(
+                    "fields: `{name}` is not a field of the form given to `with_form`"
+                )),
                 None => errors.push(format!(
                     "fields: `{name}` is not a field of the model's form (`ModelMeta::Form`)"
                 )),
@@ -241,18 +279,68 @@ impl<E: ModelMeta> ModelAdmin<E> {
             }
         }
 
+        // A form of the project is held to the model: the model's own is
+        // generated from it, this one is written by hand.
+        if self.custom_form {
+            for (name, field) in &model_form.fields {
+                let name = name.as_str();
+                if name == CSRF_TOKEN_KEY || name == FORM_NAME_KEY {
+                    continue;
+                }
+                let Some(col) = E::Column::iter().find(|c| c.as_str() == name) else {
+                    if !E::LISTS.contains(&name) {
+                        errors.push(format!(
+                            "with_form: `{name}` is neither a column nor a list field of the model"
+                        ));
+                    }
+                    continue;
+                };
+                if E::SECRET.iter().any(|s| s.as_str() == name) {
+                    errors.push(format!(
+                        "with_form: `{name}` is a secret column, never shown or written by the admin"
+                    ));
+                } else if E::IS_ACCOUNT_TABLE && RANK_FLAGS.contains(&name) {
+                    errors.push(format!(
+                        "with_form: `{name}` is a rank flag, never a form field"
+                    ));
+                } else if !field.accepts_column(col.def().get_column_type()) {
+                    errors.push(format!(
+                        "with_form: `{name}`: the form's field can't hold this column's type"
+                    ));
+                }
+            }
+        }
+
+        // What a create can't do without, and nothing else fills.
+        let filled_elsewhere = |col: &crate::migration::ColumnDef| {
+            let name = col.name.as_str();
+            col.nullable
+                || col.default.is_some()
+                || col.auto_now
+                || col.auto_now_update
+                || col.ignored
+                || (E::IS_ACCOUNT_TABLE && name == "password")
+                // The gate sets it to the account creating the row.
+                || E::OWNER.is_some_and(|owner| owner.as_str() == name)
+        };
+
+        if self.custom_form {
+            for col in E::schema().columns {
+                let name = col.name.as_str();
+                // A secret column is never the form's to fill.
+                let secret = E::SECRET.iter().any(|s| s.as_str() == name);
+                if !secret && !filled_elsewhere(&col) && !model_form.fields.contains_key(name) {
+                    errors.push(format!(
+                        "with_form: `{name}` is needed to create a row (NOT NULL, no default): the form has no field for it"
+                    ));
+                }
+            }
+        }
+
         if !self.form.is_empty() {
             for col in E::schema().columns {
                 let name = col.name.as_str();
-                let filled_elsewhere = col.nullable
-                    || col.default.is_some()
-                    || col.auto_now
-                    || col.auto_now_update
-                    || col.ignored
-                    || (E::IS_ACCOUNT_TABLE && name == "password")
-                    // The gate sets it to the account creating the row.
-                    || E::OWNER.is_some_and(|owner| owner.as_str() == name);
-                if filled_elsewhere || self.form.writable_on_create(name) {
+                if filled_elsewhere(&col) || self.form.writable_on_create(name) {
                     continue;
                 }
                 if E::SECRET.iter().any(|s| s.as_str() == name) {
@@ -391,7 +479,11 @@ impl<E: ModelMeta> ModelAdmin<E> {
     }
 }
 
-impl<E: ModelMeta> ModelAdmin<E> {
+impl<E, F> ModelAdmin<E, F>
+where
+    E: ModelMeta,
+    F: RuniqueForm + FormEntity<Entity = E>,
+{
     /// The row's page shows what the list shows, in its order, then what else
     /// the form holds, dates and times last; the key comes with the form's columns.
     pub(crate) fn detail_columns(&self) -> Vec<E::Column> {
@@ -647,6 +739,140 @@ mod tests {
                     .unwrap()
             }
         }
+    }
+
+    /// A form of the project for `article`, registering what `$body` declares.
+    macro_rules! article_form {
+        ($name:ident, |$form:ident| $body:block) => {
+            #[derive(serde::Serialize, Debug, Clone)]
+            #[serde(transparent)]
+            struct $name {
+                form: crate::forms::Forms,
+            }
+
+            impl crate::forms::FormAccess for $name {
+                fn register_fields($form: &mut crate::forms::Forms) $body
+                crate::impl_form_access!();
+            }
+
+            impl crate::forms::RuniqueForm for $name {}
+
+            impl crate::forms::FormEntity for $name {
+                type Entity = article::Entity;
+            }
+        };
+    }
+
+    #[test]
+    fn a_form_of_the_project_made_of_the_models_columns_is_accepted() {
+        use crate::forms::fields::TextField;
+        article_form!(Maison, |form| {
+            form.field(&TextField::text("title"));
+            form.field(&TextField::text("summary"));
+        });
+        let admin = ModelAdmin::<article::Entity>::new().with_form::<Maison>();
+        assert_eq!(admin.validate(), Ok(()));
+    }
+
+    /// The model's own form is generated from the model: only a form given to
+    /// `with_form` is held to it. `ArticleForm` declares `token` as a box.
+    #[test]
+    fn only_a_form_given_to_with_form_is_held_to_the_model() {
+        let own = ModelAdmin::<article::Entity>::new();
+        assert_eq!(own.validate(), Ok(()));
+
+        let given = ModelAdmin::<article::Entity>::new().with_form::<article::ArticleForm>();
+        let error = given.validate().unwrap_err();
+        assert!(
+            error.contains("with_form: `token`: the form's field can't hold this column's type"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn a_given_form_with_a_field_outside_the_model_is_refused() {
+        use crate::forms::fields::TextField;
+        article_form!(Fantome, |form| {
+            form.field(&TextField::text("title"));
+            form.field(&TextField::text("ghost"));
+        });
+        let error = ModelAdmin::<article::Entity>::new()
+            .with_form::<Fantome>()
+            .validate()
+            .unwrap_err();
+        assert!(
+            error.contains("with_form: `ghost` is neither a column nor a list field"),
+            "{error}"
+        );
+        assert!(!error.contains("`title`"), "{error}");
+    }
+
+    #[test]
+    fn a_given_form_with_a_secret_column_is_refused() {
+        use crate::forms::fields::TextField;
+        article_form!(Bavard, |form| {
+            form.field(&TextField::text("title"));
+            form.field(&TextField::text("password"));
+        });
+        let error = ModelAdmin::<article::Entity>::new()
+            .with_form::<Bavard>()
+            .validate()
+            .unwrap_err();
+        assert!(
+            error.contains("with_form: `password` is a secret column"),
+            "{error}"
+        );
+    }
+
+    /// `title` is NOT NULL without a default; `password` too, but secret: it
+    /// is never the form's to fill.
+    #[test]
+    fn a_given_form_missing_a_column_needed_to_create_is_refused() {
+        use crate::forms::fields::TextField;
+        article_form!(Court, |form| {
+            form.field(&TextField::text("summary"));
+        });
+        let error = ModelAdmin::<article::Entity>::new()
+            .with_form::<Court>()
+            .validate()
+            .unwrap_err();
+        assert!(
+            error.contains("with_form: `title` is needed to create a row"),
+            "{error}"
+        );
+        assert!(!error.contains("`password`"), "{error}");
+        assert!(!error.contains("`summary`"), "{error}");
+    }
+
+    #[test]
+    fn a_rank_flag_in_a_given_form_is_refused_on_the_account_table() {
+        use crate::forms::fields::{BooleanField, TextField};
+        #[derive(serde::Serialize, Debug, Clone)]
+        #[serde(transparent)]
+        struct Promotion {
+            form: crate::forms::Forms,
+        }
+        impl crate::forms::FormAccess for Promotion {
+            fn register_fields(form: &mut crate::forms::Forms) {
+                form.field(&TextField::text("username"));
+                form.field(&TextField::text("email"));
+                form.field(&BooleanField::new("is_superuser"));
+            }
+            crate::impl_form_access!();
+        }
+        impl crate::forms::RuniqueForm for Promotion {}
+        impl crate::forms::FormEntity for Promotion {
+            type Entity = user::Entity;
+        }
+
+        let error = ModelAdmin::<user::Entity>::new()
+            .with_form::<Promotion>()
+            .validate()
+            .unwrap_err();
+        assert!(
+            error.contains("with_form: `is_superuser` is a rank flag"),
+            "{error}"
+        );
     }
 
     #[test]
@@ -1253,6 +1479,23 @@ mod tests {
                 genres: checkbox [enum(Genre)],
             }
         }
+    }
+
+    /// A form of the project written as a project writes it.
+    mod shelf_form {
+        use super::shelf;
+        use runique::prelude::*;
+
+        #[form(schema = shelf, fields = All)]
+        pub struct ShelfForm;
+
+        impl RuniqueForm for ShelfForm {}
+    }
+
+    #[test]
+    fn a_form_declared_with_the_form_macro_is_accepted() {
+        let admin = ModelAdmin::<shelf::Entity>::new().with_form::<shelf_form::ShelfForm>();
+        assert_eq!(admin.validate(), Ok(()));
     }
 
     /// The shelf's form as the edit page shapes it: `title` readable, the

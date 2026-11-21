@@ -390,6 +390,7 @@ When the form edits a row that already had a file, the old one is deleted once t
 
 - **a single file**: no effect on a field taking several (`max_files` above 1), where nothing tells which one a new file replaces;
 - **only after a new upload**: a form sent back without a new file keeps its own;
+- **only if the column is really written**: a locked field, or a column the account may not change (admin), keeps its file;
 - **never blocking**: if the old file is missing or can't be deleted, the request still succeeds, and the failure is traced;
 - **under `MEDIA_ROOT` only**: a path that would leave it is never deleted.
 

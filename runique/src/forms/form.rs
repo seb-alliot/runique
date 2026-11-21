@@ -71,8 +71,30 @@ pub(crate) async fn write_with_uploads(
     forms: &mut Forms,
     write: impl Future<Output = Result<sea_orm::DatabaseTransaction, sea_orm::DbErr>>,
 ) -> Result<(), sea_orm::DbErr> {
+    write_replacing_uploads(forms, async { Ok((write.await?, ReplacedFiles::new())) }).await
+}
+
+/// What an update's text columns held before it wrote a new value: the
+/// field's name, the value replaced.
+pub(crate) type ReplacedFiles = Vec<(String, String)>;
+
+/// `write_with_uploads` for an update: `write` also hands back what the row
+/// held in the columns it changes, so a file field declared with `.replace()`
+/// knows which stored file its upload takes the place of. A request builds
+/// its form empty and fills it with the upload: the row alone knows.
+pub(crate) async fn write_replacing_uploads(
+    forms: &mut Forms,
+    write: impl Future<
+        Output = Result<(sea_orm::DatabaseTransaction, ReplacedFiles), sea_orm::DbErr>,
+    >,
+) -> Result<(), sea_orm::DbErr> {
     let result = async {
-        let txn = write.await?;
+        let (txn, replaced) = write.await?;
+        for (name, stored) in &replaced {
+            if let Some(field) = forms.fields.get_mut(name) {
+                field.replaced_file(stored);
+            }
+        }
         forms
             .publish_uploads()
             .await
@@ -611,6 +633,12 @@ impl Forms {
             return Err(error);
         }
         Ok(())
+    }
+
+    /// Whether a field of the form is saving an upload and removes the stored
+    /// file it replaces: an update then reads what the row held.
+    pub(crate) fn awaits_replaced_file(&self) -> bool {
+        self.fields.values().any(|field| field.awaits_replaced_file())
     }
 
     /// Takes back the files `publish_uploads` moved, for a write that did not

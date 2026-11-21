@@ -604,6 +604,14 @@ impl FormField for FileField {
             .map_err(super::media::upload_failed)
     }
 
+    fn awaits_replaced_file(&self) -> bool {
+        self.upload.awaits_replaced_file()
+    }
+
+    fn replaced_file(&mut self, stored: &str) {
+        self.upload.replaced_file(stored);
+    }
+
     async fn publish_uploads(&mut self) -> Result<(), String> {
         self.upload
             .publish()
@@ -976,6 +984,71 @@ mod finalize_tests {
             "the replaced file stays"
         );
         assert_eq!(forms.fields["doc"].value(), "new.png");
+    }
+
+    /// The whole of an update's write, as a request does it: the field never
+    /// held the stored value, the write hands it back with its transaction.
+    #[tokio::test]
+    async fn an_updates_write_removes_the_file_a_replacing_field_took_the_place_of() {
+        use sea_orm::TransactionTrait;
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+
+        for (replaces, old_stays) in [(true, false), (false, true)] {
+            let media = Media::new();
+            fs::write(media.root.join("old.png"), b"old bytes").unwrap();
+            let staged = media.staged("new.png", b"new bytes");
+            let mut field = FileField::any("doc");
+            if replaces {
+                field = field.replace();
+            }
+            field.set_value(&staged);
+            field.finalize().await.unwrap();
+
+            let mut forms = crate::forms::form::Forms::new("");
+            forms.field(&field);
+            assert_eq!(forms.awaits_replaced_file(), replaces);
+            let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+
+            let result = crate::forms::form::write_replacing_uploads(&mut forms, async {
+                let txn = db.begin().await?;
+                Ok((txn, vec![("doc".to_string(), "old.png".to_string())]))
+            })
+            .await;
+
+            assert!(result.is_ok());
+            assert!(media.root.join("new.png").exists());
+            assert_eq!(
+                media.root.join("old.png").exists(),
+                old_stays,
+                "replaces: {replaces}"
+            );
+        }
+    }
+
+    /// The write fails: the row still points at the old file, which stays.
+    #[tokio::test]
+    async fn a_failed_update_keeps_the_file_a_replacing_field_would_have_removed() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        fs::write(media.root.join("old.png"), b"old bytes").unwrap();
+        let staged = media.staged("new.png", b"new bytes");
+        let mut field = FileField::any("doc").replace();
+        field.set_value(&staged);
+        field.finalize().await.unwrap();
+
+        let mut forms = crate::forms::form::Forms::new("");
+        forms.field(&field);
+
+        let result = crate::forms::form::write_replacing_uploads(&mut forms, async {
+            Err(sea_orm::DbErr::Custom(
+                "simulated write failure".to_string(),
+            ))
+        })
+        .await;
+
+        assert!(result.is_err());
+        assert!(media.root.join("old.png").exists());
+        assert!(!media.root.join("new.png").exists());
     }
 
     #[tokio::test]

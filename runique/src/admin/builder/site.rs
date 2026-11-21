@@ -95,8 +95,10 @@ impl AdminSite {
             .map(String::as_str)
     }
 
-    pub fn register<E: ModelMeta>(mut self, admin: ModelAdmin<E>) -> Self
+    pub fn register<E, F>(mut self, admin: ModelAdmin<E, F>) -> Self
     where
+        E: ModelMeta,
+        F: crate::forms::RuniqueForm + crate::forms::FormEntity<Entity = E> + 'static,
         E::ActiveModel: Send,
         E::Model: sea_orm::IntoActiveModel<E::ActiveModel>,
     {
@@ -107,8 +109,10 @@ impl AdminSite {
     /// Replaces the framework's accounts admin with the project's own, built
     /// on its `extend!` of `eihwaz_users`. The only way to replace it:
     /// registering a model under the accounts' key is refused at boot.
-    pub fn accounts_users<E: ModelMeta>(mut self, admin: ModelAdmin<E>) -> Self
+    pub fn accounts_users<E, F>(mut self, admin: ModelAdmin<E, F>) -> Self
     where
+        E: ModelMeta,
+        F: crate::forms::RuniqueForm + crate::forms::FormEntity<Entity = E> + 'static,
         E::ActiveModel: Send,
         E::Model: sea_orm::IntoActiveModel<E::ActiveModel>,
     {

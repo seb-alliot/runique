@@ -1,7 +1,7 @@
 //! `ValidationForm<F>`: proof by type that a form has passed validation. A form
 //! of an entity is written from it (`save`, `delete`); any other action stays
 //! in the caller's business logic.
-use crate::auth::gate::change::{Secrets, WriteKind, changes};
+use crate::auth::gate::change::{Secrets, WriteKind, changes, replaced_files};
 use crate::auth::gate::refusal::{Refusal, RefusalReason};
 use crate::auth::gate::save::save_as;
 use crate::auth::gate::write::linked_delete_error;
@@ -10,7 +10,7 @@ use crate::context::Request;
 use crate::db::DbWrite;
 use crate::forms::FormEntity;
 use crate::forms::field::RuniqueForm;
-use crate::forms::form::{SaveComportement, write_with_uploads};
+use crate::forms::form::{SaveComportement, write_replacing_uploads, write_with_uploads};
 use crate::forms::save::{SaveAction, not_found, on_fields, url_key};
 use sea_orm::sea_query::IntoValueTuple;
 use sea_orm::{
@@ -142,16 +142,27 @@ where
             if !model.is_changed() {
                 return Ok(());
             }
-            for (column, value) in
-                <F::Entity as EntityTrait>::PrimaryKey::iter().zip(id.into_value_tuple())
+            for (column, value) in <F::Entity as EntityTrait>::PrimaryKey::iter()
+                .zip(id.clone().into_value_tuple())
             {
                 model.set(column.into_column(), value);
             }
+            // Read only for a field declared with `.replace()` that is saving
+            // an upload: what the row held is the file to remove.
+            let replaces = forms.awaits_replaced_file();
             // The model's own hooks write through the same transaction.
-            write_with_uploads(forms, async {
+            write_replacing_uploads(forms, async {
                 let txn = db.begin().await?;
+                let replaced = match replaces {
+                    true => <F::Entity as EntityTrait>::find_by_id(id)
+                        .one(&txn)
+                        .await?
+                        .map(|old| replaced_files::<F::Entity>(&old, &model))
+                        .unwrap_or_default(),
+                    false => Vec::new(),
+                };
                 match model.save(&txn).await {
-                    Ok(_) => Ok(txn),
+                    Ok(_) => Ok((txn, replaced)),
                     Err(DbErr::RecordNotUpdated) => Err(not_found()),
                     Err(e) => Err(e),
                 }
