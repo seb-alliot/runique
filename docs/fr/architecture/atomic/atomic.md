@@ -12,7 +12,8 @@ Vous n'appelez jamais ce mécanisme vous-même. Cette page explique ce qu'il fai
 | --- | --- | --- |
 | `runique new` | tous les fichiers du projet, la crate `migration/` et le `.env` | dans le dossier du projet |
 | `runique makemigrations`, premier lancement | la crate `migration/` si le projet n'en a pas | dans `migration/` |
-| `runique makemigrations` | les migrations, les snapshots et `lib.rs` | dans `migration/src/` |
+| `runique makemigrations` | les migrations, la suppression de celles qu'il remplace, et `lib.rs` | dans `migration/src/` |
+| `runique migration up`, après application | les snapshots des tables touchées et le retrait du tag des migrations | dans `migration/src/` |
 | envoi de fichiers (`FileField`, `MediaField`) | les fichiers d'une même requête | aucun |
 
 ---

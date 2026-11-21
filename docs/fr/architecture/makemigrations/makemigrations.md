@@ -18,7 +18,7 @@ Les cibles de `belongs_to` sont ensuite résolues comme le fait la macro : par l
 
 ### Phase 2 : diff et snapshots
 
-Runique conserve dans `migration/src/snapshots/` le dernier état de chaque table, sous forme d'un fichier de migration relu à chaque passage. Le diff détecte :
+Runique conserve dans `migration/src/snapshots/` l'état de chaque table **telle qu'elle a été appliquée**, sous forme d'un fichier de migration relu à chaque passage. Ce fichier est écrit par `runique migration up`, une fois la migration appliquée ; `makemigrations` ne l'écrit jamais. Le diff détecte :
 
 - les tables ajoutées, et les colonnes ajoutées ou supprimées. Une table dont le modèle a disparu n'est pas détectée (voir [les limites](/docs/fr/installation/migrations)) ;
 - les **renommages de colonne** via `[renamed_from: "ancien"]` : un `RENAME COLUMN` au lieu d'un `DROP` + `ADD` (sans cet indice, l'outil non interactif ne peut pas deviner l'intention) ;
@@ -62,7 +62,7 @@ Les phases ci-dessus ne font que *calculer* un plan en mémoire — rien n'est �
    Le contrôle couvre les changements `model!{}` comme `extend!{}`.
 
    > **Exception — changement de type de colonne** : `--force` débloque l'exécution de la commande, mais ne génère **jamais** l'`ALTER` réel pour un changement de type (`String → Decimal`, etc.). Le fichier généré contient uniquement un commentaire `// Manual migration required.` — à écrire vous-même. La console le signale en jaune après la génération, colonne par colonne. Les autres catégories destructives génèrent le vrai SQL dès que `--force` est passé. Cette exception est volontaire : une conversion de type générique n'a pas de règle de cast fiable inter-moteurs (Postgres exige un `USING` explicite, MySQL convertit selon son mode SQL, SQLite ne supporte pas `ALTER COLUMN TYPE` du tout).
-2. **Écriture protégée** : les migrations, les snapshots, `lib.rs` et les dossiers créés pour eux sont écrits en un seul lot. En cas d'erreur d'écriture, tout est annulé : les fichiers générés sont retirés, les snapshots et `lib.rs` préexistants reviennent à leur état précédent. Un arrêt brutal (coupure, `kill -9`) est réparé au lancement suivant, à partir du journal laissé dans `migration/src/`. Voir [Écriture atomique des fichiers](/docs/fr/architecture/atomic).
+2. **Écriture protégée** : les migrations, `lib.rs` et les dossiers créés pour eux sont écrits en un seul lot, avec la suppression des migrations en attente remplacées. En cas d'erreur d'écriture, tout est annulé : les fichiers générés sont retirés, les migrations remplacées et `lib.rs` reviennent à leur état précédent. Un arrêt brutal (coupure, `kill -9`) est réparé au lancement suivant, à partir du journal laissé dans `migration/src/`. Voir [Écriture atomique des fichiers](/docs/fr/architecture/atomic).
 
 ---
 
@@ -73,6 +73,19 @@ Les phases ci-dessus ne font que *calculer* un plan en mémoire — rien n'est �
 Depuis la 4.1, la commande **se connecte d'abord à la base** (celle du `.env`, comme l'application) et s'arrête avec une erreur si elle ne répond pas, avant d'avoir lu ou écrit quoi que ce soit. Elle n'y écrit rien : seul `runique migration up` applique une migration.
 
 Elle y lit la liste des migrations appliquées (`seaql_migrations`) : si l'une d'elles est inconnue de `lib.rs`, la commande s'arrête avant tout calcul. Une base qui n'a encore rien appliqué (table absente) est un cas normal.
+
+## Relancer avant d'appliquer
+
+Tant que `runique migration up` n'est pas passé, les migrations écrites sont **en attente** (elles portent la ligne `// runique: waiting migrate up`) et leurs tables n'ont pas de snapshot. Relancer `makemigrations` repart donc des mêmes snapshots et recalcule tout l'écart jusqu'aux modèles :
+
+- **rien n'a changé** : le calcul donne les mêmes migrations, aucun fichier n'est réécrit ;
+- **un modèle a changé** : les migrations en attente sont supprimées et remplacées par le nouveau calcul. Elles ne s'empilent pas : une table créée puis modifiée avant application donne une seule création, complète ;
+- **le changement a été repris** (les modèles correspondent de nouveau aux snapshots) : les migrations en attente sont supprimées, avec leur ligne dans `lib.rs` ;
+- **le lancement est refusé** (changement destructif sans `--force`) : rien n'est écrit, ce qui attendait reste tel quel.
+
+Une migration déjà appliquée n'est jamais remplacée.
+
+> Une migration en attente retouchée à la main est écrasée au lancement suivant. Si une migration doit être écrite à la main, appliquez-la avant de relancer `makemigrations`.
 
 La contrepartie : un snapshot signifie « déjà migré ». Des snapshots copiés d'un autre projet sans leurs fichiers de migration font croire à `makemigrations` que les tables existent ; il ne génère alors rien pour elles.
 

@@ -571,7 +571,9 @@
     "applied_unknown": "Diese Migrationen sind in der Datenbank eingetragen, fehlen aber in lib.rs:\n  {}\nDiese Datenbank gehört zu einem anderen Projekt, oder Migrationsdateien wurden gelöscht. Es wurde nichts geschrieben.",
     "snapshot_unreadable": "Der Snapshot {} ist unlesbar oder kein Snapshot. Es wurde nichts geschrieben.",
     "snapshot_misnamed": "Der Snapshot {} beschreibt die Tabelle `{}`: Sein Dateiname muss dem der Tabelle entsprechen. Es wurde nichts geschrieben.",
-    "duplicate_table": "Zwei Tabellen heißen `{}`. Die Tabelle eines Listenfelds heißt `<Tabelle des Modells>_<Feld>`: Benennen Sie das Feld oder die andere Tabelle um."
+    "duplicate_table": "Zwei Tabellen heißen `{}`. Die Tabelle eines Listenfelds heißt `<Tabelle des Modells>_<Feld>`: Benennen Sie das Feld oder die andere Tabelle um.",
+    "waiting_removed": "{} ausstehende Migration(en) entfernt: Ihre Modelle entsprechen wieder ihren Snapshots.",
+    "waiting_unchanged": "{} ausstehende Migration(en), unverändert: Es wurde nichts neu geschrieben."
   },
   "atomic": {
     "reserved_name": "{}: Dieser Name ist Runique vorbehalten",

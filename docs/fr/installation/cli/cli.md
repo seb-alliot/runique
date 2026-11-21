@@ -53,12 +53,16 @@ Les fichiers sont écrits en un seul lot. Un lancement interrompu par une coupur
 ## `runique migration up | down | status`
 
 ```bash
-runique migration up [--migrations migration/src]
+runique migration up [--entities src/entities] [--migrations migration/src]
 runique migration down [-n 1] [--migrations migration/src]
 runique migration status [--migrations migration/src]
 ```
 
 Lance le crate `migration` du projet (`cargo run` sur `migration/Cargo.toml`), qui lit `DATABASE_URL` dans `.env`. `sea-orm-cli` n'est pas nécessaire : la version de SeaORM qui applique les migrations est celle de `migration/Cargo.toml`, alignée sur Runique.
+
+Quand `up` a réussi, Runique enregistre ce qui vient d'être appliqué, en un seul lot de fichiers : chaque migration en attente perd sa ligne `// runique: waiting migrate up`, et le snapshot de chaque table qu'elle touche est écrit depuis son modèle (`--entities`). Un modèle sans migration appliquée ne reçoit pas de snapshot. Sans migration en attente (un serveur qui applique des migrations déjà passées ailleurs), le dossier des modèles n'est pas lu et rien n'est écrit.
+
+> Ne modifiez pas un modèle entre `runique makemigrations` et `runique migration up` : le snapshot est écrit depuis le modèle tel qu'il est au moment de l'application, et se trouverait en avance sur la base.
 
 Ces trois commandes refusent de partir tant qu'un `makemigrations` interrompu n'a pas été réparé : relancez `runique makemigrations` d'abord.
 

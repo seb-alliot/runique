@@ -33,10 +33,15 @@ pub fn update_migration_lib(migrations_path: &str, module_name: &str) -> Result<
     Ok(())
 }
 
-/// The `lib.rs` once `modules` are registered and the framework's migrations
-/// put first, or `None` when there is nothing to write: no `lib.rs` and no
-/// module to register, or a `lib.rs` already as it should be. Reads, never writes.
-pub(super) fn planned_lib(migrations_path: &str, modules: &[String]) -> Result<Option<String>> {
+/// The `lib.rs` once `dropped` modules are taken out, `modules` registered
+/// and the framework's migrations put first, or `None` when there is nothing
+/// to write: no `lib.rs` and no module to register, or a `lib.rs` already as
+/// it should be. Reads, never writes.
+pub(super) fn planned_lib(
+    migrations_path: &str,
+    modules: &[String],
+    dropped: &[String],
+) -> Result<Option<String>> {
     let current = match fs::read_to_string(lib_path(migrations_path)) {
         Ok(content) => Some(content),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
@@ -46,6 +51,11 @@ pub(super) fn planned_lib(migrations_path: &str, modules: &[String]) -> Result<O
         return Ok(None);
     }
     let mut state = current.as_deref().map(parse_lib_state).unwrap_or_default();
+    for module_name in dropped {
+        let entry = format!("Box::new({module_name}::Migration)");
+        state.mods.retain(|m| m != module_name);
+        state.entries.retain(|e| *e != entry);
+    }
     for module_name in modules {
         if !state.mods.contains(module_name) {
             state.mods.push(module_name.clone());
@@ -297,7 +307,7 @@ impl MigratorTrait for Migrator {
         let dir = TempDir::new();
         let path = migrations(&dir, None);
 
-        assert!(planned_lib(&path, &[]).unwrap().is_none());
+        assert!(planned_lib(&path, &[], &[]).unwrap().is_none());
     }
 
     #[test]
@@ -305,7 +315,7 @@ impl MigratorTrait for Migrator {
         let dir = TempDir::new();
         let path = migrations(&dir, Some(&initial_lib()));
 
-        assert!(planned_lib(&path, &[]).unwrap().is_none());
+        assert!(planned_lib(&path, &[], &[]).unwrap().is_none());
     }
 
     #[test]
@@ -313,7 +323,7 @@ impl MigratorTrait for Migrator {
         let dir = TempDir::new();
         let path = migrations(&dir, Some(OLD_LIB));
 
-        let planned = planned_lib(&path, &[]).unwrap().unwrap();
+        let planned = planned_lib(&path, &[], &[]).unwrap().unwrap();
 
         assert!(planned.contains("migrations_table::EihwazUsersMigration"));
         assert!(planned.contains("m20250101_000000_create_old_table::Migration"));
@@ -325,7 +335,7 @@ impl MigratorTrait for Migrator {
         let dir = TempDir::new();
         let path = migrations(&dir, Some(OLD_LIB));
 
-        planned_lib(&path, &["m20260101_000000_create_shop_table".to_string()]).unwrap();
+        planned_lib(&path, &["m20260101_000000_create_shop_table".to_string()], &[]).unwrap();
 
         assert_eq!(fs::read_to_string(lib_path(&path)).unwrap(), OLD_LIB);
         assert_eq!(dir.entries(), ["src", "src/lib.rs"]);
@@ -344,7 +354,7 @@ impl MigratorTrait for Migrator {
             let dir = TempDir::new();
             let path = migrations(&dir, existing);
 
-            let planned = planned_lib(&path, &modules).unwrap().unwrap();
+            let planned = planned_lib(&path, &modules, &[]).unwrap().unwrap();
 
             for module_name in &modules {
                 update_migration_lib(&path, module_name).unwrap();
@@ -352,5 +362,55 @@ impl MigratorTrait for Migrator {
             ensure_admin_migration_positioned(&path).unwrap();
             assert_eq!(planned, fs::read_to_string(lib_path(&path)).unwrap());
         }
+    }
+
+    // A `lib.rs` that is there but can't be read (a directory by that name)
+    // is an error, never taken for a missing one: a new `lib.rs` would
+    // otherwise be planned over it.
+    #[test]
+    fn a_lib_that_cannot_be_read_is_not_taken_for_a_missing_one() {
+        let dir = TempDir::new();
+        let path = migrations(&dir, None);
+        fs::create_dir(lib_path(&path)).unwrap();
+
+        assert!(planned_lib(&path, &[], &[]).is_err());
+        assert!(planned_lib(&path, &["m1_create_shop_table".to_string()], &[]).is_err());
+    }
+
+    // A dropped module leaves with its entry, and only it; one that is both
+    // dropped and registered again ends up registered, last.
+    #[test]
+    fn a_dropped_module_leaves_lib_with_its_entry() {
+        let dir = TempDir::new();
+        let path = migrations(&dir, Some(&initial_lib()));
+        let (shop, menu) = (
+            "m20260101_000000_create_shop_table".to_string(),
+            "m20260101_000000_create_menu_table".to_string(),
+        );
+        let both = planned_lib(&path, &[shop.clone(), menu.clone()], &[])
+            .unwrap()
+            .unwrap();
+        fs::write(lib_path(&path), &both).unwrap();
+
+        let without_shop = planned_lib(&path, &[], std::slice::from_ref(&shop))
+            .unwrap()
+            .unwrap();
+        assert!(!without_shop.contains("create_shop_table"), "{without_shop}");
+        assert_eq!(without_shop.matches("create_menu_table").count(), 2);
+        assert!(without_shop.contains("migrations_table::EihwazUsersMigration"));
+
+        // Dropping a module `lib.rs` doesn't hold changes nothing.
+        let unknown = "m1_unknown".to_string();
+        assert!(planned_lib(&path, &[], &[unknown]).unwrap().is_none());
+
+        let moved = planned_lib(&path, std::slice::from_ref(&shop), std::slice::from_ref(&shop))
+            .unwrap()
+            .unwrap();
+        assert!(
+            moved.find("mod m20260101_000000_create_menu_table").unwrap()
+                < moved.find("mod m20260101_000000_create_shop_table").unwrap(),
+            "{moved}"
+        );
+        assert_eq!(moved.matches("create_shop_table").count(), 2);
     }
 }

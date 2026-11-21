@@ -69,7 +69,7 @@ runique makemigrations
 
 La commande se termine par le nombre de fichiers écrits, ou « No changes detected » si rien n'a changé, puis rappelle la commande suivante.
 
-Chaque migration générée commence par la ligne `// runique: waiting migrate up` : elle marque une migration que `runique migration up` n'a pas encore appliquée. Quand `runique migration up` a réussi, il retire cette ligne de chaque migration déclarée dans `lib.rs`, sans toucher au reste du fichier. Ne la retirez pas et ne l'ajoutez pas à la main.
+Chaque migration générée commence par la ligne `// runique: waiting migrate up` : elle marque une migration que `runique migration up` n'a pas encore appliquée. Quand `runique migration up` a réussi, il retire cette ligne de chaque migration déclarée dans `lib.rs`, sans toucher au reste du fichier. Relancer `makemigrations` avant d'appliquer ne les empile pas : les migrations en attente sont recalculées et remplacées (voir [Fonctionnement de makemigrations](/docs/fr/architecture/makemigrations)). Runique l'écrit en première ligne et la reconnaît où qu'elle soit dans le fichier, tant qu'elle est seule sur sa ligne. Ne la retirez pas et ne l'ajoutez pas à la main.
 
 ### 2. Appliquer les migrations
 
@@ -161,7 +161,7 @@ extend! {
 
 ## Génération atomique
 
-Les changements des modèles et des blocs `extend!{}` sont d'abord planifiés en mémoire, validés (contrôle destructif, longueur des identifiants), puis écrits en un seul lot : migrations, snapshots et `lib.rs`, tous ou aucun.
+Les changements des modèles et des blocs `extend!{}` sont d'abord planifiés en mémoire, validés (contrôle destructif, longueur des identifiants), puis écrits en un seul lot : migrations et `lib.rs`, tous ou aucun. Les snapshots, eux, sont écrits par `runique migration up` une fois les migrations appliquées, dans un lot à part.
 
 - **Une erreur d'écriture** annule tout : le dossier `migration/src/` revient à son état d'avant.
 - **Une coupure** (courant, `kill -9`) est réparée au lancement suivant de `runique makemigrations`. D'ici là, `runique migration up` refuse de partir.

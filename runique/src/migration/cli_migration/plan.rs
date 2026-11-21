@@ -1,10 +1,11 @@
 //! The migration plan: computing every change, then writing it in one atomic commit.
-use super::lib_file::{planned_lib, strip_sea_orm_cli_placeholder_file};
+use super::lib_file::{lib_modules, planned_lib, strip_sea_orm_cli_placeholder_file};
 use super::scan::{merge_extend_schemas, scan_extend_blocks};
-use super::snapshot::{extend_snapshot_content, previous_snapshot};
+use super::snapshot::previous_snapshot;
 use crate::atomic::{AtomicBuilder, SourceItems};
 use crate::migration::*;
 use anyhow::Result;
+use std::fs;
 use std::path::{Path, PathBuf};
 
 /// A fully-computed migration plan: everything to create/write/register, no side effects.
@@ -15,6 +16,61 @@ pub(super) struct Plan {
     pub(super) files: Vec<(String, String)>,
     /// migration modules to register in `lib.rs`, in order
     pub(super) lib_modules: Vec<String>,
+    /// waiting migrations this run replaces: their file is removed and their
+    /// module taken out of `lib.rs`
+    pub(super) dropped_modules: Vec<String>,
+}
+
+/// The migrations of `lib.rs` no `migration up` applied yet (still tagged):
+/// their module and their content.
+pub(super) fn waiting_migrations(migrations_path: &str) -> Result<Vec<(String, String)>> {
+    let mut waiting = Vec::new();
+    for module in lib_modules(migrations_path)? {
+        if let Ok(content) = fs::read_to_string(format!("{migrations_path}/{module}.rs"))
+            && has_marker(&content, WAIT_MIGRATION)
+        {
+            waiting.push((module, content));
+        }
+    }
+    Ok(waiting)
+}
+
+/// Makes `plan`, which holds the migrations just computed and nothing else,
+/// take the place of the `waiting` ones. When both say the same thing, table
+/// by table, nothing is rewritten: the plan is emptied and `false` returned.
+/// Otherwise every waiting migration is dropped, except one the plan writes
+/// again under the same name.
+pub(super) fn replace_waiting(plan: &mut Plan, waiting: &[(String, String)]) -> bool {
+    // The same table and the same content: a creation and an alteration
+    // never share one, so the content tells the kind too.
+    fn same(waiting: &(String, String), module: &str, content: &str) -> bool {
+        migration_target(module) == migration_target(&waiting.0) && content == waiting.1
+    }
+    let unchanged = waiting.len() == plan.lib_modules.len()
+        && waiting.iter().all(|w| {
+            plan.lib_modules
+                .iter()
+                .zip(&plan.files)
+                .any(|(m, (_, c))| same(w, m, c))
+        })
+        && plan
+            .lib_modules
+            .iter()
+            .zip(&plan.files)
+            .all(|(m, (_, c))| waiting.iter().any(|w| same(w, m, c)));
+    if unchanged {
+        plan.files.clear();
+        plan.lib_modules.clear();
+        return false;
+    }
+    plan.dropped_modules.extend(
+        waiting
+            .iter()
+            .map(|(module, _)| module)
+            .filter(|module| !plan.lib_modules.contains(module))
+            .cloned(),
+    );
+    true
 }
 fn waiting_migrate(content: String) -> String {
     format!("{WAIT_MIGRATION}\n{content}")
@@ -93,7 +149,8 @@ pub(super) fn cycle_keys<'a>(
     keys
 }
 
-/// Adds the main-model migration files/dirs/modules to the plan.
+/// Adds the main-model migration files/modules to the plan. No snapshot:
+/// `migration up` writes it once the migration is applied.
 pub(super) fn build_main_plan(
     plan: &mut Plan,
     all_changes: &[Changes],
@@ -108,12 +165,6 @@ pub(super) fn build_main_plan(
             .iter()
             .find(|s| s.table_name == change.table_name)
             .unwrap();
-
-        // Snapshot — includes FK stmts so future diffs detect FK additions/removals.
-        plan.files.push((
-            snapshot_file_path(migrations_path, &change.table_name),
-            generate_snapshot_file(schema),
-        ));
 
         if change.is_new_table {
             let module_name = seaorm_create_module_name(timestamp, &change.table_name);
@@ -138,7 +189,8 @@ pub(super) fn build_main_plan(
     }
 }
 
-/// Adds the extend!{} migration files/dirs/modules to the plan.
+/// Adds the extend!{} migration files/modules to the plan. No snapshot:
+/// `migration up` writes it once the migration is applied.
 pub(super) fn build_extend_plan(
     plan: &mut Plan,
     planned: &[(ParsedSchema, Changes)],
@@ -150,12 +202,6 @@ pub(super) fn build_extend_plan(
     }
 
     for (ext_schema, changes) in planned {
-        // Snapshot updated (without PK, just extension columns)
-        plan.files.push((
-            extend_snapshot_file_path(migrations_path, &ext_schema.table_name),
-            extend_snapshot_content(ext_schema),
-        ));
-
         let module_name = seaorm_extend_module_name(timestamp, &ext_schema.table_name);
         let seaorm_path =
             seaorm_extend_file_path(migrations_path, timestamp, &ext_schema.table_name);
@@ -165,8 +211,9 @@ pub(super) fn build_extend_plan(
     }
 }
 
-/// Writes the whole plan as one batch — generated files, snapshots and the
-/// `lib.rs` that registers them: all of it, or the project as it was.
+/// Writes the whole plan as one batch — generated files, replaced migrations
+/// removed, and the `lib.rs` that registers them: all of it, or the project
+/// as it was.
 pub(super) fn commit_plan(plan: &Plan, migrations_path: &str) -> Result<()> {
     let mut batch = AtomicBuilder::modify().journal(migrations_path);
     for (path, content) in &plan.files {
@@ -176,7 +223,14 @@ pub(super) fn commit_plan(plan: &Plan, migrations_path: &str) -> Result<()> {
             false,
         )?;
     }
-    if let Some(lib) = planned_lib(migrations_path, &plan.lib_modules)? {
+    for module in &plan.dropped_modules {
+        batch = batch.add(
+            PathBuf::from(format!("{migrations_path}/{module}.rs")),
+            SourceItems::Remove,
+            false,
+        )?;
+    }
+    if let Some(lib) = planned_lib(migrations_path, &plan.lib_modules, &plan.dropped_modules)? {
         batch = batch.add(
             PathBuf::from(lib_path(migrations_path)),
             SourceItems::Bytes(lib.into_bytes()),

@@ -7,6 +7,7 @@
 
 use crate::utils::clean_tpm_test::TestTempDir;
 use crate::utils::env::{del_env, set_env};
+use runique::migration::cli_migration::migrate::record_applied;
 use runique::migration::cli_migration::run;
 use std::fs;
 
@@ -14,6 +15,12 @@ use std::fs;
 
 fn temp_dir(suffix: &str) -> TestTempDir {
     TestTempDir::new("runique_test_run", suffix)
+}
+
+/// Ce que fait `migration up` une fois la base à jour : tags retirés,
+/// snapshots des tables touchées écrits depuis les modèles.
+fn applied(entities: &std::path::Path, migrations: &std::path::Path) {
+    record_applied(entities.to_str().unwrap(), migrations.to_str().unwrap()).unwrap();
 }
 
 fn entity_user() -> &'static str {
@@ -136,8 +143,13 @@ async fn test_run_cree_snapshot() {
     .unwrap();
 
     assert!(
+        !migrations.join("snapshots/users.rs").exists(),
+        "makemigrations n'écrit pas le snapshot"
+    );
+    applied(&entities, &migrations);
+    assert!(
         migrations.join("snapshots/users.rs").exists(),
-        "snapshot/users.rs doit exister"
+        "snapshot/users.rs doit exister une fois la migration appliquée"
     );
     del_env("RUNIQUE_TEST");
     std::fs::remove_dir_all(&entities).ok();
@@ -297,6 +309,7 @@ async fn test_run_alter_ajout_colonne_nullable() {
     .unwrap();
 
     // Étape 2 : Ajouter une colonne nullable → pas destructif
+    applied(&entities, &migrations);
     fs::write(entities.join("user.rs"), entity_user_with_bio()).unwrap();
     let result = run(
         entities.to_str().unwrap(),
@@ -336,6 +349,7 @@ async fn test_run_alter_cree_fichier_alter() {
     )
     .unwrap();
 
+    applied(&entities, &migrations);
     fs::write(entities.join("user.rs"), entity_user_with_bio()).unwrap();
     run(
         entities.to_str().unwrap(),
@@ -380,6 +394,7 @@ async fn test_run_alter_snapshot_mis_a_jour() {
     )
     .unwrap();
 
+    applied(&entities, &migrations);
     fs::write(entities.join("user.rs"), entity_user_with_bio()).unwrap();
     run(
         entities.to_str().unwrap(),
@@ -388,7 +403,8 @@ async fn test_run_alter_snapshot_mis_a_jour() {
     )
     .unwrap();
 
-    // Snapshot doit contenir "bio"
+    // Snapshot doit contenir "bio" une fois la modification appliquée
+    applied(&entities, &migrations);
     let snap = fs::read_to_string(migrations.join("snapshots/users.rs")).unwrap();
     assert!(snap.contains("bio"), "snapshot doit contenir le champ bio");
     del_env("RUNIQUE_TEST");
@@ -415,6 +431,7 @@ async fn test_run_deux_entites() {
     );
     assert!(result.is_ok(), "run() 2 entités doit Ok: {:?}", result);
 
+    applied(&entities, &migrations);
     assert!(migrations.join("snapshots/users.rs").exists());
     assert!(migrations.join("snapshots/posts.rs").exists());
     assert!(migrations.join("lib.rs").exists());
@@ -460,6 +477,8 @@ async fn test_run_plusieurs_entites_plusieurs_runs() {
     )
     .unwrap();
 
+    applied(&entities, &migrations);
+
     // Run 2 : 2e entité ajoutée
     fs::write(entities.join("post.rs"), entity_post()).unwrap();
     run(
@@ -468,6 +487,7 @@ async fn test_run_plusieurs_entites_plusieurs_runs() {
         false,
     )
     .unwrap();
+    applied(&entities, &migrations);
 
     assert!(migrations.join("snapshots/users.rs").exists());
     assert!(migrations.join("snapshots/posts.rs").exists());
@@ -525,7 +545,8 @@ async fn test_run_ignore_mod_rs() {
     )
     .unwrap();
 
-    // Seulement posts.rs doit avoir généré un snapshot
+    // Seulement posts.rs doit avoir généré une migration, donc un snapshot
+    applied(&entities, &migrations);
     assert!(migrations.join("snapshots/posts.rs").exists());
     assert!(
         !migrations.join("snapshots/users.rs").exists(),
@@ -568,6 +589,7 @@ async fn test_run_drop_colonne_sans_force_retourne_err() {
     )
     .unwrap();
 
+    applied(&entities, &migrations);
     fs::write(entities.join("user.rs"), entity_user_without_email()).unwrap();
     let result = run(
         entities.to_str().unwrap(),
@@ -609,6 +631,7 @@ async fn test_run_drop_colonne_avec_force_genere_migration() {
     )
     .unwrap();
 
+    applied(&entities, &migrations);
     fs::write(entities.join("user.rs"), entity_user_without_email()).unwrap();
     let result = run(
         entities.to_str().unwrap(),
@@ -645,6 +668,7 @@ async fn test_run_drop_colonne_avec_force_genere_migration() {
         "ALTER doit mentionner la colonne supprimée"
     );
 
+    applied(&entities, &migrations);
     let snap = fs::read_to_string(migrations.join("snapshots/users.rs")).unwrap();
     assert!(
         !snap.contains("\"email\""),
@@ -687,6 +711,7 @@ async fn test_run_snapshot_ancien_rafraichi_puis_longueur_suivie() {
 
     fs::write(entities.join("post.rs"), post_with_title_length(80)).unwrap();
     run(ent, mig, false).unwrap();
+    applied(&entities, &migrations);
     let snapshot = migrations.join("snapshots/posts.rs");
     let first = migration_files(&migrations);
 

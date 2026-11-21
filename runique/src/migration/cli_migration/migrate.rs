@@ -4,41 +4,73 @@
 //! then the one `migration/Cargo.toml` pins, the same as runique's. Its
 //! `down()` keeps `seaql_migrations` in sync with the schema.
 use super::lib_file::lib_modules;
+use super::scan::{merge_extend_schemas, scan_entities, scan_extend_blocks};
+use super::snapshot::extend_snapshot_content;
 use crate::atomic::{AtomicBuilder, SourceItems};
 use crate::db::DatabaseConfig;
-use crate::migration::WAIT_MIGRATION;
+use crate::migration::{
+    WAIT_MIGRATION, extend_snapshot_file_path, generate_snapshot_file, has_marker,
+    migration_target, snapshot_file_path, without_marker,
+};
 use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-/// Applies every pending migration.
-pub async fn up(migrations_path: &str) -> Result<()> {
+/// Applies every pending migration, then records what was applied
+/// (see [`record_applied`]).
+pub async fn up(entities_path: &str, migrations_path: &str) -> Result<()> {
     run(migrations_path, &["up"]).await?;
-    clear_waiting_tags(migrations_path)?;
+    record_applied(entities_path, migrations_path)?;
     println!("{}", t("migrate.complete_up"));
     Ok(())
 }
 
-/// After a run that succeeded: every migration of `lib.rs` still tagged as
-/// waiting loses its tag, the rest of its file untouched. One batch: all the
-/// files, or none.
-fn clear_waiting_tags(migrations_path: &str) -> Result<()> {
-    let tag = format!("{WAIT_MIGRATION}\n");
-    let mut cleared = Vec::new();
+/// After a run that succeeded, in one batch: every migration of `lib.rs`
+/// still tagged as waiting loses its tag, and the table it changed gets its
+/// snapshot written from its model. A model no applied migration concerns is
+/// left without one: its table isn't created yet.
+pub fn record_applied(entities_path: &str, migrations_path: &str) -> Result<()> {
+    let mut files: Vec<(PathBuf, String)> = Vec::new();
+    let mut targets: Vec<(bool, String)> = Vec::new();
     for module in lib_modules(migrations_path)? {
         let path = Path::new(migrations_path).join(format!("{module}.rs"));
         if let Ok(content) = fs::read_to_string(&path)
-            && let Some(rest) = content.strip_prefix(&tag)
+            && has_marker(&content, WAIT_MIGRATION)
         {
-            cleared.push((path, rest.to_string()));
+            files.push((path, without_marker(&content, WAIT_MIGRATION)));
+
+            if let Some((extend, table)) = migration_target(&module)
+                && !targets.iter().any(|(e, t)| *e == extend && t == table)
+            {
+                targets.push((extend, table.to_string()));
+            }
         }
     }
-    if cleared.is_empty() {
+    if files.is_empty() {
         return Ok(());
     }
+
+    let models = scan_entities(entities_path)?;
+    let extends = merge_extend_schemas(scan_extend_blocks(entities_path)?);
+    for (extend, table) in targets {
+        if extend {
+            if let Some(schema) = extends.iter().find(|s| s.table_name == table) {
+                files.push((
+                    extend_snapshot_file_path(migrations_path, &table).into(),
+                    extend_snapshot_content(schema),
+                ));
+            }
+        } else if let Some(schema) = models.iter().find(|s| s.table_name == table) {
+            files.push((
+                snapshot_file_path(migrations_path, &table).into(),
+                generate_snapshot_file(schema),
+            ));
+        }
+    }
+
     let mut batch = AtomicBuilder::modify().journal(migrations_path);
-    for (path, content) in cleared {
+    for (path, content) in files {
         batch = batch.add(path, SourceItems::Bytes(content.into_bytes()), false)?;
     }
     batch.start()?;
@@ -145,7 +177,11 @@ mod tests {
         let path = migration_crate(&dir);
         cut_journal(std::path::Path::new(&path), false, &[("lib.rs", true)], &[]);
 
-        for outcome in [up(&path).await, down(&path, 1).await, status(&path).await] {
+        for outcome in [
+            up("src/entities", &path).await,
+            down(&path, 1).await,
+            status(&path).await,
+        ] {
             assert_eq!(
                 outcome.unwrap_err().to_string(),
                 tf("migrate.interrupted", &[path.as_str()])
@@ -162,14 +198,20 @@ mod tests {
         cut_journal(&crate_dir, false, &[("src/lib.rs", false)], &[]);
 
         assert_eq!(
-            up(&path).await.unwrap_err().to_string(),
+            up("src/entities", &path).await.unwrap_err().to_string(),
             tf("migrate.interrupted", &[crate_dir.to_str().unwrap()])
         );
     }
 
-    // ── The waiting tag, cleared once `up` succeeded ─────────────────────────
+    // ── What `up` records once it succeeded: tags cleared, snapshots written ──
 
-    const BODY: &str = "use sea_orm_migration::prelude::*;\n// runique: waiting migrate up, quoted\n";
+    /// An entities folder that doesn't exist: reading it is an error.
+    fn missing_entities(dir: &TempDir) -> String {
+        dir.join("no_entities").to_str().unwrap().to_string()
+    }
+
+    const BODY: &str =
+        "use sea_orm_migration::prelude::*;\n// runique: waiting migrate up, quoted\n";
 
     /// A `migration/src` whose `lib.rs` declares `modules`, with `files`.
     fn migrations(dir: &TempDir, modules: &[&str], files: &[(&str, String)]) -> String {
@@ -201,39 +243,73 @@ mod tests {
             ],
         );
 
-        clear_waiting_tags(&path).unwrap();
+        // Neither name is one Runique gives: no snapshot is asked for.
+        record_applied(&entities(&dir, &[]), &path).unwrap();
 
         for name in ["m1_create_a_table.rs", "m2_alter_a_table.rs"] {
-            assert_eq!(fs::read_to_string(dir.join("src").join(name)).unwrap(), BODY);
+            assert_eq!(
+                fs::read_to_string(dir.join("src").join(name)).unwrap(),
+                BODY
+            );
         }
         // The batch is over: no journal is left to stop the next command.
         assert!(!crate::atomic::interrupted(Path::new(&path)));
     }
 
-    // Untagged, tagged elsewhere than on the first line, declared without a
-    // file, or tagged but unknown to `lib.rs`: nothing is rewritten.
+    // Untagged, quoting the tag inside a longer line (as `BODY` does),
+    // declared without a file, or tagged but unknown to `lib.rs`: nothing is
+    // rewritten, and the models aren't even read.
     #[test]
     fn only_tagged_migrations_of_lib_are_rewritten() {
         let dir = TempDir::new();
-        let below = format!("// header\n{WAIT_MIGRATION}\n{BODY}");
         let path = migrations(
             &dir,
-            &["m1_applied", "m2_tag_below", "m3_no_file"],
+            &["m1_applied", "m3_no_file"],
             &[
                 ("m1_applied.rs", BODY.to_string()),
-                ("m2_tag_below.rs", below.clone()),
                 ("m9_not_in_lib.rs", tagged()),
             ],
         );
         let on_disk = dir.entries();
 
-        clear_waiting_tags(&path).unwrap();
+        record_applied(&missing_entities(&dir), &path).unwrap();
 
         assert_eq!(dir.entries(), on_disk);
         let read = |name: &str| fs::read_to_string(dir.join("src").join(name)).unwrap();
         assert_eq!(read("m1_applied.rs"), BODY);
-        assert_eq!(read("m2_tag_below.rs"), below);
         assert_eq!(read("m9_not_in_lib.rs"), tagged());
+    }
+
+    // The tag is found wherever the developer moved it: below a header, in
+    // the middle, on the last line with or without its line break, indented.
+    #[test]
+    fn the_tag_is_cleared_wherever_it_is() {
+        let moved = [
+            format!("// header\n{WAIT_MIGRATION}\n{BODY}"),
+            format!("{BODY}{WAIT_MIGRATION}\n{BODY}"),
+            format!("// header\n{BODY}{WAIT_MIGRATION}\n"),
+            format!("// header\n{BODY}{WAIT_MIGRATION}"),
+            format!("// header\n  {WAIT_MIGRATION}\t\r\n{BODY}"),
+        ];
+        let cleared = [
+            format!("// header\n{BODY}"),
+            format!("{BODY}{BODY}"),
+            format!("// header\n{BODY}"),
+            format!("// header\n{BODY}"),
+            format!("// header\n{BODY}"),
+        ];
+        for (content, expected) in moved.into_iter().zip(cleared) {
+            let dir = TempDir::new();
+            let path = migrations(&dir, &["m1_moved"], &[("m1_moved.rs", content.clone())]);
+
+            record_applied(&entities(&dir, &[]), &path).unwrap();
+
+            assert_eq!(
+                fs::read_to_string(dir.join("src/m1_moved.rs")).unwrap(),
+                expected,
+                "{content:?}"
+            );
+        }
     }
 
     // No `lib.rs`: nothing to clear, and no error.
@@ -241,8 +317,162 @@ mod tests {
     fn without_a_lib_nothing_is_cleared() {
         let dir = TempDir::new();
         let path = dir.join("src").to_str().unwrap().to_string();
-        clear_waiting_tags(&path).unwrap();
+        record_applied(&missing_entities(&dir), &path).unwrap();
         assert!(dir.entries().is_empty());
+    }
+
+    const MENUS: &str =
+        r#"model! { Menu, table: "menus", pk: id => i32, { titre: text [required], } }"#;
+    const PLATS: &str =
+        r#"model! { Plat, table: "plats", pk: id => i32, { nom: text [required], } }"#;
+    const EXTEND: &str = r#"extend! { table: "eihwaz_users", fields: { bio: text } }"#;
+
+    /// An entities folder holding `files`.
+    fn entities(dir: &TempDir, files: &[(&str, &str)]) -> String {
+        let folder = dir.join("entities");
+        fs::create_dir_all(&folder).unwrap();
+        for (name, content) in files {
+            fs::write(folder.join(name), content).unwrap();
+        }
+        folder.to_str().unwrap().to_string()
+    }
+
+    // The table of an applied migration gets the snapshot its model gives; a
+    // model nothing was applied for gets none, or its table would never be
+    // created.
+    #[test]
+    fn an_applied_table_gets_its_snapshot_and_no_other_does() {
+        let dir = TempDir::new();
+        let path = migrations(
+            &dir,
+            &["m20260101_000000_create_menus_table"],
+            &[("m20260101_000000_create_menus_table.rs", tagged())],
+        );
+        let models = entities(&dir, &[("menus.rs", MENUS), ("plats.rs", PLATS)]);
+
+        record_applied(&models, &path).unwrap();
+
+        let menus = scan_entities(&models)
+            .unwrap()
+            .into_iter()
+            .find(|s| s.table_name == "menus")
+            .unwrap();
+        assert_eq!(
+            fs::read_to_string(snapshot_file_path(&path, "menus")).unwrap(),
+            generate_snapshot_file(&menus)
+        );
+        assert!(!Path::new(&snapshot_file_path(&path, "plats")).exists());
+        assert_eq!(
+            fs::read_to_string(dir.join("src/m20260101_000000_create_menus_table.rs")).unwrap(),
+            BODY
+        );
+    }
+
+    // An `extend!{}` migration writes the extension's snapshot, in its own
+    // folder, and never one at the root.
+    #[test]
+    fn an_applied_extension_gets_its_snapshot_in_its_folder() {
+        let dir = TempDir::new();
+        let path = migrations(
+            &dir,
+            &["m20260101_000000_extend_eihwaz_users_table"],
+            &[("m20260101_000000_extend_eihwaz_users_table.rs", tagged())],
+        );
+        let models = entities(&dir, &[("ext.rs", EXTEND)]);
+
+        record_applied(&models, &path).unwrap();
+
+        let extension = merge_extend_schemas(scan_extend_blocks(&models).unwrap()).remove(0);
+        assert_eq!(
+            fs::read_to_string(extend_snapshot_file_path(&path, "eihwaz_users")).unwrap(),
+            extend_snapshot_content(&extension)
+        );
+        assert!(!Path::new(&snapshot_file_path(&path, "eihwaz_users")).exists());
+    }
+
+    // Created then altered in the same run: one snapshot, written once.
+    #[test]
+    fn two_applied_migrations_of_a_table_write_one_snapshot() {
+        let dir = TempDir::new();
+        let path = migrations(
+            &dir,
+            &[
+                "m20260101_000000_create_menus_table",
+                "m20260102_000000_alter_menus_table",
+            ],
+            &[
+                ("m20260101_000000_create_menus_table.rs", tagged()),
+                ("m20260102_000000_alter_menus_table.rs", tagged()),
+            ],
+        );
+        let models = entities(&dir, &[("menus.rs", MENUS)]);
+
+        record_applied(&models, &path).unwrap();
+
+        assert!(Path::new(&snapshot_file_path(&path, "menus")).exists());
+        assert!(!crate::atomic::interrupted(Path::new(&path)));
+    }
+
+    // Two tables changed in the same run: each gets its own snapshot. Only the
+    // same table, of the same kind, counts once.
+    #[test]
+    fn two_applied_tables_each_get_their_snapshot() {
+        let dir = TempDir::new();
+        let path = migrations(
+            &dir,
+            &[
+                "m20260101_000000_create_menus_table",
+                "m20260101_000000_create_plats_table",
+            ],
+            &[
+                ("m20260101_000000_create_menus_table.rs", tagged()),
+                ("m20260101_000000_create_plats_table.rs", tagged()),
+            ],
+        );
+        let models = entities(&dir, &[("menus.rs", MENUS), ("plats.rs", PLATS)]);
+
+        record_applied(&models, &path).unwrap();
+
+        assert!(Path::new(&snapshot_file_path(&path, "menus")).exists());
+        assert!(Path::new(&snapshot_file_path(&path, "plats")).exists());
+    }
+
+    // The model is gone since: the tag still goes, no snapshot is written.
+    #[test]
+    fn an_applied_table_without_a_model_gets_no_snapshot() {
+        let dir = TempDir::new();
+        let path = migrations(
+            &dir,
+            &["m20260101_000000_create_menus_table"],
+            &[("m20260101_000000_create_menus_table.rs", tagged())],
+        );
+        let models = entities(&dir, &[("plats.rs", PLATS)]);
+
+        record_applied(&models, &path).unwrap();
+
+        assert!(!Path::new(&crate::migration::snapshot_dir(&path)).exists());
+        assert_eq!(
+            fs::read_to_string(dir.join("src/m20260101_000000_create_menus_table.rs")).unwrap(),
+            BODY
+        );
+    }
+
+    // Something was applied and the models can't be read: an error, and the
+    // tags stay, so the next run records it.
+    #[test]
+    fn unreadable_models_leave_the_tags_in_place() {
+        let dir = TempDir::new();
+        let path = migrations(
+            &dir,
+            &["m20260101_000000_create_menus_table"],
+            &[("m20260101_000000_create_menus_table.rs", tagged())],
+        );
+
+        assert!(record_applied(&missing_entities(&dir), &path).is_err());
+        assert_eq!(
+            fs::read_to_string(dir.join("src/m20260101_000000_create_menus_table.rs")).unwrap(),
+            tagged()
+        );
     }
 
     /// What `database_url` gives for a project's environment.

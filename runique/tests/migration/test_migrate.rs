@@ -5,6 +5,8 @@ use crate::helpers::db_postgres as db_pg;
 use runique::cli::migrate::up;
 use serial_test::serial;
 
+const ENTITIES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../demo-app/src/entities");
+
 // ═══════════════════════════════════════════════════════════════
 // up() — teste les deux DB (Postgres + MySQL)
 // ═══════════════════════════════════════════════════════════════
@@ -21,7 +23,7 @@ async fn test_up_retourne_ok() {
     };
     unsafe { std::env::set_var("DATABASE_URL", &pg_url) };
     let migration_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../demo-app/migration");
-    let result = up(migration_dir).await;
+    let result = up(ENTITIES, migration_dir).await;
     assert!(result.is_ok(), "up() Postgres doit Ok: {:?}", result);
 
     // `Ok` seul ne prouve pas que le schéma existe réellement — `count()` panique
@@ -47,7 +49,7 @@ async fn test_up_mysql_retourne_ok() {
     };
     unsafe { std::env::set_var("DATABASE_URL", &mysql_url) };
     let migration_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../demo-app/migration");
-    let result = up(migration_dir).await;
+    let result = up(ENTITIES, migration_dir).await;
     assert!(result.is_ok(), "up() MySQL doit Ok: {:?}", result);
 
     // Idem Postgres : `count()` panique si la table n'existe pas, donc son succès
@@ -62,7 +64,7 @@ async fn test_up_mysql_retourne_ok() {
 #[tokio::test]
 async fn test_up_chemin_inexistant_retourne_err() {
     // up() avec chemin inexistant → sea-orm-cli échoue → Err attendu
-    let result = up("/chemin/inexistant/abc").await;
+    let result = up(ENTITIES, "/chemin/inexistant/abc").await;
     let err = result
         .expect_err("up() chemin inexistant doit Err")
         .to_string();
