@@ -40,7 +40,7 @@ pub(crate) use snapshot::previous_snapshot;
 
 use plan::{
     Plan, build_extend_plan, build_main_plan, commit_plan, compute_main_changes,
-    plan_extend_changes,
+    plan_extend_changes, replace_waiting, waiting_migrations,
 };
 use report::{check_destructive, check_identifier_lengths, warn_unmigrated_type_changes};
 use snapshot::snapshot_upgrades;
@@ -48,6 +48,11 @@ use snapshot::snapshot_upgrades;
 /// Entry point of the `makemigrations` command: scans models and `extend!{}`
 /// blocks, diffs them against their last snapshot, blocks on destructive
 /// changes unless `force` is set, then writes the full migration plan atomically.
+///
+/// A snapshot is the state of a table once `migration up` applied it: this
+/// command never writes one. Run again before anything was applied, it starts
+/// from the same snapshots and its result takes the place of the migrations
+/// still waiting, instead of piling on them.
 pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()> {
     let schemas = scan_entities(entities_path)?;
     init_migrate::ensure(migrations_path)?;
@@ -56,6 +61,7 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     init_migrate::repair(std::path::Path::new(migrations_path))?;
 
     snapshot::read_all(migrations_path)?;
+    let waiting = waiting_migrations(migrations_path)?;
 
     fs::create_dir_all(snapshot_dir(migrations_path))?;
 
@@ -77,13 +83,22 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
         // tables (accounts, sessions): wired into `lib.rs` even then, and the
         // `sea-orm-cli migrate init` placeholder dropped.
         let upgraded = upgrades.len();
+        // Nothing left to migrate: what was waiting no longer matches the
+        // models (a change taken back before it was applied).
         let plan = Plan {
             files: upgrades,
+            dropped_modules: waiting.iter().map(|(module, _)| module.clone()).collect(),
             ..Plan::default()
         };
         commit_plan(&plan, migrations_path)?;
         if upgraded != 0 {
             println!("{}", tf("makemigrations.snapshots_upgraded", &[upgraded]));
+        }
+        if !waiting.is_empty() {
+            println!(
+                "{}",
+                tf("makemigrations.waiting_removed", &[waiting.len()])
+            );
         }
         // Silent, a run looked like it did nothing at all; the framework's
         // tables may still be waiting to be applied.
@@ -113,6 +128,8 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
         &timestamp,
     );
     build_extend_plan(&mut plan, &extend_planned, migrations_path, &timestamp);
+    // While the plan holds the migrations and nothing else.
+    let rewritten = replace_waiting(&mut plan, &waiting);
     plan.files.extend(upgrades);
 
     // ── One atomic commit: dirs → backups → write → lib.rs → admin positioning,
@@ -120,7 +137,14 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     let module_count = plan.lib_modules.len();
     commit_plan(&plan, migrations_path)?;
 
-    println!("{}", tf("makemigrations.files_ready", &[module_count]));
+    if rewritten {
+        println!("{}", tf("makemigrations.files_ready", &[module_count]));
+    } else {
+        println!(
+            "{}",
+            tf("makemigrations.waiting_unchanged", &[waiting.len()])
+        );
+    }
     println!("{}", t("makemigrations.apply_hint"));
     warn_unmigrated_type_changes(&destructive_set);
 

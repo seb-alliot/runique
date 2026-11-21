@@ -69,7 +69,7 @@ runique makemigrations
 
 The command ends with the number of files written, or "No changes detected" when nothing changed, then gives the next command.
 
-Every generated migration starts with the line `// runique: waiting migrate up`: it marks a migration `runique migration up` hasn't applied yet. Once `runique migration up` succeeded, it removes that line from every migration `lib.rs` declares, leaving the rest of the file untouched. Don't remove it or add it by hand.
+Every generated migration starts with the line `// runique: waiting migrate up`: it marks a migration `runique migration up` hasn't applied yet. Once `runique migration up` succeeded, it removes that line from every migration `lib.rs` declares, leaving the rest of the file untouched. Running `makemigrations` again before applying doesn't pile them up: the pending migrations are computed again and replaced (see [How makemigrations works](/docs/en/architecture/makemigrations)). Runique writes it as the first line and recognises it wherever it is in the file, as long as it is alone on its line. Don't remove it or add it by hand.
 
 ### 2. Apply the migrations
 
@@ -161,7 +161,7 @@ extend! {
 
 ## Atomic generation
 
-The changes of the models and of the `extend!{}` blocks are first planned in memory, checked (destructive check, identifier lengths), then written as one batch: migrations, snapshots and `lib.rs`, all of them or none.
+The changes of the models and of the `extend!{}` blocks are first planned in memory, checked (destructive check, identifier lengths), then written as one batch: migrations and `lib.rs`, all of them or none. The snapshots are written by `runique migration up` once the migrations are applied, in a batch of its own.
 
 - **A write error** undoes everything: the `migration/src/` folder goes back to what it was.
 - **A hard stop** (power cut, `kill -9`) is repaired the next time `runique makemigrations` runs. Until then, `runique migration up` refuses to start.

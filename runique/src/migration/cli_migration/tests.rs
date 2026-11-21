@@ -108,6 +108,71 @@ fn an_extend_snapshot_is_marked_as_recording_lengths() {
     assert!(content.contains("create_table"), "{content}");
 }
 
+// A marker is a whole line, wherever it is; a line that only quotes it is not.
+#[test]
+fn a_marker_is_a_line_of_its_own_wherever_it_is() {
+    let m = WAIT_MIGRATION;
+    for content in [
+        format!("{m}\nfn up() {{}}\n"),
+        format!("fn up() {{}}\n{m}\n"),
+        format!("fn up() {{}}\n{m}"),
+        format!("fn up() {{}}\n \t{m}  \r\nfn down() {{}}\n"),
+    ] {
+        assert!(has_marker(&content, m), "{content:?}");
+    }
+    for content in [
+        String::new(),
+        "fn up() {}\n".to_string(),
+        format!("{m}, as the doc says\n"),
+        format!("// see {m}\n"),
+        format!("{m}{m}\n"),
+    ] {
+        assert!(!has_marker(&content, m), "{content:?}");
+        assert_eq!(without_marker(&content, m), content, "{content:?}");
+    }
+}
+
+// Every line that is the marker goes, and only those: the other lines keep
+// their own line endings.
+#[test]
+fn removing_a_marker_leaves_the_rest_byte_for_byte() {
+    let m = WAIT_MIGRATION;
+    let content = format!("a\r\n{m}\r\n  b\n// see {m}\n{m}\nc");
+    assert_eq!(
+        without_marker(&content, m),
+        format!("a\r\n  b\n// see {m}\nc")
+    );
+    assert_eq!(without_marker(&content, SNAPSHOT_LENGTHS_MARKER), content);
+}
+
+// The lengths marker moved below a header still says the snapshot records
+// lengths: its own are kept. Without the marker they are the model's.
+#[test]
+fn a_moved_lengths_marker_still_marks_the_snapshot() {
+    let dir = TempDir::new();
+    let recorded = generate_snapshot_file(&schema("menus", &[]));
+    let mut longer = schema("menus", &[]);
+    longer.columns[0].max_length = Some(80);
+    let length_read_from = |content: String| {
+        let path = dir.join("menus.rs");
+        fs::write(&path, content).unwrap();
+        previous_snapshot(path.to_str().unwrap(), &longer)
+            .unwrap()
+            .columns[0]
+            .max_length
+    };
+
+    assert_eq!(length_read_from(recorded.clone()), Some(50));
+    assert_eq!(
+        length_read_from(format!("// header\n\n{recorded}")),
+        Some(50)
+    );
+    assert_eq!(
+        length_read_from(without_marker(&recorded, SNAPSHOT_LENGTHS_MARKER)),
+        Some(80)
+    );
+}
+
 /// Only an old-format snapshot of a table this run doesn't touch is rewritten.
 #[test]
 fn only_untouched_old_snapshots_are_upgraded() {
@@ -342,7 +407,7 @@ fn extend_blocks_are_planned_until_their_snapshot_matches() {
 }
 
 #[test]
-fn an_extend_change_enters_the_plan_with_its_snapshot_and_its_module() {
+fn an_extend_change_enters_the_plan_with_its_module_and_no_snapshot() {
     let (entities, migrations) = (temp("ext_plan_ent"), temp("ext_plan_mig"));
     let (e, m) = (entities.to_str().unwrap(), migrations.to_str().unwrap());
     fs::write(
@@ -362,12 +427,9 @@ fn an_extend_change_enters_the_plan_with_its_snapshot_and_its_module() {
     let paths: Vec<&str> = plan.files.iter().map(|(path, _)| path.as_str()).collect();
     assert_eq!(
         paths,
-        [
-            extend_snapshot_file_path(m, "eihwaz_users"),
-            seaorm_extend_file_path(m, "20260101_000000", "eihwaz_users"),
-        ]
+        [seaorm_extend_file_path(m, "20260101_000000", "eihwaz_users")]
     );
-    assert!(plan.files[1].1.contains("bio"), "{}", plan.files[1].1);
+    assert!(plan.files[0].1.contains("bio"), "{}", plan.files[0].1);
     assert_eq!(
         plan.lib_modules,
         ["m20260101_000000_extend_eihwaz_users_table"]
@@ -382,7 +444,7 @@ fn an_extend_change_enters_the_plan_with_its_snapshot_and_its_module() {
 // ── The tag of a migration nothing applied yet ───────────────────────────────
 
 // Created, altered or extended: the migration starts with the tag, on a line
-// of its own. The snapshot next to it never does.
+// of its own. The plan holds no snapshot: `migration up` writes it.
 #[test]
 fn every_generated_migration_starts_with_the_waiting_tag() {
     let (menus, plats, users) = (
@@ -411,12 +473,17 @@ fn every_generated_migration_starts_with_the_waiting_tag() {
         "20260101_000000",
     );
 
-    // snapshot, migration: three times.
-    assert_eq!(plan.files.len(), 6);
-    for pair in plan.files.chunks(2) {
-        let ((snapshot_path, snapshot), (path, migration)) = (&pair[0], &pair[1]);
-        assert!(snapshot_path.contains("/snapshots/"), "{snapshot_path}");
-        assert!(!snapshot.contains(WAIT_MIGRATION), "{snapshot_path}");
+    assert_eq!(
+        plan.lib_modules,
+        [
+            "m20260101_000000_create_menus_table",
+            "m20260101_000000_alter_plats_table",
+            "m20260101_000000_extend_eihwaz_users_table",
+        ]
+    );
+    assert_eq!(plan.files.len(), 3);
+    for (path, migration) in &plan.files {
+        assert!(!path.contains("/snapshots/"), "{path}");
         assert!(migration.starts_with(&tag), "{path}: {migration}");
         assert_eq!(migration.matches(WAIT_MIGRATION).count(), 1, "{path}");
     }
@@ -435,7 +502,7 @@ fn a_tagged_migration_is_still_read_back() {
         "20260101_000000",
     );
 
-    let read = parse_seaorm_source(&plan.files[1].1).unwrap();
+    let read = parse_seaorm_source(&plan.files[0].1).unwrap();
     assert_eq!(read.table_name, "menus");
     assert!(read.columns.iter().any(|c| c.name == "title"));
 }
@@ -469,6 +536,7 @@ fn a_plan_writes_its_files_and_registers_its_modules() {
             file(&path, "snapshots/shop.rs", "// snapshot"),
         ],
         lib_modules: vec!["m1_create_shop_table".to_string()],
+        ..Plan::default()
     };
 
     commit_plan(&plan, &path).unwrap();
@@ -517,6 +585,7 @@ fn a_plan_that_fails_leaves_the_project_as_it_was() {
             file(&path, "blocked.rs", "// never written"),
         ],
         lib_modules: vec!["m1_create_shop_table".to_string()],
+        ..Plan::default()
     };
 
     let error = commit_plan(&plan, &path).unwrap_err();
@@ -550,6 +619,7 @@ fn a_plan_naming_one_file_twice_is_refused_and_writes_nothing() {
             file(&path, "m1_create_shop_table.rs", "// second"),
         ],
         lib_modules: vec!["m1_create_shop_table".to_string()],
+        ..Plan::default()
     };
 
     assert!(commit_plan(&plan, &path).is_err());
@@ -565,6 +635,7 @@ fn a_plan_without_a_module_creates_no_lib() {
     let plan = Plan {
         files: vec![file(&path, "snapshots/shop.rs", "// snapshot")],
         lib_modules: vec![],
+        ..Plan::default()
     };
 
     commit_plan(&plan, &path).unwrap();
@@ -609,6 +680,7 @@ fn the_placeholder_file_goes_only_with_a_plan_that_is_written() {
             file(&path, "m1_create_shop_table.rs", "// second"),
         ],
         lib_modules: vec![],
+        ..Plan::default()
     };
 
     assert!(commit_plan(&twice, &path).is_err());
@@ -963,4 +1035,321 @@ fn the_command_stops_on_a_bad_snapshot_and_writes_nothing() {
 
     assert!(run(entities.to_str().unwrap(), &path, false).is_err());
     assert_eq!(dir.entries(), on_disk);
+}
+
+// ── Run again before anything is applied: the waiting migrations are replaced ─
+
+const USERS: &str =
+    r#"model! { User, table: "users", pk: id => i32, { username: text [required], email: text [required], } }"#;
+const USERS_BIO: &str = r#"model! { User, table: "users", pk: id => i32, { username: text [required], email: text [required], bio: text [nullable], } }"#;
+const USERS_NO_EMAIL: &str = r#"model! { User, table: "users", pk: id => i32, { username: text [required], bio: text [nullable], } }"#;
+const POSTS: &str =
+    r#"model! { Post, table: "posts", pk: id => i32, { title: text [required], } }"#;
+
+/// A project: its entities folder and its `migration/src`, both empty.
+fn project(dir: &TempDir) -> (String, String) {
+    let entities = dir.join("entities");
+    fs::create_dir(&entities).unwrap();
+    (
+        entities.to_str().unwrap().to_string(),
+        migrations_src(dir, None),
+    )
+}
+
+/// The generated migrations under `path`: file name, content.
+fn generated(path: &str) -> Vec<(String, String)> {
+    let mut found: Vec<(String, String)> = fs::read_dir(path)
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .filter(|file| {
+            let name = file.file_name().unwrap().to_string_lossy().to_string();
+            name.starts_with('m') && name.ends_with("_table.rs")
+        })
+        .map(|file| {
+            (
+                file.file_name().unwrap().to_string_lossy().to_string(),
+                fs::read_to_string(&file).unwrap(),
+            )
+        })
+        .collect();
+    found.sort();
+    found
+}
+
+/// Every file of `dir`, with its content: what a refusal must leave as it is.
+fn everything(dir: &TempDir) -> Vec<(String, String)> {
+    dir.entries()
+        .into_iter()
+        .filter(|entry| dir.join(entry).is_file())
+        .map(|entry| {
+            let content = fs::read_to_string(dir.join(&entry)).unwrap();
+            (entry, content)
+        })
+        .collect()
+}
+
+/// What `migration up` does once the database took the migrations.
+fn applied(entities: &str, path: &str) {
+    super::migrate::record_applied(entities, path).unwrap();
+}
+
+// The command writes the migration and registers it; the snapshot waits for
+// `migration up`.
+#[test]
+fn a_run_writes_no_snapshot() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+
+    run(&entities, &path, false).unwrap();
+
+    let files = generated(&path);
+    assert_eq!(files.len(), 1, "{files:?}");
+    assert!(files[0].0.ends_with("_create_users_table.rs"));
+    assert!(has_marker(&files[0].1, WAIT_MIGRATION));
+    assert!(!Path::new(&snapshot_file_path(&path, "users")).exists());
+
+    applied(&entities, &path);
+    assert!(Path::new(&snapshot_file_path(&path, "users")).exists());
+}
+
+// Nothing changed since the last run: not a single file is rewritten.
+#[test]
+fn a_run_again_without_a_change_rewrites_nothing() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    fs::write(format!("{entities}/post.rs"), POSTS).unwrap();
+    run(&entities, &path, false).unwrap();
+    let before = everything(&dir);
+
+    run(&entities, &path, false).unwrap();
+
+    assert_eq!(everything(&dir), before);
+    assert_eq!(generated(&path).len(), 2);
+}
+
+// The model changed before the first migration was applied: the creation is
+// computed again from nothing, whole. No alteration is piled on it.
+#[test]
+fn a_change_before_applying_replaces_the_waiting_creation() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    run(&entities, &path, false).unwrap();
+
+    fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
+    run(&entities, &path, false).unwrap();
+
+    let files = generated(&path);
+    assert_eq!(files.len(), 1, "{files:?}");
+    assert!(files[0].0.ends_with("_create_users_table.rs"), "{files:?}");
+    assert!(files[0].1.contains("bio"), "{}", files[0].1);
+    let lib = fs::read_to_string(lib_path(&path)).unwrap();
+    assert_eq!(lib.matches("_create_users_table").count(), 2, "{lib}");
+    assert!(!lib.contains("_alter_"), "{lib}");
+}
+
+// The model the waiting creation was for is gone, another one came: the
+// waiting file is removed with its line in `lib.rs`, the new one registered.
+#[test]
+fn a_waiting_migration_of_a_model_that_left_is_removed() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    run(&entities, &path, false).unwrap();
+
+    fs::remove_file(format!("{entities}/user.rs")).unwrap();
+    fs::write(format!("{entities}/post.rs"), POSTS).unwrap();
+    run(&entities, &path, false).unwrap();
+
+    let files = generated(&path);
+    assert_eq!(files.len(), 1, "{files:?}");
+    assert!(files[0].0.ends_with("_create_posts_table.rs"), "{files:?}");
+    let lib = fs::read_to_string(lib_path(&path)).unwrap();
+    assert!(!lib.contains("users_table"), "{lib}");
+    assert_eq!(lib.matches("_create_posts_table").count(), 2, "{lib}");
+    assert!(!crate::atomic::interrupted(Path::new(&path)));
+}
+
+// The change is taken back before it was applied: nothing is left to
+// migrate, and the waiting migration goes. `lib.rs` is as at the start.
+#[test]
+fn a_change_taken_back_removes_the_waiting_migration() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    run(&entities, &path, false).unwrap();
+    applied(&entities, &path);
+    let lib_applied = fs::read_to_string(lib_path(&path)).unwrap();
+    let create = generated(&path);
+
+    fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
+    run(&entities, &path, false).unwrap();
+    assert_eq!(generated(&path).len(), 2);
+
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    run(&entities, &path, false).unwrap();
+
+    // Only the applied creation is left, untouched.
+    assert_eq!(generated(&path), create);
+    assert_eq!(fs::read_to_string(lib_path(&path)).unwrap(), lib_applied);
+}
+
+// Once applied, a migration is never replaced: the next change is an
+// alteration next to it, and changing again replaces that alteration only.
+#[test]
+fn an_applied_migration_is_never_replaced() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    run(&entities, &path, false).unwrap();
+    applied(&entities, &path);
+    let create = generated(&path).remove(0);
+
+    fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
+    run(&entities, &path, false).unwrap();
+    fs::write(format!("{entities}/user.rs"), USERS_NO_EMAIL).unwrap();
+    run(&entities, &path, true).unwrap();
+
+    let files = generated(&path);
+    assert_eq!(files.len(), 2, "{files:?}");
+    assert!(files.contains(&create), "{files:?}");
+    let alter = files
+        .iter()
+        .find(|(name, _)| name.ends_with("_alter_users_table.rs"))
+        .unwrap();
+    // One alteration, from the applied state to the model: both changes.
+    assert!(alter.1.contains("bio") && alter.1.contains("drop_column"), "{}", alter.1);
+}
+
+// A run that is refused writes nothing: the migration waiting since the run
+// before stays exactly as it was.
+#[test]
+fn a_refused_run_leaves_the_waiting_migration_as_it_was() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    run(&entities, &path, false).unwrap();
+    applied(&entities, &path);
+    fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
+    run(&entities, &path, false).unwrap();
+    let before = everything(&dir);
+
+    fs::write(format!("{entities}/user.rs"), USERS_NO_EMAIL).unwrap();
+    assert!(run(&entities, &path, false).is_err());
+
+    fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
+    assert_eq!(everything(&dir), before);
+}
+
+// A waiting migration edited by hand is computed again and overwritten.
+#[test]
+fn a_waiting_migration_edited_by_hand_is_overwritten() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    run(&entities, &path, false).unwrap();
+    let (name, content) = generated(&path).remove(0);
+
+    fs::write(format!("{path}/{name}"), format!("{content}// by hand\n")).unwrap();
+    run(&entities, &path, false).unwrap();
+
+    let files = generated(&path);
+    assert_eq!(files.len(), 1, "{files:?}");
+    assert_eq!(files[0].1, content);
+}
+
+// The plan takes the place of what waits: same tables and contents, nothing
+// is rewritten; otherwise every waiting module is dropped, except one the
+// plan writes again under the same name.
+#[test]
+fn a_plan_replaces_what_waits_unless_it_says_the_same() {
+    let waiting = |entries: &[(&str, &str)]| -> Vec<(String, String)> {
+        entries
+            .iter()
+            .map(|(m, c)| (m.to_string(), c.to_string()))
+            .collect()
+    };
+    let plan = |entries: &[(&str, &str)]| Plan {
+        files: entries
+            .iter()
+            .map(|(m, c)| (format!("src/{m}.rs"), c.to_string()))
+            .collect(),
+        lib_modules: entries.iter().map(|(m, _)| m.to_string()).collect(),
+        ..Plan::default()
+    };
+    let (old_a, new_a) = ("m20260101_000000_create_a_table", "m20260202_000000_create_a_table");
+    let (old_b, new_b) = ("m20260101_000000_alter_b_table", "m20260202_000000_alter_b_table");
+
+    // The same, whatever the order and the timestamps.
+    let mut same = plan(&[(new_b, "b"), (new_a, "a")]);
+    assert!(!replace_waiting(&mut same, &waiting(&[(old_a, "a"), (old_b, "b")])));
+    assert!(same.files.is_empty() && same.lib_modules.is_empty());
+    assert!(same.dropped_modules.is_empty());
+
+    // Each of these differs: a content, a table, one more, one less, a pair.
+    for (planned, waits) in [
+        (vec![(new_a, "a2"), (new_b, "b")], vec![(old_a, "a"), (old_b, "b")]),
+        (vec![(new_a, "a")], vec![(old_b, "a")]),
+        (vec![(new_a, "a"), (new_b, "b")], vec![(old_a, "a")]),
+        (vec![(new_a, "a")], vec![(old_a, "a"), (old_b, "b")]),
+        (vec![(new_a, "a"), (new_b, "b")], vec![(old_a, "a"), (old_a, "a")]),
+    ] {
+        let mut changed = plan(&planned);
+        let waits = waiting(&waits);
+        assert!(replace_waiting(&mut changed, &waits), "{planned:?} / {waits:?}");
+        assert_eq!(changed.files.len(), planned.len());
+        // None of these plans reuses a waiting name: every one is dropped.
+        let every: Vec<String> = waits.iter().map(|(m, _)| m.clone()).collect();
+        assert_eq!(changed.dropped_modules, every);
+    }
+
+    // Nothing waits: the plan is written as it is.
+    let mut first = plan(&[(new_a, "a")]);
+    assert!(replace_waiting(&mut first, &[]));
+    assert_eq!(first.files.len(), 1);
+    assert!(first.dropped_modules.is_empty());
+
+    // Written again under the very same name: overwritten, not removed.
+    let mut again = plan(&[(old_a, "a2")]);
+    assert!(replace_waiting(&mut again, &waiting(&[(old_a, "a"), (old_b, "b")])));
+    assert_eq!(again.dropped_modules, [old_b]);
+}
+
+// The plan's dropped modules leave the folder and `lib.rs` in the same batch.
+#[test]
+fn a_plan_removes_the_modules_it_drops() {
+    let dir = TempDir::new();
+    let path = migrations_src(&dir, Some(&initial_lib()));
+    let first = Plan {
+        files: vec![
+            file(&path, "m1_create_shop_table.rs", "// shop"),
+            file(&path, "m1_create_menu_table.rs", "// menu"),
+        ],
+        lib_modules: vec!["m1_create_shop_table".to_string(), "m1_create_menu_table".to_string()],
+        ..Plan::default()
+    };
+    commit_plan(&first, &path).unwrap();
+
+    let second = Plan {
+        files: vec![file(&path, "m2_create_shop_table.rs", "// shop, again")],
+        lib_modules: vec!["m2_create_shop_table".to_string()],
+        dropped_modules: vec!["m1_create_shop_table".to_string()],
+    };
+    commit_plan(&second, &path).unwrap();
+
+    assert_eq!(
+        dir.entries(),
+        [
+            "src",
+            "src/lib.rs",
+            "src/m1_create_menu_table.rs",
+            "src/m2_create_shop_table.rs",
+        ]
+    );
+    let lib = fs::read_to_string(lib_path(&path)).unwrap();
+    assert!(!lib.contains("m1_create_shop_table"), "{lib}");
+    assert_eq!(lib.matches("m2_create_shop_table").count(), 2, "{lib}");
+    assert_eq!(lib.matches("m1_create_menu_table").count(), 2, "{lib}");
 }

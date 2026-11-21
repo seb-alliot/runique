@@ -21,7 +21,10 @@ pub(super) fn extend_snapshot_content(ext_schema: &ParsedSchema) -> String {
 }
 
 fn records_lengths(path: &str) -> Result<bool> {
-    Ok(fs::read_to_string(path)?.starts_with(SNAPSHOT_LENGTHS_MARKER))
+    Ok(has_marker(
+        &fs::read_to_string(path)?,
+        SNAPSHOT_LENGTHS_MARKER,
+    ))
 }
 
 /// Snapshots written before column lengths were recorded, for tables this

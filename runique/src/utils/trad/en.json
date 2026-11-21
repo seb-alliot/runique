@@ -591,7 +591,9 @@
     "applied_unknown": "These migrations are recorded in the database but missing from lib.rs:\n  {}\nThis database belongs to another project, or migration files were deleted. Nothing was written.",
     "snapshot_unreadable": "The snapshot {} is unreadable or is not a snapshot. Nothing was written.",
     "snapshot_misnamed": "The snapshot {} describes the table `{}`: its file name must be the table's. Nothing was written.",
-    "duplicate_table": "Two tables are named `{}`. A list field's table is named `<owner table>_<field>`: rename the field or the other table."
+    "duplicate_table": "Two tables are named `{}`. A list field's table is named `<owner table>_<field>`: rename the field or the other table.",
+    "waiting_removed": "{} pending migration(s) removed: your models match their snapshots again.",
+    "waiting_unchanged": "{} pending migration(s), unchanged: nothing was rewritten."
   },
   "atomic": {
     "reserved_name": "{}: a name Runique keeps for itself",

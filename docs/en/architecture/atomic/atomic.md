@@ -12,7 +12,8 @@ You never call this mechanism yourself. This page explains what it does, the fil
 | --- | --- | --- |
 | `runique new` | every file of the project, the `migration/` crate and the `.env` | in the project's folder |
 | `runique makemigrations`, first run | the `migration/` crate when the project has none | in `migration/` |
-| `runique makemigrations` | the migrations, the snapshots and `lib.rs` | in `migration/src/` |
+| `runique makemigrations` | the migrations, the removal of those it replaces, and `lib.rs` | in `migration/src/` |
+| `runique migration up`, once applied | the snapshots of the changed tables and the removal of the migrations' tag | in `migration/src/` |
 | file uploads (`FileField`, `MediaField`) | the files of one request | none |
 
 ---

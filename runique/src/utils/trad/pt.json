@@ -571,7 +571,9 @@
     "applied_unknown": "Estas migrações estão registradas no banco de dados, mas ausentes de lib.rs:\n  {}\nEste banco pertence a outro projeto, ou arquivos de migração foram excluídos. Nada foi escrito.",
     "snapshot_unreadable": "O snapshot {} está ilegível ou não é um snapshot. Nada foi escrito.",
     "snapshot_misnamed": "O snapshot {} descreve a tabela `{}`: o nome do arquivo deve ser o da tabela. Nada foi escrito.",
-    "duplicate_table": "Duas tabelas se chamam `{}`. A tabela de um campo de lista se chama `<tabela do modelo>_<campo>`: renomeie o campo ou a outra tabela."
+    "duplicate_table": "Duas tabelas se chamam `{}`. A tabela de um campo de lista se chama `<tabela do modelo>_<campo>`: renomeie o campo ou a outra tabela.",
+    "waiting_removed": "{} migração(ões) pendente(s) removida(s): seus modelos voltaram a corresponder aos snapshots.",
+    "waiting_unchanged": "{} migração(ões) pendente(s), inalterada(s): nada foi reescrito."
   },
   "atomic": {
     "reserved_name": "{}: este nome está reservado ao Runique",

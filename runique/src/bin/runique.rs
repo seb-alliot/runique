@@ -57,6 +57,8 @@ enum Commands {
 enum MigrateAction {
     /// Apply every pending migration
     Up {
+        #[arg(long, default_value = "src/entities")]
+        entities: String,
         #[arg(long, default_value = "migration/src")]
         migrations: String,
     },
@@ -91,7 +93,10 @@ async fn main() -> Result<()> {
         Commands::CreateSuperuser => create_superuser().await?,
         Commands::Test { file, test } => run_tests(file.as_deref(), test.as_deref())?,
         Commands::Migration { action } => match action {
-            MigrateAction::Up { migrations } => migrate::up(&migrations).await?,
+            MigrateAction::Up {
+                entities,
+                migrations,
+            } => migrate::up(&entities, &migrations).await?,
             MigrateAction::Down { n, migrations } => migrate::down(&migrations, n).await?,
             MigrateAction::Status { migrations } => migrate::status(&migrations).await?,
         },

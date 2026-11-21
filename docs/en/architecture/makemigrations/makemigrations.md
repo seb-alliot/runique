@@ -18,7 +18,7 @@ The `runique makemigrations` command bridges your Rust entities (`model!{}`, `ex
 
 ### Pass 2: diff and snapshots
 
-Runique keeps the last state of each table in `migration/src/snapshots/`, as a migration file read back on every run. The diff detects:
+Runique keeps in `migration/src/snapshots/` the state of each table **as it was applied**, as a migration file read back on every run. That file is written by `runique migration up`, once the migration is applied; `makemigrations` never writes it. The diff detects:
 
 - added tables, and added or dropped columns. A table whose model is gone isn't detected (see [the limits](/docs/en/installation/migrations));
 - **column renames** through `[renamed_from: "old"]`: a `RENAME COLUMN` instead of a `DROP` + `ADD` (without that hint, the non-interactive tool can't guess the intent);
@@ -62,7 +62,7 @@ The passes above only *compute* an in-memory plan — nothing is written until t
    The check covers both `model!{}` and `extend!{}` changes.
 
    > **Exception — column type change**: `--force` unblocks the command, but **never** generates the real `ALTER` for a type change (`String → Decimal`, etc.). The generated file only contains a `// Manual migration required.` comment — write it yourself. The console says so in yellow after the generation, column by column. The other destructive categories generate the real SQL as soon as `--force` is passed. This exception is deliberate: a generic type conversion has no reliable cross-engine cast rule (Postgres needs an explicit `USING`, MySQL converts according to its SQL mode, SQLite doesn't support `ALTER COLUMN TYPE` at all).
-2. **Protected writing**: the migrations, the snapshots, `lib.rs` and the folders created for them are written as one batch. On a write error, everything is undone: the generated files are removed, the existing snapshots and `lib.rs` go back to their previous state. A hard stop (power cut, `kill -9`) is repaired by the next run, from the journal left in `migration/src/`. See [Atomic file writes](/docs/en/architecture/atomic).
+2. **Protected writing**: the migrations, `lib.rs` and the folders created for them are written as one batch, together with the removal of the pending migrations being replaced. On a write error, everything is undone: the generated files are removed, the replaced migrations and `lib.rs` go back to their previous state. A hard stop (power cut, `kill -9`) is repaired by the next run, from the journal left in `migration/src/`. See [Atomic file writes](/docs/en/architecture/atomic).
 
 ---
 
@@ -73,6 +73,19 @@ The passes above only *compute* an in-memory plan — nothing is written until t
 Since 4.1, the command **connects to the database first** (the one of the `.env`, as the app does) and stops with an error when it doesn't answer, before anything is read or written. It writes nothing there: only `runique migration up` applies a migration.
 
 It reads there the list of applied migrations (`seaql_migrations`): when one of them is unknown to `lib.rs`, the command stops before anything is computed. A database that applied nothing yet (no such table) is a normal case.
+
+## Running again before applying
+
+Until `runique migration up` has run, the migrations written are **pending** (they carry the line `// runique: waiting migrate up`) and their tables have no snapshot. Running `makemigrations` again therefore starts from the same snapshots and computes the whole gap to the models again:
+
+- **nothing changed**: the result is the same migrations, no file is rewritten;
+- **a model changed**: the pending migrations are removed and replaced by the new result. They don't pile up: a table created then changed before being applied gives a single, complete creation;
+- **the change was taken back** (the models match the snapshots again): the pending migrations are removed, with their line in `lib.rs`;
+- **the run is refused** (a destructive change without `--force`): nothing is written, what was pending stays as it was.
+
+A migration already applied is never replaced.
+
+> A pending migration edited by hand is overwritten by the next run. If a migration must be written by hand, apply it before running `makemigrations` again.
 
 The trade-off: a snapshot means "already migrated". Snapshots copied from another project without their migration files make `makemigrations` believe the tables exist; it then writes nothing for them.
 

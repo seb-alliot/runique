@@ -69,6 +69,20 @@ pub fn seaorm_extend_file_path(migrations_path: &str, timestamp: &str, table: &s
     )
 }
 
+/// The table a generated migration module changes, and whether it is an
+/// `extend!{}` one. `None` for a module Runique didn't name.
+pub fn migration_target(module: &str) -> Option<(bool, &str)> {
+    // `m{date}_{time}_{kind}_{table}_table`
+    let rest = module.strip_prefix('m')?.splitn(3, '_').nth(2)?;
+    let rest = rest.strip_suffix("_table")?;
+    if let Some(table) = rest.strip_prefix("extend_") {
+        return Some((true, table));
+    }
+    rest.strip_prefix("create_")
+        .or_else(|| rest.strip_prefix("alter_"))
+        .map(|table| (false, table))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -169,5 +183,43 @@ mod tests {
         let dir = snapshot_dir(BASE);
         let file = snapshot_file_path(BASE, TABLE);
         assert!(file.starts_with(&dir));
+    }
+
+    // ── migration_target ─────────────────────────────────────────────────────
+
+    // The module names are read back to the table they were built from.
+    #[test]
+    fn a_generated_module_names_its_table() {
+        assert_eq!(
+            migration_target(&seaorm_create_module_name(TS, "menus")),
+            Some((false, "menus"))
+        );
+        assert_eq!(
+            migration_target(&seaorm_alter_module_name(TS, "menu_du_jour")),
+            Some((false, "menu_du_jour"))
+        );
+        assert_eq!(
+            migration_target(&seaorm_extend_module_name(TS, TABLE)),
+            Some((true, TABLE))
+        );
+        // The kind is read first: a table may be named after another kind.
+        assert_eq!(
+            migration_target(&seaorm_create_module_name(TS, "alter_log")),
+            Some((false, "alter_log"))
+        );
+    }
+
+    #[test]
+    fn a_module_runique_did_not_name_has_no_target() {
+        for module in [
+            "m20250218_143000_seed_menus_table",
+            "m20250218_143000_create_menus",
+            "20250218_143000_create_menus_table",
+            "m20250218_create_menus_table",
+            "create_menus_table",
+            "",
+        ] {
+            assert_eq!(migration_target(module), None, "{module}");
+        }
     }
 }

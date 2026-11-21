@@ -53,12 +53,16 @@ The files are written as one batch. A run a power cut interrupted is repaired by
 ## `runique migration up | down | status`
 
 ```bash
-runique migration up [--migrations migration/src]
+runique migration up [--entities src/entities] [--migrations migration/src]
 runique migration down [-n 1] [--migrations migration/src]
 runique migration status [--migrations migration/src]
 ```
 
 Runs the project's `migration` crate (`cargo run` on `migration/Cargo.toml`), which reads `DATABASE_URL` from `.env`. `sea-orm-cli` isn't needed: the SeaORM version that applies the migrations is the one `migration/Cargo.toml` pins, the same as runique's.
+
+Once `up` succeeded, Runique records what was just applied, as one batch of files: every pending migration loses its `// runique: waiting migrate up` line, and the snapshot of each table it changes is written from its model (`--entities`). A model with no applied migration gets no snapshot. With no pending migration (a server applying migrations already run elsewhere), the models folder isn't read and nothing is written.
+
+> Don't change a model between `runique makemigrations` and `runique migration up`: the snapshot is written from the model as it is when the migration is applied, and would be ahead of the database.
 
 These three commands refuse to start as long as an interrupted `makemigrations` hasn't been repaired: run `runique makemigrations` again first.
 
