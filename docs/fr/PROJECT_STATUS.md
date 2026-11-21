@@ -2,7 +2,7 @@
 
 Ce qui reste à faire pour les deux prochaines versions. Un élément peut passer d'une version à l'autre en cours de route, s'il faut les livrer ensemble. La suite du projet est dans la [feuille de route](https://github.com/seb-alliot/runique/blob/main/ROADMAP.fr.md).
 
-**Dernière mise à jour** : 20 novembre 2026
+**Dernière mise à jour** : 21 novembre 2026
 
 ## 4.1 : infrastructure base de données (en cours)
 
@@ -10,12 +10,15 @@ Ce qui reste à faire pour les deux prochaines versions. Un élément peut passe
 
 | État | Étape |
 |:---:|---|
-| ✓ | Plan, validation, commit ou rollback atomique, snapshots |
+| ✓ | Plan, validation, commit ou rollback atomique |
 | ✓ | Renommage simple d'une colonne (`renamed_from`) |
 | ✓ | Refus sans `--force` des opérations destructives : `DROP COLUMN`, changement de type, nullable vers `NOT NULL`, longueur ou décimale réduite, `DROP FK`, nouvelle FK `CASCADE` |
 | ✓ | Limite de longueur des noms d'index et de clés étrangères : refus au-delà de 63 caractères, sur tous les moteurs |
-| ☐ | Connexion à la base avant tout calcul : `makemigrations` s'arrête avec une erreur si elle ne répond pas |
-| ☐ | Migration générée marquée « en attente » : relancé avant qu'elle soit appliquée, `makemigrations` la recalcule au lieu d'en empiler une autre |
+| ✓ | Connexion à la base avant tout calcul : `makemigrations` s'arrête avec une erreur si elle ne répond pas |
+| ✓ | Refus d'une base qui ne correspond pas au projet : une migration inscrite en base et absente de `lib.rs` arrête la commande |
+| ✓ | Contrôle des snapshots avant tout calcul : un snapshot illisible, ou nommé autrement que sa table, arrête la commande |
+| ✓ | Migration générée marquée « en attente » : relancé avant qu'elle soit appliquée, `makemigrations` la recalcule au lieu d'en empiler une autre |
+| ☐ | Deux modifications parallèles d'une même table : refus, avec les tables concernées |
 | ☐ | Suppression de table quand le modèle disparaît : refus sans `--force`, `DROP TABLE IF EXISTS` dans `up`, recréation dans `down`, ordre inverse des FK, types enum retirés quand plus aucune colonne ne s'en sert |
 | ☐ | `managed: false` dans le `meta` d'un modèle : `makemigrations` ne génère et ne supprime plus rien pour sa table |
 | ☐ | Renommage de table et de champ liste (`rename_to`) |
@@ -35,7 +38,8 @@ Ce qui reste à faire pour les deux prochaines versions. Un élément peut passe
 | État | Étape |
 |:---:|---|
 | ☐ | `migration up` en tout ou rien : si une migration échoue, aucune de celles du lancement ne reste appliquée (transaction sous PostgreSQL et SQLite, compensation sous MySQL) |
-| ☐ | Snapshots écrits à l'application : mis à jour par `migration up` une fois le lancement réussi, ramenés en arrière par `migration down` |
+| ✓ | Snapshots écrits à l'application : `makemigrations` n'en écrit plus, `migration up` écrit celui de chaque table touchée une fois le lancement réussi et retire la marque « en attente » |
+| ☐ | Snapshots ramenés en arrière par `migration down` |
 | ☐ | Tables déjà présentes en base sans être inscrites : vérifiées, puis inscrites sans être recréées |
 | ☐ | `migration down` : défait la dernière migration, sans rien laisser à moitié fait, et supprime la migration générée ; retire aussi une migration générée et pas encore appliquée |
 | ☐ | `makemigrations` et `migration up` ne peuvent pas tourner en même temps |
