@@ -95,10 +95,7 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
             println!("{}", tf("makemigrations.snapshots_upgraded", &[upgraded]));
         }
         if !waiting.is_empty() {
-            println!(
-                "{}",
-                tf("makemigrations.waiting_removed", &[waiting.len()])
-            );
+            println!("{}", tf("makemigrations.waiting_removed", &[waiting.len()]));
         }
         // Silent, a run looked like it did nothing at all; the framework's
         // tables may still be waiting to be applied.

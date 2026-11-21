@@ -84,9 +84,7 @@ pub(crate) type ReplacedFiles = Vec<(String, String)>;
 /// its form empty and fills it with the upload: the row alone knows.
 pub(crate) async fn write_replacing_uploads(
     forms: &mut Forms,
-    write: impl Future<
-        Output = Result<(sea_orm::DatabaseTransaction, ReplacedFiles), sea_orm::DbErr>,
-    >,
+    write: impl Future<Output = Result<(sea_orm::DatabaseTransaction, ReplacedFiles), sea_orm::DbErr>>,
 ) -> Result<(), sea_orm::DbErr> {
     let result = async {
         let (txn, replaced) = write.await?;
@@ -638,7 +636,9 @@ impl Forms {
     /// Whether a field of the form is saving an upload and removes the stored
     /// file it replaces: an update then reads what the row held.
     pub(crate) fn awaits_replaced_file(&self) -> bool {
-        self.fields.values().any(|field| field.awaits_replaced_file())
+        self.fields
+            .values()
+            .any(|field| field.awaits_replaced_file())
     }
 
     /// Takes back the files `publish_uploads` moved, for a write that did not
