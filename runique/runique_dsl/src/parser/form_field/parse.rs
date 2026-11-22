@@ -8,6 +8,7 @@ use syn::{
 };
 
 use super::size::parse_size;
+use crate::parser::sql_identifier::validate_renamed_from;
 use super::suggest_type::suggest_form_field_type;
 use super::validate_attrs::validate_form_field_attrs;
 
@@ -203,6 +204,7 @@ impl Parse for FormFieldDecl {
                     "renamed_from" => {
                         attrs_content.parse::<Token![:]>()?;
                         let s: LitStr = attrs_content.parse()?;
+                        validate_renamed_from(&s)?;
                         FormFieldAttr::RenamedFrom(s.value())
                     }
                     other => {
@@ -243,7 +245,8 @@ impl Parse for FormFieldDecl {
 }
 
 /// A list field draws from an enum and has no column of its own: an empty
-/// list already says "none", so column attributes don't apply.
+/// list already says "none", so column attributes don't apply. `renamed_from`
+/// does: it names the field's table, for the migrations.
 fn validate_list(name: &Ident, kind_ident: &Ident, attrs: &[FormFieldAttr]) -> Result<()> {
     if !attrs.iter().any(|a| matches!(a, FormFieldAttr::EnumRef(_))) {
         return Err(syn::Error::new(
@@ -254,12 +257,15 @@ fn validate_list(name: &Ident, kind_ident: &Ident, attrs: &[FormFieldAttr]) -> R
     for attr in attrs {
         if !matches!(
             attr,
-            FormFieldAttr::Required | FormFieldAttr::EnumRef(_) | FormFieldAttr::Label(_)
+            FormFieldAttr::Required
+                | FormFieldAttr::EnumRef(_)
+                | FormFieldAttr::Label(_)
+                | FormFieldAttr::RenamedFrom(_)
         ) {
             return Err(syn::Error::new(
                 name.span(),
                 format!(
-                    "field `{name}`: `{}` isn't valid on a `{kind_ident}` list — only `required`, `enum(...)` and `label` are",
+                    "field `{name}`: `{}` isn't valid on a `{kind_ident}` list — only `required`, `enum(...)`, `label` and `renamed_from` are",
                     super::attr_name::attr_name_str(attr)
                 ),
             ));

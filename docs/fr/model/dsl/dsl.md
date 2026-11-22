@@ -17,7 +17,7 @@ Le parseur attend les blocs **dans cet ordre strict** (les blocs optionnels peuv
 ```rust
 model! {
     NomModele,              // 1. Nom (PascalCase)
-    table: "nom_table",     // 2. Nom de la table SQL
+    table: "nom_table",     // 2. Nom de la table SQL (suivi au besoin de renamed_from: "ancien_nom",)
     pk: champ => type,      // 3. Clé primaire
     enums: { ... },         // 4. Optionnel — enums locaux
     { ... },                // 5. Champs — bloc anonyme, types sémantiques
@@ -214,7 +214,7 @@ username: text [required, max_length: 150, unique],
 | `max_size: n MB`         | Champ fichier — taille max (`KB`/`MB`/`GB`)                      |
 | `rows: n`                | `textarea` / `richtext` / `json` — hauteur du widget             |
 | `enum(NomEnum)`          | Lie le champ à un enum déclaré dans `enums:`                     |
-| `renamed_from: "x"`      | Renomme la colonne (voir plus bas)                                |
+| `renamed_from: "x"`      | Renomme la colonne, ou le champ liste (voir plus bas)             |
 | `skip`                   | Exclu des formulaires générés                                    |
 | `no_hash`                | Champs `password` uniquement — désactive le hachage automatique  |
 
@@ -301,6 +301,44 @@ migration uniquement : il n'a aucun effet sur l'entité ou le formulaire génér
 l'ancienne colonne existe toujours dans le snapshot (hint périmé), aucun rename n'est émis.
 
 Fonctionne aussi bien dans `model!{}` que dans `extend!{}`.
+
+### Renommer une table ou un champ liste — `renamed_from`
+
+Le même mot sert aux tables. Vous écrivez le **nouveau** nom, et `renamed_from` dit comment la
+table s'appelait :
+
+```rust
+// avant :  table: "magasin",
+// après :
+model! {
+    Magasin,
+    table: "boulangerie", renamed_from: "magasin",
+    pk: id => i32,
+    { ... }
+}
+```
+
+`renamed_from` se place juste après `table:`, avant `pk:`. `makemigrations` génère alors un
+renommage de table, sans perte de données et sans `--force`. Sans lui, changer `table:` revient à
+supprimer l'ancienne table et à en créer une autre : c'est bloqué sans `--force`.
+
+Un champ liste (`checkbox`, `multichoice`) range ses valeurs dans une table nommée
+`<table>_<champ>`. Elle suit toute seule le renommage de la table du modèle. Pour renommer le
+champ lui-même, même attribut que pour une colonne :
+
+```rust
+// avant :  genres: checkbox [enum(Genre)],
+// après :
+styles: checkbox [enum(Genre), renamed_from: "genres"],
+```
+
+Les autres modèles n'ont rien à changer : un `belongs_to` désigne le fichier du modèle, pas le nom
+de sa table. Le détail de ce que fait la migration est dans
+[Renommer une table](/docs/fr/architecture/makemigrations).
+
+L'ancien nom n'accepte que des lettres, des chiffres et `_` ; une table `eihwaz_*` ne peut pas
+être renommée. Une fois le renommage appliqué par `runique migration up`, la directive ne fait
+plus rien : le snapshot porte le nouveau nom.
 
 ---
 

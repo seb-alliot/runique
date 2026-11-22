@@ -28,10 +28,24 @@ pub fn collect_long_identifier_messages(all_changes: &[Changes]) -> Vec<String> 
                 ));
             }
         }
+        for key in &change.renames.keys {
+            let name = format!(
+                "{}_{}_{}_fkey",
+                change.table_name, key.key.from_column, key.key.to_table
+            );
+            if name.len() > MAX_LEN {
+                messages.push(format!(
+                    "  {name} ({len} characters, max {MAX_LEN}) — shorten the table name, '{col}', or the target table name",
+                    len = name.len(),
+                    col = key.key.from_column,
+                ));
+            }
+        }
         for idx in change
             .added_indexes
             .iter()
             .chain(change.dropped_indexes.iter())
+            .chain(change.renames.indexes.iter().map(|(_, new)| new))
         {
             if idx.name.len() > MAX_LEN {
                 messages.push(format!(

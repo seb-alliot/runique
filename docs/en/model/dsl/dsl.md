@@ -17,7 +17,7 @@ The parser expects blocks **in this strict order** (optional blocks may be absen
 ```rust
 model! {
     ModelName,              // 1. Name (PascalCase)
-    table: "table_name",   // 2. SQL table name
+    table: "table_name",   // 2. SQL table name (optionally followed by renamed_from: "old_name",)
     pk: field => type,     // 3. Primary key
     enums: { ... },        // 4. Optional — local enums
     { ... },               // 5. Fields — anonymous block, semantic types
@@ -213,7 +213,7 @@ username: text [required, max_length: 150, unique],
 | `max_size: n MB`          | File field — max size (`KB`/`MB`/`GB`)                             |
 | `rows: n`                 | `textarea` / `richtext` / `json` — widget height                   |
 | `enum(EnumName)`          | Binds the field to an enum declared in `enums:`                    |
-| `renamed_from: "x"`       | Renames the column (see below)                                     |
+| `renamed_from: "x"`      | Renames the column, or the list field (see below)                 |
 | `skip`                    | Excluded from generated forms                                      |
 | `no_hash`                 | `password` fields only — disables automatic hashing                |
 
@@ -296,6 +296,44 @@ directive: it has no effect on the generated entity or form. Guard: if the old c
 exists in the snapshot (stale hint), no rename is emitted.
 
 Works in both `model!{}` and `extend!{}`.
+
+### Renaming a table or a list field — `renamed_from`
+
+The same word is used for tables. You write the **new** name, and `renamed_from` says what the
+table used to be called:
+
+```rust
+// before:  table: "shop",
+// after:
+model! {
+    Shop,
+    table: "bakery", renamed_from: "shop",
+    pk: id => i32,
+    { ... }
+}
+```
+
+`renamed_from` goes right after `table:`, before `pk:`. `makemigrations` then generates a table
+rename, with no data loss and without `--force`. Without it, changing `table:` amounts to dropping
+the old table and creating another one: it is blocked without `--force`.
+
+A list field (`checkbox`, `multichoice`) stores its values in a table named `<table>_<field>`.
+It follows the rename of the model's table by itself. To rename the field itself, use the same
+attribute as for a column:
+
+```rust
+// before:  genres: checkbox [enum(Genre)],
+// after:
+styles: checkbox [enum(Genre), renamed_from: "genres"],
+```
+
+The other models have nothing to change: a `belongs_to` names the model's file, not its table.
+What the migration does is detailed in
+[Renaming a table](/docs/en/architecture/makemigrations).
+
+The former name only takes letters, digits and `_`; an `eihwaz_*` table can't be renamed. Once
+the rename is applied by `runique migration up`, the directive does nothing any more: the
+snapshot carries the new name.
 
 ---
 

@@ -40,7 +40,7 @@ pub(crate) use snapshot::previous_snapshot;
 
 use plan::{
     Plan, build_drop_plan, build_extend_plan, build_main_plan, commit_plan,
-    compute_main_changes, dropped_tables,
+    compute_main_changes, dropped_tables, effective_renames,
     check_parallel, plan_extend_changes, replace_waiting, settled_migrations,
     waiting_migrations,
 };
@@ -56,7 +56,11 @@ use snapshot::snapshot_upgrades;
 /// from the same snapshots and its result takes the place of the migrations
 /// still waiting, instead of piling on them.
 pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()> {
-    let ScannedEntities { schemas, paused } = scan_models(entities_path)?;
+    let ScannedEntities {
+        schemas,
+        paused,
+        renames,
+    } = scan_models(entities_path)?;
     if !paused.is_empty() {
         println!("{}", tf("makemigrations.paused_tables", &[paused.join(", ")]));
     }
@@ -73,10 +77,17 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
 
     // ── Plan everything up front — nothing is written until the full plan
     //    (main models + extend!{} blocks) is computed and validated.
-    let mut main_changes = compute_main_changes(&schemas, migrations_path)?;
+    let renames = effective_renames(&renames, &schemas, &paused, migrations_path)?;
+    let mut main_changes = compute_main_changes(&schemas, &renames, migrations_path)?;
     let extend_planned = plan_extend_changes(entities_path, migrations_path)?;
-    // A table Runique migrated that no model produces any more.
-    let dropped = dropped_tables(migrated, &schemas, &paused);
+    // A table Runique migrated that no model produces any more. A paused
+    // table stays, and so does the former name of a renamed one.
+    let kept: Vec<String> = paused
+        .iter()
+        .chain(renames.iter().map(|(old, _)| old))
+        .cloned()
+        .collect();
+    let dropped = dropped_tables(migrated, &schemas, &kept);
 
     let upgrades = snapshot_upgrades(
         entities_path,
@@ -123,6 +134,7 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
 
     // referenced tables created before those referencing them
     main_changes = topological_sort_changes(main_changes);
+    settle_renamed_keys(&mut main_changes)?;
 
     // ── Build a single unified plan (no writing) ──────────────────────────
     let settled = settled_migrations(migrations_path, &waiting)?;

@@ -10,7 +10,7 @@ use crate::atomic::{AtomicBuilder, SourceItems};
 use crate::db::DatabaseConfig;
 use crate::migration::{
     WAIT_MIGRATION, dropped_table, extend_snapshot_file_path, generate_snapshot_file,
-    has_marker, migration_target, snapshot_file_path, without_marker,
+    has_marker, migration_target, renamed_table, snapshot_file_path, without_marker,
 };
 use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result};
@@ -33,13 +33,19 @@ pub async fn up(entities_path: &str, migrations_path: &str) -> Result<()> {
 pub fn record_applied(entities_path: &str, migrations_path: &str) -> Result<()> {
     let mut files: Vec<(PathBuf, String)> = Vec::new();
     let mut targets: Vec<(bool, String)> = Vec::new();
-    // Tables an applied migration dropped: their snapshot goes.
+    // Tables an applied migration dropped, and former names of the ones it
+    // renamed: their snapshot goes.
     let mut gone: Vec<String> = Vec::new();
     for module in lib_modules(migrations_path)? {
         let path = Path::new(migrations_path).join(format!("{module}.rs"));
         if let Ok(content) = fs::read_to_string(&path)
             && has_marker(&content, WAIT_MIGRATION)
         {
+            // A table renamed by this migration: the snapshot of its
+            // former name goes, the new one is written below.
+            if let Some(old) = renamed_table(&content) {
+                gone.push(old.to_string());
+            }
             files.push((path, without_marker(&content, WAIT_MIGRATION)));
 
             if let Some(table) = dropped_table(&module) {

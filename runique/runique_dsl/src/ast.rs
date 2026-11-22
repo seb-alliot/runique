@@ -52,6 +52,9 @@ pub struct EnumDef {
 pub struct ModelInput {
     pub name: syn::Ident,
     pub table: String,
+    /// `renamed_from: "old"` after `table:` — migration-only: the table used
+    /// to be called that. The macro ignores it.
+    pub renamed_from: Option<String>,
     pub pk: PkDef,
     pub enums: Vec<EnumDef>,
     pub fields: Vec<FieldDef>,

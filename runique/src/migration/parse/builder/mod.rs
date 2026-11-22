@@ -4,7 +4,7 @@
 mod to_schema;
 
 use anyhow::{Result, bail};
-use runique_dsl::ast::ModelInput;
+use runique_dsl::ast::{FormFieldAttr, ModelInput};
 use syn::visit::Visit;
 
 pub(crate) use to_schema::decl_to_column;
@@ -56,6 +56,10 @@ pub struct ParsedModel {
     pub schema: ParsedSchema,
     pub lists: Vec<ParsedSchema>,
     pub managed: bool,
+    /// What `renamed_from` declares, as (former table, table): the model's
+    /// own table, and the table of each list field, which is named after
+    /// both and so follows either rename.
+    pub renames: Vec<(String, String)>,
 }
 
 /// Parses the `model!{}` invocation of a Rust source file and returns the
@@ -88,7 +92,34 @@ pub fn parse_model_from_source(source: &str) -> Result<Option<ParsedModel>> {
             name: pascal_to_snake(&model.name.to_string()),
             lists: list_tables(&model, &schema),
             managed: model.meta.as_ref().is_none_or(|meta| meta.managed),
+            renames: declared_renames(&model),
             schema,
         }
     }))
+}
+
+/// The table renames `model` declares: see [`ParsedModel::renames`].
+fn declared_renames(model: &ModelInput) -> Vec<(String, String)> {
+    let former_table = model.renamed_from.as_deref().unwrap_or(&model.table);
+    let mut renames: Vec<(String, String)> = Vec::new();
+    if former_table != model.table {
+        renames.push((former_table.to_string(), model.table.clone()));
+    }
+    for decl in &model.lists {
+        let name = decl.name.to_string();
+        let former_field = decl
+            .attrs
+            .iter()
+            .find_map(|a| match a {
+                FormFieldAttr::RenamedFrom(old) => Some(old.as_str()),
+                _ => None,
+            })
+            .unwrap_or(&name);
+        let former = format!("{former_table}_{former_field}");
+        let now = format!("{}_{}", model.table, name);
+        if former != now {
+            renames.push((former, now));
+        }
+    }
+    renames
 }

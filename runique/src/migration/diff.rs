@@ -221,6 +221,7 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
         added_columns,
         dropped_columns,
         modified_columns,
+        renames: Default::default(),
         renamed_columns,
         added_fks,
         dropped_fks,

@@ -589,7 +589,9 @@
     "waiting_removed": "{} ausstehende Migration(en) entfernt: Ihre Modelle entsprechen wieder ihren Snapshots.",
     "waiting_unchanged": "{} ausstehende Migration(en), unverändert: Es wurde nichts neu geschrieben.",
     "parallel_changes": "Zwei Migrationen gehen für dieselbe Tabelle vom selben Punkt aus:\n  {}\nSie wurden parallel geschrieben: Runique kann nicht wissen, welcher die Tabelle folgen soll. Es wurde nichts geschrieben.",
-    "paused_tables": "Pausierte Tabellen (`managed: false`), von makemigrations ignoriert: {}"
+    "paused_tables": "Pausierte Tabellen (`managed: false`), von makemigrations ignoriert: {}",
+    "rename_with_new_key": "Die Tabelle `{}` wird in diesem Lauf umbenannt und erhält gleichzeitig einen neuen Schlüssel auf `{}`, die im selben Lauf erstellt oder umbenannt wird. Gehen Sie in zwei Schritten vor: zuerst die Umbenennung, `runique migration up`, dann der Schlüssel.",
+    "renamed_twice": "Zwei Tabellen geben an, aus `{}` umbenannt worden zu sein: `{}` und `{}`. Aus einer Tabelle kann nur eine werden: Entfernen Sie eines der beiden `renamed_from`."
   },
   "atomic": {
     "reserved_name": "{}: Dieser Name ist Runique vorbehalten",

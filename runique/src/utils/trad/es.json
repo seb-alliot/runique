@@ -589,7 +589,9 @@
     "waiting_removed": "{} migración(es) pendiente(s) eliminada(s): sus modelos vuelven a coincidir con sus snapshots.",
     "waiting_unchanged": "{} migración(es) pendiente(s), sin cambios: no se ha reescrito nada.",
     "parallel_changes": "Dos migraciones parten del mismo punto para la misma tabla:\n  {}\nSe escribieron en paralelo: Runique no puede saber cuál debe seguir la tabla. No se ha escrito nada.",
-    "paused_tables": "Tablas en pausa (`managed: false`), ignoradas por makemigrations: {}"
+    "paused_tables": "Tablas en pausa (`managed: false`), ignoradas por makemigrations: {}",
+    "rename_with_new_key": "La tabla `{}` se renombra en esta ejecución y recibe al mismo tiempo una nueva clave hacia `{}`, creada o renombrada en esta misma ejecución. Hágalo en dos pasos: primero el renombrado, `runique migration up`, y después la clave.",
+    "renamed_twice": "Dos tablas dicen haber sido renombradas desde `{}`: `{}` y `{}`. Una tabla solo puede convertirse en una: retire uno de los dos `renamed_from`."
   },
   "atomic": {
     "reserved_name": "{}: este nombre está reservado a Runique",

@@ -175,6 +175,89 @@ pub(super) fn push_create_fk(
     ));
 }
 
+/// `Table::rename()` from `from` to `to`.
+pub(super) fn push_rename_table(buf: &mut String, from: &str, to: &str) {
+    buf.push_str(&format!(
+        "        manager\n            .rename_table(\n                Table::rename()\n                    .table(Alias::new(\"{from}\"), Alias::new(\"{to}\"))\n                    .to_owned(),\n            )\n            .await?;\n\n"
+    ));
+}
+
+/// The key `fk` of `table` takes the name of `named_for`'s tables in place of
+/// `old_name`. It points to `target`, the name its target has at that moment.
+pub(super) fn push_rename_fk(
+    buf: &mut String,
+    table: &str,
+    old_name: &str,
+    named_for: (&str, &str),
+    fk: &ParsedFk,
+    target: &str,
+) {
+    buf.push_str(&format!(
+        "        runique::migration::runtime::rename_foreign_key(\n            manager,\n            \"{table}\",\n            \"{old_name}\",\n            ForeignKey::create()\n                .name(\"{new_name}\")\n                .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                .to(Alias::new(\"{target}\"), Alias::new(\"{to_col}\"))\n                .on_delete(ForeignKeyAction::{on_delete})\n                .on_update(ForeignKeyAction::{on_update})\n                .to_owned(),\n        )\n        .await?;\n\n",
+        new_name = fk_constraint_name(named_for.0, &fk.from_column, named_for.1),
+        from = fk.from_column,
+        to_col = fk.to_column,
+        on_delete = fk.on_delete,
+        on_update = fk.on_update,
+    ));
+}
+
+/// An index of `table` whose name was built for `named_for`, the name the
+/// table had or will have: the MySQL check of a key's own index looks for
+/// the name of that table, and asks the database about the table as it is
+/// called while the statement runs.
+pub(super) fn push_create_index_named_for(
+    buf: &mut String,
+    table: &str,
+    named_for: &str,
+    idx: &ParsedIndex,
+) {
+    let stmt = render_create_index_stmt(table, &idx.name, &idx.columns, idx.unique);
+    match fk_index_column(named_for, idx) {
+        Some(col) => buf.push_str(&unless_mysql_fk(table, col, &stmt)),
+        None => buf.push_str(&stmt),
+    }
+    buf.push('\n');
+}
+
+pub(super) fn push_drop_index_named_for(
+    buf: &mut String,
+    table: &str,
+    named_for: &str,
+    idx: &ParsedIndex,
+) {
+    let stmt = format!(
+        "        manager\n            .drop_index(Index::drop().name(\"{name}\").table(Alias::new(\"{table}\")).to_owned())\n            .await?;\n",
+        name = idx.name,
+    );
+    match fk_index_column(named_for, idx) {
+        Some(col) => buf.push_str(&unless_mysql_fk(table, col, &stmt)),
+        None => buf.push_str(&stmt),
+    }
+    buf.push('\n');
+}
+
+/// Removes the key `fk_name` of `table`: for a key still named after the
+/// table's former name.
+pub(super) fn push_drop_fk_named(buf: &mut String, table: &str, fk_name: &str) {
+    buf.push_str(&format!(
+        "        runique::migration::runtime::drop_foreign_key(manager, \"{table}\", \"{fk_name}\")\n            .await?;\n\n"
+    ));
+}
+
+/// Adds the key `fk` to `table` under `fk_name`: same use as
+/// [`push_drop_fk_named`], for the way back.
+pub(super) fn push_create_fk_named(buf: &mut String, table: &str, fk_name: &str, fk: &ParsedFk) {
+    buf.push_str(&format!(
+        "        runique::migration::runtime::add_foreign_key(\n            manager,\n            \"{table}\",\n            ForeignKey::create()\n                .name(\"{fk_name}\")\n                .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n                .on_delete(ForeignKeyAction::{on_delete})\n                .on_update(ForeignKeyAction::{on_update})\n                .to_owned(),\n        )\n        .await?;\n\n",
+        from = fk.from_column,
+        to_table = fk.to_table,
+        to_col = fk.to_column,
+        on_delete = fk.on_delete,
+        on_update = fk.on_update,
+    ));
+}
+
 pub(super) fn push_create_index(buf: &mut String, table: &str, idx: &ParsedIndex) {
     let stmt = render_create_index_stmt(table, &idx.name, &idx.columns, idx.unique);
     match fk_index_column(table, idx) {

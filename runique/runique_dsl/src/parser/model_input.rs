@@ -15,7 +15,7 @@ use syn::{
 };
 
 use super::form_field::form_field_to_field_def;
-use super::sql_identifier::validate_sql_identifier;
+use super::sql_identifier::{validate_renamed_from, validate_sql_identifier};
 
 /// `(fields, form_fields, lists, column_names)` — the SQL-level `FieldDef`s
 /// derived from each declaration, the raw declarations themselves (needed
@@ -33,6 +33,7 @@ type FieldsBlock = (
 struct ModelHeader {
     name: Ident,
     table: LitStr,
+    renamed_from: Option<String>,
     pk: PkDef,
 }
 
@@ -59,8 +60,24 @@ fn parse_header(input: ParseStream) -> Result<ModelHeader> {
     }
     input.parse::<Token![,]>()?;
 
-    // pk: id => i32,
-    let pk_kw: Ident = input.parse()?;
+    // renamed_from: "old_table",  — optional, then pk: id => i32,
+    let mut renamed_from = None;
+    let mut pk_kw: Ident = input.parse()?;
+    if pk_kw == "renamed_from" {
+        input.parse::<Token![:]>()?;
+        let old: LitStr = input.parse()?;
+        validate_renamed_from(&old)?;
+        // A framework table is never renamed into a model's.
+        if old.value().starts_with("eihwaz_") {
+            return Err(syn::Error::new(
+                old.span(),
+                "`eihwaz_` tables belong to the framework: a model's table can't be renamed from one",
+            ));
+        }
+        renamed_from = Some(old.value());
+        input.parse::<Token![,]>()?;
+        pk_kw = input.parse()?;
+    }
     if pk_kw != "pk" {
         return Err(syn::Error::new(pk_kw.span(), "Expected `pk:`"));
     }
@@ -68,7 +85,12 @@ fn parse_header(input: ParseStream) -> Result<ModelHeader> {
     let pk = PkDef::parse(input)?;
     input.parse::<Token![,]>()?;
 
-    Ok(ModelHeader { name, table, pk })
+    Ok(ModelHeader {
+        name,
+        table,
+        renamed_from,
+        pk,
+    })
 }
 
 /// Optional `enums: { Name [Variant, ...], ... }` block, right after the header.
@@ -315,6 +337,7 @@ impl Parse for ModelInput {
         Ok(ModelInput {
             name: header.name,
             table: header.table.value(),
+            renamed_from: header.renamed_from,
             pk: header.pk,
             enums,
             fields,
@@ -378,6 +401,71 @@ mod tests {
         model_ok(&format!(
             r#"Test, table: "tests", pk: id => i32, {BASE_FIELDS},"#
         ));
+    }
+
+    // `renamed_from` after `table:`: optional, a plain identifier, never a
+    // table of the framework. The macro only carries it.
+    #[test]
+    fn a_table_can_say_what_it_was_renamed_from() {
+        let with = parse_model(&format!(
+            r#"Test, table: "bakery", renamed_from: "shop", pk: id => i32, {BASE_FIELDS},"#
+        ))
+        .unwrap();
+        assert_eq!(with.table, "bakery");
+        assert_eq!(with.renamed_from.as_deref(), Some("shop"));
+
+        let without = parse_model(&format!(
+            r#"Test, table: "bakery", pk: id => i32, {BASE_FIELDS},"#
+        ))
+        .unwrap();
+        assert_eq!(without.renamed_from, None);
+    }
+
+    #[test]
+    fn a_table_renamed_from_anything_but_a_name_is_rejected() {
+        for old in ["../shop", "shop\"); //", "1shop", "", "sh op", "eihwaz_users"] {
+            model_err(&format!(
+                r#"Test, table: "bakery", renamed_from: {old:?}, pk: id => i32, {BASE_FIELDS},"#
+            ));
+        }
+        // Without its comma, or not a string.
+        model_err(&format!(
+            r#"Test, table: "bakery", renamed_from: "shop" pk: id => i32, {BASE_FIELDS},"#
+        ));
+        model_err(&format!(
+            r#"Test, table: "bakery", renamed_from: shop, pk: id => i32, {BASE_FIELDS},"#
+        ));
+    }
+
+    // A list field has no column, but a table named after it: it can say
+    // what it was called. Column attributes are still refused on it.
+    #[test]
+    fn a_list_field_can_say_what_it_was_renamed_from() {
+        model_ok(
+            r#"Book, table: "books", pk: id => i32, enums: { Tag: [A] }, { styles: checkbox [enum(Tag), renamed_from: "tags"] },"#,
+        );
+        model_ok(
+            r#"Book, table: "books", pk: id => i32, enums: { Tag: [A] }, { styles: multichoice [enum(Tag), renamed_from: "tags"] },"#,
+        );
+        model_err(
+            r#"Book, table: "books", pk: id => i32, enums: { Tag: [A] }, { styles: checkbox [enum(Tag), renamed_from: "../tags"] },"#,
+        );
+        model_err(
+            r#"Book, table: "books", pk: id => i32, enums: { Tag: [A] }, { styles: checkbox [enum(Tag), unique] },"#,
+        );
+    }
+
+    // On a field too the former name becomes a file name and generated code.
+    #[test]
+    fn a_field_renamed_from_anything_but_a_name_is_rejected() {
+        model_ok(
+            r#"Test, table: "tests", pk: id => i32, { name: text [renamed_from: "label"], },"#,
+        );
+        for old in ["../label", "la\"bel", "1label", ""] {
+            model_err(&format!(
+                r#"Test, table: "tests", pk: id => i32, {{ name: text [renamed_from: {old:?}], }},"#
+            ));
+        }
     }
 
     #[test]

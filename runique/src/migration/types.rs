@@ -62,6 +62,40 @@ pub struct ParsedIndex {
     pub unique: bool,
 }
 
+/// A foreign key that says what it said and changes its name, because the
+/// table it belongs to or the table it points to was renamed: constraint
+/// names hold both table names.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RenamedKey {
+    /// The key's table and target when the key got its current name.
+    pub old_table: String,
+    pub old_target: String,
+    /// The key as the model declares it now.
+    pub key: ParsedFk,
+    /// The target's name at the moment this migration runs: still its old one
+    /// when the target is renamed later in the same run. The key follows the
+    /// table once it is renamed.
+    pub target_at_run: String,
+}
+
+/// What a table rename (`renamed_from` after `table:`, or on a list field)
+/// brings to a table: its own rename, and the keys and indexes whose name
+/// follows it. A table that only points to a renamed one has `keys` alone.
+#[derive(Debug, Clone, Default)]
+pub struct TableRenames {
+    /// The table's former name.
+    pub from: Option<String>,
+    pub keys: Vec<RenamedKey>,
+    /// (as it is in the database, as it is named now)
+    pub indexes: Vec<(ParsedIndex, ParsedIndex)>,
+}
+
+impl TableRenames {
+    pub fn is_empty(&self) -> bool {
+        self.from.is_none() && self.keys.is_empty() && self.indexes.is_empty()
+    }
+}
+
 /// The set of DDL operations needed to bring a table from one [`ParsedSchema`]
 /// version to the next — the output of the diff step, consumed by the
 /// migration file generators to render `up`/`down` bodies.
@@ -74,6 +108,8 @@ pub struct Changes {
     /// Column renames via `[renamed_from: "old"]`: (old_name, new_name). Emitted as
     /// `ALTER TABLE … RENAME COLUMN` (PG/MySQL/SQLite all support it).
     pub renamed_columns: Vec<(String, String)>,
+    /// The table rename this change carries or follows.
+    pub renames: TableRenames,
     pub added_fks: Vec<ParsedFk>,
     pub dropped_fks: Vec<ParsedFk>,
     pub added_indexes: Vec<ParsedIndex>,
@@ -96,6 +132,7 @@ impl Changes {
             && self.dropped_columns.is_empty()
             && self.modified_columns.is_empty()
             && self.renamed_columns.is_empty()
+            && self.renames.is_empty()
             && self.added_fks.is_empty()
             && self.dropped_fks.is_empty()
             && self.added_indexes.is_empty()

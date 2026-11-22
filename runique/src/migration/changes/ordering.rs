@@ -4,7 +4,9 @@
 /// tables it references, ties broken by name so the order never depends on a
 /// hash map. A cycle of new tables is broken at its smallest name; the foreign
 /// keys left pointing forward are added once their target exists (see
-/// `build_main_plan`). Changes to existing tables follow, by name.
+/// `build_main_plan`). Changes to existing tables follow, by name. Renamed
+/// tables go before everything, by name: what is created or altered after
+/// them names them as they are called now.
 pub fn topological_sort_changes(
     changes: Vec<crate::migration::types::Changes>,
 ) -> Vec<crate::migration::types::Changes> {
@@ -52,7 +54,12 @@ pub fn topological_sort_changes(
         .map(|c| (c.table_name.clone(), c))
         .collect();
     let mut result: Vec<crate::migration::types::Changes> = Vec::with_capacity(by_name.len());
-    for name in sorted_names {
+    let renamed: Vec<String> = by_name
+        .values()
+        .filter(|c| c.renames.from.is_some())
+        .map(|c| c.table_name.clone())
+        .collect();
+    for name in renamed.into_iter().chain(sorted_names) {
         if let Some(c) = by_name.remove(&name) {
             result.push(c);
         }

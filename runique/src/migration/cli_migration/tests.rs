@@ -25,6 +25,7 @@ fn only_plain_type_changes_are_reported_as_unmigrated() {
         added_columns: vec![],
         dropped_columns: vec![],
         modified_columns: vec![(old, new)],
+        renames: Default::default(),
         renamed_columns: vec![],
         added_fks: vec![],
         dropped_fks: vec![],
@@ -89,6 +90,7 @@ fn new_table(s: &ParsedSchema) -> Changes {
         added_columns: s.columns.clone(),
         dropped_columns: vec![],
         modified_columns: vec![],
+        renames: Default::default(),
         renamed_columns: vec![],
         added_fks: s.foreign_keys.clone(),
         dropped_fks: vec![],
@@ -2008,7 +2010,9 @@ fn the_scan_sets_a_paused_model_aside() {
     fs::write(format!("{entities}/user.rs"), USERS_PAUSED).unwrap();
     fs::write(format!("{entities}/post.rs"), POSTS).unwrap();
 
-    let ScannedEntities { schemas, paused } = scan_models(&entities).unwrap();
+    let ScannedEntities {
+        schemas, paused, ..
+    } = scan_models(&entities).unwrap();
 
     let tables: Vec<&str> = schemas.iter().map(|s| s.table_name.as_str()).collect();
     assert_eq!(tables, ["posts"]);
@@ -2025,7 +2029,9 @@ fn the_scan_of_managed_models_pauses_nothing() {
     let (entities, _) = project(&dir);
     fs::write(format!("{entities}/user.rs"), USERS).unwrap();
 
-    let ScannedEntities { schemas, paused } = scan_models(&entities).unwrap();
+    let ScannedEntities {
+        schemas, paused, ..
+    } = scan_models(&entities).unwrap();
 
     assert_eq!(schemas.len(), 1);
     assert!(paused.is_empty());
@@ -2048,7 +2054,9 @@ fn a_key_to_a_paused_model_is_still_resolved() {
     )
     .unwrap();
 
-    let ScannedEntities { schemas, paused } = scan_models(&entities).unwrap();
+    let ScannedEntities {
+        schemas, paused, ..
+    } = scan_models(&entities).unwrap();
 
     assert_eq!(paused, ["library_shelves"]);
     assert_eq!(schemas.len(), 1);
@@ -2071,7 +2079,9 @@ fn the_list_tables_of_a_paused_model_are_paused_with_it() {
     )
     .unwrap();
 
-    let ScannedEntities { schemas, paused } = scan_models(&entities).unwrap();
+    let ScannedEntities {
+        schemas, paused, ..
+    } = scan_models(&entities).unwrap();
 
     assert!(schemas.is_empty(), "{schemas:?}");
     assert_eq!(paused, ["books", "books_genres"]);
@@ -2191,4 +2201,739 @@ fn a_waiting_migration_of_a_table_put_on_pause_is_removed() {
     assert!(generated(&path).is_empty());
     let lib = fs::read_to_string(lib_path(&path)).unwrap();
     assert!(!lib.contains("users_table"), "{lib}");
+}
+
+// ── A table renamed with `renamed_from` ──────────────────────────────────────
+
+const OWNER: &str =
+    r#"model! { Owner, table: "owner", pk: id => i32, { name: text [required], } }"#;
+const SHOP: &str = r#"model! { Shop, table: "shop", pk: id => i32, { name: text [required], city: text [required], owner_id: int [required] },
+    relations: { belongs_to: owner via owner_id [cascade] }, meta: { indexes: [(city)] } }"#;
+// The same model once its table is called `bakery`.
+const BAKERY: &str = r#"model! { Shop, table: "bakery", renamed_from: "shop", pk: id => i32, { name: text [required], city: text [required], owner_id: int [required] },
+    relations: { belongs_to: owner via owner_id [cascade] }, meta: { indexes: [(city)] } }"#;
+// The new table name without saying where it comes from.
+const BAKERY_UNDECLARED: &str = r#"model! { Shop, table: "bakery", pk: id => i32, { name: text [required], city: text [required], owner_id: int [required] },
+    relations: { belongs_to: owner via owner_id [cascade] }, meta: { indexes: [(city)] } }"#;
+const PRODUCT: &str = r#"model! { Product, table: "product", pk: id => i32, { label: text [required], shop_id: int [required] },
+    relations: { belongs_to: shop via shop_id [cascade] } }"#;
+
+/// A project whose `owner`, `shop` and `product` tables are applied.
+fn shop_project(dir: &TempDir) -> (String, String) {
+    let (entities, path) = project(dir);
+    fs::write(format!("{entities}/owner.rs"), OWNER).unwrap();
+    fs::write(format!("{entities}/shop.rs"), SHOP).unwrap();
+    fs::write(format!("{entities}/product.rs"), PRODUCT).unwrap();
+    run(&entities, &path, false).unwrap();
+    applied(&entities, &path);
+    (entities, path)
+}
+
+/// The generated migration of `path` whose file name ends with `suffix`.
+fn generated_file(path: &str, suffix: &str) -> String {
+    generated(path)
+        .into_iter()
+        .find(|(name, _)| name.ends_with(suffix))
+        .unwrap_or_else(|| panic!("no `{suffix}` in {:?}", generated(path)))
+        .1
+}
+
+fn up_and_down(content: &str) -> (&str, &str) {
+    content.split_once("async fn down").expect("a `down`")
+}
+
+// The rename is one alteration of the table under its new name, without
+// `--force`: the table is renamed, nothing is dropped, nothing is created.
+#[test]
+fn a_renamed_table_is_one_alteration_and_loses_nothing() {
+    let dir = TempDir::new();
+    let (entities, path) = shop_project(&dir);
+    let before = generated(&path).len();
+
+    fs::write(format!("{entities}/shop.rs"), BAKERY).unwrap();
+    run(&entities, &path, false).unwrap();
+
+    let files = generated(&path);
+    // `bakery` itself, and `product`, whose key points to it.
+    assert_eq!(files.len(), before + 2, "{files:?}");
+    assert!(
+        !files
+            .iter()
+            .any(|(name, _)| name.contains("_drop_") || name.ends_with("_create_bakery_table.rs")),
+        "{files:?}"
+    );
+    let alter = generated_file(&path, "_alter_bakery_table.rs");
+    assert!(has_marker(&alter, WAIT_MIGRATION));
+    assert_eq!(renamed_table(&alter), Some("shop"));
+    let (up, down) = up_and_down(&alter);
+    assert!(
+        up.contains(r#".table(Alias::new("shop"), Alias::new("bakery"))"#),
+        "{up}"
+    );
+    assert!(
+        down.contains(r#".table(Alias::new("bakery"), Alias::new("shop"))"#),
+        "{down}"
+    );
+    assert!(!alter.contains("drop_table") && !alter.contains("create_table"));
+    assert!(!alter.contains("drop_column") && !alter.contains("add_column"));
+}
+
+// The indexes and keys named after the former table take the new name, in
+// `up`, and their former one back in `down`. Nothing asks the engine whether
+// it can change keys: SQLite renames a table with its keys.
+#[test]
+fn the_indexes_and_keys_of_a_renamed_table_take_its_name() {
+    let dir = TempDir::new();
+    let (entities, path) = shop_project(&dir);
+
+    fs::write(format!("{entities}/shop.rs"), BAKERY).unwrap();
+    run(&entities, &path, false).unwrap();
+
+    let alter = generated_file(&path, "_alter_bakery_table.rs");
+    let (up, down) = up_and_down(&alter);
+    // The index of the model, and the one of its key.
+    for index in ["city", "owner_id"] {
+        let (old, new) = (format!("idx_shop_{index}"), format!("idx_bakery_{index}"));
+        let created = up.find(&format!(r#".name("{new}")"#)).expect("created in up");
+        let dropped = up.find(&format!(r#".name("{old}")"#)).expect("dropped in up");
+        assert!(created < dropped, "the new index before the old one goes");
+        assert!(down.contains(&format!(r#".name("{old}")"#)), "{down}");
+        assert!(down.contains(&format!(r#".name("{new}")"#)), "{down}");
+    }
+    // Every index statement runs on the table as it is called at that moment.
+    assert!(!up.contains(r#".table(Alias::new("shop"))"#), "{up}");
+    assert!(!down.contains(r#".table(Alias::new("shop"))"#), "{down}");
+
+    let renamed_key = |body: &str, from: &str, to: &str| {
+        body.contains(&format!(
+            "rename_foreign_key(\n            manager,\n            \"bakery\",\n            \"{from}\",\n            ForeignKey::create()\n                .name(\"{to}\")"
+        ))
+    };
+    assert!(
+        renamed_key(up, "shop_owner_id_owner_fkey", "bakery_owner_id_owner_fkey"),
+        "{up}"
+    );
+    assert!(
+        renamed_key(down, "bakery_owner_id_owner_fkey", "shop_owner_id_owner_fkey"),
+        "{down}"
+    );
+    for refused_on_sqlite in ["key_changes_supported", "drop_foreign_key", "add_foreign_key"] {
+        assert!(!alter.contains(refused_on_sqlite), "{alter}");
+    }
+
+    // In `up` the table is renamed first, in `down` last.
+    let rename_up = up.find("rename_table").unwrap();
+    assert!(rename_up < up.find("create_index").unwrap());
+    assert!(rename_up < up.find("rename_foreign_key").unwrap());
+    let rename_down = down.find("rename_table").unwrap();
+    assert!(rename_down > down.rfind("drop_index").unwrap());
+    assert!(rename_down > down.rfind("rename_foreign_key").unwrap());
+}
+
+// A table that points to the renamed one: its key is renamed too, by its own
+// migration, which runs after the rename and names the table as it is then.
+#[test]
+fn the_key_of_a_table_pointing_to_a_renamed_one_follows() {
+    let dir = TempDir::new();
+    let (entities, path) = shop_project(&dir);
+
+    fs::write(format!("{entities}/shop.rs"), BAKERY).unwrap();
+    run(&entities, &path, false).unwrap();
+
+    let product = generated_file(&path, "_alter_product_table.rs");
+    assert_eq!(renamed_table(&product), None);
+    let (up, down) = up_and_down(&product);
+    assert!(up.contains(r#""product_shop_id_shop_fkey","#), "{up}");
+    assert!(up.contains(r#".name("product_shop_id_bakery_fkey")"#), "{up}");
+    assert!(up.contains(r#".to(Alias::new("bakery"), Alias::new("id"))"#), "{up}");
+    assert!(down.contains(r#""product_shop_id_bakery_fkey","#), "{down}");
+    assert!(down.contains(r#".name("product_shop_id_shop_fkey")"#), "{down}");
+    // Undone before the table takes its former name back.
+    assert!(down.contains(r#".to(Alias::new("bakery"), Alias::new("id"))"#), "{down}");
+    assert!(!product.contains("rename_table"), "{product}");
+    assert!(!product.contains("key_changes_supported"), "{product}");
+    // Its own index doesn't hold the renamed table's name: left alone.
+    assert!(!product.contains("create_index") && !product.contains("drop_index"));
+
+    let order = run_order(&path);
+    let at = |kind: &str| order.iter().position(|m| m.ends_with(kind)).unwrap();
+    assert!(at("_alter_bakery_table") < at("_alter_product_table"), "{order:?}");
+}
+
+// Applied: the snapshot is under the new name, none is left under the former
+// one, and the declaration left in the model does nothing any more.
+#[test]
+fn an_applied_rename_moves_the_snapshot_and_is_not_generated_again() {
+    let dir = TempDir::new();
+    let (entities, path) = shop_project(&dir);
+    fs::write(format!("{entities}/shop.rs"), BAKERY).unwrap();
+    run(&entities, &path, false).unwrap();
+
+    // Run again before applying: the same rename, nothing rewritten.
+    let waiting = everything(&dir);
+    run(&entities, &path, false).unwrap();
+    assert_eq!(everything(&dir), waiting);
+    assert!(Path::new(&snapshot_file_path(&path, "shop")).exists());
+
+    applied(&entities, &path);
+    assert!(!Path::new(&snapshot_file_path(&path, "shop")).exists());
+    assert!(Path::new(&snapshot_file_path(&path, "bakery")).exists());
+    let product = fs::read_to_string(snapshot_file_path(&path, "product")).unwrap();
+    assert!(product.contains(r#"Alias::new("bakery")"#), "{product}");
+    assert!(!product.contains(r#"Alias::new("shop")"#), "{product}");
+
+    let settled = everything(&dir);
+    run(&entities, &path, true).unwrap();
+    assert_eq!(everything(&dir), settled);
+}
+
+// Without the declaration the same change is a table dropped and another
+// created: blocked without `--force`, and nothing is written.
+#[test]
+fn a_table_name_changed_without_saying_so_is_a_drop_and_a_creation() {
+    let dir = TempDir::new();
+    let (entities, path) = shop_project(&dir);
+    let before = everything(&dir);
+
+    fs::write(format!("{entities}/shop.rs"), BAKERY_UNDECLARED).unwrap();
+    // The list (`shop: DROP TABLE`) goes to the console.
+    assert!(run(&entities, &path, false).is_err());
+
+    let after: Vec<_> = everything(&dir)
+        .into_iter()
+        .filter(|(file, _)| !file.ends_with("shop.rs"))
+        .collect();
+    let before: Vec<_> = before
+        .into_iter()
+        .filter(|(file, _)| !file.ends_with("shop.rs"))
+        .collect();
+    assert_eq!(after, before);
+}
+
+// A rename and a real change in the same run: both are in the one file, the
+// change under the table's new name.
+#[test]
+fn a_rename_and_a_change_share_the_file_of_the_table() {
+    let dir = TempDir::new();
+    let (entities, path) = shop_project(&dir);
+
+    fs::write(
+        format!("{entities}/shop.rs"),
+        BAKERY.replace("city: text [required],", "city: text [required], phone: text [nullable],"),
+    )
+    .unwrap();
+    run(&entities, &path, false).unwrap();
+
+    let alter = generated_file(&path, "_alter_bakery_table.rs");
+    let (up, _) = up_and_down(&alter);
+    assert!(up.find("rename_table").unwrap() < up.find("add_column").unwrap());
+    assert!(up.contains(r#"Alias::new("phone")"#), "{up}");
+    assert!(!generated(&path).iter().any(|(name, _)| name.ends_with("_alter_shop_table.rs")));
+}
+
+const BOOK_GENRES: &str = r#"model! { Book, table: "books", pk: id => i32, enums: { Genre: [Roman, Policier] },
+    { title: text [required], genres: checkbox [enum(Genre)] } }"#;
+
+/// A project whose `books` and `books_genres` tables are applied, then the
+/// model replaced by `model` and the command run again.
+fn renamed_list(dir: &TempDir, model: &str) -> String {
+    let (entities, path) = project(dir);
+    fs::write(format!("{entities}/book.rs"), BOOK_GENRES).unwrap();
+    run(&entities, &path, false).unwrap();
+    applied(&entities, &path);
+    fs::write(format!("{entities}/book.rs"), model).unwrap();
+    run(&entities, &path, false).unwrap();
+    path
+}
+
+// The table of a list field is named after its model's table and after the
+// field: it follows the rename of either, and of both at once.
+#[test]
+fn a_list_table_follows_its_model_and_its_field() {
+    for (model, table) in [
+        (
+            BOOK_GENRES.replace(r#"table: "books""#, r#"table: "library", renamed_from: "books""#),
+            "library_genres",
+        ),
+        (
+            BOOK_GENRES.replace(
+                "genres: checkbox [enum(Genre)]",
+                r#"styles: checkbox [enum(Genre), renamed_from: "genres"]"#,
+            ),
+            "books_styles",
+        ),
+        (
+            BOOK_GENRES
+                .replace(r#"table: "books""#, r#"table: "library", renamed_from: "books""#)
+                .replace(
+                    "genres: checkbox [enum(Genre)]",
+                    r#"styles: checkbox [enum(Genre), renamed_from: "genres"]"#,
+                ),
+            "library_styles",
+        ),
+    ] {
+        let dir = TempDir::new();
+        let path = renamed_list(&dir, &model);
+
+        let list = generated_file(&path, &format!("_alter_{table}_table.rs"));
+        assert_eq!(renamed_table(&list), Some("books_genres"), "{table}");
+        let (up, _) = up_and_down(&list);
+        assert!(
+            up.contains(&format!(
+                r#".table(Alias::new("books_genres"), Alias::new("{table}"))"#
+            )),
+            "{up}"
+        );
+        assert!(
+            up.contains(&format!(r#".name("{table}_owner_id_value_uniq")"#)),
+            "{up}"
+        );
+        assert!(up.contains(r#".name("books_genres_owner_id_value_uniq")"#), "{up}");
+        assert!(!list.contains("drop_table") && !list.contains("create_table"));
+        let files = generated(&path);
+        assert!(!files.iter().any(|(name, _)| name.contains("_drop_")), "{files:?}");
+    }
+}
+
+// A list field renamed without saying so: its table is dropped and another
+// created, blocked without `--force`.
+#[test]
+fn a_list_field_renamed_without_saying_so_is_a_drop() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/book.rs"), BOOK_GENRES).unwrap();
+    run(&entities, &path, false).unwrap();
+    applied(&entities, &path);
+
+    fs::write(
+        format!("{entities}/book.rs"),
+        BOOK_GENRES.replace("genres: checkbox", "styles: checkbox"),
+    )
+    .unwrap();
+    let before = generated(&path);
+
+    // The list (`books_genres: DROP TABLE`) goes to the console.
+    assert!(run(&entities, &path, false).is_err());
+    assert_eq!(generated(&path), before);
+
+    // Forced: the former table is dropped, the new one created.
+    run(&entities, &path, true).unwrap();
+    let files = generated(&path);
+    assert!(
+        files.iter().any(|(name, _)| name.ends_with("_drop_books_genres_table.rs")),
+        "{files:?}"
+    );
+    assert!(
+        files.iter().any(|(name, _)| name.ends_with("_create_books_styles_table.rs")),
+        "{files:?}"
+    );
+}
+
+// A declared rename holds only while the former name has a snapshot and no
+// model, and the new name has no snapshot.
+#[test]
+fn a_declared_rename_holds_against_the_snapshots() {
+    let snapshot = |table: &str| generate_snapshot_file(&schema(table, &[]));
+    let declared = [("shop".to_string(), "bakery".to_string())];
+    let holds = |files: &[(&str, &str)], schemas: &[ParsedSchema], paused: &[String]| {
+        let dir = TempDir::new();
+        let path = with_snapshots(&dir, files);
+        effective_renames(&declared, schemas, paused, &path).unwrap()
+    };
+    let (shop, bakery) = (snapshot("shop"), snapshot("bakery"));
+    let (shop, bakery) = (shop.as_str(), bakery.as_str());
+
+    assert_eq!(holds(&[("shop.rs", shop)], &[schema("bakery", &[])], &[]), declared);
+    // Applied already: the snapshot is under the new name.
+    assert!(holds(&[("bakery.rs", bakery)], &[schema("bakery", &[])], &[]).is_empty());
+    assert!(
+        holds(
+            &[("shop.rs", shop), ("bakery.rs", bakery)],
+            &[schema("bakery", &[])],
+            &[]
+        )
+        .is_empty()
+    );
+    // Never migrated under the former name.
+    assert!(holds(&[], &[schema("bakery", &[])], &[]).is_empty());
+    // The former name still has a model, managed or paused.
+    assert!(
+        holds(
+            &[("shop.rs", shop)],
+            &[schema("bakery", &[]), schema("shop", &[])],
+            &[]
+        )
+        .is_empty()
+    );
+    assert!(
+        holds(
+            &[("shop.rs", shop)],
+            &[schema("bakery", &[])],
+            &["shop".to_string()]
+        )
+        .is_empty()
+    );
+}
+
+// Two tables can't both come from one: the error names the three.
+#[test]
+fn two_tables_renamed_from_one_are_refused() {
+    let dir = TempDir::new();
+    let shop = generate_snapshot_file(&schema("shop", &[]));
+    let path = with_snapshots(&dir, &[("shop.rs", shop.as_str())]);
+    let declared = [
+        ("shop".to_string(), "bakery".to_string()),
+        ("shop".to_string(), "pastry".to_string()),
+    ];
+
+    let error = effective_renames(
+        &declared,
+        &[schema("bakery", &[]), schema("pastry", &[])],
+        &[],
+        &path,
+    )
+    .unwrap_err()
+    .to_string();
+
+    for table in ["`shop`", "`bakery`", "`pastry`"] {
+        assert!(error.contains(table), "{error}");
+    }
+}
+
+fn named_index(name: &str, columns: &[&str], unique: bool) -> crate::migration::types::ParsedIndex {
+    crate::migration::types::ParsedIndex {
+        name: name.to_string(),
+        columns: columns.iter().map(|c| (*c).to_string()).collect(),
+        unique,
+    }
+}
+
+// What a rename explains leaves the diff: the snapshot of the former name,
+// brought in line, shows no change.
+#[test]
+fn a_rename_alone_leaves_the_diff_empty() {
+    let mut previous = ParsedSchema {
+        indexes: vec![
+            named_index("idx_shop_title", &["title"], false),
+            named_index("shop_title_uniq", &["title"], true),
+        ],
+        ..schema("shop", &["owner", "shop"])
+    };
+    let current = ParsedSchema {
+        indexes: vec![
+            named_index("idx_bakery_title", &["title"], false),
+            named_index("bakery_title_uniq", &["title"], true),
+        ],
+        ..schema("bakery", &["owner"])
+    };
+    // The key a table has to itself points to its new name.
+    let current = ParsedSchema {
+        foreign_keys: vec![
+            current.foreign_keys[0].clone(),
+            ParsedFk {
+                from_column: "shop_id".into(),
+                to_table: "bakery".into(),
+                ..current.foreign_keys[0].clone()
+            },
+        ],
+        ..current
+    };
+    let renames = [("shop".to_string(), "bakery".to_string())];
+
+    let followed = follow_renames(&mut previous, &current, &renames);
+
+    assert_eq!(followed.from.as_deref(), Some("shop"));
+    let keys: Vec<(&str, &str, &str, &str)> = followed
+        .keys
+        .iter()
+        .map(|k| {
+            (
+                k.old_table.as_str(),
+                k.old_target.as_str(),
+                k.key.to_table.as_str(),
+                k.target_at_run.as_str(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        keys,
+        [
+            ("shop", "owner", "owner", "owner"),
+            ("shop", "shop", "bakery", "bakery")
+        ]
+    );
+    let indexes: Vec<(&str, &str)> = followed
+        .indexes
+        .iter()
+        .map(|(old, new)| (old.name.as_str(), new.name.as_str()))
+        .collect();
+    assert_eq!(
+        indexes,
+        [
+            ("idx_shop_title", "idx_bakery_title"),
+            ("shop_title_uniq", "bakery_title_uniq")
+        ]
+    );
+    assert_eq!(previous.table_name, "bakery");
+    assert!(diff_schemas(&previous, &current).is_empty());
+    // Not empty as a whole: the rename is a change.
+    let changes = Changes {
+        renames: followed,
+        ..diff_schemas(&previous, &current)
+    };
+    assert!(!changes.is_empty());
+}
+
+// A table that isn't renamed: only its keys to a renamed table follow, its
+// indexes and its other keys are left to the diff.
+#[test]
+fn a_table_that_keeps_its_name_only_renames_its_keys_to_a_renamed_one() {
+    let mut previous = ParsedSchema {
+        indexes: vec![named_index("idx_product_old", &["title"], false)],
+        ..schema("product", &["shop", "owner"])
+    };
+    let current = ParsedSchema {
+        indexes: vec![named_index("idx_product_new", &["title"], false)],
+        foreign_keys: vec![
+            ParsedFk {
+                from_column: "shop_id".into(),
+                to_table: "bakery".into(),
+                to_column: "id".into(),
+                on_delete: "Cascade".into(),
+                on_update: "NoAction".into(),
+            },
+            schema("product", &["owner"]).foreign_keys[0].clone(),
+        ],
+        ..schema("product", &[])
+    };
+    let renames = [("shop".to_string(), "bakery".to_string())];
+
+    let followed = follow_renames(&mut previous, &current, &renames);
+
+    assert_eq!(followed.from, None);
+    assert_eq!(followed.keys.len(), 1);
+    assert_eq!(
+        (
+            followed.keys[0].old_table.as_str(),
+            followed.keys[0].old_target.as_str(),
+            followed.keys[0].key.from_column.as_str()
+        ),
+        ("product", "shop", "shop_id")
+    );
+    assert!(followed.indexes.is_empty());
+    let diff = diff_schemas(&previous, &current);
+    assert!(diff.added_fks.is_empty() && diff.dropped_fks.is_empty());
+    assert_eq!(diff.dropped_indexes.len(), 1);
+    assert_eq!(diff.added_indexes.len(), 1);
+
+    // Without any rename nothing follows.
+    let mut untouched = schema("product", &["owner"]);
+    let same = schema("product", &["owner"]);
+    assert!(follow_renames(&mut untouched, &same, &[]).is_empty());
+    assert!(follow_renames(&mut untouched, &same, &renames).is_empty());
+}
+
+// A key that changed otherwise is not a renamed key: the diff removes it
+// under its old name and adds it under the new one. An index whose columns
+// or uniqueness changed is not a renamed index either.
+#[test]
+fn a_key_or_an_index_that_really_changed_is_left_to_the_diff() {
+    let mut previous = ParsedSchema {
+        indexes: vec![
+            named_index("idx_shop_title", &["title"], false),
+            named_index("idx_shop_owner_id", &["owner_id"], false),
+        ],
+        ..schema("shop", &["owner"])
+    };
+    let mut current = ParsedSchema {
+        indexes: vec![
+            named_index("idx_bakery_title", &["title"], true),
+            named_index("idx_bakery_owner_id", &["owner_id", "title"], false),
+        ],
+        ..schema("bakery", &["owner"])
+    };
+    current.foreign_keys[0].on_delete = "SetNull".into();
+    let renames = [("shop".to_string(), "bakery".to_string())];
+
+    let followed = follow_renames(&mut previous, &current, &renames);
+
+    assert_eq!(followed.from.as_deref(), Some("shop"));
+    assert!(followed.keys.is_empty());
+    assert!(followed.indexes.is_empty());
+    let diff = diff_schemas(&previous, &current);
+    assert_eq!((diff.dropped_fks.len(), diff.added_fks.len()), (1, 1));
+    assert_eq!((diff.dropped_indexes.len(), diff.added_indexes.len()), (2, 2));
+
+    // In the file, the key that goes still has the name of the former table.
+    let alter = generate_alter_file(&Changes {
+        renames: followed,
+        ..diff
+    });
+    let (up, down) = up_and_down(&alter);
+    assert!(up.contains(r#""bakery", "shop_owner_id_owner_fkey")"#), "{up}");
+    assert!(up.contains(r#".name("bakery_owner_id_owner_fkey")"#), "{up}");
+    assert!(down.contains(r#".name("shop_owner_id_owner_fkey")"#), "{down}");
+    assert!(down.contains(r#""bakery", "bakery_owner_id_owner_fkey")"#), "{down}");
+    // Keys are added and removed: the engine is asked first.
+    assert!(alter.contains("key_changes_supported"), "{alter}");
+}
+
+/// A change to the existing table `table`, renamed from `from` when given,
+/// whose keys to `targets` are renamed.
+fn renamed_change(table: &str, from: Option<&str>, targets: &[&str]) -> Changes {
+    Changes {
+        is_new_table: false,
+        added_columns: vec![],
+        added_fks: vec![],
+        renames: crate::migration::types::TableRenames {
+            from: from.map(str::to_string),
+            keys: schema(table, targets)
+                .foreign_keys
+                .into_iter()
+                .map(|key| crate::migration::types::RenamedKey {
+                    old_table: from.unwrap_or(table).to_string(),
+                    old_target: key.to_table.clone(),
+                    target_at_run: key.to_table.clone(),
+                    key,
+                })
+                .collect(),
+            indexes: vec![],
+        },
+        ..new_table(&schema(table, &[]))
+    }
+}
+
+// A renamed key names its target as it is called when the migration runs:
+// by its former name while the target isn't renamed yet.
+#[test]
+fn a_renamed_key_names_its_target_as_it_is_at_that_moment() {
+    let targets = |changes: &[Changes]| -> Vec<Vec<String>> {
+        changes
+            .iter()
+            .map(|c| c.renames.keys.iter().map(|k| k.target_at_run.clone()).collect())
+            .collect()
+    };
+    // `a` runs first: `b` still has its former name, `a` already its new one.
+    let mut changes = vec![
+        renamed_change("a", Some("a_old"), &["b", "a", "c"]),
+        renamed_change("b", Some("b_old"), &["a"]),
+        renamed_change("z", None, &["a", "b"]),
+    ];
+
+    settle_renamed_keys(&mut changes).unwrap();
+
+    assert_eq!(
+        targets(&changes),
+        [vec!["b_old", "a", "c"], vec!["a"], vec!["a", "b"]]
+    );
+}
+
+// A key that is new to a renamed table would be named for a target that
+// isn't there yet: refused when the target is created or renamed later in
+// the run, accepted otherwise.
+#[test]
+fn a_new_key_of_a_renamed_table_can_not_wait_for_its_target() {
+    let with_new_key = |table: &str, from: Option<&str>, to: &str| Changes {
+        added_fks: schema(table, &[to]).foreign_keys,
+        ..renamed_change(table, from, &[])
+    };
+    let refused = |mut changes: Vec<Changes>| {
+        settle_renamed_keys(&mut changes).map_err(|e| e.to_string())
+    };
+
+    // To a table this run creates.
+    let error = refused(vec![
+        with_new_key("a", Some("a_old"), "n"),
+        new_table(&schema("n", &[])),
+    ])
+    .unwrap_err();
+    assert!(error.contains("`a`") && error.contains("`n`"), "{error}");
+    // To a table renamed later in the run.
+    assert!(
+        refused(vec![
+            with_new_key("a", Some("a_old"), "b"),
+            renamed_change("b", Some("b_old"), &[]),
+        ])
+        .is_err()
+    );
+    // To a table renamed before, to itself, or to a table that doesn't move.
+    assert!(
+        refused(vec![
+            renamed_change("a", Some("a_old"), &[]),
+            with_new_key("b", Some("b_old"), "a"),
+        ])
+        .is_ok()
+    );
+    assert!(refused(vec![with_new_key("a", Some("a_old"), "a")]).is_ok());
+    assert!(refused(vec![with_new_key("a", Some("a_old"), "c")]).is_ok());
+    // A table that keeps its name takes any new key: it runs after them all.
+    assert!(
+        refused(vec![
+            renamed_change("b", Some("b_old"), &[]),
+            new_table(&schema("n", &[])),
+            with_new_key("z", None, "n"),
+            with_new_key("y", None, "b"),
+        ])
+        .is_ok()
+    );
+}
+
+// Renamed tables run before the tables created and the other alterations.
+#[test]
+fn renamed_tables_run_first() {
+    let sorted = topological_sort_changes(vec![
+        renamed_change("m", None, &[]),
+        new_table(&schema("a", &[])),
+        renamed_change("z", Some("z_old"), &[]),
+        renamed_change("r", Some("r_old"), &[]),
+    ]);
+    let order: Vec<&str> = sorted.iter().map(|c| c.table_name.as_str()).collect();
+    assert_eq!(order, ["r", "z", "a", "m"]);
+}
+
+// The marker of a renamed table: read wherever it is, and only when what
+// follows is a plain table name, which becomes a file path.
+#[test]
+fn the_former_name_of_a_renamed_table_is_read_from_its_migration() {
+    assert_eq!(
+        renamed_table("// runique: waiting migrate up\n// runique: renamed table shop\nuse x;"),
+        Some("shop")
+    );
+    assert_eq!(renamed_table("  // runique: renamed table shop_2  \n"), Some("shop_2"));
+    assert_eq!(renamed_table("use x;\n// runique: from none\n"), None);
+    for bad in ["../shop", "shop/x", "shop.rs", "", "a b"] {
+        assert_eq!(renamed_table(&format!("{RENAMED_TABLE}{bad}\n")), None, "{bad:?}");
+    }
+}
+
+// The names a rename gives are checked like the others.
+#[test]
+fn a_rename_giving_a_name_too_long_is_reported() {
+    let long = "t".repeat(40);
+    let short = renamed_change("bakery", Some("shop"), &["owner"]);
+    assert!(collect_long_identifier_messages(std::slice::from_ref(&short)).is_empty());
+
+    let key_too_long = renamed_change(&long, Some("shop"), &[long.as_str()]);
+    assert_eq!(collect_long_identifier_messages(&[key_too_long]).len(), 1);
+
+    let mut index_too_long = renamed_change("bakery", Some("shop"), &[]);
+    index_too_long.renames.indexes = vec![(
+        named_index("idx_shop_title", &["title"], false),
+        named_index(&"i".repeat(64), &["title"], false),
+    )];
+    assert_eq!(collect_long_identifier_messages(&[index_too_long]).len(), 1);
+}
+
+// 63 characters is the last length accepted for the name of a renamed key.
+#[test]
+fn a_renamed_key_name_is_accepted_up_to_63_characters() {
+    let key = &renamed_change("t", Some("shop"), &["owner"]).renames.keys[0].key;
+    // `{table}_{from}_{to}_fkey`
+    let around = key.from_column.len() + key.to_table.len() + "__".len() + "_fkey".len();
+
+    let at_limit = renamed_change(&"t".repeat(63 - around), Some("shop"), &["owner"]);
+    assert!(collect_long_identifier_messages(&[at_limit]).is_empty());
+
+    let one_over = renamed_change(&"t".repeat(64 - around), Some("shop"), &["owner"]);
+    assert_eq!(collect_long_identifier_messages(&[one_over]).len(), 1);
 }

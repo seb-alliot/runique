@@ -43,6 +43,7 @@ fn change(
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table,
+        renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
         enum_value_adds: vec![],
@@ -473,6 +474,7 @@ fn extend_enum_column_emits_create_type_on_postgres() {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
         enum_value_adds: vec![],
@@ -869,6 +871,7 @@ fn empty_changes() -> Changes {
         added_columns: vec![],
         dropped_columns: vec![],
         modified_columns: vec![],
+        renames: Default::default(),
         renamed_columns: vec![],
         added_fks: vec![],
         dropped_fks: vec![],
@@ -968,6 +971,7 @@ fn non_destructive_change_yields_no_messages() {
 #[test]
 fn combined_alter_runs_rename_before_drop_and_add() {
     let changes = Changes {
+        renames: Default::default(),
         renamed_columns: vec![("old_name".into(), "new_name".into())],
         added_columns: vec![ParsedColumn {
             name: "fresh".into(),
@@ -1389,6 +1393,7 @@ fn new_table_is_not_empty() {
 #[test]
 fn a_lone_rename_is_not_empty() {
     let c = Changes {
+        renames: Default::default(),
         renamed_columns: vec![("a".into(), "b".into())],
         ..empty_changes()
     };
@@ -1400,6 +1405,7 @@ fn a_lone_rename_is_not_empty() {
 #[test]
 fn multiple_column_renames_all_emitted() {
     let changes = Changes {
+        renames: Default::default(),
         renamed_columns: vec![
             ("first".into(), "given_name".into()),
             ("last".into(), "family_name".into()),
@@ -1746,6 +1752,7 @@ fn extend_enum_column_default_is_emitted_on_add_all_engines() {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
         enum_value_adds: vec![],

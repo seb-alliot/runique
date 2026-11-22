@@ -1,6 +1,10 @@
 //! The `up`/`down` bodies of an ALTER migration: add, drop, rename and modify columns.
 use super::columns::{col_type_method, render_column_def};
-use super::constraints::{push_create_fk, push_create_index, push_drop_fk, push_drop_index};
+use super::constraints::{
+    fk_constraint_name, push_create_fk, push_create_fk_named, push_create_index,
+    push_create_index_named_for, push_drop_fk, push_drop_fk_named, push_drop_index,
+    push_drop_index_named_for, push_rename_fk, push_rename_table,
+};
 use super::enums::build_enum_transition;
 use crate::migration::types::{Changes, ParsedColumn};
 
@@ -15,6 +19,31 @@ pub(super) fn body_has_code(body: &str) -> bool {
 pub(super) fn build_alter_bodies(change: &Changes) -> (String, String) {
     let mut up = String::new();
     let mut down = String::new();
+    let table = change.table_name.as_str();
+    // The name the table had when its keys and indexes were named.
+    let former = change.renames.from.as_deref().unwrap_or(table);
+
+    // Before everything: the table takes its new name, then the indexes and
+    // keys named after the former one take theirs. The new index is created
+    // before the old one goes: MySQL refuses to drop the last index a
+    // foreign key relies on.
+    if let Some(old) = &change.renames.from {
+        push_rename_table(&mut up, old, table);
+    }
+    for (old, new) in &change.renames.indexes {
+        push_create_index(&mut up, table, new);
+        push_drop_index_named_for(&mut up, table, former, old);
+    }
+    for key in &change.renames.keys {
+        push_rename_fk(
+            &mut up,
+            table,
+            &fk_constraint_name(&key.old_table, &key.key.from_column, &key.old_target),
+            (table, key.key.to_table.as_str()),
+            &key.key,
+            &key.target_at_run,
+        );
+    }
 
     // 0) RENAME columns first — later ops (modify/add) may target the new name.
     // `ALTER TABLE … RENAME COLUMN` is portable (PG / MySQL 8+ / SQLite 3.25+).
@@ -24,15 +53,21 @@ pub(super) fn build_alter_bodies(change: &Changes) -> (String, String) {
 
     // 1) DROP indexes (up) / DROP added indexes (down)
     for idx in &change.dropped_indexes {
-        push_drop_index(&mut up, &change.table_name, idx);
+        push_drop_index_named_for(&mut up, table, former, idx);
     }
     for idx in &change.added_indexes {
         push_drop_index(&mut down, &change.table_name, idx);
     }
 
     // 2) DROP FK
+    // A key of a renamed table that goes still has the name it was given
+    // under the former table name.
     for fk in &change.dropped_fks {
-        push_drop_fk(&mut up, &change.table_name, &fk.from_column, &fk.to_table);
+        push_drop_fk_named(
+            &mut up,
+            table,
+            &fk_constraint_name(former, &fk.from_column, &fk.to_table),
+        );
     }
     for fk in &change.added_fks {
         push_drop_fk(&mut down, &change.table_name, &fk.from_column, &fk.to_table);
@@ -106,14 +141,11 @@ pub(super) fn build_alter_bodies(change: &Changes) -> (String, String) {
         );
     }
     for fk in &change.dropped_fks {
-        push_create_fk(
+        push_create_fk_named(
             &mut down,
-            &change.table_name,
-            &fk.from_column,
-            &fk.to_table,
-            &fk.to_column,
-            &fk.on_delete,
-            &fk.on_update,
+            table,
+            &fk_constraint_name(former, &fk.from_column, &fk.to_table),
+            fk,
         );
     }
 
@@ -122,7 +154,7 @@ pub(super) fn build_alter_bodies(change: &Changes) -> (String, String) {
         push_create_index(&mut up, &change.table_name, idx);
     }
     for idx in &change.dropped_indexes {
-        push_create_index(&mut down, &change.table_name, idx);
+        push_create_index_named_for(&mut down, table, former, idx);
     }
 
     // 9) Enum value renames — both branches (Postgres native `RENAME VALUE` vs.
@@ -170,6 +202,27 @@ pub(super) fn build_alter_bodies(change: &Changes) -> (String, String) {
     // 11) Reverse the column renames last in DOWN (undo of section 0).
     for (old, new) in &change.renamed_columns {
         push_rename_column(&mut down, &change.table_name, new, old);
+    }
+
+    // 12) The table rename is undone last, in the reverse order: keys, then
+    // indexes, take back their former names while the table still has the
+    // new one, and the table goes back to its own.
+    for key in change.renames.keys.iter().rev() {
+        push_rename_fk(
+            &mut down,
+            table,
+            &fk_constraint_name(table, &key.key.from_column, &key.key.to_table),
+            (key.old_table.as_str(), key.old_target.as_str()),
+            &key.key,
+            &key.target_at_run,
+        );
+    }
+    for (old, new) in change.renames.indexes.iter().rev() {
+        push_create_index_named_for(&mut down, table, former, old);
+        push_drop_index(&mut down, table, new);
+    }
+    if let Some(old) = &change.renames.from {
+        push_rename_table(&mut down, table, old);
     }
 
     (up, down)

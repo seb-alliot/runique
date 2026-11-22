@@ -205,6 +205,26 @@ pub fn started_from(content: &str) -> Option<&str> {
         .map(str::trim)
 }
 
+/// Start of the line a migration that renames a table carries: the name the
+/// table had. `migration up` reads it to take the snapshot of that name away.
+pub const RENAMED_TABLE: &str = "// runique: renamed table ";
+
+/// The former name of the table a migration renames; `None` when it renames
+/// none, or when what follows the marker isn't a plain table name (the name
+/// becomes a file path).
+pub fn renamed_table(content: &str) -> Option<&str> {
+    content
+        .lines()
+        .find_map(|line| line.trim().strip_prefix(RENAMED_TABLE))
+        .map(str::trim)
+        .filter(|name| {
+            !name.is_empty()
+                && name
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '_')
+        })
+}
+
 /// Whether `content` holds `marker` on a line of its own, wherever it is.
 pub fn has_marker(content: &str, marker: &str) -> bool {
     content.lines().any(|line| line.trim() == marker)

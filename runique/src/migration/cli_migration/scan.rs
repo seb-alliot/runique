@@ -20,6 +20,9 @@ const FRAMEWORK_TABLES: &[&str] = &[
 pub struct ScannedEntities {
     pub schemas: Vec<ParsedSchema>,
     pub paused: Vec<String>,
+    /// What the managed models declare with `renamed_from`: (former table,
+    /// table). Declared only: which ones hold is decided against the snapshots.
+    pub renames: Vec<(String, String)>,
 }
 
 pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
@@ -35,6 +38,7 @@ pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
 pub fn scan_models(entities_path: &str) -> Result<ScannedEntities> {
     
     let mut paused: Vec<String> = Vec::new();
+    let mut renames: Vec<(String, String)> = Vec::new();
     let mut schemas = Vec::new();
     // List fields' tables: their key to the owner is already resolved.
     let mut list_schemas: Vec<ParsedSchema> = Vec::new();
@@ -64,7 +68,13 @@ pub fn scan_models(entities_path: &str) -> Result<ScannedEntities> {
         let source = fs::read_to_string(&path)
             .with_context(|| format!("Cannot read file: {}", path.display()))?;
 
-        if let Some(ParsedModel { schema, lists, managed, .. }) = parse_model_from_source(&source)
+        if let Some(ParsedModel {
+            schema,
+            lists,
+            managed,
+            renames: declared,
+            ..
+        }) = parse_model_from_source(&source)
             .with_context(|| format!("Invalid model!{{}} in {}", path.display()))?
         {
             let pk = schema
@@ -83,6 +93,7 @@ pub fn scan_models(entities_path: &str) -> Result<ScannedEntities> {
             }
             schemas.push(schema);
             list_schemas.extend(lists);
+            renames.extend(declared);
         }
     }
 
@@ -111,7 +122,11 @@ pub fn scan_models(entities_path: &str) -> Result<ScannedEntities> {
             anyhow::bail!("{}", tf("makemigrations.duplicate_table", &[table]));
         }
     }
-    Ok(ScannedEntities { schemas, paused })
+    Ok(ScannedEntities {
+        schemas,
+        paused,
+        renames,
+    })
 }
 
 /// Scans all `.rs` files in the `entities_path` directory and collects

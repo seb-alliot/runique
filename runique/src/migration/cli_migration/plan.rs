@@ -140,6 +140,7 @@ fn creation_of(schema: &ParsedSchema) -> Changes {
         added_columns: db_columns(schema).into_iter().cloned().collect(),
         dropped_columns: vec![],
         modified_columns: vec![],
+        renames: Default::default(),
         renamed_columns: vec![],
         added_fks: schema.foreign_keys.clone(),
         dropped_fks: vec![],
@@ -154,17 +155,18 @@ fn creation_of(schema: &ParsedSchema) -> Changes {
 
 /// The tables to drop: the ones Runique migrated (`snapshots`, the snapshots
 /// of `snapshots/` itself) that no scanned model produces any more, by name.
-/// A table of the framework is never dropped.
+/// A table of the framework is never dropped, nor one of `kept`: the paused
+/// tables, and the former name of a table this run renames.
 pub(super) fn dropped_tables(
     snapshots: Vec<ParsedSchema>,
     schemas: &[ParsedSchema],
-    paused: &[String],
+    kept: &[String],
 ) -> Vec<ParsedSchema> {
     let mut dropped: Vec<ParsedSchema> = snapshots
         .into_iter()
         .filter(|snapshot| {
             !snapshot.table_name.starts_with(FRAMEWORK_TABLE_PREFIX)
-                && !paused.contains(&snapshot.table_name)
+                && !kept.contains(&snapshot.table_name)
                 && !schemas.iter().any(|s| s.table_name == snapshot.table_name)
         })
         .collect();
@@ -208,17 +210,61 @@ pub(super) fn build_drop_plan(
     }
 }
 
-/// Computes the diff for every scanned model (no writing).
+/// The declared renames (`declared`: former table, table) that hold: the
+/// former name has a snapshot and no model any more, and the new name has no
+/// snapshot yet. Same guard as a column's `renamed_from`: once applied, or
+/// when it never matched, the declaration does nothing. Two tables can't
+/// both come from one.
+pub(super) fn effective_renames(
+    declared: &[(String, String)],
+    schemas: &[ParsedSchema],
+    paused: &[String],
+    migrations_path: &str,
+) -> Result<Vec<(String, String)>> {
+    let has_snapshot = |table: &str| Path::new(&snapshot_file_path(migrations_path, table)).exists();
+    let mut renames: Vec<(String, String)> = Vec::new();
+    for (old, new) in declared {
+        if !has_snapshot(old)
+            || has_snapshot(new)
+            || paused.contains(old)
+            || schemas.iter().any(|s| s.table_name == *old)
+        {
+            continue;
+        }
+        if let Some((_, other)) = renames.iter().find(|(o, _)| o == old) {
+            anyhow::bail!(
+                "{}",
+                tf("makemigrations.renamed_twice", &[old, other, new])
+            );
+        }
+        renames.push((old.clone(), new.clone()));
+    }
+    Ok(renames)
+}
+
+/// Computes the diff for every scanned model (no writing). A table of
+/// `renames` (former name, name) is compared to the snapshot of its former
+/// name; what the renames explain is taken out of every diff and kept in
+/// `Changes::renames`.
 pub(super) fn compute_main_changes(
     schemas: &[ParsedSchema],
+    renames: &[(String, String)],
     migrations_path: &str,
 ) -> Result<Vec<Changes>> {
     let mut all_changes: Vec<Changes> = Vec::new();
     for schema in schemas {
-        let snap_path = snapshot_file_path(migrations_path, &schema.table_name);
+        let snapshot_of = renames
+            .iter()
+            .find(|(_, new)| *new == schema.table_name)
+            .map_or(&schema.table_name, |(old, _)| old);
+        let snap_path = snapshot_file_path(migrations_path, snapshot_of);
         let changes = if Path::new(&snap_path).exists() {
-            let previous = previous_snapshot(&snap_path, schema)?;
-            diff_schemas(&previous, schema)
+            let mut previous = previous_snapshot(&snap_path, schema)?;
+            let followed = follow_renames(&mut previous, schema, renames);
+            Changes {
+                renames: followed,
+                ..diff_schemas(&previous, schema)
+            }
         } else {
             creation_of(schema)
         };
@@ -305,9 +351,19 @@ pub(super) fn build_main_plan(
             let module_name = seaorm_alter_module_name(timestamp, &change.table_name);
             let seaorm_path =
                 seaorm_alter_file_path(migrations_path, timestamp, &change.table_name);
+            // What `migration up` reads to take the former snapshot away.
+            let renamed = change
+                .renames
+                .from
+                .as_ref()
+                .map_or_else(String::new, |old| format!("{RENAMED_TABLE}{old}\n"));
             plan.files.push((
                 seaorm_path,
-                waiting_migrate(generate_alter_file(change), &module_name, settled),
+                waiting_migrate(
+                    format!("{renamed}{}", generate_alter_file(change)),
+                    &module_name,
+                    settled,
+                ),
             ));
             plan.lib_modules.push(module_name);
         }
@@ -399,6 +455,7 @@ pub(super) fn plan_extend_changes(
                 added_columns: ext_schema.columns.clone(),
                 dropped_columns: vec![],
                 modified_columns: vec![],
+                renames: Default::default(),
                 renamed_columns: vec![],
                 added_fks: vec![],
                 dropped_fks: vec![],

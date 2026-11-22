@@ -589,7 +589,9 @@
     "waiting_removed": "已移除 {} 个待执行的迁移：模型已重新与快照一致。",
     "waiting_unchanged": "{} 个待执行的迁移未变化：未重写任何内容。",
     "parallel_changes": "两个迁移针对同一张表从同一起点出发：\n  {}\n它们是并行编写的：Runique 无法判断该表应遵循哪一个。未写入任何内容。",
-    "paused_tables": "已暂停的表（`managed: false`），makemigrations 将忽略：{}"
+    "paused_tables": "已暂停的表（`managed: false`），makemigrations 将忽略：{}",
+    "rename_with_new_key": "表 `{}` 在本次运行中被重命名，同时又新增了一个指向 `{}` 的外键，而后者也在本次运行中被创建或重命名。请分两步进行：先重命名，执行 `runique migration up`，再添加外键。",
+    "renamed_twice": "有两张表都声明是从 `{}` 重命名而来：`{}` 和 `{}`。一张表只能变成一张表：请删除其中一个 `renamed_from`。"
   },
   "atomic": {
     "reserved_name": "{}：此名称为 Runique 保留",

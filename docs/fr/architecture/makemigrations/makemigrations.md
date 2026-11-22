@@ -106,7 +106,36 @@ Le snapshot reste tant que la suppression n'est pas appliquée ; `runique migrat
 - Vous avez gardé son `belongs_to` : la commande s'arrête en erreur, avec ou sans `--force`. Mettre vos modèles en accord est votre travail, et le projet ne compilerait pas de toute façon.
 - Vous avez retiré son `belongs_to` : sa migration retire la clé, puis la table visée est supprimée. Sous SQLite, ce retrait de clé n'est pas encore pris en charge : la migration est refusée avant d'avoir rien modifié (voir [les limites](/docs/fr/installation/migrations)).
 
-> Renommer la table d'un modèle (`table: "…"`) sans autre précaution revient à supprimer l'ancienne et créer la nouvelle : les lignes sont perdues. Les deux sont bloqués sans `--force`.
+> Changer le nom de table d'un modèle (`table: "…"`) sans `renamed_from` revient à supprimer l'ancienne et créer la nouvelle : les lignes sont perdues. Les deux sont bloqués sans `--force`. Voir « Renommer une table », juste après.
+
+## Renommer une table
+
+Changer `table:` en disant d'où vient la table, avec `renamed_from`, la renomme sans rien perdre :
+
+```rust
+model! { Magasin, table: "boulangerie", renamed_from: "magasin", pk: id => i32, { ... } }
+```
+
+`makemigrations` écrit une seule migration pour la table, sous son nouveau nom
+(`m…_alter_boulangerie_table.rs`), sans `--force`. Dans l'ordre, `up` :
+
+1. renomme la table ;
+2. recrée sous leur nouveau nom les index dont le nom contenait l'ancien (`idx_magasin_ville` devient `idx_boulangerie_ville`) : le nouveau est créé, puis l'ancien supprimé ;
+3. donne leur nouveau nom aux clés étrangères de la table (`magasin_proprietaire_id_…_fkey` devient `boulangerie_proprietaire_id_…_fkey`).
+
+`down` fait le chemin inverse et rend son ancien nom à la table en dernier.
+
+**Les tables qui pointent dessus.** Leurs lignes n'ont pas à changer : le moteur fait suivre la clé quand la table est renommée. Seul le nom de la clé contenait l'ancien nom de table. Chaque table concernée reçoit donc sa propre migration, qui passe après le renommage et renomme sa clé (`produits_magasin_id_magasin_fkey` devient `produits_magasin_id_boulangerie_fkey`). Vos autres modèles ne changent pas : `belongs_to: magasin` désigne le fichier `magasin.rs`.
+
+**Selon le moteur.** PostgreSQL et MySQL n'ont pas d'instruction pour renommer une clé : elle est retirée puis remise, ce qui fait revérifier les lignes de la table. Sous SQLite, une clé suit sa table et son nom ne sert jamais à la désigner : rien n'est fait, et le renommage passe même quand la table a des clés.
+
+**Les tables liste.** La table d'un champ liste (`boulangerie_genres`) suit le renommage de son modèle, avec ses index et sa clé. Renommer le champ se déclare sur le champ : `styles: checkbox [enum(Genre), renamed_from: "genres"]`.
+
+**Quand la déclaration compte.** Comme pour une colonne, `renamed_from` n'est retenu que si la table de l'ancien nom a un snapshot, que plus aucun modèle ne la produit, et que le nouveau nom n'a pas encore de snapshot. Une fois `runique migration up` passé, le snapshot est sous le nouveau nom, celui de l'ancien est retiré, et la directive laissée dans le modèle ne fait plus rien. Une faute dans l'ancien nom n'est pas silencieuse : `makemigrations` voit une table à supprimer et s'arrête sans `--force`.
+
+**Dans le même lancement.** Un renommage et d'autres changements de la même table (colonne ajoutée, index retiré) vont dans le même fichier. Une seule combinaison est refusée : donner à la table renommée une **nouvelle** clé vers une table créée ou renommée dans ce même lancement. Faites le renommage, `runique migration up`, puis la clé. Deux modèles ne peuvent pas se dire renommés depuis la même table.
+
+**Entre les deux commandes.** Dès que vous avez changé `table:`, votre code vise le nouveau nom alors que la base a encore l'ancien : les requêtes sur cette table échouent jusqu'à `runique migration up`, comme après l'ajout d'une colonne.
 
 ## Mettre une table en pause — `managed: false`
 

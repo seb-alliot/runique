@@ -106,7 +106,36 @@ The snapshot stays as long as the drop isn't applied; `runique migration up` the
 - You kept its `belongs_to`: the command stops with an error, with or without `--force`. Making your models agree is your job, and the project wouldn't compile anyway.
 - You removed its `belongs_to`: its migration removes the key, then the table it pointed to is dropped. Under SQLite, removing that key isn't supported yet: the migration is refused before it changed anything (see [the limits](/docs/en/installation/migrations)).
 
-> Renaming a model's table (`table: "…"`) with no other precaution amounts to dropping the old one and creating the new one: the rows are lost. Both are blocked without `--force`.
+> Changing a model's table name (`table: "…"`) without `renamed_from` amounts to dropping the old one and creating the new one: the rows are lost. Both are blocked without `--force`. See "Renaming a table", right below.
+
+## Renaming a table
+
+Changing `table:` while saying where the table comes from, with `renamed_from`, renames it without losing anything:
+
+```rust
+model! { Shop, table: "bakery", renamed_from: "shop", pk: id => i32, { ... } }
+```
+
+`makemigrations` writes a single migration for the table, under its new name
+(`m…_alter_bakery_table.rs`), without `--force`. In order, `up`:
+
+1. renames the table;
+2. recreates under their new name the indexes whose name held the former one (`idx_shop_city` becomes `idx_bakery_city`): the new one is created, then the old one dropped;
+3. gives the table's foreign keys their new name (`shop_owner_id_…_fkey` becomes `bakery_owner_id_…_fkey`).
+
+`down` goes the other way and gives the table its former name back last.
+
+**The tables pointing to it.** Their rows don't have to change: the engine makes the key follow when the table is renamed. Only the key's name held the former table name. Each of those tables therefore gets its own migration, which runs after the rename and renames its key (`products_shop_id_shop_fkey` becomes `products_shop_id_bakery_fkey`). Your other models don't change: `belongs_to: shop` names the file `shop.rs`.
+
+**Depending on the engine.** PostgreSQL and MySQL have no statement that renames a key: it is removed then added again, which makes the engine check the table's rows again. Under SQLite a key follows its table and its name is never used to reach it: nothing is done, and the rename goes through even when the table has keys.
+
+**List tables.** The table of a list field (`bakery_genres`) follows the rename of its model, with its indexes and its key. Renaming the field is declared on the field: `styles: checkbox [enum(Genre), renamed_from: "genres"]`.
+
+**When the declaration counts.** As for a column, `renamed_from` only holds when the table of the former name has a snapshot, no model produces it any more, and the new name has no snapshot yet. Once `runique migration up` has run, the snapshot is under the new name, the one of the former name is removed, and the directive left in the model does nothing any more. A typo in the former name isn't silent: `makemigrations` sees a table to drop and stops without `--force`.
+
+**In the same run.** A rename and other changes to the same table (a column added, an index removed) go in the same file. One combination is refused: giving the renamed table a **new** key to a table created or renamed in that same run. Do the rename, `runique migration up`, then the key. Two models can't both say they were renamed from the same table.
+
+**Between the two commands.** As soon as you changed `table:`, your code targets the new name while the database still has the former one: queries on that table fail until `runique migration up`, as after adding a column.
 
 ## Pausing a table — `managed: false`
 

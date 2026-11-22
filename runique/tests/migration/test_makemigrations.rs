@@ -421,6 +421,7 @@ fn empty_changes(table: &str) -> Changes {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
         enum_value_adds: vec![],
