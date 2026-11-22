@@ -15,11 +15,12 @@ Ce qui reste à faire pour les deux prochaines versions. Un élément peut passe
 | ✓ | Refus sans `--force` des opérations destructives : `DROP COLUMN`, changement de type, nullable vers `NOT NULL`, longueur ou décimale réduite, `DROP FK`, nouvelle FK `CASCADE` |
 | ✓ | Limite de longueur des noms d'index et de clés étrangères : refus au-delà de 63 caractères, sur tous les moteurs |
 | ✓ | Connexion à la base avant tout calcul : `makemigrations` s'arrête avec une erreur si elle ne répond pas |
+| ✓ | Une seule règle de connexion pour l'application et les commandes : `DATABASE_URL` d'abord, repli sur les clés `DB_*` quand elle est incomplète ou ne répond pas ; clés sans `DB_ENGINE` refusées ; utilisateur et mot de passe des clés encodés |
 | ✓ | Refus d'une base qui ne correspond pas au projet : une migration inscrite en base et absente de `lib.rs` arrête la commande |
 | ✓ | Contrôle des snapshots avant tout calcul : un snapshot illisible, ou nommé autrement que sa table, arrête la commande |
 | ✓ | Migration générée marquée « en attente » : relancé avant qu'elle soit appliquée, `makemigrations` la recalcule au lieu d'en empiler une autre |
 | ✓ | Deux modifications parallèles d'une même table : refus, avec les tables concernées (chaque migration note celle dont elle part) |
-| ☐ | Suppression de table quand le modèle disparaît : refus sans `--force`, `DROP TABLE IF EXISTS` dans `up`, recréation dans `down`, ordre inverse des FK, types enum retirés quand plus aucune colonne ne s'en sert |
+| ✓ | Suppression de table quand le modèle disparaît : refus sans `--force`, `DROP TABLE IF EXISTS` dans `up`, recréation dans `down`, ordre inverse des FK, types enum retirés quand plus aucune colonne ne s'en sert ; sous SQLite, le retrait de la clé d'une table qui reste attend la reconstruction de table |
 | ☐ | `managed: false` dans le `meta` d'un modèle : `makemigrations` ne génère et ne supprime plus rien pour sa table |
 | ☐ | Renommage de table et de champ liste (`rename_to`) |
 | ☐ | Changements destructeurs : indiquer ce qu'ils touchent, relations comprises |

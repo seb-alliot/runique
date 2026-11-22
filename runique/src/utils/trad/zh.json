@@ -556,6 +556,20 @@
       "lost_right": "成员将失去"
     }
   },
+  "database": {
+    "reason_unknown_start": "其开头未指明任何受支持的引擎",
+    "reason_unreadable": "无法读取",
+    "reason_no_database": "未指明数据库名",
+    "reason_sqlite_no_file": "要求使用 SQLite 但未指明文件",
+    "url_incomplete_using_keys": "DATABASE_URL 不完整（{}）：改用 DB_* 键连接。",
+    "url_incomplete_reminder": "已通过 DB_* 键连接。DATABASE_URL 仍不完整（{}）：请修正或删除它。",
+    "url_incomplete_no_keys": "DATABASE_URL 不完整（{}），且没有 DB_* 键可以替代。请修正 DATABASE_URL，或设置 DB_ENGINE 和连接键。",
+    "url_incomplete_keys_unusable": "DATABASE_URL 不完整（{}），且 DB_* 键不足以连接：{}",
+    "url_sqlite_default_file": "DATABASE_URL 要求使用 SQLite 但未指明文件：使用默认文件 {}。",
+    "keys_without_engine": "缺少 DB_ENGINE：设置了 {} 却没有引擎。可用值：postgres、mysql、sqlite。",
+    "url_failed_trying_keys": "通过 DATABASE_URL 连接失败（{}）：改用 DB_* 键重试。",
+    "url_failed_keys_unusable": "通过 DATABASE_URL 连接失败（{}），且 DB_* 键不足以连接：{}"
+  },
   "makemigrations": {
     "destructive_detected": "检测到破坏性更改:",
     "destructive_require_force": "使用 --force 应用这些破坏性更改。",
@@ -597,6 +611,8 @@
   "migrate": {
     "complete_up": "迁移完成。",
     "crate_missing": "未找到迁移 crate：'{}' 中没有 Cargo.toml。",
+    "sqlite_key_change": "{}：此迁移在现有表上添加或移除外键。SQLite 必须重建该表才能做到，而 Runique 尚不支持。此迁移未做任何更改。",
+    "engine_unsupported": "此操作不支持该数据库引擎：{}。",
     "running": "正在执行 'migrate {}'（迁移 crate '{}'）...",
     "complete_down": "回滚完成。",
     "cargo_missing": "无法启动 cargo。是否已安装 Rust 且 cargo 在 PATH 中？",

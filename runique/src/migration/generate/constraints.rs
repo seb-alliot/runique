@@ -135,9 +135,20 @@ pub(super) fn push_drop_index(buf: &mut String, table: &str, idx: &ParsedIndex) 
     buf.push('\n');
 }
 
+/// What a migration that changes the keys of the existing table `table`
+/// runs first, in `up` and in `down`: the engine is asked whether it can,
+/// before any statement of the migration.
+pub(super) fn key_changes_guard(table: &str) -> String {
+    format!(
+        "        runique::migration::runtime::key_changes_supported(manager, \"{table}\")?;\n\n"
+    )
+}
+
+// The key changes of an existing table go through Runique
+// (`migration::runtime`), which does them as the engine needs.
 pub(super) fn push_drop_fk(buf: &mut String, table: &str, from_col: &str, to_table: &str) {
     buf.push_str(&format!(
-        "        manager\n            .drop_foreign_key(\n                ForeignKey::drop()\n                    .table(Alias::new(\"{table}\"))\n                    .name(\"{fk_name}\")\n                    .to_owned(),\n            )\n            .await?;\n\n",
+        "        runique::migration::runtime::drop_foreign_key(manager, \"{table}\", \"{fk_name}\")\n            .await?;\n\n",
         fk_name = fk_constraint_name(table, from_col, to_table),
         table = table,
     ));
@@ -153,7 +164,7 @@ pub(super) fn push_create_fk(
     on_update: &str,
 ) {
     buf.push_str(&format!(
-        "        manager\n            .create_foreign_key(\n                ForeignKey::create()\n                    .name(\"{fk_name}\")\n                    .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                    .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n                    .on_delete(ForeignKeyAction::{on_delete})\n                    .on_update(ForeignKeyAction::{on_update})\n                    .to_owned(),\n            )\n            .await?;\n\n",
+        "        runique::migration::runtime::add_foreign_key(\n            manager,\n            \"{table}\",\n            ForeignKey::create()\n                .name(\"{fk_name}\")\n                .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n                .on_delete(ForeignKeyAction::{on_delete})\n                .on_update(ForeignKeyAction::{on_update})\n                .to_owned(),\n        )\n        .await?;\n\n",
         fk_name = fk_constraint_name(table, from_col, to_table),
         table = table,
         from = from_col,

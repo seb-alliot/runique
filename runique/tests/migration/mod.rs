@@ -30,6 +30,10 @@ pub mod test_column_type_alignment;
 #[cfg(feature = "all-databases")]
 pub mod test_decimal_scale_multi_db;
 #[cfg(feature = "all-databases")]
+pub mod test_drop_table_multi_db;
+#[cfg(feature = "all-databases")]
+pub mod test_runtime_keys_multi_db;
+#[cfg(feature = "all-databases")]
 pub mod test_dsl_types_roundtrip;
 pub mod test_eihwaz_tables_pk;
 #[cfg(feature = "all-databases")]

@@ -12,7 +12,7 @@ use crate::migration::types::{Changes, ParsedFk, ParsedSchema};
 use alter::{body_has_code, build_alter_bodies};
 use constraints::{
     build_fk_create_stmts, build_fk_drop_stmts, build_index_create_stmts, build_index_drop_stmts,
-    fk_constraint_name, render_fk_create,
+    fk_constraint_name, key_changes_guard, render_fk_create,
 };
 use create::build_create_table_cols;
 use enums::{
@@ -42,6 +42,26 @@ const NOT_SQLITE: &str =
 
 /// The CREATE file of a table, with the keys of an FK cycle placed per engine.
 pub fn generate_create_file_in_cycle(schema: &ParsedSchema, keys: &CycleKeys<'_>) -> String {
+    let (up, down) = create_bodies(schema, keys, false);
+    migration_file(&up, &down)
+}
+
+/// The migration that drops a table: the mirror of its creation. `up` takes
+/// the table away (`IF EXISTS`: a table already gone must not fail the run),
+/// after the keys that still point to it from tables dropped later, then the
+/// enum types nothing uses any more. `down` creates it again from `schema`,
+/// its snapshot: the table comes back, empty.
+pub fn generate_drop_file(schema: &ParsedSchema, keys: &CycleKeys<'_>) -> String {
+    let (create, drop) = create_bodies(schema, keys, true);
+    migration_file(&drop, &create)
+}
+
+/// The two bodies around a table: what creates it, and what takes it away.
+fn create_bodies(
+    schema: &ParsedSchema,
+    keys: &CycleKeys<'_>,
+    drop_if_exists: bool,
+) -> (String, String) {
     let (forward, closing) = (&keys.forward, &keys.closing);
 
     // FKs inline in CREATE TABLE: SQLite cannot ALTER-ADD a foreign key to an
@@ -133,11 +153,19 @@ pub fn generate_create_file_in_cycle(schema: &ParsedSchema, keys: &CycleKeys<'_>
         "                .table(Alias::new(\"{}\"))\n",
         schema.table_name
     ));
+    if drop_if_exists {
+        down.push_str("                .if_exists()\n");
+    }
     down.push_str("                .to_owned())\n");
     down.push_str("            .await?;\n");
     down.push_str(&enum_drops);
     down.push_str("        Ok(())\n");
 
+    (up, down)
+}
+
+/// A migration file around its two bodies.
+fn migration_file(up: &str, down: &str) -> String {
     format!(
         "use sea_orm_migration::prelude::*;\n\n\
     #[derive(DeriveMigrationName)]\n\
@@ -257,8 +285,15 @@ pub fn generate_alter_file(change: &Changes) -> String {
     let enum_creates = build_enum_create_stmts_for_cols(&change.added_columns);
     let enum_drops = build_enum_drop_stmts_for_cols(&change.added_columns);
 
-    let full_up = format!("{}{}", enum_creates, up_body);
-    let full_down = format!("{}{}", down_body, enum_drops);
+    // Before anything else: an engine that can't change the keys of an
+    // existing table stops here, the table untouched.
+    let guard = if change.added_fks.is_empty() && change.dropped_fks.is_empty() {
+        String::new()
+    } else {
+        key_changes_guard(&change.table_name)
+    };
+    let full_up = format!("{}{}{}", guard, enum_creates, up_body);
+    let full_down = format!("{}{}{}", guard, down_body, enum_drops);
 
     let up_param = if body_has_code(&full_up) {
         "manager"

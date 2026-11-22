@@ -66,8 +66,7 @@ impl TestTransaction for ADb {
             .map(|builder| builder.build())
             .map_err(DbErr::Custom)?;
         // A test only ever needs the one connection its transaction runs on.
-        config.max_connections = 1;
-        config.min_connections = 1;
+        config.pool(1, 1);
         Ok(config)
     }
 

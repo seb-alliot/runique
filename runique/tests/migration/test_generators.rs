@@ -400,7 +400,7 @@ fn test_create_file_postgres_enum_drops() {
     };
     let content = generate_create_file(&schema);
     assert!(
-        content.contains("Type::drop()"),
+        content.contains("runtime::drop_enum_type(manager, "),
         "Postgres down doit supprimer le type"
     );
 }
@@ -809,7 +809,7 @@ fn test_alter_file_postgres_enum_add_column_generates_create_type() {
     );
     let down = content.split("async fn down").nth(1).unwrap_or("");
     assert!(
-        down.contains(".name(Alias::new(\"article_status\"))"),
+        down.contains("runtime::drop_enum_type(manager, \"article_status\").await?;"),
         "DOWN doit supprimer le type enum après DROP COLUMN"
     );
 }
@@ -910,7 +910,7 @@ fn test_alter_file_string_to_enum_postgres_generates_create_type_and_cast() {
         "DOWN doit recaster vers text en repassant en string"
     );
     assert!(
-        down.contains(".name(Alias::new(\"courblocktype\"))"),
+        down.contains("runtime::drop_enum_type(manager, \"courblocktype\").await?;"),
         "DOWN doit supprimer le type après avoir déplacé la colonne dessus"
     );
 }

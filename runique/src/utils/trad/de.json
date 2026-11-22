@@ -556,6 +556,20 @@
       "lost_right": "von den Mitgliedern verloren"
     }
   },
+  "database": {
+    "reason_unknown_start": "ihr Anfang nennt keine unterstützte Engine",
+    "reason_unreadable": "sie ist nicht lesbar",
+    "reason_no_database": "sie nennt keine Datenbank",
+    "reason_sqlite_no_file": "sie verlangt SQLite, ohne eine Datei zu nennen",
+    "url_incomplete_using_keys": "DATABASE_URL ist unvollständig ({}): Verbindung über die DB_*-Schlüssel.",
+    "url_incomplete_reminder": "Verbindung über die DB_*-Schlüssel hergestellt. DATABASE_URL ist weiterhin unvollständig ({}): Korrigieren oder entfernen Sie sie.",
+    "url_incomplete_no_keys": "DATABASE_URL ist unvollständig ({}) und kein DB_*-Schlüssel ersetzt sie. Korrigieren Sie DATABASE_URL oder setzen Sie DB_ENGINE und die Verbindungsschlüssel.",
+    "url_incomplete_keys_unusable": "DATABASE_URL ist unvollständig ({}), und die DB_*-Schlüssel reichen für eine Verbindung nicht aus: {}",
+    "url_sqlite_default_file": "DATABASE_URL verlangt SQLite, ohne eine Datei zu nennen: Die Standarddatei {} wird verwendet.",
+    "keys_without_engine": "DB_ENGINE fehlt: {} ist ohne die Engine gesetzt. Zulässige Werte: postgres, mysql, sqlite.",
+    "url_failed_trying_keys": "Die Verbindung über DATABASE_URL ist fehlgeschlagen ({}): neuer Versuch über die DB_*-Schlüssel.",
+    "url_failed_keys_unusable": "Die Verbindung über DATABASE_URL ist fehlgeschlagen ({}), und die DB_*-Schlüssel reichen für eine Verbindung nicht aus: {}"
+  },
   "makemigrations": {
     "destructive_detected": "Destruktive Änderungen erkannt:",
     "destructive_require_force": "Verwenden Sie --force, um diese destruktiven Änderungen anzuwenden.",
@@ -597,6 +611,8 @@
   "migrate": {
     "complete_up": "Migration abgeschlossen.",
     "crate_missing": "Migrations-Crate nicht gefunden: '{}' enthält keine Cargo.toml.",
+    "sqlite_key_change": "{}: Diese Migration fügt einer bestehenden Tabelle einen Fremdschlüssel hinzu oder entfernt ihn. SQLite kann das nicht, ohne die Tabelle neu aufzubauen, was Runique noch nicht unterstützt. Diese Migration hat nichts geändert.",
+    "engine_unsupported": "Datenbank-Engine für diesen Vorgang nicht unterstützt: {}.",
     "running": "Führe 'migrate {}' mit dem Migrations-Crate '{}' aus...",
     "complete_down": "Rücksetzung abgeschlossen.",
     "cargo_missing": "cargo kann nicht gestartet werden. Ist Rust installiert und cargo im PATH?",

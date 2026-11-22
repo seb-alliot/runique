@@ -576,6 +576,20 @@
     "email_body": "<p>Hello {},</p><p>Click the link below to reset your password (valid for {} min):</p><p><a href=\"{}\">{}</a></p>",
     "unavailable": "Password reset by email is not available right now."
   },
+  "database": {
+    "reason_unknown_start": "its start names no supported engine",
+    "reason_unreadable": "it can't be read",
+    "reason_no_database": "it names no database",
+    "reason_sqlite_no_file": "it asks for SQLite without naming a file",
+    "url_incomplete_using_keys": "DATABASE_URL is incomplete ({}): connecting with the DB_* keys.",
+    "url_incomplete_reminder": "Connected with the DB_* keys. DATABASE_URL is still incomplete ({}): fix it or remove it.",
+    "url_incomplete_no_keys": "DATABASE_URL is incomplete ({}) and no DB_* key replaces it. Fix DATABASE_URL, or set DB_ENGINE and the connection keys.",
+    "url_incomplete_keys_unusable": "DATABASE_URL is incomplete ({}), and the DB_* keys are not enough to connect: {}",
+    "url_sqlite_default_file": "DATABASE_URL asks for SQLite without naming a file: the default file {} is used.",
+    "keys_without_engine": "DB_ENGINE is missing: {} is set without the engine. Accepted values: postgres, mysql, sqlite.",
+    "url_failed_trying_keys": "Connecting with DATABASE_URL failed ({}): trying again with the DB_* keys.",
+    "url_failed_keys_unusable": "Connecting with DATABASE_URL failed ({}), and the DB_* keys are not enough to connect: {}"
+  },
   "makemigrations": {
     "destructive_detected": "Destructive changes detected:",
     "destructive_require_force": "Use --force to apply these destructive changes.",
@@ -617,6 +631,8 @@
   "migrate": {
     "complete_up": "Migration complete.",
     "crate_missing": "Migration crate not found: '{}' has no Cargo.toml.",
+    "sqlite_key_change": "{}: this migration adds or removes a foreign key on an existing table. SQLite can't do it without rebuilding the table, which Runique doesn't support yet. This migration changed nothing.",
+    "engine_unsupported": "Database engine not supported for this operation: {}.",
     "running": "Running 'migrate {}' with the migration crate '{}'...",
     "complete_down": "Rollback complete.",
     "cargo_missing": "Unable to launch cargo. Is Rust installed and cargo on the PATH?",

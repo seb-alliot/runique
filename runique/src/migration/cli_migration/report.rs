@@ -26,8 +26,14 @@ pub(super) fn report_and_bail_if_any(
     anyhow::bail!("{}", t(bail_key));
 }
 
-pub(super) fn check_destructive(all_changes: &[Changes], force: bool) -> Result<()> {
-    let blocking = collect_destructive_messages(all_changes);
+pub(super) fn check_destructive(
+    all_changes: &[Changes],
+    dropped_tables: &[String],
+    force: bool,
+) -> Result<()> {
+    // One guard for the whole run: the tables to drop first, then the rest.
+    let mut blocking = dropped_table_messages(dropped_tables);
+    blocking.extend(collect_destructive_messages(all_changes));
     report_and_bail_if_any(
         &blocking,
         "makemigrations.destructive_detected",

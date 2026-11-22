@@ -133,6 +133,79 @@ fn waiting_migrate(content: String, module: &str, settled: &[String]) -> String 
     format!("{WAIT_MIGRATION}\n{FROM_MIGRATION}{from}\n{content}")
 }
 
+/// The changes that create the table of `schema` from nothing.
+fn creation_of(schema: &ParsedSchema) -> Changes {
+    Changes {
+        table_name: schema.table_name.clone(),
+        added_columns: db_columns(schema).into_iter().cloned().collect(),
+        dropped_columns: vec![],
+        modified_columns: vec![],
+        renamed_columns: vec![],
+        added_fks: schema.foreign_keys.clone(),
+        dropped_fks: vec![],
+        added_indexes: schema.indexes.clone(),
+        dropped_indexes: vec![],
+        is_new_table: true,
+        enum_renames: vec![],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
+    }
+}
+
+/// The tables to drop: the ones Runique migrated (`snapshots`, the snapshots
+/// of `snapshots/` itself) that no scanned model produces any more, by name.
+/// A table of the framework is never dropped.
+pub(super) fn dropped_tables(
+    snapshots: Vec<ParsedSchema>,
+    schemas: &[ParsedSchema],
+) -> Vec<ParsedSchema> {
+    let mut dropped: Vec<ParsedSchema> = snapshots
+        .into_iter()
+        .filter(|snapshot| {
+            !snapshot.table_name.starts_with(FRAMEWORK_TABLE_PREFIX)
+                && !schemas.iter().any(|s| s.table_name == snapshot.table_name)
+        })
+        .collect();
+    dropped.sort_by(|a, b| a.table_name.cmp(&b.table_name));
+    dropped
+}
+
+/// Every table of the framework starts with this.
+const FRAMEWORK_TABLE_PREFIX: &str = "eihwaz_";
+
+/// Adds one migration per table to drop, after everything else of the plan:
+/// the tables that reference go before the ones they reference, and in a
+/// cycle of keys the key still pointing to a table is removed before it.
+/// The snapshot stays: `migration up` removes it once the drop is applied.
+pub(super) fn build_drop_plan(
+    plan: &mut Plan,
+    dropped: &[ParsedSchema],
+    migrations_path: &str,
+    timestamp: &str,
+    settled: &[String],
+) {
+    // Reversed creation order; the keys of a cycle are worked out on the
+    // creation order, which is the order the `down`s run in.
+    let creation: Vec<Changes> =
+        topological_sort_changes(dropped.iter().map(creation_of).collect());
+    let cycle_keys = cycle_keys(&creation, dropped);
+    let no_cycle = CycleKeys::default();
+    for change in drop_order(creation.clone()) {
+        let Some(schema) = dropped.iter().find(|s| s.table_name == change.table_name) else {
+            continue;
+        };
+        let keys = cycle_keys
+            .get(schema.table_name.as_str())
+            .unwrap_or(&no_cycle);
+        let module_name = seaorm_drop_module_name(timestamp, &schema.table_name);
+        plan.files.push((
+            seaorm_drop_file_path(migrations_path, timestamp, &schema.table_name),
+            waiting_migrate(generate_drop_file(schema, keys), &module_name, settled),
+        ));
+        plan.lib_modules.push(module_name);
+    }
+}
+
 /// Computes the diff for every scanned model (no writing).
 pub(super) fn compute_main_changes(
     schemas: &[ParsedSchema],
@@ -145,21 +218,7 @@ pub(super) fn compute_main_changes(
             let previous = previous_snapshot(&snap_path, schema)?;
             diff_schemas(&previous, schema)
         } else {
-            Changes {
-                table_name: schema.table_name.clone(),
-                added_columns: db_columns(schema).into_iter().cloned().collect(),
-                dropped_columns: vec![],
-                modified_columns: vec![],
-                renamed_columns: vec![],
-                added_fks: schema.foreign_keys.clone(),
-                dropped_fks: vec![],
-                added_indexes: schema.indexes.clone(),
-                dropped_indexes: vec![],
-                is_new_table: true,
-                enum_renames: vec![],
-                enum_value_adds: vec![],
-                enum_value_drops: vec![],
-            }
+            creation_of(schema)
         };
         if !changes.is_empty() {
             all_changes.push(changes);

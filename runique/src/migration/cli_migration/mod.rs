@@ -39,7 +39,8 @@ pub use applied::read as applied_migrations;
 pub(crate) use snapshot::previous_snapshot;
 
 use plan::{
-    Plan, build_extend_plan, build_main_plan, commit_plan, compute_main_changes,
+    Plan, build_drop_plan, build_extend_plan, build_main_plan, commit_plan,
+    compute_main_changes, dropped_tables,
     check_parallel, plan_extend_changes, replace_waiting, settled_migrations,
     waiting_migrations,
 };
@@ -61,7 +62,7 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     // back, so the changes are computed on migrations that are whole.
     init_migrate::repair(std::path::Path::new(migrations_path))?;
 
-    snapshot::read_all(migrations_path)?;
+    let migrated = snapshot::read_all(migrations_path)?;
     check_parallel(migrations_path)?;
     let waiting = waiting_migrations(migrations_path)?;
 
@@ -71,6 +72,8 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     //    (main models + extend!{} blocks) is computed and validated.
     let mut main_changes = compute_main_changes(&schemas, migrations_path)?;
     let extend_planned = plan_extend_changes(entities_path, migrations_path)?;
+    // A table Runique migrated that no model produces any more.
+    let dropped = dropped_tables(migrated, &schemas);
 
     let upgrades = snapshot_upgrades(
         entities_path,
@@ -80,7 +83,7 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
         migrations_path,
     )?;
 
-    if main_changes.is_empty() && extend_planned.is_empty() {
+    if main_changes.is_empty() && extend_planned.is_empty() && dropped.is_empty() {
         // A project without a model of its own still needs the framework's
         // tables (accounts, sessions): wired into `lib.rs` even then, and the
         // `sea-orm-cli migrate init` placeholder dropped.
@@ -109,7 +112,8 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     // ── Single destructive guard over main + extend (honors --force) ──────
     let mut destructive_set: Vec<Changes> = main_changes.clone();
     destructive_set.extend(extend_planned.iter().map(|(_, c)| c.clone()));
-    check_destructive(&destructive_set, force)?;
+    let dropped_names: Vec<String> = dropped.iter().map(|s| s.table_name.clone()).collect();
+    check_destructive(&destructive_set, &dropped_names, force)?;
     check_identifier_lengths(&destructive_set)?;
 
     let timestamp = Utc::now().format("%Y%m%d_%H%M%S").to_string();
@@ -135,6 +139,9 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
         &timestamp,
         &settled,
     );
+    // Last: what destroys closes the run, once the keys of the tables that
+    // stay were removed by their own migrations above.
+    build_drop_plan(&mut plan, &dropped, migrations_path, &timestamp, &settled);
     // While the plan holds the migrations and nothing else.
     let rewritten = replace_waiting(&mut plan, &waiting);
     plan.files.extend(upgrades);
@@ -181,8 +188,7 @@ pub(crate) async fn makemigrations_with(
         .map_err(anyhow::Error::msg)?
         .build();
     // The command only ever needs one connection.
-    config.max_connections = 1;
-    config.min_connections = 1;
+    config.pool(1, 1);
     let db = config
         .connect()
         .await

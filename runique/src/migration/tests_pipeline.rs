@@ -313,8 +313,8 @@ fn enum_create_type_is_postgres_only() {
         "the enum type must always be created (runtime-guarded):\n{sql}"
     );
     assert!(
-        sql.contains("Type::drop()"),
-        "down() must always emit the matching DROP TYPE (runtime-guarded):\n{sql}"
+        sql.contains(r#"runique::migration::runtime::drop_enum_type(manager, "status").await?;"#),
+        "down() must always hand the type over to be dropped once unused:\n{sql}"
     );
 }
 
@@ -992,6 +992,42 @@ fn combined_alter_runs_rename_before_drop_and_add() {
     );
 }
 
+// ── Reading a file back: the columns in the order they were written ──────────
+
+// A snapshot and a creation are read back with their columns in the order of
+// the file, which is the order of the model: a table created again from its
+// snapshot must not come back with its columns reversed.
+#[test]
+fn columns_are_read_back_in_the_order_of_the_file() {
+    let column = |name: &str| ParsedColumn {
+        name: name.into(),
+        col_type: "String".into(),
+        ..ParsedColumn::default()
+    };
+    let schema = ParsedSchema {
+        table_name: "t".into(),
+        primary_key: Some(ParsedColumn {
+            name: "id".into(),
+            col_type: "Integer".into(),
+            ..ParsedColumn::default()
+        }),
+        columns: vec![column("zeta"), column("alpha"), column("mid"), column("beta")],
+        foreign_keys: vec![],
+        indexes: vec![],
+    };
+    let names = |source: String| -> Vec<String> {
+        parse_seaorm_source(&source)
+            .unwrap()
+            .columns
+            .into_iter()
+            .map(|c| c.name)
+            .collect()
+    };
+
+    assert_eq!(names(generate_snapshot_file(&schema)), ["zeta", "alpha", "mid", "beta"]);
+    assert_eq!(names(generate_create_file(&schema)), ["zeta", "alpha", "mid", "beta"]);
+}
+
 // ── ALTER: add / drop / modify column (up + down) ──────────────────────────────
 
 fn up_down(sql: &str) -> (&str, &str) {
@@ -1155,9 +1191,46 @@ fn alter_add_fk_up_creates_down_drops() {
     };
     let sql = generate_alter_file(&changes);
     let (up, down) = up_down(&sql);
-    assert!(up.contains(".create_foreign_key("), "up:\n{up}");
+    assert!(up.contains("runtime::add_foreign_key("), "up:\n{up}");
     assert!(up.contains(r#".name("t_post_id_post_fkey")"#), "up:\n{up}");
-    assert!(down.contains(".drop_foreign_key("), "down:\n{down}");
+    assert!(
+        down.contains(r#"runtime::drop_foreign_key(manager, "t", "t_post_id_post_fkey")"#),
+        "down:\n{down}"
+    );
+    key_guard_comes_first(&up, &down);
+}
+
+/// Both bodies of a migration that changes keys start by asking the engine
+/// whether it can: nothing of the migration runs before.
+fn key_guard_comes_first(up: &str, down: &str) {
+    let guard = r#"runique::migration::runtime::key_changes_supported(manager, "t")?;"#;
+    for body in [up, down] {
+        let first = body
+            .lines()
+            .map(str::trim)
+            // The first statement: the signature line is skipped.
+            .find(|line| line.contains("manager") && !line.contains("&self"))
+            .unwrap_or_default();
+        assert_eq!(first, guard, "{body}");
+        assert_eq!(body.matches("key_changes_supported").count(), 1, "{body}");
+    }
+}
+
+// A migration that changes no key asks nothing: it must keep running on
+// SQLite as before.
+#[test]
+fn an_alter_without_a_key_change_has_no_key_guard() {
+    let changes = Changes {
+        added_columns: vec![ParsedColumn {
+            name: "bio".into(),
+            col_type: "String".into(),
+            nullable: true,
+            ..ParsedColumn::default()
+        }],
+        ..empty_changes()
+    };
+    let sql = generate_alter_file(&changes);
+    assert!(!sql.contains("key_changes_supported"), "{sql}");
 }
 
 #[test]
@@ -1168,8 +1241,12 @@ fn alter_drop_fk_up_drops_down_creates() {
     };
     let sql = generate_alter_file(&changes);
     let (up, down) = up_down(&sql);
-    assert!(up.contains(".drop_foreign_key("), "up:\n{up}");
-    assert!(down.contains(".create_foreign_key("), "down:\n{down}");
+    assert!(
+        up.contains(r#"runtime::drop_foreign_key(manager, "t", "t_post_id_post_fkey")"#),
+        "up:\n{up}"
+    );
+    assert!(down.contains("runtime::add_foreign_key("), "down:\n{down}");
+    key_guard_comes_first(&up, &down);
 }
 
 // ── ALTER: add / drop index (up + down) ────────────────────────────────────────

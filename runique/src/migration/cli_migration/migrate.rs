@@ -9,8 +9,8 @@ use super::snapshot::extend_snapshot_content;
 use crate::atomic::{AtomicBuilder, SourceItems};
 use crate::db::DatabaseConfig;
 use crate::migration::{
-    WAIT_MIGRATION, extend_snapshot_file_path, generate_snapshot_file, has_marker,
-    migration_target, snapshot_file_path, without_marker,
+    WAIT_MIGRATION, dropped_table, extend_snapshot_file_path, generate_snapshot_file,
+    has_marker, migration_target, snapshot_file_path, without_marker,
 };
 use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result};
@@ -33,6 +33,8 @@ pub async fn up(entities_path: &str, migrations_path: &str) -> Result<()> {
 pub fn record_applied(entities_path: &str, migrations_path: &str) -> Result<()> {
     let mut files: Vec<(PathBuf, String)> = Vec::new();
     let mut targets: Vec<(bool, String)> = Vec::new();
+    // Tables an applied migration dropped: their snapshot goes.
+    let mut gone: Vec<String> = Vec::new();
     for module in lib_modules(migrations_path)? {
         let path = Path::new(migrations_path).join(format!("{module}.rs"));
         if let Ok(content) = fs::read_to_string(&path)
@@ -40,7 +42,9 @@ pub fn record_applied(entities_path: &str, migrations_path: &str) -> Result<()> 
         {
             files.push((path, without_marker(&content, WAIT_MIGRATION)));
 
-            if let Some((extend, table)) = migration_target(&module)
+            if let Some(table) = dropped_table(&module) {
+                gone.push(table.to_string());
+            } else if let Some((extend, table)) = migration_target(&module)
                 && !targets.iter().any(|(e, t)| *e == extend && t == table)
             {
                 targets.push((extend, table.to_string()));
@@ -51,8 +55,19 @@ pub fn record_applied(entities_path: &str, migrations_path: &str) -> Result<()> 
         return Ok(());
     }
 
-    let models = scan_entities(entities_path)?;
-    let extends = merge_extend_schemas(scan_extend_blocks(entities_path)?);
+    // Dropped in this very run: no snapshot is written for it, even when a
+    // model of that name is back.
+    targets.retain(|(extend, table)| *extend || !gone.contains(table));
+    // The models are only read when a snapshot is to be written: a run that
+    // drops the last tables of a project has none left to read.
+    let (models, extends) = if targets.is_empty() {
+        (Vec::new(), Vec::new())
+    } else {
+        (
+            scan_entities(entities_path)?,
+            merge_extend_schemas(scan_extend_blocks(entities_path)?),
+        )
+    };
     for (extend, table) in targets {
         if extend {
             if let Some(schema) = extends.iter().find(|s| s.table_name == table) {
@@ -73,6 +88,15 @@ pub fn record_applied(entities_path: &str, migrations_path: &str) -> Result<()> 
     for (path, content) in files {
         batch = batch.add(path, SourceItems::Bytes(content.into_bytes()), false)?;
     }
+    gone.sort();
+    gone.dedup();
+    for table in gone {
+        let snapshot = PathBuf::from(snapshot_file_path(migrations_path, &table));
+        // Already gone (removed by hand): nothing to take away.
+        if snapshot.exists() {
+            batch = batch.add(snapshot, SourceItems::Remove, false)?;
+        }
+    }
     batch.start()?;
     Ok(())
 }
@@ -89,19 +113,15 @@ pub async fn status(migrations_path: &str) -> Result<()> {
     run(migrations_path, &["status"]).await
 }
 
-/// The `DATABASE_URL` to hand the migration crate when the project sets none.
-/// The crate reads nothing else, while the app also takes `DB_ENGINE` and the
-/// `DB_*` variables: built by the app's own rule ([`DatabaseConfig`]), so
-/// both connect to the same database. `None` when the project sets the URL
-/// itself, an error when what it sets is not enough to connect.
-fn database_url(get: impl Fn(&str) -> Option<String>) -> Result<Option<String>> {
-    if get("DATABASE_URL").is_some() {
-        return Ok(None);
-    }
-    let config = DatabaseConfig::from_lookup(get)
+/// The configuration of the project's database, by the app's own rule
+/// ([`DatabaseConfig`]); an error when what the project sets is not enough.
+fn configuration(get: impl Fn(&str) -> Option<String>) -> Result<DatabaseConfig> {
+    let mut config = DatabaseConfig::from_lookup(get)
         .map_err(anyhow::Error::msg)?
         .build();
-    Ok(Some(config.url))
+    // The command only checks which address answers.
+    config.pool(1, 1);
+    Ok(config)
 }
 
 /// `cargo run` on the migration crate behind `migrations_path` (its trailing
@@ -139,11 +159,18 @@ async fn run(migrations_path: &str, args: &[&str]) -> Result<()> {
         .arg(&manifest)
         .arg("--")
         .args(args);
+    // The crate reads `DATABASE_URL` and nothing else, while the app also
+    // takes the `DB_*` keys and falls back on them: the address that answers
+    // is found here and handed over, so both use the same database.
     // Through the crate's environment, never as an argument: the URL holds the
     // password, and arguments can be read by every user of the machine.
-    if let Some(url) = database_url(|key| std::env::var(key).ok())? {
-        command.env("DATABASE_URL", url);
-    }
+    let config = configuration(|key| std::env::var(key).ok())?;
+    let (connection, answered) = config
+        .connect_resolved()
+        .await
+        .map_err(|e| anyhow::anyhow!(tf("makemigrations.database_unreachable", &[e])))?;
+    drop(connection);
+    command.env("DATABASE_URL", &answered.url);
     let status = command
         .status()
         .await
@@ -475,24 +502,28 @@ mod tests {
         );
     }
 
-    /// What `database_url` gives for a project's environment.
+    /// The address `configuration` retains for a project's environment.
     fn url_for(vars: &[(&str, &str)]) -> Result<Option<String>> {
-        database_url(|key| {
+        configuration(|key| {
             vars.iter()
                 .find(|(name, _)| *name == key)
                 .map(|(_, value)| value.to_string())
         })
+        .map(|config| Some(config.url))
     }
 
-    // The project says where its database is: nothing is worked out, the crate
-    // reads that URL itself.
+    // The project says where its database is: that address comes first, the
+    // keys only stand by.
     #[test]
-    fn a_database_url_the_project_sets_is_left_to_the_crate() {
+    fn a_database_url_the_project_sets_comes_first() {
         let set = url_for(&[
             ("DATABASE_URL", "postgres://app:secret@db.local/shop"),
             ("DB_ENGINE", "sqlite"),
         ]);
-        assert_eq!(set.unwrap(), None);
+        assert_eq!(
+            set.unwrap().as_deref(),
+            Some("postgres://app:secret@db.local/shop")
+        );
     }
 
     // Configured the other way the app accepts, by its parts: the crate gets

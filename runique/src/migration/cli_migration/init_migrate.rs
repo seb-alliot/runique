@@ -365,8 +365,7 @@ mod tests {
     }
 
     // Nothing set, or something set that names no engine: the caller falls
-    // back on SQLite and says so. A URL that names none is not rescued by the
-    // keyword: the app would not start on it either.
+    // back on SQLite and says so.
     #[test]
     fn no_engine_is_guessed_from_what_names_none() {
         assert_eq!(engine_of(&[]), None);
@@ -381,12 +380,30 @@ mod tests {
             engine_of(&[("DATABASE_URL", "oracle://localhost/app")]),
             None
         );
+    }
+
+    // A URL whose start names no engine is incomplete: the keys take over, as
+    // they do when the app connects.
+    #[test]
+    fn the_keyword_names_the_engine_when_the_url_names_none() {
         assert_eq!(
             engine_of(&[
                 ("DATABASE_URL", "oracle://localhost/app"),
                 ("DB_ENGINE", "postgres"),
             ]),
-            None
+            Some(Engine::Postgres)
+        );
+        assert_eq!(
+            engine_of(&[("DATABASE_URL", ""), ("DB_ENGINE", "mysql")]),
+            Some(Engine::Mysql)
+        );
+        // A URL that names one still decides.
+        assert_eq!(
+            engine_of(&[
+                ("DATABASE_URL", "sqlite://data.db"),
+                ("DB_ENGINE", "postgres"),
+            ]),
+            Some(Engine::Sqlite)
         );
     }
 

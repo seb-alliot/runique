@@ -86,13 +86,13 @@ impl DatabaseEngine {
     }
 
     /// The engine a project's variables name, by the one rule every part of
-    /// runique follows: `DATABASE_URL` decides when it is set, `DB_ENGINE`
-    /// otherwise. `None` when neither names an engine.
+    /// runique follows: `DATABASE_URL` decides when its start names an
+    /// engine, `DB_ENGINE` otherwise (address absent, blank, or with a start
+    /// that names none). `None` when neither names an engine.
     pub(crate) fn from_lookup(get: impl Fn(&str) -> Option<String>) -> Option<Self> {
-        match get("DATABASE_URL") {
-            Some(url) => Self::detect_from_url(&url).ok(),
-            None => Self::from_keyword(&get("DB_ENGINE")?),
-        }
+        get("DATABASE_URL")
+            .and_then(|url| Self::detect_from_url(&url).ok())
+            .or_else(|| Self::from_keyword(&get("DB_ENGINE")?))
     }
 
     /// What a connection URL to this engine starts with.
@@ -275,13 +275,19 @@ mod tests {
             ]),
             Some(DatabaseEngine::PostgreSQL)
         );
+        // An address whose start names no engine leaves the choice to the key.
         assert_eq!(
             engine_of(&[
                 ("DB_ENGINE", "postgres"),
                 ("DATABASE_URL", "oracle://localhost/app"),
             ]),
-            None
+            Some(DatabaseEngine::PostgreSQL)
         );
+        assert_eq!(
+            engine_of(&[("DB_ENGINE", "mysql"), ("DATABASE_URL", "")]),
+            Some(DatabaseEngine::MySQL)
+        );
+        assert_eq!(engine_of(&[("DATABASE_URL", "oracle://localhost/app")]), None);
     }
 
     // A URL made of an engine's scheme is read back as that engine: the two

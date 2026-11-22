@@ -20,7 +20,8 @@ Les cibles de `belongs_to` sont ensuite résolues comme le fait la macro : par l
 
 Runique conserve dans `migration/src/snapshots/` l'état de chaque table **telle qu'elle a été appliquée**, sous forme d'un fichier de migration relu à chaque passage. Ce fichier est écrit par `runique migration up`, une fois la migration appliquée ; `makemigrations` ne l'écrit jamais. Le diff détecte :
 
-- les tables ajoutées, et les colonnes ajoutées ou supprimées. Une table dont le modèle a disparu n'est pas détectée (voir [les limites](/docs/fr/installation/migrations)) ;
+- les tables ajoutées, et les colonnes ajoutées ou supprimées ;
+- les **tables à supprimer** : une table que Runique a migrée (elle a son snapshot) et qu'aucun modèle ne produit plus (voir « Supprimer une table » plus bas) ;
 - les **renommages de colonne** via `[renamed_from: "ancien"]` : un `RENAME COLUMN` au lieu d'un `DROP` + `ADD` (sans cet indice, l'outil non interactif ne peut pas deviner l'intention) ;
 - les changements de type, de nullabilité, d'unicité, de valeur par défaut et de **longueur** (`max_length`) ;
 - les valeurs d'enum ajoutées, supprimées ou renommées (un renommage est **une seule** opération) ;
@@ -73,6 +74,39 @@ Les phases ci-dessus ne font que *calculer* un plan en mémoire — rien n'est �
 Depuis la 4.1, la commande **se connecte d'abord à la base** (celle du `.env`, comme l'application) et s'arrête avec une erreur si elle ne répond pas, avant d'avoir lu ou écrit quoi que ce soit. Elle n'y écrit rien : seul `runique migration up` applique une migration.
 
 Elle y lit la liste des migrations appliquées (`seaql_migrations`) : si l'une d'elles est inconnue de `lib.rs`, la commande s'arrête avant tout calcul. Une base qui n'a encore rien appliqué (table absente) est un cas normal.
+
+## Supprimer une table
+
+Retirer un modèle supprime sa table. La règle : une table a un snapshot dans `migration/src/snapshots/` (Runique l'a donc migrée) et plus aucun modèle ne la produit.
+
+```
+$ runique makemigrations
+Changements destructifs détectés :
+  menus: DROP TABLE (data loss)
+Utilisez --force pour appliquer ces changements destructifs.
+```
+
+Sans `--force`, rien n'est écrit, pas même les autres changements du lancement. Avec `--force`, `makemigrations` écrit une migration `m…_drop_menus_table.rs` :
+
+- `up` fait un `DROP TABLE IF EXISTS` : une table déjà absente ne fait pas échouer `runique migration up` ;
+- `down` recrée la table d'après son snapshot. Elle revient **vide** : les lignes sont perdues dès que la suppression est appliquée.
+
+Le snapshot reste tant que la suppression n'est pas appliquée ; `runique migration up` le retire ensuite. Entre-temps, relancer `makemigrations` ne réécrit rien, et si vous remettez le modèle, la migration de suppression en attente disparaît d'elle-même.
+
+**Ce qui compte comme un modèle retiré.** Le lecteur ne voit que les fichiers `.rs` du premier niveau de `src/entities/`, hors `mod.rs`. Un modèle mis en commentaire, déplacé dans un sous-dossier ou dans `mod.rs`, ou dont le fichier change d'extension, est absent pour lui : sa table est proposée à la suppression. Le blocage sans `--force` est le seul filet : lisez la liste avant de forcer.
+
+**Ce qui est supprimé aussi.** La table d'un champ liste (`checkbox`, `multichoice`) part avec son modèle, ou seule si le champ est retiré. Un type enum PostgreSQL de la table n'est supprimé que si plus aucune colonne ne s'en sert : un enum partagé par deux tables reste jusqu'à la dernière.
+
+**Ce qui n'est jamais supprimé.** Les tables du framework (`eihwaz_*`), et toute table de la base que Runique n'a pas migrée lui-même : sans snapshot, elle est ignorée.
+
+**L'ordre.** Les suppressions ferment le lancement. Entre elles, la table qui en vise une autre part la première : la table d'un champ liste avant celle de son modèle, par exemple. PostgreSQL et MySQL refusent de supprimer une table tant qu'une clé étrangère pointe dessus, même si les deux tables sont vides.
+
+**Quand une table qui reste pointait sur la table supprimée.**
+
+- Vous avez gardé son `belongs_to` : la commande s'arrête en erreur, avec ou sans `--force`. Mettre vos modèles en accord est votre travail, et le projet ne compilerait pas de toute façon.
+- Vous avez retiré son `belongs_to` : sa migration retire la clé, puis la table visée est supprimée. Sous SQLite, ce retrait de clé n'est pas encore pris en charge : la migration est refusée avant d'avoir rien modifié (voir [les limites](/docs/fr/installation/migrations)).
+
+> Renommer la table d'un modèle (`table: "…"`) sans autre précaution revient à supprimer l'ancienne et créer la nouvelle : les lignes sont perdues. Les deux sont bloqués sans `--force`.
 
 ## Relancer avant d'appliquer
 

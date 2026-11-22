@@ -556,6 +556,20 @@
       "lost_right": "メンバーが失う"
     }
   },
+  "database": {
+    "reason_unknown_start": "先頭が対応するエンジンを示していません",
+    "reason_unreadable": "読み取れません",
+    "reason_no_database": "データベース名がありません",
+    "reason_sqlite_no_file": "ファイル名なしで SQLite を指定しています",
+    "url_incomplete_using_keys": "DATABASE_URL が不完全です（{}）：DB_* キーで接続します。",
+    "url_incomplete_reminder": "DB_* キーで接続しました。DATABASE_URL は不完全なままです（{}）：修正するか削除してください。",
+    "url_incomplete_no_keys": "DATABASE_URL が不完全で（{}）、代わりになる DB_* キーもありません。DATABASE_URL を修正するか、DB_ENGINE と接続キーを設定してください。",
+    "url_incomplete_keys_unusable": "DATABASE_URL が不完全で（{}）、DB_* キーでも接続できません：{}",
+    "url_sqlite_default_file": "DATABASE_URL はファイル名なしで SQLite を指定しています：既定のファイル {} を使用します。",
+    "keys_without_engine": "DB_ENGINE がありません：エンジンなしで {} が設定されています。使用できる値：postgres、mysql、sqlite。",
+    "url_failed_trying_keys": "DATABASE_URL での接続に失敗しました（{}）：DB_* キーで再試行します。",
+    "url_failed_keys_unusable": "DATABASE_URL での接続に失敗し（{}）、DB_* キーでも接続できません：{}"
+  },
   "makemigrations": {
     "destructive_detected": "破壊的な変更が検出されました:",
     "destructive_require_force": "--force を使用してこれらの破壊的な変更を適用してください。",
@@ -597,6 +611,8 @@
   "migrate": {
     "complete_up": "マイグレーションが完了しました。",
     "crate_missing": "マイグレーション crate が見つかりません: '{}' に Cargo.toml がありません。",
+    "sqlite_key_change": "{}：このマイグレーションは既存のテーブルに外部キーを追加または削除します。SQLite はテーブルを再構築しないとこれを行えず、Runique はまだ対応していません。このマイグレーションは何も変更していません。",
+    "engine_unsupported": "この操作に対応していないデータベースエンジンです：{}。",
     "running": "'migrate {}' をマイグレーションクレート '{}' で実行しています...",
     "complete_down": "ロールバックが完了しました。",
     "cargo_missing": "cargo を起動できません。Rust がインストールされ、cargo が PATH にありますか？",

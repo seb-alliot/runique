@@ -4,6 +4,8 @@
 pub mod helpers;
 // Each test needs its engine's driver (`postgres` / `mysql` feature).
 #[cfg(any(feature = "postgres", feature = "mysql"))]
+pub mod test_connection_rule;
+#[cfg(any(feature = "postgres", feature = "mysql"))]
 pub mod test_engines;
 // Both run on a SQLite file: without the `sqlite` feature there's no driver.
 #[cfg(feature = "sqlite")]

@@ -556,6 +556,20 @@
       "lost_right": "perdido por los miembros"
     }
   },
+  "database": {
+    "reason_unknown_start": "su inicio no designa ningún motor compatible",
+    "reason_unreadable": "es ilegible",
+    "reason_no_database": "no nombra ninguna base de datos",
+    "reason_sqlite_no_file": "pide SQLite sin nombrar un archivo",
+    "url_incomplete_using_keys": "DATABASE_URL está incompleta ({}): conexión mediante las claves DB_*.",
+    "url_incomplete_reminder": "Conexión establecida mediante las claves DB_*. DATABASE_URL sigue incompleta ({}): corríjala o elimínela.",
+    "url_incomplete_no_keys": "DATABASE_URL está incompleta ({}) y ninguna clave DB_* la sustituye. Corrija DATABASE_URL, o indique DB_ENGINE y las claves de conexión.",
+    "url_incomplete_keys_unusable": "DATABASE_URL está incompleta ({}), y las claves DB_* no bastan para conectarse: {}",
+    "url_sqlite_default_file": "DATABASE_URL pide SQLite sin nombrar un archivo: se usa el archivo por defecto {}.",
+    "keys_without_engine": "Falta DB_ENGINE: {} está definido sin el motor. Valores aceptados: postgres, mysql, sqlite.",
+    "url_failed_trying_keys": "La conexión mediante DATABASE_URL ha fallado ({}): nuevo intento mediante las claves DB_*.",
+    "url_failed_keys_unusable": "La conexión mediante DATABASE_URL ha fallado ({}), y las claves DB_* no bastan para conectarse: {}"
+  },
   "makemigrations": {
     "destructive_detected": "Cambios destructivos detectados:",
     "destructive_require_force": "Use --force para aplicar estos cambios destructivos.",
@@ -597,6 +611,8 @@
   "migrate": {
     "complete_up": "Migración completada.",
     "crate_missing": "No se encontró el crate de migraciones: '{}' no contiene Cargo.toml.",
+    "sqlite_key_change": "{}: esta migración añade o elimina una clave foránea en una tabla existente. SQLite no puede hacerlo sin reconstruir la tabla, algo que Runique aún no admite. Esta migración no ha modificado nada.",
+    "engine_unsupported": "Motor de base de datos no compatible con esta operación: {}.",
     "running": "Ejecutando 'migrate {}' con el crate de migraciones '{}'...",
     "complete_down": "Reversión completada.",
     "cargo_missing": "No se puede iniciar cargo. ¿Está Rust instalado y cargo en el PATH?",

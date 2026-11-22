@@ -958,7 +958,7 @@ fn with_snapshots(dir: &TempDir, files: &[(&str, &str)]) -> String {
 }
 
 #[test]
-fn well_named_snapshots_are_read_from_both_folders() {
+fn both_folders_are_read_and_the_model_tables_returned() {
     let dir = TempDir::new();
     let (menus, users) = (schema("menus", &[]), schema("eihwaz_users", &[]));
     let path = with_snapshots(
@@ -975,7 +975,9 @@ fn well_named_snapshots_are_read_from_both_folders() {
         .map(|s| s.table_name)
         .collect();
     tables.sort();
-    assert_eq!(tables, ["eihwaz_users", "menus"]);
+    // The extension is checked like the rest (see the refusals below), but
+    // only the tables Runique migrated for a model come back.
+    assert_eq!(tables, ["menus"]);
 }
 
 #[test]
@@ -1605,4 +1607,350 @@ fn the_command_refuses_parallel_migrations_and_writes_nothing() {
         "{error}"
     );
     assert_eq!(everything(&dir), before);
+}
+
+// ── A table Runique migrated and that no model produces any more ─────────────
+
+const CATEGORIES: &str =
+    r#"model! { Categorie, table: "categories", pk: id => i32, { nom: text [required], } }"#;
+const MENUS_IN_CATEGORY: &str = r#"model! { Menu, table: "menus", pk: id => i32, { titre: text [required], categorie_id: int [nullable] },
+    relations: { belongs_to: categorie via categorie_id [set_null] } }"#;
+// The same table once the relation is given up: the column stays, the key goes.
+const MENUS_ALONE: &str = r#"model! { Menu, table: "menus", pk: id => i32, { titre: text [required], categorie_id: int [nullable] } }"#;
+
+/// The names of the generated migrations under `path`, in the order `lib.rs`
+/// runs them.
+fn run_order(path: &str) -> Vec<String> {
+    let lib = fs::read_to_string(lib_path(path)).unwrap();
+    let mut modules: Vec<(usize, String)> = generated(path)
+        .into_iter()
+        .map(|(name, _)| name.trim_end_matches(".rs").to_string())
+        .filter_map(|module| {
+            lib.find(&format!("Box::new({module}::Migration)"))
+                .map(|at| (at, module))
+        })
+        .collect();
+    modules.sort();
+    modules.into_iter().map(|(_, module)| module).collect()
+}
+
+fn kind_of(module: &str) -> &str {
+    // `m{date}_{time}_{kind}_{table}_table`
+    module.splitn(3, '_').nth(2).unwrap_or_default()
+}
+
+// The snapshots of `snapshots/` without a model are the tables to drop, by
+// name; a table of the framework never is, and a table with a model neither.
+#[test]
+fn a_migrated_table_without_a_model_is_to_drop() {
+    let snapshots = || {
+        vec![
+            schema("plats", &[]),
+            schema("menus", &[]),
+            schema("eihwaz_users", &[]),
+            schema("eihwaz_custom", &[]),
+            schema("categories", &[]),
+        ]
+    };
+    let names = |dropped: Vec<ParsedSchema>| -> Vec<String> {
+        dropped.into_iter().map(|s| s.table_name).collect()
+    };
+
+    assert_eq!(
+        names(dropped_tables(snapshots(), &[schema("menus", &[])])),
+        ["categories", "plats"]
+    );
+    assert_eq!(
+        names(dropped_tables(snapshots(), &[])),
+        ["categories", "menus", "plats"]
+    );
+    assert!(dropped_tables(vec![], &[schema("menus", &[])]).is_empty());
+}
+
+// One line per table, the wording the guard shows.
+#[test]
+fn a_dropped_table_is_announced_as_a_loss_of_data() {
+    assert_eq!(
+        dropped_table_messages(&["menus".to_string(), "plats".to_string()]),
+        ["  menus: DROP TABLE (data loss)", "  plats: DROP TABLE (data loss)"]
+    );
+    assert!(dropped_table_messages(&[]).is_empty());
+}
+
+// The table that references goes before the one it references, whatever
+// their names; a table on its own keeps its place by name.
+#[test]
+fn tables_are_dropped_from_the_one_that_references() {
+    let order = |tables: Vec<ParsedSchema>| -> Vec<String> {
+        let mut plan = Plan::default();
+        build_drop_plan(&mut plan, &tables, "m", "20260101_000000", &[]);
+        plan.lib_modules
+            .iter()
+            .map(|m| migration_target(m).unwrap().1.to_string())
+            .collect()
+    };
+
+    assert_eq!(
+        order(vec![schema("a_parent", &[]), schema("z_child", &["a_parent"])]),
+        ["z_child", "a_parent"]
+    );
+    assert_eq!(
+        order(vec![schema("z_parent", &[]), schema("a_child", &["z_parent"])]),
+        ["a_child", "z_parent"]
+    );
+    // A chain: the furthest from the root first.
+    assert_eq!(
+        order(vec![
+            schema("b", &["a"]),
+            schema("a", &[]),
+            schema("c", &["b"]),
+        ]),
+        ["c", "b", "a"]
+    );
+    // A key to a table that stays, or to itself, asks for no order.
+    assert_eq!(
+        order(vec![schema("b", &["kept"]), schema("a", &["a"])]),
+        ["b", "a"]
+    );
+}
+
+// The file that drops a table: `IF EXISTS` in `up`, the table created again
+// in `down`, the tag and the starting point on top like any migration.
+#[test]
+fn a_drop_migration_mirrors_the_creation() {
+    let menus = schema("menus", &["categories"]);
+    let mut plan = Plan::default();
+    build_drop_plan(
+        &mut plan,
+        std::slice::from_ref(&menus),
+        "m",
+        "20260101_000000",
+        &["m20250101_000000_create_menus_table".to_string()],
+    );
+
+    assert_eq!(plan.lib_modules, ["m20260101_000000_drop_menus_table"]);
+    let (path, content) = &plan.files[0];
+    assert_eq!(path, "m/m20260101_000000_drop_menus_table.rs");
+    assert!(content.starts_with(&format!("{WAIT_MIGRATION}\n")), "{content}");
+    assert_eq!(
+        started_from(content),
+        Some("m20250101_000000_create_menus_table")
+    );
+    let (up, down) = content.split_once("async fn down").unwrap();
+    assert!(up.contains(".drop_table(Table::drop()"), "{up}");
+    assert!(up.contains(".if_exists()"), "{up}");
+    assert!(!up.contains("create_table"), "{up}");
+    assert!(down.contains("Table::create()"), "{down}");
+    assert!(down.contains("menus_categories_id_categories_fkey"), "{down}");
+    assert!(!down.contains("drop_table"), "{down}");
+    // The creation it mirrors drops without `IF EXISTS`, as before.
+    assert!(!generate_create_file(&menus).contains(".if_exists()"));
+}
+
+// A cycle of keys between two dropped tables: no order works, so the key
+// still pointing to the first table to go is removed before it, off SQLite.
+#[test]
+fn a_cycle_of_dropped_tables_loses_its_closing_key_first() {
+    let mut plan = Plan::default();
+    build_drop_plan(
+        &mut plan,
+        &[schema("a", &["b"]), schema("b", &["a"])],
+        "m",
+        "20260101_000000",
+        &[],
+    );
+
+    // Created `a` then `b`: dropped `b` first, which `a` still points to.
+    assert_eq!(
+        plan.lib_modules,
+        [
+            "m20260101_000000_drop_b_table",
+            "m20260101_000000_drop_a_table"
+        ]
+    );
+    let (up_b, _) = plan.files[0].1.split_once("async fn down").unwrap();
+    let key = up_b.find("a_b_id_b_fkey").expect("the closing key");
+    let table = up_b.find(".drop_table(").expect("the drop");
+    assert!(key < table, "{up_b}");
+    assert!(up_b.contains("DbBackend::Sqlite"), "{up_b}");
+    let (up_a, _) = plan.files[1].1.split_once("async fn down").unwrap();
+    assert!(!up_a.contains("drop_foreign_key"), "{up_a}");
+}
+
+// The whole command: refused without `--force`, naming the table, and
+// nothing is written, not even the harmless change of the same run.
+#[test]
+fn a_table_to_drop_is_refused_without_force() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    fs::write(format!("{entities}/post.rs"), POSTS).unwrap();
+    run(&entities, &path, false).unwrap();
+    applied(&entities, &path);
+
+    fs::remove_file(format!("{entities}/post.rs")).unwrap();
+    fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
+    let before = everything(&dir);
+
+    assert!(run(&entities, &path, false).is_err());
+    assert_eq!(everything(&dir), before);
+}
+
+// With `--force`: the migration is written, the snapshot stays until the
+// drop is applied, then goes. Running again in between rewrites nothing.
+#[test]
+fn a_forced_drop_keeps_the_snapshot_until_it_is_applied() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    fs::write(format!("{entities}/post.rs"), POSTS).unwrap();
+    run(&entities, &path, false).unwrap();
+    applied(&entities, &path);
+    fs::remove_file(format!("{entities}/post.rs")).unwrap();
+
+    run(&entities, &path, true).unwrap();
+    let files = generated(&path);
+    let drop = files
+        .iter()
+        .find(|(name, _)| name.ends_with("_drop_posts_table.rs"))
+        .expect("the drop migration");
+    assert!(has_marker(&drop.1, WAIT_MIGRATION));
+    assert!(Path::new(&snapshot_file_path(&path, "posts")).exists());
+
+    // Case 13: the same drop is computed again, not a file moves.
+    let waiting = everything(&dir);
+    run(&entities, &path, true).unwrap();
+    assert_eq!(everything(&dir), waiting);
+
+    applied(&entities, &path);
+    assert!(!Path::new(&snapshot_file_path(&path, "posts")).exists());
+    assert!(Path::new(&snapshot_file_path(&path, "users")).exists());
+    assert!(!crate::atomic::interrupted(Path::new(&path)));
+
+    // Applied and gone: nothing more to do, with or without `--force`.
+    let settled = everything(&dir);
+    run(&entities, &path, false).unwrap();
+    assert_eq!(everything(&dir), settled);
+}
+
+// The table a `down` brings back has its columns in the order the model
+// declared them, not in the order the snapshot reader returns them.
+#[test]
+fn a_dropped_table_comes_back_with_its_columns_in_order() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
+    run(&entities, &path, false).unwrap();
+    applied(&entities, &path);
+    let created = generated(&path).remove(0).1;
+    fs::remove_file(format!("{entities}/user.rs")).unwrap();
+
+    run(&entities, &path, true).unwrap();
+
+    let drop = generated(&path)
+        .into_iter()
+        .find(|(name, _)| name.ends_with("_drop_users_table.rs"))
+        .unwrap()
+        .1;
+    let (_, down) = drop.split_once("async fn down").unwrap();
+    let order = |text: &str| -> Vec<usize> {
+        ["\"username\"", "\"email\"", "\"bio\""]
+            .iter()
+            .map(|column| text.find(column).expect("the column"))
+            .collect()
+    };
+    let (recreated, original) = (order(down), order(&created));
+    assert!(original.is_sorted(), "{created}");
+    assert!(recreated.is_sorted(), "{down}");
+}
+
+// Case 44: the model comes back before the drop is applied. The gap is nil,
+// the waiting drop goes with its line in `lib.rs`.
+#[test]
+fn a_waiting_drop_goes_when_the_model_comes_back() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/post.rs"), POSTS).unwrap();
+    run(&entities, &path, false).unwrap();
+    applied(&entities, &path);
+    let settled = everything(&dir);
+
+    fs::remove_file(format!("{entities}/post.rs")).unwrap();
+    run(&entities, &path, true).unwrap();
+    assert_eq!(generated(&path).len(), 2);
+
+    fs::write(format!("{entities}/post.rs"), POSTS).unwrap();
+    run(&entities, &path, false).unwrap();
+    assert_eq!(everything(&dir), settled);
+}
+
+// Case 10: the last model of the project is removed. Same treatment, and
+// `migration up` then records it without a single model left to read.
+#[test]
+fn the_last_table_of_a_project_is_dropped_like_any_other() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/post.rs"), POSTS).unwrap();
+    run(&entities, &path, false).unwrap();
+    applied(&entities, &path);
+    fs::remove_file(format!("{entities}/post.rs")).unwrap();
+
+    assert!(run(&entities, &path, false).is_err());
+    run(&entities, &path, true).unwrap();
+    fs::remove_dir(&entities).unwrap();
+    super::migrate::record_applied(&entities, &path).unwrap();
+
+    assert!(!Path::new(&snapshot_file_path(&path, "posts")).exists());
+}
+
+// Case 27: a table that stays gave up its key to the dropped one. Its own
+// migration removes the key first, the drop comes after it in `lib.rs`.
+#[test]
+fn the_key_of_a_table_that_stays_is_removed_before_the_drop() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/categorie.rs"), CATEGORIES).unwrap();
+    fs::write(format!("{entities}/menu.rs"), MENUS_IN_CATEGORY).unwrap();
+    run(&entities, &path, false).unwrap();
+    applied(&entities, &path);
+
+    fs::remove_file(format!("{entities}/categorie.rs")).unwrap();
+    fs::write(format!("{entities}/menu.rs"), MENUS_ALONE).unwrap();
+    run(&entities, &path, true).unwrap();
+
+    let order = run_order(&path);
+    let waiting: Vec<&str> = order
+        .iter()
+        .map(String::as_str)
+        .filter(|m| !kind_of(m).starts_with("create_"))
+        .collect();
+    assert_eq!(waiting.len(), 2, "{order:?}");
+    assert!(waiting[0].ends_with("_alter_menus_table"), "{order:?}");
+    assert!(waiting[1].ends_with("_drop_categories_table"), "{order:?}");
+    let alter = generated(&path)
+        .into_iter()
+        .find(|(name, _)| name.ends_with("_alter_menus_table.rs"))
+        .unwrap()
+        .1;
+    assert!(alter.contains("runtime::drop_foreign_key(manager, \"menus\""), "{alter}");
+}
+
+// Case 26: the model that stays still points to the removed one. Making the
+// models agree is the developer's job: the command stops, `--force` or not.
+#[test]
+fn a_model_still_pointing_to_a_removed_one_stops_the_command() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/categorie.rs"), CATEGORIES).unwrap();
+    fs::write(format!("{entities}/menu.rs"), MENUS_IN_CATEGORY).unwrap();
+    run(&entities, &path, false).unwrap();
+    applied(&entities, &path);
+    fs::remove_file(format!("{entities}/categorie.rs")).unwrap();
+    let before = everything(&dir);
+
+    for force in [false, true] {
+        let error = run(&entities, &path, force).unwrap_err().to_string();
+        assert!(error.contains("categorie"), "{error}");
+        assert_eq!(everything(&dir), before);
+    }
 }

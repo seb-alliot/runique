@@ -6,6 +6,14 @@ use crate::migration::types::Changes;
 /// changes, nullable-to-required, dropped FKs, new `ON DELETE CASCADE` on an
 /// existing table) and returns one human-readable warning per finding. An
 /// empty result means the changes are safe to apply without `--force`.
+/// One warning per table about to be dropped: every row of it is lost.
+pub fn dropped_table_messages(tables: &[String]) -> Vec<String> {
+    tables
+        .iter()
+        .map(|table| format!("  {table}: DROP TABLE (data loss)"))
+        .collect()
+}
+
 pub fn collect_destructive_messages(all_changes: &[Changes]) -> Vec<String> {
     let dropped = all_changes.iter().flat_map(|c| {
         c.dropped_columns

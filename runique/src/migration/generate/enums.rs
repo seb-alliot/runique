@@ -58,11 +58,14 @@ fn enum_create_stmt(name: &str, values: &[String]) -> String {
     )
 }
 
-/// Drops the Postgres enum type `name` if it exists.
+/// Drops the Postgres enum type `name`, through Runique: the type is only
+/// dropped once no column uses it any more (an enum shared by several tables
+/// stays until the last one is gone), and never with a cascade. Every type
+/// drop of the generator goes through here.
 fn enum_drop_stmt(name: &str) -> String {
     let name = name.to_lowercase();
     format!(
-        "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .drop_type(\n                    sea_query::extension::postgres::Type::drop()\n                        .if_exists()\n                        .name(Alias::new({name:?}))\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n"
+        "        runique::migration::runtime::drop_enum_type(manager, {name:?}).await?;\n\n"
     )
 }
 

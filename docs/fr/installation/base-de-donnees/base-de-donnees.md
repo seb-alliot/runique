@@ -78,6 +78,94 @@ Un chemin SQLite relatif est lu depuis le dossier où l'application est lancée 
 
 ---
 
+## Comment Runique choisit la connexion
+
+La même règle sert à l'application, à `runique makemigrations` et à `runique migration up | down | status`. Deux sources sont lues dans le `.env` :
+
+| Source | Contenu |
+| --- | --- |
+| `DATABASE_URL` | l'adresse complète, par exemple `postgres://app:secret@db.local:5432/shop` |
+| clés séparées | `DB_ENGINE`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME` |
+
+Runique n'impose ni l'une ni l'autre. `DATABASE_URL` est lue en premier ; les clés prennent le relais quand elle est absente ou incomplète, et restent en réserve quand elle est complète.
+
+### Le tableau
+
+| `DATABASE_URL` | Clés séparées | Ce que fait Runique |
+| --- | --- | --- |
+| complète | peu importe | utilise l'adresse. Si la connexion échoue, voir « Quand l'adresse ne répond pas » |
+| incomplète | suffisantes | prévient en console, se connecte par les clés, puis rappelle que `DATABASE_URL` est incomplète |
+| incomplète | partielles | refuse de démarrer, en disant pourquoi l'adresse est incomplète et ce qui manque aux clés |
+| incomplète, vers un serveur ou sans moteur reconnu | aucune | refuse de démarrer : SQLite n'est jamais pris à la place |
+| `sqlite://` sans nom de fichier | aucune | prévient, puis utilise le fichier `local_base.sqlite` |
+| absente | suffisantes | construit l'adresse avec les clés |
+| absente | partielles | refuse de démarrer, en disant ce qui manque |
+| absente | aucune | SQLite, fichier `local_base.sqlite` |
+
+Une clé présente mais sans valeur (`DB_USER=`) compte comme absente, `DATABASE_URL` comprise. Une ligne commentée n'est jamais lue : c'est la façon normale de désactiver une source.
+
+### Quand une adresse est incomplète
+
+Dans quatre cas seulement :
+
+| Cas | Exemple |
+| --- | --- |
+| son début ne désigne aucun moteur pris en charge | `mariadb://…`, `app:secret@db.local/shop` |
+| elle est illisible | un port qui n'est pas un nombre (`:543a`), un mot de passe contenant `/`, `#` ou `?` non encodé |
+| elle vise un serveur sans nommer de base | `postgres://app:secret@db.local`, `postgres://app:secret@db.local/` |
+| elle demande SQLite sans nommer de fichier | `sqlite://`, `sqlite:` |
+
+Tout le reste est tenté tel quel, et c'est le serveur qui tranche. Sur PostgreSQL, `?dbname=shop` compte comme un nom de base.
+
+### Ce que Runique laisse au pilote
+
+Pour une adresse à laquelle il manque un morceau qui n'est pas la base, Runique reprend le comportement de SeaORM et de son pilote, sans rien ajouter :
+
+| Morceau absent | PostgreSQL | MySQL |
+| --- | --- | --- |
+| utilisateur | `PGUSER` de la machine, sinon le nom du compte système | `root` |
+| mot de passe | `PGPASSWORD` de la machine, sinon aucun | aucun |
+| hôte | `PGHOST` de la machine, sinon `localhost` | `localhost` |
+| port | `PGPORT` de la machine, sinon 5432 | 3306 |
+
+Une adresse sans mot de passe (`postgres://app@db.local/shop`) ou sans utilisateur (`postgres://db.local/shop`) est donc tentée : certains serveurs l'acceptent. Pour PostgreSQL, les morceaux absents sont complétés par les variables `PG*` de la machine, pas par les clés `DB_*` du `.env`.
+
+Autres écritures acceptées : `sqlite:data.db`, `sqlite:///chemin/absolu.db`, `sqlite::memory:` ; un hôte en IPv6 (`postgres://[::1]/shop`) ; une connexion par socket (`?host=/var/run/postgresql`). Un paramètre inconnu après le `?` est laissé au pilote.
+
+### Les clés séparées
+
+| Clé | Serveur (PostgreSQL, MySQL) | SQLite |
+| --- | --- | --- |
+| `DB_ENGINE` | obligatoire : `postgres` (ou `postgresql`), `mysql` | `sqlite` |
+| `DB_USER` | obligatoire | ignorée |
+| `DB_PASSWORD` | obligatoire | ignorée |
+| `DB_HOST` | facultative, `localhost` par défaut | ignorée |
+| `DB_PORT` | facultative, celui du moteur par défaut | ignorée |
+| `DB_NAME` | obligatoire : le nom de la base | facultative : le fichier, `local_base.sqlite` par défaut |
+
+- La casse et les espaces de `DB_ENGINE` ne comptent pas. Une autre valeur est une erreur qui liste les moteurs acceptés.
+- **Des clés sans `DB_ENGINE` sont une erreur** : sans le moteur, aucune adresse ne peut être construite, et Runique ne prend pas SQLite à sa place.
+- **L'utilisateur et le mot de passe s'écrivent tels quels** : Runique les encode en construisant l'adresse. Un mot de passe `p@ss/w:rd#1` se donne ainsi, sans rien encoder. Dans `DATABASE_URL`, c'est à vous de l'encoder (`p%40ss%2Fw%3Ard%231`), sinon l'adresse est illisible.
+- Une valeur qui contient `#` ou `$` se met entre apostrophes dans le `.env` (`DB_PASSWORD='pa$$#1'`) : sans elles, le lecteur du fichier coupe la valeur au `#` et remplace `$nom` par une autre variable.
+
+### Quand l'adresse ne répond pas
+
+Une `DATABASE_URL` complète dont la connexion échoue (serveur arrêté, mot de passe refusé, base inexistante) ne bloque pas tout de suite : Runique prévient en console et **essaie les clés séparées**.
+
+| Clés séparées | Suite |
+| --- | --- |
+| suffisantes | connexion par les clés ; un échec bloque le démarrage |
+| partielles | démarrage bloqué : le message donne l'échec de l'adresse et ce qui manque aux clés |
+| aucune | démarrage bloqué sur l'échec de l'adresse |
+
+Le second essai a lieu même si les clés désignent la même base : il montre si l'échec venait de `DATABASE_URL`. Il coûte le délai de connexion du premier (`DB_CONNECT_TIMEOUT`, 2 s par défaut).
+
+> **À vérifier dans votre `.env`** : les deux sources peuvent se contredire, et `DATABASE_URL` l'emporte tant qu'elle répond. Un `DB_ENGINE=sqlite` laissé à côté d'une adresse de serveur devient la base utilisée dès que le serveur ne répond plus. En production, ne gardez qu'une source, ou deux qui désignent la même base.
+
+`runique migration up | down | status` cherchent de la même façon l'adresse qui répond, puis la transmettent à la crate `migration`, qui ne lit que `DATABASE_URL` : l'application et les migrations visent toujours la même base. Le mot de passe n'apparaît jamais dans un message d'erreur.
+
+---
+
 ## PostgreSQL
 
 ### 1. Installer PostgreSQL

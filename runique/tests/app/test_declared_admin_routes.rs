@@ -4100,6 +4100,9 @@ async fn every_key_an_admin_page_provides_is_allowed() {
     use std::collections::{BTreeMap, BTreeSet};
     const DUMP: &str = "<keys>{% for key, value in __tera_context %}[{{ key }}]{% endfor %}</keys>";
 
+    // The account creation page isn't served without a mailer: set here too,
+    // or the test only passes when another one of the binary ran before.
+    console_mailer();
     let dir = theme_dir(&[("dump/keys.html", DUMP)]);
     let base = spawn_themed(
         dir,

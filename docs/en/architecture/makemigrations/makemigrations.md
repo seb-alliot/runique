@@ -20,7 +20,8 @@ The `runique makemigrations` command bridges your Rust entities (`model!{}`, `ex
 
 Runique keeps in `migration/src/snapshots/` the state of each table **as it was applied**, as a migration file read back on every run. That file is written by `runique migration up`, once the migration is applied; `makemigrations` never writes it. The diff detects:
 
-- added tables, and added or dropped columns. A table whose model is gone isn't detected (see [the limits](/docs/en/installation/migrations));
+- added tables, and added or dropped columns;
+- **tables to drop**: a table Runique migrated (it has its snapshot) that no model produces any more (see "Dropping a table" below);
 - **column renames** through `[renamed_from: "old"]`: a `RENAME COLUMN` instead of a `DROP` + `ADD` (without that hint, the non-interactive tool can't guess the intent);
 - changes of type, nullability, uniqueness, default value and **length** (`max_length`);
 - added, dropped or renamed enum values (a rename is **one** operation);
@@ -73,6 +74,39 @@ The passes above only *compute* an in-memory plan — nothing is written until t
 Since 4.1, the command **connects to the database first** (the one of the `.env`, as the app does) and stops with an error when it doesn't answer, before anything is read or written. It writes nothing there: only `runique migration up` applies a migration.
 
 It reads there the list of applied migrations (`seaql_migrations`): when one of them is unknown to `lib.rs`, the command stops before anything is computed. A database that applied nothing yet (no such table) is a normal case.
+
+## Dropping a table
+
+Removing a model drops its table. The rule: a table has a snapshot in `migration/src/snapshots/` (so Runique migrated it) and no model produces it any more.
+
+```
+$ runique makemigrations
+Destructive changes detected:
+  menus: DROP TABLE (data loss)
+Use --force to apply these destructive changes.
+```
+
+Without `--force`, nothing is written, not even the other changes of the run. With `--force`, `makemigrations` writes a migration `m…_drop_menus_table.rs`:
+
+- `up` does a `DROP TABLE IF EXISTS`: a table already gone doesn't fail `runique migration up`;
+- `down` creates the table again from its snapshot. It comes back **empty**: the rows are lost as soon as the drop is applied.
+
+The snapshot stays as long as the drop isn't applied; `runique migration up` then removes it. In between, running `makemigrations` again rewrites nothing, and if you put the model back, the pending drop migration goes away by itself.
+
+**What counts as a removed model.** The reader only sees the `.rs` files of the first level of `src/entities/`, `mod.rs` excepted. A model commented out, moved to a sub-folder or into `mod.rs`, or whose file changes extension, is absent for it: its table is proposed for dropping. The block without `--force` is the only safety net: read the list before forcing.
+
+**What is dropped too.** The table of a list field (`checkbox`, `multichoice`) goes with its model, or on its own when the field is removed. A PostgreSQL enum type of the table is only dropped once no column uses it any more: an enum shared by two tables stays until the last one.
+
+**What is never dropped.** The framework's tables (`eihwaz_*`), and any table of the database Runique didn't migrate itself: without a snapshot, it is ignored.
+
+**The order.** The drops close the run. Among them, the table that points to another goes first: the table of a list field before its model's, for instance. PostgreSQL and MySQL refuse to drop a table as long as a foreign key points to it, even when both tables are empty.
+
+**When a table that stays pointed to the dropped one.**
+
+- You kept its `belongs_to`: the command stops with an error, with or without `--force`. Making your models agree is your job, and the project wouldn't compile anyway.
+- You removed its `belongs_to`: its migration removes the key, then the table it pointed to is dropped. Under SQLite, removing that key isn't supported yet: the migration is refused before it changed anything (see [the limits](/docs/en/installation/migrations)).
+
+> Renaming a model's table (`table: "…"`) with no other precaution amounts to dropping the old one and creating the new one: the rows are lost. Both are blocked without `--force`.
 
 ## Running again before applying
 

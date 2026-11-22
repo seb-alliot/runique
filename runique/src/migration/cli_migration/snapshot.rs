@@ -78,14 +78,15 @@ pub(crate) fn previous_snapshot(path: &str, current: &ParsedSchema) -> Result<Pa
     Ok(previous)
 }
 
-/// Read evry snapshot of `snapshots/` and `snapshots/runique/`: each `.rs`
+/// Reads every snapshot of `snapshots/` and `snapshots/runique/`: each `.rs`
 /// must parse and describe the table its file is named after. Any other file
-/// is ignored. Returns the tables found, for the checks that follow.
+/// is ignored. Returns the tables of `snapshots/` itself, the ones Runique
+/// migrated for a model: the `extend!{}` snapshots are checked, not returned.
 pub(super) fn read_all(migrations_path: &str) -> Result<Vec<ParsedSchema>> {
     let mut found = Vec::new();
-    for dir in [
-        snapshot_dir(migrations_path),
-        extend_snapshot_dir(migrations_path),
+    for (dir, of_a_model) in [
+        (snapshot_dir(migrations_path), true),
+        (extend_snapshot_dir(migrations_path), false),
     ] {
         let Ok(entries) = fs::read_dir(&dir) else {
             continue;
@@ -112,7 +113,9 @@ pub(super) fn read_all(migrations_path: &str) -> Result<Vec<ParsedSchema>> {
                     )
                 );
             }
-            found.push(schema);
+            if of_a_model {
+                found.push(schema);
+            }
         }
     }
     Ok(found)

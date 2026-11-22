@@ -576,6 +576,20 @@
     "email_body": "<p>Bonjour {},</p><p>Cliquez sur le lien suivant pour réinitialiser votre mot de passe (valide {} min) :</p><p><a href=\"{}\">{}</a></p>",
     "unavailable": "La réinitialisation par email n'est pas disponible pour le moment."
   },
+  "database": {
+    "reason_unknown_start": "son début ne désigne aucun moteur pris en charge",
+    "reason_unreadable": "elle est illisible",
+    "reason_no_database": "elle ne nomme aucune base",
+    "reason_sqlite_no_file": "elle demande SQLite sans nommer de fichier",
+    "url_incomplete_using_keys": "DATABASE_URL est incomplète ({}) : connexion par les clés DB_*.",
+    "url_incomplete_reminder": "Connexion établie par les clés DB_*. DATABASE_URL reste incomplète ({}) : corrigez-la ou retirez-la.",
+    "url_incomplete_no_keys": "DATABASE_URL est incomplète ({}) et aucune clé DB_* ne la remplace. Corrigez DATABASE_URL, ou renseignez DB_ENGINE et les clés de connexion.",
+    "url_incomplete_keys_unusable": "DATABASE_URL est incomplète ({}), et les clés DB_* ne permettent pas de se connecter : {}",
+    "url_sqlite_default_file": "DATABASE_URL demande SQLite sans nommer de fichier : le fichier par défaut {} est utilisé.",
+    "keys_without_engine": "DB_ENGINE manque : {} est renseigné sans le moteur. Valeurs acceptées : postgres, mysql, sqlite.",
+    "url_failed_trying_keys": "La connexion par DATABASE_URL a échoué ({}) : nouvel essai par les clés DB_*.",
+    "url_failed_keys_unusable": "La connexion par DATABASE_URL a échoué ({}), et les clés DB_* ne permettent pas de se connecter : {}"
+  },
   "makemigrations": {
     "destructive_detected": "Changements destructifs détectés :",
     "destructive_require_force": "Utilisez --force pour appliquer ces changements destructifs.",
@@ -617,6 +631,8 @@
   "migrate": {
     "complete_up": "Migration terminé.",
     "crate_missing": "Crate de migrations introuvable : '{}' ne contient pas de Cargo.toml.",
+    "sqlite_key_change": "{} : cette migration ajoute ou retire une clé étrangère sur une table existante. SQLite ne sait pas le faire sans reconstruire la table, ce que Runique ne prend pas encore en charge. Cette migration n'a rien modifié.",
+    "engine_unsupported": "Moteur de base de données non pris en charge pour cette opération : {}.",
     "running": "Exécution de 'migrate {}' avec le crate de migrations '{}'...",
     "complete_down": "Retour arrière terminé.",
     "cargo_missing": "Impossible de lancer cargo. Rust est-il installé et cargo dans le PATH ?",

@@ -69,18 +69,48 @@ pub fn seaorm_extend_file_path(migrations_path: &str, timestamp: &str, table: &s
     )
 }
 
+/// SeaORM module name for the migration that drops `table`
+/// (`m{timestamp}_drop_{table}_table`).
+pub fn seaorm_drop_module_name(timestamp: &str, table: &str) -> String {
+    format!("m{}_drop_{}_table", timestamp, table)
+}
+
+/// Builds the file path of the SeaORM migration that drops `table`.
+pub fn seaorm_drop_file_path(migrations_path: &str, timestamp: &str, table: &str) -> String {
+    format!(
+        "{}/{}.rs",
+        migrations_path,
+        seaorm_drop_module_name(timestamp, table)
+    )
+}
+
+/// What follows the date and the time in a generated module name:
+/// `{kind}_{table}`, without the closing `_table`.
+fn kind_and_table(module: &str) -> Option<&str> {
+    // `m{date}_{time}_{kind}_{table}_table`
+    module
+        .strip_prefix('m')?
+        .splitn(3, '_')
+        .nth(2)?
+        .strip_suffix("_table")
+}
+
 /// The table a generated migration module changes, and whether it is an
 /// `extend!{}` one. `None` for a module Runique didn't name.
 pub fn migration_target(module: &str) -> Option<(bool, &str)> {
-    // `m{date}_{time}_{kind}_{table}_table`
-    let rest = module.strip_prefix('m')?.splitn(3, '_').nth(2)?;
-    let rest = rest.strip_suffix("_table")?;
+    let rest = kind_and_table(module)?;
     if let Some(table) = rest.strip_prefix("extend_") {
         return Some((true, table));
     }
     rest.strip_prefix("create_")
         .or_else(|| rest.strip_prefix("alter_"))
+        .or_else(|| rest.strip_prefix("drop_"))
         .map(|table| (false, table))
+}
+
+/// The table a generated migration module drops; `None` for any other module.
+pub fn dropped_table(module: &str) -> Option<&str> {
+    kind_and_table(module)?.strip_prefix("drop_")
 }
 
 #[cfg(test)]
@@ -220,6 +250,33 @@ mod tests {
             "",
         ] {
             assert_eq!(migration_target(module), None, "{module}");
+        }
+    }
+
+    // ── a migration that drops a table ───────────────────────────────────────
+
+    #[test]
+    fn a_drop_module_names_its_table() {
+        let module = seaorm_drop_module_name(TS, "menu_du_jour");
+        assert_eq!(module, "m20250218_143000_drop_menu_du_jour_table");
+        assert!(seaorm_drop_file_path(BASE, TS, "menu_du_jour").ends_with(&format!("/{module}.rs")));
+        // Same table as its creation: the two follow each other in a chain.
+        assert_eq!(migration_target(&module), Some((false, "menu_du_jour")));
+        assert_eq!(dropped_table(&module), Some("menu_du_jour"));
+    }
+
+    #[test]
+    fn only_a_drop_module_drops_a_table() {
+        for module in [
+            seaorm_create_module_name(TS, "menus"),
+            seaorm_alter_module_name(TS, "menus"),
+            seaorm_extend_module_name(TS, TABLE),
+            // A table named after the kind is still created, not dropped.
+            seaorm_create_module_name(TS, "drop_log"),
+            "m20250218_143000_drop_menus".to_string(),
+            "drop_menus_table".to_string(),
+        ] {
+            assert_eq!(dropped_table(&module), None, "{module}");
         }
     }
 }

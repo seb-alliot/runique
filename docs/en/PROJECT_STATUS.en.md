@@ -15,11 +15,12 @@ What remains for the next two versions. An item may move from one version to the
 | ✓ | Destructive operations refused without `--force`: `DROP COLUMN`, type change, nullable to `NOT NULL`, reduced length or decimals, `DROP FK`, new `CASCADE` FK |
 | ✓ | Length limit of index and foreign key names: refused beyond 63 characters, on every engine |
 | ✓ | Connection to the database before any computation: `makemigrations` stops with an error when it does not answer |
+| ✓ | One connection rule for the app and the commands: `DATABASE_URL` first, fallback on the `DB_*` keys when it is incomplete or doesn't answer; keys without `DB_ENGINE` refused; user and password of the keys encoded |
 | ✓ | A database that doesn't match the project is refused: a migration recorded in the database and missing from `lib.rs` stops the command |
 | ✓ | Snapshots checked before any computation: a snapshot that can't be read, or named otherwise than its table, stops the command |
 | ✓ | Generated migration marked "pending": run again before it is applied, `makemigrations` recomputes it instead of stacking another one |
 | ✓ | Two parallel changes to the same table: refused, with the tables involved (each migration notes the one it starts from) |
-| ☐ | Drop a table when its model disappears: refused without `--force`, `DROP TABLE IF EXISTS` in `up`, recreation in `down`, reverse FK order, enum types removed once no column uses them |
+| ✓ | Drop a table when its model disappears: refused without `--force`, `DROP TABLE IF EXISTS` in `up`, recreation in `down`, reverse FK order, enum types removed once no column uses them; under SQLite, removing the key of a table that stays waits for the table rebuild |
 | ☐ | `managed: false` in a model's `meta`: `makemigrations` no longer generates or drops anything for its table |
 | ☐ | Table and list field rename (`rename_to`) |
 | ☐ | Destructive changes: state what they affect, relations included |

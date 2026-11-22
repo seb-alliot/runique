@@ -11,6 +11,7 @@ pub mod parse;
 pub mod diff;
 pub mod helpers;
 pub mod paths;
+pub mod runtime;
 pub mod schema;
 pub mod types;
 
