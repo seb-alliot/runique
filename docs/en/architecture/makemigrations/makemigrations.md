@@ -93,7 +93,7 @@ Without `--force`, nothing is written, not even the other changes of the run. Wi
 
 The snapshot stays as long as the drop isn't applied; `runique migration up` then removes it. In between, running `makemigrations` again rewrites nothing, and if you put the model back, the pending drop migration goes away by itself.
 
-**What counts as a removed model.** The reader only sees the `.rs` files of the first level of `src/entities/`, `mod.rs` excepted. A model commented out, moved to a sub-folder or into `mod.rs`, or whose file changes extension, is absent for it: its table is proposed for dropping. The block without `--force` is the only safety net: read the list before forcing.
+**What counts as a removed model.** The reader only sees the `.rs` files of the first level of `src/entities/`, `mod.rs` excepted. A model commented out, moved to a sub-folder or into `mod.rs`, or whose file changes extension, is absent for it: its table is proposed for dropping. The block without `--force` is the only safety net: read the list before forcing. To keep the model without its table being touched, use `managed: false` (section "Pausing a table", below).
 
 **What is dropped too.** The table of a list field (`checkbox`, `multichoice`) goes with its model, or on its own when the field is removed. A PostgreSQL enum type of the table is only dropped once no column uses it any more: an enum shared by two tables stays until the last one.
 
@@ -107,6 +107,43 @@ The snapshot stays as long as the drop isn't applied; `runique migration up` the
 - You removed its `belongs_to`: its migration removes the key, then the table it pointed to is dropped. Under SQLite, removing that key isn't supported yet: the migration is refused before it changed anything (see [the limits](/docs/en/installation/migrations)).
 
 > Renaming a model's table (`table: "…"`) with no other precaution amounts to dropping the old one and creating the new one: the rows are lost. Both are blocked without `--force`.
+
+## Pausing a table — `managed: false`
+
+To have `makemigrations` leave a table alone without removing its model, declare it in the model's `meta`:
+
+```rust
+model! {
+    Menu,
+    table: "menus",
+    pk: id => i32,
+    { title: text [required] },
+    meta: { managed: false }
+}
+```
+
+As long as the key is `false`:
+
+- nothing is generated for the table: no creation, no alteration, even when you change the model;
+- the table is not dropped, with or without `--force`;
+- the tables of its list fields (`checkbox`, `multichoice`) are paused with it;
+- its snapshot, if it has one, stays as it is;
+- a migration still pending for it is removed at the next run.
+
+The model remains a model like any other in your code: the entity is generated, queries and forms work, and a `belongs_to` from another model to it produces its foreign key as usual. If the table doesn't exist in the database, creating it is up to you.
+
+Every run recalls the paused tables:
+
+```
+$ runique makemigrations
+Paused tables (`managed: false`), ignored by makemigrations: menus
+```
+
+To resume, remove the key (or write `managed: true`): `makemigrations` compares the model to the snapshot and generates the difference, as for any table. Without a snapshot, it generates the creation.
+
+`managed` only takes `true` or `false`. One model is one table: two models for the same table are refused, whether one of them is paused or not.
+
+This is the only way to pause a table. A model that is commented out or moved is absent for the reader, and its table is proposed for dropping (see "Dropping a table", above).
 
 ## Running again before applying
 

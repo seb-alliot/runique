@@ -588,7 +588,8 @@
     "duplicate_table": "有两个表名为 `{}`。列表字段的表名为 `<模型的表>_<字段>`：请重命名该字段或另一个表。",
     "waiting_removed": "已移除 {} 个待执行的迁移：模型已重新与快照一致。",
     "waiting_unchanged": "{} 个待执行的迁移未变化：未重写任何内容。",
-    "parallel_changes": "两个迁移针对同一张表从同一起点出发：\n  {}\n它们是并行编写的：Runique 无法判断该表应遵循哪一个。未写入任何内容。"
+    "parallel_changes": "两个迁移针对同一张表从同一起点出发：\n  {}\n它们是并行编写的：Runique 无法判断该表应遵循哪一个。未写入任何内容。",
+    "paused_tables": "已暂停的表（`managed: false`），makemigrations 将忽略：{}"
   },
   "atomic": {
     "reserved_name": "{}：此名称为 Runique 保留",

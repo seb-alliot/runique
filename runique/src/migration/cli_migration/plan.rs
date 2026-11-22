@@ -158,11 +158,13 @@ fn creation_of(schema: &ParsedSchema) -> Changes {
 pub(super) fn dropped_tables(
     snapshots: Vec<ParsedSchema>,
     schemas: &[ParsedSchema],
+    paused: &[String],
 ) -> Vec<ParsedSchema> {
     let mut dropped: Vec<ParsedSchema> = snapshots
         .into_iter()
         .filter(|snapshot| {
             !snapshot.table_name.starts_with(FRAMEWORK_TABLE_PREFIX)
+                && !paused.contains(&snapshot.table_name)
                 && !schemas.iter().any(|s| s.table_name == snapshot.table_name)
         })
         .collect();

@@ -35,6 +35,7 @@ impl Parse for MetaDef {
         let mut indexes = Vec::new();
         let mut owner = None;
         let mut label = None;
+        let mut managed= true;
 
         while !input.is_empty() {
             let key: Ident = input.parse()?;
@@ -67,6 +68,7 @@ impl Parse for MetaDef {
                 "indexes" => indexes = parse_ident_group_list(input)?,
                 "owner" => owner = Some(input.parse::<Ident>()?),
                 "label" => label = Some(input.parse::<Ident>()?),
+                "managed" => managed = input.parse::<syn::LitBool>()?.value,
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -86,6 +88,7 @@ impl Parse for MetaDef {
             indexes,
             owner,
             label,
+            managed,
         })
     }
 }
@@ -146,6 +149,23 @@ mod tests {
         let m = parse(r#"ordering: [-created_at], verbose_name: "Article","#).unwrap();
         assert_eq!(m.ordering.len(), 1);
         assert_eq!(m.verbose_name.as_deref(), Some("Article"));
+    }
+
+    // Managed unless the key says `false`; only a boolean literal is read.
+    #[test]
+    fn managed_is_true_unless_set_to_false() {
+        assert!(parse("ordering: [name]").unwrap().managed);
+        assert!(parse("").unwrap().managed);
+        assert!(parse("managed: true").unwrap().managed);
+        assert!(!parse("managed: false").unwrap().managed);
+        assert!(!parse(r#"managed: false, verbose_name: "A""#).unwrap().managed);
+    }
+
+    #[test]
+    fn managed_takes_a_boolean_only() {
+        assert!(parse(r#"managed: "false""#).is_err());
+        assert!(parse("managed: 0").is_err());
+        assert!(parse("managed: no").is_err());
     }
 
     #[test]

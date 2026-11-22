@@ -579,6 +579,7 @@ meta: {
 | `verbose_name_plural` | `"chaîne"`            | Nom pluriel dans l'interface admin          |
 | `owner`               | `champ`               | Colonne du propriétaire de la ligne : un `belongs_to` vers `eihwaz_users` (vérifié à la compilation). Ouvre les droits `can_update_own` / `can_delete_own`, et l'admin l'impose à la création |
 | `label`               | `champ`               | Colonne par laquelle une ligne est nommée dans l'historique de l'admin (sinon sa clé) |
+| `managed`             | `true` / `false`      | `false` met la table en pause : `makemigrations` ne génère et ne supprime plus rien pour elle (vrai par défaut). Voir [Mettre une table en pause](/docs/fr/architecture/makemigrations) |
 
 ---
 

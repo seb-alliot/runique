@@ -588,7 +588,8 @@
     "duplicate_table": "Zwei Tabellen heißen `{}`. Die Tabelle eines Listenfelds heißt `<Tabelle des Modells>_<Feld>`: Benennen Sie das Feld oder die andere Tabelle um.",
     "waiting_removed": "{} ausstehende Migration(en) entfernt: Ihre Modelle entsprechen wieder ihren Snapshots.",
     "waiting_unchanged": "{} ausstehende Migration(en), unverändert: Es wurde nichts neu geschrieben.",
-    "parallel_changes": "Zwei Migrationen gehen für dieselbe Tabelle vom selben Punkt aus:\n  {}\nSie wurden parallel geschrieben: Runique kann nicht wissen, welcher die Tabelle folgen soll. Es wurde nichts geschrieben."
+    "parallel_changes": "Zwei Migrationen gehen für dieselbe Tabelle vom selben Punkt aus:\n  {}\nSie wurden parallel geschrieben: Runique kann nicht wissen, welcher die Tabelle folgen soll. Es wurde nichts geschrieben.",
+    "paused_tables": "Pausierte Tabellen (`managed: false`), von makemigrations ignoriert: {}"
   },
   "atomic": {
     "reserved_name": "{}: Dieser Name ist Runique vorbehalten",

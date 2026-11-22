@@ -571,6 +571,7 @@ meta: {
 | `verbose_name_plural` | `"string"`            | Plural name in the admin interface            |
 | `owner`               | `field`               | Column of the row's owner: a `belongs_to` to `eihwaz_users` (checked at compile time). Opens the `can_update_own` / `can_delete_own` rights, and the admin imposes it on create |
 | `label`               | `field`               | Column a row is named by in the admin history (its key otherwise) |
+| `managed`             | `true` / `false`      | `false` pauses the table: `makemigrations` no longer generates or drops anything for it (true by default). See [Pausing a table](/docs/en/architecture/makemigrations) |
 
 ---
 

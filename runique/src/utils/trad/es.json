@@ -588,7 +588,8 @@
     "duplicate_table": "Dos tablas se llaman `{}`. La tabla de un campo de lista se llama `<tabla del modelo>_<campo>`: renombre el campo o la otra tabla.",
     "waiting_removed": "{} migración(es) pendiente(s) eliminada(s): sus modelos vuelven a coincidir con sus snapshots.",
     "waiting_unchanged": "{} migración(es) pendiente(s), sin cambios: no se ha reescrito nada.",
-    "parallel_changes": "Dos migraciones parten del mismo punto para la misma tabla:\n  {}\nSe escribieron en paralelo: Runique no puede saber cuál debe seguir la tabla. No se ha escrito nada."
+    "parallel_changes": "Dos migraciones parten del mismo punto para la misma tabla:\n  {}\nSe escribieron en paralelo: Runique no puede saber cuál debe seguir la tabla. No se ha escrito nada.",
+    "paused_tables": "Tablas en pausa (`managed: false`), ignoradas por makemigrations: {}"
   },
   "atomic": {
     "reserved_name": "{}: este nombre está reservado a Runique",

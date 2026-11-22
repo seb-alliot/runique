@@ -30,7 +30,7 @@ pub use crate::migration::{
 };
 pub(crate) use lib_file::initial_lib;
 pub use lib_file::{ensure_admin_migration_positioned, update_migration_lib};
-pub use scan::{merge_extend_schemas, scan_entities, scan_extend_blocks};
+pub use scan::{ScannedEntities, merge_extend_schemas, scan_entities, scan_extend_blocks, scan_models};
 pub use snapshot::parse_create_file;
 // For the integration tests that replay the reading on PostgreSQL and MySQL.
 pub use applied::read as applied_migrations;
@@ -56,7 +56,10 @@ use snapshot::snapshot_upgrades;
 /// from the same snapshots and its result takes the place of the migrations
 /// still waiting, instead of piling on them.
 pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()> {
-    let schemas = scan_entities(entities_path)?;
+    let ScannedEntities { schemas, paused } = scan_models(entities_path)?;
+    if !paused.is_empty() {
+        println!("{}", tf("makemigrations.paused_tables", &[paused.join(", ")]));
+    }
     init_migrate::ensure(migrations_path)?;
     // Before anything reads the snapshots: a run the power cut short is taken
     // back, so the changes are computed on migrations that are whole.
@@ -73,7 +76,7 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     let mut main_changes = compute_main_changes(&schemas, migrations_path)?;
     let extend_planned = plan_extend_changes(entities_path, migrations_path)?;
     // A table Runique migrated that no model produces any more.
-    let dropped = dropped_tables(migrated, &schemas);
+    let dropped = dropped_tables(migrated, &schemas, &paused);
 
     let upgrades = snapshot_upgrades(
         entities_path,

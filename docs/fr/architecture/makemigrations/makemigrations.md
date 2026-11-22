@@ -93,7 +93,7 @@ Sans `--force`, rien n'est écrit, pas même les autres changements du lancement
 
 Le snapshot reste tant que la suppression n'est pas appliquée ; `runique migration up` le retire ensuite. Entre-temps, relancer `makemigrations` ne réécrit rien, et si vous remettez le modèle, la migration de suppression en attente disparaît d'elle-même.
 
-**Ce qui compte comme un modèle retiré.** Le lecteur ne voit que les fichiers `.rs` du premier niveau de `src/entities/`, hors `mod.rs`. Un modèle mis en commentaire, déplacé dans un sous-dossier ou dans `mod.rs`, ou dont le fichier change d'extension, est absent pour lui : sa table est proposée à la suppression. Le blocage sans `--force` est le seul filet : lisez la liste avant de forcer.
+**Ce qui compte comme un modèle retiré.** Le lecteur ne voit que les fichiers `.rs` du premier niveau de `src/entities/`, hors `mod.rs`. Un modèle mis en commentaire, déplacé dans un sous-dossier ou dans `mod.rs`, ou dont le fichier change d'extension, est absent pour lui : sa table est proposée à la suppression. Le blocage sans `--force` est le seul filet : lisez la liste avant de forcer. Pour garder le modèle sans que sa table soit touchée, utilisez `managed: false` (section « Mettre une table en pause », plus bas).
 
 **Ce qui est supprimé aussi.** La table d'un champ liste (`checkbox`, `multichoice`) part avec son modèle, ou seule si le champ est retiré. Un type enum PostgreSQL de la table n'est supprimé que si plus aucune colonne ne s'en sert : un enum partagé par deux tables reste jusqu'à la dernière.
 
@@ -107,6 +107,43 @@ Le snapshot reste tant que la suppression n'est pas appliquée ; `runique migrat
 - Vous avez retiré son `belongs_to` : sa migration retire la clé, puis la table visée est supprimée. Sous SQLite, ce retrait de clé n'est pas encore pris en charge : la migration est refusée avant d'avoir rien modifié (voir [les limites](/docs/fr/installation/migrations)).
 
 > Renommer la table d'un modèle (`table: "…"`) sans autre précaution revient à supprimer l'ancienne et créer la nouvelle : les lignes sont perdues. Les deux sont bloqués sans `--force`.
+
+## Mettre une table en pause — `managed: false`
+
+Pour que `makemigrations` laisse une table tranquille sans que vous retiriez son modèle, déclarez-le dans son `meta` :
+
+```rust
+model! {
+    Menu,
+    table: "menus",
+    pk: id => i32,
+    { titre: text [required] },
+    meta: { managed: false }
+}
+```
+
+Tant que la clé vaut `false` :
+
+- rien n'est généré pour la table : ni création, ni modification, même si vous changez le modèle ;
+- la table n'est pas supprimée, avec ou sans `--force` ;
+- les tables de ses champs liste (`checkbox`, `multichoice`) sont en pause avec elle ;
+- son snapshot, si elle en a un, reste tel quel ;
+- une migration encore en attente pour elle est retirée au lancement suivant.
+
+Le modèle reste un modèle comme les autres dans votre code : l'entité est générée, les requêtes et les formulaires fonctionnent, et un `belongs_to` d'un autre modèle vers lui produit sa clé étrangère normalement. Si la table n'existe pas en base, c'est à vous de la créer.
+
+Chaque lancement rappelle les tables en pause :
+
+```
+$ runique makemigrations
+Tables en pause (`managed: false`), ignorées par makemigrations : menus
+```
+
+Pour reprendre, retirez la clé (ou écrivez `managed: true`) : `makemigrations` compare le modèle au snapshot et génère la différence, comme pour n'importe quelle table. Sans snapshot, il génère la création.
+
+`managed` n'accepte que `true` ou `false`. Un modèle égale une table : deux modèles pour la même table sont refusés, que l'un soit en pause ou non.
+
+C'est la seule façon de mettre une table en pause. Un modèle mis en commentaire ou déplacé est absent pour le lecteur, et sa table est proposée à la suppression (voir « Supprimer une table », plus haut).
 
 ## Relancer avant d'appliquer
 

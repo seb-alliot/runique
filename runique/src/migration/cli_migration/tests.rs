@@ -1657,14 +1657,14 @@ fn a_migrated_table_without_a_model_is_to_drop() {
     };
 
     assert_eq!(
-        names(dropped_tables(snapshots(), &[schema("menus", &[])])),
+        names(dropped_tables(snapshots(), &[schema("menus", &[])], &[])),
         ["categories", "plats"]
     );
     assert_eq!(
-        names(dropped_tables(snapshots(), &[])),
+        names(dropped_tables(snapshots(), &[], &[])),
         ["categories", "menus", "plats"]
     );
-    assert!(dropped_tables(vec![], &[schema("menus", &[])]).is_empty());
+    assert!(dropped_tables(vec![], &[schema("menus", &[])], &[]).is_empty());
 }
 
 // One line per table, the wording the guard shows.
@@ -1953,4 +1953,242 @@ fn a_model_still_pointing_to_a_removed_one_stops_the_command() {
         assert!(error.contains("categorie"), "{error}");
         assert_eq!(everything(&dir), before);
     }
+}
+
+// ── `managed: false` ─────────────────────────────────────────────────────────
+
+const USERS_PAUSED: &str = r#"model! { User, table: "users", pk: id => i32, { username: text [required], email: text [required], }, meta: { managed: false } }"#;
+const USERS_BIO_PAUSED: &str = r#"model! { User, table: "users", pk: id => i32, { username: text [required], email: text [required], bio: text [nullable], }, meta: { managed: false } }"#;
+
+// A model is managed unless its `meta` says `managed: false`: no `meta`, a
+// `meta` without the key and `managed: true` all leave it managed.
+#[test]
+fn a_model_is_managed_unless_its_meta_says_otherwise() {
+    let managed = |source: &str| {
+        crate::migration::parse_model_from_source(source)
+            .unwrap()
+            .unwrap()
+            .managed
+    };
+    assert!(managed(USERS));
+    assert!(managed(
+        r#"model! { User, table: "users", pk: id => i32, { username: text [required] }, meta: { ordering: [username] } }"#
+    ));
+    assert!(managed(
+        r#"model! { User, table: "users", pk: id => i32, { username: text [required] }, meta: { managed: true } }"#
+    ));
+    assert!(!managed(USERS_PAUSED));
+}
+
+// A paused table is the only one a snapshot without a schema keeps: it is
+// not dropped, the other tables without a model still are.
+#[test]
+fn a_paused_table_is_not_to_drop() {
+    let snapshots = || vec![schema("plats", &[]), schema("menus", &[])];
+    let names = |dropped: Vec<ParsedSchema>| -> Vec<String> {
+        dropped.into_iter().map(|s| s.table_name).collect()
+    };
+
+    assert_eq!(
+        names(dropped_tables(snapshots(), &[], &["menus".to_string()])),
+        ["plats"]
+    );
+    assert_eq!(
+        names(dropped_tables(snapshots(), &[], &["other".to_string()])),
+        ["menus", "plats"]
+    );
+}
+
+// The scan sets a paused model aside by its table; the others are returned
+// as before.
+#[test]
+fn the_scan_sets_a_paused_model_aside() {
+    let dir = TempDir::new();
+    let (entities, _) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS_PAUSED).unwrap();
+    fs::write(format!("{entities}/post.rs"), POSTS).unwrap();
+
+    let ScannedEntities { schemas, paused } = scan_models(&entities).unwrap();
+
+    let tables: Vec<&str> = schemas.iter().map(|s| s.table_name.as_str()).collect();
+    assert_eq!(tables, ["posts"]);
+    assert_eq!(paused, ["users"]);
+    let scanned = scan_entities(&entities).unwrap();
+    assert_eq!(scanned.len(), 1);
+    assert_eq!(scanned[0].table_name, "posts");
+}
+
+// Without a paused model the list is empty.
+#[test]
+fn the_scan_of_managed_models_pauses_nothing() {
+    let dir = TempDir::new();
+    let (entities, _) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+
+    let ScannedEntities { schemas, paused } = scan_models(&entities).unwrap();
+
+    assert_eq!(schemas.len(), 1);
+    assert!(paused.is_empty());
+}
+
+// A key to a paused model still finds its real table and primary key.
+#[test]
+fn a_key_to_a_paused_model_is_still_resolved() {
+    let dir = TempDir::new();
+    let (entities, _) = project(&dir);
+    fs::write(
+        format!("{entities}/shelf.rs"),
+        r#"model! { Shelf, table: "library_shelves", pk: code => i32, { label: text [required] }, meta: { managed: false } }"#,
+    )
+    .unwrap();
+    fs::write(
+        format!("{entities}/book.rs"),
+        r#"model! { Book, table: "library_books", pk: id => i32, { shelf_code: int [required] },
+            relations: { belongs_to: shelf via shelf_code [cascade] } }"#,
+    )
+    .unwrap();
+
+    let ScannedEntities { schemas, paused } = scan_models(&entities).unwrap();
+
+    assert_eq!(paused, ["library_shelves"]);
+    assert_eq!(schemas.len(), 1);
+    let fk = &schemas[0].foreign_keys[0];
+    assert_eq!(
+        (fk.to_table.as_str(), fk.to_column.as_str()),
+        ("library_shelves", "code")
+    );
+}
+
+// The tables of a paused model's list fields are paused with it.
+#[test]
+fn the_list_tables_of_a_paused_model_are_paused_with_it() {
+    let dir = TempDir::new();
+    let (entities, _) = project(&dir);
+    fs::write(
+        format!("{entities}/book.rs"),
+        r#"model! { Book, table: "books", pk: id => i32, enums: { Genre: [Roman, Policier] },
+            { title: text [required], genres: checkbox [enum(Genre)] }, meta: { managed: false } }"#,
+    )
+    .unwrap();
+
+    let ScannedEntities { schemas, paused } = scan_models(&entities).unwrap();
+
+    assert!(schemas.is_empty(), "{schemas:?}");
+    assert_eq!(paused, ["books", "books_genres"]);
+}
+
+// One model, one table: a second model for the same table is refused, whether
+// the paused one is read first, read last, or both are paused.
+#[test]
+fn two_models_for_one_table_are_refused_even_when_one_is_paused() {
+    const OTHER: &str =
+        r#"model! { Member, table: "users", pk: id => i32, { name: text [required] } }"#;
+    const OTHER_PAUSED: &str = r#"model! { Member, table: "users", pk: id => i32, { name: text [required] }, meta: { managed: false } }"#;
+
+    for (user, member) in [
+        (USERS_PAUSED, OTHER),
+        (USERS, OTHER_PAUSED),
+        (USERS_PAUSED, OTHER_PAUSED),
+    ] {
+        let dir = TempDir::new();
+        let (entities, path) = project(&dir);
+        fs::write(format!("{entities}/user.rs"), user).unwrap();
+        fs::write(format!("{entities}/member.rs"), member).unwrap();
+
+        let err = scan_models(&entities).err().expect("two `users`");
+        assert!(format!("{err:#}").contains("`users`"), "{err:#}");
+        assert!(run(&entities, &path, true).is_err());
+        assert!(generated(&path).is_empty());
+    }
+}
+
+// A new model that is paused: no migration, with or without `--force`, and
+// the managed model next to it is migrated as usual.
+#[test]
+fn nothing_is_generated_for_a_paused_model() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS_PAUSED).unwrap();
+
+    run(&entities, &path, false).unwrap();
+    assert!(generated(&path).is_empty());
+    run(&entities, &path, true).unwrap();
+    assert!(generated(&path).is_empty());
+
+    fs::write(format!("{entities}/post.rs"), POSTS).unwrap();
+    run(&entities, &path, false).unwrap();
+    let files = generated(&path);
+    assert_eq!(files.len(), 1, "{files:?}");
+    assert!(files[0].0.ends_with("_create_posts_table.rs"), "{files:?}");
+}
+
+// A migrated table whose model is paused: not dropped, even with `--force`,
+// and a change to the model generates nothing. Its snapshot stays as it was.
+#[test]
+fn a_migrated_table_put_on_pause_is_neither_dropped_nor_altered() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    run(&entities, &path, false).unwrap();
+    applied(&entities, &path);
+    // Everything but the models, which the test rewrites itself.
+    let migration_side = || -> Vec<(String, String)> {
+        everything(&dir)
+            .into_iter()
+            .filter(|(file, _)| !file.starts_with("entities"))
+            .collect()
+    };
+    let before = migration_side();
+    assert!(before.iter().any(|(file, _)| file.contains("snapshots")));
+
+    fs::write(format!("{entities}/user.rs"), USERS_PAUSED).unwrap();
+    run(&entities, &path, true).unwrap();
+    assert_eq!(migration_side(), before);
+
+    fs::write(format!("{entities}/user.rs"), USERS_BIO_PAUSED).unwrap();
+    run(&entities, &path, true).unwrap();
+    assert_eq!(migration_side(), before);
+}
+
+// The pause is lifted: the difference between the snapshot and the model
+// comes out as an alteration, as for any table.
+#[test]
+fn a_table_taken_off_pause_is_migrated_from_its_snapshot() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    run(&entities, &path, false).unwrap();
+    applied(&entities, &path);
+    fs::write(format!("{entities}/user.rs"), USERS_BIO_PAUSED).unwrap();
+    run(&entities, &path, false).unwrap();
+    assert_eq!(generated(&path).len(), 1);
+
+    fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
+    run(&entities, &path, false).unwrap();
+
+    let files = generated(&path);
+    assert_eq!(files.len(), 2, "{files:?}");
+    let alter = files
+        .iter()
+        .find(|(name, _)| name.ends_with("_alter_users_table.rs"))
+        .expect("an alteration");
+    assert!(alter.1.contains("bio"), "{}", alter.1);
+}
+
+// A migration still waiting for a table that is then paused goes at the next
+// run: nothing is generated for a paused table.
+#[test]
+fn a_waiting_migration_of_a_table_put_on_pause_is_removed() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    run(&entities, &path, false).unwrap();
+    assert_eq!(generated(&path).len(), 1);
+
+    fs::write(format!("{entities}/user.rs"), USERS_PAUSED).unwrap();
+    run(&entities, &path, false).unwrap();
+
+    assert!(generated(&path).is_empty());
+    let lib = fs::read_to_string(lib_path(&path)).unwrap();
+    assert!(!lib.contains("users_table"), "{lib}");
 }

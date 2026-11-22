@@ -21,7 +21,7 @@ What remains for the next two versions. An item may move from one version to the
 | ✓ | Generated migration marked "pending": run again before it is applied, `makemigrations` recomputes it instead of stacking another one |
 | ✓ | Two parallel changes to the same table: refused, with the tables involved (each migration notes the one it starts from) |
 | ✓ | Drop a table when its model disappears: refused without `--force`, `DROP TABLE IF EXISTS` in `up`, recreation in `down`, reverse FK order, enum types removed once no column uses them; under SQLite, removing the key of a table that stays waits for the table rebuild |
-| ☐ | `managed: false` in a model's `meta`: `makemigrations` no longer generates or drops anything for its table |
+| ✓ | `managed: false` in a model's `meta`: `makemigrations` no longer generates or drops anything for its table, and recalls the paused tables at every run |
 | ☐ | Table and list field rename (`rename_to`) |
 | ☐ | Destructive changes: state what they affect, relations included |
 | ☐ | Real `ALTER` on a type change, after `--force` (`USING` on PostgreSQL and MySQL, faithful snapshot) |

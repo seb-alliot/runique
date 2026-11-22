@@ -308,6 +308,8 @@ pub struct MetaDef {
     pub owner: Option<syn::Ident>,
     /// `label: field` - the field a row is known by(history, list).
     pub label: Option<syn::Ident>,
+    /// `managed: false` , `makemigrations` generates and drops nothing for this table
+    pub managed: bool,
 }
 
 #[cfg(test)]

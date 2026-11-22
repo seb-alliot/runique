@@ -55,6 +55,7 @@ pub struct ParsedModel {
     pub name: String,
     pub schema: ParsedSchema,
     pub lists: Vec<ParsedSchema>,
+    pub managed: bool,
 }
 
 /// Parses the `model!{}` invocation of a Rust source file and returns the
@@ -86,6 +87,7 @@ pub fn parse_model_from_source(source: &str) -> Result<Option<ParsedModel>> {
         ParsedModel {
             name: pascal_to_snake(&model.name.to_string()),
             lists: list_tables(&model, &schema),
+            managed: model.meta.as_ref().is_none_or(|meta| meta.managed),
             schema,
         }
     }))

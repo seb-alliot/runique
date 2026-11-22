@@ -608,7 +608,8 @@
     "duplicate_table": "Deux tables portent le nom `{}`. La table d'un champ liste s'appelle `<table du modèle>_<champ>` : renommez le champ ou l'autre table.",
     "waiting_removed": "{} migration(s) en attente retirée(s) : vos modèles correspondent de nouveau à leurs snapshots.",
     "waiting_unchanged": "{} migration(s) en attente, inchangée(s) : rien n'a été réécrit.",
-    "parallel_changes": "Deux migrations partent du même point pour la même table :\n  {}\nElles ont été écrites en parallèle : Runique ne peut pas savoir laquelle la table doit suivre. Rien n'a été écrit."
+    "parallel_changes": "Deux migrations partent du même point pour la même table :\n  {}\nElles ont été écrites en parallèle : Runique ne peut pas savoir laquelle la table doit suivre. Rien n'a été écrit.",
+    "paused_tables": "Tables en pause (`managed: false`), ignorées par makemigrations : {}"
   },
   "atomic": {
     "reserved_name": "{} : ce nom est réservé à Runique",

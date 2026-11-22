@@ -43,6 +43,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+* **Pausing a table: `managed: false`**: in a model's `meta`, `managed: false` makes `makemigrations` generate and drop nothing for its table, nor for the tables of its list fields, with or without `--force`. The model stays usable in the code and can be the target of a `belongs_to`. Every run recalls the paused tables; removing the key resumes the migration where the snapshot had stopped. See [Pausing a table](https://runique.io/docs/en/architecture/makemigrations).
 * **Tunable response compression**: `.middleware(|m| m.with_compression(|c| ...))` turns it off (`enabled(false)`, when a proxy already compresses), sets the smallest response that gets compressed (`min_size(bytes)`) and picks the level (`level(...)`, tower-http's `CompressionLevel`). Without this call nothing changes: compression on, from 32 bytes, default level. Images, SSE and gRPC are never compressed.
 * **The admin opens its accounts without `with_password_reset`**: an enabled admin serves the page its links lead to itself (`/reset-password/{token}`), with Runique's template and the default rate limit. `with_password_reset(…)` keeps its role for the site: opening the "forgot password" form to visitors and setting routes, templates and rate limit. Without it, that form is not served.
 * **Built-in reset pages: a complete stylesheet** (`css/auth.css`): fields, messages, errors and a dark theme, with colors as `--auth-*` variables to redefine.
