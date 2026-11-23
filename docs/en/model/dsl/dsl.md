@@ -331,9 +331,13 @@ The other models have nothing to change: a `belongs_to` names the model's file, 
 What the migration does is detailed in
 [Renaming a table](/docs/en/architecture/makemigrations).
 
-The former name only takes letters, digits and `_`; an `eihwaz_*` table can't be renamed. Once
-the rename is applied by `runique migration up`, the directive does nothing any more: the
-snapshot carries the new name.
+The former name only takes letters, digits and `_`; an `eihwaz_*` table can't be renamed.
+
+**The directive doesn't stay in your file.** Once the rename is applied by
+`runique migration up`, Runique itself removes the `renamed_from` from the model file (table,
+column or list field, in `model!{}` as in `extend!{}`). Only the directive goes, with its comma;
+the rest of the file isn't touched. If Runique can't remove it cleanly, it leaves the file as it
+is and tells you: remove it by hand then.
 
 ---
 

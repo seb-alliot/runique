@@ -203,6 +203,7 @@ mod tests {
                 .collect(),
             created_dirs: Vec::new(),
             journal: None,
+            beside: None,
         }
     }
 
@@ -351,6 +352,125 @@ mod tests {
                 "nothing left to repair"
             );
         }
+    }
+
+    // ── A batch that also writes in a second folder ──────────────────────────
+
+    /// A batch with its journal in `dir`, on `a.txt` there and on `m.rs` in
+    /// `other` (both there before, "original"), run up to `passes` passes.
+    fn cut_beside_after(dir: &TempDir, other: &TempDir, passes: usize) -> PathManager {
+        fs::write(dir.join("a.txt"), "original").unwrap();
+        fs::write(other.join("m.rs"), "original").unwrap();
+        let mut manager = manager(vec![
+            item(dir, "a.txt", AtomicStep::Waiting),
+            item(other, "m.rs", AtomicStep::Waiting),
+        ]);
+        manager.journal = Some(dir.path().to_path_buf());
+        manager.beside = Some(other.path().to_path_buf());
+        manager.create_dirs().unwrap();
+        manager.record().unwrap();
+        for _ in 0..passes {
+            manager.apply(&ActionAtomic::Modify).unwrap();
+        }
+        manager
+    }
+
+    // Whatever the pass the cut comes at, the file of the second folder is
+    // given back with the one of the journal's folder.
+    #[test]
+    fn a_cut_is_undone_in_the_second_folder_too() {
+        for passes in 0..=PASSES {
+            let (dir, other) = (TempDir::new(), TempDir::new());
+            drop(cut_beside_after(&dir, &other, passes));
+
+            assert!(
+                journal::recover_beside(dir.path(), Some(other.path())).unwrap(),
+                "pass {passes}"
+            );
+
+            for file in [dir.join("a.txt"), other.join("m.rs")] {
+                assert_eq!(
+                    fs::read_to_string(file).unwrap(),
+                    "original",
+                    "pass {passes}"
+                );
+            }
+            assert_eq!(dir.entries(), ["a.txt"], "pass {passes}");
+            assert_eq!(other.entries(), ["m.rs"], "pass {passes}");
+        }
+    }
+
+    // Past the point of no return, the cleanup is finished there too.
+    #[test]
+    fn a_cut_once_in_place_is_finished_in_the_second_folder_too() {
+        let (dir, other) = (TempDir::new(), TempDir::new());
+        let manager = cut_beside_after(&dir, &other, PASSES);
+        manager.mark_placed().unwrap();
+        drop(manager);
+
+        assert!(journal::recover_beside(dir.path(), Some(other.path())).unwrap());
+
+        assert_eq!(fs::read_to_string(dir.join("a.txt")).unwrap(), "new");
+        assert_eq!(fs::read_to_string(other.join("m.rs")).unwrap(), "new");
+        assert_eq!(dir.entries(), ["a.txt"]);
+        assert_eq!(other.entries(), ["m.rs"]);
+    }
+
+    // A command that has no second folder finds a journal naming one: it
+    // touches nothing, in either folder, and the journal stays.
+    #[test]
+    fn a_repair_without_the_second_folder_touches_nothing() {
+        let (dir, other) = (TempDir::new(), TempDir::new());
+        drop(cut_beside_after(&dir, &other, 2));
+        let (in_dir, in_other) = (dir.entries(), other.entries());
+
+        let error = journal::recover(dir.path()).unwrap_err();
+
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert_eq!(dir.entries(), in_dir);
+        assert_eq!(other.entries(), in_other);
+        assert!(dir.join(".runique-journal").exists());
+        // Given the folder, the same journal is repaired.
+        assert!(journal::recover_beside(dir.path(), Some(other.path())).unwrap());
+        assert_eq!(fs::read_to_string(other.join("m.rs")).unwrap(), "original");
+    }
+
+    // The journal says which folder each file is in, by a path relative to it.
+    #[test]
+    fn the_journal_says_which_folder_each_file_is_in() {
+        let (dir, other) = (TempDir::new(), TempDir::new());
+        drop(cut_beside_after(&dir, &other, 0));
+        let journal = journal::read(dir.path()).unwrap().unwrap();
+
+        let beside: Vec<(String, bool)> = journal
+            .files
+            .iter()
+            .map(|file| (file.path.display().to_string(), file.beside))
+            .collect();
+        assert_eq!(
+            beside,
+            [("a.txt".to_string(), false), ("m.rs".to_string(), true)]
+        );
+    }
+
+    // Outside both folders: refused before any file is touched.
+    #[test]
+    fn a_file_outside_both_folders_is_refused() {
+        let (dir, other, third) = (TempDir::new(), TempDir::new(), TempDir::new());
+        fs::write(dir.join("a.txt"), "original").unwrap();
+        let mut manager = manager(vec![
+            item(&dir, "a.txt", AtomicStep::Waiting),
+            item(&third, "x.rs", AtomicStep::Waiting),
+        ]);
+        manager.journal = Some(dir.path().to_path_buf());
+        manager.beside = Some(other.path().to_path_buf());
+
+        let error = manager.run(ActionAtomic::Modify).unwrap_err();
+
+        assert_eq!(error.kind(), io::ErrorKind::InvalidInput);
+        assert_eq!(fs::read_to_string(dir.join("a.txt")).unwrap(), "original");
+        assert_eq!(dir.entries(), ["a.txt"]);
+        assert!(third.entries().is_empty());
     }
 
     // Past the point of no return the batch is finished instead: the cut may
@@ -683,7 +803,7 @@ mod tests {
     /// Starts the repair of `dir` and stops it dead after `steps` of the things
     /// it does. Returns whether it was indeed cut before its end.
     fn repair_cut_at(dir: &TempDir, steps: usize) -> bool {
-        let Some(mut repair) = journal::examine(dir.path()).unwrap() else {
+        let Some(mut repair) = journal::examine(dir.path(), None).unwrap() else {
             return false;
         };
         let mut left = steps;

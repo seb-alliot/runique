@@ -622,6 +622,7 @@
     "failed": "El crate de migraciones falló en 'migrate {}' (código de salida: {}).",
     "crate_created": "Crate de migraciones creado en '{}'.",
     "interrupted": "Un makemigrations se interrumpió en '{}'. Vuelva a ejecutar makemigrations antes de aplicar las migraciones.",
+    "renamed_from_kept": "{}: no se pudieron quitar de este archivo los `renamed_from` aplicados. Quítelos a mano.",
     "engine_defaulted": "Ni DATABASE_URL ni DB_ENGINE indican un motor conocido: el crate de migraciones usa SQLite. Cambie la feature de runique en '{}' si es necesario."
   },
   "reset": {

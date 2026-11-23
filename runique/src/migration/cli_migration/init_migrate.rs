@@ -103,8 +103,17 @@ pub(crate) fn write(migration_dir: &Path, engine: Engine, runique_version: &str)
 /// anything there. When files changed since, the repair touches nothing: they
 /// are listed for the user to put right.
 pub(crate) fn repair(dir: &Path) -> Result<()> {
-    let repaired =
-        crate::atomic::recover(dir).with_context(|| tf("cli.interrupted_run", &[dir.display()]))?;
+    repaired(dir, crate::atomic::recover(dir))
+}
+
+/// [`repair`] for the migrations folder, whose runs may also have been
+/// rewriting entity files (`migration up` taking out a `renamed_from`).
+pub(crate) fn repair_beside(dir: &Path, entities: &Path) -> Result<()> {
+    repaired(dir, crate::atomic::recover_beside(dir, Some(entities)))
+}
+
+fn repaired(dir: &Path, outcome: std::io::Result<bool>) -> Result<()> {
+    let repaired = outcome.with_context(|| tf("cli.interrupted_run", &[dir.display()]))?;
     if repaired {
         println!("{}", tf("cli.run_repaired", &[dir.display()]));
     }

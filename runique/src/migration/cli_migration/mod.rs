@@ -3,6 +3,7 @@
 //! project's `migration` crate (`init_migrate`). The commands themselves are
 //! called through `cli::makemigration` and `cli::migrate`.
 mod applied;
+mod applied_renames;
 pub(crate) mod init_migrate;
 mod lib_file;
 pub mod migrate;
@@ -67,7 +68,10 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     init_migrate::ensure(migrations_path)?;
     // Before anything reads the snapshots: a run the power cut short is taken
     // back, so the changes are computed on migrations that are whole.
-    init_migrate::repair(std::path::Path::new(migrations_path))?;
+    init_migrate::repair_beside(
+        std::path::Path::new(migrations_path),
+        std::path::Path::new(entities_path),
+    )?;
 
     let migrated = snapshot::read_all(migrations_path)?;
     check_parallel(migrations_path)?;
@@ -210,7 +214,10 @@ pub(crate) async fn makemigrations_with(
         .map_err(|e| anyhow::anyhow!(tf("makemigrations.database_unreachable", &[e])))?;
     // Before `lib.rs` is read: a run the power cut short may have left it
     // half written.
-    init_migrate::repair(std::path::Path::new(migrations_path))?;
+    init_migrate::repair_beside(
+        std::path::Path::new(migrations_path),
+        std::path::Path::new(entities_path),
+    )?;
     let applied = applied::read(&db).await?;
     applied::check_known(&applied, migrations_path)?;
     run(entities_path, migrations_path, force)

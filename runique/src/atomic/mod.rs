@@ -7,7 +7,7 @@ mod step;
 mod struct_atomic;
 
 pub(crate) use disk::remove;
-pub(crate) use journal::{interrupted, recover};
+pub(crate) use journal::{interrupted, recover, recover_beside};
 pub(crate) use struct_atomic::{AtomicBuilder, SourceItems};
 
 #[cfg(test)]

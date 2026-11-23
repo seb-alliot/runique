@@ -1408,6 +1408,7 @@ pub(crate) fn cut_journal(dir: &Path, placed: bool, files: &[(&str, bool)], dirs
             .map(|(name, existed)| JournalFile {
                 path: PathBuf::from(name),
                 existed: *existed,
+                beside: false,
             })
             .collect(),
         dirs: dirs.iter().map(PathBuf::from).collect(),

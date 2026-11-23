@@ -62,6 +62,8 @@ pub(crate) struct PathManager {
     pub(super) created_dirs: Vec<PathBuf>,
     /// The folder holding the batch's journal, when it keeps one.
     pub(super) journal: Option<PathBuf>,
+    /// A second folder the journal may name files of: see `AtomicBuilder::beside`.
+    pub(super) beside: Option<PathBuf>,
 }
 
 /// Describes a batch: the action to apply and the files it applies to.
@@ -72,4 +74,6 @@ pub(crate) struct AtomicBuilder {
     pub(super) items: IndexMap<PathBuf, ItemsPath>,
     /// The folder holding the batch's journal, when it keeps one.
     pub(super) journal: Option<PathBuf>,
+    /// A second folder the journal may name files of: see `AtomicBuilder::beside`.
+    pub(super) beside: Option<PathBuf>,
 }

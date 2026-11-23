@@ -37,6 +37,9 @@ pub(super) struct JournalFile {
     pub(super) path: PathBuf,
     /// Whether something was at `path` before the batch.
     pub(super) existed: bool,
+    /// `path` is relative to the batch's second folder, not the journal's.
+    #[serde(default)]
+    pub(super) beside: bool,
 }
 
 impl Journal {
@@ -46,9 +49,11 @@ impl Journal {
             .items
             .values()
             .map(|item| {
+                let (path, beside) = relative(dir, manager.beside.as_deref(), &item.path)?;
                 Ok(JournalFile {
-                    path: relative(dir, &item.path)?,
+                    path,
                     existed: exists(&item.path)?,
+                    beside,
                 })
             })
             .collect::<io::Result<_>>()?;
@@ -72,14 +77,26 @@ fn invalid(kind: io::ErrorKind, path: &Path, reason: &str) -> io::Error {
     io::Error::new(kind, crate::utils::trad::tf(reason, &[path.display()]))
 }
 
-/// `path` as seen from `dir`. A batch with a journal keeps to its folder: a
-/// path outside could not be found again from another working directory.
-fn relative(dir: &Path, path: &Path) -> io::Result<PathBuf> {
-    let inside = path
-        .strip_prefix(dir)
-        .map_err(|_| invalid(io::ErrorKind::InvalidInput, path, "atomic.outside_journal"))?;
+/// `path` as seen from `dir`, or from the second folder (then `true`). A batch
+/// with a journal keeps to its folders: a path outside could not be found
+/// again from another working directory.
+fn relative(dir: &Path, beside: Option<&Path>, path: &Path) -> io::Result<(PathBuf, bool)> {
+    let (inside, second) = match (
+        path.strip_prefix(dir),
+        beside.map(|folder| path.strip_prefix(folder)),
+    ) {
+        (Ok(inside), _) => (inside, false),
+        (Err(_), Some(Ok(inside))) => (inside, true),
+        _ => {
+            return Err(invalid(
+                io::ErrorKind::InvalidInput,
+                path,
+                "atomic.outside_journal",
+            ));
+        }
+    };
     if plain(inside) {
-        Ok(inside.to_path_buf())
+        Ok((inside.to_path_buf(), second))
     } else {
         Err(invalid(
             io::ErrorKind::InvalidInput,
@@ -179,7 +196,14 @@ pub(crate) fn interrupted(dir: &Path) -> bool {
 /// show. Choosing between a file edited by hand and its original is not the
 /// repair's call.
 pub(crate) fn recover(dir: &Path) -> io::Result<bool> {
-    let Some(mut repair) = examine(dir)? else {
+    recover_beside(dir, None)
+}
+
+/// [`recover`], for a command whose batches may name files of a second
+/// folder (`AtomicBuilder::beside`): `beside` is that folder, as the command
+/// has it now.
+pub(crate) fn recover_beside(dir: &Path, beside: Option<&Path>) -> io::Result<bool> {
+    let Some(mut repair) = examine(dir, beside)? else {
         return Ok(false);
     };
     for backup in &repair.spare_backups {
@@ -208,7 +232,7 @@ pub(super) struct Repair {
 /// Reads the journal of `dir` and looks at every file it names, without
 /// touching any: the whole disk is known to be in a state a cut can leave
 /// before the first thing is put back.
-pub(super) fn examine(dir: &Path) -> io::Result<Option<Repair>> {
+pub(super) fn examine(dir: &Path, beside: Option<&Path>) -> io::Result<Option<Repair>> {
     let Some(journal) = read(dir)? else {
         return Ok(None);
     };
@@ -216,8 +240,20 @@ pub(super) fn examine(dir: &Path) -> io::Result<Option<Repair>> {
     let mut spare_backups = Vec::new();
     let mut unexpected = Vec::new();
     for file in &journal.files {
-        let path = dir.join(&file.path);
-        stays_inside(dir, &path)?;
+        let root = if file.beside {
+            // Only a command that has a second folder writes such a journal.
+            beside.ok_or_else(|| {
+                invalid(
+                    io::ErrorKind::InvalidData,
+                    &dir.join(NAME),
+                    "atomic.journal_forged",
+                )
+            })?
+        } else {
+            dir
+        };
+        let path = root.join(&file.path);
+        stays_inside(root, &path)?;
         let (temp_path, backup_path) = (temp_of(&path), backup_of(&path));
         let step = if journal.placed {
             AtomicStep::Done
@@ -265,6 +301,7 @@ pub(super) fn examine(dir: &Path) -> io::Result<Option<Repair>> {
                 .map(|created| dir.join(created))
                 .collect(),
             journal: Some(dir.to_path_buf()),
+            beside: beside.map(Path::to_path_buf),
         },
         placed: journal.placed,
         spare_backups,
@@ -323,7 +360,8 @@ fn found(
 /// that folder could then not be taken away with the rest.
 fn strangers(dir: &Path, journal: &Journal) -> io::Result<Vec<String>> {
     let mut known = vec![dir.join(NAME), dir.join(TEMP_NAME)];
-    for file in &journal.files {
+    // The folders the batch created are all under `dir`: so are their files.
+    for file in journal.files.iter().filter(|file| !file.beside) {
         let path = dir.join(&file.path);
         known.extend([temp_of(&path), backup_of(&path), path]);
     }

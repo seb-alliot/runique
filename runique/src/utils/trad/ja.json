@@ -622,6 +622,7 @@
     "failed": "マイグレーションクレートが 'migrate {}' で失敗しました（終了コード: {}）。",
     "crate_created": "マイグレーションクレートを '{}' に作成しました。",
     "interrupted": "'{}' で makemigrations が中断されました。マイグレーションを適用する前に、makemigrations を再実行してください。",
+    "renamed_from_kept": "{}：適用済みの `renamed_from` をこのファイルから削除できませんでした。手動で削除してください。",
     "engine_defaulted": "DATABASE_URL も DB_ENGINE も既知のエンジンを示していません。マイグレーションクレートは SQLite を使用します。必要に応じて '{}' の runique feature を変更してください。"
   },
   "reset": {

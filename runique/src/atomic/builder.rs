@@ -27,6 +27,7 @@ impl AtomicBuilder {
             strategy,
             items: IndexMap::new(),
             journal: None,
+            beside: None,
         }
     }
 
@@ -36,6 +37,15 @@ impl AtomicBuilder {
     /// batches at once in the same folder would share the journal.
     pub(crate) fn journal(mut self, dir: impl Into<PathBuf>) -> Self {
         self.journal = Some(dir.into());
+        self
+    }
+
+    /// Lets the journal name files of a second folder, outside its own. The
+    /// journal doesn't keep where that folder is: the command that repairs
+    /// gives it again (`recover_beside`), so a journal can't send the repair
+    /// anywhere the command didn't.
+    pub(crate) fn beside(mut self, dir: impl Into<PathBuf>) -> Self {
+        self.beside = Some(dir.into());
         self
     }
 
@@ -95,6 +105,7 @@ impl AtomicBuilder {
             items: self.items,
             created_dirs: Vec::new(),
             journal: self.journal,
+            beside: self.beside,
         };
         manager.run(self.strategy)
     }

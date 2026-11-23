@@ -622,6 +622,7 @@
     "failed": "Das Migrations-Crate ist bei 'migrate {}' fehlgeschlagen (Exit-Code: {}).",
     "crate_created": "Migrations-Crate in '{}' erstellt.",
     "interrupted": "Ein makemigrations-Lauf wurde in '{}' unterbrochen. Führen Sie makemigrations erneut aus, bevor Sie die Migrationen anwenden.",
+    "renamed_from_kept": "{}: Die angewendeten `renamed_from` konnten nicht aus dieser Datei entfernt werden. Entfernen Sie sie von Hand.",
     "engine_defaulted": "Weder DATABASE_URL noch DB_ENGINE nennen eine bekannte Engine: Das Migrations-Crate verwendet SQLite. Ändern Sie bei Bedarf das runique-Feature in '{}'."
   },
   "reset": {

@@ -642,6 +642,7 @@
     "failed": "The migration crate failed on 'migrate {}' (exit code: {}).",
     "crate_created": "Migration crate created in '{}'.",
     "interrupted": "A makemigrations run was interrupted in '{}'. Run makemigrations again before applying the migrations.",
+    "renamed_from_kept": "{}: the applied `renamed_from` could not be removed from this file. Remove them by hand.",
     "engine_defaulted": "Neither DATABASE_URL nor DB_ENGINE names a known engine: the migration crate uses SQLite. Change the runique feature in '{}' if needed."
   },
   "runique_test": {

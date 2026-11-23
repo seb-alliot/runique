@@ -3,6 +3,7 @@
 //! `sea-orm-cli` installed: the SeaORM version that applies the migrations is
 //! then the one `migration/Cargo.toml` pins, the same as runique's. Its
 //! `down()` keeps `seaql_migrations` in sync with the schema.
+use super::applied_renames::cleared_files;
 use super::lib_file::lib_modules;
 use super::scan::{merge_extend_schemas, scan_entities, scan_extend_blocks};
 use super::snapshot::extend_snapshot_content;
@@ -74,6 +75,11 @@ pub fn record_applied(entities_path: &str, migrations_path: &str) -> Result<()> 
             merge_extend_schemas(scan_extend_blocks(entities_path)?),
         )
     };
+    // The renames just applied are over: their `renamed_from` leaves the
+    // entity files, in the same batch as the snapshots that record them.
+    if !targets.is_empty() {
+        files.extend(cleared_files(entities_path, &targets)?);
+    }
     for (extend, table) in targets {
         if extend {
             if let Some(schema) = extends.iter().find(|s| s.table_name == table) {
@@ -90,7 +96,9 @@ pub fn record_applied(entities_path: &str, migrations_path: &str) -> Result<()> 
         }
     }
 
-    let mut batch = AtomicBuilder::modify().journal(migrations_path);
+    let mut batch = AtomicBuilder::modify()
+        .journal(migrations_path)
+        .beside(entities_path);
     for (path, content) in files {
         batch = batch.add(path, SourceItems::Bytes(content.into_bytes()), false)?;
     }
@@ -506,6 +514,120 @@ mod tests {
             fs::read_to_string(dir.join("src/m20260101_000000_create_menus_table.rs")).unwrap(),
             tagged()
         );
+    }
+
+    // ── The `renamed_from` just applied leaves the entity file ───────────────
+
+    const BAKERY: &str = "model! {\n    Shop,\n    table: \"bakery\",\n    renamed_from: \"shop\",\n    pk: id => i32,\n    { title: text [required], }\n}\n";
+    const BAKERY_CLEARED: &str =
+        "model! {\n    Shop,\n    table: \"bakery\",\n    pk: id => i32,\n    { title: text [required], }\n}\n";
+
+    /// A migration that renamed `shop`, still waiting.
+    fn renaming() -> String {
+        format!("{WAIT_MIGRATION}\n{}shop\n{BODY}", crate::migration::RENAMED_TABLE)
+    }
+
+    // Applied: the directive goes from the model, the snapshot is under the
+    // new name, the one of the former name is removed. One batch, no journal
+    // left, and no other file in the entities folder.
+    #[test]
+    fn an_applied_rename_leaves_the_model_file() {
+        let dir = TempDir::new();
+        let path = migrations(
+            &dir,
+            &["m20260101_000000_alter_bakery_table"],
+            &[("m20260101_000000_alter_bakery_table.rs", renaming())],
+        );
+        let models = entities(&dir, &[("shop.rs", BAKERY), ("plats.rs", PLATS)]);
+        fs::create_dir_all(crate::migration::snapshot_dir(&path)).unwrap();
+        fs::write(snapshot_file_path(&path, "shop"), "old").unwrap();
+
+        record_applied(&models, &path).unwrap();
+
+        let read = |name: &str| fs::read_to_string(dir.join("entities").join(name)).unwrap();
+        assert_eq!(read("shop.rs"), BAKERY_CLEARED);
+        assert_eq!(read("plats.rs"), PLATS);
+        assert!(Path::new(&snapshot_file_path(&path, "bakery")).exists());
+        assert!(!Path::new(&snapshot_file_path(&path, "shop")).exists());
+        assert!(!crate::atomic::interrupted(Path::new(&path)));
+        let left: Vec<String> = dir
+            .entries()
+            .into_iter()
+            .filter(|entry| entry.starts_with("entities/"))
+            .collect();
+        assert_eq!(left, ["entities/plats.rs", "entities/shop.rs"]);
+    }
+
+    // A directive of a table nothing was applied for stays where it is.
+    #[test]
+    fn a_rename_not_applied_yet_stays_in_the_model_file() {
+        let dir = TempDir::new();
+        let path = migrations(
+            &dir,
+            &["m20260101_000000_create_plats_table"],
+            &[("m20260101_000000_create_plats_table.rs", tagged())],
+        );
+        let models = entities(&dir, &[("shop.rs", BAKERY), ("plats.rs", PLATS)]);
+
+        record_applied(&models, &path).unwrap();
+
+        assert_eq!(
+            fs::read_to_string(dir.join("entities/shop.rs")).unwrap(),
+            BAKERY
+        );
+        assert!(Path::new(&snapshot_file_path(&path, "plats")).exists());
+    }
+
+    // The column directive of an extension goes the same way.
+    #[test]
+    fn an_applied_column_rename_leaves_the_extension_file() {
+        let dir = TempDir::new();
+        let path = migrations(
+            &dir,
+            &["m20260101_000000_extend_eihwaz_users_table"],
+            &[("m20260101_000000_extend_eihwaz_users_table.rs", tagged())],
+        );
+        let models = entities(
+            &dir,
+            &[(
+                "ext.rs",
+                r#"extend! { table: "eihwaz_users", fields: { bio: text [renamed_from: "about"] } }"#,
+            )],
+        );
+
+        record_applied(&models, &path).unwrap();
+
+        assert_eq!(
+            fs::read_to_string(dir.join("entities/ext.rs")).unwrap(),
+            r#"extend! { table: "eihwaz_users", fields: { bio: text [] } }"#
+        );
+    }
+
+    // The batch is one: when a snapshot can't be written, the model file
+    // keeps its directive and the migration its tag.
+    #[test]
+    fn a_batch_that_fails_leaves_the_model_file_as_it_was() {
+        let dir = TempDir::new();
+        let path = migrations(
+            &dir,
+            &["m20260101_000000_alter_bakery_table"],
+            &[("m20260101_000000_alter_bakery_table.rs", renaming())],
+        );
+        let models = entities(&dir, &[("shop.rs", BAKERY)]);
+        // A file where the folder of the snapshots is to be.
+        fs::write(crate::migration::snapshot_dir(&path), "not a folder").unwrap();
+
+        assert!(record_applied(&models, &path).is_err());
+
+        assert_eq!(
+            fs::read_to_string(dir.join("entities/shop.rs")).unwrap(),
+            BAKERY
+        );
+        assert_eq!(
+            fs::read_to_string(dir.join("src/m20260101_000000_alter_bakery_table.rs")).unwrap(),
+            renaming()
+        );
+        assert!(!crate::atomic::interrupted(Path::new(&path)));
     }
 
     /// The address `configuration` retains for a project's environment.

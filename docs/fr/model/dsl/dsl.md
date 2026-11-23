@@ -337,8 +337,13 @@ de sa table. Le détail de ce que fait la migration est dans
 [Renommer une table](/docs/fr/architecture/makemigrations).
 
 L'ancien nom n'accepte que des lettres, des chiffres et `_` ; une table `eihwaz_*` ne peut pas
-être renommée. Une fois le renommage appliqué par `runique migration up`, la directive ne fait
-plus rien : le snapshot porte le nouveau nom.
+être renommée.
+
+**La directive ne reste pas dans votre fichier.** Une fois le renommage appliqué par
+`runique migration up`, Runique retire lui-même le `renamed_from` du fichier du modèle (table,
+colonne ou champ liste, dans `model!{}` comme dans `extend!{}`). Seule la directive part, avec sa
+virgule ; le reste du fichier n'est pas touché. Si Runique ne peut pas la retirer proprement, il
+laisse le fichier tel quel et vous le dit : retirez-la alors à la main.
 
 ---
 

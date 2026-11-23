@@ -22,7 +22,7 @@ Ce qui reste à faire pour les deux prochaines versions. Un élément peut passe
 | ✓ | Deux modifications parallèles d'une même table : refus, avec les tables concernées (chaque migration note celle dont elle part) |
 | ✓ | Suppression de table quand le modèle disparaît : refus sans `--force`, `DROP TABLE IF EXISTS` dans `up`, recréation dans `down`, ordre inverse des FK, types enum retirés quand plus aucune colonne ne s'en sert ; sous SQLite, le retrait de la clé d'une table qui reste attend la reconstruction de table |
 | ✓ | `managed: false` dans le `meta` d'un modèle : `makemigrations` ne génère et ne supprime plus rien pour sa table, et rappelle les tables en pause à chaque lancement |
-| ✓ | Renommage de table et de champ liste (`renamed_from`), avec index, clés et tables liste ; reste à retirer la directive du modèle après `migration up` |
+| ✓ | Renommage de table et de champ liste (`renamed_from`), avec index, clés et tables liste ; la directive est retirée du modèle après `migration up` |
 | ☐ | Changements destructeurs : indiquer ce qu'ils touchent, relations comprises |
 | ☐ | Vrai `ALTER` lors d'un changement de type, après `--force` (`USING` sur PostgreSQL et MySQL, snapshot fidèle) |
 | ☐ | SQLite : reconstruction de la table quand une colonne est modifiée, ou qu'une clé étrangère est ajoutée ou retirée (aujourd'hui la modification de colonne est sautée) |
