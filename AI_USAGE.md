@@ -39,5 +39,3 @@ I prefer a faithful documentation that you can rely on over a documentation wher
 A mistake in the documentation is a bug like any other: open an issue.
 
 If you want to rewrite a page by hand, the contribution is welcome.
-
-*This page is a translation of the [French version](https://github.com/seb-alliot/runique/blob/main/AI_USAGE.fr.md).*

@@ -20,7 +20,8 @@ pub(super) async fn drop_enum_type_if_unused(
                 .expr(Expr::val(1))
                 .from((Alias::new("information_schema"), Alias::new("columns")))
                 .and_where(
-                    Expr::col(Alias::new("udt_schema")).eq(Func::cust(Alias::new("current_schema"))),
+                    Expr::col(Alias::new("udt_schema"))
+                        .eq(Func::cust(Alias::new("current_schema"))),
                 )
                 .and_where(
                     Expr::col(Alias::new("udt_name")).is_in([name.clone(), format!("_{name}")]),

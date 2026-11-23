@@ -218,10 +218,7 @@ pub fn renamed_table(content: &str) -> Option<&str> {
         .find_map(|line| line.trim().strip_prefix(RENAMED_TABLE))
         .map(str::trim)
         .filter(|name| {
-            !name.is_empty()
-                && name
-                    .chars()
-                    .all(|c| c.is_ascii_alphanumeric() || c == '_')
+            !name.is_empty() && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
         })
 }
 

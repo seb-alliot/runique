@@ -423,7 +423,14 @@ mod tests {
 
     #[test]
     fn a_table_renamed_from_anything_but_a_name_is_rejected() {
-        for old in ["../shop", "shop\"); //", "1shop", "", "sh op", "eihwaz_users"] {
+        for old in [
+            "../shop",
+            "shop\"); //",
+            "1shop",
+            "",
+            "sh op",
+            "eihwaz_users",
+        ] {
             model_err(&format!(
                 r#"Test, table: "bakery", renamed_from: {old:?}, pk: id => i32, {BASE_FIELDS},"#
             ));

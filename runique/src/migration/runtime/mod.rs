@@ -125,7 +125,9 @@ mod tests {
             .to_owned();
 
         assert_eq!(
-            key_changes_supported(&manager, "menus").unwrap_err().to_string(),
+            key_changes_supported(&manager, "menus")
+                .unwrap_err()
+                .to_string(),
             DbErr::Custom(refusal.clone()).to_string()
         );
         assert_eq!(

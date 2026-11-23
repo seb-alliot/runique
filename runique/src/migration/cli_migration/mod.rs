@@ -31,7 +31,9 @@ pub use crate::migration::{
 };
 pub(crate) use lib_file::initial_lib;
 pub use lib_file::{ensure_admin_migration_positioned, update_migration_lib};
-pub use scan::{ScannedEntities, merge_extend_schemas, scan_entities, scan_extend_blocks, scan_models};
+pub use scan::{
+    ScannedEntities, merge_extend_schemas, scan_entities, scan_extend_blocks, scan_models,
+};
 pub use snapshot::parse_create_file;
 // For the integration tests that replay the reading on PostgreSQL and MySQL.
 pub use applied::read as applied_migrations;
@@ -40,10 +42,9 @@ pub use applied::read as applied_migrations;
 pub(crate) use snapshot::previous_snapshot;
 
 use plan::{
-    Plan, build_drop_plan, build_extend_plan, build_main_plan, commit_plan,
-    compute_main_changes, dropped_tables, effective_renames,
-    check_parallel, plan_extend_changes, replace_waiting, settled_migrations,
-    waiting_migrations,
+    Plan, build_drop_plan, build_extend_plan, build_main_plan, check_parallel, commit_plan,
+    compute_main_changes, dropped_tables, effective_renames, plan_extend_changes, replace_waiting,
+    settled_migrations, waiting_migrations,
 };
 use report::{check_destructive, check_identifier_lengths, warn_unmigrated_type_changes};
 use snapshot::snapshot_upgrades;
@@ -63,7 +64,10 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
         renames,
     } = scan_models(entities_path)?;
     if !paused.is_empty() {
-        println!("{}", tf("makemigrations.paused_tables", &[paused.join(", ")]));
+        println!(
+            "{}",
+            tf("makemigrations.paused_tables", &[paused.join(", ")])
+        );
     }
     init_migrate::ensure(migrations_path)?;
     // Before anything reads the snapshots: a run the power cut short is taken

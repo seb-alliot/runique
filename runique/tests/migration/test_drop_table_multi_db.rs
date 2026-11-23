@@ -34,7 +34,10 @@ async fn type_exists(db: &DatabaseConnection) -> bool {
 }
 
 async fn drop_table(db: &DatabaseConnection, table: &str) {
-    let drop = Table::drop().table(Alias::new(table)).if_exists().to_owned();
+    let drop = Table::drop()
+        .table(Alias::new(table))
+        .if_exists()
+        .to_owned();
     db.execute(&drop).await.expect("drop a test table");
 }
 
@@ -43,7 +46,12 @@ async fn table_with_the_type(db: &DatabaseConnection, table: &str) {
     db.execute(
         &Table::create()
             .table(Alias::new(table))
-            .col(ColumnDef::new(Alias::new("id")).integer().not_null().primary_key())
+            .col(
+                ColumnDef::new(Alias::new("id"))
+                    .integer()
+                    .not_null()
+                    .primary_key(),
+            )
             .col(
                 ColumnDef::new(Alias::new("regime"))
                     .enumeration(Alias::new(TYPE), [Alias::new("a"), Alias::new("b")])
@@ -83,15 +91,21 @@ async fn an_enum_type_goes_with_its_last_column_on_postgres() {
     let manager = SchemaManager::new(&db);
     let asked = TYPE.to_uppercase();
 
-    drop_enum_type(&manager, &asked).await.expect("both tables use it");
+    drop_enum_type(&manager, &asked)
+        .await
+        .expect("both tables use it");
     let with_two = type_exists(&db).await;
 
     drop_table(&db, FIRST).await;
-    drop_enum_type(&manager, &asked).await.expect("one table uses it");
+    drop_enum_type(&manager, &asked)
+        .await
+        .expect("one table uses it");
     let with_one = type_exists(&db).await;
 
     drop_table(&db, SECOND).await;
-    drop_enum_type(&manager, &asked).await.expect("nothing uses it");
+    drop_enum_type(&manager, &asked)
+        .await
+        .expect("nothing uses it");
     let with_none = type_exists(&db).await;
     let again = drop_enum_type(&manager, &asked).await;
 

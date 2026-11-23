@@ -8,9 +8,9 @@ use syn::{
 };
 
 use super::size::parse_size;
-use crate::parser::sql_identifier::validate_renamed_from;
 use super::suggest_type::suggest_form_field_type;
 use super::validate_attrs::validate_form_field_attrs;
+use crate::parser::sql_identifier::validate_renamed_from;
 
 impl Parse for FormFieldDecl {
     fn parse(input: ParseStream) -> Result<Self> {

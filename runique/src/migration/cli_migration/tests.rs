@@ -1396,7 +1396,10 @@ fn a_plan_removes_the_modules_it_drops() {
 
 #[test]
 fn a_migration_says_what_it_starts_from() {
-    assert_eq!(started_from("// runique: from none\nfn up() {}"), Some("none"));
+    assert_eq!(
+        started_from("// runique: from none\nfn up() {}"),
+        Some("none")
+    );
     assert_eq!(
         started_from("// tag\n  // runique: from m1_create_a_table \r\nfn up() {}"),
         Some("m1_create_a_table")
@@ -1584,7 +1587,11 @@ fn the_command_refuses_parallel_migrations_and_writes_nothing() {
     fs::write(format!("{entities}/user.rs"), USERS).unwrap();
     run(&entities, &path, false).unwrap();
     applied(&entities, &path);
-    let create = generated(&path).remove(0).0.trim_end_matches(".rs").to_string();
+    let create = generated(&path)
+        .remove(0)
+        .0
+        .trim_end_matches(".rs")
+        .to_string();
     for module in [
         "m20990101_000000_alter_users_table",
         "m20990102_000000_alter_users_table",
@@ -1674,7 +1681,10 @@ fn a_migrated_table_without_a_model_is_to_drop() {
 fn a_dropped_table_is_announced_as_a_loss_of_data() {
     assert_eq!(
         dropped_table_messages(&["menus".to_string(), "plats".to_string()]),
-        ["  menus: DROP TABLE (data loss)", "  plats: DROP TABLE (data loss)"]
+        [
+            "  menus: DROP TABLE (data loss)",
+            "  plats: DROP TABLE (data loss)"
+        ]
     );
     assert!(dropped_table_messages(&[]).is_empty());
 }
@@ -1693,11 +1703,17 @@ fn tables_are_dropped_from_the_one_that_references() {
     };
 
     assert_eq!(
-        order(vec![schema("a_parent", &[]), schema("z_child", &["a_parent"])]),
+        order(vec![
+            schema("a_parent", &[]),
+            schema("z_child", &["a_parent"])
+        ]),
         ["z_child", "a_parent"]
     );
     assert_eq!(
-        order(vec![schema("z_parent", &[]), schema("a_child", &["z_parent"])]),
+        order(vec![
+            schema("z_parent", &[]),
+            schema("a_child", &["z_parent"])
+        ]),
         ["a_child", "z_parent"]
     );
     // A chain: the furthest from the root first.
@@ -1733,7 +1749,10 @@ fn a_drop_migration_mirrors_the_creation() {
     assert_eq!(plan.lib_modules, ["m20260101_000000_drop_menus_table"]);
     let (path, content) = &plan.files[0];
     assert_eq!(path, "m/m20260101_000000_drop_menus_table.rs");
-    assert!(content.starts_with(&format!("{WAIT_MIGRATION}\n")), "{content}");
+    assert!(
+        content.starts_with(&format!("{WAIT_MIGRATION}\n")),
+        "{content}"
+    );
     assert_eq!(
         started_from(content),
         Some("m20250101_000000_create_menus_table")
@@ -1743,7 +1762,10 @@ fn a_drop_migration_mirrors_the_creation() {
     assert!(up.contains(".if_exists()"), "{up}");
     assert!(!up.contains("create_table"), "{up}");
     assert!(down.contains("Table::create()"), "{down}");
-    assert!(down.contains("menus_categories_id_categories_fkey"), "{down}");
+    assert!(
+        down.contains("menus_categories_id_categories_fkey"),
+        "{down}"
+    );
     assert!(!down.contains("drop_table"), "{down}");
     // The creation it mirrors drops without `IF EXISTS`, as before.
     assert!(!generate_create_file(&menus).contains(".if_exists()"));
@@ -1934,7 +1956,10 @@ fn the_key_of_a_table_that_stays_is_removed_before_the_drop() {
         .find(|(name, _)| name.ends_with("_alter_menus_table.rs"))
         .unwrap()
         .1;
-    assert!(alter.contains("runtime::drop_foreign_key(manager, \"menus\""), "{alter}");
+    assert!(
+        alter.contains("runtime::drop_foreign_key(manager, \"menus\""),
+        "{alter}"
+    );
 }
 
 // Case 26: the model that stays still points to the removed one. Making the
@@ -2294,8 +2319,12 @@ fn the_indexes_and_keys_of_a_renamed_table_take_its_name() {
     // The index of the model, and the one of its key.
     for index in ["city", "owner_id"] {
         let (old, new) = (format!("idx_shop_{index}"), format!("idx_bakery_{index}"));
-        let created = up.find(&format!(r#".name("{new}")"#)).expect("created in up");
-        let dropped = up.find(&format!(r#".name("{old}")"#)).expect("dropped in up");
+        let created = up
+            .find(&format!(r#".name("{new}")"#))
+            .expect("created in up");
+        let dropped = up
+            .find(&format!(r#".name("{old}")"#))
+            .expect("dropped in up");
         assert!(created < dropped, "the new index before the old one goes");
         assert!(down.contains(&format!(r#".name("{old}")"#)), "{down}");
         assert!(down.contains(&format!(r#".name("{new}")"#)), "{down}");
@@ -2314,10 +2343,18 @@ fn the_indexes_and_keys_of_a_renamed_table_take_its_name() {
         "{up}"
     );
     assert!(
-        renamed_key(down, "bakery_owner_id_owner_fkey", "shop_owner_id_owner_fkey"),
+        renamed_key(
+            down,
+            "bakery_owner_id_owner_fkey",
+            "shop_owner_id_owner_fkey"
+        ),
         "{down}"
     );
-    for refused_on_sqlite in ["key_changes_supported", "drop_foreign_key", "add_foreign_key"] {
+    for refused_on_sqlite in [
+        "key_changes_supported",
+        "drop_foreign_key",
+        "add_foreign_key",
+    ] {
         assert!(!alter.contains(refused_on_sqlite), "{alter}");
     }
 
@@ -2344,12 +2381,24 @@ fn the_key_of_a_table_pointing_to_a_renamed_one_follows() {
     assert_eq!(renamed_table(&product), None);
     let (up, down) = up_and_down(&product);
     assert!(up.contains(r#""product_shop_id_shop_fkey","#), "{up}");
-    assert!(up.contains(r#".name("product_shop_id_bakery_fkey")"#), "{up}");
-    assert!(up.contains(r#".to(Alias::new("bakery"), Alias::new("id"))"#), "{up}");
+    assert!(
+        up.contains(r#".name("product_shop_id_bakery_fkey")"#),
+        "{up}"
+    );
+    assert!(
+        up.contains(r#".to(Alias::new("bakery"), Alias::new("id"))"#),
+        "{up}"
+    );
     assert!(down.contains(r#""product_shop_id_bakery_fkey","#), "{down}");
-    assert!(down.contains(r#".name("product_shop_id_shop_fkey")"#), "{down}");
+    assert!(
+        down.contains(r#".name("product_shop_id_shop_fkey")"#),
+        "{down}"
+    );
     // Undone before the table takes its former name back.
-    assert!(down.contains(r#".to(Alias::new("bakery"), Alias::new("id"))"#), "{down}");
+    assert!(
+        down.contains(r#".to(Alias::new("bakery"), Alias::new("id"))"#),
+        "{down}"
+    );
     assert!(!product.contains("rename_table"), "{product}");
     assert!(!product.contains("key_changes_supported"), "{product}");
     // Its own index doesn't hold the renamed table's name: left alone.
@@ -2357,7 +2406,10 @@ fn the_key_of_a_table_pointing_to_a_renamed_one_follows() {
 
     let order = run_order(&path);
     let at = |kind: &str| order.iter().position(|m| m.ends_with(kind)).unwrap();
-    assert!(at("_alter_bakery_table") < at("_alter_product_table"), "{order:?}");
+    assert!(
+        at("_alter_bakery_table") < at("_alter_product_table"),
+        "{order:?}"
+    );
 }
 
 // Applied: the snapshot is under the new name, none is left under the former
@@ -2419,7 +2471,10 @@ fn a_rename_and_a_change_share_the_file_of_the_table() {
 
     fs::write(
         format!("{entities}/shop.rs"),
-        BAKERY.replace("city: text [required],", "city: text [required], phone: text [nullable],"),
+        BAKERY.replace(
+            "city: text [required],",
+            "city: text [required], phone: text [nullable],",
+        ),
     )
     .unwrap();
     run(&entities, &path, false).unwrap();
@@ -2428,7 +2483,11 @@ fn a_rename_and_a_change_share_the_file_of_the_table() {
     let (up, _) = up_and_down(&alter);
     assert!(up.find("rename_table").unwrap() < up.find("add_column").unwrap());
     assert!(up.contains(r#"Alias::new("phone")"#), "{up}");
-    assert!(!generated(&path).iter().any(|(name, _)| name.ends_with("_alter_shop_table.rs")));
+    assert!(
+        !generated(&path)
+            .iter()
+            .any(|(name, _)| name.ends_with("_alter_shop_table.rs"))
+    );
 }
 
 const BOOK_GENRES: &str = r#"model! { Book, table: "books", pk: id => i32, enums: { Genre: [Roman, Policier] },
@@ -2452,7 +2511,10 @@ fn renamed_list(dir: &TempDir, model: &str) -> String {
 fn a_list_table_follows_its_model_and_its_field() {
     for (model, table) in [
         (
-            BOOK_GENRES.replace(r#"table: "books""#, r#"table: "library", renamed_from: "books""#),
+            BOOK_GENRES.replace(
+                r#"table: "books""#,
+                r#"table: "library", renamed_from: "books""#,
+            ),
             "library_genres",
         ),
         (
@@ -2464,7 +2526,10 @@ fn a_list_table_follows_its_model_and_its_field() {
         ),
         (
             BOOK_GENRES
-                .replace(r#"table: "books""#, r#"table: "library", renamed_from: "books""#)
+                .replace(
+                    r#"table: "books""#,
+                    r#"table: "library", renamed_from: "books""#,
+                )
                 .replace(
                     "genres: checkbox [enum(Genre)]",
                     r#"styles: checkbox [enum(Genre), renamed_from: "genres"]"#,
@@ -2488,10 +2553,16 @@ fn a_list_table_follows_its_model_and_its_field() {
             up.contains(&format!(r#".name("{table}_owner_id_value_uniq")"#)),
             "{up}"
         );
-        assert!(up.contains(r#".name("books_genres_owner_id_value_uniq")"#), "{up}");
+        assert!(
+            up.contains(r#".name("books_genres_owner_id_value_uniq")"#),
+            "{up}"
+        );
         assert!(!list.contains("drop_table") && !list.contains("create_table"));
         let files = generated(&path);
-        assert!(!files.iter().any(|(name, _)| name.contains("_drop_")), "{files:?}");
+        assert!(
+            !files.iter().any(|(name, _)| name.contains("_drop_")),
+            "{files:?}"
+        );
     }
 }
 
@@ -2520,11 +2591,15 @@ fn a_list_field_renamed_without_saying_so_is_a_drop() {
     run(&entities, &path, true).unwrap();
     let files = generated(&path);
     assert!(
-        files.iter().any(|(name, _)| name.ends_with("_drop_books_genres_table.rs")),
+        files
+            .iter()
+            .any(|(name, _)| name.ends_with("_drop_books_genres_table.rs")),
         "{files:?}"
     );
     assert!(
-        files.iter().any(|(name, _)| name.ends_with("_create_books_styles_table.rs")),
+        files
+            .iter()
+            .any(|(name, _)| name.ends_with("_create_books_styles_table.rs")),
         "{files:?}"
     );
 }
@@ -2543,7 +2618,10 @@ fn a_declared_rename_holds_against_the_snapshots() {
     let (shop, bakery) = (snapshot("shop"), snapshot("bakery"));
     let (shop, bakery) = (shop.as_str(), bakery.as_str());
 
-    assert_eq!(holds(&[("shop.rs", shop)], &[schema("bakery", &[])], &[]), declared);
+    assert_eq!(
+        holds(&[("shop.rs", shop)], &[schema("bakery", &[])], &[]),
+        declared
+    );
     // Applied already: the snapshot is under the new name.
     assert!(holds(&[("bakery.rs", bakery)], &[schema("bakery", &[])], &[]).is_empty());
     assert!(
@@ -2762,7 +2840,10 @@ fn a_key_or_an_index_that_really_changed_is_left_to_the_diff() {
     assert!(followed.indexes.is_empty());
     let diff = diff_schemas(&previous, &current);
     assert_eq!((diff.dropped_fks.len(), diff.added_fks.len()), (1, 1));
-    assert_eq!((diff.dropped_indexes.len(), diff.added_indexes.len()), (2, 2));
+    assert_eq!(
+        (diff.dropped_indexes.len(), diff.added_indexes.len()),
+        (2, 2)
+    );
 
     // In the file, the key that goes still has the name of the former table.
     let alter = generate_alter_file(&Changes {
@@ -2770,10 +2851,22 @@ fn a_key_or_an_index_that_really_changed_is_left_to_the_diff() {
         ..diff
     });
     let (up, down) = up_and_down(&alter);
-    assert!(up.contains(r#""bakery", "shop_owner_id_owner_fkey")"#), "{up}");
-    assert!(up.contains(r#".name("bakery_owner_id_owner_fkey")"#), "{up}");
-    assert!(down.contains(r#".name("shop_owner_id_owner_fkey")"#), "{down}");
-    assert!(down.contains(r#""bakery", "bakery_owner_id_owner_fkey")"#), "{down}");
+    assert!(
+        up.contains(r#""bakery", "shop_owner_id_owner_fkey")"#),
+        "{up}"
+    );
+    assert!(
+        up.contains(r#".name("bakery_owner_id_owner_fkey")"#),
+        "{up}"
+    );
+    assert!(
+        down.contains(r#".name("shop_owner_id_owner_fkey")"#),
+        "{down}"
+    );
+    assert!(
+        down.contains(r#""bakery", "bakery_owner_id_owner_fkey")"#),
+        "{down}"
+    );
     // Keys are added and removed: the engine is asked first.
     assert!(alter.contains("key_changes_supported"), "{alter}");
 }
@@ -2810,7 +2903,13 @@ fn a_renamed_key_names_its_target_as_it_is_at_that_moment() {
     let targets = |changes: &[Changes]| -> Vec<Vec<String>> {
         changes
             .iter()
-            .map(|c| c.renames.keys.iter().map(|k| k.target_at_run.clone()).collect())
+            .map(|c| {
+                c.renames
+                    .keys
+                    .iter()
+                    .map(|k| k.target_at_run.clone())
+                    .collect()
+            })
             .collect()
     };
     // `a` runs first: `b` still has its former name, `a` already its new one.
@@ -2837,9 +2936,8 @@ fn a_new_key_of_a_renamed_table_can_not_wait_for_its_target() {
         added_fks: schema(table, &[to]).foreign_keys,
         ..renamed_change(table, from, &[])
     };
-    let refused = |mut changes: Vec<Changes>| {
-        settle_renamed_keys(&mut changes).map_err(|e| e.to_string())
-    };
+    let refused =
+        |mut changes: Vec<Changes>| settle_renamed_keys(&mut changes).map_err(|e| e.to_string());
 
     // To a table this run creates.
     let error = refused(vec![
@@ -2899,10 +2997,17 @@ fn the_former_name_of_a_renamed_table_is_read_from_its_migration() {
         renamed_table("// runique: waiting migrate up\n// runique: renamed table shop\nuse x;"),
         Some("shop")
     );
-    assert_eq!(renamed_table("  // runique: renamed table shop_2  \n"), Some("shop_2"));
+    assert_eq!(
+        renamed_table("  // runique: renamed table shop_2  \n"),
+        Some("shop_2")
+    );
     assert_eq!(renamed_table("use x;\n// runique: from none\n"), None);
     for bad in ["../shop", "shop/x", "shop.rs", "", "a b"] {
-        assert_eq!(renamed_table(&format!("{RENAMED_TABLE}{bad}\n")), None, "{bad:?}");
+        assert_eq!(
+            renamed_table(&format!("{RENAMED_TABLE}{bad}\n")),
+            None,
+            "{bad:?}"
+        );
     }
 }
 

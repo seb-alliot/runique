@@ -92,6 +92,7 @@
             <a href="{% link "releases" %}">{% if ui_lang == "fr" %}Versions{% else %}Releases{% endif %}</a>
             <a href="{% link "contribution_list" %}">{% if ui_lang == "fr" %}Contribuer{% else %}Contribute{% endif %}</a>
             <a href="{% if ui_lang == "fr" %}/cours/fr{% else %}/cours/en{% endif %}">{% if ui_lang == "fr" %}Cours{% else %}Courses{% endif %}</a>
+            <a href="{% if ui_lang == "fr" %}{% link "ai_usage_fr" %}{% else %}{% link "ai_usage_en" %}{% endif %}">{% if ui_lang == "fr" %}Usage de l'IA{% else %}AI usage{% endif %}</a>
         </div>
         <div class="site-nav-actions">
             {% if user %}
@@ -120,6 +121,7 @@
         <a href="{% link "comparatif" %}">{% if ui_lang == "fr" %}Comparatif{% else %}Comparison{% endif %}</a>
         <a href="{% link "releases" %}">{% if ui_lang == "fr" %}Versions{% else %}Releases{% endif %}</a>
         <a href="{% link "contribution_list" %}">{% if ui_lang == "fr" %}Contribuer{% else %}Contribute{% endif %}</a>
+        <a href="{% if ui_lang == "fr" %}{% link "ai_usage_fr" %}{% else %}{% link "ai_usage_en" %}{% endif %}">{% if ui_lang == "fr" %}Usage de l'IA{% else %}AI usage{% endif %}</a>
         {% if user %}
             {% if user.rang != "Lambda" %}
                 <a href="{% link "admin_login" %}">Admin</a>

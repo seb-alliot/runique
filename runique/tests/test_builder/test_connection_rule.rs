@@ -86,12 +86,18 @@ async fn the_rule_on(server: &Server, tag: &str) {
     // Case A: the server refuses the password of the address, the keys answer.
     let refused = server.address(|url| url.set_password(Some(WRONG_PASSWORD)).unwrap());
     let outcome = connect(&case("refused"), with(refused.clone(), server.keys(&[]))).await;
-    assert!(outcome.is_ok(), "a refused password, then the keys: {outcome:?}");
+    assert!(
+        outcome.is_ok(),
+        "a refused password, then the keys: {outcome:?}"
+    );
 
     // Case A: nothing listens at the address, the keys answer.
     let silent = server.address(|url| url.set_port(Some(1)).unwrap());
     let outcome = connect(&case("silent"), with(silent, server.keys(&[]))).await;
-    assert!(outcome.is_ok(), "nothing listening, then the keys: {outcome:?}");
+    assert!(
+        outcome.is_ok(),
+        "nothing listening, then the keys: {outcome:?}"
+    );
 
     // Case A, keys that are not enough: blocked, naming what misses, and
     // neither password comes out.
@@ -101,32 +107,59 @@ async fn the_rule_on(server: &Server, tag: &str) {
     )
     .await
     .expect_err("partial keys can't take over");
-    assert!(failure.message.contains("DB_PASSWORD"), "{}", failure.message);
-    assert!(!failure.message.contains(WRONG_PASSWORD), "{}", failure.message);
+    assert!(
+        failure.message.contains("DB_PASSWORD"),
+        "{}",
+        failure.message
+    );
+    assert!(
+        !failure.message.contains(WRONG_PASSWORD),
+        "{}",
+        failure.message
+    );
 
     // Case A, no key: the refusal is the error.
     let failure = connect(&case("alone"), vec![refused])
         .await
         .expect_err("a refused password alone");
-    assert!(!failure.message.contains(WRONG_PASSWORD), "{}", failure.message);
-    assert!(!failure.message.contains(server.password()), "{}", failure.message);
+    assert!(
+        !failure.message.contains(WRONG_PASSWORD),
+        "{}",
+        failure.message
+    );
+    assert!(
+        !failure.message.contains(server.password()),
+        "{}",
+        failure.message
+    );
 
     // Line 2: an address that names no database gives way to the keys.
     let nameless = server.address(|url| url.set_path(""));
     let outcome = connect(&case("nameless"), with(nameless.clone(), server.keys(&[]))).await;
-    assert!(outcome.is_ok(), "no database name, then the keys: {outcome:?}");
+    assert!(
+        outcome.is_ok(),
+        "no database name, then the keys: {outcome:?}"
+    );
 
     // Line 4a: the same address alone is refused before any connection.
     let failure = connect(&case("nameless_alone"), vec![nameless])
         .await
         .expect_err("no database name and no key");
-    assert!(!failure.message.contains(server.password()), "{}", failure.message);
+    assert!(
+        !failure.message.contains(server.password()),
+        "{}",
+        failure.message
+    );
 
     // Keys without the engine: refused, SQLite is not taken in its place.
     let failure = connect(&case("no_engine"), server.keys(&["DB_ENGINE"]))
         .await
         .expect_err("keys without an engine");
-    assert!(!failure.message.contains(server.password()), "{}", failure.message);
+    assert!(
+        !failure.message.contains(server.password()),
+        "{}",
+        failure.message
+    );
 }
 
 #[tokio::test]
@@ -176,9 +209,14 @@ async fn an_account_with_special_characters_connects_by_the_keys() {
         return;
     };
     let drop_role = format!("DROP ROLE IF EXISTS \"{ROLE}\"");
-    admin.execute_unprepared(&drop_role).await.expect("drop role");
     admin
-        .execute_unprepared(&format!("CREATE ROLE \"{ROLE}\" LOGIN PASSWORD '{PASSWORD}'"))
+        .execute_unprepared(&drop_role)
+        .await
+        .expect("drop role");
+    admin
+        .execute_unprepared(&format!(
+            "CREATE ROLE \"{ROLE}\" LOGIN PASSWORD '{PASSWORD}'"
+        ))
         .await
         .expect("create role");
 
@@ -187,7 +225,10 @@ async fn an_account_with_special_characters_connects_by_the_keys() {
     lines.push(format!("DB_USER='{ROLE}'"));
     lines.push(format!("DB_PASSWORD='{PASSWORD}'"));
     let outcome = connect("rule_pg_special", lines).await;
-    admin.execute_unprepared(&drop_role).await.expect("drop role");
+    admin
+        .execute_unprepared(&drop_role)
+        .await
+        .expect("drop role");
 
     assert!(outcome.is_ok(), "{outcome:?}");
 }

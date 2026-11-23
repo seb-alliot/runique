@@ -35,7 +35,7 @@ impl Parse for MetaDef {
         let mut indexes = Vec::new();
         let mut owner = None;
         let mut label = None;
-        let mut managed= true;
+        let mut managed = true;
 
         while !input.is_empty() {
             let key: Ident = input.parse()?;
@@ -158,7 +158,11 @@ mod tests {
         assert!(parse("").unwrap().managed);
         assert!(parse("managed: true").unwrap().managed);
         assert!(!parse("managed: false").unwrap().managed);
-        assert!(!parse(r#"managed: false, verbose_name: "A""#).unwrap().managed);
+        assert!(
+            !parse(r#"managed: false, verbose_name: "A""#)
+                .unwrap()
+                .managed
+        );
     }
 
     #[test]

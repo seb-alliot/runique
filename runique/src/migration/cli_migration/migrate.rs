@@ -10,8 +10,8 @@ use super::snapshot::extend_snapshot_content;
 use crate::atomic::{AtomicBuilder, SourceItems};
 use crate::db::DatabaseConfig;
 use crate::migration::{
-    WAIT_MIGRATION, dropped_table, extend_snapshot_file_path, generate_snapshot_file,
-    has_marker, migration_target, renamed_table, snapshot_file_path, without_marker,
+    WAIT_MIGRATION, dropped_table, extend_snapshot_file_path, generate_snapshot_file, has_marker,
+    migration_target, renamed_table, snapshot_file_path, without_marker,
 };
 use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result};
@@ -519,12 +519,14 @@ mod tests {
     // ── The `renamed_from` just applied leaves the entity file ───────────────
 
     const BAKERY: &str = "model! {\n    Shop,\n    table: \"bakery\",\n    renamed_from: \"shop\",\n    pk: id => i32,\n    { title: text [required], }\n}\n";
-    const BAKERY_CLEARED: &str =
-        "model! {\n    Shop,\n    table: \"bakery\",\n    pk: id => i32,\n    { title: text [required], }\n}\n";
+    const BAKERY_CLEARED: &str = "model! {\n    Shop,\n    table: \"bakery\",\n    pk: id => i32,\n    { title: text [required], }\n}\n";
 
     /// A migration that renamed `shop`, still waiting.
     fn renaming() -> String {
-        format!("{WAIT_MIGRATION}\n{}shop\n{BODY}", crate::migration::RENAMED_TABLE)
+        format!(
+            "{WAIT_MIGRATION}\n{}shop\n{BODY}",
+            crate::migration::RENAMED_TABLE
+        )
     }
 
     // Applied: the directive goes from the model, the snapshot is under the

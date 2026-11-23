@@ -106,9 +106,7 @@ fn applied_ranges(source: &str, targets: &[(bool, String)]) -> Vec<Range<usize>>
 /// sets it apart: the one after it, or else the one before.
 fn collect(tokens: TokenStream, ranges: &mut Vec<Range<usize>>) {
     let trees: Vec<TokenTree> = tokens.into_iter().collect();
-    let comma = |tree: Option<&TokenTree>| {
-        matches!(tree, Some(TokenTree::Punct(punct)) if punct.as_char() == ',')
-    };
+    let comma = |tree: Option<&TokenTree>| matches!(tree, Some(TokenTree::Punct(punct)) if punct.as_char() == ',');
     for (at, tree) in trees.iter().enumerate() {
         if let TokenTree::Group(group) = tree {
             collect(group.stream(), ranges);
@@ -181,7 +179,9 @@ fn same_but(source: &str, cleared: &str, ranges: &[Range<usize>]) -> bool {
             .iter()
             .any(|range| range.start <= at.start && at.end <= range.end)
     });
-    expected.map(|(text, _)| text).eq(is.iter().map(|(text, _)| text))
+    expected
+        .map(|(text, _)| text)
+        .eq(is.iter().map(|(text, _)| text))
 }
 
 /// Every token of `tokens`, groups opened up, with where it is.
@@ -259,14 +259,19 @@ mod tests {
         let cases = [
             (r#"[renamed_from: "label", required]"#, "[required]"),
             (r#"[required, renamed_from: "label"]"#, "[required]"),
-            (r#"[required, renamed_from: "label", unique]"#, "[required, unique]"),
+            (
+                r#"[required, renamed_from: "label", unique]"#,
+                "[required, unique]",
+            ),
             (r#"[renamed_from: "label"]"#, "[]"),
             (r#"[required, renamed_from: "label",]"#, "[required, ]"),
             (r#"[required , renamed_from : "label"]"#, "[required ]"),
         ];
         for (attrs, left) in cases {
             let file = |attrs: &str| {
-                format!(r#"model! {{ Shop, table: "shops", pk: id => i32, {{ name: text {attrs}, }} }}"#)
+                format!(
+                    r#"model! {{ Shop, table: "shops", pk: id => i32, {{ name: text {attrs}, }} }}"#
+                )
             };
             assert_eq!(
                 cleared(&file(attrs), &model("shops")),
@@ -344,7 +349,8 @@ mod tests {
         assert_eq!(cleared(shop, &[]), None);
         assert_eq!(cleared(shop, &[(true, "bakery".to_string())]), None);
 
-        let extension = r#"extend! { table: "eihwaz_users", fields: { bio: text [renamed_from: "about"] } }"#;
+        let extension =
+            r#"extend! { table: "eihwaz_users", fields: { bio: text [renamed_from: "about"] } }"#;
         assert_eq!(cleared(extension, &model("eihwaz_users")), None);
         assert_eq!(
             cleared(extension, &[(true, "eihwaz_users".to_string())]).as_deref(),
@@ -395,10 +401,18 @@ model! { Shop, table: "shops", pk: id => i32, { renamed_from: text [label: "rena
         let good = cut(source, &ranges);
 
         assert!(same_but(source, &good, &ranges));
-        assert!(same_but(source, &good.replace("{ title", "{   title"), &ranges));
+        assert!(same_but(
+            source,
+            &good.replace("{ title", "{   title"),
+            &ranges
+        ));
         assert!(!same_but(source, source, &ranges));
         assert!(!same_but(source, &good.replace("title", "titre"), &ranges));
-        assert!(!same_but(source, &good.replace("pk: id => i32, ", ""), &ranges));
+        assert!(!same_but(
+            source,
+            &good.replace("pk: id => i32, ", ""),
+            &ranges
+        ));
         assert!(!same_but(source, &format!("{good} x"), &ranges));
         assert!(!same_but(source, "model! { Shop", &ranges));
         assert!(!same_but(source, &good, &[]));

@@ -259,7 +259,9 @@ mod tests {
     fn a_drop_module_names_its_table() {
         let module = seaorm_drop_module_name(TS, "menu_du_jour");
         assert_eq!(module, "m20250218_143000_drop_menu_du_jour_table");
-        assert!(seaorm_drop_file_path(BASE, TS, "menu_du_jour").ends_with(&format!("/{module}.rs")));
+        assert!(
+            seaorm_drop_file_path(BASE, TS, "menu_du_jour").ends_with(&format!("/{module}.rs"))
+        );
         // Same table as its creation: the two follow each other in a chain.
         assert_eq!(migration_target(&module), Some((false, "menu_du_jour")));
         assert_eq!(dropped_table(&module), Some("menu_du_jour"));

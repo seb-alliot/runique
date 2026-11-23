@@ -33,7 +33,10 @@ fn key() -> ForeignKeyCreateStatement {
 
 async fn drop_both(db: &DatabaseConnection) {
     for table in [CHILD, PARENT] {
-        let drop = Table::drop().table(Alias::new(table)).if_exists().to_owned();
+        let drop = Table::drop()
+            .table(Alias::new(table))
+            .if_exists()
+            .to_owned();
         db.execute(&drop).await.expect("drop a test table");
     }
 }
@@ -63,7 +66,9 @@ async fn two_tables(db: &DatabaseConnection) {
         if let Some(column) = extra {
             create.col(pk_typed(column));
         }
-        db.execute(&create.to_owned()).await.expect("create a test table");
+        db.execute(&create.to_owned())
+            .await
+            .expect("create a test table");
     }
 }
 
@@ -80,10 +85,14 @@ async fn a_key_is_added_then_removed(db: &DatabaseConnection) {
     let manager = SchemaManager::new(db);
 
     key_changes_supported(&manager, CHILD).expect("a server changes keys in place");
-    add_foreign_key(&manager, CHILD, key()).await.expect("add the key");
+    add_foreign_key(&manager, CHILD, key())
+        .await
+        .expect("add the key");
     let held = drop_parent(db).await;
 
-    drop_foreign_key(&manager, CHILD, KEY).await.expect("remove the key");
+    drop_foreign_key(&manager, CHILD, KEY)
+        .await
+        .expect("remove the key");
     let freed = drop_parent(db).await;
     drop_both(db).await;
 

@@ -32,10 +32,6 @@ pub mod test_decimal_scale_multi_db;
 #[cfg(feature = "all-databases")]
 pub mod test_drop_table_multi_db;
 #[cfg(feature = "all-databases")]
-pub mod test_rename_table_multi_db;
-#[cfg(feature = "all-databases")]
-pub mod test_runtime_keys_multi_db;
-#[cfg(feature = "all-databases")]
 pub mod test_dsl_types_roundtrip;
 pub mod test_eihwaz_tables_pk;
 #[cfg(feature = "all-databases")]
@@ -57,8 +53,12 @@ pub mod test_parser_seaorm;
 pub mod test_parser_seaorm_extra;
 pub mod test_paths;
 pub mod test_primary_key;
+#[cfg(feature = "all-databases")]
+pub mod test_rename_table_multi_db;
 pub mod test_rights_tables;
 pub mod test_run;
+#[cfg(feature = "all-databases")]
+pub mod test_runtime_keys_multi_db;
 pub mod test_sea_migrate;
 pub mod test_types;
 pub mod test_users_activation;

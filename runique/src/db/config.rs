@@ -157,7 +157,11 @@ fn keys_state(get: &impl Fn(&str) -> Option<String>) -> KeysState {
     };
     // A server: an account, a host and a port.
     let Some(user) = present(get, "DB_USER") else {
-        return KeysState::Unusable(format!(" DB_USER not set for {}\n\nRequired variables:\n  - DB_USER\n  - DB_PASSWORD\n  - DB_HOST (optional, default: localhost)\n  - DB_PORT (optional, default: {})\n  - DB_NAME", engine.name(), default_port));
+        return KeysState::Unusable(format!(
+            " DB_USER not set for {}\n\nRequired variables:\n  - DB_USER\n  - DB_PASSWORD\n  - DB_HOST (optional, default: localhost)\n  - DB_PORT (optional, default: {})\n  - DB_NAME",
+            engine.name(),
+            default_port
+        ));
     };
     let Some(password) = present(get, "DB_PASSWORD") else {
         return KeysState::Unusable(format!(" DB_PASSWORD not set for {}", engine.name()));
@@ -312,7 +316,10 @@ impl DatabaseConfig {
                 Some(Notice::UrlIncomplete("database.reason_sqlite_no_file")),
             ),
             (UrlState::Incomplete(reason), KeysState::Unusable(why)) => {
-                return Err(tf("database.url_incomplete_keys_unusable", &[t(reason).into_owned(), why]));
+                return Err(tf(
+                    "database.url_incomplete_keys_unusable",
+                    &[t(reason).into_owned(), why],
+                ));
             }
             (UrlState::SqliteWithoutFile, KeysState::Unusable(why)) => {
                 return Err(tf(
@@ -333,9 +340,11 @@ impl DatabaseConfig {
             (UrlState::Absent, KeysState::Filled(keys)) => (keys, None, None),
             (UrlState::Absent, KeysState::Unusable(why)) => return Err(why),
             // Nothing set at all: SQLite, as the documentation says.
-            (UrlState::Absent, KeysState::Empty) => {
-                (format!("sqlite://{DEFAULT_SQLITE_FILE}?mode=rwc"), None, None)
-            }
+            (UrlState::Absent, KeysState::Empty) => (
+                format!("sqlite://{DEFAULT_SQLITE_FILE}?mode=rwc"),
+                None,
+                None,
+            ),
         };
 
         let mut builder = Self::from_url(url)?;
@@ -440,7 +449,10 @@ impl DatabaseConfig {
                 eprintln!("{}", tf("database.url_incomplete_using_keys", &[t(reason)]));
             }
             Some(Notice::SqliteDefaultFile) => {
-                eprintln!("{}", tf("database.url_sqlite_default_file", &[DEFAULT_SQLITE_FILE]));
+                eprintln!(
+                    "{}",
+                    tf("database.url_sqlite_default_file", &[DEFAULT_SQLITE_FILE])
+                );
             }
             None => {}
         }
@@ -894,17 +906,38 @@ mod tests {
 
     /// The addresses that are incomplete, and why.
     const INCOMPLETE: [(&str, &str); 10] = [
-        ("mariadb://app:secret@db.local/shop", "database.reason_unknown_start"),
+        (
+            "mariadb://app:secret@db.local/shop",
+            "database.reason_unknown_start",
+        ),
         ("app:secret@db.local/shop", "database.reason_unknown_start"),
-        ("\"postgres://app:secret@db.local/shop\"", "database.reason_unknown_start"),
-        ("postgres://app:secret@db.local:543a/shop", "database.reason_unreadable"),
+        (
+            "\"postgres://app:secret@db.local/shop\"",
+            "database.reason_unknown_start",
+        ),
+        (
+            "postgres://app:secret@db.local:543a/shop",
+            "database.reason_unreadable",
+        ),
         // A raw `/` in the password: the host becomes `app`, the port `pa`.
-        ("postgres://app:pa/ss@db.local/shop", "database.reason_unreadable"),
-        ("postgres://app:secret@db.local", "database.reason_no_database"),
-        ("postgres://app:secret@db.local/", "database.reason_no_database"),
+        (
+            "postgres://app:pa/ss@db.local/shop",
+            "database.reason_unreadable",
+        ),
+        (
+            "postgres://app:secret@db.local",
+            "database.reason_no_database",
+        ),
+        (
+            "postgres://app:secret@db.local/",
+            "database.reason_no_database",
+        ),
         ("postgres://db.local?dbname=", "database.reason_no_database"),
         // `dbname` is a PostgreSQL parameter only.
-        ("mysql://db.local?dbname=shop", "database.reason_no_database"),
+        (
+            "mysql://db.local?dbname=shop",
+            "database.reason_no_database",
+        ),
         ("sqlite://", "database.reason_sqlite_no_file"),
     ];
 
@@ -1030,7 +1063,12 @@ mod tests {
     #[test]
     fn a_blank_value_is_an_absent_one() {
         assert_eq!(rule(&[("DATABASE_URL", "  ")]).unwrap().url, DEFAULT_URL);
-        assert_eq!(rule(&[("DATABASE_URL", ""), ("DB_ENGINE", " ")]).unwrap().url, DEFAULT_URL);
+        assert_eq!(
+            rule(&[("DATABASE_URL", ""), ("DB_ENGINE", " ")])
+                .unwrap()
+                .url,
+            DEFAULT_URL
+        );
         assert_eq!(
             rule(&with_url("", &SERVER_KEYS)).unwrap().url,
             KEYS_URL,
@@ -1063,10 +1101,7 @@ mod tests {
         let parsed = url::Url::parse(&config.url).unwrap();
         assert_eq!(parsed.host_str(), Some("localhost"));
         assert_eq!(parsed.path(), "/app");
-        assert_eq!(
-            urlencoding::decode(parsed.username()).unwrap(),
-            "bo b@x"
-        );
+        assert_eq!(urlencoding::decode(parsed.username()).unwrap(), "bo b@x");
         assert_eq!(
             urlencoding::decode(parsed.password().unwrap()).unwrap(),
             "p@ss/w:rd#1?"

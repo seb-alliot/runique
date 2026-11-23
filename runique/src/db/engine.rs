@@ -287,7 +287,10 @@ mod tests {
             engine_of(&[("DB_ENGINE", "mysql"), ("DATABASE_URL", "")]),
             Some(DatabaseEngine::MySQL)
         );
-        assert_eq!(engine_of(&[("DATABASE_URL", "oracle://localhost/app")]), None);
+        assert_eq!(
+            engine_of(&[("DATABASE_URL", "oracle://localhost/app")]),
+            None
+        );
     }
 
     // A URL made of an engine's scheme is read back as that engine: the two

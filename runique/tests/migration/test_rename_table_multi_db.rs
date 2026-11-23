@@ -40,7 +40,10 @@ fn key(name: &str, from: (&str, &str), to: &str) -> ForeignKeyCreateStatement {
 
 async fn drop_all(db: &DatabaseConnection) {
     for table in [PRODUCT, BAKERY, SHOP, OWNER] {
-        let drop = Table::drop().table(Alias::new(table)).if_exists().to_owned();
+        let drop = Table::drop()
+            .table(Alias::new(table))
+            .if_exists()
+            .to_owned();
         db.execute(&drop).await.expect("drop a test table");
     }
 }
@@ -72,14 +75,20 @@ async fn rows(db: &DatabaseConnection, table: &str) -> usize {
         .column(Alias::new("id"))
         .from(Alias::new(table))
         .to_owned();
-    db.query_all(&select).await.expect("read a test table").len()
+    db.query_all(&select)
+        .await
+        .expect("read a test table")
+        .len()
 }
 
 /// `owner`, `shop` (a key to `owner`, an index on `city`) and `product` (a
 /// key to `shop`), as Runique creates them, with one row each.
 async fn three_tables(db: &DatabaseConnection) {
     drop_all(db).await;
-    let owner = Table::create().table(Alias::new(OWNER)).col(id()).to_owned();
+    let owner = Table::create()
+        .table(Alias::new(OWNER))
+        .col(id())
+        .to_owned();
     let shop = Table::create()
         .table(Alias::new(SHOP))
         .col(id())
@@ -104,8 +113,12 @@ async fn three_tables(db: &DatabaseConnection) {
     db.execute(&index).await.expect("create the index");
 
     insert(db, OWNER, &["id"], &[1]).await.unwrap();
-    insert(db, SHOP, &["id", "owner_id", "city"], &[1, 1, 7]).await.unwrap();
-    insert(db, PRODUCT, &["id", "shop_id"], &[1, 1]).await.unwrap();
+    insert(db, SHOP, &["id", "owner_id", "city"], &[1, 1, 7])
+        .await
+        .unwrap();
+    insert(db, PRODUCT, &["id", "shop_id"], &[1, 1])
+        .await
+        .unwrap();
 }
 
 /// What the `up` of the generated migrations runs: the table, its index, its
@@ -130,7 +143,12 @@ async fn rename_up(manager: &SchemaManager<'_>) {
         .await
         .expect("create the index under its new name");
     manager
-        .drop_index(Index::drop().name(SHOP_INDEX).table(Alias::new(BAKERY)).to_owned())
+        .drop_index(
+            Index::drop()
+                .name(SHOP_INDEX)
+                .table(Alias::new(BAKERY))
+                .to_owned(),
+        )
         .await
         .expect("drop the index of the former name");
     rename_foreign_key(
@@ -181,7 +199,12 @@ async fn rename_down(manager: &SchemaManager<'_>) {
         .await
         .expect("create the index under its former name");
     manager
-        .drop_index(Index::drop().name(BAKERY_INDEX).table(Alias::new(BAKERY)).to_owned())
+        .drop_index(
+            Index::drop()
+                .name(BAKERY_INDEX)
+                .table(Alias::new(BAKERY))
+                .to_owned(),
+        )
         .await
         .expect("drop the index of the new name");
     manager
@@ -198,11 +221,15 @@ async fn rename_down(manager: &SchemaManager<'_>) {
 /// nothing is refused, a row that points to an existing one is taken.
 async fn keys_hold(db: &DatabaseConnection, shop: &str, next_id: i32) {
     assert!(
-        insert(db, shop, &["id", "owner_id", "city"], &[next_id, 999, 7]).await.is_err(),
+        insert(db, shop, &["id", "owner_id", "city"], &[next_id, 999, 7])
+            .await
+            .is_err(),
         "`{shop}` took a row whose owner doesn't exist"
     );
     assert!(
-        insert(db, PRODUCT, &["id", "shop_id"], &[next_id, 999]).await.is_err(),
+        insert(db, PRODUCT, &["id", "shop_id"], &[next_id, 999])
+            .await
+            .is_err(),
         "`{PRODUCT}` took a row whose `{shop}` doesn't exist"
     );
     insert(db, PRODUCT, &["id", "shop_id"], &[next_id, 1])
@@ -226,7 +253,11 @@ async fn a_table_is_renamed_and_renamed_back(db: &DatabaseConnection) {
     // A server knows its keys by name: the former names are gone.
     if server {
         assert!(drop_foreign_key(&manager, BAKERY, SHOP_KEY).await.is_err());
-        assert!(drop_foreign_key(&manager, PRODUCT, TO_SHOP_KEY).await.is_err());
+        assert!(
+            drop_foreign_key(&manager, PRODUCT, TO_SHOP_KEY)
+                .await
+                .is_err()
+        );
     }
 
     rename_down(&manager).await;
@@ -239,7 +270,11 @@ async fn a_table_is_renamed_and_renamed_back(db: &DatabaseConnection) {
     keys_hold(db, SHOP, 3).await;
     // Back under their former names: they can be reached by them again.
     if server {
-        assert!(drop_foreign_key(&manager, PRODUCT, TO_BAKERY_KEY).await.is_err());
+        assert!(
+            drop_foreign_key(&manager, PRODUCT, TO_BAKERY_KEY)
+                .await
+                .is_err()
+        );
         drop_foreign_key(&manager, PRODUCT, TO_SHOP_KEY)
             .await
             .expect("the pointing key has its former name");

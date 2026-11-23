@@ -221,7 +221,8 @@ pub(super) fn effective_renames(
     paused: &[String],
     migrations_path: &str,
 ) -> Result<Vec<(String, String)>> {
-    let has_snapshot = |table: &str| Path::new(&snapshot_file_path(migrations_path, table)).exists();
+    let has_snapshot =
+        |table: &str| Path::new(&snapshot_file_path(migrations_path, table)).exists();
     let mut renames: Vec<(String, String)> = Vec::new();
     for (old, new) in declared {
         if !has_snapshot(old)
@@ -232,10 +233,7 @@ pub(super) fn effective_renames(
             continue;
         }
         if let Some((_, other)) = renames.iter().find(|(o, _)| o == old) {
-            anyhow::bail!(
-                "{}",
-                tf("makemigrations.renamed_twice", &[old, other, new])
-            );
+            anyhow::bail!("{}", tf("makemigrations.renamed_twice", &[old, other, new]));
         }
         renames.push((old.clone(), new.clone()));
     }

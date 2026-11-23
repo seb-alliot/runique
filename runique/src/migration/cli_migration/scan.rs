@@ -36,7 +36,6 @@ pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
 /// model's real table and primary key; a target that matches nothing is an
 /// error. Skips the framework's own tables (`eihwaz_*`).
 pub fn scan_models(entities_path: &str) -> Result<ScannedEntities> {
-    
     let mut paused: Vec<String> = Vec::new();
     let mut renames: Vec<(String, String)> = Vec::new();
     let mut schemas = Vec::new();

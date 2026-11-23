@@ -1015,7 +1015,12 @@ fn columns_are_read_back_in_the_order_of_the_file() {
             col_type: "Integer".into(),
             ..ParsedColumn::default()
         }),
-        columns: vec![column("zeta"), column("alpha"), column("mid"), column("beta")],
+        columns: vec![
+            column("zeta"),
+            column("alpha"),
+            column("mid"),
+            column("beta"),
+        ],
         foreign_keys: vec![],
         indexes: vec![],
     };
@@ -1028,8 +1033,14 @@ fn columns_are_read_back_in_the_order_of_the_file() {
             .collect()
     };
 
-    assert_eq!(names(generate_snapshot_file(&schema)), ["zeta", "alpha", "mid", "beta"]);
-    assert_eq!(names(generate_create_file(&schema)), ["zeta", "alpha", "mid", "beta"]);
+    assert_eq!(
+        names(generate_snapshot_file(&schema)),
+        ["zeta", "alpha", "mid", "beta"]
+    );
+    assert_eq!(
+        names(generate_create_file(&schema)),
+        ["zeta", "alpha", "mid", "beta"]
+    );
 }
 
 // ── ALTER: add / drop / modify column (up + down) ──────────────────────────────

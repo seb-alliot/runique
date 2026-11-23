@@ -6,19 +6,21 @@ pub struct Migration;
 
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
-async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop()
-                .table(Alias::new("known_issue"))
-                .if_exists()
-                .to_owned())
+            .drop_table(
+                Table::drop()
+                    .table(Alias::new("known_issue"))
+                    .if_exists()
+                    .to_owned(),
+            )
             .await?;
         runique::migration::runtime::drop_enum_type(manager, "issuetype").await?;
 
         Ok(())
-}
+    }
 
-async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {
             let exists = manager
                 .get_connection()
@@ -36,7 +38,11 @@ async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .create_type(
                         sea_query::extension::postgres::Type::create()
                             .as_enum(Alias::new("issuetype"))
-                            .values([Alias::new("Manquant"), Alias::new("Ajoute"), Alias::new("Fix")])
+                            .values([
+                                Alias::new("Manquant"),
+                                Alias::new("Ajoute"),
+                                Alias::new("Fix"),
+                            ])
                             .to_owned(),
                     )
                     .await?;
@@ -48,16 +54,45 @@ async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                 Table::create()
                     .table(Alias::new("known_issue"))
                     .if_not_exists()
-                    .col(ColumnDef::new(Alias::new("id")).integer().not_null().auto_increment().primary_key())
-                    .col(ColumnDef::new(Alias::new("sort_order")).integer().not_null())
-                    .col(ColumnDef::new_with_type(Alias::new("issue_type"), if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres { ColumnType::Enum { name: Alias::new("IssueType").into_iden(), variants: vec![Alias::new("Manquant").into_iden(), Alias::new("Ajoute").into_iden(), Alias::new("Fix").into_iden()] } } else { ColumnType::String(Default::default()) }).not_null())
+                    .col(
+                        ColumnDef::new(Alias::new("id"))
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("sort_order"))
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new_with_type(
+                            Alias::new("issue_type"),
+                            if manager.get_connection().get_database_backend()
+                                == sea_orm::DbBackend::Postgres
+                            {
+                                ColumnType::Enum {
+                                    name: Alias::new("IssueType").into_iden(),
+                                    variants: vec![
+                                        Alias::new("Manquant").into_iden(),
+                                        Alias::new("Ajoute").into_iden(),
+                                        Alias::new("Fix").into_iden(),
+                                    ],
+                                }
+                            } else {
+                                ColumnType::String(Default::default())
+                            },
+                        )
+                        .not_null(),
+                    )
                     .col(ColumnDef::new(Alias::new("description")).text().not_null())
                     .col(ColumnDef::new(Alias::new("title")).string().not_null())
                     .col(ColumnDef::new(Alias::new("version")).string().not_null())
-                    .to_owned()
+                    .to_owned(),
             )
             .await?;
 
         Ok(())
-}
+    }
 }
