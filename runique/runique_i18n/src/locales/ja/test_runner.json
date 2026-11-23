@@ -1,0 +1,18 @@
+{
+  "no_cargo_toml": "ここに Cargo.toml がありません。プロジェクトのルートで `runique test` を実行してください。",
+  "test_utils_missing": "Cargo.toml で runique の `test-utils` フィーチャーが有効になっていません。\nリリースビルドに含まれないよう、dev-dependency として追加してください:\n    cargo add --dev runique --features test-utils",
+  "test_utils_shipped": "Cargo.toml が [dev-dependencies] 以外で `test-utils` を有効にしているため、テストビルダーがリリースビルドに含まれてしまいます。\n[dependencies]（および [features] のすべてのエントリ）から削除し、dev-dependency としてのみ追加してください:\n    cargo add --dev runique --features test-utils",
+  "no_mod_file": "src/runique_test/mod.rs がありません。作成して、各テストファイルを宣言してください（`mod user;`）。",
+  "module_not_declared": "src/main.rs がテストモジュールを宣言していません。次を追加してください:\n    #[cfg(test)]\n    mod runique_test;",
+  "module_not_gated": "runique_test モジュールが `cfg(test)` で保護されていないため、すべてのビルドに含まれてしまいます。\nsrc/main.rs の `mod runique_test;` の直前に `#[cfg(test)]` を置いてください。",
+  "file_not_declared_warning": "警告: src/runique_test/{}.rs が mod.rs で宣言されていないため、そのテストは実行されません。mod.rs に `mod {};` を追加してください。",
+  "no_test_file": "src/runique_test/{}.rs がありません。テストファイル: {}",
+  "file_not_declared": "src/runique_test/{}.rs が mod.rs で宣言されていません。`mod {};` を追加してください。",
+  "cargo_spawn_failed": "cargo を実行できませんでした。",
+  "output_failed": "cargo の出力を表示できませんでした。",
+  "cargo_wait_failed": "cargo test が正常に終了しませんでした。",
+  "tests_failed": "cargo test が失敗しました。上の出力を確認してください。",
+  "build_failed": "cargo がテストをビルドできませんでした。上のエラーを確認してください。",
+  "no_such_test": "テスト \"{}\" は {}.rs にありません。利用可能なテスト: {}",
+  "dir_read_failed": "{} を読み込めません"
+}

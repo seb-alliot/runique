@@ -1,0 +1,4 @@
+{
+  "stack_trace_title": "Detaillierte Fehlerverfolgung",
+  "stack_trace_tip": "Der oberste Fehler (Ebene 0) ist in der Regel die Grundursache. Die folgenden Fehler zeigen, wie sich der Fehler im Code ausgebreitet hat."
+}

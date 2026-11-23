@@ -1,0 +1,14 @@
+{
+  "complete_up": "Migration complete.",
+  "crate_missing": "Migration crate not found: '{}' has no Cargo.toml.",
+  "sqlite_key_change": "{}: this migration adds or removes a foreign key on an existing table. SQLite can't do it without rebuilding the table, which Runique doesn't support yet. This migration changed nothing.",
+  "engine_unsupported": "Database engine not supported for this operation: {}.",
+  "running": "Running 'migrate {}' with the migration crate '{}'...",
+  "complete_down": "Rollback complete.",
+  "cargo_missing": "Unable to launch cargo. Is Rust installed and cargo on the PATH?",
+  "failed": "The migration crate failed on 'migrate {}' (exit code: {}).",
+  "crate_created": "Migration crate created in '{}'.",
+  "interrupted": "A makemigrations run was interrupted in '{}'. Run makemigrations again before applying the migrations.",
+  "renamed_from_kept": "{}: the applied `renamed_from` could not be removed from this file. Remove them by hand.",
+  "engine_defaulted": "Neither DATABASE_URL nor DB_ENGINE names a known engine: the migration crate uses SQLite. Change the runique feature in '{}' if needed."
+}

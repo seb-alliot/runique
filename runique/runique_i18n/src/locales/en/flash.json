@@ -1,0 +1,8 @@
+{
+  "welcome": "Welcome {}, your account has been created!",
+  "fix_errors": "Please correct the errors",
+  "success_demo": "This is a success message.",
+  "info_demo": "This is an info message.",
+  "warning_demo": "This is a warning message.",
+  "error_demo": "This is an error message."
+}

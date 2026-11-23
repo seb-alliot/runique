@@ -1,0 +1,14 @@
+{
+  "reason_unknown_start": "o seu início não indica nenhum motor suportado",
+  "reason_unreadable": "está ilegível",
+  "reason_no_database": "não indica nenhum banco de dados",
+  "reason_sqlite_no_file": "pede SQLite sem indicar um arquivo",
+  "url_incomplete_using_keys": "DATABASE_URL está incompleta ({}): conexão pelas chaves DB_*.",
+  "url_incomplete_reminder": "Conexão estabelecida pelas chaves DB_*. DATABASE_URL continua incompleta ({}): corrija-a ou remova-a.",
+  "url_incomplete_no_keys": "DATABASE_URL está incompleta ({}) e nenhuma chave DB_* a substitui. Corrija DATABASE_URL, ou defina DB_ENGINE e as chaves de conexão.",
+  "url_incomplete_keys_unusable": "DATABASE_URL está incompleta ({}), e as chaves DB_* não bastam para conectar: {}",
+  "url_sqlite_default_file": "DATABASE_URL pede SQLite sem indicar um arquivo: o arquivo padrão {} é usado.",
+  "keys_without_engine": "Falta DB_ENGINE: {} está definido sem o motor. Valores aceitos: postgres, mysql, sqlite.",
+  "url_failed_trying_keys": "A conexão por DATABASE_URL falhou ({}): nova tentativa pelas chaves DB_*.",
+  "url_failed_keys_unusable": "A conexão por DATABASE_URL falhou ({}), e as chaves DB_* não bastam para conectar: {}"
+}

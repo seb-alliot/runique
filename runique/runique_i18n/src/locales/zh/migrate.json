@@ -1,0 +1,14 @@
+{
+  "complete_up": "迁移完成。",
+  "crate_missing": "未找到迁移 crate：'{}' 中没有 Cargo.toml。",
+  "sqlite_key_change": "{}：此迁移在现有表上添加或移除外键。SQLite 必须重建该表才能做到，而 Runique 尚不支持。此迁移未做任何更改。",
+  "engine_unsupported": "此操作不支持该数据库引擎：{}。",
+  "running": "正在执行 'migrate {}'（迁移 crate '{}'）...",
+  "complete_down": "回滚完成。",
+  "cargo_missing": "无法启动 cargo。是否已安装 Rust 且 cargo 在 PATH 中？",
+  "failed": "迁移 crate 在 'migrate {}' 上失败（退出码：{}）。",
+  "crate_created": "已在 '{}' 创建迁移 crate。",
+  "interrupted": "makemigrations 在 '{}' 中被中断。请在应用迁移之前重新运行 makemigrations。",
+  "renamed_from_kept": "{}：无法从该文件中移除已应用的 `renamed_from`。请手动移除。",
+  "engine_defaulted": "DATABASE_URL 和 DB_ENGINE 都未指明已知的数据库引擎：迁移 crate 使用 SQLite。如有需要，请修改 '{}' 中的 runique feature。"
+}

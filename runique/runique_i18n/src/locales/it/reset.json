@@ -1,0 +1,20 @@
+{
+  "forgot_title": "Password dimenticata",
+  "reset_title": "Nuova password",
+  "success_title": "Password reimpostata",
+  "email_label": "Indirizzo email",
+  "new_password_label": "Nuova password",
+  "confirm_label": "Conferma password",
+  "email_mismatch": "L'indirizzo email non corrisponde al link.",
+  "invalid_link": "Link non valido.",
+  "invalid_or_expired": "Il link di reimpostazione non è valido o è scaduto.",
+  "password_min_length": "La password deve contenere almeno {} caratteri.",
+  "password_weak": "La password deve contenere almeno una maiuscola, una minuscola, una cifra e un carattere speciale (!@#$%...).",
+  "password_mismatch": "Le password non coincidono.",
+  "check_inbox": "Se questo indirizzo è associato a un account, riceverai un'email con le istruzioni.",
+  "blocked_subject": "Il tuo account è bloccato",
+  "blocked_body": "<p>Ciao {},</p><p>È stata richiesta la reimpostazione della password per il tuo account, ma questo account è bloccato. Contatta l'amministratore del sito per sbloccarlo.</p><p>Se non hai fatto tu questa richiesta, ignora questa email.</p>",
+  "email_subject": "Reimpostazione password",
+  "email_body": "<p>Ciao {},</p><p>Clicca sul link seguente per reimpostare la password (valido per {} min):</p><p><a href=\"{}\">{}</a></p>",
+  "unavailable": "Il ripristino via email non è disponibile al momento."
+}

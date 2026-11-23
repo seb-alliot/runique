@@ -1,0 +1,14 @@
+{
+  "complete_up": "Migración completada.",
+  "crate_missing": "No se encontró el crate de migraciones: '{}' no contiene Cargo.toml.",
+  "sqlite_key_change": "{}: esta migración añade o elimina una clave foránea en una tabla existente. SQLite no puede hacerlo sin reconstruir la tabla, algo que Runique aún no admite. Esta migración no ha modificado nada.",
+  "engine_unsupported": "Motor de base de datos no compatible con esta operación: {}.",
+  "running": "Ejecutando 'migrate {}' con el crate de migraciones '{}'...",
+  "complete_down": "Reversión completada.",
+  "cargo_missing": "No se puede iniciar cargo. ¿Está Rust instalado y cargo en el PATH?",
+  "failed": "El crate de migraciones falló en 'migrate {}' (código de salida: {}).",
+  "crate_created": "Crate de migraciones creado en '{}'.",
+  "interrupted": "Un makemigrations se interrumpió en '{}'. Vuelva a ejecutar makemigrations antes de aplicar las migraciones.",
+  "renamed_from_kept": "{}: no se pudieron quitar de este archivo los `renamed_from` aplicados. Quítelos a mano.",
+  "engine_defaulted": "Ni DATABASE_URL ni DB_ENGINE indican un motor conocido: el crate de migraciones usa SQLite. Cambie la feature de runique en '{}' si es necesario."
+}

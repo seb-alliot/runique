@@ -1,0 +1,16 @@
+{
+  "creating_project": "Creating project '{}'...",
+  "name_empty": "The project name cannot be empty",
+  "name_invalid": "The project name must contain only letters, numbers, _ or -",
+  "name_dash": "The project name cannot start with -",
+  "folder_exists": "The folder '{}' already exists",
+  "interrupted_run": "A run was interrupted in '{}' and files changed since. Nothing was touched. Put right the ones listed below, then run the command again:",
+  "run_repaired": "An interrupted run was repaired in '{}'.",
+  "project_created": "Project '{}' created successfully!",
+  "getting_started": "To get started:",
+  "cd_hint": "cd {}",
+  "cargo_run_hint": "cargo run",
+  "name_digit": "The project name cannot start with a digit",
+  "name_reserved": "'{}' is reserved (a Rust keyword or crate, a cargo or Windows name, or part of the generated project): pick another name",
+  "migration_up_hint": "runique migration up      (creates the framework's tables: accounts, sessions, rights)"
+}

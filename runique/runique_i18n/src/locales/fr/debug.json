@@ -1,0 +1,4 @@
+{
+  "stack_trace_title": "Trace d'erreur détaillée",
+  "stack_trace_tip": "L'erreur la plus haute (niveau 0) est généralement la cause racine. Les erreurs suivantes montrent comment l'erreur s'est propagée dans le code."
+}

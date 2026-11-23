@@ -1,0 +1,8 @@
+{
+  "welcome": "Willkommen {}, Ihr Konto wurde erstellt!",
+  "fix_errors": "Bitte korrigieren Sie die Fehler",
+  "success_demo": "Dies ist eine Erfolgsmeldung.",
+  "info_demo": "Dies ist eine Informationsmeldung.",
+  "warning_demo": "Dies ist eine Warnmeldung.",
+  "error_demo": "Dies ist eine Fehlermeldung."
+}

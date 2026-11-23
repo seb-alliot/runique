@@ -1,0 +1,14 @@
+{
+  "reason_unknown_start": "её начало не указывает ни на один поддерживаемый движок",
+  "reason_unreadable": "её невозможно прочитать",
+  "reason_no_database": "в ней не указано имя базы данных",
+  "reason_sqlite_no_file": "она запрашивает SQLite без указания файла",
+  "url_incomplete_using_keys": "DATABASE_URL неполная ({}): подключение по ключам DB_*.",
+  "url_incomplete_reminder": "Подключение установлено по ключам DB_*. DATABASE_URL по-прежнему неполная ({}): исправьте или удалите её.",
+  "url_incomplete_no_keys": "DATABASE_URL неполная ({}), и ни один ключ DB_* её не заменяет. Исправьте DATABASE_URL либо задайте DB_ENGINE и ключи подключения.",
+  "url_incomplete_keys_unusable": "DATABASE_URL неполная ({}), а ключей DB_* недостаточно для подключения: {}",
+  "url_sqlite_default_file": "DATABASE_URL запрашивает SQLite без указания файла: используется файл по умолчанию {}.",
+  "keys_without_engine": "Не задан DB_ENGINE: {} указано без движка. Допустимые значения: postgres, mysql, sqlite.",
+  "url_failed_trying_keys": "Подключение по DATABASE_URL не удалось ({}): повторная попытка по ключам DB_*.",
+  "url_failed_keys_unusable": "Подключение по DATABASE_URL не удалось ({}), а ключей DB_* недостаточно для подключения: {}"
+}

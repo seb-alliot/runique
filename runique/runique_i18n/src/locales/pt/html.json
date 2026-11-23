@@ -1,0 +1,18 @@
+{
+  "400_title": "400",
+  "400_text": "Pedido inválido: os parâmetros do endereço não são válidos.",
+  "413_title": "413",
+  "413_text": "Envio muito grande: reduza o tamanho e tente novamente.",
+  "404_title": "404",
+  "404_text": "Página não encontrada",
+  "500_title": "500",
+  "500_text": "Erro interno do servidor",
+  "429_title": "429",
+  "429_text": "Muitas requisições. Por favor aguarde um momento antes de tentar novamente.",
+  "503_title": "503",
+  "503_text": "Serviço temporariamente indisponível devido a sobrecarga. Por favor tente novamente em breve.",
+  "back_home": "Voltar ao início",
+  "critical_error_title": "Erro crítico",
+  "critical_error_text": "O sistema de tratamento de erros encontrou um erro.",
+  "critical_error_contact": "Esta situação nunca deveria ocorrer. Por favor, contate o administrador do sistema."
+}

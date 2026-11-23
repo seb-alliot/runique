@@ -1,0 +1,26 @@
+{
+  "source": "Fuente: {}",
+  "AppError": "Error de aplicación",
+  "build": "Error de compilación: {}",
+  "internal": "Error interno",
+  "forbidden": "Acceso prohibido",
+  "not_found": "Recurso no encontrado",
+  "validation": "Error de validación: {}",
+  "database": "Error de base de datos: {}",
+  "io": "Error IO: {}",
+  "template": "Error de plantilla: {}",
+  "custom": "Error personalizado: {}",
+  "title": {
+    "bad_request": "Solicitud incorrecta",
+    "not_found": "Página no encontrada",
+    "forbidden": "Acceso prohibido",
+    "validation": "Error de validación",
+    "database": "Error de base de datos",
+    "template": "Error de renderizado de plantilla",
+    "internal": "Error interno del servidor"
+  },
+  "invalid_query": "Parámetros de consulta no válidos: {}",
+  "path_not_found": "La ruta solicitada '{}' no fue encontrada",
+  "internal_occurred": "Ocurrió un error interno",
+  "context_occurred": "Error AppError ocurrido"
+}

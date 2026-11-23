@@ -1,0 +1,14 @@
+{
+  "reason_unknown_start": "先頭が対応するエンジンを示していません",
+  "reason_unreadable": "読み取れません",
+  "reason_no_database": "データベース名がありません",
+  "reason_sqlite_no_file": "ファイル名なしで SQLite を指定しています",
+  "url_incomplete_using_keys": "DATABASE_URL が不完全です（{}）：DB_* キーで接続します。",
+  "url_incomplete_reminder": "DB_* キーで接続しました。DATABASE_URL は不完全なままです（{}）：修正するか削除してください。",
+  "url_incomplete_no_keys": "DATABASE_URL が不完全で（{}）、代わりになる DB_* キーもありません。DATABASE_URL を修正するか、DB_ENGINE と接続キーを設定してください。",
+  "url_incomplete_keys_unusable": "DATABASE_URL が不完全で（{}）、DB_* キーでも接続できません：{}",
+  "url_sqlite_default_file": "DATABASE_URL はファイル名なしで SQLite を指定しています：既定のファイル {} を使用します。",
+  "keys_without_engine": "DB_ENGINE がありません：エンジンなしで {} が設定されています。使用できる値：postgres、mysql、sqlite。",
+  "url_failed_trying_keys": "DATABASE_URL での接続に失敗しました（{}）：DB_* キーで再試行します。",
+  "url_failed_keys_unusable": "DATABASE_URL での接続に失敗し（{}）、DB_* キーでも接続できません：{}"
+}

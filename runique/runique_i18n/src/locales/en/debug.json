@@ -1,0 +1,4 @@
+{
+  "stack_trace_title": "Detailed error trace",
+  "stack_trace_tip": "The highest error (level 0) is usually the root cause. Following errors show how the error propagated through the code."
+}

@@ -1,0 +1,7 @@
+{
+  "missing": "Token CSRF ausente",
+  "invalid": "Token CSRF inválido",
+  "invalid_or_missing": "Token CSRF inválido ou ausente",
+  "forbidden": "Token CSRF inválido",
+  "session_write_error": "Erro ao gravar a sessão"
+}

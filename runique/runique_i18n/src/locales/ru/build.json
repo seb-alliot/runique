@@ -1,0 +1,32 @@
+{
+  "subscriber_already_installed": "Tracing subscriber уже установлен; конфигурация логов Runique неактивна (RUST_LOG / with_log не действуют)",
+  "external_outputs_ignored": "`with_log(|l| l.external())` установлен; настроенные выходы логов игнорируются (приложение владеет subscriber)",
+  "validation_failed": "Ошибка валидации сборки: {}",
+  "check_failed": "Ошибка сборки с {} ошибками проверки",
+  "template_failed": "Ошибка загрузки шаблона: {}",
+  "driver_not_enabled": "Драйвер {} не включён: Runique скомпилирован с '{}', а не с '{}'.\n\nЕсли .env указывает не на ту базу (изменились features, а .env — нет), задайте DB_ENGINE и DATABASE_URL для скомпилированного движка: '{}'.\n\nЧтобы использовать {}, в Cargo.toml проекта и в migration/Cargo.toml:\nrunique = { version = \"{}\", features = [\"{}\"] }\n\nДля CLI runique:\ncargo install runique-cli --features {} --locked --force\n\nДля поддержки всех движков используйте feature 'all-databases'.",
+  "db_missing": "Требуется подключение к базе данных при включённой функции 'orm'",
+  "component_not_ready": "Компонент '{}' не готов",
+  "check": {
+    "db_required": "Требуется подключение или конфигурация базы данных (включена feature `orm`)",
+    "db_required_hint": "Добавьте .with_database(db) или .with_database_config(config) в цепочку построения",
+    "admin_prefix_empty": "Префикс маршрута админки не может быть пустым",
+    "admin_prefix_empty_hint": "Используйте .prefix(\"/admin\") или оставьте значение по умолчанию",
+    "cache_control_invalid": "Недопустимое значение заголовка Cache-Control: '{}'",
+    "cache_control_invalid_hint": "Используйте только видимые символы ASCII (без управляющих символов и переводов строки).",
+    "media_root_unusable": "Не удаётся создать каталог MEDIA_ROOT '{}' или получить к нему доступ: {}",
+    "media_root_unusable_hint": "Укажите в .env абсолютный путь с правом записи для MEDIA_ROOT (например, MEDIA_ROOT=/var/www/myapp/media) и убедитесь, что у процесса есть право записи.",
+    "secret_key_weak": "SECRET_KEY отсутствует, пуст, имеет значение по умолчанию или короче 32 символов",
+    "secret_key_weak_hint": "Задайте в .env для SECRET_KEY случайную строку не короче 32 символов (CLI `runique` может её сгенерировать)",
+    "public_url_missing": "Публичный URL не задан: ссылки сброса строились бы из заголовка Host запроса",
+    "public_url_missing_hint": "Задайте его в builder: .with_public_url(\"https://mysite.com\")",
+    "acme_domain_missing": "ACME_ENABLED=true, но ACME_DOMAIN не задан",
+    "acme_domain_missing_hint": "Задайте в .env для ACME_DOMAIN ваш производственный домен",
+    "acme_email_missing": "ACME_ENABLED=true, но ACME_EMAIL не задан",
+    "acme_email_missing_hint": "Задайте в .env для ACME_EMAIL ваш контактный email для Let's Encrypt",
+    "suggestion": "Рекомендация",
+    "context": "Контекст",
+    "mailer_missing": "Сброс пароля без почтовой службы: ссылку невозможно отправить",
+    "mailer_missing_hint": "Задайте в .env: EMAIL_BACKEND либо SMTP_HOST, SMTP_USER и SMTP_PASS"
+  }
+}

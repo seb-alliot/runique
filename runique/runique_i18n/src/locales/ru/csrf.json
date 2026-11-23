@@ -1,0 +1,7 @@
+{
+  "missing": "Отсутствует CSRF токен",
+  "invalid": "Неверный CSRF токен",
+  "invalid_or_missing": "Неверный или отсутствующий CSRF токен",
+  "forbidden": "Неверный CSRF токен",
+  "session_write_error": "Ошибка записи сессии"
+}

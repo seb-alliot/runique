@@ -1,0 +1,4 @@
+{
+  "stack_trace_title": "Rastreamento detalhado de erros",
+  "stack_trace_tip": "O erro mais alto (nível 0) é geralmente a causa raiz. Os erros seguintes mostram como o erro se propagou no código."
+}

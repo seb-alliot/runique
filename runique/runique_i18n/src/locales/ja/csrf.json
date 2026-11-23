@@ -1,0 +1,7 @@
+{
+  "missing": "CSRFトークンがありません",
+  "invalid": "無効なCSRFトークン",
+  "invalid_or_missing": "CSRFトークンが無効または存在しません",
+  "forbidden": "無効なCSRFトークン",
+  "session_write_error": "セッション書き込みエラー"
+}

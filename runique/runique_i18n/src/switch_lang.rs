@@ -27,6 +27,76 @@ pub enum Lang {
 
 static GLOBAL_LANG: AtomicU8 = AtomicU8::new(1); // 1 = Lang::En
 
+/// The messages on disk: one folder per language, one file per theme
+/// (`locales/<language>/<theme>.json`), the nine folders mirroring each other.
+/// A key is `theme.key`: its first part names the file.
+///
+/// Declared once here: a new theme is one more name in the list, and its file
+/// in every language folder (the build fails on a missing one).
+macro_rules! locales {
+    (languages: [$($lang:ident => $code:literal),* $(,)?], themes: $themes:tt $(,)?) => {
+        const THEMES: &[&str] = locales!(@names $themes);
+
+        /// The files of `lang`, in the order of [`THEMES`].
+        fn sources(lang: Lang) -> &'static [&'static str] {
+            match lang {
+                $(Lang::$lang => locales!(@files $code, $themes),)*
+            }
+        }
+    };
+    (@names [$($theme:literal),* $(,)?]) => {
+        &[$($theme),*]
+    };
+    (@files $code:literal, [$($theme:literal),* $(,)?]) => {
+        &[$(include_str!(concat!("locales/", $code, "/", $theme, ".json"))),*]
+    };
+}
+
+locales! {
+    languages: [
+        Fr => "fr", En => "en", It => "it", Es => "es", De => "de",
+        Pt => "pt", Ja => "ja", Zh => "zh", Ru => "ru",
+    ],
+    themes: [
+        "admin", "atomic", "auth", "build", "cli", "csrf", "database", "debug",
+        "error", "flash", "forms", "html", "log", "makemigrations", "middleware",
+        "migrate", "reset", "runique_test", "server", "TemplateMessage",
+        "test_runner", "title",
+    ],
+}
+
+/// The themes of one language, parsed, in the order of [`THEMES`].
+type Catalog = Vec<Value>;
+
+fn catalog(lang: Lang) -> Catalog {
+    sources(lang)
+        .iter()
+        .zip(THEMES)
+        .map(|(text, theme)| {
+            serde_json::from_str(text).unwrap_or_else(|e| {
+                panic!(
+                    "Invalid translation file '{}/{theme}.json': {e}",
+                    lang.code()
+                )
+            })
+        })
+        .collect()
+}
+
+/// Each language is parsed the first time a message is asked in it. In the
+/// order of [`Lang::as_u8`].
+static CATALOGS: [LazyLock<Catalog>; 9] = [
+    LazyLock::new(|| catalog(Lang::Fr)),
+    LazyLock::new(|| catalog(Lang::En)),
+    LazyLock::new(|| catalog(Lang::It)),
+    LazyLock::new(|| catalog(Lang::Es)),
+    LazyLock::new(|| catalog(Lang::De)),
+    LazyLock::new(|| catalog(Lang::Pt)),
+    LazyLock::new(|| catalog(Lang::Ja)),
+    LazyLock::new(|| catalog(Lang::Zh)),
+    LazyLock::new(|| catalog(Lang::Ru)),
+];
+
 /// Dynamically sets the global language of the application.
 pub fn set_lang(lang: Lang) {
     GLOBAL_LANG.store(lang.as_u8(), Ordering::Relaxed);
@@ -156,58 +226,6 @@ impl Lang {
         }
     }
 
-    /// Loads the translation JSON for this language
-    fn load_json(self) -> &'static Value {
-        static FR: LazyLock<Value> = LazyLock::new(|| {
-            serde_json::from_str(include_str!("fr.json"))
-                .unwrap_or_else(|e| panic!("Invalid translation file 'fr.json': {e}"))
-        });
-        static EN: LazyLock<Value> = LazyLock::new(|| {
-            serde_json::from_str(include_str!("en.json"))
-                .unwrap_or_else(|e| panic!("Invalid translation file 'en.json': {e}"))
-        });
-        static IT: LazyLock<Value> = LazyLock::new(|| {
-            serde_json::from_str(include_str!("it.json"))
-                .unwrap_or_else(|e| panic!("Invalid translation file 'it.json': {e}"))
-        });
-        static ES: LazyLock<Value> = LazyLock::new(|| {
-            serde_json::from_str(include_str!("es.json"))
-                .unwrap_or_else(|e| panic!("Invalid translation file 'es.json': {e}"))
-        });
-        static DE: LazyLock<Value> = LazyLock::new(|| {
-            serde_json::from_str(include_str!("de.json"))
-                .unwrap_or_else(|e| panic!("Invalid translation file 'de.json': {e}"))
-        });
-        static PT: LazyLock<Value> = LazyLock::new(|| {
-            serde_json::from_str(include_str!("pt.json"))
-                .unwrap_or_else(|e| panic!("Invalid translation file 'pt.json': {e}"))
-        });
-        static JA: LazyLock<Value> = LazyLock::new(|| {
-            serde_json::from_str(include_str!("ja.json"))
-                .unwrap_or_else(|e| panic!("Invalid translation file 'ja.json': {e}"))
-        });
-        static ZH: LazyLock<Value> = LazyLock::new(|| {
-            serde_json::from_str(include_str!("zh.json"))
-                .unwrap_or_else(|e| panic!("Invalid translation file 'zh.json': {e}"))
-        });
-        static RU: LazyLock<Value> = LazyLock::new(|| {
-            serde_json::from_str(include_str!("ru.json"))
-                .unwrap_or_else(|e| panic!("Invalid translation file 'ru.json': {e}"))
-        });
-
-        match self {
-            Lang::Fr => &FR,
-            Lang::En => &EN,
-            Lang::It => &IT,
-            Lang::Es => &ES,
-            Lang::De => &DE,
-            Lang::Pt => &PT,
-            Lang::Ja => &JA,
-            Lang::Zh => &ZH,
-            Lang::Ru => &RU,
-        }
-    }
-
     /// Retrieves a translated message by its key (e.g., "forms.required")
     #[must_use]
     pub fn get(&self, key: &str) -> Cow<'static, str> {
@@ -222,10 +240,13 @@ impl Lang {
         Cow::Owned(key.to_string())
     }
 
+    /// The first part of the key names the theme, so the file; the rest is
+    /// looked up inside it.
     fn lookup(self, key: &str) -> Option<Cow<'static, str>> {
-        let json = self.load_json();
-        let mut current = json;
-        for part in key.split('.') {
+        let (theme, rest) = key.split_once('.')?;
+        let at = THEMES.iter().position(|name| *name == theme)?;
+        let mut current = &CATALOGS[usize::from(self.as_u8())][at];
+        for part in rest.split('.') {
             current = current.get(part)?;
         }
         current.as_str().map(Cow::Borrowed)

@@ -1,0 +1,18 @@
+{
+  "no_cargo_toml": "No Cargo.toml here: run `runique test` from your project's root.",
+  "test_utils_missing": "The `test-utils` feature isn't enabled for runique in Cargo.toml.\nAdd it as a dev-dependency so it never ends up in a release build:\n    cargo add --dev runique --features test-utils",
+  "test_utils_shipped": "Cargo.toml enables `test-utils` outside of [dev-dependencies], so the test builder would end up in your release build.\nRemove it from [dependencies] (and from any [features] entry), then add it as a dev-dependency only:\n    cargo add --dev runique --features test-utils",
+  "no_mod_file": "No src/runique_test/mod.rs: create it, then declare each test file in it (`mod user;`).",
+  "module_not_declared": "src/main.rs doesn't declare the test module. Add:\n    #[cfg(test)]\n    mod runique_test;",
+  "module_not_gated": "The runique_test module isn't behind `cfg(test)`, so it would end up in every build.\nPut `#[cfg(test)]` right above `mod runique_test;` in src/main.rs.",
+  "file_not_declared_warning": "warning: src/runique_test/{}.rs isn't declared in mod.rs, so its tests won't run. Add `mod {};` to mod.rs.",
+  "no_test_file": "No src/runique_test/{}.rs. Test files: {}",
+  "file_not_declared": "src/runique_test/{}.rs isn't declared in mod.rs: add `mod {};` to it.",
+  "cargo_spawn_failed": "Couldn't run cargo.",
+  "output_failed": "Couldn't show cargo's output.",
+  "cargo_wait_failed": "cargo test didn't finish properly.",
+  "tests_failed": "cargo test failed, see the output above.",
+  "build_failed": "cargo couldn't build the tests, see the errors above.",
+  "no_such_test": "No test \"{}\" in {}.rs. Tests available: {}",
+  "dir_read_failed": "Can't read {}"
+}

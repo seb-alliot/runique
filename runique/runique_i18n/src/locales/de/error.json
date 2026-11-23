@@ -1,0 +1,26 @@
+{
+  "source": "Source: {}",
+  "AppError": "Anwendungsfehler",
+  "build": "Build-Fehler: {}",
+  "internal": "Interner Fehler",
+  "forbidden": "Zugriff verboten",
+  "not_found": "Ressource nicht gefunden",
+  "validation": "Validierungsfehler: {}",
+  "database": "Datenbankfehler: {}",
+  "io": "IO-Fehler: {}",
+  "template": "Template-Fehler: {}",
+  "custom": "Benutzerdefinierter Fehler: {}",
+  "title": {
+    "bad_request": "Ungültige Anfrage",
+    "not_found": "Seite nicht gefunden",
+    "forbidden": "Zugriff verboten",
+    "validation": "Validierungsfehler",
+    "database": "Datenbankfehler",
+    "template": "Template-Renderfehler",
+    "internal": "Interner Serverfehler"
+  },
+  "invalid_query": "Ungültige Query-Parameter: {}",
+  "path_not_found": "Der angeforderte Pfad '{}' wurde nicht gefunden",
+  "internal_occurred": "Ein interner Fehler ist aufgetreten",
+  "context_occurred": "AppError aufgetreten"
+}

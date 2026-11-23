@@ -1,0 +1,16 @@
+{
+  "creating_project": "Creando el proyecto '{}'...",
+  "name_empty": "El nombre del proyecto no puede estar vacío",
+  "name_invalid": "El nombre del proyecto solo debe contener letras, números, _ o -",
+  "name_dash": "El nombre del proyecto no puede comenzar con -",
+  "folder_exists": "La carpeta '{}' ya existe",
+  "interrupted_run": "Una ejecución se interrumpió en '{}' y algunos archivos han cambiado desde entonces. No se ha tocado nada. Corrija los que se indican a continuación y vuelva a ejecutar el comando:",
+  "run_repaired": "Se ha reparado una ejecución interrumpida en '{}'.",
+  "project_created": "¡Proyecto '{}' creado con éxito!",
+  "getting_started": "Para comenzar:",
+  "cd_hint": "cd {}",
+  "cargo_run_hint": "cargo run",
+  "name_digit": "El nombre del proyecto no puede empezar por un dígito",
+  "name_reserved": "'{}' está reservado (palabra clave o crate de Rust, nombre de cargo o de Windows, o parte del proyecto generado): elija otro nombre",
+  "migration_up_hint": "runique migration up      (crea las tablas del framework: cuentas, sesiones, permisos)"
+}

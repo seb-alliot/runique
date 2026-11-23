@@ -4,23 +4,23 @@
 //! `project_tests_detection_bugs_muets`). Motivation : `t()`/`Lang::get()`
 //! retombe silencieusement sur l'anglais puis sur la clé brute si absente —
 //! aucun test de rendu (route crawl inclus) ne peut voir une clé manquante
-//! dans une langue tant qu'elle existe en anglais. Ce test lit les 9 fichiers
-//! JSON directement (via `include_str!`, contournant le fallback de `Lang::get`)
+//! dans une langue tant qu'elle existe en anglais. Ce test lit le fichier `admin.json`
+//! de chacune des 9 langues directement (via `include_str!`, contournant le fallback de `Lang::get`)
 //! et vérifie que chaque clé de `ADMIN_MESSAGE_KEYS` y résout réellement.
 
 use runique::utils::constante::ADMIN_MESSAGE_KEYS;
 use serde_json::Value;
 
 const LANGS: &[(&str, &str)] = &[
-    ("fr", include_str!("../../runique_i18n/src/fr.json")),
-    ("en", include_str!("../../runique_i18n/src/en.json")),
-    ("it", include_str!("../../runique_i18n/src/it.json")),
-    ("es", include_str!("../../runique_i18n/src/es.json")),
-    ("de", include_str!("../../runique_i18n/src/de.json")),
-    ("pt", include_str!("../../runique_i18n/src/pt.json")),
-    ("ja", include_str!("../../runique_i18n/src/ja.json")),
-    ("zh", include_str!("../../runique_i18n/src/zh.json")),
-    ("ru", include_str!("../../runique_i18n/src/ru.json")),
+    ("fr", include_str!("../../runique_i18n/src/locales/fr/admin.json")),
+    ("en", include_str!("../../runique_i18n/src/locales/en/admin.json")),
+    ("it", include_str!("../../runique_i18n/src/locales/it/admin.json")),
+    ("es", include_str!("../../runique_i18n/src/locales/es/admin.json")),
+    ("de", include_str!("../../runique_i18n/src/locales/de/admin.json")),
+    ("pt", include_str!("../../runique_i18n/src/locales/pt/admin.json")),
+    ("ja", include_str!("../../runique_i18n/src/locales/ja/admin.json")),
+    ("zh", include_str!("../../runique_i18n/src/locales/zh/admin.json")),
+    ("ru", include_str!("../../runique_i18n/src/locales/ru/admin.json")),
 ];
 
 /// Résout une clé pointée ("admin.login.title") dans un JSON imbriqué, sans
@@ -43,7 +43,12 @@ fn admin_message_keys_resolve_in_every_language() {
         .map(|(code, raw)| {
             (
                 *code,
-                serde_json::from_str(raw).unwrap_or_else(|e| panic!("{code}.json invalide : {e}")),
+                // Le fichier du thème `admin` : remis sous sa clé, pour résoudre
+                // les clés telles que le code les écrit (`admin.…`).
+                serde_json::json!({
+                    "admin": serde_json::from_str::<Value>(raw)
+                        .unwrap_or_else(|e| panic!("{code}/admin.json invalide : {e}")),
+                }),
             )
         })
         .collect();

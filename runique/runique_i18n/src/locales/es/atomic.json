@@ -1,0 +1,18 @@
+{
+  "reserved_name": "{}: este nombre está reservado a Runique",
+  "not_a_file": "{}: no es la ruta de un archivo",
+  "duplicate": "{}: este archivo ya está en el lote",
+  "in_the_way": "{} ocupa el lugar: este archivo no viene de la ejecución en curso",
+  "outside_journal": "{}: fuera de la carpeta del diario",
+  "leaves_journal": "{}: esta ruta sale de la carpeta del diario",
+  "journal_forged": "{}: el diario nombra una ruta que Runique no pudo escribir",
+  "no_journal": "{}: ningún diario que marcar",
+  "stray_backup": "{}: existe una copia de seguridad, aunque no había nada antes de la ejecución",
+  "gone": "{}: el archivo ha desaparecido y ninguna copia de seguridad lo contiene",
+  "not_created": "{}: no es el archivo que Runique estaba creando",
+  "changed": "{}: modificado desde la interrupción, y su copia de seguridad contiene otra cosa",
+  "stranger": "{}: este archivo no viene de Runique, en una carpeta que Runique creó",
+  "moved_out": "{}: este archivo ya no está en la carpeta del diario",
+  "unfinished": "el lote no terminó tras sus pasadas",
+  "wrong_step": "esta acción no es posible en esta etapa del archivo"
+}

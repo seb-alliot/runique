@@ -1,0 +1,11 @@
+{
+  "operational": "Runique работает",
+  "launched": "Сервер запущен на {}",
+  "connected_db": "Подключено к базе данных {} -> {}",
+  "connected_engine": "Подключено к базе данных {}",
+  "stop_hint": "ctrl + c для остановки",
+  "shutting_down": "Завершение работы сервера Runique...",
+  "acme_not_compiled": "ACME_ENABLED=true, но функция `acme` не скомпилирована.",
+  "acme_add_feature": "Добавьте функцию `acme` в ваш Cargo.toml.",
+  "test_utils_feature_enabled": "Функция `test-utils` скомпилирована в этой сборке — убедитесь, что она указана в [dev-dependencies], а не в [dependencies], перед развёртыванием в продакшене."
+}

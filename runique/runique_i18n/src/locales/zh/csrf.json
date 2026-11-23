@@ -1,0 +1,7 @@
+{
+  "missing": "缺少 CSRF 令牌",
+  "invalid": "CSRF 令牌无效",
+  "invalid_or_missing": "CSRF 令牌无效或缺失",
+  "forbidden": "CSRF 验证失败",
+  "session_write_error": "会话写入失败"
+}

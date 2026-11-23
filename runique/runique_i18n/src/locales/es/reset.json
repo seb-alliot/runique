@@ -1,0 +1,20 @@
+{
+  "forgot_title": "Contraseña olvidada",
+  "reset_title": "Nueva contraseña",
+  "success_title": "Contraseña restablecida",
+  "email_label": "Dirección de correo electrónico",
+  "new_password_label": "Nueva contraseña",
+  "confirm_label": "Confirmar contraseña",
+  "email_mismatch": "La dirección de correo no coincide con el enlace.",
+  "invalid_link": "Enlace inválido.",
+  "invalid_or_expired": "El enlace de restablecimiento es inválido o ha expirado.",
+  "password_min_length": "La contraseña debe tener al menos {} caracteres.",
+  "password_weak": "La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%...).",
+  "password_mismatch": "Las contraseñas no coinciden.",
+  "check_inbox": "Si esta dirección está asociada a una cuenta, recibirá un correo con los pasos a seguir.",
+  "blocked_subject": "Su cuenta está bloqueada",
+  "blocked_body": "<p>Hola {},</p><p>Se solicitó un restablecimiento de contraseña para su cuenta, pero esta cuenta está bloqueada. Contacte con el administrador del sitio para desbloquearla.</p><p>Si usted no hizo esta solicitud, ignore este correo.</p>",
+  "email_subject": "Restablecer contraseña",
+  "email_body": "<p>Hola {},</p><p>Haga clic en el siguiente enlace para restablecer su contraseña (válido durante {} min):</p><p><a href=\"{}\">{}</a></p>",
+  "unavailable": "El restablecimiento por correo no está disponible por el momento."
+}

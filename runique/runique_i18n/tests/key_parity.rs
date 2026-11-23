@@ -7,18 +7,42 @@
 
 use serde_json::Value;
 use std::collections::BTreeMap;
+use std::fs;
+use std::path::{Path, PathBuf};
 
-const LANGS: &[(&str, &str)] = &[
-    ("fr", include_str!("../src/fr.json")),
-    ("it", include_str!("../src/it.json")),
-    ("es", include_str!("../src/es.json")),
-    ("de", include_str!("../src/de.json")),
-    ("pt", include_str!("../src/pt.json")),
-    ("ja", include_str!("../src/ja.json")),
-    ("zh", include_str!("../src/zh.json")),
-    ("ru", include_str!("../src/ru.json")),
-];
-const EN: &str = include_str!("../src/en.json");
+const LANGS: &[&str] = &["fr", "it", "es", "de", "pt", "ja", "zh", "ru"];
+
+fn locales() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("src/locales")
+}
+
+/// The theme files of a language folder, by name, sorted.
+fn theme_files(code: &str) -> Vec<String> {
+    let folder = locales().join(code);
+    let mut names: Vec<String> = fs::read_dir(&folder)
+        .unwrap_or_else(|e| panic!("{}: {e}", folder.display()))
+        .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    names.sort();
+    names
+}
+
+/// A whole language as one tree, `{ theme: its file }`: the keys are then the
+/// ones the code writes (`theme.key`).
+fn language(code: &str) -> Value {
+    let mut themes = serde_json::Map::new();
+    for name in theme_files(code) {
+        let path = locales().join(code).join(&name);
+        let theme = name.strip_suffix(".json").unwrap_or_else(|| {
+            panic!("{}: only .json files belong in a language folder", path.display())
+        });
+        let raw = fs::read_to_string(&path).unwrap();
+        let json: Value = serde_json::from_str(&raw)
+            .unwrap_or_else(|e| panic!("{} isn't valid JSON: {e}", path.display()));
+        themes.insert(theme.to_string(), json);
+    }
+    Value::Object(themes)
+}
 
 /// Each dotted key with its number of placeholders.
 fn flatten(value: &Value, prefix: &str, out: &mut BTreeMap<String, usize>) {
@@ -39,21 +63,38 @@ fn flatten_with(value: &Value, prefix: &str, visit: &mut impl FnMut(String, &str
     }
 }
 
-fn keys_of(code: &str, raw: &str) -> BTreeMap<String, usize> {
-    let json: Value =
-        serde_json::from_str(raw).unwrap_or_else(|e| panic!("{code}.json isn't valid JSON: {e}"));
+fn keys_of(code: &str) -> BTreeMap<String, usize> {
     let mut keys = BTreeMap::new();
-    flatten(&json, "", &mut keys);
+    flatten(&language(code), "", &mut keys);
     keys
+}
+
+// The nine folders mirror each other: the same theme files in each.
+#[test]
+fn every_language_folder_has_the_english_theme_files() {
+    let english = theme_files("en");
+    assert!(!english.is_empty());
+    for code in LANGS {
+        assert_eq!(theme_files(code), english, "{code}");
+    }
+    let mut folders: Vec<String> = fs::read_dir(locales())
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    folders.sort();
+    let mut expected: Vec<String> = LANGS.iter().map(|code| code.to_string()).collect();
+    expected.push("en".to_string());
+    expected.sort();
+    assert_eq!(folders, expected, "a folder that isn't a language of Runique");
 }
 
 #[test]
 fn every_language_has_the_english_keys_and_placeholders() {
-    let english = keys_of("en", EN);
+    let english = keys_of("en");
     let mut problems = Vec::new();
 
-    for (code, raw) in LANGS {
-        let keys = keys_of(code, raw);
+    for code in LANGS {
+        let keys = keys_of(code);
         for (key, count) in &english {
             match keys.get(key) {
                 None => problems.push(format!("{code}: missing {key}")),
@@ -64,7 +105,7 @@ fn every_language_has_the_english_keys_and_placeholders() {
             }
         }
         for key in keys.keys().filter(|key| !english.contains_key(*key)) {
-            problems.push(format!("{code}: {key} isn't in en.json"));
+            problems.push(format!("{code}: {key} isn't in English"));
         }
     }
 
@@ -79,10 +120,8 @@ fn every_language_has_the_english_keys_and_placeholders() {
 #[test]
 fn no_translation_holds_a_literal_backslash_n() {
     let mut problems = Vec::new();
-    for (code, raw) in LANGS.iter().chain([("en", EN)].iter()) {
-        let json: Value = serde_json::from_str(raw)
-            .unwrap_or_else(|e| panic!("{code}.json isn't valid JSON: {e}"));
-        flatten_with(&json, "", &mut |key, text| {
+    for code in LANGS.iter().chain(["en"].iter()) {
+        flatten_with(&language(code), "", &mut |key, text| {
             if text.contains("\\n") {
                 problems.push(format!("{code}: {key}"));
             }
