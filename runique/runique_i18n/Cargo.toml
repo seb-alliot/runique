@@ -1,0 +1,20 @@
+[package]
+name = "runique_i18n"
+version = "0.1.0"
+edition = "2024"
+authors = ["Itsuki"]
+license = "MIT"
+description = "Translations of the Runique framework: the language in use, and its messages in 9 languages"
+repository = "https://github.com/seb-alliot/runique"
+homepage = "https://runique.io/"
+keywords = ["runique", "i18n", "translation"]
+categories = ["internationalization"]
+
+[dependencies]
+serde_json.workspace = true
+dotenvy.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+# The language is global to the process: the tests that change it run one at a time.
+serial_test = "4.0.1"

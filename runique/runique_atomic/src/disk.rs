@@ -1,0 +1,345 @@
+use std::{
+    fs, io,
+    path::{Path, PathBuf},
+};
+
+/// Writes the content to the temp file and flushes it to disk.
+pub(super) fn write_temp(temp_path: &Path, content: &[u8], private_file: bool) -> io::Result<()> {
+    remove(temp_path)?;
+    if private_file {
+        crate::private_file::write(temp_path, content)?;
+    } else {
+        fs::write(temp_path, content)?;
+    }
+    fs::OpenOptions::new()
+        .write(true)
+        .open(temp_path)?
+        .sync_all()
+}
+
+/// Makes renames done in `dir` survive a power loss.
+/// Windows has no way to sync a directory, so this is a no-op there.
+pub(super) fn sync_dir(dir: &Path) -> io::Result<()> {
+    if cfg!(unix) {
+        fs::File::open(dir)?.sync_all()
+    } else {
+        Ok(())
+    }
+}
+
+/// Puts the content of `temp_path` at `path` without moving it: a hard link,
+/// or a copy where the filesystem has none. Either way `path` must not exist:
+/// nothing is ever written over here.
+pub(super) fn place(temp_path: &Path, path: &Path) -> io::Result<()> {
+    fs::hard_link(temp_path, path).or_else(|_| copy_new(temp_path, path))
+}
+
+/// Fallback for filesystems without hard links: copies without overwriting,
+/// and removes the partial copy on failure.
+fn copy_new(temp_path: &Path, path: &Path) -> io::Result<()> {
+    let mut source = fs::File::open(temp_path)?;
+    let mut target = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)?;
+    let result = copy_content(&mut source, &mut target);
+    if result.is_err() {
+        let _ = fs::remove_file(path);
+    }
+    result
+}
+
+fn copy_content(source: &mut fs::File, target: &mut fs::File) -> io::Result<()> {
+    target.set_permissions(source.metadata()?.permissions())?;
+    io::copy(source, target)?;
+    target.sync_all()
+}
+
+/// Removes a file. A missing file is not an error, so a rollback can safely run twice.
+pub fn remove(path: &Path) -> io::Result<()> {
+    match fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error),
+    }
+}
+
+/// Whether `first` and `second` hold the same content: one file under two
+/// names, or two files that read alike. A missing file is the same as nothing.
+pub(super) fn same(first: &Path, second: &Path) -> io::Result<bool> {
+    let read = |path: &Path| match fs::read(path) {
+        Ok(content) => Ok(Some(content)),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error),
+    };
+    Ok(match (read(first)?, read(second)?) {
+        (Some(first), Some(second)) => first == second,
+        (Some(_), None) | (None, Some(_)) | (None, None) => false,
+    })
+}
+
+/// Creates `dir` and its missing parents, recording each on it creates.
+pub(crate) fn create_dirs(dir: &Path, created: &mut Vec<PathBuf>) -> io::Result<()> {
+    if dir.as_os_str().is_empty() || dir.try_exists()? {
+        return Ok(());
+    }
+    if let Some(parent) = dir.parent() {
+        create_dirs(parent, created)?;
+    }
+    fs::create_dir(dir)?;
+    created.push(dir.to_path_buf());
+    Ok(())
+}
+
+/// Removes an empty directory. Already goe is not an error.
+pub(super) fn remove_dir(dir: &Path) -> io::Result<()> {
+    match fs::remove_dir(dir) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::tests::TempDir;
+
+    fn read(path: &Path) -> String {
+        fs::read_to_string(path).unwrap()
+    }
+
+    #[cfg(unix)]
+    fn mode(path: &Path) -> u32 {
+        use std::os::unix::fs::PermissionsExt;
+        fs::metadata(path).unwrap().permissions().mode() & 0o777
+    }
+
+    #[test]
+    fn place_links_the_content_and_leaves_the_source() {
+        let dir = TempDir::new();
+        fs::write(dir.join("source"), "content").unwrap();
+
+        place(&dir.join("source"), &dir.join("target")).unwrap();
+
+        assert_eq!(read(&dir.join("target")), "content");
+        assert_eq!(dir.entries(), ["source", "target"]);
+    }
+
+    #[test]
+    fn place_never_overwrites() {
+        let dir = TempDir::new();
+        fs::write(dir.join("source"), "content").unwrap();
+        fs::write(dir.join("target"), "mine").unwrap();
+
+        let outcome = place(&dir.join("source"), &dir.join("target"));
+
+        assert_eq!(outcome.unwrap_err().kind(), io::ErrorKind::AlreadyExists);
+        assert_eq!(read(&dir.join("target")), "mine");
+    }
+
+    #[test]
+    fn place_without_a_source_creates_nothing() {
+        let dir = TempDir::new();
+
+        let outcome = place(&dir.join("source"), &dir.join("target"));
+
+        assert_eq!(outcome.unwrap_err().kind(), io::ErrorKind::NotFound);
+        assert!(dir.entries().is_empty());
+    }
+
+    #[test]
+    fn copy_new_copies_the_content_and_leaves_the_source() {
+        let dir = TempDir::new();
+        fs::write(dir.join("source"), "content").unwrap();
+
+        copy_new(&dir.join("source"), &dir.join("target")).unwrap();
+
+        assert_eq!(read(&dir.join("target")), "content");
+        assert_eq!(read(&dir.join("source")), "content");
+    }
+
+    // The cleanup after a failed copy must not reach a file that was already there.
+    #[test]
+    fn copy_new_never_overwrites_nor_removes_an_existing_target() {
+        let dir = TempDir::new();
+        fs::write(dir.join("source"), "content").unwrap();
+        fs::write(dir.join("target"), "mine").unwrap();
+
+        let outcome = copy_new(&dir.join("source"), &dir.join("target"));
+
+        assert_eq!(outcome.unwrap_err().kind(), io::ErrorKind::AlreadyExists);
+        assert_eq!(read(&dir.join("target")), "mine");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn copy_new_carries_the_permissions_over() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = TempDir::new();
+        fs::write(dir.join("source"), "secret").unwrap();
+        fs::set_permissions(dir.join("source"), fs::Permissions::from_mode(0o600)).unwrap();
+
+        copy_new(&dir.join("source"), &dir.join("target")).unwrap();
+
+        assert_eq!(mode(&dir.join("target")), 0o600);
+    }
+
+    // A directory opens but cannot be read as a file: the copy fails once the
+    // target has been created.
+    #[cfg(unix)]
+    #[test]
+    fn copy_new_removes_its_partial_copy_when_the_copy_fails() {
+        let dir = TempDir::new();
+        fs::create_dir(dir.join("source")).unwrap();
+
+        assert!(copy_new(&dir.join("source"), &dir.join("target")).is_err());
+        assert_eq!(dir.entries(), ["source"]);
+    }
+
+    #[test]
+    fn remove_deletes_a_file_and_accepts_a_missing_one() {
+        let dir = TempDir::new();
+        fs::write(dir.join("file"), "content").unwrap();
+
+        remove(&dir.join("file")).unwrap();
+        remove(&dir.join("file")).unwrap();
+
+        assert!(dir.entries().is_empty());
+    }
+
+    #[test]
+    fn remove_fails_on_a_directory_and_leaves_it() {
+        let dir = TempDir::new();
+        fs::create_dir(dir.join("folder")).unwrap();
+
+        assert!(remove(&dir.join("folder")).is_err());
+        assert_eq!(dir.entries(), ["folder"]);
+    }
+
+    #[test]
+    fn create_dirs_records_only_what_it_creates() {
+        let dir = TempDir::new();
+        fs::create_dir(dir.join("kept")).unwrap();
+        let mut created = Vec::new();
+
+        create_dirs(&dir.join("kept/a/b"), &mut created).unwrap();
+        create_dirs(&dir.join("kept/a/b"), &mut created).unwrap();
+
+        assert_eq!(created, [dir.join("kept/a"), dir.join("kept/a/b")]);
+        assert_eq!(dir.entries(), ["kept", "kept/a", "kept/a/b"]);
+    }
+
+    #[test]
+    fn create_dirs_ignores_an_empty_path() {
+        let mut created = Vec::new();
+
+        create_dirs(Path::new(""), &mut created).unwrap();
+
+        assert!(created.is_empty());
+    }
+
+    #[test]
+    fn create_dirs_fails_through_a_file_and_records_nothing() {
+        let dir = TempDir::new();
+        fs::write(dir.join("blocker"), "a file").unwrap();
+        let mut created = Vec::new();
+
+        assert!(create_dirs(&dir.join("blocker/sub"), &mut created).is_err());
+        assert!(created.is_empty());
+        assert_eq!(dir.entries(), ["blocker"]);
+    }
+
+    #[test]
+    fn remove_dir_only_removes_an_empty_directory() {
+        let dir = TempDir::new();
+        fs::create_dir(dir.join("empty")).unwrap();
+        fs::create_dir(dir.join("full")).unwrap();
+        fs::write(dir.join("full/file"), "mine").unwrap();
+
+        remove_dir(&dir.join("empty")).unwrap();
+        remove_dir(&dir.join("empty")).unwrap();
+        assert!(remove_dir(&dir.join("full")).is_err());
+
+        assert_eq!(dir.entries(), ["full", "full/file"]);
+    }
+
+    #[test]
+    fn write_temp_writes_the_content() {
+        let dir = TempDir::new();
+
+        write_temp(&dir.join("temp"), b"content", false).unwrap();
+
+        assert_eq!(read(&dir.join("temp")), "content");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn write_temp_keeps_a_private_file_to_its_owner() {
+        let dir = TempDir::new();
+
+        write_temp(&dir.join("temp"), b"secret", true).unwrap();
+
+        assert_eq!(mode(&dir.join("temp")), 0o600);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn sync_dir_fails_on_a_missing_directory() {
+        let dir = TempDir::new();
+
+        sync_dir(&dir.join("")).unwrap();
+        assert!(sync_dir(&dir.join("missing")).is_err());
+    }
+
+    #[test]
+    fn same_tells_one_content_from_another() {
+        let dir = TempDir::new();
+        fs::write(dir.join("a"), "content").unwrap();
+        fs::write(dir.join("copy"), "content").unwrap();
+        fs::write(dir.join("other"), "contenu").unwrap();
+        fs::write(dir.join("longer"), "content and more").unwrap();
+        fs::hard_link(dir.join("a"), dir.join("link")).unwrap();
+
+        assert!(same(&dir.join("a"), &dir.join("link")).unwrap());
+        assert!(same(&dir.join("a"), &dir.join("copy")).unwrap());
+        assert!(!same(&dir.join("a"), &dir.join("other")).unwrap());
+        assert!(!same(&dir.join("a"), &dir.join("longer")).unwrap());
+        assert!(!same(&dir.join("a"), &dir.join("missing")).unwrap());
+        assert!(!same(&dir.join("missing"), &dir.join("a")).unwrap());
+        assert!(!same(&dir.join("missing"), &dir.join("gone")).unwrap());
+    }
+
+    // A hard link can't cross from one filesystem to another: the content is
+    // copied instead, and the source is left where it was.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn place_copies_what_it_cannot_link() {
+        let Some(source) = crate::tests::Elsewhere::new("content") else {
+            return;
+        };
+        let dir = TempDir::new();
+        assert!(
+            fs::hard_link(&source.0, dir.join("probe")).is_err(),
+            "the two folders are expected on different filesystems"
+        );
+
+        place(&source.0, &dir.join("target")).unwrap();
+
+        assert_eq!(read(&dir.join("target")), "content");
+        assert_eq!(read(&source.0), "content");
+        assert_eq!(dir.entries(), ["target"]);
+    }
+
+    // Unreadable is not missing: a file that can't be read is an error, never
+    // "not the same".
+    #[test]
+    fn same_fails_on_what_it_cannot_read() {
+        let dir = TempDir::new();
+        fs::write(dir.join("a"), "content").unwrap();
+        fs::create_dir(dir.join("folder")).unwrap();
+
+        assert!(same(&dir.join("folder"), &dir.join("a")).is_err());
+        assert!(same(&dir.join("a"), &dir.join("folder")).is_err());
+    }
+}

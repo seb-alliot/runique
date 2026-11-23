@@ -90,7 +90,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## CLI (commandes actuelles)
 
-`runique` fournit (voir `runique/src/bin/runique.rs`) :
+`runique` fournit (voir `runique/runique_cli/src/main.rs`) :
 
 - `runique new <nom>`
 - `runique create-superuser`

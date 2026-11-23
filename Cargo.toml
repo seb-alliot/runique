@@ -1,8 +1,11 @@
 [workspace]
 members = [
     "runique/runique_dsl",
+    "runique/runique_i18n",
+    "runique/runique_atomic",
     "runique/derive_form",
     "runique",
+    "runique/runique_cli",
     "demo-app",
     "demo-app/migration",
 ]
@@ -80,7 +83,11 @@ dialoguer = "0.12"
 walkdir = "2.5.0"
 
 runique_dsl = { path = "runique/runique_dsl", version = "0.2.0" }
+runique_i18n = { path = "runique/runique_i18n", version = "0.1.0" }
+runique_atomic = { path = "runique/runique_atomic", version = "0.1.0" }
 derive_form = { path = "runique/derive_form", version = "4.1.0-preview" }
+runique = { path = "runique", version = "4.1.0-preview" }
+runique-cli = { path = "runique/runique_cli", version = "0.1.0" }
 rust_decimal = { version = "1.43.0", features = ["serde-float"] }
 
 # Logging

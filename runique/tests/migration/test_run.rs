@@ -7,8 +7,8 @@
 
 use crate::utils::clean_tpm_test::TestTempDir;
 use crate::utils::env::{del_env, set_env};
-use runique::migration::cli_migration::migrate::record_applied;
-use runique::migration::cli_migration::run;
+use runique_cli::migration::cli_migration::migrate::record_applied;
+use runique_cli::migration::cli_migration::run;
 use std::fs;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -703,7 +703,7 @@ fn migration_files(dir: &std::path::Path) -> usize {
 
 #[tokio::test]
 async fn test_run_snapshot_ancien_rafraichi_puis_longueur_suivie() {
-    use runique::migration::SNAPSHOT_LENGTHS_MARKER;
+    use runique_cli::migration::SNAPSHOT_LENGTHS_MARKER;
     set_env("RUNIQUE_TEST", "1");
     let entities = temp_dir("run_len_ent");
     let migrations = temp_dir("run_len_mig");

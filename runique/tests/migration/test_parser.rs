@@ -2,7 +2,7 @@
 //! Couvre : parse_schema_from_source — tous les types de champs, toutes les options,
 //!          types de PK, blocs relations/meta, cas invalides.
 
-use runique::migration::parse_schema_from_source;
+use runique_cli::migration::parse_schema_from_source;
 
 // ═══════════════════════════════════════════════════════════════
 // Sources DSL de référence

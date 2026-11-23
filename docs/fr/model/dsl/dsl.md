@@ -69,6 +69,8 @@ runique = { version = "4.0.0", features = ["postgres", "big-pk"] }    # Pk = i64
 runique = { version = "4.0.0", features = ["postgres", "pk-uuid"] }   # Pk = Uuid (généré via Uuid::now_v7())
 ```
 
+La commande `runique` suit cette même feature : `makemigrations` et `migration up` lisent dans le `Cargo.toml` de votre projet (par cargo) ce que vaut `Pk`, quelle que soit la façon dont la commande a été installée. Une seule installation sert donc un projet en `i32`, un autre en `big-pk` et un troisième en `pk-uuid`. Lancez-la depuis la racine du projet.
+
 Utilisez `big-pk` quand vous anticipez plus de ~2 milliards de lignes dans une table, ou pour interopérer avec un schéma existant utilisant des clés primaires `BIGINT`. Utilisez `pk-uuid` pour des identifiants non séquentiels (multi-tenant, génération côté client, exposition publique des ids sans révéler le volume de lignes).
 
 ### `Pk` sur un champ normal (pas seulement la PK)

@@ -18,7 +18,7 @@ Le dépôt contient deux choses distinctes :
 | Rust 1.94+ | Les tests, demo-app sur la machine | [rustup](https://rustup.rs) |
 | Docker | Postgres et MySQL (facultatif pour les tests), ou demo-app en entier | [docs.docker.com](https://docs.docker.com/get-docker/) |
 | `psql` | demo-app sur la machine : le seed charge `seed.sql` (pages, exemples de code) par cet outil | paquet `postgresql-client` (`apt install postgresql-client`) |
-| CLI `runique` | demo-app sur la machine : migrations et compte administrateur | `cargo install --path runique --features postgres` |
+| CLI `runique` | demo-app sur la machine : migrations et compte administrateur | `cargo install --path runique/runique_cli` |
 | Node 22+ | Les tests JavaScript (facultatif) | [nodejs.org](https://nodejs.org) |
 
 La CLI `runique` s'installe depuis le workspace, pour suivre la version du framework : lancez

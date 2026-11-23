@@ -4,7 +4,7 @@ Comparé à Django 6.1, vérifié le 5 novembre 2026 dans [sa documentation](htt
 
 ## CLI
 
-Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `new`, `create-superuser`, `test`, `makemigrations`, `migration up | down | status`. Pas de `runique start` — l'admin est du Rust plain, `cargo run` suffit.
+Commandes réelles du binaire `runique` (voir `runique/runique_cli/src/main.rs`) : `new`, `create-superuser`, `test`, `makemigrations`, `migration up | down | status`. Pas de `runique start` — l'admin est du Rust plain, `cargo run` suffit.
 
 | Commande | Django | Runique |
 |----------|--------|---------|

@@ -1,0 +1,25 @@
+[package]
+name = "runique_atomic"
+version = "0.1.0"
+edition = "2024"
+authors = ["Itsuki"]
+license = "MIT"
+description = "All-or-nothing batches of files for the Runique framework, repaired after a power cut"
+repository = "https://github.com/seb-alliot/runique"
+homepage = "https://runique.io/"
+keywords = ["runique", "atomic", "files"]
+categories = ["filesystem"]
+
+[features]
+# The folder and the cut journal the tests of a batch are written with.
+test-support = ["dep:uuid"]
+
+[dependencies]
+runique_i18n.workspace = true
+indexmap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid = { workspace = true, optional = true }
+
+[dev-dependencies]
+uuid.workspace = true

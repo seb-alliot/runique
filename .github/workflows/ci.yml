@@ -176,7 +176,7 @@ jobs:
 
       - name: Generated project compiles
         run: cargo test --lib --features all-databases the_generated_project_compiles -- --ignored
-        working-directory: runique
+        working-directory: runique/runique_cli
 
   # The engines are mutually exclusive for a user, who always builds one of
   # them alone: every other job uses `all-databases`, so a `cfg` branch of a

@@ -2,7 +2,7 @@
 
 use crate::helpers::db_mysql;
 use crate::helpers::db_postgres as db_pg;
-use runique::cli::migrate::up;
+use runique_cli::migration::cli_migration::migrate::up;
 use serial_test::serial;
 
 const ENTITIES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../demo-app/src/entities");

@@ -1,6 +1,6 @@
 // Tests pour ForeignKeyDef
 
-use runique::migration::ForeignKeyDef;
+use runique_cli::migration::ForeignKeyDef;
 use sea_query::ForeignKeyAction;
 
 // ═══════════════════════════════════════════════════════════════

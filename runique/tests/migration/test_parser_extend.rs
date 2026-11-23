@@ -1,7 +1,7 @@
 //! Tests — migration/utils/parser_extend
 //! Couvre : parse_extend_blocks_from_source
 
-use runique::migration::parse_extend_blocks_from_source;
+use runique_cli::migration::parse_extend_blocks_from_source;
 
 #[test]
 fn test_empty_source_returns_empty() {

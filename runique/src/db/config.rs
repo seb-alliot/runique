@@ -428,7 +428,7 @@ impl DatabaseConfig {
 
     /// The same pool size for this configuration and its fallback: a command
     /// or a test that only ever needs one connection.
-    pub(crate) fn pool(&mut self, max: u32, min: u32) {
+    pub fn pool(&mut self, max: u32, min: u32) {
         self.max_connections = max;
         self.min_connections = min;
         if let Some(Ok(keys)) = &mut self.fallback {
@@ -441,7 +441,7 @@ impl DatabaseConfig {
     /// of the `DB_*` keys when the address of `DATABASE_URL` didn't (the two
     /// may name the same database: the second try then tells whether the
     /// failure came from the address). The developer is told on the console.
-    pub(crate) async fn connect_resolved(
+    pub async fn connect_resolved(
         &self,
     ) -> Result<(DatabaseConnection, &DatabaseConfig), DbErr> {
         match &self.notice {

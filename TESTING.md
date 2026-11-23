@@ -18,7 +18,7 @@ Two separate things live in this repository:
 | Rust 1.94+ | The tests, demo-app on the machine | [rustup](https://rustup.rs) |
 | Docker | Postgres and MySQL (optional for the tests), or demo-app entirely | [docs.docker.com](https://docs.docker.com/get-docker/) |
 | `psql` | demo-app on the machine: the seed loads `seed.sql` (pages, code examples) through it | `postgresql-client` package (`apt install postgresql-client`) |
-| `runique` CLI | demo-app on the machine: migrations and the admin account | `cargo install --path runique --features postgres` |
+| `runique` CLI | demo-app on the machine: migrations and the admin account | `cargo install --path runique/runique_cli` |
 | Node 22+ | JavaScript tests (optional) | [nodejs.org](https://nodejs.org) |
 
 The `runique` CLI is installed from the workspace, to follow the framework's version: run the

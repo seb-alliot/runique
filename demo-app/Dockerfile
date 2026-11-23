@@ -11,12 +11,12 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 COPY . .
 
-# The CLI is built on its own: compiled with demo-app, it would pick up the
-# features of the whole build instead of `postgres` alone.
+# The CLI is built on its own: it ships the three engines by default, and
+# compiled with demo-app those features would reach the app's own build.
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/target \
     cargo build --release -p demo-app -p migration && \
-    cargo build --release -p runique --bin runique --features postgres && \
+    cargo build --release -p runique-cli && \
     cp target/release/demo-app target/release/migration target/release/runique /tmp/
 
 # ── Runtime ──────────────────────────────────────────────────────────────────

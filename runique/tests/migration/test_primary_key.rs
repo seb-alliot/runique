@@ -1,6 +1,6 @@
 // Tests pour PrimaryKeyDef
 
-use runique::migration::PrimaryKeyDef;
+use runique_cli::migration::PrimaryKeyDef;
 use sea_query::ColumnType;
 
 // ═══════════════════════════════════════════════════════════════

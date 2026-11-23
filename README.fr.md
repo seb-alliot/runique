@@ -154,7 +154,7 @@ Version du workspace (source de vérité) : **4.1.0-preview**, en développement
 
 ## CLI
 
-`runique` fournit (voir `runique/src/bin/runique.rs`) :
+`runique` fournit (voir `runique/runique_cli/src/main.rs`) :
 
 - `runique new <name>`
 - `runique create-superuser`

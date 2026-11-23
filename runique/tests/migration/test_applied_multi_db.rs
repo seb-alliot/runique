@@ -7,7 +7,7 @@
 //! URL in `.env.test`; without it, those tests return early.
 
 use crate::helpers::{db, db_mysql, db_postgres};
-use runique::migration::cli_migration::applied_migrations;
+use runique_cli::migration::cli_migration::applied_migrations;
 use runique::sea_orm::{ConnectionTrait, DatabaseConnection};
 use sea_query::{Alias, ColumnDef, Query, Table};
 use serial_test::serial;

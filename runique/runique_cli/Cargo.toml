@@ -1,0 +1,59 @@
+[package]
+name = "runique-cli"
+version = "0.1.0"
+edition = "2024"
+authors = ["Itsuki"]
+license = "MIT"
+description = "The `runique` command of the Runique framework: new, makemigrations, migration, create-superuser, test"
+repository = "https://github.com/seb-alliot/runique"
+homepage = "https://runique.io/"
+keywords = ["runique", "cli", "migrations"]
+categories = ["command-line-utilities", "web-programming"]
+
+[[bin]]
+name = "runique"
+path = "src/main.rs"
+
+[features]
+# One installed command serves every project, whatever its engine: the three
+# drivers by default. A single engine (`--no-default-features --features
+# postgres`) only makes a lighter build.
+default = ["all-databases"]
+sqlite = ["runique/sqlite"]
+postgres = ["runique/postgres"]
+mysql = ["runique/mysql"]
+all-databases = ["runique/all-databases"]
+big-pk = ["runique/big-pk"]
+pk-uuid = ["runique/pk-uuid"]
+
+[dependencies]
+runique.workspace = true
+runique_dsl.workspace = true
+runique_atomic.workspace = true
+clap.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
+dotenvy.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+rand.workspace = true
+uuid.workspace = true
+validator.workspace = true
+
+# Database: the commands connect, and read what is already migrated.
+sea-orm.workspace = true
+sea-orm-migration.workspace = true
+sea-query.workspace = true
+
+# Reading the models and the migration files as Rust source.
+syn.workspace = true
+quote.workspace = true
+proc-macro2.workspace = true
+
+# Console: the superuser's questions, the destructive changes' report.
+crossterm.workspace = true
+dialoguer.workspace = true
+
+[dev-dependencies]
+runique_atomic = { workspace = true, features = ["test-support"] }

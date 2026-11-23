@@ -8,7 +8,7 @@ pub mod forms;
 pub mod init_error;
 pub mod mailer;
 pub mod password;
-pub mod private_file;
+pub use runique_atomic::private_file;
 pub mod reset_token;
 pub mod resolve_ogimage;
 

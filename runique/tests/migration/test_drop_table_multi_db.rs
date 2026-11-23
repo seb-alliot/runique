@@ -9,7 +9,7 @@
 //! URL in `.env.test`; without it, those tests return early.
 
 use crate::helpers::{db, db_mysql, db_postgres};
-use runique::migration::runtime::drop_enum_type;
+use runique_cli::migration::runtime::drop_enum_type;
 use runique::sea_orm::{ConnectionTrait, DatabaseConnection};
 use sea_orm_migration::SchemaManager;
 use sea_query::extension::postgres::Type;

@@ -1,10 +1,8 @@
 pub mod clean_tpm_test;
 pub mod env;
-pub mod switch_lang;
 pub mod test_admin_message_keys_completeness;
 pub mod test_constante_parse;
 pub mod test_flash_message;
-pub mod test_i18n_key_parity;
 pub mod test_init_logging;
 pub mod test_integrity_map;
 pub mod test_mailer;

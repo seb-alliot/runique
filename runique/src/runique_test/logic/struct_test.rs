@@ -170,7 +170,7 @@ impl<E: fmt::Display> fmt::Display for FormatResult<E> {
 /// out, so it tells us through an env var that a terminal is on the other end.
 fn use_color() -> bool {
     std::env::var_os("NO_COLOR").is_none()
-        && (std::env::var_os(crate::cli::test_runner::COLOR_ENV).is_some()
+        && (std::env::var_os(crate::tooling::TEST_COLOR_ENV).is_some()
             || std::io::stdout().is_terminal())
 }
 

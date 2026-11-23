@@ -1,6 +1,6 @@
 //! `{ name: type [attr1, attr2, ...], ... }` field declaration parsing —
 //! the anonymous-block v2 grammar.
-use crate::ast::{FormFieldAttr, FormFieldDecl, FormFieldKind};
+use crate::ast::{FormFieldAttr, FormFieldDecl, FormFieldKind, PkType};
 use syn::{
     Ident, LitFloat, LitInt, LitStr, Result, Token,
     parse::{Parse, ParseStream},
@@ -67,20 +67,11 @@ impl Parse for FormFieldDecl {
             // Defers to the global `Pk` alias — resolved immediately to the concrete
             // kind so no downstream consumer needs to know "Pk" was ever written; same
             // principle as the `pk: id => Pk` keyword for the primary key itself.
-            "Pk" => {
-                #[cfg(feature = "pk-uuid")]
-                {
-                    FormFieldKind::Uuid
-                }
-                #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
-                {
-                    FormFieldKind::Bigint
-                }
-                #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
-                {
-                    FormFieldKind::Int
-                }
-            }
+            "Pk" => match crate::parser::pk::pk_alias() {
+                PkType::Uuid => FormFieldKind::Uuid,
+                PkType::I64 => FormFieldKind::Bigint,
+                PkType::I32 => FormFieldKind::Int,
+            },
             other => {
                 let suggestion = suggest_form_field_type(other);
                 return Err(syn::Error::new(

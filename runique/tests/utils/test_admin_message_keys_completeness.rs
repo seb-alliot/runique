@@ -12,15 +12,15 @@ use runique::utils::constante::ADMIN_MESSAGE_KEYS;
 use serde_json::Value;
 
 const LANGS: &[(&str, &str)] = &[
-    ("fr", include_str!("../../src/utils/trad/fr.json")),
-    ("en", include_str!("../../src/utils/trad/en.json")),
-    ("it", include_str!("../../src/utils/trad/it.json")),
-    ("es", include_str!("../../src/utils/trad/es.json")),
-    ("de", include_str!("../../src/utils/trad/de.json")),
-    ("pt", include_str!("../../src/utils/trad/pt.json")),
-    ("ja", include_str!("../../src/utils/trad/ja.json")),
-    ("zh", include_str!("../../src/utils/trad/zh.json")),
-    ("ru", include_str!("../../src/utils/trad/ru.json")),
+    ("fr", include_str!("../../runique_i18n/src/fr.json")),
+    ("en", include_str!("../../runique_i18n/src/en.json")),
+    ("it", include_str!("../../runique_i18n/src/it.json")),
+    ("es", include_str!("../../runique_i18n/src/es.json")),
+    ("de", include_str!("../../runique_i18n/src/de.json")),
+    ("pt", include_str!("../../runique_i18n/src/pt.json")),
+    ("ja", include_str!("../../runique_i18n/src/ja.json")),
+    ("zh", include_str!("../../runique_i18n/src/zh.json")),
+    ("ru", include_str!("../../runique_i18n/src/ru.json")),
 ];
 
 /// Résout une clé pointée ("admin.login.title") dans un JSON imbriqué, sans

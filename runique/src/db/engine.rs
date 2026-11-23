@@ -89,7 +89,7 @@ impl DatabaseEngine {
     /// runique follows: `DATABASE_URL` decides when its start names an
     /// engine, `DB_ENGINE` otherwise (address absent, blank, or with a start
     /// that names none). `None` when neither names an engine.
-    pub(crate) fn from_lookup(get: impl Fn(&str) -> Option<String>) -> Option<Self> {
+    pub fn from_lookup(get: impl Fn(&str) -> Option<String>) -> Option<Self> {
         get("DATABASE_URL")
             .and_then(|url| Self::detect_from_url(&url).ok())
             .or_else(|| Self::from_keyword(&get("DB_ENGINE")?))
@@ -202,7 +202,7 @@ mod tests {
         assert!(msg.contains(env!("CARGO_PKG_VERSION")), "{msg}");
         assert!(msg.contains(r#"features = ["postgres"]"#), "{msg}");
         assert!(
-            msg.contains("cargo install runique --features postgres --locked --force"),
+            msg.contains("cargo install runique-cli --features postgres --locked --force"),
             "{msg}"
         );
         // The other way out: `.env` pointing at the engine this build has.

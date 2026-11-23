@@ -1,5 +1,5 @@
 mod types_migration {
-    use runique::migration::types::*;
+    use runique_cli::migration::types::*;
     #[test]
     fn test_parsed_schema() {
         let schema = ParsedSchema {

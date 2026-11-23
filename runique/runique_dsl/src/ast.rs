@@ -185,6 +185,7 @@ pub struct PkDef {
     pub ty: PkType,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PkType {
     I32,
     I64,

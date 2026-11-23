@@ -8,6 +8,6 @@ mod fk;
 pub(crate) mod form_field;
 mod meta;
 mod model_input;
-mod pk;
+pub(crate) mod pk;
 mod relation;
 mod sql_identifier;

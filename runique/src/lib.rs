@@ -57,10 +57,9 @@ pub mod migration;
 
 #[cfg(feature = "admin")]
 pub mod admin;
-pub mod cli;
 pub mod errors;
 pub mod middleware;
-pub mod new_project;
+pub mod tooling;
 
 pub mod utils;
 

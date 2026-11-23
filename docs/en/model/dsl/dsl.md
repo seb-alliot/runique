@@ -69,6 +69,8 @@ runique = { version = "4.0.0", features = ["postgres", "big-pk"] }    # Pk = i64
 runique = { version = "4.0.0", features = ["postgres", "pk-uuid"] }   # Pk = Uuid (generated via Uuid::now_v7())
 ```
 
+The `runique` command follows the same feature: `makemigrations` and `migration up` read from your project's `Cargo.toml` (through cargo) what `Pk` stands for, however the command was installed. One install therefore serves a project in `i32`, another in `big-pk` and a third in `pk-uuid`. Run it from the project root.
+
 Use `big-pk` when you expect more than ~2 billion rows in a table, or when you need to interoperate with an existing schema using `BIGINT` primary keys. Use `pk-uuid` for non-sequential identifiers (multi-tenant setups, client-side generation, exposing ids publicly without leaking row volume).
 
 ### `Pk` on a regular field (not just the primary key)
