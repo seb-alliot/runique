@@ -1212,7 +1212,7 @@ fn alter_add_fk_up_creates_down_drops() {
         down.contains(r#"runtime::drop_foreign_key(manager, "t", "t_post_id_post_fkey")"#),
         "down:\n{down}"
     );
-    key_guard_comes_first(&up, &down);
+    key_guard_comes_first(up, down);
 }
 
 /// Both bodies of a migration that changes keys start by asking the engine
@@ -1261,7 +1261,7 @@ fn alter_drop_fk_up_drops_down_creates() {
         "up:\n{up}"
     );
     assert!(down.contains("runtime::add_foreign_key("), "down:\n{down}");
-    key_guard_comes_first(&up, &down);
+    key_guard_comes_first(up, down);
 }
 
 // ── ALTER: add / drop index (up + down) ────────────────────────────────────────

@@ -300,7 +300,7 @@ mod tests {
     #[test]
     fn a_range_inside_one_already_cut_changes_nothing() {
         assert_eq!(cut("abcdef", &[1..4, 2..3]), "aef");
-        assert_eq!(cut("abcdef", &[1..4]), "aef");
+        assert_eq!(cut("abcdef", std::slice::from_ref(&(1..4))), "aef");
     }
 
     // What is left is still a model, the same one less its directives.

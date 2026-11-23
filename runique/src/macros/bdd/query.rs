@@ -279,13 +279,17 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
             // The context of the error: once it is the response, the error
             // middleware renders the page (`404.html` / `500.html`, or the debug
             // page with the reason).
-            Ok(None) => Err(Box::new(crate::context::template::AppError::new(ErrorContext::new(
-                ErrorType::NotFound,
-                StatusCode::NOT_FOUND,
-                &t("error.title.not_found"),
-                error_msg,
-            )))),
-            Err(e) => Err(Box::new(crate::context::template::AppError::new(ErrorContext::database(e)))),
+            Ok(None) => Err(Box::new(crate::context::template::AppError::new(
+                ErrorContext::new(
+                    ErrorType::NotFound,
+                    StatusCode::NOT_FOUND,
+                    &t("error.title.not_found"),
+                    error_msg,
+                ),
+            ))),
+            Err(e) => Err(Box::new(crate::context::template::AppError::new(
+                ErrorContext::database(e),
+            ))),
         }
     }
 }

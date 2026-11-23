@@ -777,7 +777,11 @@ mod staging_tests {
         let out = parse_multipart_guarded(mp, &media, 10, 64, Some(SESSION))
             .await
             .map(|(data, _staging)| data)
-            .map_err(|r| axum::response::IntoResponse::into_response(r).status().as_u16());
+            .map_err(|r| {
+                axum::response::IntoResponse::into_response(r)
+                    .status()
+                    .as_u16()
+            });
         let written = std::fs::read_dir(&media).unwrap().next().is_some();
         let _ = std::fs::remove_dir_all(&media);
         (out, written)

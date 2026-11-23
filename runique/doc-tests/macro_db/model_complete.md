@@ -58,10 +58,7 @@ async fn posts(mut request: Request) -> AppResult<Response> {
     let maybe = Entity::objects.get_optional(&db, 99).await.ok().flatten();
 
     // Par clé, ou la page 404 (rendue par le middleware d'erreurs)
-    let post = match Entity::objects.get_or_404(&db, 1, &request, "Article introuvable").await {
-        Ok(post) => post,
-        Err(response) => return Ok(response),
-    };
+    let post = Entity::objects.get_or_404(&db, 1, &request, "Article introuvable").await?;
 
     context_update!(request => {
         "posts"   => &published,

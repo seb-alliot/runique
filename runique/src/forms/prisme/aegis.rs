@@ -114,10 +114,7 @@ where
                 {
                     BodyRefusal::TooLarge(t("forms.body_too_large").into_owned())
                 } else {
-                    BodyRefusal::Status(
-                        StatusCode::BAD_REQUEST,
-                        t("forms.body_error").into_owned(),
-                    )
+                    BodyRefusal::Status(StatusCode::BAD_REQUEST, t("forms.body_error").into_owned())
                 }
             })?
             .to_bytes();
