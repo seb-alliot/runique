@@ -14,6 +14,8 @@ Déclarez un modèle une fois, et vous récupérez la table en base, la migratio
 
 🌍 **Langues** : [English](https://runique.io/readme/en) | Français
 
+Documentation, commentaires et tests écrits avec une IA : [pourquoi](https://runique.io/ai-usage/fr).
+
 ---
 
 ## Des macros déclaratives, pas du code répétitif

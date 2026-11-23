@@ -14,6 +14,8 @@ Declare a model once, and you get the database table, the migration, a type-safe
 
 🌍 **Languages**: English | [Français](https://runique.io/readme/fr)
 
+Documentation, comments and tests written with an AI: [why](https://runique.io/ai-usage/en).
+
 ---
 
 ## Declarative macros, not boilerplate
