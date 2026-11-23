@@ -445,7 +445,7 @@ impl Request {
             .join("&");
         serde_urlencoded::from_str(&cleaned).map_err(|e| {
             Box::new(AppError::new(ErrorContext::bad_request(&tf(
-                "error.invalid_query",
+                runique_i18n::keys::app::error::INVALID_QUERY,
                 &[e.to_string()],
             ))))
         })
@@ -512,7 +512,7 @@ impl Request {
                     level,
                     form = name,
                     "{}",
-                    crate::utils::trad::t("log.anti_bot.filled")
+                    crate::utils::trad::t(runique_i18n::keys::forms::log::ANTI_BOT_FILLED)
                 );
             }
             forms.force_invalid = true;
@@ -537,13 +537,15 @@ impl Request {
             crate::middleware::security::csrf::log_refusal(
                 name,
                 if sent {
-                    "log.csrf.reason_form_mismatch"
+                    runique_i18n::keys::csrf::log::REASON_FORM_MISMATCH
                 } else {
-                    "log.csrf.reason_form_missing"
+                    runique_i18n::keys::csrf::log::REASON_FORM_MISSING
                 },
             );
             forms.force_invalid = true;
-            forms.errors.push(t("csrf.invalid_or_missing").into_owned());
+            forms
+                .errors
+                .push(t(runique_i18n::keys::csrf::error::INVALID_OR_MISSING).into_owned());
         }
 
         forms.fill(&self.prisme.data, self.method.clone());

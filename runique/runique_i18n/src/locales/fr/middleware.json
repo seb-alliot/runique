@@ -1,4 +1,6 @@
 {
-  "bad_request": "Mauvaise requête",
-  "slot_collision": "Collision de slot middleware Runique : « {} » et « {} » revendiquent tous les deux le slot {}. Enregistrez moins de middlewares custom ou donnez à celui-ci un slot explicite."
+  "error": {
+    "bad_request": "Mauvaise requête",
+    "slot_collision": "Collision de slot middleware Runique : « {} » et « {} » revendiquent tous les deux le slot {}. Enregistrez moins de middlewares custom ou donnez à celui-ci un slot explicite."
+  }
 }

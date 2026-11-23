@@ -1,0 +1,13 @@
+{
+  "label": {
+    "title": "作成",
+    "breadcrumb": "作成",
+    "card_info": "情報",
+    "no_fields": "現在使用可能なフィールドはありません。",
+    "btn_cancel": "キャンセル",
+    "btn_submit": "作成"
+  },
+  "info": {
+    "success": "エントリが正常に作成されました！"
+  }
+}

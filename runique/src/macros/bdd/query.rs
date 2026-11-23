@@ -283,7 +283,7 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
                 ErrorContext::new(
                     ErrorType::NotFound,
                     StatusCode::NOT_FOUND,
-                    &t("error.title.not_found"),
+                    &t(runique_i18n::keys::app::label::NOT_FOUND),
                     error_msg,
                 ),
             ))),

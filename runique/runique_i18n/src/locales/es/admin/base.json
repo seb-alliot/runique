@@ -1,0 +1,12 @@
+{
+  "label": {
+    "title": "Administración",
+    "breadcrumb": "Admin",
+    "toggle": "Contraer menú",
+    "logout_title": "Cerrar sesión",
+    "theme_toggle": "Cambiar tema",
+    "back_to_site": "← Sitio",
+    "dashboard": "Panel de control",
+    "history": "Historial"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "中文",
+  "aliases": [
+    "zh-cn",
+    "zh-tw",
+    "zh-hk"
+  ],
+  "fallback": "en"
+}

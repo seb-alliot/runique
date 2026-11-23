@@ -1,0 +1,10 @@
+{
+  "log": {
+    "read_account": "angemeldetes Konto aus der Sitzung lesen",
+    "read_version": "Version der Sitzung lesen",
+    "read_flash": "Flash-Nachrichten aus der Sitzung lesen",
+    "read_dashboard_template": "gewählte Dashboard-Vorlage aus der Sitzung lesen",
+    "decode_user_memory": "user_id der Sitzung dekodieren (Laden aus dem Speicher)",
+    "decode_user_db": "user_id der Sitzung dekodieren (Laden aus der Datenbank)"
+  }
+}

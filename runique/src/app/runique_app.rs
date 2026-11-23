@@ -31,8 +31,14 @@ pub struct RuniqueApp {
 fn connected_db_message(backend: sea_orm::DbBackend) -> String {
     let engine = format!("{backend:?}");
     match crate::db::DatabaseConfig::displayed_name() {
-        Some(name) => tf("server.connected_db", &[engine, name]),
-        None => tf("server.connected_engine", &[engine]),
+        Some(name) => tf(
+            runique_i18n::keys::server::info::CONNECTED_DB,
+            &[engine, name],
+        ),
+        None => tf(
+            runique_i18n::keys::server::info::CONNECTED_ENGINE,
+            &[engine],
+        ),
     }
 }
 
@@ -43,7 +49,7 @@ fn connected_db_message(backend: sea_orm::DbBackend) -> String {
 async fn shutdown_signal() {
     let ctrl_c = async {
         if let Err(error) = signal::ctrl_c().await {
-            tracing::warn!(%error, "{}", crate::utils::trad::t("log.server.ctrl_c_not_installed"));
+            tracing::warn!(%error, "{}", crate::utils::trad::t(runique_i18n::keys::server::log::CTRL_C_NOT_INSTALLED));
             std::future::pending::<()>().await;
         }
     };
@@ -54,7 +60,7 @@ async fn shutdown_signal() {
                 stream.recv().await;
             }
             Err(error) => {
-                tracing::warn!(%error, "{}", crate::utils::trad::t("log.server.sigterm_not_installed"));
+                tracing::warn!(%error, "{}", crate::utils::trad::t(runique_i18n::keys::server::log::SIGTERM_NOT_INSTALLED));
                 std::future::pending::<()>().await;
             }
         }
@@ -66,7 +72,7 @@ async fn shutdown_signal() {
         () = ctrl_c => {}
         () = terminate => {}
     }
-    println!("\n{}", t("server.shutting_down"));
+    println!("\n{}", t(runique_i18n::keys::server::info::SHUTTING_DOWN));
 }
 
 impl RuniqueApp {
@@ -83,8 +89,14 @@ impl RuniqueApp {
     pub async fn run(self) -> Result<(), Box<dyn std::error::Error>> {
         #[cfg(not(feature = "acme"))]
         if crate::utils::config::env::env_flag("ACME_ENABLED", false) {
-            eprintln!("⚠  {}", t("server.acme_not_compiled"));
-            eprintln!("   {}", t("server.acme_add_feature"));
+            eprintln!(
+                "⚠  {}",
+                t(runique_i18n::keys::server::error::ACME_NOT_COMPILED)
+            );
+            eprintln!(
+                "   {}",
+                t(runique_i18n::keys::server::info::ACME_ADD_FEATURE)
+            );
         }
 
         #[cfg(feature = "acme")]
@@ -102,10 +114,13 @@ impl RuniqueApp {
             self.engine.config.server.ip_server, self.engine.config.server.port
         );
 
-        println!("   {}", t("server.operational"));
+        println!("   {}", t(runique_i18n::keys::server::info::OPERATIONAL));
         println!(
             "      └──>  {}",
-            tf("server.launched", &[format!("http://{addr}")])
+            tf(
+                runique_i18n::keys::server::info::LAUNCHED,
+                &[format!("http://{addr}")]
+            )
         );
 
         #[cfg(feature = "orm")]
@@ -115,8 +130,14 @@ impl RuniqueApp {
                 connected_db_message(self.engine.db.get_database_backend())
             );
             #[cfg(feature = "test-utils")]
-            eprintln!("          └──>  {}", t("server.test_utils_feature_enabled"));
-            println!("              └──> {}", t("server.stop_hint"));
+            eprintln!(
+                "          └──>  {}",
+                t(runique_i18n::keys::server::info::TEST_UTILS_FEATURE_ENABLED)
+            );
+            println!(
+                "              └──> {}",
+                t(runique_i18n::keys::server::hint::STOP)
+            );
         }
 
         let listener = tokio::net::TcpListener::bind(&addr).await?;
@@ -287,7 +308,7 @@ impl RuniqueApp {
             axum::serve(http_listener, http_app).await.trace_or(
                 crate::utils::runique_log::log_level!(middleware.https),
                 tracing::Level::WARN,
-                "log.https.port80_stopped",
+                runique_i18n::keys::server::log::HTTPS_PORT80_STOPPED,
             );
         });
 
@@ -366,10 +387,13 @@ impl RuniqueApp {
             }
         });
 
-        println!("   {}", t("server.operational"));
+        println!("   {}", t(runique_i18n::keys::server::info::OPERATIONAL));
         println!(
             "      └──>  {}",
-            tf("server.launched", &[format!("https://{domain}")])
+            tf(
+                runique_i18n::keys::server::info::LAUNCHED,
+                &[format!("https://{domain}")]
+            )
         );
         #[cfg(feature = "orm")]
         {
@@ -378,7 +402,10 @@ impl RuniqueApp {
                 connected_db_message(self.engine.db.get_database_backend())
             );
             #[cfg(feature = "test-utils")]
-            eprintln!("          └──>  {}", t("server.test_utils_feature_enabled"));
+            eprintln!(
+                "          └──>  {}",
+                t(runique_i18n::keys::server::info::TEST_UTILS_FEATURE_ENABLED)
+            );
         }
         println!("              └──> ctrl + c to stop");
 

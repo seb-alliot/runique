@@ -1,0 +1,23 @@
+{
+  "label": {
+    "subtitle": "应用程序概览",
+    "card_resources": "资源",
+    "th_resource": "资源",
+    "th_key": "键",
+    "th_permissions": "权限",
+    "th_actions": "操作",
+    "btn_list": "列表",
+    "btn_create": "创建",
+    "see_list": "查看列表 →",
+    "empty_title": "未注册资源",
+    "empty_desc": "在 src/admin.rs 中用类型化 ModelAdmin 构建器注册模型，然后 cargo run",
+    "kpi_resources": "资源",
+    "kpi_entries": "条目总数",
+    "kpi_largest": "最大",
+    "th_count": "条目",
+    "toggle_template": "← 已配置的模板",
+    "my_groups_title": "我的用户组",
+    "my_groups_staff": "员工",
+    "my_groups_none": "此用户组不授予任何表权限。"
+  }
+}

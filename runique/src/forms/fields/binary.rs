@@ -80,7 +80,7 @@ impl FormField for BinaryField {
     }
 
     async fn validate(&mut self) -> bool {
-        if self.fails_required("forms.file_required") {
+        if self.fails_required(runique_i18n::keys::forms::error::FILE_REQUIRED) {
             return false;
         }
         let val = self.base.value.trim().to_string();
@@ -96,7 +96,7 @@ impl FormField for BinaryField {
         if !is_staged_upload(&val) {
             tracing::warn!(field = %self.base.name, "binary field: value is no longer a staged upload, refused");
             self.base.value.clear();
-            self.set_error(t("forms.file_unreadable").to_string());
+            self.set_error(t(runique_i18n::keys::forms::error::FILE_UNREADABLE).to_string());
             return false;
         }
         let size = match tokio::fs::metadata(&val).await {
@@ -104,7 +104,7 @@ impl FormField for BinaryField {
             Err(e) => {
                 tracing::warn!(field = %self.base.name, error = %e, "binary field: staged upload size unreadable, refused");
                 self.base.value.clear();
-                self.set_error(t("forms.file_unreadable").to_string());
+                self.set_error(t(runique_i18n::keys::forms::error::FILE_UNREADABLE).to_string());
                 return false;
             }
         };
@@ -114,11 +114,11 @@ impl FormField for BinaryField {
         {
             tokio::fs::remove_file(&val).await.trace(
                 crate::utils::runique_log::log_level!(forms.finalize),
-                "log.forms.remove_oversized",
+                runique_i18n::keys::forms::log::REMOVE_OVERSIZED,
             );
             self.base.value.clear();
             self.set_error(tf(
-                "forms.file_too_large",
+                runique_i18n::keys::forms::error::FILE_TOO_LARGE,
                 &[format!("{:.1}", max as f64 / (1024.0 * 1024.0))],
             ));
             return false;

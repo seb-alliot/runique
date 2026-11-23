@@ -429,7 +429,7 @@ impl MiddlewareStaging {
                     panic!(
                         "{}",
                         crate::utils::trad::tf(
-                            "middleware.slot_collision",
+                            runique_i18n::keys::middleware::error::SLOT_COLLISION,
                             &[
                                 existing.to_string(),
                                 entry.name.to_string(),
@@ -511,7 +511,7 @@ async fn auth_middleware(
                     tracing::Level::WARN,
                     user_id = %id,
                     error = %error,
-                    "{}", crate::utils::trad::t("log.auth.account_not_read")
+                    "{}", crate::utils::trad::t(runique_i18n::keys::auth::log::ACCOUNT_NOT_READ)
                 );
                 return axum::http::StatusCode::SERVICE_UNAVAILABLE.into_response();
             }

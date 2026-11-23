@@ -9,12 +9,12 @@
 //! Postgres/MySQL need `docker compose up -d` and `DATABASE_URL_PG` /
 //! `DATABASE_URL_MYSQL` in `.env.test`; without them those tests return early.
 use crate::helpers::{db_mysql, db_postgres};
-use runique_cli::migration::col_type_method;
-use runique_cli::migration::parse_schema_from_source;
 use runique::sea_orm::{
     ConnectionTrait, Database, DatabaseConnection,
     sea_query::{Alias, ColumnDef, Table},
 };
+use runique_cli::migration::col_type_method;
+use runique_cli::migration::parse_schema_from_source;
 use serial_test::serial;
 
 /// One DSL type: a `model!{}` with a single required field `v` of that type,

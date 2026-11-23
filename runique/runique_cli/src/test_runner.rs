@@ -20,24 +20,38 @@ pub const COLOR_ENV: &str = runique::tooling::TEST_COLOR_ENV;
 /// No argument runs every test in `src/runique_test/`, `file` only the tests of
 /// `src/runique_test/<file>.rs`, and `file` + `test` that single test.
 pub fn run_tests(file: Option<&str>, test: Option<&str>) -> Result<()> {
-    let cargo_toml = fs::read_to_string("Cargo.toml").context(t("test_runner.no_cargo_toml"))?;
+    let cargo_toml = fs::read_to_string("Cargo.toml")
+        .context(t(runique_i18n::keys::test_runner::error::NO_CARGO_TOML))?;
     match test_utils_placement(&cargo_toml) {
         TestUtils::DevOnly => {}
-        TestUtils::Missing => bail!("{}", t("test_runner.test_utils_missing")),
-        TestUtils::Shipped => bail!("{}", t("test_runner.test_utils_shipped")),
+        TestUtils::Missing => bail!(
+            "{}",
+            t(runique_i18n::keys::test_runner::error::TEST_UTILS_MISSING)
+        ),
+        TestUtils::Shipped => bail!(
+            "{}",
+            t(runique_i18n::keys::test_runner::error::TEST_UTILS_SHIPPED)
+        ),
     }
 
     let dir = Path::new(TEST_DIR);
-    let mod_src = fs::read_to_string(dir.join("mod.rs")).context(t("test_runner.no_mod_file"))?;
+    let mod_src = fs::read_to_string(dir.join("mod.rs"))
+        .context(t(runique_i18n::keys::test_runner::error::NO_MOD_FILE))?;
 
     let declaration = ["src/main.rs", "src/lib.rs"]
         .iter()
         .filter_map(|path| fs::read_to_string(path).ok())
         .find_map(|src| test_module_declaration(&src));
     match declaration {
-        None => bail!("{}", t("test_runner.module_not_declared")),
+        None => bail!(
+            "{}",
+            t(runique_i18n::keys::test_runner::error::MODULE_NOT_DECLARED)
+        ),
         Some(false) if !module_file_is_gated(&mod_src) => {
-            bail!("{}", t("test_runner.module_not_gated"))
+            bail!(
+                "{}",
+                t(runique_i18n::keys::test_runner::error::MODULE_NOT_GATED)
+            )
         }
         Some(_) => {}
     }
@@ -47,7 +61,10 @@ pub fn run_tests(file: Option<&str>, test: Option<&str>) -> Result<()> {
     for stem in files.iter().filter(|stem| !declared.contains(stem)) {
         eprintln!(
             "{}",
-            tf("test_runner.file_not_declared_warning", &[stem, stem])
+            tf(
+                runique_i18n::keys::test_runner::error::FILE_NOT_DECLARED_WARNING,
+                &[stem, stem]
+            )
         );
     }
     if let Some(file) = file {
@@ -55,13 +72,19 @@ pub fn run_tests(file: Option<&str>, test: Option<&str>) -> Result<()> {
             bail!(
                 "{}",
                 tf(
-                    "test_runner.no_test_file",
+                    runique_i18n::keys::test_runner::error::NO_TEST_FILE,
                     &[file, files.join(", ").as_str()]
                 )
             );
         }
         if !declared.iter().any(|stem| stem == file) {
-            bail!("{}", tf("test_runner.file_not_declared", &[file, file]));
+            bail!(
+                "{}",
+                tf(
+                    runique_i18n::keys::test_runner::error::FILE_NOT_DECLARED,
+                    &[file, file]
+                )
+            );
         }
     }
 
@@ -85,16 +108,21 @@ pub fn run_tests(file: Option<&str>, test: Option<&str>) -> Result<()> {
     if color {
         command.env(COLOR_ENV, "1");
     }
-    let mut child = command
-        .spawn()
-        .context(t("test_runner.cargo_spawn_failed"))?;
+    let mut child = command.spawn().context(t(
+        runique_i18n::keys::test_runner::error::CARGO_SPAWN_FAILED,
+    ))?;
     if let Some(output) = child.stdout.take() {
         forward_spaced(output, &mut std::io::stdout(), color)
-            .context(t("test_runner.output_failed"))?;
+            .context(t(runique_i18n::keys::test_runner::error::OUTPUT_FAILED))?;
     }
-    let status = child.wait().context(t("test_runner.cargo_wait_failed"))?;
+    let status = child
+        .wait()
+        .context(t(runique_i18n::keys::test_runner::error::CARGO_WAIT_FAILED))?;
     if !status.success() {
-        bail!("{}", t("test_runner.tests_failed"));
+        bail!(
+            "{}",
+            t(runique_i18n::keys::test_runner::error::TESTS_FAILED)
+        );
     }
     Ok(())
 }
@@ -216,9 +244,14 @@ fn check_test_exists(file: &str, test: &str, full_name: &str) -> Result<()> {
         ])
         .stderr(Stdio::inherit())
         .output()
-        .context(t("test_runner.cargo_spawn_failed"))?;
+        .context(t(
+            runique_i18n::keys::test_runner::error::CARGO_SPAWN_FAILED,
+        ))?;
     if !output.status.success() {
-        bail!("{}", t("test_runner.build_failed"));
+        bail!(
+            "{}",
+            t(runique_i18n::keys::test_runner::error::BUILD_FAILED)
+        );
     }
     let names = parse_test_list(&String::from_utf8_lossy(&output.stdout));
     if !names.iter().any(|name| name == full_name) {
@@ -229,7 +262,7 @@ fn check_test_exists(file: &str, test: &str, full_name: &str) -> Result<()> {
         bail!(
             "{}",
             tf(
-                "test_runner.no_such_test",
+                runique_i18n::keys::test_runner::error::NO_SUCH_TEST,
                 &[test, file, available.join(", ").as_str()]
             )
         );
@@ -368,7 +401,12 @@ fn declared_modules(mod_src: &str) -> Vec<String> {
 /// Stems of the `.rs` files in `dir`, `mod.rs` excluded, sorted.
 fn test_files(dir: &Path) -> Result<Vec<String>> {
     let mut stems: Vec<String> = fs::read_dir(dir)
-        .with_context(|| tf("test_runner.dir_read_failed", &[dir.display()]))?
+        .with_context(|| {
+            tf(
+                runique_i18n::keys::test_runner::error::DIR_READ_FAILED,
+                &[dir.display()],
+            )
+        })?
         .filter_map(|entry| entry.ok())
         .map(|entry| entry.path())
         .filter(|path| path.extension().is_some_and(|ext| ext == "rs"))

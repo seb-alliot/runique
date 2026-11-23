@@ -1,8 +1,0 @@
-{
-  "welcome": "欢迎 {}，您的账号已创建成功！",
-  "fix_errors": "请修正以下错误",
-  "success_demo": "这是一条成功提示。",
-  "info_demo": "这是一条信息提示。",
-  "warning_demo": "这是一条警告提示。",
-  "error_demo": "这是一条错误提示。"
-}

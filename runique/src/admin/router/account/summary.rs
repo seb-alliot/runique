@@ -32,6 +32,17 @@ pub(crate) fn rank_key(rang: Rang) -> &'static str {
     }
 }
 
+/// The message that names `rang`.
+pub(crate) fn rank_label(rang: Rang) -> &'static str {
+    use runique_i18n::keys::admin::rank::label;
+    match rang {
+        Rang::Lambda => label::LAMBDA,
+        Rang::Admin => label::ADMIN,
+        Rang::Dirigeant => label::DIRIGEANT,
+        Rang::Superuser => label::SUPERUSER,
+    }
+}
+
 /// The summaries of `ids`, in two queries however many they are. An id without
 /// an account has no entry.
 pub(crate) async fn account_summaries(
@@ -59,15 +70,47 @@ pub(crate) async fn account_summaries(
     Ok(accounts
         .iter()
         .map(|account| {
-            let rank = rank_key(Rang::from(account));
+            let rang = Rang::from(account);
+            let rank = rank_key(rang);
             let mut names = groups.remove(&account.id).unwrap_or_default();
             names.sort_unstable();
             let summary = AccountSummary {
                 rank,
-                rank_label: t(&format!("admin.rank.{rank}")).into_owned(),
+                rank_label: t(rank_label(rang)).into_owned(),
                 groups: names,
             };
             (account.id, summary)
         })
         .collect())
+}
+
+#[cfg(test)]
+mod rank_label_tests {
+    use super::*;
+
+    const RANKS: [Rang; 4] = [Rang::Lambda, Rang::Admin, Rang::Dirigeant, Rang::Superuser];
+
+    // Each rank has its own message, and that message exists: a key without
+    // one would show as the key itself.
+    #[test]
+    fn each_rank_has_its_own_message() {
+        let mut seen = std::collections::HashSet::new();
+        for rang in RANKS {
+            let key = rank_label(rang);
+            assert!(seen.insert(key), "{rang:?} shares {key}");
+            assert_ne!(t(key), key, "{rang:?}: no message for {key}");
+        }
+    }
+
+    // The message follows the rank's name in forms and templates.
+    #[test]
+    fn the_message_of_a_rank_is_named_after_it() {
+        for rang in RANKS {
+            assert!(
+                rank_label(rang).ends_with(&format!(".{}", rank_key(rang))),
+                "{rang:?}: {}",
+                rank_label(rang)
+            );
+        }
+    }
 }

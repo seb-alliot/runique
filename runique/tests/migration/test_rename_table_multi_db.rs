@@ -11,8 +11,8 @@
 //! URL in `.env.test`; without it, those tests return early.
 
 use crate::helpers::{db, db_mysql, db_postgres};
-use runique_cli::migration::runtime::{drop_foreign_key, rename_foreign_key};
 use runique::sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend};
+use runique_cli::migration::runtime::{drop_foreign_key, rename_foreign_key};
 use sea_orm_migration::SchemaManager;
 use sea_query::{Alias, ColumnDef, ForeignKey, ForeignKeyCreateStatement, Index, Query, Table};
 use serial_test::serial;

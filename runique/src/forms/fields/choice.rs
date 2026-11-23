@@ -100,7 +100,7 @@ impl FormField for ChoiceField {
     }
 
     async fn validate(&mut self) -> bool {
-        if self.fails_required("forms.select_required") {
+        if self.fails_required(runique_i18n::keys::forms::error::SELECT_REQUIRED) {
             return false;
         }
         let val = self.base.value.trim();
@@ -109,7 +109,10 @@ impl FormField for ChoiceField {
             // Every selected value must be one of the choices, not the joined string.
             for selected in val.split(',').map(str::trim) {
                 if !self.choices.iter().any(|c| c.value == selected) {
-                    self.set_error(tf("forms.choice_invalid_value", &[selected]));
+                    self.set_error(tf(
+                        runique_i18n::keys::forms::error::CHOICE_INVALID_VALUE,
+                        &[selected],
+                    ));
                     return false;
                 }
             }
@@ -117,7 +120,7 @@ impl FormField for ChoiceField {
             // Check that the value exists in the choices
             let valid = self.choices.iter().any(|c| c.value == val);
             if !valid {
-                self.set_error(t("forms.choice_invalid").to_string());
+                self.set_error(t(runique_i18n::keys::forms::error::CHOICE_INVALID).to_string());
                 return false;
             }
         }
@@ -183,7 +186,7 @@ impl FormField for RadioField {
     }
 
     async fn validate(&mut self) -> bool {
-        if self.fails_required("forms.select_required") {
+        if self.fails_required(runique_i18n::keys::forms::error::SELECT_REQUIRED) {
             return false;
         }
         let val = self.base.value.trim();
@@ -191,7 +194,7 @@ impl FormField for RadioField {
         if !val.is_empty() {
             let valid = self.choices.iter().any(|c| c.value == val);
             if !valid {
-                self.set_error(t("forms.choice_invalid").to_string());
+                self.set_error(t(runique_i18n::keys::forms::error::CHOICE_INVALID).to_string());
                 return false;
             }
         }
@@ -274,7 +277,7 @@ impl FormField for CheckboxField {
     }
 
     async fn validate(&mut self) -> bool {
-        if self.fails_required("forms.checkbox_required") {
+        if self.fails_required(runique_i18n::keys::forms::error::CHECKBOX_REQUIRED) {
             return false;
         }
         let val = self.base.value.trim();
@@ -284,7 +287,10 @@ impl FormField for CheckboxField {
             let selected_values: Vec<&str> = val.split(',').map(|s| s.trim()).collect();
             for sel_val in selected_values {
                 if !self.choices.iter().any(|c| c.value == sel_val) {
-                    self.set_error(tf("forms.choice_invalid_value", &[sel_val]));
+                    self.set_error(tf(
+                        runique_i18n::keys::forms::error::CHOICE_INVALID_VALUE,
+                        &[sel_val],
+                    ));
                     return false;
                 }
             }

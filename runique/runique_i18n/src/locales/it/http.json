@@ -1,0 +1,22 @@
+{
+  "label": {
+    "400": "400",
+    "413": "413",
+    "404": "404",
+    "500": "500",
+    "429": "429",
+    "503": "503",
+    "back_home": "Torna alla home",
+    "critical": "Errore critico"
+  },
+  "error": {
+    "400": "Richiesta non valida: i parametri dell'indirizzo non sono validi.",
+    "413": "Invio troppo grande: riducine la dimensione e riprova.",
+    "404": "Pagina non trovata",
+    "500": "Errore interno del server",
+    "429": "Troppe richieste. Attendi un momento prima di riprovare.",
+    "503": "Servizio temporaneamente non disponibile per sovraccarico. Riprova tra poco.",
+    "critical_text": "Il sistema di gestione degli errori ha riscontrato un errore.",
+    "critical_contact": "Questa situazione non dovrebbe mai verificarsi. Contatta l'amministratore di sistema."
+  }
+}

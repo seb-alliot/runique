@@ -58,7 +58,7 @@ pub(crate) async fn memberships_view(
 
     let form = req.form::<ConfirmForm<user::Entity>>(admin_form::GROUPS);
     let message = match ValidationForm::try_form(form, &req).await {
-        Err(_) => Err(t("csrf.invalid_or_missing").into_owned()),
+        Err(_) => Err(t(runique_i18n::keys::csrf::error::INVALID_OR_MISSING).into_owned()),
         Ok(_) => match ticked_groups(&req) {
             None => Err(Refusal::new(RefusalReason::NoRight).message()),
             Some(groups) => set_memberships(&user, target, &groups, &req.engine.db)
@@ -73,7 +73,11 @@ pub(crate) async fn memberships_view(
         },
     };
     match message {
-        Ok(()) => req.notices.success(t("admin.edit.success")).await,
+        Ok(()) => {
+            req.notices
+                .success(t(runique_i18n::keys::admin::edit::info::SUCCESS))
+                .await
+        }
         Err(message) => req.notices.error(message).await,
     }
     Ok(Redirect::to(&back).into_response())

@@ -28,7 +28,7 @@ pub async fn anti_bot_middleware(
         .await
         .trace(
             crate::utils::runique_log::log_level!(middleware.anti_bot),
-            "log.anti_bot.read_name",
+            runique_i18n::keys::forms::log::ANTI_BOT_READ_NAME,
         )
         .flatten()
         .unwrap_or_else(generate_field_name);

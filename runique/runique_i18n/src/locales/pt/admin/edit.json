@@ -1,0 +1,13 @@
+{
+  "label": {
+    "title": "Editar",
+    "breadcrumb": "Editar",
+    "card_info": "Informações",
+    "no_fields": "Nenhum campo disponível no momento.",
+    "btn_cancel": "Cancelar",
+    "btn_submit": "Salvar"
+  },
+  "info": {
+    "success": "Entrada atualizada com sucesso!"
+  }
+}

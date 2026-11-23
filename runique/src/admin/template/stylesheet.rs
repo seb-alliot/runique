@@ -265,7 +265,7 @@ impl PageSheets {
             crate::runique_log!(
                 crate::utils::runique_log::log_level!(builder.statics).unwrap_or(tracing::Level::WARN),
                 sheets = ?missing,
-                "{}", crate::utils::trad::t("log.boot.stylesheets_missing")
+                "{}", crate::utils::trad::t(runique_i18n::keys::admin::log::BOOT_STYLESHEETS_MISSING)
             );
         }
         Ok(Self(all))

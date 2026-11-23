@@ -52,7 +52,7 @@ impl FormField for ColorField {
     }
 
     async fn validate(&mut self) -> bool {
-        if self.fails_required("forms.required") {
+        if self.fails_required(runique_i18n::keys::forms::error::REQUIRED) {
             return false;
         }
         let val = self.base.value.trim();
@@ -60,18 +60,18 @@ impl FormField for ColorField {
         if !val.is_empty() {
             // Validate the hexadecimal format #RRGGBB or #RGB
             if !val.starts_with('#') {
-                self.set_error(t("forms.color_no_hash").to_string());
+                self.set_error(t(runique_i18n::keys::forms::error::COLOR_NO_HASH).to_string());
                 return false;
             }
 
             let hex = &val[1..];
             if hex.len() != 6 && hex.len() != 3 {
-                self.set_error(t("forms.color_invalid").to_string());
+                self.set_error(t(runique_i18n::keys::forms::error::COLOR_INVALID).to_string());
                 return false;
             }
 
             if !hex.chars().all(|c| c.is_ascii_hexdigit()) {
-                self.set_error(t("forms.color_bad_hex").to_string());
+                self.set_error(t(runique_i18n::keys::forms::error::COLOR_BAD_HEX).to_string());
                 return false;
             }
         }
@@ -137,7 +137,7 @@ impl FormField for SlugField {
     }
 
     async fn validate(&mut self) -> bool {
-        if self.fails_required("forms.required") {
+        if self.fails_required(runique_i18n::keys::forms::error::REQUIRED) {
             return false;
         }
         let val = self.base.value.trim();
@@ -150,7 +150,9 @@ impl FormField for SlugField {
                     .chars()
                     .all(|c| c.is_alphanumeric() || c == '-' || c == '_');
                 if !valid {
-                    self.set_error(t("forms.slug_unicode_invalid").to_string());
+                    self.set_error(
+                        t(runique_i18n::keys::forms::error::SLUG_UNICODE_INVALID).to_string(),
+                    );
                     return false;
                 }
             } else {
@@ -159,14 +161,14 @@ impl FormField for SlugField {
                     .chars()
                     .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
                 if !valid {
-                    self.set_error(t("forms.slug_invalid").to_string());
+                    self.set_error(t(runique_i18n::keys::forms::error::SLUG_INVALID).to_string());
                     return false;
                 }
             }
 
             // Must not start or end with a dash
             if val.starts_with('-') || val.ends_with('-') {
-                self.set_error(t("forms.slug_no_dash").to_string());
+                self.set_error(t(runique_i18n::keys::forms::error::SLUG_NO_DASH).to_string());
                 return false;
             }
         }
@@ -177,7 +179,10 @@ impl FormField for SlugField {
 
     fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
-        context.insert("field_hint", &t("forms.hint_slug").to_string());
+        context.insert(
+            "field_hint",
+            &t(runique_i18n::keys::forms::hint::SLUG).to_string(),
+        );
 
         self.render_template(tera, &context)
     }
@@ -223,7 +228,7 @@ impl FormField for UUIDField {
     }
 
     async fn validate(&mut self) -> bool {
-        if self.fails_required("forms.required") {
+        if self.fails_required(runique_i18n::keys::forms::error::REQUIRED) {
             return false;
         }
         let val = self.base.value.trim();
@@ -231,7 +236,7 @@ impl FormField for UUIDField {
         if !val.is_empty() {
             // Validate the UUID format
             if Uuid::parse_str(val).is_err() {
-                self.set_error(t("forms.uuid_invalid").to_string());
+                self.set_error(t(runique_i18n::keys::forms::error::UUID_INVALID).to_string());
                 return false;
             }
         }
@@ -242,7 +247,10 @@ impl FormField for UUIDField {
 
     fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
-        context.insert("field_hint", &t("forms.hint_uuid").to_string());
+        context.insert(
+            "field_hint",
+            &t(runique_i18n::keys::forms::hint::UUID).to_string(),
+        );
 
         self.render_template(tera, &context)
     }
@@ -296,7 +304,7 @@ impl FormField for JSONField {
     }
 
     async fn validate(&mut self) -> bool {
-        if self.fails_required("forms.required") {
+        if self.fails_required(runique_i18n::keys::forms::error::REQUIRED) {
             return false;
         }
         let val = self.base.value.trim();
@@ -304,7 +312,7 @@ impl FormField for JSONField {
         if !val.is_empty() {
             // Validate the JSON
             if let Err(e) = serde_json::from_str::<serde_json::Value>(val) {
-                self.set_error(tf("forms.json_invalid", &[&e]));
+                self.set_error(tf(runique_i18n::keys::forms::error::JSON_INVALID, &[&e]));
                 return false;
             }
         }
@@ -315,7 +323,10 @@ impl FormField for JSONField {
 
     fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
-        context.insert("field_hint", &t("forms.hint_json").to_string());
+        context.insert(
+            "field_hint",
+            &t(runique_i18n::keys::forms::hint::JSON).to_string(),
+        );
         // Number of lines
         let rows = self
             .base
@@ -391,7 +402,7 @@ impl FormField for IPAddressField {
     }
 
     async fn validate(&mut self) -> bool {
-        if self.fails_required("forms.required") {
+        if self.fails_required(runique_i18n::keys::forms::error::REQUIRED) {
             return false;
         }
         let val = self.base.value.trim();
@@ -401,16 +412,16 @@ impl FormField for IPAddressField {
             match val.parse::<IpAddr>() {
                 Ok(ip) => {
                     if self.ipv4_only && ip.is_ipv6() {
-                        self.set_error(t("forms.ipv4_only").to_string());
+                        self.set_error(t(runique_i18n::keys::forms::error::IPV4_ONLY).to_string());
                         return false;
                     }
                     if self.ipv6_only && ip.is_ipv4() {
-                        self.set_error(t("forms.ipv6_only").to_string());
+                        self.set_error(t(runique_i18n::keys::forms::error::IPV6_ONLY).to_string());
                         return false;
                     }
                 }
                 Err(_) => {
-                    self.set_error(t("forms.ip_invalid").to_string());
+                    self.set_error(t(runique_i18n::keys::forms::error::IP_INVALID).to_string());
                     return false;
                 }
             }
@@ -424,11 +435,11 @@ impl FormField for IPAddressField {
         let mut context = self.base_context();
 
         let hint = if self.ipv4_only {
-            t("forms.hint_ip_v4").to_string()
+            t(runique_i18n::keys::forms::hint::IP_V4).to_string()
         } else if self.ipv6_only {
-            t("forms.hint_ip_v6").to_string()
+            t(runique_i18n::keys::forms::hint::IP_V6).to_string()
         } else {
-            t("forms.hint_ip").to_string()
+            t(runique_i18n::keys::forms::hint::IP).to_string()
         };
         context.insert("field_hint", &hint);
 

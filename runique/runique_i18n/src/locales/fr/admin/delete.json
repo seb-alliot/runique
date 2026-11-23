@@ -1,0 +1,19 @@
+{
+  "label": {
+    "title": "Supprimer",
+    "breadcrumb": "Supprimer",
+    "heading": "Confirmer la suppression",
+    "btn_cancel": "← Annuler",
+    "btn_confirm": "Oui, supprimer définitivement",
+    "warning_title": "Attention !",
+    "warning_desc": "Vous êtes sur le point de supprimer l'entrée",
+    "warning_of": "de la ressource",
+    "warning_irreversible": "Cette action est irréversible."
+  },
+  "info": {
+    "success": "Entrée supprimée avec succès !"
+  },
+  "error": {
+    "not_found": "Ressource introuvable."
+  }
+}

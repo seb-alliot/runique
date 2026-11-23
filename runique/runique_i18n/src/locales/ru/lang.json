@@ -1,0 +1,9 @@
+{
+  "name": "Русский",
+  "aliases": [
+    "ru-ru",
+    "ru-by",
+    "ru-ua"
+  ],
+  "fallback": "en"
+}

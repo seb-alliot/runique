@@ -360,10 +360,13 @@ pub(crate) async fn parse_multipart_guarded(
             }
 
             if !csrf_checked {
-                crate::middleware::security::csrf::log_refusal(&name, "log.csrf.reason_upload");
+                crate::middleware::security::csrf::log_refusal(
+                    &name,
+                    runique_i18n::keys::csrf::log::REASON_UPLOAD,
+                );
                 return Err(BodyRefusal::Status(
                     StatusCode::FORBIDDEN,
-                    t("csrf.invalid_or_missing").into_owned(),
+                    t(runique_i18n::keys::csrf::error::INVALID_OR_MISSING).into_owned(),
                 ));
             }
 
@@ -372,7 +375,7 @@ pub(crate) async fn parse_multipart_guarded(
                 tokio::fs::create_dir_all(upload_dir).await.map_err(|e| {
                     let msg = format!(
                         "{} — path: {:?}, os error: {}",
-                        t("forms.upload_dir_error"),
+                        t(runique_i18n::keys::forms::error::UPLOAD_DIR),
                         upload_dir,
                         e
                     );
@@ -390,7 +393,7 @@ pub(crate) async fn parse_multipart_guarded(
                     warn!(error = %err, "staging directory was not created");
                     return Err(BodyRefusal::Status(
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        t("forms.upload_dir_error").to_string(),
+                        t(runique_i18n::keys::forms::error::UPLOAD_DIR).to_string(),
                     ));
                 }
                 if let Err(err) = lease.lock_dir() {
@@ -398,7 +401,7 @@ pub(crate) async fn parse_multipart_guarded(
                     lease.discard();
                     return Err(BodyRefusal::Status(
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        t("forms.upload_dir_error").to_string(),
+                        t(runique_i18n::keys::forms::error::UPLOAD_DIR).to_string(),
                     ));
                 }
                 tmp_dir = Some(lease);
@@ -414,7 +417,7 @@ pub(crate) async fn parse_multipart_guarded(
                 let mut file = tokio::fs::File::create(&tmp_path).await.map_err(|_| {
                     BodyRefusal::Status(
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        t("forms.file_create_error").to_string(),
+                        t(runique_i18n::keys::forms::error::FILE_CREATE).to_string(),
                     )
                 })?;
 
@@ -425,14 +428,14 @@ pub(crate) async fn parse_multipart_guarded(
                     written = written.saturating_add(bytes.len() as u64);
                     if written > max_file_bytes {
                         return Err(BodyRefusal::TooLarge(tf(
-                            "forms.upload_too_large",
+                            runique_i18n::keys::forms::error::UPLOAD_TOO_LARGE,
                             &[&max_upload_mb],
                         )));
                     }
                     file.write_all(&bytes).await.map_err(|_| {
                         BodyRefusal::Status(
                             StatusCode::INTERNAL_SERVER_ERROR,
-                            t("forms.file_write_error").to_string(),
+                            t(runique_i18n::keys::forms::error::FILE_WRITE).to_string(),
                         )
                     })?;
                 }
@@ -442,7 +445,7 @@ pub(crate) async fn parse_multipart_guarded(
                 file.flush().await.map_err(|_| {
                     BodyRefusal::Status(
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        t("forms.file_write_error").to_string(),
+                        t(runique_i18n::keys::forms::error::FILE_WRITE).to_string(),
                     )
                 })?;
                 Ok(())
@@ -471,7 +474,7 @@ pub(crate) async fn parse_multipart_guarded(
 
                     if bytes.len().saturating_add(b.len()) > max_text_bytes {
                         return Err(BodyRefusal::TooLarge(
-                            t("forms.text_field_too_large").into_owned(),
+                            t(runique_i18n::keys::forms::error::TEXT_FIELD_TOO_LARGE).into_owned(),
                         ));
                     }
                     bytes.extend_from_slice(&b);
@@ -628,9 +631,14 @@ fn sanitize_filename(filename: &str) -> String {
 fn multipart_error(e: axum::extract::multipart::MultipartError) -> BodyRefusal {
     let status = e.status();
     if status == StatusCode::PAYLOAD_TOO_LARGE {
-        return BodyRefusal::TooLarge(t("forms.body_too_large").into_owned());
+        return BodyRefusal::TooLarge(
+            t(runique_i18n::keys::forms::error::BODY_TOO_LARGE).into_owned(),
+        );
     }
-    BodyRefusal::Status(status, t("forms.multipart_stream_error").into_owned())
+    BodyRefusal::Status(
+        status,
+        t(runique_i18n::keys::forms::error::MULTIPART_STREAM).into_owned(),
+    )
 }
 
 #[cfg(test)]

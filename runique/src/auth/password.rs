@@ -41,7 +41,7 @@ impl FormAccess for ForgotPasswordForm {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::email("email")
-                .label(&t("reset.email_label"))
+                .label(&t(runique_i18n::keys::reset::label::EMAIL_LABEL))
                 .required(),
         );
     }
@@ -71,19 +71,19 @@ impl FormAccess for PasswordResetForm {
         form.field(&HiddenField::new("token"));
         form.field(
             &TextField::email("email")
-                .label(&t("reset.email_label"))
+                .label(&t(runique_i18n::keys::reset::label::EMAIL_LABEL))
                 .required(),
         );
         form.field(
             &TextField::password("password")
                 .no_hash()
-                .label(&t("reset.new_password_label"))
+                .label(&t(runique_i18n::keys::reset::label::NEW_PASSWORD_LABEL))
                 .required(),
         );
         form.field(
             &TextField::password("confirm")
                 .no_hash()
-                .label(&t("reset.confirm_label"))
+                .label(&t(runique_i18n::keys::reset::label::CONFIRM_LABEL))
                 .required(),
         );
     }
@@ -101,20 +101,27 @@ impl RuniqueForm for PasswordResetForm {
         if password.len() < 10 {
             errors.insert(
                 "password".to_string(),
-                tf("reset.password_min_length", &["10"]).clone(),
+                tf(
+                    runique_i18n::keys::reset::error::PASSWORD_MIN_LENGTH,
+                    &["10"],
+                )
+                .clone(),
             );
         } else if !password.chars().any(|c| c.is_uppercase())
             || !password.chars().any(|c| c.is_lowercase())
             || !password.chars().any(|c| c.is_ascii_digit())
             || !password.chars().any(|c| SPECIAL.contains(c))
         {
-            errors.insert("password".to_string(), t("reset.password_weak").to_string());
+            errors.insert(
+                "password".to_string(),
+                t(runique_i18n::keys::reset::error::PASSWORD_WEAK).to_string(),
+            );
         }
 
         if password != confirm {
             errors.insert(
                 "confirm".to_string(),
-                t("reset.password_mismatch").to_string(),
+                t(runique_i18n::keys::reset::error::PASSWORD_MISMATCH).to_string(),
             );
         }
 
@@ -396,7 +403,7 @@ pub async fn handle_forgot_password(
         Err(form) => {
             apply_extra_context(request, &config.extra_context).await;
             context_update!(request => {
-                "title"       => t("reset.forgot_title").as_ref(),
+                "title"       => t(runique_i18n::keys::reset::label::FORGOT_TITLE).as_ref(),
                 "forgot_form" => &form,
             });
             return request.render(template);
@@ -409,7 +416,7 @@ pub async fn handle_forgot_password(
         tracing::warn!("password reset asked, but no mailer is configured");
         request
             .notices
-            .error(t("reset.unavailable").to_string())
+            .error(t(runique_i18n::keys::reset::error::UNAVAILABLE).to_string())
             .await;
         return Ok(Redirect::to(forgot_route).into_response());
     }
@@ -434,7 +441,7 @@ pub async fn handle_forgot_password(
             if crate::utils::mailer_configured() {
                 crate::utils::Email::new()
                     .to(email)
-                    .subject(t("reset.blocked_subject").to_string())
+                    .subject(t(runique_i18n::keys::reset::label::BLOCKED_SUBJECT).to_string())
                     .html(builtin_blocked_body(user.username()))
                     .send()
                     .await
@@ -450,7 +457,7 @@ pub async fn handle_forgot_password(
         let Some(host) = host else {
             return;
         };
-        let subject = t("reset.email_subject").to_string();
+        let subject = t(runique_i18n::keys::reset::label::EMAIL_SUBJECT).to_string();
         let mail = match email_template {
             Some(name) => ResetMail::Template {
                 name,
@@ -472,7 +479,7 @@ pub async fn handle_forgot_password(
     // Security: do not reveal if the email exists or not
     request
         .notices
-        .success(t("reset.check_inbox").to_string())
+        .success(t(runique_i18n::keys::reset::info::CHECK_INBOX).to_string())
         .await;
     Ok(Redirect::to(forgot_route).into_response())
 }
@@ -502,14 +509,14 @@ pub async fn handle_password_reset(
         }
         request
             .notices
-            .error(t("reset.invalid_or_expired").to_string())
+            .error(t(runique_i18n::keys::reset::error::INVALID_OR_EXPIRED).to_string())
             .await;
         return Ok(Redirect::to("/").into_response());
     };
     let Some(user) = BuiltinUserEntity::find_by_id(&db, user_id).await else {
         request
             .notices
-            .error(t("reset.invalid_or_expired").to_string())
+            .error(t(runique_i18n::keys::reset::error::INVALID_OR_EXPIRED).to_string())
             .await;
         return Ok(Redirect::to("/").into_response());
     };
@@ -522,7 +529,7 @@ pub async fn handle_password_reset(
             }
             apply_extra_context(request, &config.extra_context).await;
             context_update!(request => {
-                "title"      => t("reset.reset_title").as_ref(),
+                "title"      => t(runique_i18n::keys::reset::label::RESET_TITLE).as_ref(),
                 "reset_form" => &form,
                 "token"      => &token,
             });
@@ -533,11 +540,11 @@ pub async fn handle_password_reset(
     let email_clean = form.cleaned::<String>("email").unwrap_or_default();
     if user.email().to_lowercase() != email_clean.trim().to_lowercase() {
         if let Some(field) = form.forms_mut().fields.get_mut("email") {
-            field.set_error(t("reset.email_mismatch").to_string());
+            field.set_error(t(runique_i18n::keys::reset::error::EMAIL_MISMATCH).to_string());
         }
         apply_extra_context(request, &config.extra_context).await;
         context_update!(request => {
-            "title"      => t("reset.reset_title").as_ref(),
+            "title"      => t(runique_i18n::keys::reset::label::RESET_TITLE).as_ref(),
             "reset_form" => &form,
             "token"      => &token,
         });
@@ -553,14 +560,14 @@ pub async fn handle_password_reset(
             Ok(hash) => hash,
             Err(error) => {
                 if let Some(level) = crate::utils::runique_log::log_level!(auth.reset) {
-                    crate::runique_log!(level, error = %error, "{}", crate::utils::trad::t("log.auth.hash_failed"));
+                    crate::runique_log!(level, error = %error, "{}", crate::utils::trad::t(runique_i18n::keys::auth::log::HASH_FAILED));
                 }
                 if let Some(field) = form.forms_mut().fields.get_mut("password") {
-                    field.set_error(t("reset.invalid_or_expired").to_string());
+                    field.set_error(t(runique_i18n::keys::reset::error::INVALID_OR_EXPIRED).to_string());
                 }
                 apply_extra_context(request, &config.extra_context).await;
                 context_update!(request => {
-                    "title"      => t("reset.reset_title").as_ref(),
+                    "title"      => t(runique_i18n::keys::reset::label::RESET_TITLE).as_ref(),
                     "reset_form" => &form,
                     "token"      => &token,
                 });
@@ -584,7 +591,7 @@ pub async fn handle_password_reset(
             form.forms_mut().database_error(&error);
             apply_extra_context(request, &config.extra_context).await;
             context_update!(request => {
-                "title"      => t("reset.reset_title").as_ref(),
+                "title"      => t(runique_i18n::keys::reset::label::RESET_TITLE).as_ref(),
                 "reset_form" => &form,
                 "token"      => &token,
             });
@@ -600,7 +607,7 @@ pub async fn handle_password_reset(
                 }
                 request
                     .notices
-                    .error(t("reset.invalid_or_expired").to_string())
+                    .error(t(runique_i18n::keys::reset::error::INVALID_OR_EXPIRED).to_string())
                     .await;
                 return Ok(Redirect::to("/").into_response());
             }
@@ -611,7 +618,7 @@ pub async fn handle_password_reset(
                 form.forms_mut().database_error(&error);
                 apply_extra_context(request, &config.extra_context).await;
                 context_update!(request => {
-                    "title"      => t("reset.reset_title").as_ref(),
+                    "title"      => t(runique_i18n::keys::reset::label::RESET_TITLE).as_ref(),
                     "reset_form" => &form,
                     "token"      => &token,
                 });
@@ -655,7 +662,7 @@ pub async fn handle_password_reset(
                 form.clear();
                 apply_extra_context(request, &config.extra_context).await;
                 context_update!(request => {
-                    "title"      => t("reset.success_title").as_ref(),
+                    "title"      => t(runique_i18n::keys::reset::label::SUCCESS_TITLE).as_ref(),
                     "reset_form" => &form,
                     "reset_done" => &true,
                     "token"      => &token,
@@ -679,7 +686,7 @@ pub async fn handle_password_reset(
 
     apply_extra_context(request, &config.extra_context).await;
     context_update!(request => {
-        "title"      => t("reset.reset_title").as_ref(),
+        "title"      => t(runique_i18n::keys::reset::label::RESET_TITLE).as_ref(),
         "reset_form" => &form,
         "token"      => &token,
     });
@@ -870,7 +877,7 @@ fn email_text(value: &str) -> String {
 /// The built-in reset email: the account's name, then the link.
 fn builtin_reset_body(username: &str, minutes: impl std::fmt::Display, url: &str) -> String {
     tf(
-        "reset.email_body",
+        runique_i18n::keys::reset::label::EMAIL_BODY,
         &[
             email_text(username),
             minutes.to_string(),
@@ -882,7 +889,10 @@ fn builtin_reset_body(username: &str, minutes: impl std::fmt::Display, url: &str
 
 /// The built-in email of a blocked account asking for a reset.
 fn builtin_blocked_body(username: &str) -> String {
-    tf("reset.blocked_body", &[email_text(username)])
+    tf(
+        runique_i18n::keys::reset::label::BLOCKED_BODY,
+        &[email_text(username)],
+    )
 }
 
 #[cfg(test)]

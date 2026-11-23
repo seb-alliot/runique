@@ -1,0 +1,9 @@
+{
+  "error": {
+    "no_selection": "未选择任何项目。"
+  },
+  "info": {
+    "delete_success": "个项目已删除。",
+    "update_success": "个项目已更新。"
+  }
+}

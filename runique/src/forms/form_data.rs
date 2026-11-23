@@ -21,9 +21,9 @@ pub enum FormDataError {
 impl std::fmt::Display for FormDataError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let message = match self {
-            Self::Invalid(field) => tf("forms.data_invalid", &[field]),
-            Self::Required(field) => tf("forms.data_required", &[field]),
-            Self::Password(field) => tf("forms.data_password", &[field]),
+            Self::Invalid(field) => tf(runique_i18n::keys::forms::error::DATA_INVALID, &[field]),
+            Self::Required(field) => tf(runique_i18n::keys::forms::error::DATA_REQUIRED, &[field]),
+            Self::Password(field) => tf(runique_i18n::keys::forms::error::DATA_PASSWORD, &[field]),
         };
         f.write_str(&message)
     }

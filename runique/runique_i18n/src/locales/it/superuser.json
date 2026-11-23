@@ -1,0 +1,39 @@
+{
+  "label": {
+    "title": "=== Crea superutente ===",
+    "algo_prompt": "[1/5] Algoritmo di hash",
+    "algo_argon2": "Argon2 (consigliato)",
+    "algo_bcrypt": "Bcrypt",
+    "algo_scrypt": "Scrypt",
+    "algo_custom": "Provider personalizzato",
+    "provider_path": "Percorso provider",
+    "username_prompt": "[2/5] Nome utente",
+    "email_prompt": "[3/5] Email",
+    "password_prompt": "[4/5] Password",
+    "confirm_prompt": "[5/5] Conferma password",
+    "confirm_create": "Conferma e crea",
+    "change_algo": "Cambia algoritmo",
+    "modify_password": "Modifica password"
+  },
+  "error": {
+    "invalid_path": "Percorso non valido.",
+    "username_empty": "Il nome utente non può essere vuoto.",
+    "username_taken": "Esiste già un utente con questo nome.",
+    "email_invalid": "Email non valida.",
+    "email_taken": "Esiste già un utente con questa email.",
+    "password_too_short": "La password deve contenere almeno 12 caratteri.",
+    "password_weak": "La password deve contenere almeno una lettera minuscola, una maiuscola, una cifra e un carattere speciale.",
+    "password_mismatch": "Le password non corrispondono. Riprovare."
+  },
+  "info": {
+    "review_algo": "  Algoritmo  : {}",
+    "review_username": "  Utente     : {}",
+    "review_email": "  Email      : {}",
+    "review_password": "  Password   : ••••••••",
+    "review_action": "Azione",
+    "success": "✓ Superutente creato con successo!",
+    "id_line": "  ID         : {}",
+    "username_line": "  Utente     : {}",
+    "email_line": "  Email      : {}"
+  }
+}

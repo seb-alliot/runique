@@ -1,32 +1,44 @@
 {
-  "subscriber_already_installed": "Ein Tracing-Subscriber ist bereits installiert; die Runique-Log-Konfiguration ist inaktiv (RUST_LOG / with_log haben keine Wirkung)",
-  "external_outputs_ignored": "`with_log(|l| l.external())` ist gesetzt; konfigurierte Log-Ausgaben werden ignoriert (die Anwendung besitzt den Subscriber)",
-  "validation_failed": "Build-Validierung fehlgeschlagen: {}",
-  "check_failed": "Build fehlgeschlagen mit {} Prüffehler(n)",
-  "template_failed": "Template-Laden fehlgeschlagen: {}",
-  "driver_not_enabled": "{}-Treiber nicht aktiviert: Runique wurde mit '{}' kompiliert, nicht mit '{}'.\n\nWenn .env auf die falsche Datenbank zeigt (die Features wurden geändert, .env nicht), setzen Sie DB_ENGINE und DATABASE_URL auf die kompilierte Engine: '{}'.\n\nUm stattdessen {} zu verwenden, in der Cargo.toml Ihres Projekts und in migration/Cargo.toml:\nrunique = { version = \"{}\", features = [\"{}\"] }\n\nFür die runique-CLI:\ncargo install runique-cli --features {} --locked --force\n\nUm alle Engines zu unterstützen, verwenden Sie das Feature 'all-databases'.",
-  "db_missing": "Datenbankverbindung erforderlich, wenn das Feature 'orm' aktiviert ist",
-  "component_not_ready": "Komponente '{}' ist nicht bereit",
-  "check": {
+  "error": {
+    "subscriber_already_installed": "Ein Tracing-Subscriber ist bereits installiert; die Runique-Log-Konfiguration ist inaktiv (RUST_LOG / with_log haben keine Wirkung)",
+    "external_outputs_ignored": "`with_log(|l| l.external())` ist gesetzt; konfigurierte Log-Ausgaben werden ignoriert (die Anwendung besitzt den Subscriber)",
+    "validation_failed": "Build-Validierung fehlgeschlagen: {}",
+    "check_failed": "Build fehlgeschlagen mit {} Prüffehler(n)",
+    "template_failed": "Template-Laden fehlgeschlagen: {}",
+    "driver_not_enabled": "{}-Treiber nicht aktiviert: Runique wurde mit '{}' kompiliert, nicht mit '{}'.\n\nWenn .env auf die falsche Datenbank zeigt (die Features wurden geändert, .env nicht), setzen Sie DB_ENGINE und DATABASE_URL auf die kompilierte Engine: '{}'.\n\nUm stattdessen {} zu verwenden, in der Cargo.toml Ihres Projekts und in migration/Cargo.toml:\nrunique = { version = \"{}\", features = [\"{}\"] }\n\nFür die runique-CLI:\ncargo install runique-cli --features {} --locked --force\n\nUm alle Engines zu unterstützen, verwenden Sie das Feature 'all-databases'.",
+    "db_missing": "Datenbankverbindung erforderlich, wenn das Feature 'orm' aktiviert ist",
+    "component_not_ready": "Komponente '{}' ist nicht bereit",
     "db_required": "Datenbankverbindung oder -konfiguration erforderlich (Feature `orm` aktiviert)",
-    "db_required_hint": "Fügen Sie .with_database(db) oder .with_database_config(config) zu Ihrer Builder-Kette hinzu",
     "admin_prefix_empty": "Das Routenpräfix des Admins darf nicht leer sein",
-    "admin_prefix_empty_hint": "Verwenden Sie .prefix(\"/admin\") oder behalten Sie den Standardwert",
     "cache_control_invalid": "Ungültiger Wert für den Cache-Control-Header: '{}'",
-    "cache_control_invalid_hint": "Verwenden Sie nur sichtbare ASCII-Zeichen (keine Steuerzeichen, keine Zeilenumbrüche).",
     "media_root_unusable": "Das MEDIA_ROOT-Verzeichnis '{}' kann nicht erstellt oder geöffnet werden: {}",
-    "media_root_unusable_hint": "Setzen Sie MEDIA_ROOT in Ihrer .env auf einen absoluten, beschreibbaren Pfad (z. B. MEDIA_ROOT=/var/www/meineapp/media) und stellen Sie sicher, dass der Prozess Schreibrechte hat.",
     "secret_key_weak": "SECRET_KEY fehlt, ist leer, hat den Standardwert oder ist kürzer als 32 Zeichen",
-    "secret_key_weak_hint": "Setzen Sie SECRET_KEY in Ihrer .env auf eine zufällige Zeichenkette mit mindestens 32 Zeichen (die `runique`-CLI kann eine erzeugen)",
     "public_url_missing": "Keine öffentliche URL: Reset-Links würden aus dem Host-Header der Anfrage gebaut",
-    "public_url_missing_hint": "Setzen Sie sie im Builder: .with_public_url(\"https://meineseite.de\")",
     "acme_domain_missing": "ACME_ENABLED=true, aber ACME_DOMAIN ist nicht gesetzt",
-    "acme_domain_missing_hint": "Setzen Sie ACME_DOMAIN in Ihrer .env auf Ihre Produktionsdomain",
     "acme_email_missing": "ACME_ENABLED=true, aber ACME_EMAIL ist nicht gesetzt",
-    "acme_email_missing_hint": "Setzen Sie ACME_EMAIL in Ihrer .env auf Ihre Let's-Encrypt-Kontaktadresse",
-    "suggestion": "Vorschlag",
-    "context": "Kontext",
     "mailer_missing": "Passwort-Zurücksetzung ohne Mailer: der Link könnte nie gesendet werden",
-    "mailer_missing_hint": "Legen Sie es in .env fest: EMAIL_BACKEND oder SMTP_HOST, SMTP_USER und SMTP_PASS"
+    "locales_invalid": "Der Übersetzungsordner des Projekts ist ungültig: {}"
+  },
+  "hint": {
+    "db_required": "Fügen Sie .with_database(db) oder .with_database_config(config) zu Ihrer Builder-Kette hinzu",
+    "admin_prefix_empty": "Verwenden Sie .prefix(\"/admin\") oder behalten Sie den Standardwert",
+    "cache_control_invalid": "Verwenden Sie nur sichtbare ASCII-Zeichen (keine Steuerzeichen, keine Zeilenumbrüche).",
+    "media_root_unusable": "Setzen Sie MEDIA_ROOT in Ihrer .env auf einen absoluten, beschreibbaren Pfad (z. B. MEDIA_ROOT=/var/www/meineapp/media) und stellen Sie sicher, dass der Prozess Schreibrechte hat.",
+    "secret_key_weak": "Setzen Sie SECRET_KEY in Ihrer .env auf eine zufällige Zeichenkette mit mindestens 32 Zeichen (die `runique`-CLI kann eine erzeugen)",
+    "public_url_missing": "Setzen Sie sie im Builder: .with_public_url(\"https://meineseite.de\")",
+    "acme_domain_missing": "Setzen Sie ACME_DOMAIN in Ihrer .env auf Ihre Produktionsdomain",
+    "acme_email_missing": "Setzen Sie ACME_EMAIL in Ihrer .env auf Ihre Let's-Encrypt-Kontaktadresse",
+    "mailer_missing": "Legen Sie es in .env fest: EMAIL_BACKEND oder SMTP_HOST, SMTP_USER und SMTP_PASS"
+  },
+  "label": {
+    "suggestion": "Vorschlag",
+    "context": "Kontext"
+  },
+  "log": {
+    "debug_in_prod": "DEBUG=true in Produktion: Alle Besucher sehen die detaillierten Fehlerseiten, und alle Log-Kanäle sind an — die Logs enthalten, was Besucher in Formulare eingeben (Passwörter ausgenommen). Abschalten, sobald das Problem gefunden ist",
+    "prune_failed": "Bereinigung verwaister Rechte fehlgeschlagen — veraltete Rechte können bleiben",
+    "locales_missing": "Übersetzungen des Projekts, Sprache „{}“: {} Meldung(en) von Runique nicht übersetzt ({}), in der Ersatzsprache angezeigt",
+    "locales_unknown": "Übersetzungen des Projekts, Sprache „{}“: Schlüssel, die Runique in einem seiner Themen nicht kennt, ohne Wirkung: {}",
+    "locales_placeholders": "Übersetzungen des Projekts, Sprache „{}“: andere Anzahl von Parametern als in der Meldung von Runique: {}"
   }
 }

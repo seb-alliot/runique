@@ -1,0 +1,15 @@
+{
+  "label": {
+    "title": "Accesso",
+    "subtitle": "Accedi per accedere al pannello di amministrazione",
+    "label_username": "Nome utente",
+    "label_password": "Password",
+    "btn_submit": "Accedi",
+    "back_to_site": "← Torna al sito"
+  },
+  "error": {
+    "session": "Errore durante l'apertura della sessione.",
+    "credentials": "Credenziali errate o diritti insufficienti.",
+    "locked": "Troppi tentativi. Account temporaneamente bloccato. Riprova tra {} secondi."
+  }
+}

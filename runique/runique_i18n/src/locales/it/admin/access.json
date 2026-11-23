@@ -1,0 +1,7 @@
+{
+  "error": {
+    "insufficient_rights": "Diritti insufficienti per accedere all'amministrazione",
+    "action_not_allowed": "Azione non consentita",
+    "still_responsable": "Questo account è ancora responsabile di gruppi: trasferiscili prima."
+  }
+}

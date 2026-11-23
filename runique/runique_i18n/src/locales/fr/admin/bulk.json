@@ -1,0 +1,9 @@
+{
+  "error": {
+    "no_selection": "Aucun élément sélectionné."
+  },
+  "info": {
+    "delete_success": "élément(s) supprimé(s).",
+    "update_success": "élément(s) mis à jour."
+  }
+}

@@ -1,4 +1,34 @@
 {
-  "stack_trace_title": "Detailed error trace",
-  "stack_trace_tip": "The highest error (level 0) is usually the root cause. Following errors show how the error propagated through the code."
+  "label": {
+    "info_title": "Debug Information",
+    "field_title": "Title",
+    "field_count": "Field Count",
+    "error_count": "Errors",
+    "main_message": "Main Message",
+    "root_cause": "Root Cause",
+    "details": "Additional Details",
+    "request_info": "Request Information",
+    "http_method": "HTTP Method",
+    "path": "Path",
+    "query_params": "Query Parameters",
+    "http_headers": "HTTP Headers",
+    "template_info": "Template Information",
+    "template_name": "Template Name",
+    "error_line": "Error Line",
+    "template_source": "Template Source Code",
+    "available_templates": "Available Templates",
+    "stack_trace_title": "Detailed Error Trace",
+    "stack_trace_tip": "The topmost error (level 0) is usually the root cause. Subsequent errors show how the error propagated through the code.",
+    "environment": "Environment",
+    "debug_mode": "Debug Mode",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "rust_version": "Rust Version",
+    "app_version": "App Version",
+    "runique_version": "Runique Version",
+    "occurred_at": "Error occurred at:",
+    "status_code": "Status Code",
+    "header_name": "Name",
+    "header_value": "Value"
+  }
 }

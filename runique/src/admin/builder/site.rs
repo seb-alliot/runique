@@ -64,8 +64,16 @@ fn default_groups() -> ModelAdmin<crate::auth::permissions::groupe::Entity> {
                 .sortable([Column::Nom])
                 .search([Column::Nom])
                 .filter([Column::IsStaff, Column::IsActive])
-                .action(Column::IsActive, true, t("admin.list.action_activate"))
-                .action(Column::IsActive, false, t("admin.list.action_deactivate"))
+                .action(
+                    Column::IsActive,
+                    true,
+                    t(runique_i18n::keys::admin::list::label::ACTION_ACTIVATE),
+                )
+                .action(
+                    Column::IsActive,
+                    false,
+                    t(runique_i18n::keys::admin::list::label::ACTION_DEACTIVATE),
+                )
         })
         .form(|f| f.fields([Column::Nom, Column::IsStaff, Column::IsActive]))
 }

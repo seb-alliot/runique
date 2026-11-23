@@ -73,7 +73,7 @@ impl FormField for DateField {
     }
 
     async fn validate(&mut self) -> bool {
-        if self.fails_required("forms.required") {
+        if self.fails_required(runique_i18n::keys::forms::error::REQUIRED) {
             return false;
         }
         let val = self.base.value.trim();
@@ -86,7 +86,7 @@ impl FormField for DateField {
         let date = match NaiveDate::parse_from_str(val, "%Y-%m-%d") {
             Ok(d) => d,
             Err(_) => {
-                self.set_error(t("forms.date_invalid").to_string());
+                self.set_error(t(runique_i18n::keys::forms::error::DATE_INVALID).to_string());
                 return false;
             }
         };
@@ -100,7 +100,9 @@ impl FormField for DateField {
                 .extra_context
                 .get("min_message")
                 .cloned()
-                .unwrap_or_else(|| json!(tf("forms.date_too_old", &[&min])));
+                .unwrap_or_else(|| {
+                    json!(tf(runique_i18n::keys::forms::error::DATE_TOO_OLD, &[&min]))
+                });
             self.set_error(msg.as_str().unwrap_or_default().to_string());
             return false;
         }
@@ -114,7 +116,9 @@ impl FormField for DateField {
                 .extra_context
                 .get("max_message")
                 .cloned()
-                .unwrap_or_else(|| json!(tf("forms.date_too_far", &[&max])));
+                .unwrap_or_else(|| {
+                    json!(tf(runique_i18n::keys::forms::error::DATE_TOO_FAR, &[&max]))
+                });
             self.set_error(msg.as_str().unwrap_or_default().to_string());
             return false;
         }
@@ -196,7 +200,7 @@ impl FormField for TimeField {
     }
 
     async fn validate(&mut self) -> bool {
-        if self.fails_required("forms.required") {
+        if self.fails_required(runique_i18n::keys::forms::error::REQUIRED) {
             return false;
         }
         let val = self.base.value.trim();
@@ -211,7 +215,7 @@ impl FormField for TimeField {
         {
             Ok(t) => t,
             Err(_) => {
-                self.set_error(t("forms.time_invalid").to_string());
+                self.set_error(t(runique_i18n::keys::forms::error::TIME_INVALID).to_string());
                 return false;
             }
         };
@@ -225,7 +229,9 @@ impl FormField for TimeField {
                 .extra_context
                 .get("min_message")
                 .cloned()
-                .unwrap_or_else(|| json!(tf("forms.time_too_old", &[&min])));
+                .unwrap_or_else(|| {
+                    json!(tf(runique_i18n::keys::forms::error::TIME_TOO_OLD, &[&min]))
+                });
             self.set_error(msg.as_str().unwrap_or_default().to_string());
             return false;
         }
@@ -239,7 +245,9 @@ impl FormField for TimeField {
                 .extra_context
                 .get("max_message")
                 .cloned()
-                .unwrap_or_else(|| json!(tf("forms.time_too_far", &[&max])));
+                .unwrap_or_else(|| {
+                    json!(tf(runique_i18n::keys::forms::error::TIME_TOO_FAR, &[&max]))
+                });
             self.set_error(msg.as_str().unwrap_or_default().to_string());
             return false;
         }
@@ -321,7 +329,7 @@ impl FormField for DateTimeField {
     }
 
     async fn validate(&mut self) -> bool {
-        if self.fails_required("forms.required") {
+        if self.fails_required(runique_i18n::keys::forms::error::REQUIRED) {
             return false;
         }
         let val = self.base.value.trim();
@@ -333,7 +341,7 @@ impl FormField for DateTimeField {
         let datetime = match parse_datetime_local(val) {
             Some(dt) => dt,
             None => {
-                self.set_error(t("forms.date_invalid").to_string());
+                self.set_error(t(runique_i18n::keys::forms::error::DATE_INVALID).to_string());
                 return false;
             }
         };
@@ -347,7 +355,12 @@ impl FormField for DateTimeField {
                 .extra_context
                 .get("min_message")
                 .cloned()
-                .unwrap_or_else(|| json!(tf("forms.datetime_too_old", &[&min])));
+                .unwrap_or_else(|| {
+                    json!(tf(
+                        runique_i18n::keys::forms::error::DATETIME_TOO_OLD,
+                        &[&min]
+                    ))
+                });
             self.set_error(msg.as_str().unwrap_or_default().to_string());
             return false;
         }
@@ -361,7 +374,12 @@ impl FormField for DateTimeField {
                 .extra_context
                 .get("max_message")
                 .cloned()
-                .unwrap_or_else(|| json!(tf("forms.datetime_too_far", &[&max])));
+                .unwrap_or_else(|| {
+                    json!(tf(
+                        runique_i18n::keys::forms::error::DATETIME_TOO_FAR,
+                        &[&max]
+                    ))
+                });
             self.set_error(msg.as_str().unwrap_or_default().to_string());
             return false;
         }
@@ -460,7 +478,7 @@ impl FormField for DurationField {
     }
 
     async fn validate(&mut self) -> bool {
-        if self.fails_required("forms.required") {
+        if self.fails_required(runique_i18n::keys::forms::error::REQUIRED) {
             return false;
         }
         let val = self.base.value.trim();
@@ -473,7 +491,7 @@ impl FormField for DurationField {
         let seconds = match val.parse::<u64>() {
             Ok(s) => s,
             Err(_) => {
-                self.set_error(t("forms.duration_invalid").to_string());
+                self.set_error(t(runique_i18n::keys::forms::error::DURATION_INVALID).to_string());
                 return false;
             }
         };
@@ -487,7 +505,12 @@ impl FormField for DurationField {
                 .extra_context
                 .get("min_message")
                 .cloned()
-                .unwrap_or_else(|| json!(tf("forms.duration_too_short", &[&min])));
+                .unwrap_or_else(|| {
+                    json!(tf(
+                        runique_i18n::keys::forms::error::DURATION_TOO_SHORT,
+                        &[&min]
+                    ))
+                });
             self.set_error(msg.as_str().unwrap_or_default().to_string());
             return false;
         }
@@ -501,7 +524,12 @@ impl FormField for DurationField {
                 .extra_context
                 .get("max_message")
                 .cloned()
-                .unwrap_or_else(|| json!(tf("forms.duration_too_long", &[&max])));
+                .unwrap_or_else(|| {
+                    json!(tf(
+                        runique_i18n::keys::forms::error::DURATION_TOO_LONG,
+                        &[&max]
+                    ))
+                });
             self.set_error(msg.as_str().unwrap_or_default().to_string());
             return false;
         }

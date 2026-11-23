@@ -1,0 +1,16 @@
+{
+  "write": "Schreibvorgang im Admin",
+  "outcome_saved": "gespeichert",
+  "outcome_save_refused": "Speichern abgelehnt",
+  "outcome_deleted": "gelöscht",
+  "outcome_delete_refused": "Löschen abgelehnt",
+  "bulk_done": "Sammelaktion ausgeführt",
+  "bulk_refused": "Sammelaktion abgelehnt",
+  "list": "Admin-Liste",
+  "boot_admin": "Admin",
+  "boot_model": "Admin-Modell",
+  "boot_route": "deklarierte Admin-Route",
+  "boot_no_guard": "die Admin-Anmeldung hat weder LoginGuard noch Rate-Limiter: Passwortversuche sind unbegrenzt (`with_login_guard`, `with_rate_limiter`)",
+  "boot_options_without_effect": "Admin-Listenoptionen akzeptiert, aber noch von keiner Seite angezeigt",
+  "boot_stylesheets_missing": "Runique-Stylesheets für den Admin nicht gefunden: STATIC_RUNIQUE_PATH prüfen"
+}

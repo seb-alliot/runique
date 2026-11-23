@@ -1,0 +1,15 @@
+{
+  "label": {
+    "title": "Login",
+    "subtitle": "Sign in to access the admin panel",
+    "label_username": "Username",
+    "label_password": "Password",
+    "btn_submit": "Sign in",
+    "back_to_site": "← Back to the site"
+  },
+  "error": {
+    "session": "Error while opening session.",
+    "credentials": "Incorrect credentials or insufficient rights.",
+    "locked": "Too many attempts. Account temporarily locked. Try again in {} seconds."
+  }
+}

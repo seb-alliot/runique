@@ -1,6 +1,7 @@
 //! `GET/POST {admin}/groupes/{id}/transfer`: a group handed to another
 //! responsable. The GET shows what the transfer does (the rights the members
 //! lose), writing nothing; the POST makes it, for those losses only.
+use super::rights::{column_right_label, right_text, table_right_label};
 use crate::admin::builder::confirm_form::ConfirmForm;
 use crate::admin::builder::registered::AdminError;
 use crate::admin::builder::site::AdminSite;
@@ -51,12 +52,12 @@ fn right_label(line: &crate::auth::gate::transfer::Line, site: &AdminSite) -> (S
         .model(&line.resource_key)
         .map_or_else(|| line.resource_key.clone(), |m| m.title());
     let right = if line.colonne.is_empty() {
-        t(&format!("admin.rights.right_{}", line.right)).into_owned()
+        right_text(table_right_label(line.right), line.right)
     } else {
         format!(
             "{} : {}",
             line.colonne,
-            t(&format!("admin.rights.col_{}", line.right))
+            right_text(column_right_label(line.right), line.right)
         )
     };
     (table, right)
@@ -99,9 +100,11 @@ pub(crate) async fn transfer_view(
         let field = |name: &str| req.prisme.data.get(name).cloned().unwrap_or_default();
         let (to, shown) = (field(TO), field(SHOWN));
         let outcome = match ValidationForm::try_form(form, &req).await {
-            Err(_) => Err(t("csrf.invalid_or_missing").into_owned()),
+            Err(_) => Err(t(runique_i18n::keys::csrf::error::INVALID_OR_MISSING).into_owned()),
             Ok(_) => match (to.parse::<Pk>(), ticked(&req)) {
-                (Err(_), _) => Err(t("admin.transfer.unsuitable").into_owned()),
+                (Err(_), _) => {
+                    Err(t(runique_i18n::keys::admin::transfer::error::UNSUITABLE).into_owned())
+                }
                 (_, None) => Err(Refusal::new(RefusalReason::NoRight).message()),
                 (Ok(to), Some(keep)) => {
                     transfer_group(&user, groupe_id, to, &shown, &keep, &req.engine.db)
@@ -112,11 +115,15 @@ pub(crate) async fn transfer_view(
         };
         return match outcome {
             Ok(Transfer::Done) => {
-                req.notices.success(t("admin.transfer.success")).await;
+                req.notices
+                    .success(t(runique_i18n::keys::admin::transfer::info::SUCCESS))
+                    .await;
                 Ok(Redirect::to(&back).into_response())
             }
             Ok(Transfer::Changed) => {
-                req.notices.warning(t("admin.transfer.changed")).await;
+                req.notices
+                    .warning(t(runique_i18n::keys::admin::transfer::error::CHANGED))
+                    .await;
                 let again = format!("{here}?{TO}={}", urlencoding::encode(&to));
                 Ok(Redirect::to(&again).into_response())
             }
@@ -128,7 +135,9 @@ pub(crate) async fn transfer_view(
     }
 
     let Some(to) = params.get(TO).and_then(|to| to.parse::<Pk>().ok()) else {
-        req.notices.error(t("admin.transfer.unsuitable")).await;
+        req.notices
+            .error(t(runique_i18n::keys::admin::transfer::error::UNSUITABLE))
+            .await;
         return Ok(Redirect::to(&back).into_response());
     };
     let plan = match plan(&user, groupe_id, to, &req.engine.db).await {

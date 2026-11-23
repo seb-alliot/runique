@@ -79,7 +79,7 @@ pub async fn resolve(db: &ADb, token: &str) -> Option<Pk> {
         .await
         .trace(
             crate::utils::runique_log::log_level!(db.query),
-            "log.db.read_reset_token",
+            runique_i18n::keys::database::log::READ_RESET_TOKEN,
         )
         .flatten()
         .map(|row| row.user_id)

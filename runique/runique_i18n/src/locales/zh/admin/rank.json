@@ -1,0 +1,11 @@
+{
+  "label": {
+    "superuser": "超级用户",
+    "lambda": "网站账户",
+    "admin": "管理员",
+    "dirigeant": "负责人"
+  },
+  "info": {
+    "success": "等级已修改（{}）"
+  }
+}

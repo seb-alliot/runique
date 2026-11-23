@@ -37,12 +37,18 @@ pub(crate) async fn bulk_view(
     match model.bulk(&req, &user, admin.config.page_size).await {
         Ok(BulkOutcome::Updated(n)) => {
             req.notices
-                .success(format!("{n} {}", t("admin.bulk.update_success")))
+                .success(format!(
+                    "{n} {}",
+                    t(runique_i18n::keys::admin::bulk::info::UPDATE_SUCCESS)
+                ))
                 .await;
         }
         Ok(BulkOutcome::Deleted(n)) => {
             req.notices
-                .success(format!("{n} {}", t("admin.bulk.delete_success")))
+                .success(format!(
+                    "{n} {}",
+                    t(runique_i18n::keys::admin::bulk::info::DELETE_SUCCESS)
+                ))
                 .await;
         }
         Ok(BulkOutcome::Refused(message)) => req.notices.error(message).await,

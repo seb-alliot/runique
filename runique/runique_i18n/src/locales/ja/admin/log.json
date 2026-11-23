@@ -1,0 +1,16 @@
+{
+  "write": "管理画面での書き込み",
+  "outcome_saved": "保存済み",
+  "outcome_save_refused": "保存を拒否",
+  "outcome_deleted": "削除済み",
+  "outcome_delete_refused": "削除を拒否",
+  "bulk_done": "一括操作を実行",
+  "bulk_refused": "一括操作を拒否",
+  "list": "管理画面の一覧",
+  "boot_admin": "管理画面",
+  "boot_model": "管理画面のモデル",
+  "boot_route": "管理画面の宣言済みルート",
+  "boot_no_guard": "管理画面のログインに LoginGuard もレート制限もない：パスワード試行が無制限（`with_login_guard`、`with_rate_limiter`）",
+  "boot_options_without_effect": "管理画面の一覧オプションは受け付けたが、まだどのページにも表示されない",
+  "boot_stylesheets_missing": "管理画面用の Runique スタイルシートが見つからない：STATIC_RUNIQUE_PATH を確認"
+}

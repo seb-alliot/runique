@@ -1,0 +1,25 @@
+{
+  "label": {
+    "title": "权限",
+    "subtitle": "该管理员可执行的操作，按表和按列设置。未勾选的列既不可读也不可写。",
+    "go_to_table": "跳转到表",
+    "toc": "表",
+    "btn_cancel": "取消",
+    "btn_save": "保存",
+    "th_column": "列",
+    "col_read": "读取",
+    "col_create": "创建",
+    "col_update": "修改",
+    "right_create": "创建",
+    "right_read": "列出 / 读取",
+    "right_read_own": "读取自己的",
+    "right_update": "修改",
+    "right_update_own": "修改自己的",
+    "right_delete": "删除",
+    "right_delete_own": "删除自己的",
+    "group_subtitle": "该用户组成员可执行的操作，按表和按列设置。未勾选的列既不可读也不可写。",
+    "group_label": "用户组",
+    "btn_show": "显示",
+    "group_sheet": "用户组详情"
+  }
+}

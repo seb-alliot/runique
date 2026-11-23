@@ -1,0 +1,16 @@
+{
+  "write": "admin write",
+  "outcome_saved": "saved",
+  "outcome_save_refused": "save refused",
+  "outcome_deleted": "deleted",
+  "outcome_delete_refused": "delete refused",
+  "bulk_done": "bulk action done",
+  "bulk_refused": "bulk action refused",
+  "list": "admin list",
+  "boot_admin": "admin",
+  "boot_model": "admin model",
+  "boot_route": "admin declared route",
+  "boot_no_guard": "admin sign-in has neither a LoginGuard nor a rate limiter: password attempts are unlimited (`with_login_guard`, `with_rate_limiter`)",
+  "boot_options_without_effect": "admin list options accepted but shown by no page yet",
+  "boot_stylesheets_missing": "admin stylesheets of Runique not found: check STATIC_RUNIQUE_PATH"
+}

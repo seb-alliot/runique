@@ -1,0 +1,12 @@
+{
+  "label": {
+    "title": "Amministrazione",
+    "breadcrumb": "Admin",
+    "toggle": "Comprimi menu",
+    "logout_title": "Disconnessione",
+    "theme_toggle": "Cambia tema",
+    "back_to_site": "← Sito",
+    "dashboard": "Dashboard",
+    "history": "Cronologia"
+  }
+}

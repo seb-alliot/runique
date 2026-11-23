@@ -26,7 +26,7 @@ pub async fn up(entities_path: &str, migrations_path: &str) -> Result<()> {
     super::project_pk::with_project_pk(entities_path, || {
         record_applied(entities_path, migrations_path)
     })?;
-    println!("{}", t("migrate.complete_up"));
+    println!("{}", t(runique_i18n::keys::migrate::info::COMPLETE_UP));
     Ok(())
 }
 
@@ -121,7 +121,7 @@ pub fn record_applied(entities_path: &str, migrations_path: &str) -> Result<()> 
 /// Rolls back the last `n` applied migrations.
 pub async fn down(migrations_path: &str, n: u32) -> Result<()> {
     run(migrations_path, &["down", "-n", &n.to_string()]).await?;
-    println!("{}", t("migrate.complete_down"));
+    println!("{}", t(runique_i18n::keys::migrate::info::COMPLETE_DOWN));
     Ok(())
 }
 
@@ -155,7 +155,13 @@ async fn run(migrations_path: &str, args: &[&str]) -> Result<()> {
     // Checked first: cargo's own error for a wrong path is a raw "manifest
     // path does not exist".
     if !manifest.is_file() {
-        anyhow::bail!("{}", tf("migrate.crate_missing", &[migration_dir]));
+        anyhow::bail!(
+            "{}",
+            tf(
+                runique_i18n::keys::migrate::error::CRATE_MISSING,
+                &[migration_dir]
+            )
+        );
     }
 
     // A `makemigrations` the power cut short left files it will take back:
@@ -163,11 +169,20 @@ async fn run(migrations_path: &str, args: &[&str]) -> Result<()> {
     // no file, the one that wrote them puts them right.
     for dir in [migration_dir, migrations_path] {
         if crate::atomic::interrupted(std::path::Path::new(dir)) {
-            anyhow::bail!("{}", tf("migrate.interrupted", &[dir]));
+            anyhow::bail!(
+                "{}",
+                tf(runique_i18n::keys::migrate::error::INTERRUPTED, &[dir])
+            );
         }
     }
 
-    println!("{}", tf("migrate.running", &[args[0], migration_dir]));
+    println!(
+        "{}",
+        tf(
+            runique_i18n::keys::migrate::info::RUNNING,
+            &[args[0], migration_dir]
+        )
+    );
 
     let mut command = tokio::process::Command::new("cargo");
     command
@@ -182,20 +197,27 @@ async fn run(migrations_path: &str, args: &[&str]) -> Result<()> {
     // Through the crate's environment, never as an argument: the URL holds the
     // password, and arguments can be read by every user of the machine.
     let config = configuration(|key| std::env::var(key).ok())?;
-    let (connection, answered) = config
-        .connect_resolved()
-        .await
-        .map_err(|e| anyhow::anyhow!(tf("makemigrations.database_unreachable", &[e])))?;
-    drop(connection);
+    let (_, answered) = config.connect_resolved().await.map_err(|e| {
+        anyhow::anyhow!(tf(
+            runique_i18n::keys::makemigrations::error::DATABASE_UNREACHABLE,
+            &[e]
+        ))
+    })?;
     command.env("DATABASE_URL", &answered.url);
     let status = command
         .status()
         .await
-        .with_context(|| t("migrate.cargo_missing").into_owned())?;
+        .with_context(|| t(runique_i18n::keys::migrate::error::CARGO_MISSING).into_owned())?;
 
     if !status.success() {
         let code = format!("{:?}", status.code());
-        anyhow::bail!("{}", tf("migrate.failed", &[args[0], code.as_str()]));
+        anyhow::bail!(
+            "{}",
+            tf(
+                runique_i18n::keys::migrate::error::FAILED,
+                &[args[0], code.as_str()]
+            )
+        );
     }
     Ok(())
 }
@@ -228,7 +250,10 @@ mod tests {
         ] {
             assert_eq!(
                 outcome.unwrap_err().to_string(),
-                tf("migrate.interrupted", &[path.as_str()])
+                tf(
+                    runique_i18n::keys::migrate::error::INTERRUPTED,
+                    &[path.as_str()]
+                )
             );
         }
     }
@@ -243,7 +268,10 @@ mod tests {
 
         assert_eq!(
             up("src/entities", &path).await.unwrap_err().to_string(),
-            tf("migrate.interrupted", &[crate_dir.to_str().unwrap()])
+            tf(
+                runique_i18n::keys::migrate::error::INTERRUPTED,
+                &[crate_dir.to_str().unwrap()]
+            )
         );
     }
 

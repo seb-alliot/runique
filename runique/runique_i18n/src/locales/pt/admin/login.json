@@ -1,0 +1,15 @@
+{
+  "label": {
+    "title": "Entrar",
+    "subtitle": "Faça login para acessar o painel de administração",
+    "label_username": "Nome de usuário",
+    "label_password": "Senha",
+    "btn_submit": "Entrar",
+    "back_to_site": "← Voltar ao site"
+  },
+  "error": {
+    "session": "Erro ao abrir a sessão.",
+    "credentials": "Credenciais incorretas ou direitos insuficientes.",
+    "locked": "Muitas tentativas. Conta temporariamente bloqueada. Tente novamente em {} segundos."
+  }
+}

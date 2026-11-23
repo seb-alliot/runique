@@ -30,6 +30,7 @@ pk-uuid = ["runique/pk-uuid"]
 runique.workspace = true
 runique_dsl.workspace = true
 runique_atomic.workspace = true
+runique_i18n.workspace = true
 clap.workspace = true
 anyhow.workspace = true
 tokio.workspace = true

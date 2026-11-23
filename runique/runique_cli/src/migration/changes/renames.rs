@@ -104,7 +104,7 @@ pub fn settle_renamed_keys(changes: &mut [Changes]) -> Result<()> {
                 anyhow::bail!(
                     "{}",
                     tf(
-                        "makemigrations.rename_with_new_key",
+                        runique_i18n::keys::makemigrations::error::RENAME_WITH_NEW_KEY,
                         &[&change.table_name, &fk.to_table]
                     )
                 );

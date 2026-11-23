@@ -1,0 +1,22 @@
+{
+  "label": {
+    "400": "400",
+    "413": "413",
+    "404": "404",
+    "500": "500",
+    "429": "429",
+    "503": "503",
+    "back_home": "Zurück zur Startseite",
+    "critical": "Kritischer Fehler"
+  },
+  "error": {
+    "400": "Ungültige Anfrage: Die Parameter der Adresse sind ungültig.",
+    "413": "Upload zu gross: Verkleinern Sie ihn und versuchen Sie es erneut.",
+    "404": "Seite nicht gefunden",
+    "500": "Interner Serverfehler",
+    "429": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut.",
+    "503": "Dienst wegen hoher Auslastung vorübergehend nicht verfügbar. Bitte versuchen Sie es in Kürze erneut.",
+    "critical_text": "Das Fehlerbehandlungssystem ist selbst auf einen Fehler gestoßen.",
+    "critical_contact": "Diese Situation sollte niemals auftreten. Bitte kontaktieren Sie den Systemadministrator."
+  }
+}

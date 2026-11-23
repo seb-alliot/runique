@@ -1,0 +1,11 @@
+{
+  "label": {
+    "superuser": "Superusuario",
+    "lambda": "Cuenta del sitio",
+    "admin": "Admin",
+    "dirigeant": "Director"
+  },
+  "info": {
+    "success": "Rango modificado ({})"
+  }
+}

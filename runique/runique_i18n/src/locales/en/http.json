@@ -1,0 +1,22 @@
+{
+  "label": {
+    "400": "400",
+    "413": "413",
+    "404": "404",
+    "500": "500",
+    "429": "429",
+    "503": "503",
+    "back_home": "Back to home",
+    "critical": "Critical Error"
+  },
+  "error": {
+    "400": "Bad request: the address parameters are not valid.",
+    "413": "Upload too large: reduce its size and try again.",
+    "404": "Page not found",
+    "500": "Internal server error",
+    "429": "Too many requests. Please wait a moment before trying again.",
+    "503": "Service temporarily unavailable due to high load. Please try again shortly.",
+    "critical_text": "The error handling system itself encountered an error.",
+    "critical_contact": "This should never happen. Please contact the system administrator."
+  }
+}

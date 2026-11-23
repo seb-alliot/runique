@@ -232,8 +232,11 @@ fn build_error_context(
     if response.status() == StatusCode::NOT_FOUND {
         ErrorContext::not_found(&request_helper.path).with_request_helper(request_helper)
     } else {
-        ErrorContext::generic(response.status(), &t("error.internal_occurred"))
-            .with_request_helper(request_helper)
+        ErrorContext::generic(
+            response.status(),
+            &t(runique_i18n::keys::app::error::INTERNAL_OCCURRED),
+        )
+        .with_request_helper(request_helper)
     }
 }
 
@@ -322,9 +325,25 @@ fn status_icon(status: StatusCode) -> &'static str {
     }
 }
 
-/// The page of a status: `{code}.html`, with the `html.{code}_title` text and
-/// `text` (by default `html.{code}_text`) in the visitor's language. A
-/// project replaces one status's page by declaring its own `{code}.html`.
+/// The title and the default text of the page of a status; `None` for a
+/// status Runique has no message for.
+fn status_messages(code: u16) -> Option<(&'static str, &'static str)> {
+    use runique_i18n::keys::http::{error, label};
+    Some(match code {
+        400 => (label::CODE_400, error::CODE_400),
+        404 => (label::CODE_404, error::CODE_404),
+        413 => (label::CODE_413, error::CODE_413),
+        429 => (label::CODE_429, error::CODE_429),
+        500 => (label::CODE_500, error::CODE_500),
+        503 => (label::CODE_503, error::CODE_503),
+        _ => return None,
+    })
+}
+
+/// The page of a status: `{code}.html`, with its title and `text` (by default
+/// the status's own message) in the visitor's language; a status without a
+/// message of its own shows its code and its standard name. A project
+/// replaces one status's page by declaring its own `{code}.html`.
 fn render_status_page(
     tera: &Tera,
     config: &RuniqueConfig,
@@ -333,16 +352,23 @@ fn render_status_page(
     text: Option<&str>,
 ) -> Response {
     let code = status.as_u16();
-    let text = text.map_or_else(
-        || t(&format!("html.{code}_text")),
-        |text| text.to_owned().into(),
-    );
+    let (title, default_text): (
+        std::borrow::Cow<'static, str>,
+        std::borrow::Cow<'static, str>,
+    ) = match status_messages(code) {
+        Some((title, text)) => (t(title), t(text)),
+        None => (
+            code.to_string().into(),
+            status.canonical_reason().unwrap_or_default().into(),
+        ),
+    };
+    let text = text.map_or(default_text, |text| text.to_owned().into());
     let mut context = Context::new();
     inject_global_vars(&mut context, config, csrf_token);
-    context.insert("error_title", &t(&format!("html.{code}_title")));
+    context.insert("error_title", &title);
     context.insert("error_text", &text);
     context.insert("error_icon", status_icon(status));
-    context.insert("back_home", &t("html.back_home"));
+    context.insert("back_home", &t(runique_i18n::keys::http::label::BACK_HOME));
 
     let template = format!("{code}.html");
     let mut response = match tera.render(&template, &context) {
@@ -357,9 +383,8 @@ fn render_status_page(
 }
 
 fn insert_debug_messages(context: &mut Context) {
-    for key in DEBUG_MESSAGE_KEYS {
-        let translation_key = format!("TemplateMessage.{key}");
-        context.insert(*key, &t(&translation_key));
+    for (variable, key) in DEBUG_MESSAGE_KEYS {
+        context.insert(*variable, &t(key));
     }
 }
 
@@ -422,7 +447,7 @@ fn fallback_status_html(status: StatusCode, text: &str) -> Response {
         "<!DOCTYPE html><html lang=\"{lang}\"><head><meta charset=\"UTF-8\"><title>{code}</title></head><body><h1>{code}</h1><p>{text}</p><a href=\"/\">{back}</a></body></html>",
         lang = crate::utils::trad::current_lang().code(),
         text = html_escape(text),
-        back = html_escape(&t("html.back_home")),
+        back = html_escape(&t(runique_i18n::keys::http::label::BACK_HOME)),
     );
     (status, Html(html)).into_response()
 }
@@ -484,10 +509,10 @@ fn critical_error_html(error: &str) -> Response {
 </body>
 </html>"#,
         lang = lang,
-        title_tag = t("html.critical_error_title"),
-        title = t("html.critical_error_title"),
-        text = t("html.critical_error_text"),
-        contact = t("html.critical_error_contact"),
+        title_tag = t(runique_i18n::keys::http::label::CRITICAL),
+        title = t(runique_i18n::keys::http::label::CRITICAL),
+        text = t(runique_i18n::keys::http::error::CRITICAL_TEXT),
+        contact = t(runique_i18n::keys::http::error::CRITICAL_CONTACT),
         error = html_escape(error),
     );
     (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response()
@@ -601,5 +626,34 @@ mod tests {
     fn test_critical_error_html_escapes_input() {
         let resp = super::critical_error_html("<script>alert(1)</script>");
         assert_eq!(resp.status(), axum::http::StatusCode::INTERNAL_SERVER_ERROR);
+    }
+}
+
+#[cfg(test)]
+mod status_messages_tests {
+    use super::status_messages;
+    use crate::utils::trad::t;
+
+    // Each status Runique has a page for has its title and its text, both
+    // of that status, and both exist.
+    #[test]
+    fn each_status_has_its_title_and_its_text() {
+        for code in [400u16, 404, 413, 429, 500, 503] {
+            let (title, text) = status_messages(code).unwrap_or_else(|| panic!("{code}: none"));
+            assert_eq!(title, format!("http.label.{code}"));
+            assert_eq!(text, format!("http.error.{code}"));
+            assert_ne!(t(title), title, "{code}: no title");
+            assert_ne!(t(text), text, "{code}: no text");
+        }
+    }
+
+    // Any other status has none: its page shows the code, never a key.
+    #[test]
+    fn a_status_without_a_page_has_no_message() {
+        for code in [
+            0u16, 200, 301, 401, 403, 405, 418, 422, 499, 501, 502, 504, 999,
+        ] {
+            assert_eq!(status_messages(code), None, "{code}");
+        }
     }
 }

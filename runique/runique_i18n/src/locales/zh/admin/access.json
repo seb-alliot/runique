@@ -1,0 +1,7 @@
+{
+  "error": {
+    "insufficient_rights": "访问管理权限不足",
+    "action_not_allowed": "不允许此操作",
+    "still_responsable": "此账户仍负责若干用户组：请先移交。"
+  }
+}

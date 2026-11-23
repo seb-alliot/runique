@@ -1,20 +1,25 @@
 {
-  "forgot_title": "Forgot password",
-  "reset_title": "New password",
-  "success_title": "Password reset",
-  "email_label": "Email address",
-  "new_password_label": "New password",
-  "confirm_label": "Confirm password",
-  "email_mismatch": "The email address does not match the link.",
-  "invalid_link": "Invalid link.",
-  "invalid_or_expired": "Reset link is invalid or expired.",
-  "password_min_length": "Password must be at least {} characters.",
-  "password_weak": "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character (!@#$%...).",
-  "password_mismatch": "Passwords do not match.",
-  "check_inbox": "If this address is linked to an account, you will receive an email with instructions.",
-  "blocked_subject": "Your account is blocked",
-  "blocked_body": "<p>Hello {},</p><p>A password reset was requested for your account, but this account is blocked. Contact the site administrator to unblock it.</p><p>If you did not make this request, ignore this email.</p>",
-  "email_subject": "Password reset request",
-  "email_body": "<p>Hello {},</p><p>Click the link below to reset your password (valid for {} min):</p><p><a href=\"{}\">{}</a></p>",
-  "unavailable": "Password reset by email is not available right now."
+  "label": {
+    "forgot_title": "Forgot password",
+    "reset_title": "New password",
+    "success_title": "Password reset",
+    "email_label": "Email address",
+    "new_password_label": "New password",
+    "confirm_label": "Confirm password",
+    "blocked_subject": "Your account is blocked",
+    "blocked_body": "<p>Hello {},</p><p>A password reset was requested for your account, but this account is blocked. Contact the site administrator to unblock it.</p><p>If you did not make this request, ignore this email.</p>",
+    "email_subject": "Password reset request",
+    "email_body": "<p>Hello {},</p><p>Click the link below to reset your password (valid for {} min):</p><p><a href=\"{}\">{}</a></p>"
+  },
+  "error": {
+    "email_mismatch": "The email address does not match the link.",
+    "invalid_or_expired": "Reset link is invalid or expired.",
+    "password_min_length": "Password must be at least {} characters.",
+    "password_weak": "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character (!@#$%...).",
+    "password_mismatch": "Passwords do not match.",
+    "unavailable": "Password reset by email is not available right now."
+  },
+  "info": {
+    "check_inbox": "If this address is linked to an account, you will receive an email with instructions."
+  }
 }

@@ -1,0 +1,32 @@
+{
+  "label": {
+    "subtitle": "As criações, alterações e exclusões feitas no admin.",
+    "whole_row": "Todo o histórico desta linha",
+    "th_column": "Coluna",
+    "th_old": "Antes",
+    "th_new": "Depois",
+    "no_changes": "Nenhuma alteração legível",
+    "all_resources": "Todos os recursos",
+    "all_actions": "Todas as ações",
+    "action_create": "Criado",
+    "action_update": "Alterado",
+    "action_delete": "Excluído",
+    "btn_filter": "Filtrar",
+    "btn_reset": "Redefinir",
+    "th_date": "Data",
+    "th_account": "Conta",
+    "th_resource": "Recurso",
+    "th_object": "Objeto",
+    "th_action": "Ação",
+    "btn_entry": "Detalhe",
+    "empty": "Nenhuma ação registrada",
+    "badge_create": "criado",
+    "badge_update": "alterado",
+    "badge_delete": "excluído",
+    "badge_rights": "direitos alterados",
+    "badge_rank": "nível alterado",
+    "badge_reset_password": "link de senha enviado",
+    "badge_groups": "Grupos",
+    "badge_transfer": "Transferência"
+  }
+}

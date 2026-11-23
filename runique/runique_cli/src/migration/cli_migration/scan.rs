@@ -118,7 +118,13 @@ pub fn scan_models(entities_path: &str) -> Result<ScannedEntities> {
     let mut seen = std::collections::HashSet::new();
     for table in schemas.iter().map(|s| &s.table_name).chain(&paused) {
         if !seen.insert(table.as_str()) {
-            anyhow::bail!("{}", tf("makemigrations.duplicate_table", &[table]));
+            anyhow::bail!(
+                "{}",
+                tf(
+                    runique_i18n::keys::makemigrations::error::DUPLICATE_TABLE,
+                    &[table]
+                )
+            );
         }
     }
     Ok(ScannedEntities {

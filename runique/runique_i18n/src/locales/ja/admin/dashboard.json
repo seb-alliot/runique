@@ -1,0 +1,23 @@
+{
+  "label": {
+    "subtitle": "アプリケーションの概要",
+    "card_resources": "リソース",
+    "th_resource": "リソース",
+    "th_key": "キー",
+    "th_permissions": "権限",
+    "th_actions": "アクション",
+    "btn_list": "一覧",
+    "btn_create": "作成",
+    "see_list": "リストを見る →",
+    "empty_title": "登録されたリソースがありません",
+    "empty_desc": "src/admin.rs で型付き ModelAdmin ビルダーにモデルを登録し、cargo run してください",
+    "kpi_resources": "リソース",
+    "kpi_entries": "エントリー総数",
+    "kpi_largest": "最大",
+    "th_count": "エントリー",
+    "toggle_template": "← 設定済みテンプレート",
+    "my_groups_title": "マイグループ",
+    "my_groups_staff": "スタッフ",
+    "my_groups_none": "このグループはテーブルへの権限を与えません。"
+  }
+}

@@ -1010,7 +1010,10 @@ fn an_unreadable_snapshot_is_refused_by_its_path() {
 
         assert_eq!(
             read_all(&path).unwrap_err().to_string(),
-            tf("makemigrations.snapshot_unreadable", &[shown]),
+            tf(
+                runique_i18n::keys::makemigrations::error::SNAPSHOT_UNREADABLE,
+                &[shown]
+            ),
             "{name}: {content}"
         );
     }
@@ -1028,7 +1031,7 @@ fn a_snapshot_named_after_another_table_is_refused() {
     assert_eq!(
         read_all(&path).unwrap_err().to_string(),
         tf(
-            "makemigrations.snapshot_misnamed",
+            runique_i18n::keys::makemigrations::error::SNAPSHOT_MISNAMED,
             &[shown.as_str(), "plats"]
         )
     );
@@ -1491,7 +1494,7 @@ fn two_migrations_of_a_table_from_the_same_point_are_refused() {
     assert_eq!(
         check_parallel(&path).unwrap_err().to_string(),
         tf(
-            "makemigrations.parallel_changes",
+            runique_i18n::keys::makemigrations::error::PARALLEL_CHANGES,
             &[format!("menus: {a}, {b}")]
         )
     );

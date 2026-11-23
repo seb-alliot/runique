@@ -161,7 +161,7 @@ pub async fn is_authenticated(session: &Session) -> bool {
         .await
         .trace(
             crate::utils::runique_log::log_level!(session.store),
-            "log.session.read_account",
+            runique_i18n::keys::session::log::READ_ACCOUNT,
         )
         .flatten()
         .is_some()
@@ -175,7 +175,7 @@ pub(crate) async fn get_user_id(session: &Session) -> Option<Pk> {
         .await
         .trace(
             crate::utils::runique_log::log_level!(session.store),
-            "log.session.read_account",
+            runique_i18n::keys::session::log::READ_ACCOUNT,
         )
         .flatten()
 }
@@ -398,10 +398,13 @@ pub enum LoginError {
 impl std::fmt::Display for LoginError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::CannotSignIn => f.write_str(&crate::utils::trad::t("auth.login_cannot_sign_in")),
-            Self::Session(e) => {
-                f.write_str(&crate::utils::trad::tf("auth.login_session_failed", &[e]))
-            }
+            Self::CannotSignIn => f.write_str(&crate::utils::trad::t(
+                runique_i18n::keys::auth::error::LOGIN_CANNOT_SIGN_IN,
+            )),
+            Self::Session(e) => f.write_str(&crate::utils::trad::tf(
+                runique_i18n::keys::auth::error::LOGIN_SESSION_FAILED,
+                &[e],
+            )),
         }
     }
 }
@@ -425,7 +428,7 @@ pub(crate) async fn session_is_current(session: &Session, user: &impl RuniqueUse
         .await
         .trace(
             crate::utils::runique_log::log_level!(session.store),
-            "log.session.read_version",
+            runique_i18n::keys::session::log::READ_VERSION,
         )
         .flatten()
         .unwrap_or(0);

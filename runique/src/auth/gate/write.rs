@@ -54,7 +54,9 @@ fn driver_reports_foreign_key(_: &sea_orm::DbErr) -> bool {
 pub(crate) fn linked_delete_error(err: sea_orm::DbErr) -> sea_orm::DbErr {
     if is_foreign_key_violation(&err) {
         tracing::warn!(error = %err, "delete blocked by a foreign key");
-        sea_orm::DbErr::Custom(crate::utils::trad::t("forms.delete_linked").into_owned())
+        sea_orm::DbErr::Custom(
+            crate::utils::trad::t(runique_i18n::keys::forms::error::DELETE_LINKED).into_owned(),
+        )
     } else {
         err
     }

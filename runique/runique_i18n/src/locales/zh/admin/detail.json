@@ -1,0 +1,19 @@
+{
+  "label": {
+    "title": "详情",
+    "breadcrumb": "详情",
+    "entry_label": "条目",
+    "btn_list": "← 列表",
+    "btn_edit": "编辑",
+    "btn_delete": "删除",
+    "confirm_delete": "删除此条目？",
+    "btn_reset_password": "重置密码",
+    "btn_reset_password_short": "重置",
+    "btn_rights": "权限",
+    "btn_rank": "修改等级",
+    "groups_title": "此账户的用户组",
+    "btn_save_groups": "分配",
+    "transfer_title": "用户组负责人",
+    "btn_transfer": "移交"
+  }
+}

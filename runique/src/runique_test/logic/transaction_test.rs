@@ -58,7 +58,9 @@ impl TestTransaction for ADb {
         // Without either key, the config would quietly fall back to a local
         // SQLite file: the test database has to be named on purpose.
         if !vars.contains_key("DATABASE_URL") && !vars.contains_key("DB_ENGINE") {
-            return Err(DbErr::Custom(msg("runique_test.no_db_config").into_owned()));
+            return Err(DbErr::Custom(
+                msg(runique_i18n::keys::runique_test::error::NO_DB_CONFIG).into_owned(),
+            ));
         }
         // The file only: a key missing from it must not be filled in from the
         // shell, where it could point anywhere (production included).
@@ -73,7 +75,10 @@ impl TestTransaction for ADb {
     fn describe(config: &DatabaseConfig) -> String {
         let target = format!("{} — {}", config.engine.name(), mask_password(&config.url));
         if config.url.contains(":memory:") || config.url.contains("mode=memory") {
-            format!("{target} ({})", msg("runique_test.in_memory"))
+            format!(
+                "{target} ({})",
+                msg(runique_i18n::keys::runique_test::label::IN_MEMORY)
+            )
         } else {
             target
         }
@@ -145,10 +150,10 @@ impl TestTransaction for ADb {
             // Can't happen, since `begin_test` always opens one; still an error
             // rather than a panic, because this runs outside the panic guard.
             Some(RuniqueDb::Conn(_)) => Err(DbErr::Custom(
-                msg("runique_test.not_a_transaction").into_owned(),
+                msg(runique_i18n::keys::runique_test::error::NOT_A_TRANSACTION).into_owned(),
             )),
             None => Err(DbErr::Custom(
-                msg("runique_test.clone_outlived").into_owned(),
+                msg(runique_i18n::keys::runique_test::error::CLONE_OUTLIVED).into_owned(),
             )),
         }
     }
@@ -178,7 +183,10 @@ mod tests {
             .build();
         let shown = <ADb as TestTransaction>::describe(&memory);
         assert!(shown.contains("SQLite"), "{shown}");
-        assert!(shown.contains(&*msg("runique_test.in_memory")), "{shown}");
+        assert!(
+            shown.contains(&*msg(runique_i18n::keys::runique_test::label::IN_MEMORY)),
+            "{shown}"
+        );
 
         let remote = DatabaseConfig::from_url("postgres://u:secret@db.example/app")
             .unwrap()
@@ -188,6 +196,9 @@ mod tests {
             shown.contains("db.example") && !shown.contains("secret"),
             "{shown}"
         );
-        assert!(!shown.contains(&*msg("runique_test.in_memory")), "{shown}");
+        assert!(
+            !shown.contains(&*msg(runique_i18n::keys::runique_test::label::IN_MEMORY)),
+            "{shown}"
+        );
     }
 }

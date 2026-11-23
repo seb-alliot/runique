@@ -1,0 +1,10 @@
+{
+  "log": {
+    "read_account": "leitura da conta ligada da sessão",
+    "read_version": "leitura da versão da sessão",
+    "read_flash": "leitura das mensagens flash da sessão",
+    "read_dashboard_template": "leitura do modelo do painel escolhido na sessão",
+    "decode_user_memory": "descodificação do user_id da sessão (carregamento da memória)",
+    "decode_user_db": "descodificação do user_id da sessão (carregamento da base de dados)"
+  }
+}

@@ -1,32 +1,44 @@
 {
-  "subscriber_already_installed": "Un subscriber tracing est déjà installé ; la configuration de log Runique est inactive (RUST_LOG / with_log sans effet)",
-  "external_outputs_ignored": "`with_log(|l| l.external())` est défini ; les sorties de log configurées sont ignorées (l'application possède le subscriber)",
-  "validation_failed": "Échec de la validation du build : {}",
-  "check_failed": "Échec du build avec {} erreur(s) de vérification",
-  "template_failed": "Échec du chargement du template : {}",
-  "driver_not_enabled": "Pilote {} non activé : Runique a été compilé avec '{}', pas '{}'.\n\nSi .env désigne la mauvaise base (les features ont changé, pas .env), mettez DB_ENGINE et DATABASE_URL sur le moteur compilé : '{}'.\n\nPour utiliser {} à la place, dans le Cargo.toml du projet et migration/Cargo.toml :\nrunique = { version = \"{}\", features = [\"{}\"] }\n\nPour la CLI runique :\ncargo install runique-cli --features {} --locked --force\n\nPour prendre en charge tous les moteurs, utilisez la feature 'all-databases'.",
-  "db_missing": "Connexion à la base de données requise lorsque la feature 'orm' est activée",
-  "component_not_ready": "Le composant '{}' n'est pas prêt",
-  "check": {
+  "error": {
+    "subscriber_already_installed": "Un subscriber tracing est déjà installé ; la configuration de log Runique est inactive (RUST_LOG / with_log sans effet)",
+    "external_outputs_ignored": "`with_log(|l| l.external())` est défini ; les sorties de log configurées sont ignorées (l'application possède le subscriber)",
+    "validation_failed": "Échec de la validation du build : {}",
+    "check_failed": "Échec du build avec {} erreur(s) de vérification",
+    "template_failed": "Échec du chargement du template : {}",
+    "driver_not_enabled": "Pilote {} non activé : Runique a été compilé avec '{}', pas '{}'.\n\nSi .env désigne la mauvaise base (les features ont changé, pas .env), mettez DB_ENGINE et DATABASE_URL sur le moteur compilé : '{}'.\n\nPour utiliser {} à la place, dans le Cargo.toml du projet et migration/Cargo.toml :\nrunique = { version = \"{}\", features = [\"{}\"] }\n\nPour la CLI runique :\ncargo install runique-cli --features {} --locked --force\n\nPour prendre en charge tous les moteurs, utilisez la feature 'all-databases'.",
+    "db_missing": "Connexion à la base de données requise lorsque la feature 'orm' est activée",
+    "component_not_ready": "Le composant '{}' n'est pas prêt",
     "db_required": "Connexion ou configuration de base de données requise (feature `orm` activée)",
-    "db_required_hint": "Ajoutez .with_database(db) ou .with_database_config(config) à votre chaîne de construction",
     "admin_prefix_empty": "Le préfixe de route de l'admin ne peut pas être vide",
-    "admin_prefix_empty_hint": "Utilisez .prefix(\"/admin\") ou gardez la valeur par défaut",
     "cache_control_invalid": "Valeur d'en-tête Cache-Control invalide : '{}'",
-    "cache_control_invalid_hint": "N'utilisez que des caractères ASCII visibles (pas de caractères de contrôle ni de retours à la ligne).",
     "media_root_unusable": "Impossible de créer ou d'accéder au dossier MEDIA_ROOT '{}' : {}",
-    "media_root_unusable_hint": "Définissez MEDIA_ROOT sur un chemin absolu accessible en écriture dans votre .env (ex. MEDIA_ROOT=/var/www/monapp/media) et vérifiez que le processus peut y écrire.",
     "secret_key_weak": "SECRET_KEY est absente, vide, à sa valeur par défaut, ou fait moins de 32 caractères",
-    "secret_key_weak_hint": "Définissez SECRET_KEY à une chaîne aléatoire d'au moins 32 caractères dans votre .env (la CLI `runique` peut en générer une)",
     "public_url_missing": "Aucune URL publique : les liens de reset seraient construits à partir de l'en-tête Host de la requête",
-    "public_url_missing_hint": "Définissez-la dans le builder : .with_public_url(\"https://monsite.fr\")",
     "acme_domain_missing": "ACME_ENABLED=true mais ACME_DOMAIN n'est pas défini",
-    "acme_domain_missing_hint": "Définissez ACME_DOMAIN à votre domaine de production dans votre .env",
     "acme_email_missing": "ACME_ENABLED=true mais ACME_EMAIL n'est pas défini",
-    "acme_email_missing_hint": "Définissez ACME_EMAIL à votre email de contact Let's Encrypt dans votre .env",
-    "suggestion": "Suggestion",
-    "context": "Contexte",
     "mailer_missing": "Réinitialisation du mot de passe sans mailer : le lien ne pourrait jamais être envoyé",
-    "mailer_missing_hint": "Renseignez-le dans le .env : EMAIL_BACKEND, ou SMTP_HOST, SMTP_USER et SMTP_PASS"
+    "locales_invalid": "Le dossier de traductions du projet est invalide : {}"
+  },
+  "hint": {
+    "db_required": "Ajoutez .with_database(db) ou .with_database_config(config) à votre chaîne de construction",
+    "admin_prefix_empty": "Utilisez .prefix(\"/admin\") ou gardez la valeur par défaut",
+    "cache_control_invalid": "N'utilisez que des caractères ASCII visibles (pas de caractères de contrôle ni de retours à la ligne).",
+    "media_root_unusable": "Définissez MEDIA_ROOT sur un chemin absolu accessible en écriture dans votre .env (ex. MEDIA_ROOT=/var/www/monapp/media) et vérifiez que le processus peut y écrire.",
+    "secret_key_weak": "Définissez SECRET_KEY à une chaîne aléatoire d'au moins 32 caractères dans votre .env (la CLI `runique` peut en générer une)",
+    "public_url_missing": "Définissez-la dans le builder : .with_public_url(\"https://monsite.fr\")",
+    "acme_domain_missing": "Définissez ACME_DOMAIN à votre domaine de production dans votre .env",
+    "acme_email_missing": "Définissez ACME_EMAIL à votre email de contact Let's Encrypt dans votre .env",
+    "mailer_missing": "Renseignez-le dans le .env : EMAIL_BACKEND, ou SMTP_HOST, SMTP_USER et SMTP_PASS"
+  },
+  "label": {
+    "suggestion": "Suggestion",
+    "context": "Contexte"
+  },
+  "log": {
+    "debug_in_prod": "DEBUG=true en production : tous les visiteurs voient les pages d'erreur détaillées, et tous les canaux de log sont allumés : les journaux contiennent ce que les visiteurs saisissent dans les formulaires (mots de passe exceptés). À couper dès que le problème est trouvé",
+    "prune_failed": "échec de l'élagage des droits orphelins : des droits périmés peuvent rester",
+    "locales_missing": "traductions du projet, langue « {} » : {} message(s) de Runique non traduit(s) ({}), affichés dans sa langue de repli",
+    "locales_unknown": "traductions du projet, langue « {} » : clé(s) que Runique ne connaît pas dans l'un de ses sujets, sans effet : {}",
+    "locales_placeholders": "traductions du projet, langue « {} » : nombre de paramètres différent de celui du message de Runique : {}"
   }
 }

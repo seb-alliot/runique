@@ -1,11 +1,23 @@
 {
-  "operational": "Runique 正在运行",
-  "launched": "服务器已启动于 {}",
-  "connected_db": "已连接到数据库 {} -> {}",
-  "connected_engine": "已连接到数据库 {}",
-  "stop_hint": "按 Ctrl + C 停止",
-  "shutting_down": "正在关闭 Runique 服务器...",
-  "acme_not_compiled": "ACME_ENABLED=true，但未编译 `acme` 功能。",
-  "acme_add_feature": "请在你的 Cargo.toml 中添加 `acme` 功能。",
-  "test_utils_feature_enabled": "此构建中已编译 `test-utils` 特性 — 部署到生产环境前，请确保它位于 [dev-dependencies] 而非 [dependencies] 中。"
+  "log": {
+    "https_redirected": "通过 HTTP 收到请求：已重定向到 HTTPS",
+    "https_port80_stopped": "80 端口的 HTTP 服务器（ACME 质询与 HTTPS 重定向）已停止",
+    "ctrl_c_not_installed": "未能安装 Ctrl+C 处理程序",
+    "sigterm_not_installed": "未能安装 SIGTERM 处理程序"
+  },
+  "info": {
+    "operational": "Runique 正在运行",
+    "launched": "服务器已启动于 {}",
+    "connected_db": "已连接到数据库 {} -> {}",
+    "connected_engine": "已连接到数据库 {}",
+    "shutting_down": "正在关闭 Runique 服务器...",
+    "acme_add_feature": "请在你的 Cargo.toml 中添加 `acme` 功能。",
+    "test_utils_feature_enabled": "此构建中已编译 `test-utils` 特性 — 部署到生产环境前，请确保它位于 [dev-dependencies] 而非 [dependencies] 中。"
+  },
+  "hint": {
+    "stop": "按 Ctrl + C 停止"
+  },
+  "error": {
+    "acme_not_compiled": "ACME_ENABLED=true，但未编译 `acme` 功能。"
+  }
 }

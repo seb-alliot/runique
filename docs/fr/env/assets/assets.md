@@ -9,6 +9,7 @@
 | `MEDIA_ROOT` | `{BASE_DIR}/media`, sinon `{dossier courant}/media` | Dossier des fichiers envoyés par les utilisateurs. Créé au démarrage s'il n'existe pas ; le démarrage échoue s'il ne peut pas l'être |
 | `MEDIA_URL` | `/media` | Préfixe URL sous lequel ce dossier est servi |
 | `TEMPLATES_DIR` | `templates` | Dossier(s) des templates Tera, séparés par des virgules |
+| `LOCALES_DIR` | `locales` | Dossier des traductions du projet (voir [i18n](/docs/fr/configuration/i18n)) |
 | `STATICFILES` | `default_storage` | Réservée : lue mais pas encore utilisée |
 | `RUNIQUE_MAX_UPLOAD_MB` | `100` | Taille maximale d'**un** fichier envoyé (MB), pour toute l'application. Voir *Taille des envois* ci-dessous |
 | `RUNIQUE_MAX_BODY_MB` | `100`, jamais moins que `RUNIQUE_MAX_UPLOAD_MB` | Taille maximale d'**une requête** avec fichiers (MB) : tous ses fichiers cumulés, plus 1 Mo pour les champs texte. Voir *Taille des envois* ci-dessous |

@@ -20,13 +20,19 @@ impl FormAccess for LoginAdmin {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::text("username")
-                .label(crate::utils::trad::t("admin.username").as_ref())
+                .label(
+                    crate::utils::trad::t(runique_i18n::keys::admin::common::label::USERNAME)
+                        .as_ref(),
+                )
                 .required(),
         );
 
         form.field(
             &TextField::password("password")
-                .label(crate::utils::trad::t("admin.password").as_ref())
+                .label(
+                    crate::utils::trad::t(runique_i18n::keys::admin::common::label::PASSWORD)
+                        .as_ref(),
+                )
                 .required(),
         );
     }

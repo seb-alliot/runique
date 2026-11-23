@@ -1,4 +1,34 @@
 {
-  "stack_trace_title": "Trace dettagliato dell'errore",
-  "stack_trace_tip": "L'errore più alto (livello 0) è generalmente la causa principale. Gli errori successivi mostrano come l'errore si è propagato nel codice."
+  "label": {
+    "info_title": "Informazioni di debug",
+    "field_title": "Titolo",
+    "field_count": "Numero di campi",
+    "error_count": "Errori",
+    "main_message": "Messaggio principale",
+    "root_cause": "Causa principale",
+    "details": "Dettagli aggiuntivi",
+    "request_info": "Informazioni sulla richiesta",
+    "http_method": "Metodo HTTP",
+    "path": "Percorso",
+    "query_params": "Parametri di query",
+    "http_headers": "Intestazioni HTTP",
+    "template_info": "Informazioni sul template",
+    "template_name": "Nome del template",
+    "error_line": "Riga dell'errore",
+    "template_source": "Codice sorgente del template",
+    "available_templates": "Template disponibili",
+    "stack_trace_title": "Traccia errore dettagliata",
+    "stack_trace_tip": "L'errore più in alto (livello 0) è generalmente la causa principale. Gli errori successivi mostrano come l'errore si è propagato nel codice.",
+    "environment": "Ambiente",
+    "debug_mode": "Modalità debug",
+    "enabled": "Abilitato",
+    "disabled": "Disabilitato",
+    "rust_version": "Versione Rust",
+    "app_version": "Versione App",
+    "runique_version": "Versione Runique",
+    "occurred_at": "Errore verificatosi il:",
+    "status_code": "Codice di stato",
+    "header_name": "Nome",
+    "header_value": "Valore"
+  }
 }

@@ -1,0 +1,19 @@
+{
+  "label": {
+    "title": "Dettaglio",
+    "breadcrumb": "Dettaglio",
+    "entry_label": "Voce",
+    "btn_list": "← Elenco",
+    "btn_edit": "Modifica",
+    "btn_delete": "Elimina",
+    "confirm_delete": "Eliminare questa voce?",
+    "btn_reset_password": "Reimposta password",
+    "btn_reset_password_short": "Reimposta",
+    "btn_rights": "Diritti",
+    "btn_rank": "Cambia il ruolo",
+    "groups_title": "Gruppi di questo account",
+    "btn_save_groups": "Assegna",
+    "transfer_title": "Responsabile del gruppo",
+    "btn_transfer": "Trasferisci"
+  }
+}

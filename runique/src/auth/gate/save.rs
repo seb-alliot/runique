@@ -104,7 +104,7 @@ where
 /// the account and sees its groups, so naming the cause tells nothing new.
 pub(in crate::auth::gate) fn still_responsable() -> DbErr {
     tracing::info!("refused: the account still answers for groups");
-    DbErr::Custom(t("admin.access.still_responsable").into_owned())
+    DbErr::Custom(t(runique_i18n::keys::admin::access::error::STILL_RESPONSABLE).into_owned())
 }
 
 /// Whether `model` turns an account inactive.
@@ -441,7 +441,7 @@ fn missing_required<E: ModelMeta>(model: &E::ActiveModel) -> Result<(), FieldErr
         .map(|column| {
             (
                 column.as_str().to_string(),
-                t("forms.required").into_owned(),
+                t(runique_i18n::keys::forms::error::REQUIRED).into_owned(),
             )
         })
         .collect();
@@ -887,7 +887,7 @@ mod tests {
         let creator = member(pk(10), CREATE);
         let mut form = gated(&creator, None, &[("title", ""), ("body", "b")]);
         assert_fields_refused(run(&mut form, SaveAction::Save, &db).await);
-        let expected = t("forms.required").into_owned();
+        let expected = t(runique_i18n::keys::forms::error::REQUIRED).into_owned();
         assert_eq!(form.fields.get("title").unwrap().error(), Some(&expected));
         assert_eq!(form.fields.get("body").unwrap().error(), None);
         assert_eq!(tickets(&db).await.len(), 2);
@@ -2049,7 +2049,9 @@ mod tests {
             .unwrap_err();
         assert_eq!(
             err,
-            DbErr::Custom(t("admin.access.still_responsable").into_owned())
+            DbErr::Custom(
+                t(runique_i18n::keys::admin::access::error::STILL_RESPONSABLE).into_owned()
+            )
         );
         assert_eq!(group_one(&db).await.responsable_id, pk(31));
     }

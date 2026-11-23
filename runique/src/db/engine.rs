@@ -158,7 +158,7 @@ pub(super) fn verify_database_driver(engine: &DatabaseEngine) -> Result<(), Stri
 fn driver_not_enabled(engine: &DatabaseEngine, feature: &str) -> String {
     let compiled = compiled_engines();
     crate::utils::trad::tf(
-        "build.driver_not_enabled",
+        runique_i18n::keys::build::error::DRIVER_NOT_ENABLED,
         &[
             engine.name(),
             compiled.as_str(),

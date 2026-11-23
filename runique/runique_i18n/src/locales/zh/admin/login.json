@@ -1,0 +1,15 @@
+{
+  "label": {
+    "title": "登录",
+    "subtitle": "请登录以访问管理面板",
+    "label_username": "用户名",
+    "label_password": "密码",
+    "btn_submit": "登录",
+    "back_to_site": "← 返回网站"
+  },
+  "error": {
+    "session": "打开会话时出错。",
+    "credentials": "凭据不正确或权限不足。",
+    "locked": "尝试次数过多。账户已被临时锁定。请在{}秒后重试。"
+  }
+}

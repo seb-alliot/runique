@@ -1,0 +1,24 @@
+{
+  "error": {
+    "source": "Fonte: {}",
+    "AppError": "Errore dell'applicazione",
+    "build": "Errore di build: {}",
+    "internal": "Errore interno",
+    "forbidden": "Accesso vietato",
+    "not_found": "Risorsa non trovata",
+    "validation": "Errore di validazione: {}",
+    "database": "Errore del database: {}",
+    "io": "Errore IO: {}",
+    "template": "Errore del template: {}",
+    "custom": "Errore personalizzato: {}",
+    "invalid_query": "Parametri di query non validi: {}",
+    "path_not_found": "Il percorso richiesto '{}' non è stato trovato",
+    "internal_occurred": "Si è verificato un errore interno"
+  },
+  "label": {
+    "bad_request": "Richiesta non valida",
+    "not_found": "Pagina non trovata",
+    "internal": "Errore interno del server",
+    "template_in": "Errore del template in '{}'"
+  }
+}

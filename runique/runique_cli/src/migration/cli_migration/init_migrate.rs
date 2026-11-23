@@ -113,9 +113,20 @@ pub(crate) fn repair_beside(dir: &Path, entities: &Path) -> Result<()> {
 }
 
 fn repaired(dir: &Path, outcome: std::io::Result<bool>) -> Result<()> {
-    let repaired = outcome.with_context(|| tf("cli.interrupted_run", &[dir.display()]))?;
+    let repaired = outcome.with_context(|| {
+        tf(
+            runique_i18n::keys::cli::error::INTERRUPTED_RUN,
+            &[dir.display()],
+        )
+    })?;
     if repaired {
-        println!("{}", tf("cli.run_repaired", &[dir.display()]));
+        println!(
+            "{}",
+            tf(
+                runique_i18n::keys::cli::info::RUN_REPAIRED,
+                &[dir.display()]
+            )
+        );
     }
     Ok(())
 }
@@ -145,7 +156,7 @@ pub(crate) fn ensure(migrations_path: &str) -> Result<()> {
         println!(
             "{}",
             tf(
-                "migrate.engine_defaulted",
+                runique_i18n::keys::migrate::error::ENGINE_DEFAULTED,
                 &[migration_dir.join("Cargo.toml").display()]
             )
         );
@@ -154,9 +165,12 @@ pub(crate) fn ensure(migrations_path: &str) -> Result<()> {
     write(migration_dir, engine, runique::tooling::VERSION)?;
     println!(
         "{}",
-        tf("migrate.crate_created", &[migration_dir.display()])
+        tf(
+            runique_i18n::keys::migrate::info::CRATE_CREATED,
+            &[migration_dir.display()]
+        )
     );
-    println!("{}", t("makemigrations.apply_hint"));
+    println!("{}", t(runique_i18n::keys::makemigrations::hint::APPLY));
     Ok(())
 }
 

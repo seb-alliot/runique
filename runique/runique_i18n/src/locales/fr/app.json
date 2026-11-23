@@ -1,0 +1,24 @@
+{
+  "error": {
+    "source": "Source: {}",
+    "AppError": "Erreur d'application",
+    "build": "Erreur de build: {}",
+    "internal": "Erreur interne",
+    "forbidden": "Accès interdit",
+    "not_found": "Ressource introuvable",
+    "validation": "Erreur de validation: {}",
+    "database": "Erreur base de données: {}",
+    "io": "Erreur IO: {}",
+    "template": "Erreur template: {}",
+    "custom": "Erreur custom: {}",
+    "invalid_query": "Paramètres d'URL invalides : {}",
+    "path_not_found": "Le chemin demandé '{}' n'a pas été trouvé",
+    "internal_occurred": "Une erreur interne est survenue"
+  },
+  "label": {
+    "bad_request": "Requête invalide",
+    "not_found": "Page non trouvée",
+    "internal": "Erreur serveur interne",
+    "template_in": "Erreur de template dans '{}'"
+  }
+}

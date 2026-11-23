@@ -1,7 +1,26 @@
 {
-  "missing": "CSRFトークンがありません",
-  "invalid": "無効なCSRFトークン",
-  "invalid_or_missing": "CSRFトークンが無効または存在しません",
-  "forbidden": "無効なCSRFトークン",
-  "session_write_error": "セッション書き込みエラー"
+  "error": {
+    "missing": "CSRFトークンがありません",
+    "invalid": "無効なCSRFトークン",
+    "invalid_or_missing": "CSRFトークンが無効または存在しません"
+  },
+  "log": {
+    "refused": "CSRF を拒否",
+    "reason_header_invalid": "X-CSRF-Token ヘッダーのトークンが無効",
+    "reason_not_a_form": "トークンがなく、本文はフォームではない",
+    "reason_cross_site": "別のサイトから送信されたフォーム",
+    "reason_form_mismatch": "フォーム：送信されたトークンがセッションのものではない（セッション切れ、またはログイン前に開いたページ）",
+    "reason_form_missing": "フォーム：本文にも X-CSRF-Token にもトークンがない",
+    "reason_admin_login_missing": "管理画面ログイン：フォームにトークンがない",
+    "reason_admin_login_mismatch": "管理画面ログイン：送信されたトークンがセッションのものではない",
+    "reason_admin_logout": "管理画面ログアウト：有効なトークンがない",
+    "reason_upload": "アップロード：有効な csrf_token フィールドより先にファイルが届いたため、何も書き込まれていない",
+    "token_dropped": "CSRF トークンを破棄（ログインまたはログアウト）：それ以前に開いたページのトークンは無効",
+    "token_new": "このセッションに新しい CSRF トークン",
+    "read_token": "セッションから CSRF トークンを読み取り",
+    "keep_token": "CSRF トークンをセッションに保持",
+    "read_account": "CSRF トークン用にログイン中のアカウントを読み取り",
+    "write_token": "新しい CSRF トークンをセッションに書き込み",
+    "set_value": "set_value [CSRF トークンを受信：検証結果は middleware.csrf チャンネル]"
+  }
 }

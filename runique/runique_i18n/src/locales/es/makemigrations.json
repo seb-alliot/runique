@@ -1,25 +1,31 @@
 {
-  "project_pk_cargo": "No se pudieron leer las features del proyecto con cargo: {}\nUn modelo usa `Pk`, cuyo tipo viene de la feature `big-pk` o `pk-uuid` de runique en el Cargo.toml del proyecto. Ejecute el comando desde la raíz del proyecto.",
-  "project_pk_no_runique": "`runique` no es una dependencia del proyecto ejecutado aquí: no se puede saber qué vale `Pk`. Ejecute el comando desde la raíz del proyecto.",
-  "destructive_detected": "Cambios destructivos detectados:",
-  "destructive_require_force": "Use --force para aplicar estos cambios destructivos.",
-  "long_identifier_detected": "Los identificadores SQL generados son demasiado largos (límite de MySQL: 64 caracteres):",
-  "long_identifier_rename_required": "Acorte los nombres de tabla/columna involucrados — Runique no trunca automáticamente los identificadores.",
-  "files_ready": "{} archivo(s) listo(s) para migrar.",
-  "snapshots_upgraded": "{} snapshot(s) actualizado(s) para registrar la longitud de las columnas (sin migración).",
-  "type_change_not_migrated": "ATENCIÓN: --force dejó pasar estos cambios de tipo de columna, pero TODAVÍA NO se migran. Su migración solo contiene un comentario, mientras que el snapshot ya registra el nuevo tipo:",
-  "type_change_write_by_hand": "Escriba a mano el up() y el down() de esa migración (alter_table / modify_column) antes de `runique migration up`: si no, la base de datos conserva los tipos antiguos y nada se lo indicará.",
-  "no_changes": "No se detectaron cambios: sus modelos coinciden con sus snapshots.",
-  "apply_hint": "Aplique las migraciones pendientes con: runique migration up",
-  "database_unreachable": "No se pudo conectar a la base de datos: {}",
-  "applied_unknown": "Estas migraciones están registradas en la base de datos pero no figuran en lib.rs:\n  {}\nEsta base pertenece a otro proyecto, o se eliminaron archivos de migración. No se ha escrito nada.",
-  "snapshot_unreadable": "El snapshot {} es ilegible o no es un snapshot. No se ha escrito nada.",
-  "snapshot_misnamed": "El snapshot {} describe la tabla `{}`: su nombre de archivo debe ser el de la tabla. No se ha escrito nada.",
-  "duplicate_table": "Dos tablas se llaman `{}`. La tabla de un campo de lista se llama `<tabla del modelo>_<campo>`: renombre el campo o la otra tabla.",
-  "waiting_removed": "{} migración(es) pendiente(s) eliminada(s): sus modelos vuelven a coincidir con sus snapshots.",
-  "waiting_unchanged": "{} migración(es) pendiente(s), sin cambios: no se ha reescrito nada.",
-  "parallel_changes": "Dos migraciones parten del mismo punto para la misma tabla:\n  {}\nSe escribieron en paralelo: Runique no puede saber cuál debe seguir la tabla. No se ha escrito nada.",
-  "paused_tables": "Tablas en pausa (`managed: false`), ignoradas por makemigrations: {}",
-  "rename_with_new_key": "La tabla `{}` se renombra en esta ejecución y recibe al mismo tiempo una nueva clave hacia `{}`, creada o renombrada en esta misma ejecución. Hágalo en dos pasos: primero el renombrado, `runique migration up`, y después la clave.",
-  "renamed_twice": "Dos tablas dicen haber sido renombradas desde `{}`: `{}` y `{}`. Una tabla solo puede convertirse en una: retire uno de los dos `renamed_from`."
+  "error": {
+    "project_pk_cargo": "No se pudieron leer las features del proyecto con cargo: {}\nUn modelo usa `Pk`, cuyo tipo viene de la feature `big-pk` o `pk-uuid` de runique en el Cargo.toml del proyecto. Ejecute el comando desde la raíz del proyecto.",
+    "project_pk_no_runique": "`runique` no es una dependencia del proyecto ejecutado aquí: no se puede saber qué vale `Pk`. Ejecute el comando desde la raíz del proyecto.",
+    "destructive_detected": "Cambios destructivos detectados:",
+    "destructive_require_force": "Use --force para aplicar estos cambios destructivos.",
+    "long_identifier_detected": "Los identificadores SQL generados son demasiado largos (límite de MySQL: 64 caracteres):",
+    "long_identifier_rename_required": "Acorte los nombres de tabla/columna involucrados — Runique no trunca automáticamente los identificadores.",
+    "type_change_not_migrated": "ATENCIÓN: --force dejó pasar estos cambios de tipo de columna, pero TODAVÍA NO se migran. Su migración solo contiene un comentario, mientras que el snapshot ya registra el nuevo tipo:",
+    "type_change_write_by_hand": "Escriba a mano el up() y el down() de esa migración (alter_table / modify_column) antes de `runique migration up`: si no, la base de datos conserva los tipos antiguos y nada se lo indicará.",
+    "database_unreachable": "No se pudo conectar a la base de datos: {}",
+    "applied_unknown": "Estas migraciones están registradas en la base de datos pero no figuran en lib.rs:\n  {}\nEsta base pertenece a otro proyecto, o se eliminaron archivos de migración. No se ha escrito nada.",
+    "snapshot_unreadable": "El snapshot {} es ilegible o no es un snapshot. No se ha escrito nada.",
+    "snapshot_misnamed": "El snapshot {} describe la tabla `{}`: su nombre de archivo debe ser el de la tabla. No se ha escrito nada.",
+    "duplicate_table": "Dos tablas se llaman `{}`. La tabla de un campo de lista se llama `<tabla del modelo>_<campo>`: renombre el campo o la otra tabla.",
+    "parallel_changes": "Dos migraciones parten del mismo punto para la misma tabla:\n  {}\nSe escribieron en paralelo: Runique no puede saber cuál debe seguir la tabla. No se ha escrito nada.",
+    "rename_with_new_key": "La tabla `{}` se renombra en esta ejecución y recibe al mismo tiempo una nueva clave hacia `{}`, creada o renombrada en esta misma ejecución. Hágalo en dos pasos: primero el renombrado, `runique migration up`, y después la clave.",
+    "renamed_twice": "Dos tablas dicen haber sido renombradas desde `{}`: `{}` y `{}`. Una tabla solo puede convertirse en una: retire uno de los dos `renamed_from`."
+  },
+  "info": {
+    "files_ready": "{} archivo(s) listo(s) para migrar.",
+    "snapshots_upgraded": "{} snapshot(s) actualizado(s) para registrar la longitud de las columnas (sin migración).",
+    "no_changes": "No se detectaron cambios: sus modelos coinciden con sus snapshots.",
+    "waiting_removed": "{} migración(es) pendiente(s) eliminada(s): sus modelos vuelven a coincidir con sus snapshots.",
+    "waiting_unchanged": "{} migración(es) pendiente(s), sin cambios: no se ha reescrito nada.",
+    "paused_tables": "Tablas en pausa (`managed: false`), ignoradas por makemigrations: {}"
+  },
+  "hint": {
+    "apply": "Aplique las migraciones pendientes con: runique migration up"
+  }
 }

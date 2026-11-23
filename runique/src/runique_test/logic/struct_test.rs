@@ -65,11 +65,17 @@ pub enum Issue {
 impl fmt::Display for Issue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Issue::TransactionEnded => f.write_str(&msg("runique_test.transaction_ended")),
-            Issue::SwallowedFailures(n) => {
-                f.write_str(&msgf("runique_test.swallowed_failures", &[n]))
-            }
-            Issue::RollbackFailed(e) => f.write_str(&msgf("runique_test.rollback_failed", &[e])),
+            Issue::TransactionEnded => f.write_str(&msg(
+                runique_i18n::keys::runique_test::error::TRANSACTION_ENDED,
+            )),
+            Issue::SwallowedFailures(n) => f.write_str(&msgf(
+                runique_i18n::keys::runique_test::error::SWALLOWED_FAILURES,
+                &[n],
+            )),
+            Issue::RollbackFailed(e) => f.write_str(&msgf(
+                runique_i18n::keys::runique_test::error::ROLLBACK_FAILED,
+                &[e],
+            )),
         }
     }
 }
@@ -84,7 +90,10 @@ pub struct TestFailure {
 // Cargo shows a failing test's `Err` through `Debug`.
 impl fmt::Debug for TestFailure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&msgf("runique_test.test_failed", &[&self.name_test]))
+        f.write_str(&msgf(
+            runique_i18n::keys::runique_test::error::TEST_FAILED,
+            &[&self.name_test],
+        ))
     }
 }
 
@@ -120,8 +129,14 @@ fn reason_message<E: fmt::Display>(reason: &Reason<E>) -> Option<String> {
     match reason {
         Reason::Win => None,
         Reason::Error(e) => Some(e.to_string()),
-        Reason::Panic(message) => Some(msgf("runique_test.panicked", &[message])),
-        Reason::TimedOut(secs) => Some(msgf("runique_test.timed_out", &[secs])),
+        Reason::Panic(message) => Some(msgf(
+            runique_i18n::keys::runique_test::error::PANICKED,
+            &[message],
+        )),
+        Reason::TimedOut(secs) => Some(msgf(
+            runique_i18n::keys::runique_test::error::TIMED_OUT,
+            &[secs],
+        )),
         Reason::Setup(message) => Some(message.clone()),
     }
 }
@@ -141,11 +156,14 @@ impl<E: fmt::Display> fmt::Display for FormatResult<E> {
             };
             let failed = match (query.failed, query.expected) {
                 (false, _) => String::new(),
-                (true, false) => format!("  ✗ {}", msg("runique_test.query_failed")),
+                (true, false) => format!(
+                    "  ✗ {}",
+                    msg(runique_i18n::keys::runique_test::error::QUERY_FAILED)
+                ),
                 (true, true) => format!(
                     "  ✗ {} ({})",
-                    msg("runique_test.query_failed"),
-                    msg("runique_test.expected")
+                    msg(runique_i18n::keys::runique_test::error::QUERY_FAILED),
+                    msg(runique_i18n::keys::runique_test::label::EXPECTED)
                 ),
             };
             writeln!(
@@ -218,7 +236,7 @@ mod tests {
     #[test]
     fn messages_are_translated_with_their_arguments() {
         use super::{Issue, TestFailure, msg, msgf};
-        let key = "runique_test.transaction_ended";
+        let key = runique_i18n::keys::runique_test::error::TRANSACTION_ENDED;
         let lang = crate::utils::trad::Lang::from_env().unwrap_or_default();
         assert_eq!(msg(key), lang.get(key));
         assert_ne!(msg(key), key);
@@ -235,6 +253,12 @@ mod tests {
         };
         assert!(format!("{failure:?}").contains("user::add_email"));
         assert_eq!(failure.to_string(), format!("{failure:?}"));
-        assert!(msgf("runique_test.swallowed_failures", &[7]).contains('7'));
+        assert!(
+            msgf(
+                runique_i18n::keys::runique_test::error::SWALLOWED_FAILURES,
+                &[7]
+            )
+            .contains('7')
+        );
     }
 }

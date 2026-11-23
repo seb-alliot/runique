@@ -1,0 +1,21 @@
+{
+  "label": {
+    "title": "Transfer the group",
+    "from": "Current responsable",
+    "to": "New responsable",
+    "losses": "Rights at stake",
+    "no_loss": "The group keeps all its rights.",
+    "btn_confirm": "Confirm the transfer",
+    "btn_cancel": "Cancel",
+    "gained_right": "received by",
+    "lost_right": "lost by the members"
+  },
+  "error": {
+    "unsuitable": "This user is not suitable.",
+    "ranked_members": "This group has members with a rank: an admin cannot answer for it.",
+    "changed": "The rights changed in the meantime: check again."
+  },
+  "info": {
+    "success": "Group transferred."
+  }
+}

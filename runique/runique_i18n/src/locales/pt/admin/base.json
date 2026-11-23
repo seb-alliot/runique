@@ -1,0 +1,12 @@
+{
+  "label": {
+    "title": "Administração",
+    "breadcrumb": "Admin",
+    "toggle": "Recolher menu",
+    "logout_title": "Sair",
+    "theme_toggle": "Alternar tema",
+    "back_to_site": "← Site",
+    "dashboard": "Painel",
+    "history": "Histórico"
+  }
+}

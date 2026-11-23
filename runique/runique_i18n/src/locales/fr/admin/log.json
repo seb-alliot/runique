@@ -1,0 +1,16 @@
+{
+  "write": "écriture dans l'admin",
+  "outcome_saved": "enregistré",
+  "outcome_save_refused": "enregistrement refusé",
+  "outcome_deleted": "supprimé",
+  "outcome_delete_refused": "suppression refusée",
+  "bulk_done": "action groupée effectuée",
+  "bulk_refused": "action groupée refusée",
+  "list": "liste de l'admin",
+  "boot_admin": "admin",
+  "boot_model": "modèle de l'admin",
+  "boot_route": "route déclarée de l'admin",
+  "boot_no_guard": "la connexion de l'admin n'a ni LoginGuard ni limiteur de débit : les essais de mot de passe sont illimités (`with_login_guard`, `with_rate_limiter`)",
+  "boot_options_without_effect": "options de liste de l'admin acceptées, mais affichées par aucune page pour l'instant",
+  "boot_stylesheets_missing": "feuilles de style de Runique introuvables pour l'admin : vérifiez STATIC_RUNIQUE_PATH"
+}

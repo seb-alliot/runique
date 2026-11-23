@@ -1,0 +1,7 @@
+{
+  "name": "日本語",
+  "aliases": [
+    "ja-jp"
+  ],
+  "fallback": "en"
+}

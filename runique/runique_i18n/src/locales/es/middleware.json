@@ -1,4 +1,6 @@
 {
-  "bad_request": "Solicitud incorrecta",
-  "slot_collision": "Colisión de slot de middleware Runique: '{}' y '{}' reclaman ambos el slot {}. Registre menos middlewares personalizados o asigne a este un slot explícito."
+  "error": {
+    "bad_request": "Solicitud incorrecta",
+    "slot_collision": "Colisión de slot de middleware Runique: '{}' y '{}' reclaman ambos el slot {}. Registre menos middlewares personalizados o asigne a este un slot explícito."
+  }
 }

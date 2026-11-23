@@ -1,20 +1,25 @@
 {
-  "forgot_title": "忘记密码",
-  "reset_title": "新密码",
-  "success_title": "密码已重置",
-  "email_label": "电子邮件地址",
-  "new_password_label": "新密码",
-  "confirm_label": "确认密码",
-  "email_mismatch": "电子邮件地址与链接不匹配。",
-  "invalid_link": "无效链接。",
-  "invalid_or_expired": "重置链接无效或已过期。",
-  "password_min_length": "密码必须至少包含{}个字符。",
-  "password_weak": "密码必须包含至少一个大写字母、一个小写字母、一个数字和一个特殊字符(!@#$%...)。",
-  "password_mismatch": "两次输入的密码不一致。",
-  "check_inbox": "如果该地址关联了账户，您将收到一封包含操作说明的邮件。",
-  "blocked_subject": "您的账户已被封禁",
-  "blocked_body": "<p>{}，您好：</p><p>有人为您的账户申请了密码重置，但该账户已被封禁。请联系网站管理员解除封禁。</p><p>如果这不是您本人的操作，请忽略此邮件。</p>",
-  "email_subject": "密码重置请求",
-  "email_body": "<p>您好 {}，</p><p>请点击以下链接重置您的密码（有效期{}分钟）：</p><p><a href=\"{}\">{}</a></p>",
-  "unavailable": "通过邮件重置目前不可用。"
+  "label": {
+    "forgot_title": "忘记密码",
+    "reset_title": "新密码",
+    "success_title": "密码已重置",
+    "email_label": "电子邮件地址",
+    "new_password_label": "新密码",
+    "confirm_label": "确认密码",
+    "blocked_subject": "您的账户已被封禁",
+    "blocked_body": "<p>{}，您好：</p><p>有人为您的账户申请了密码重置，但该账户已被封禁。请联系网站管理员解除封禁。</p><p>如果这不是您本人的操作，请忽略此邮件。</p>",
+    "email_subject": "密码重置请求",
+    "email_body": "<p>您好 {}，</p><p>请点击以下链接重置您的密码（有效期{}分钟）：</p><p><a href=\"{}\">{}</a></p>"
+  },
+  "error": {
+    "email_mismatch": "电子邮件地址与链接不匹配。",
+    "invalid_or_expired": "重置链接无效或已过期。",
+    "password_min_length": "密码必须至少包含{}个字符。",
+    "password_weak": "密码必须包含至少一个大写字母、一个小写字母、一个数字和一个特殊字符(!@#$%...)。",
+    "password_mismatch": "两次输入的密码不一致。",
+    "unavailable": "通过邮件重置目前不可用。"
+  },
+  "info": {
+    "check_inbox": "如果该地址关联了账户，您将收到一封包含操作说明的邮件。"
+  }
 }

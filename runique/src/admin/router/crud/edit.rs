@@ -27,7 +27,9 @@ pub(crate) async fn edit_view(
     let form = match model.edit(&req, &user, &id).await {
         Ok(FormOutcome::Show(form)) => form,
         Ok(FormOutcome::Saved(_)) => {
-            req.notices.success(t("admin.edit.success")).await;
+            req.notices
+                .success(t(runique_i18n::keys::admin::edit::info::SUCCESS))
+                .await;
             let detail = admin.paths.detail_of(&site, model.key(), &id);
             return Ok(Redirect::to(&detail).into_response());
         }
@@ -55,9 +57,9 @@ pub(crate) async fn edit_view(
             texts: FormTexts {
                 form_action: admin.paths.edit_of(key, &id),
                 cancel_url,
-                cancel_label: t("admin.edit.btn_cancel").into_owned(),
-                submit_label: t("admin.edit.btn_submit").into_owned(),
-                no_fields_label: t("admin.edit.no_fields").into_owned(),
+                cancel_label: t(runique_i18n::keys::admin::edit::label::BTN_CANCEL).into_owned(),
+                submit_label: t(runique_i18n::keys::admin::edit::label::BTN_SUBMIT).into_owned(),
+                no_fields_label: t(runique_i18n::keys::admin::edit::label::NO_FIELDS).into_owned(),
             },
             object_id: id,
             form_fields: form,

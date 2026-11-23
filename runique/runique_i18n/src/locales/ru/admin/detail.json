@@ -1,0 +1,19 @@
+{
+  "label": {
+    "title": "Детали",
+    "breadcrumb": "Детали",
+    "entry_label": "Запись",
+    "btn_list": "← Список",
+    "btn_edit": "Изменить",
+    "btn_delete": "Удалить",
+    "confirm_delete": "Удалить эту запись?",
+    "btn_reset_password": "Сбросить пароль",
+    "btn_reset_password_short": "Сбросить",
+    "btn_rights": "Права",
+    "btn_rank": "Изменить ранг",
+    "groups_title": "Группы этой учётной записи",
+    "btn_save_groups": "Назначить",
+    "transfer_title": "Ответственный за группу",
+    "btn_transfer": "Передать"
+  }
+}

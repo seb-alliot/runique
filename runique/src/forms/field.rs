@@ -257,12 +257,12 @@ async fn submission_accepted<T: RuniqueForm>(form: &mut T) -> bool {
         Err(ValidationError::StackOverflow) => {
             form.forms_mut()
                 .errors
-                .push(t("forms.validation_overflow").into_owned());
+                .push(t(runique_i18n::keys::forms::error::VALIDATION_OVERFLOW).into_owned());
             return false;
         }
         Err(error) => {
             if let Some(level) = crate::utils::runique_log::log_level!(forms.validate) {
-                crate::runique_log!(level, error = ?error, "{}", crate::utils::trad::t("log.forms.validation_failed"));
+                crate::runique_log!(level, error = ?error, "{}", crate::utils::trad::t(runique_i18n::keys::forms::log::VALIDATION_FAILED));
             }
             return false;
         }

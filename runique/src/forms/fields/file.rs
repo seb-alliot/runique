@@ -745,7 +745,10 @@ mod finalize_tests {
             Err(error) => error,
             Ok(()) => f.publish_uploads().await.unwrap_err(),
         };
-        assert_eq!(error, crate::utils::trad::t("forms.upload_failed"));
+        assert_eq!(
+            error,
+            crate::utils::trad::t(runique_i18n::keys::forms::error::UPLOAD_FAILED)
+        );
         assert!(!error.contains(media.to_str().unwrap()), "{error}");
 
         crate::config::static_files::restore_media_root();
@@ -1603,7 +1606,10 @@ mod guarantees {
         // wrong that merely ends with the same digit (2199023255552.0).
         assert_eq!(
             err,
-            crate::utils::trad::tf("forms.max_size_above_model", &["3.0", "2.0"])
+            crate::utils::trad::tf(
+                runique_i18n::keys::forms::error::MAX_SIZE_ABOVE_MODEL,
+                &["3.0", "2.0"]
+            )
         );
         field.set_max_size_bounded(FileSize::mb(1)).unwrap();
         assert_eq!(field.upload.upload_config.max_size, Some(1024 * 1024));

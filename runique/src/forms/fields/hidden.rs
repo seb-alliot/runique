@@ -140,7 +140,7 @@ impl FormField for HiddenField {
     }
 
     async fn validate(&mut self) -> bool {
-        if self.fails_required("forms.required") {
+        if self.fails_required(runique_i18n::keys::forms::error::REQUIRED) {
             return false;
         }
         // For a CSRF field, check that the value matches the expected one
@@ -148,14 +148,14 @@ impl FormField for HiddenField {
             && let Some(expected) = &self.expected_value
         {
             if self.base.value.trim().is_empty() {
-                self.set_error(t("csrf.missing").to_string());
+                self.set_error(t(runique_i18n::keys::csrf::error::MISSING).to_string());
                 return false;
             }
 
             // ct_eq: constant-time comparison — prevents an attacker
             // guessing the token byte by byte via response time
             if !bool::from(self.base.value.as_bytes().ct_eq(expected.as_bytes())) {
-                self.set_error(t("csrf.invalid").to_string());
+                self.set_error(t(runique_i18n::keys::csrf::error::INVALID).to_string());
                 return false;
             }
         }

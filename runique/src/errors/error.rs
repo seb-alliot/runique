@@ -130,20 +130,36 @@ impl RuniqueError {
     /// Logs the error with the appropriate tracing level (error/info).
     pub fn log(&self) {
         match self {
-            RuniqueError::Build(e) => error!("{}", tf("error.build", &[&e.to_string()])),
-            RuniqueError::Internal => error!("{}", t("error.internal")),
-            RuniqueError::Forbidden => info!("{}", t("error.forbidden")),
-            RuniqueError::NotFound => info!("{}", t("error.not_found")),
-            RuniqueError::Validation(msg) => info!("{}", tf("error.validation", &[msg])),
-            RuniqueError::Database(msg) => error!("{}", tf("error.database", &[msg])),
-            RuniqueError::Io(msg) => error!("{}", tf("error.io", &[msg])),
+            RuniqueError::Build(e) => error!(
+                "{}",
+                tf(runique_i18n::keys::app::error::BUILD, &[&e.to_string()])
+            ),
+            RuniqueError::Internal => error!("{}", t(runique_i18n::keys::app::error::INTERNAL)),
+            RuniqueError::Forbidden => info!("{}", t(runique_i18n::keys::app::error::FORBIDDEN)),
+            RuniqueError::NotFound => info!("{}", t(runique_i18n::keys::app::error::NOT_FOUND)),
+            RuniqueError::Validation(msg) => {
+                info!("{}", tf(runique_i18n::keys::app::error::VALIDATION, &[msg]))
+            }
+            RuniqueError::Database(msg) => {
+                error!("{}", tf(runique_i18n::keys::app::error::DATABASE, &[msg]))
+            }
+            RuniqueError::Io(msg) => error!("{}", tf(runique_i18n::keys::app::error::IO, &[msg])),
             RuniqueError::Template { message, .. } => {
-                error!("{}", tf("error.template", &[message]));
+                error!(
+                    "{}",
+                    tf(runique_i18n::keys::app::error::TEMPLATE, &[message])
+                );
             }
             RuniqueError::Custom { message, source } => {
-                error!("{}", tf("error.custom", &[message]));
+                error!("{}", tf(runique_i18n::keys::app::error::CUSTOM, &[message]));
                 if let Some(source) = source.as_ref() {
-                    error!("{}", tf("error.source", &[&source.to_string()]));
+                    error!(
+                        "{}",
+                        tf(
+                            runique_i18n::keys::app::error::SOURCE,
+                            &[&source.to_string()]
+                        )
+                    );
                 }
             }
         }
@@ -155,32 +171,32 @@ impl RuniqueError {
             RuniqueError::NotFound => (
                 StatusCode::NOT_FOUND,
                 ErrorType::NotFound,
-                ("{}", t("error.not_found")),
+                ("{}", t(runique_i18n::keys::app::error::NOT_FOUND)),
             ),
             RuniqueError::Forbidden => (
                 StatusCode::FORBIDDEN,
                 ErrorType::Internal,
-                ("{}", t("error.forbidden")),
+                ("{}", t(runique_i18n::keys::app::error::FORBIDDEN)),
             ),
             RuniqueError::Validation(_) => (
                 StatusCode::BAD_REQUEST,
                 ErrorType::Validation,
-                ("{}", t("error.validation")),
+                ("{}", t(runique_i18n::keys::app::error::VALIDATION)),
             ),
             RuniqueError::Database(_) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorType::Database,
-                ("{}", t("error.database")),
+                ("{}", t(runique_i18n::keys::app::error::DATABASE)),
             ),
             RuniqueError::Template { .. } => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorType::Template,
-                ("{}", t("error.template")),
+                ("{}", t(runique_i18n::keys::app::error::TEMPLATE)),
             ),
             _ => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorType::Internal,
-                ("{}", t("error.internal")),
+                ("{}", t(runique_i18n::keys::app::error::INTERNAL)),
             ),
         };
 
@@ -334,7 +350,10 @@ impl ErrorContext {
         let mut ctx = Self::new(
             ErrorType::Template,
             StatusCode::INTERNAL_SERVER_ERROR,
-            &tf("title.template", &[template_name]),
+            &tf(
+                runique_i18n::keys::app::label::TEMPLATE_IN,
+                &[template_name],
+            ),
             &error.to_string(),
         );
         ctx.template_info = Some(TemplateInfo {
@@ -355,7 +374,10 @@ impl ErrorContext {
         let mut ctx = Self::new(
             ErrorType::Database,
             StatusCode::INTERNAL_SERVER_ERROR,
-            &tf("error.database", &[&error.to_string()]),
+            &tf(
+                runique_i18n::keys::app::error::DATABASE,
+                &[&error.to_string()],
+            ),
             &error.to_string(),
         );
         ctx.build_stack_trace(&error);
@@ -366,8 +388,8 @@ impl ErrorContext {
         Self::new(
             ErrorType::NotFound,
             StatusCode::NOT_FOUND,
-            &t("error.title.not_found"),
-            &tf("error.path_not_found", &[path]),
+            &t(runique_i18n::keys::app::label::NOT_FOUND),
+            &tf(runique_i18n::keys::app::error::PATH_NOT_FOUND, &[path]),
         )
     }
     /// Builds a 400 `ErrorContext`: the request itself is malformed. `message`
@@ -376,7 +398,7 @@ impl ErrorContext {
         let mut ctx = Self::new(
             ErrorType::BadRequest,
             StatusCode::BAD_REQUEST,
-            &t("error.title.bad_request"),
+            &t(runique_i18n::keys::app::label::BAD_REQUEST),
             message,
         );
         // The debug page shows the first frame as the reason.
@@ -393,7 +415,7 @@ impl ErrorContext {
         Self::new(
             ErrorType::Internal,
             status,
-            &t("error.title.internal"),
+            &t(runique_i18n::keys::app::label::INTERNAL),
             message,
         )
     }
@@ -403,7 +425,7 @@ impl ErrorContext {
         let mut ctx = Self::new(
             ErrorType::Internal,
             StatusCode::INTERNAL_SERVER_ERROR,
-            &t("error.AppError"),
+            &t(runique_i18n::keys::app::error::APP_ERROR),
             &error.to_string(),
         );
         // Capture the full `{:?}` of the anyhow error (includes chain + backtrace)
@@ -451,13 +473,16 @@ impl ErrorContext {
         let mut ctx = match err {
             RuniqueError::Build(e) => Self::generic(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &tf("error.build", &[&e.to_string()]),
+                &tf(runique_i18n::keys::app::error::BUILD, &[&e.to_string()]),
             ),
             RuniqueError::Internal => Self::generic(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &t("error.internal_occurred"),
+                &t(runique_i18n::keys::app::error::INTERNAL_OCCURRED),
             ),
-            RuniqueError::Forbidden => Self::generic(StatusCode::FORBIDDEN, &t("error.forbidden")),
+            RuniqueError::Forbidden => Self::generic(
+                StatusCode::FORBIDDEN,
+                &t(runique_i18n::keys::app::error::FORBIDDEN),
+            ),
             RuniqueError::NotFound => {
                 let path = path.unwrap_or("/");
                 Self::not_found(path)
@@ -466,11 +491,14 @@ impl ErrorContext {
             RuniqueError::Database(msg) => Self::database(sea_orm::DbErr::Custom(msg.clone())),
             RuniqueError::Io(msg) => Self::generic(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &tf("error.io", &[msg.as_str()]),
+                &tf(runique_i18n::keys::app::error::IO, &[msg.as_str()]),
             ),
             RuniqueError::Template { message, .. } => Self::generic(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &tf("error.template", &[message.as_str()]),
+                &tf(
+                    runique_i18n::keys::app::error::TEMPLATE,
+                    &[message.as_str()],
+                ),
             ),
             RuniqueError::Custom { message, source: _ } => {
                 Self::generic(StatusCode::INTERNAL_SERVER_ERROR, message)

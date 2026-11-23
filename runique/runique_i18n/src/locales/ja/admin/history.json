@@ -1,0 +1,32 @@
+{
+  "label": {
+    "subtitle": "管理画面で行われた作成・変更・削除。",
+    "whole_row": "この行の全履歴",
+    "th_column": "列",
+    "th_old": "変更前",
+    "th_new": "変更後",
+    "no_changes": "閲覧可能な変更はありません",
+    "all_resources": "すべてのリソース",
+    "all_actions": "すべての操作",
+    "action_create": "作成",
+    "action_update": "変更",
+    "action_delete": "削除",
+    "btn_filter": "絞り込む",
+    "btn_reset": "リセット",
+    "th_date": "日時",
+    "th_account": "アカウント",
+    "th_resource": "リソース",
+    "th_object": "対象",
+    "th_action": "操作",
+    "btn_entry": "詳細",
+    "empty": "記録された操作はありません",
+    "badge_create": "作成",
+    "badge_update": "変更",
+    "badge_delete": "削除",
+    "badge_rights": "権限変更",
+    "badge_rank": "ランク変更",
+    "badge_reset_password": "パスワードリンク送信",
+    "badge_groups": "グループ",
+    "badge_transfer": "移管"
+  }
+}

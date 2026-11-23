@@ -100,7 +100,7 @@ fn url_state(get: &impl Fn(&str) -> Option<String>) -> UrlState {
         return UrlState::Absent;
     };
     let Ok(engine) = DatabaseEngine::detect_from_url(&url) else {
-        return UrlState::Incomplete("database.reason_unknown_start");
+        return UrlState::Incomplete(runique_i18n::keys::database::error::REASON_UNKNOWN_START);
     };
     if engine == DatabaseEngine::SQLite {
         let rest = url
@@ -116,7 +116,7 @@ fn url_state(get: &impl Fn(&str) -> Option<String>) -> UrlState {
         return UrlState::Complete(url);
     }
     let Ok(parsed) = url::Url::parse(&url) else {
-        return UrlState::Incomplete("database.reason_unreadable");
+        return UrlState::Incomplete(runique_i18n::keys::database::error::REASON_UNREADABLE);
     };
     let named_in_path = !parsed.path().trim_matches('/').is_empty();
     // PostgreSQL also takes the database as a parameter.
@@ -125,7 +125,7 @@ fn url_state(get: &impl Fn(&str) -> Option<String>) -> UrlState {
             .query_pairs()
             .any(|(key, value)| key == "dbname" && !value.is_empty());
     if !named_in_path && !named_in_query {
-        return UrlState::Incomplete("database.reason_no_database");
+        return UrlState::Incomplete(runique_i18n::keys::database::error::REASON_NO_DATABASE);
     }
     UrlState::Complete(url)
 }
@@ -142,7 +142,10 @@ fn keys_state(get: &impl Fn(&str) -> Option<String>) -> KeysState {
         }
         // Without the engine no address can be built, and SQLite must not be
         // taken in its place.
-        return KeysState::Unusable(tf("database.keys_without_engine", &[set.join(", ")]));
+        return KeysState::Unusable(tf(
+            runique_i18n::keys::database::error::KEYS_WITHOUT_ENGINE,
+            &[set.join(", ")],
+        ));
     };
     let Some(engine) = DatabaseEngine::from_keyword(&keyword) else {
         return KeysState::Unusable(format!(
@@ -313,23 +316,31 @@ impl DatabaseConfig {
             (UrlState::SqliteWithoutFile, KeysState::Filled(keys)) => (
                 keys,
                 None,
-                Some(Notice::UrlIncomplete("database.reason_sqlite_no_file")),
+                Some(Notice::UrlIncomplete(
+                    runique_i18n::keys::database::error::REASON_SQLITE_NO_FILE,
+                )),
             ),
             (UrlState::Incomplete(reason), KeysState::Unusable(why)) => {
                 return Err(tf(
-                    "database.url_incomplete_keys_unusable",
+                    runique_i18n::keys::database::error::URL_INCOMPLETE_KEYS_UNUSABLE,
                     &[t(reason).into_owned(), why],
                 ));
             }
             (UrlState::SqliteWithoutFile, KeysState::Unusable(why)) => {
                 return Err(tf(
-                    "database.url_incomplete_keys_unusable",
-                    &[t("database.reason_sqlite_no_file").into_owned(), why],
+                    runique_i18n::keys::database::error::URL_INCOMPLETE_KEYS_UNUSABLE,
+                    &[
+                        t(runique_i18n::keys::database::error::REASON_SQLITE_NO_FILE).into_owned(),
+                        why,
+                    ],
                 ));
             }
             // No SQLite by default after an address that aimed at a server.
             (UrlState::Incomplete(reason), KeysState::Empty) => {
-                return Err(tf("database.url_incomplete_no_keys", &[t(reason)]));
+                return Err(tf(
+                    runique_i18n::keys::database::error::URL_INCOMPLETE_NO_KEYS,
+                    &[t(reason)],
+                ));
             }
             // The address itself asked for SQLite: only the file name misses.
             (UrlState::SqliteWithoutFile, KeysState::Empty) => (
@@ -441,17 +452,24 @@ impl DatabaseConfig {
     /// of the `DB_*` keys when the address of `DATABASE_URL` didn't (the two
     /// may name the same database: the second try then tells whether the
     /// failure came from the address). The developer is told on the console.
-    pub async fn connect_resolved(
-        &self,
-    ) -> Result<(DatabaseConnection, &DatabaseConfig), DbErr> {
+    pub async fn connect_resolved(&self) -> Result<(DatabaseConnection, &DatabaseConfig), DbErr> {
         match &self.notice {
             Some(Notice::UrlIncomplete(reason)) => {
-                eprintln!("{}", tf("database.url_incomplete_using_keys", &[t(reason)]));
+                eprintln!(
+                    "{}",
+                    tf(
+                        runique_i18n::keys::database::error::URL_INCOMPLETE_USING_KEYS,
+                        &[t(reason)]
+                    )
+                );
             }
             Some(Notice::SqliteDefaultFile) => {
                 eprintln!(
                     "{}",
-                    tf("database.url_sqlite_default_file", &[DEFAULT_SQLITE_FILE])
+                    tf(
+                        runique_i18n::keys::database::error::URL_SQLITE_DEFAULT_FILE,
+                        &[DEFAULT_SQLITE_FILE]
+                    )
                 );
             }
             None => {}
@@ -459,7 +477,13 @@ impl DatabaseConfig {
         let first = match self.connect_once().await {
             Ok(conn) => {
                 if let Some(Notice::UrlIncomplete(reason)) = &self.notice {
-                    eprintln!("{}", tf("database.url_incomplete_reminder", &[t(reason)]));
+                    eprintln!(
+                        "{}",
+                        tf(
+                            runique_i18n::keys::database::info::URL_INCOMPLETE_REMINDER,
+                            &[t(reason)]
+                        )
+                    );
                 }
                 return Ok((conn, self));
             }
@@ -468,11 +492,17 @@ impl DatabaseConfig {
         match &self.fallback {
             None => Err(first),
             Some(Err(why)) => Err(DbErr::Custom(tf(
-                "database.url_failed_keys_unusable",
+                runique_i18n::keys::database::error::URL_FAILED_KEYS_UNUSABLE,
                 &[first.to_string(), why.clone()],
             ))),
             Some(Ok(keys)) => {
-                eprintln!("{}", tf("database.url_failed_trying_keys", &[&first]));
+                eprintln!(
+                    "{}",
+                    tf(
+                        runique_i18n::keys::database::error::URL_FAILED_TRYING_KEYS,
+                        &[&first]
+                    )
+                );
                 let conn = keys.connect_once().await?;
                 Ok((conn, keys.as_ref()))
             }
@@ -908,37 +938,46 @@ mod tests {
     const INCOMPLETE: [(&str, &str); 10] = [
         (
             "mariadb://app:secret@db.local/shop",
-            "database.reason_unknown_start",
+            runique_i18n::keys::database::error::REASON_UNKNOWN_START,
         ),
-        ("app:secret@db.local/shop", "database.reason_unknown_start"),
+        (
+            "app:secret@db.local/shop",
+            runique_i18n::keys::database::error::REASON_UNKNOWN_START,
+        ),
         (
             "\"postgres://app:secret@db.local/shop\"",
-            "database.reason_unknown_start",
+            runique_i18n::keys::database::error::REASON_UNKNOWN_START,
         ),
         (
             "postgres://app:secret@db.local:543a/shop",
-            "database.reason_unreadable",
+            runique_i18n::keys::database::error::REASON_UNREADABLE,
         ),
         // A raw `/` in the password: the host becomes `app`, the port `pa`.
         (
             "postgres://app:pa/ss@db.local/shop",
-            "database.reason_unreadable",
+            runique_i18n::keys::database::error::REASON_UNREADABLE,
         ),
         (
             "postgres://app:secret@db.local",
-            "database.reason_no_database",
+            runique_i18n::keys::database::error::REASON_NO_DATABASE,
         ),
         (
             "postgres://app:secret@db.local/",
-            "database.reason_no_database",
+            runique_i18n::keys::database::error::REASON_NO_DATABASE,
         ),
-        ("postgres://db.local?dbname=", "database.reason_no_database"),
+        (
+            "postgres://db.local?dbname=",
+            runique_i18n::keys::database::error::REASON_NO_DATABASE,
+        ),
         // `dbname` is a PostgreSQL parameter only.
         (
             "mysql://db.local?dbname=shop",
-            "database.reason_no_database",
+            runique_i18n::keys::database::error::REASON_NO_DATABASE,
         ),
-        ("sqlite://", "database.reason_sqlite_no_file"),
+        (
+            "sqlite://",
+            runique_i18n::keys::database::error::REASON_SQLITE_NO_FILE,
+        ),
     ];
 
     // Line 1: a complete address is used as it is. The keys stand by: their
@@ -996,12 +1035,15 @@ mod tests {
     #[test]
     fn an_incomplete_address_alone_is_refused_unless_it_asked_for_sqlite() {
         for (url, reason) in INCOMPLETE {
-            if reason == "database.reason_sqlite_no_file" {
+            if reason == runique_i18n::keys::database::error::REASON_SQLITE_NO_FILE {
                 continue;
             }
             assert_eq!(
                 rule(&with_url(url, &[])).unwrap_err(),
-                tf("database.url_incomplete_no_keys", &[t(reason)]),
+                tf(
+                    runique_i18n::keys::database::error::URL_INCOMPLETE_NO_KEYS,
+                    &[t(reason)]
+                ),
                 "{url}"
             );
         }
@@ -1046,13 +1088,19 @@ mod tests {
         for key in ["DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT", "DB_NAME"] {
             assert_eq!(
                 rule(&[(key, "x")]).unwrap_err(),
-                tf("database.keys_without_engine", &[key]),
+                tf(
+                    runique_i18n::keys::database::error::KEYS_WITHOUT_ENGINE,
+                    &[key]
+                ),
                 "{key}"
             );
         }
         assert_eq!(
             rule(&[("DB_USER", "bob"), ("DB_NAME", "app")]).unwrap_err(),
-            tf("database.keys_without_engine", &["DB_USER, DB_NAME"])
+            tf(
+                runique_i18n::keys::database::error::KEYS_WITHOUT_ENGINE,
+                &["DB_USER, DB_NAME"]
+            )
         );
         // With a complete address they only make the fallback unusable.
         let config = rule(&with_url("sqlite://data.db", &[("DB_USER", "bob")])).unwrap();

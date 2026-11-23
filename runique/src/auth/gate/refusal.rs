@@ -70,9 +70,9 @@ impl Refusal {
     /// blocked by rows that still point here.
     pub fn message(&self) -> String {
         if self.linked {
-            t("forms.delete_linked").into_owned()
+            t(runique_i18n::keys::forms::error::DELETE_LINKED).into_owned()
         } else {
-            t("admin.access.action_not_allowed").into_owned()
+            t(runique_i18n::keys::admin::access::error::ACTION_NOT_ALLOWED).into_owned()
         }
     }
 }
@@ -101,19 +101,26 @@ mod tests {
         .collect();
         assert!(messages.iter().all(|m| m == &messages[0]), "{messages:?}");
         assert_ne!(
-            messages[0], "admin.access.action_not_allowed",
+            messages[0],
+            runique_i18n::keys::admin::access::error::ACTION_NOT_ALLOWED,
             "key resolved"
         );
         assert!(!messages[0].is_empty());
-        assert_eq!(messages[0], t("admin.access.action_not_allowed"));
+        assert_eq!(
+            messages[0],
+            t(runique_i18n::keys::admin::access::error::ACTION_NOT_ALLOWED)
+        );
     }
 
     #[test]
     fn a_delete_blocked_by_related_rows_names_none_of_them() {
         let refusal = Refusal::new(RefusalReason::LinkedRecords);
         let message = refusal.message();
-        assert_eq!(message, t("forms.delete_linked"));
-        assert_ne!(message, t("admin.access.action_not_allowed"));
+        assert_eq!(message, t(runique_i18n::keys::forms::error::DELETE_LINKED));
+        assert_ne!(
+            message,
+            t(runique_i18n::keys::admin::access::error::ACTION_NOT_ALLOWED)
+        );
         let lower = message.to_ascii_lowercase();
         assert!(!lower.contains("foreign key"));
         assert!(!lower.contains("constraint"));

@@ -18,7 +18,7 @@ use crate::utils::trad::{t, tf};
 /// server path, an OS error) goes to the log only.
 pub(crate) fn upload_failed(detail: String) -> String {
     tracing::warn!(error = %detail, "upload not written");
-    t("forms.upload_failed").into_owned()
+    t(runique_i18n::keys::forms::error::UPLOAD_FAILED).into_owned()
 }
 use std::path::{Component, Path, PathBuf};
 
@@ -90,7 +90,7 @@ impl UploadMedia {
             let req_mb = bytes as f64 / (1024.0 * 1024.0);
             let lim_mb = limit as f64 / (1024.0 * 1024.0);
             return Err(crate::utils::trad::tf(
-                "forms.max_size_above_model",
+                runique_i18n::keys::forms::error::MAX_SIZE_ABOVE_MODEL,
                 &[format!("{req_mb:.1}"), format!("{lim_mb:.1}")],
             ));
         }
@@ -140,11 +140,10 @@ impl UploadMedia {
 
         // 1. Presence validation
         if base.is_required.choice && val.is_empty() {
-            let msg = base
-                .is_required
-                .message
-                .clone()
-                .unwrap_or_else(|| t("forms.file_required").to_string());
+            let msg =
+                base.is_required.message.clone().unwrap_or_else(|| {
+                    t(runique_i18n::keys::forms::error::FILE_REQUIRED).to_string()
+                });
             return UploadCheck::Required(msg);
         }
 
@@ -162,7 +161,10 @@ impl UploadMedia {
             && files.len() > max
         {
             cleanup_files(&files).await;
-            return UploadCheck::Refused(tf("forms.file_max_count", &[&max]));
+            return UploadCheck::Refused(tf(
+                runique_i18n::keys::forms::error::FILE_MAX_COUNT,
+                &[&max],
+            ));
         }
 
         // 3. Extensions + size validation
@@ -170,7 +172,10 @@ impl UploadMedia {
             if !self.allowed_extensions.is_allowed(filename) {
                 let exts = self.allowed_extensions.extensions.join(", ");
                 cleanup_files(&files).await;
-                return UploadCheck::Refused(tf("forms.file_extension_blocked", &[exts.as_str()]));
+                return UploadCheck::Refused(tf(
+                    runique_i18n::keys::forms::error::FILE_EXTENSION_BLOCKED,
+                    &[exts.as_str()],
+                ));
             }
             // A path already stored (`plats/x.png`, no file at that path, kept
             // as is by `finalize`) has nothing to measure; a real file or an
@@ -186,14 +191,16 @@ impl UploadMedia {
                     Err(e) => {
                         tracing::warn!(field = %base.name, error = %e, "file field: upload size unreadable, refused");
                         cleanup_files(&files).await;
-                        return UploadCheck::Refused(t("forms.file_unreadable").to_string());
+                        return UploadCheck::Refused(
+                            t(runique_i18n::keys::forms::error::FILE_UNREADABLE).to_string(),
+                        );
                     }
                 };
                 if file_size > max_bytes {
                     let max_mb = max_bytes as f64 / (1024.0 * 1024.0);
                     cleanup_files(&files).await;
                     return UploadCheck::Refused(tf(
-                        "forms.file_too_large",
+                        runique_i18n::keys::forms::error::FILE_TOO_LARGE,
                         &[format!("{max_mb:.1}")],
                     ));
                 }
@@ -423,7 +430,7 @@ async fn remove_replaced(previous: &str) {
     if regular {
         crate::atomic::remove(&path).trace(
             crate::utils::runique_log::log_level!(forms.finalize),
-            "log.forms.remove_replaced",
+            runique_i18n::keys::forms::log::REMOVE_REPLACED,
         );
     }
 }
@@ -551,7 +558,7 @@ impl MediaField {
     /// the message to show.
     async fn check_image(&self, filename: &str) -> Result<(), String> {
         if !is_valid_image_content(filename).await {
-            return Err(t("forms.file_invalid_image").into_owned());
+            return Err(t(runique_i18n::keys::forms::error::FILE_INVALID_IMAGE).into_owned());
         }
         // Refused when in doubt, for every format: an unreadable
         // measurement would skip the width and height limits.
@@ -581,17 +588,23 @@ impl MediaField {
             }
         };
         let Some((w, h)) = dims else {
-            return Err(t("forms.file_invalid_image").into_owned());
+            return Err(t(runique_i18n::keys::forms::error::FILE_INVALID_IMAGE).into_owned());
         };
         if let Some(max_w) = self.max_width
             && w > max_w
         {
-            return Err(tf("forms.image_too_wide", &[max_w]));
+            return Err(tf(
+                runique_i18n::keys::forms::error::IMAGE_TOO_WIDE,
+                &[max_w],
+            ));
         }
         if let Some(max_h) = self.max_height
             && h > max_h
         {
-            return Err(tf("forms.image_too_tall", &[max_h]));
+            return Err(tf(
+                runique_i18n::keys::forms::error::IMAGE_TOO_TALL,
+                &[max_h],
+            ));
         }
         Ok(())
     }
@@ -689,9 +702,9 @@ impl FormField for MediaField {
             let refused = match self.kind {
                 MediaKind::Image => self.check_image(filename).await.err(),
                 MediaKind::Audio => (!has_av_signature(filename, MediaKind::Audio).await)
-                    .then(|| t("forms.file_invalid_audio").into_owned()),
+                    .then(|| t(runique_i18n::keys::forms::error::FILE_INVALID_AUDIO).into_owned()),
                 MediaKind::Video => (!has_av_signature(filename, MediaKind::Video).await)
-                    .then(|| t("forms.file_invalid_video").into_owned()),
+                    .then(|| t(runique_i18n::keys::forms::error::FILE_INVALID_VIDEO).into_owned()),
             };
             if let Some(msg) = refused {
                 cleanup_files(&files).await;
@@ -875,7 +888,7 @@ mod tests {
         assert!(!field.validate().await);
         assert_eq!(
             field.error(),
-            Some(&t("forms.file_invalid_audio").into_owned()),
+            Some(&t(runique_i18n::keys::forms::error::FILE_INVALID_AUDIO).into_owned()),
             "the reason only: no name, no staging path"
         );
         assert_eq!(field.value(), "", "the refused value is cleared");
@@ -900,7 +913,7 @@ mod tests {
         assert!(!field.validate().await);
         assert_eq!(
             field.error(),
-            Some(&t("forms.file_invalid_video").into_owned()),
+            Some(&t(runique_i18n::keys::forms::error::FILE_INVALID_VIDEO).into_owned()),
             "the reason only: no name, no staging path"
         );
     }

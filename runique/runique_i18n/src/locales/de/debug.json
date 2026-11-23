@@ -1,4 +1,34 @@
 {
-  "stack_trace_title": "Detaillierte Fehlerverfolgung",
-  "stack_trace_tip": "Der oberste Fehler (Ebene 0) ist in der Regel die Grundursache. Die folgenden Fehler zeigen, wie sich der Fehler im Code ausgebreitet hat."
+  "label": {
+    "info_title": "Debug-Informationen",
+    "field_title": "Titel",
+    "field_count": "Anzahl Felder",
+    "error_count": "Fehler",
+    "main_message": "Hauptmeldung",
+    "root_cause": "Ursache",
+    "details": "Zusätzliche Details",
+    "request_info": "Anfrageinformationen",
+    "http_method": "HTTP-Methode",
+    "path": "Pfad",
+    "query_params": "Abfrageparameter",
+    "http_headers": "HTTP-Header",
+    "template_info": "Template-Informationen",
+    "template_name": "Template-Name",
+    "error_line": "Fehlerzeile",
+    "template_source": "Template-Quellcode",
+    "available_templates": "Verfügbare Templates",
+    "stack_trace_title": "Detaillierte Fehlertrace",
+    "stack_trace_tip": "Der oberste Fehler (Ebene 0) ist normalerweise die Ursache. Folgende Fehler zeigen, wie sich der Fehler im Code verbreitet hat.",
+    "environment": "Umgebung",
+    "debug_mode": "Debug-Modus",
+    "enabled": "Aktiviert",
+    "disabled": "Deaktiviert",
+    "rust_version": "Rust-Version",
+    "app_version": "App-Version",
+    "runique_version": "Runique-Version",
+    "occurred_at": "Fehler aufgetreten am:",
+    "status_code": "Statuscode",
+    "header_name": "Name",
+    "header_value": "Wert"
+  }
 }

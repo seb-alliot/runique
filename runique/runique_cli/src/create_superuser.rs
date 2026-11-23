@@ -63,14 +63,14 @@ enum ReviewAction {
 
 fn step_algorithm() -> Option<AlgoChoice> {
     let items = vec![
-        t("admin.superuser_wizard.algo_argon2").to_string(),
-        t("admin.superuser_wizard.algo_bcrypt").to_string(),
-        t("admin.superuser_wizard.algo_scrypt").to_string(),
-        t("admin.superuser_wizard.algo_custom").to_string(),
+        t(runique_i18n::keys::superuser::label::ALGO_ARGON2).to_string(),
+        t(runique_i18n::keys::superuser::label::ALGO_BCRYPT).to_string(),
+        t(runique_i18n::keys::superuser::label::ALGO_SCRYPT).to_string(),
+        t(runique_i18n::keys::superuser::label::ALGO_CUSTOM).to_string(),
     ];
 
     let selection = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt(t("admin.superuser_wizard.algo_prompt"))
+        .with_prompt(t(runique_i18n::keys::superuser::label::ALGO_PROMPT))
         .items(&items)
         .default(0)
         .interact_opt()
@@ -82,11 +82,11 @@ fn step_algorithm() -> Option<AlgoChoice> {
         2 => Some(AlgoChoice::Scrypt),
         3 => {
             let path: String = Input::with_theme(&ColorfulTheme::default())
-                .with_prompt(t("admin.superuser_wizard.provider_path"))
+                .with_prompt(t(runique_i18n::keys::superuser::label::PROVIDER_PATH))
                 .interact_text()
                 .ok()?;
             if path.trim().is_empty() {
-                println!("{}", t("admin.superuser_wizard.invalid_path"));
+                println!("{}", t(runique_i18n::keys::superuser::error::INVALID_PATH));
                 None
             } else {
                 Some(AlgoChoice::Custom(path))
@@ -99,17 +99,23 @@ fn step_algorithm() -> Option<AlgoChoice> {
 async fn step_username(db: &ADb) -> Option<String> {
     loop {
         let input: String = Input::with_theme(&ColorfulTheme::default())
-            .with_prompt(t("admin.superuser_wizard.username_prompt"))
+            .with_prompt(t(runique_i18n::keys::superuser::label::USERNAME_PROMPT))
             .interact_text()
             .ok()?;
 
         let Some(input) = clean_username(&input) else {
-            println!("{}", t("admin.superuser_wizard.username_empty"));
+            println!(
+                "{}",
+                t(runique_i18n::keys::superuser::error::USERNAME_EMPTY)
+            );
             continue;
         };
 
         if taken(db, Column::Username, &input).await {
-            println!("{}", t("admin.superuser_wizard.username_taken"));
+            println!(
+                "{}",
+                t(runique_i18n::keys::superuser::error::USERNAME_TAKEN)
+            );
             continue;
         }
         return Some(input);
@@ -119,17 +125,17 @@ async fn step_username(db: &ADb) -> Option<String> {
 async fn step_email(db: &ADb) -> Option<String> {
     loop {
         let input: String = Input::with_theme(&ColorfulTheme::default())
-            .with_prompt(t("admin.superuser_wizard.email_prompt"))
+            .with_prompt(t(runique_i18n::keys::superuser::label::EMAIL_PROMPT))
             .interact_text()
             .ok()?;
 
         let Some(input) = clean_email(&input) else {
-            println!("{}", t("admin.superuser_wizard.email_invalid"));
+            println!("{}", t(runique_i18n::keys::superuser::error::EMAIL_INVALID));
             continue;
         };
 
         if taken(db, Column::Email, &input).await {
-            println!("{}", t("admin.superuser_wizard.email_taken"));
+            println!("{}", t(runique_i18n::keys::superuser::error::EMAIL_TAKEN));
             continue;
         }
         return Some(input);
@@ -153,7 +159,7 @@ fn clean_email(input: &str) -> Option<String> {
 fn step_password() -> Option<String> {
     loop {
         let pass1 = Password::with_theme(&ColorfulTheme::default())
-            .with_prompt(t("admin.superuser_wizard.password_prompt"))
+            .with_prompt(t(runique_i18n::keys::superuser::label::PASSWORD_PROMPT))
             .interact()
             .ok()?;
 
@@ -163,12 +169,15 @@ fn step_password() -> Option<String> {
         }
 
         let pass2 = Password::with_theme(&ColorfulTheme::default())
-            .with_prompt(t("admin.superuser_wizard.confirm_prompt"))
+            .with_prompt(t(runique_i18n::keys::superuser::label::CONFIRM_PROMPT))
             .interact()
             .ok()?;
 
         if pass1 != pass2 {
-            println!("{}", t("admin.superuser_wizard.password_mismatch"));
+            println!(
+                "{}",
+                t(runique_i18n::keys::superuser::error::PASSWORD_MISMATCH)
+            );
             continue;
         }
 
@@ -183,7 +192,7 @@ const SUPERUSER_PASSWORD_MIN_CHARS: usize = 12;
 /// four 3-byte characters pass a 12 minimum.
 fn superuser_password_weakness(password: &str) -> Option<&'static str> {
     if password.chars().count() < SUPERUSER_PASSWORD_MIN_CHARS {
-        return Some("admin.superuser_wizard.password_too_short");
+        return Some(runique_i18n::keys::superuser::error::PASSWORD_TOO_SHORT);
     }
     let has_lower = password.chars().any(char::is_lowercase);
     let has_upper = password.chars().any(char::is_uppercase);
@@ -194,7 +203,7 @@ fn superuser_password_weakness(password: &str) -> Option<&'static str> {
     if has_lower && has_upper && has_digit && has_special {
         None
     } else {
-        Some("admin.superuser_wizard.password_weak")
+        Some(runique_i18n::keys::superuser::error::PASSWORD_WEAK)
     }
 }
 
@@ -206,24 +215,36 @@ fn step_review(state: &WizardState) -> ReviewAction {
     println!("\n──────────────────────────────────");
     println!(
         "{}",
-        tf("admin.superuser_wizard.review_algo", &[&algo.label()])
+        tf(
+            runique_i18n::keys::superuser::info::REVIEW_ALGO,
+            &[&algo.label()]
+        )
     );
     println!(
         "{}",
-        tf("admin.superuser_wizard.review_username", &[&username])
+        tf(
+            runique_i18n::keys::superuser::info::REVIEW_USERNAME,
+            &[&username]
+        )
     );
-    println!("{}", tf("admin.superuser_wizard.review_email", &[&email]));
-    println!("{}", t("admin.superuser_wizard.review_password"));
+    println!(
+        "{}",
+        tf(runique_i18n::keys::superuser::info::REVIEW_EMAIL, &[&email])
+    );
+    println!(
+        "{}",
+        t(runique_i18n::keys::superuser::info::REVIEW_PASSWORD)
+    );
     println!("──────────────────────────────────");
 
     let items = vec![
-        t("admin.superuser_wizard.confirm_create").to_string(),
-        t("admin.superuser_wizard.change_algo").to_string(),
-        t("admin.superuser_wizard.modify_password").to_string(),
+        t(runique_i18n::keys::superuser::label::CONFIRM_CREATE).to_string(),
+        t(runique_i18n::keys::superuser::label::CHANGE_ALGO).to_string(),
+        t(runique_i18n::keys::superuser::label::MODIFY_PASSWORD).to_string(),
     ];
 
     match Select::with_theme(&ColorfulTheme::default())
-        .with_prompt(t("admin.superuser_wizard.review_action"))
+        .with_prompt(t(runique_i18n::keys::superuser::info::REVIEW_ACTION))
         .items(&items)
         .default(0)
         .interact()
@@ -326,7 +347,7 @@ pub async fn create_superuser() -> Result<()> {
     let config = superuser_db_config(|key| std::env::var(key).ok())?;
     let db: ADb = ADb::from_connection(config.connect().await?);
 
-    println!("{}", t("admin.superuser_wizard.title"));
+    println!("{}", t(runique_i18n::keys::superuser::label::TITLE));
 
     let mut state = WizardState::default();
     let mut step = Step::Algorithm;
@@ -397,13 +418,22 @@ pub async fn create_superuser() -> Result<()> {
 
     let id = insert_superuser(&db, pk, &username, &email, password, algo).await?;
 
-    println!("\n{}", t("admin.superuser_wizard.success"));
-    println!("{}", tf("admin.superuser_wizard.id_line", &[&id]));
+    println!("\n{}", t(runique_i18n::keys::superuser::info::SUCCESS));
     println!(
         "{}",
-        tf("admin.superuser_wizard.username_line", &[&username])
+        tf(runique_i18n::keys::superuser::info::ID_LINE, &[&id])
     );
-    println!("{}", tf("admin.superuser_wizard.email_line", &[&email]));
+    println!(
+        "{}",
+        tf(
+            runique_i18n::keys::superuser::info::USERNAME_LINE,
+            &[&username]
+        )
+    );
+    println!(
+        "{}",
+        tf(runique_i18n::keys::superuser::info::EMAIL_LINE, &[&email])
+    );
 
     Ok(())
 }
@@ -643,18 +673,18 @@ mod password_rule_tests {
     fn under_twelve_characters_is_too_short() {
         assert_eq!(
             weakness("Aa1!aaaaaaa"),
-            Some("admin.superuser_wizard.password_too_short")
+            Some(runique_i18n::keys::superuser::error::PASSWORD_TOO_SHORT)
         );
         // 4 characters, 12 bytes: counted in characters
         assert_eq!(
             weakness("日本語!"),
-            Some("admin.superuser_wizard.password_too_short")
+            Some(runique_i18n::keys::superuser::error::PASSWORD_TOO_SHORT)
         );
     }
 
     #[test]
     fn each_missing_class_is_refused() {
-        let weak = Some("admin.superuser_wizard.password_weak");
+        let weak = Some(runique_i18n::keys::superuser::error::PASSWORD_WEAK);
         assert_eq!(weakness("aa1!aaaaaaaa"), weak, "no uppercase");
         assert_eq!(weakness("AA1!AAAAAAAA"), weak, "no lowercase");
         assert_eq!(weakness("Aa!aaaaaaaaa"), weak, "no digit");
@@ -836,9 +866,15 @@ mod superuser_tests {
     #[tokio::test]
     async fn a_taken_name_or_email_is_seen_and_only_the_exact_one() {
         let db = users_db().await;
-        insert(&db, "root", "root@example.com", "Campanile-2026", &AlgoChoice::Argon2)
-            .await
-            .unwrap();
+        insert(
+            &db,
+            "root",
+            "root@example.com",
+            "Campanile-2026",
+            &AlgoChoice::Argon2,
+        )
+        .await
+        .unwrap();
 
         assert!(taken(&db, Column::Username, "root").await);
         assert!(taken(&db, Column::Email, "root@example.com").await);

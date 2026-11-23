@@ -1,0 +1,19 @@
+{
+  "label": {
+    "title": "Excluir",
+    "breadcrumb": "Excluir",
+    "heading": "Confirmar exclusão",
+    "btn_cancel": "← Cancelar",
+    "btn_confirm": "Sim, excluir permanentemente",
+    "warning_title": "Atenção!",
+    "warning_desc": "Você está prestes a excluir a entrada",
+    "warning_of": "do recurso",
+    "warning_irreversible": "Esta ação é irreversível."
+  },
+  "info": {
+    "success": "Entrada excluída com sucesso!"
+  },
+  "error": {
+    "not_found": "Recurso não encontrado."
+  }
+}

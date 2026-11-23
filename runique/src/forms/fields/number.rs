@@ -310,7 +310,7 @@ impl FormField for NumericField {
     }
 
     async fn validate(&mut self) -> bool {
-        if self.fails_required("forms.number_required") {
+        if self.fails_required(runique_i18n::keys::forms::error::NUMBER_REQUIRED) {
             return false;
         }
         let val = self.base.value.trim();
@@ -327,12 +327,15 @@ impl FormField for NumericField {
             .unwrap_or(0);
 
         if current_digits < self.min_digits.unwrap_or(0) {
-            self.set_error(tf("forms.precision_min", &[&self.min_digits.unwrap_or(0)]));
+            self.set_error(tf(
+                runique_i18n::keys::forms::error::PRECISION_MIN,
+                &[&self.min_digits.unwrap_or(0)],
+            ));
             return false;
         }
         if current_digits > self.max_digits.unwrap_or(usize::MAX) {
             self.set_error(tf(
-                "forms.precision_max",
+                runique_i18n::keys::forms::error::PRECISION_MAX,
                 &[&self.max_digits.unwrap_or(usize::MAX)],
             ));
             return false;
@@ -345,7 +348,10 @@ impl FormField for NumericField {
                 .trim_start_matches('0')
                 .len();
             if integer_digits > max {
-                self.set_error(tf("forms.integer_digits_max", &[&max]));
+                self.set_error(tf(
+                    runique_i18n::keys::forms::error::INTEGER_DIGITS_MAX,
+                    &[&max],
+                ));
                 return false;
             }
         }
@@ -354,19 +360,25 @@ impl FormField for NumericField {
         let canonical = match &self.config {
             NumericConfig::Integer { min, max } => {
                 let Ok(v) = normalized.parse::<i128>() else {
-                    self.set_error(t("forms.integer_required").to_string());
+                    self.set_error(
+                        t(runique_i18n::keys::forms::error::INTEGER_REQUIRED).to_string(),
+                    );
                     return false;
                 };
                 let (lo, hi) = self.int_range.unwrap_or((i64::MIN.into(), i64::MAX.into()));
                 let lo = min.map_or(lo, |m| lo.max(m.into()));
                 let hi = max.map_or(hi, |m| hi.min(m.into()));
                 if v < lo {
-                    let msg = self.bound_message("min_message", || tf("forms.min_value", &[&lo]));
+                    let msg = self.bound_message("min_message", || {
+                        tf(runique_i18n::keys::forms::error::MIN_VALUE, &[&lo])
+                    });
                     self.set_error(msg);
                     return false;
                 }
                 if v > hi {
-                    let msg = self.bound_message("max_message", || tf("forms.max_value", &[&hi]));
+                    let msg = self.bound_message("max_message", || {
+                        tf(runique_i18n::keys::forms::error::MAX_VALUE, &[&hi])
+                    });
                     self.set_error(msg);
                     return false;
                 }
@@ -388,7 +400,7 @@ impl FormField for NumericField {
                 };
                 if (is_decimal && decimal_value.is_none()) || (!is_decimal && float_value.is_none())
                 {
-                    self.set_error(t("forms.number_invalid").to_string());
+                    self.set_error(t(runique_i18n::keys::forms::error::NUMBER_INVALID).to_string());
                     return false;
                 }
                 if let Some(f) = value.as_ref() {
@@ -405,35 +417,41 @@ impl FormField for NumericField {
                         };
                         let (Ok(min), Ok(max)) = (bound(f.min, f64::MIN), bound(f.max, f64::MAX))
                         else {
-                            self.set_error(t("forms.number_invalid").to_string());
+                            self.set_error(
+                                t(runique_i18n::keys::forms::error::NUMBER_INVALID).to_string(),
+                            );
                             return false;
                         };
                         if let Some(min) = min
                             && v < min
                         {
-                            let msg = self
-                                .bound_message("min_message", || tf("forms.min_value", &[&f.min]));
+                            let msg = self.bound_message("min_message", || {
+                                tf(runique_i18n::keys::forms::error::MIN_VALUE, &[&f.min])
+                            });
                             self.set_error(msg);
                             return false;
                         }
                         if let Some(max) = max
                             && v > max
                         {
-                            let msg = self
-                                .bound_message("max_message", || tf("forms.max_value", &[&f.max]));
+                            let msg = self.bound_message("max_message", || {
+                                tf(runique_i18n::keys::forms::error::MAX_VALUE, &[&f.max])
+                            });
                             self.set_error(msg);
                             return false;
                         }
                     } else if let Some(v) = float_value {
                         if v < f.min {
-                            let msg = self
-                                .bound_message("min_message", || tf("forms.min_value", &[&f.min]));
+                            let msg = self.bound_message("min_message", || {
+                                tf(runique_i18n::keys::forms::error::MIN_VALUE, &[&f.min])
+                            });
                             self.set_error(msg);
                             return false;
                         }
                         if v > f.max {
-                            let msg = self
-                                .bound_message("max_message", || tf("forms.max_value", &[&f.max]));
+                            let msg = self.bound_message("max_message", || {
+                                tf(runique_i18n::keys::forms::error::MAX_VALUE, &[&f.max])
+                            });
                             self.set_error(msg);
                             return false;
                         }
@@ -451,12 +469,16 @@ impl FormField for NumericField {
                         } else {
                             "max_message"
                         };
-                        let msg = self.bound_message(key, || t("forms.number_invalid").to_string());
+                        let msg = self.bound_message(key, || {
+                            t(runique_i18n::keys::forms::error::NUMBER_INVALID).to_string()
+                        });
                         self.set_error(msg);
                         return false;
                     }
                     _ => {
-                        self.set_error(t("forms.number_invalid").to_string());
+                        self.set_error(
+                            t(runique_i18n::keys::forms::error::NUMBER_INVALID).to_string(),
+                        );
                         return false;
                     }
                 }

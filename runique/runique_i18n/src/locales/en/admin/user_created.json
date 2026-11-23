@@ -1,0 +1,12 @@
+{
+  "label": {
+    "email_subject": "Welcome — set your password",
+    "email_greeting": "Welcome,",
+    "email_body": "An account has been created for you. Click the link below to set your password:",
+    "email_btn": "Set my password",
+    "email_validity": "This link is valid for {} min. If you were not expecting this message, ignore it."
+  },
+  "info": {
+    "email_sent": "Welcome email sent."
+  }
+}

@@ -98,7 +98,10 @@ pub(super) fn read_all(migrations_path: &str) -> Result<Vec<ParsedSchema>> {
             }
             let shown = path.display().to_string();
             let schema = parse_create_file(&shown).map_err(|_| {
-                anyhow::anyhow!(tf("makemigrations.snapshot_unreadable", &[&shown]))
+                anyhow::anyhow!(tf(
+                    runique_i18n::keys::makemigrations::error::SNAPSHOT_UNREADABLE,
+                    &[&shown]
+                ))
             })?;
             let expected = path
                 .file_stem()
@@ -108,7 +111,7 @@ pub(super) fn read_all(migrations_path: &str) -> Result<Vec<ParsedSchema>> {
                 anyhow::bail!(
                     "{}",
                     tf(
-                        "makemigrations.snapshot_misnamed",
+                        runique_i18n::keys::makemigrations::error::SNAPSHOT_MISNAMED,
                         &[shown.as_str(), schema.table_name.as_str()]
                     )
                 );

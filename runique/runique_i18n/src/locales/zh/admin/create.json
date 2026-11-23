@@ -1,0 +1,13 @@
+{
+  "label": {
+    "title": "创建",
+    "breadcrumb": "创建",
+    "card_info": "信息",
+    "no_fields": "当前没有可用字段。",
+    "btn_cancel": "取消",
+    "btn_submit": "创建"
+  },
+  "info": {
+    "success": "条目创建成功！"
+  }
+}

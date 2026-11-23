@@ -16,22 +16,34 @@ mod tests {
     #[test]
     fn test_get_simple() {
         let fr = Lang::Fr;
-        assert_eq!(fr.get("forms.required"), "Ce champ est obligatoire");
+        assert_eq!(
+            fr.get(runique_i18n::keys::forms::error::REQUIRED),
+            "Ce champ est obligatoire"
+        );
 
         let en = Lang::En;
-        assert_eq!(en.get("forms.required"), "This field is required");
+        assert_eq!(
+            en.get(runique_i18n::keys::forms::error::REQUIRED),
+            "This field is required"
+        );
     }
 
     #[test]
     fn test_get_nested() {
         let fr = Lang::Fr;
-        assert_eq!(fr.get("error.title.not_found"), "Page non trouvée");
+        assert_eq!(
+            fr.get(runique_i18n::keys::app::label::NOT_FOUND),
+            "Page non trouvée"
+        );
     }
 
     #[test]
     fn test_format() {
         let fr = Lang::Fr;
-        assert_eq!(fr.format("forms.too_short", &[5]), "Trop court (min 5)");
+        assert_eq!(
+            fr.format(runique_i18n::keys::forms::error::TOO_SHORT, &[5]),
+            "Trop court (min 5)"
+        );
     }
 
     #[test]
@@ -123,7 +135,7 @@ mod tests {
             Lang::Zh,
             Lang::Ru,
         ] {
-            let val = lang.get("forms.required");
+            let val = lang.get(runique_i18n::keys::forms::error::REQUIRED);
             assert!(!val.is_empty(), "{:?}.get('forms.required') vide", lang);
         }
     }
@@ -139,14 +151,14 @@ mod tests {
     #[test]
     fn test_format_en() {
         assert_eq!(
-            Lang::En.format("forms.too_short", &[3u32]),
+            Lang::En.format(runique_i18n::keys::forms::error::TOO_SHORT, &[3u32]),
             "Too short (min 3)"
         );
     }
 
     #[test]
     fn test_format_no_args() {
-        let result = Lang::En.format("forms.required", &[] as &[&str]);
+        let result = Lang::En.format(runique_i18n::keys::forms::error::REQUIRED, &[] as &[&str]);
         assert_eq!(result, "This field is required");
     }
 
@@ -173,7 +185,10 @@ mod tests {
     fn test_t_uses_global_lang() {
         use runique_i18n::switch_lang::{set_lang, t};
         set_lang(Lang::Fr);
-        assert_eq!(t("forms.required"), "Ce champ est obligatoire");
+        assert_eq!(
+            t(runique_i18n::keys::forms::error::REQUIRED),
+            "Ce champ est obligatoire"
+        );
         set_lang(Lang::En);
     }
 
@@ -182,7 +197,7 @@ mod tests {
     fn test_tf_uses_global_lang() {
         use runique_i18n::switch_lang::{set_lang, tf};
         set_lang(Lang::En);
-        let val = tf("forms.too_short", &[7u32]);
+        let val = tf(runique_i18n::keys::forms::error::TOO_SHORT, &[7u32]);
         assert!(val.contains("7"));
         set_lang(Lang::En);
     }

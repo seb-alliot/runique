@@ -1,18 +1,20 @@
 {
-  "reserved_name": "{}: este nome está reservado ao Runique",
-  "not_a_file": "{}: não é o caminho de um arquivo",
-  "duplicate": "{}: este arquivo já está no lote",
-  "in_the_way": "{} ocupa o lugar: este arquivo não vem da execução em curso",
-  "outside_journal": "{}: fora da pasta do diário",
-  "leaves_journal": "{}: este caminho sai da pasta do diário",
-  "journal_forged": "{}: o diário indica um caminho que o Runique não pode ter escrito",
-  "no_journal": "{}: nenhum diário para marcar",
-  "stray_backup": "{}: existe um backup, embora não houvesse nada antes da execução",
-  "gone": "{}: o arquivo desapareceu e nenhum backup o contém",
-  "not_created": "{}: não é o arquivo que o Runique estava criando",
-  "changed": "{}: modificado desde a interrupção, e o backup contém outra coisa",
-  "stranger": "{}: este arquivo não vem do Runique, em uma pasta que o Runique criou",
-  "moved_out": "{}: este arquivo não está mais na pasta do diário",
-  "unfinished": "o lote não terminou após suas passagens",
-  "wrong_step": "esta ação não é possível nesta etapa do arquivo"
+  "error": {
+    "reserved_name": "{}: este nome está reservado ao Runique",
+    "not_a_file": "{}: não é o caminho de um arquivo",
+    "duplicate": "{}: este arquivo já está no lote",
+    "in_the_way": "{} ocupa o lugar: este arquivo não vem da execução em curso",
+    "outside_journal": "{}: fora da pasta do diário",
+    "leaves_journal": "{}: este caminho sai da pasta do diário",
+    "journal_forged": "{}: o diário indica um caminho que o Runique não pode ter escrito",
+    "no_journal": "{}: nenhum diário para marcar",
+    "stray_backup": "{}: existe um backup, embora não houvesse nada antes da execução",
+    "gone": "{}: o arquivo desapareceu e nenhum backup o contém",
+    "not_created": "{}: não é o arquivo que o Runique estava criando",
+    "changed": "{}: modificado desde a interrupção, e o backup contém outra coisa",
+    "stranger": "{}: este arquivo não vem do Runique, em uma pasta que o Runique criou",
+    "moved_out": "{}: este arquivo não está mais na pasta do diário",
+    "unfinished": "o lote não terminou após suas passagens",
+    "wrong_step": "esta ação não é possível nesta etapa do arquivo"
+  }
 }

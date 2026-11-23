@@ -1,0 +1,13 @@
+{
+  "label": {
+    "title": "編集",
+    "breadcrumb": "編集",
+    "card_info": "情報",
+    "no_fields": "現在使用可能なフィールドはありません。",
+    "btn_cancel": "キャンセル",
+    "btn_submit": "保存"
+  },
+  "info": {
+    "success": "エントリが正常に更新されました！"
+  }
+}

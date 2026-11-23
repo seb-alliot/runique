@@ -1,11 +1,23 @@
 {
-  "operational": "Runique est opérationnel",
-  "launched": "Serveur lancé sur {}",
-  "connected_db": "Connecté à la base de données {} -> {}",
-  "connected_engine": "Connecté à la base de données {}",
-  "stop_hint": "ctrl + c pour arrêter",
-  "shutting_down": "Arrêt du serveur Runique...",
-  "acme_not_compiled": "ACME_ENABLED=true mais la feature `acme` n'est pas compilée.",
-  "acme_add_feature": "Ajoute la feature `acme` à ton Cargo.toml.",
-  "test_utils_feature_enabled": "Feature `test-utils` compilée dans ce build — assure-toi qu'elle est bien sous [dev-dependencies], jamais [dependencies], avant un déploiement en production."
+  "log": {
+    "https_redirected": "requête reçue en HTTP : redirigée vers HTTPS",
+    "https_port80_stopped": "le serveur HTTP du port 80 (défi ACME et redirection HTTPS) s'est arrêté",
+    "ctrl_c_not_installed": "gestionnaire de Ctrl+C non installé",
+    "sigterm_not_installed": "gestionnaire de SIGTERM non installé"
+  },
+  "info": {
+    "operational": "Runique est opérationnel",
+    "launched": "Serveur lancé sur {}",
+    "connected_db": "Connecté à la base de données {} -> {}",
+    "connected_engine": "Connecté à la base de données {}",
+    "shutting_down": "Arrêt du serveur Runique...",
+    "acme_add_feature": "Ajoute la feature `acme` à ton Cargo.toml.",
+    "test_utils_feature_enabled": "Feature `test-utils` compilée dans ce build — assure-toi qu'elle est bien sous [dev-dependencies], jamais [dependencies], avant un déploiement en production."
+  },
+  "hint": {
+    "stop": "ctrl + c pour arrêter"
+  },
+  "error": {
+    "acme_not_compiled": "ACME_ENABLED=true mais la feature `acme` n'est pas compilée."
+  }
 }

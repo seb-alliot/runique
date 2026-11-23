@@ -51,7 +51,13 @@ pub(super) fn cleared_files(
         if same_but(&source, &cleared, &ranges) {
             files.push((path, cleared));
         } else {
-            println!("{}", tf("migrate.renamed_from_kept", &[path.display()]));
+            println!(
+                "{}",
+                tf(
+                    runique_i18n::keys::migrate::error::RENAMED_FROM_KEPT,
+                    &[path.display()]
+                )
+            );
         }
     }
     Ok(files)
@@ -106,21 +112,25 @@ fn applied_ranges(source: &str, targets: &[(bool, String)]) -> Vec<Range<usize>>
 /// sets it apart: the one after it, or else the one before.
 fn collect(tokens: TokenStream, ranges: &mut Vec<Range<usize>>) {
     let trees: Vec<TokenTree> = tokens.into_iter().collect();
-    let comma = |tree: Option<&TokenTree>| matches!(tree, Some(TokenTree::Punct(punct)) if punct.as_char() == ',');
+    let comma =
+        |tree: &TokenTree| matches!(tree, TokenTree::Punct(punct) if punct.as_char() == ',');
     for (at, tree) in trees.iter().enumerate() {
         if let TokenTree::Group(group) = tree {
             collect(group.stream(), ranges);
-        } else if let TokenTree::Ident(word) = tree
+        } else if let [
+            TokenTree::Ident(word),
+            TokenTree::Punct(colon),
+            TokenTree::Literal(old),
+            after @ ..,
+        ] = &trees[at..]
             && word == "renamed_from"
-            && let (Some(TokenTree::Punct(colon)), Some(TokenTree::Literal(old))) =
-                (trees.get(at + 1), trees.get(at + 2))
             && colon.as_char() == ':'
         {
             let mut range = word.span().byte_range().start..old.span().byte_range().end;
-            if comma(trees.get(at + 3)) {
-                range.end = trees[at + 3].span().byte_range().end;
-            } else if at > 0 && comma(trees.get(at - 1)) {
-                range.start = trees[at - 1].span().byte_range().start;
+            if let Some(next) = after.first().filter(|tree| comma(tree)) {
+                range.end = next.span().byte_range().end;
+            } else if let Some(previous) = trees[..at].last().filter(|tree| comma(tree)) {
+                range.start = previous.span().byte_range().start;
             }
             ranges.push(range);
         }
@@ -135,23 +145,27 @@ fn cut(source: &str, ranges: &[Range<usize>]) -> String {
     let mut kept_from = 0;
     for range in ranges {
         let (mut start, mut end) = (range.start, range.end);
-        let line_start = source[..start].rfind('\n').map_or(0, |at| at + 1);
+        // What the line holds before the directive, and after it once the
+        // blanks are passed.
+        let before = source[..start].rsplit('\n').next().unwrap_or_default();
+        let line_start = start.saturating_sub(before.len());
         let after = &source[end..];
-        let blanks = after.len() - after.trim_start_matches([' ', '\t']).len();
-        let line_end = if after[blanks..].starts_with("\r\n") {
+        let rest = after.trim_start_matches([' ', '\t']);
+        let blanks = after.len().saturating_sub(rest.len());
+        let line_end = if rest.starts_with("\r\n") {
             Some(2)
-        } else if after[blanks..].starts_with('\n') {
+        } else if rest.starts_with('\n') {
             Some(1)
         } else {
             None
         };
         if let Some(line_break) = line_end
-            && source[line_start..start].trim().is_empty()
+            && before.trim().is_empty()
         {
             start = line_start;
-            end += blanks + line_break;
+            end = end.saturating_add(blanks).saturating_add(line_break);
         } else if source[..end].ends_with(',') {
-            end += blanks;
+            end = end.saturating_add(blanks);
         }
         // Two directives that share a comma: what is already gone stays gone.
         let start = start.max(kept_from);
@@ -294,6 +308,91 @@ mod tests {
         let out = cut(source, &ranges);
         assert_eq!(out, "[required, ]");
         assert!(same_but(source, &out, &ranges));
+    }
+
+    /// The places `collect` finds in `tokens`, as the text they cover.
+    fn found(tokens: &str) -> Vec<&str> {
+        let mut ranges = Vec::new();
+        collect(tokens.parse().unwrap(), &mut ranges);
+        ranges.into_iter().map(|range| &tokens[range]).collect()
+    }
+
+    // At either end of the tokens there is nothing before, or nothing after:
+    // the directive is still found, with the comma it has.
+    #[test]
+    fn a_directive_at_either_end_is_found_with_the_comma_it_has() {
+        assert_eq!(found(r#"renamed_from: "a""#), [r#"renamed_from: "a""#]);
+        assert_eq!(found(r#"renamed_from: "a", x"#), [r#"renamed_from: "a","#]);
+        assert_eq!(found(r#"x, renamed_from: "a""#), [r#", renamed_from: "a""#]);
+        // Between two commas: the one after it, never both.
+        assert_eq!(
+            found(r#"x, renamed_from: "a", y"#),
+            [r#"renamed_from: "a","#]
+        );
+        // What comes before or after isn't a comma: nothing more is taken.
+        assert_eq!(found(r#"x renamed_from: "a" y"#), [r#"renamed_from: "a""#]);
+        // Inside a group, at its very start and at its very end.
+        assert_eq!(
+            found(r#"[renamed_from: "a"] { y, renamed_from: "b" }"#),
+            [r#"renamed_from: "a""#, r#", renamed_from: "b""#]
+        );
+    }
+
+    // The three tokens, in this order, and nothing less.
+    #[test]
+    fn a_directive_missing_a_part_is_not_one() {
+        for tokens in [
+            "renamed_from",
+            "renamed_from:",
+            r#"renamed_from "a""#,
+            "renamed_from: old",
+            r#"renamed_from = "a""#,
+            r#"renamed: "a""#,
+            r#""a": renamed_from"#,
+            "",
+        ] {
+            assert!(found(tokens).is_empty(), "{tokens:?}");
+        }
+    }
+
+    // At the very start and at the very end of a file there is no line
+    // before, or no line break after.
+    #[test]
+    fn a_cut_at_the_edges_of_the_file_keeps_the_rest() {
+        let whole = |source: &str, part: &str| {
+            let start = source.find(part).unwrap();
+            cut(source, std::slice::from_ref(&(start..start + part.len())))
+        };
+        // First line of the file, alone on it: the line goes.
+        assert_eq!(
+            whole("renamed_from: \"a\",\npk", "renamed_from: \"a\","),
+            "pk"
+        );
+        assert_eq!(
+            whole("  renamed_from: \"a\",  \r\npk", "renamed_from: \"a\","),
+            "pk"
+        );
+        // Last thing in the file, no line break after it.
+        assert_eq!(
+            whole("x, renamed_from: \"a\"", ", renamed_from: \"a\""),
+            "x"
+        );
+        assert_eq!(whole("renamed_from: \"a\"", "renamed_from: \"a\""), "");
+        // Blanks after its comma, then the end of the file: they go with it.
+        assert_eq!(
+            whole("x renamed_from: \"a\",   ", "renamed_from: \"a\","),
+            "x "
+        );
+        // Sharing its line with something before: the line stays.
+        assert_eq!(
+            whole("x renamed_from: \"a\",\npk", "renamed_from: \"a\","),
+            "x \npk"
+        );
+        // No comma taken: the blanks after it stay.
+        assert_eq!(
+            whole("[renamed_from: \"a\"  ]", "renamed_from: \"a\""),
+            "[  ]"
+        );
     }
 
     // A place wholly inside what is already gone changes nothing.

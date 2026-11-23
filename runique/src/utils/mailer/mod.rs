@@ -114,7 +114,11 @@ pub fn mailer_init(config: MailerConfig) {
     if MAILER_CONFIG.set(config).is_err()
         && let Some(level) = crate::utils::runique_log::log_level!(mailer.send)
     {
-        crate::runique_log!(level, "{}", crate::utils::trad::t("log.mailer.init_twice"));
+        crate::runique_log!(
+            level,
+            "{}",
+            crate::utils::trad::t(runique_i18n::keys::mailer::log::INIT_TWICE)
+        );
     }
 }
 

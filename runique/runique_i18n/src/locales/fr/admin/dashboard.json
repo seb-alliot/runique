@@ -1,0 +1,23 @@
+{
+  "label": {
+    "subtitle": "Vue d'ensemble de l'application",
+    "card_resources": "Ressources",
+    "th_resource": "Ressource",
+    "th_key": "Clé",
+    "th_permissions": "Permissions",
+    "th_actions": "Actions",
+    "btn_list": "Liste",
+    "btn_create": "Créer",
+    "see_list": "Voir la liste →",
+    "empty_title": "Aucune ressource enregistrée",
+    "empty_desc": "Enregistrez vos modèles dans src/admin.rs avec le builder typé ModelAdmin, puis cargo run",
+    "kpi_resources": "Ressources",
+    "kpi_entries": "Entrées totales",
+    "kpi_largest": "Plus grande",
+    "th_count": "Entrées",
+    "toggle_template": "← Template configuré",
+    "my_groups_title": "Mes groupes",
+    "my_groups_staff": "staff",
+    "my_groups_none": "Ce groupe ne donne aucun droit sur les tables."
+  }
+}

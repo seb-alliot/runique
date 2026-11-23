@@ -1,11 +1,23 @@
 {
-  "operational": "Runique は稼働中です",
-  "launched": "サーバーを {} で起動しました",
-  "connected_db": "データベースに接続しました {} -> {}",
-  "connected_engine": "データベースに接続しました {}",
-  "stop_hint": "停止するには Ctrl + C",
-  "shutting_down": "Runique サーバーをシャットダウンしています...",
-  "acme_not_compiled": "ACME_ENABLED=true ですが、`acme` フィーチャーがコンパイルされていません。",
-  "acme_add_feature": "Cargo.toml に `acme` フィーチャーを追加してください。",
-  "test_utils_feature_enabled": "`test-utils` フィーチャーがこのビルドに含まれています — 本番環境にデプロイする前に、[dependencies] ではなく [dev-dependencies] に設定されていることを確認してください。"
+  "log": {
+    "https_redirected": "HTTP でリクエストを受信：HTTPS にリダイレクト",
+    "https_port80_stopped": "ポート 80 の HTTP サーバー（ACME チャレンジと HTTPS リダイレクト）が停止",
+    "ctrl_c_not_installed": "Ctrl+C ハンドラーを設定できない",
+    "sigterm_not_installed": "SIGTERM ハンドラーを設定できない"
+  },
+  "info": {
+    "operational": "Runique は稼働中です",
+    "launched": "サーバーを {} で起動しました",
+    "connected_db": "データベースに接続しました {} -> {}",
+    "connected_engine": "データベースに接続しました {}",
+    "shutting_down": "Runique サーバーをシャットダウンしています...",
+    "acme_add_feature": "Cargo.toml に `acme` フィーチャーを追加してください。",
+    "test_utils_feature_enabled": "`test-utils` フィーチャーがこのビルドに含まれています — 本番環境にデプロイする前に、[dependencies] ではなく [dev-dependencies] に設定されていることを確認してください。"
+  },
+  "hint": {
+    "stop": "停止するには Ctrl + C"
+  },
+  "error": {
+    "acme_not_compiled": "ACME_ENABLED=true ですが、`acme` フィーチャーがコンパイルされていません。"
+  }
 }

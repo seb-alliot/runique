@@ -1,7 +1,26 @@
 {
-  "missing": "CSRF token missing",
-  "invalid": "Invalid CSRF token",
-  "invalid_or_missing": "Invalid or missing CSRF token",
-  "forbidden": "Invalid CSRF token",
-  "session_write_error": "Session write error"
+  "error": {
+    "missing": "CSRF token missing",
+    "invalid": "Invalid CSRF token",
+    "invalid_or_missing": "Invalid or missing CSRF token"
+  },
+  "log": {
+    "refused": "csrf refused",
+    "reason_header_invalid": "invalid token in the X-CSRF-Token header",
+    "reason_not_a_form": "no token, and the body is not a form",
+    "reason_cross_site": "form sent from another site",
+    "reason_form_mismatch": "form: the token sent is not the session's (expired session, or page opened before a sign-in)",
+    "reason_form_missing": "form: no token in the body nor in X-CSRF-Token",
+    "reason_admin_login_missing": "admin sign-in: no token in the form",
+    "reason_admin_login_mismatch": "admin sign-in: the token sent is not the session's",
+    "reason_admin_logout": "admin sign-out: no valid token",
+    "reason_upload": "upload: a file arrived before a valid csrf_token field — nothing was written",
+    "token_dropped": "csrf token dropped (sign-in or sign-out): pages opened before now hold a dead one",
+    "token_new": "new csrf token for this session",
+    "read_token": "read the CSRF token from the session",
+    "keep_token": "keep the CSRF token in the session",
+    "read_account": "read the signed-in account for the CSRF token",
+    "write_token": "write a new CSRF token to the session",
+    "set_value": "set_value [csrf token received — its check is on the middleware.csrf channel]"
+  }
 }

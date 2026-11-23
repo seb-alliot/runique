@@ -1,0 +1,13 @@
+{
+  "label": {
+    "title": "Bearbeiten",
+    "breadcrumb": "Bearbeiten",
+    "card_info": "Informationen",
+    "no_fields": "Derzeit keine Felder verfügbar.",
+    "btn_cancel": "Abbrechen",
+    "btn_submit": "Speichern"
+  },
+  "info": {
+    "success": "Eintrag erfolgreich aktualisiert!"
+  }
+}

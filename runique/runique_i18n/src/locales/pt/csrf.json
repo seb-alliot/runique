@@ -1,7 +1,26 @@
 {
-  "missing": "Token CSRF ausente",
-  "invalid": "Token CSRF inválido",
-  "invalid_or_missing": "Token CSRF inválido ou ausente",
-  "forbidden": "Token CSRF inválido",
-  "session_write_error": "Erro ao gravar a sessão"
+  "error": {
+    "missing": "Token CSRF ausente",
+    "invalid": "Token CSRF inválido",
+    "invalid_or_missing": "Token CSRF inválido ou ausente"
+  },
+  "log": {
+    "refused": "CSRF recusado",
+    "reason_header_invalid": "token inválido no cabeçalho X-CSRF-Token",
+    "reason_not_a_form": "sem token, e o corpo não é um formulário",
+    "reason_cross_site": "formulário enviado de outro site",
+    "reason_form_mismatch": "formulário: o token enviado não é o da sessão (sessão expirada, ou página aberta antes de um início de sessão)",
+    "reason_form_missing": "formulário: nenhum token no corpo nem em X-CSRF-Token",
+    "reason_admin_login_missing": "início de sessão do admin: nenhum token no formulário",
+    "reason_admin_login_mismatch": "início de sessão do admin: o token enviado não é o da sessão",
+    "reason_admin_logout": "fim de sessão do admin: nenhum token válido",
+    "reason_upload": "envio: um ficheiro chegou antes de um campo csrf_token válido, nada foi escrito",
+    "token_dropped": "token CSRF descartado (início ou fim de sessão): as páginas abertas antes têm um token morto",
+    "token_new": "novo token CSRF para esta sessão",
+    "read_token": "leitura do token CSRF da sessão",
+    "keep_token": "conservação do token CSRF na sessão",
+    "read_account": "leitura da conta ligada para o token CSRF",
+    "write_token": "escrita de um novo token CSRF na sessão",
+    "set_value": "set_value [token CSRF recebido: a sua verificação está no canal middleware.csrf]"
+  }
 }

@@ -147,8 +147,13 @@ mod tests {
     #[test]
     fn a_panic_while_reading_restores_the_type() {
         let built = parse("id => Pk").unwrap().ty;
-        let other = if built == PkType::Uuid { PkType::I32 } else { PkType::Uuid };
-        let outcome = std::panic::catch_unwind(|| with_project_pk(other, || -> () { panic!("reading") }));
+        let other = if built == PkType::Uuid {
+            PkType::I32
+        } else {
+            PkType::Uuid
+        };
+        let outcome =
+            std::panic::catch_unwind(|| with_project_pk(other, || -> () { panic!("reading") }));
         assert!(outcome.is_err());
         assert_eq!(parse("id => Pk").unwrap().ty, built);
     }
@@ -157,7 +162,11 @@ mod tests {
     #[test]
     fn the_project_type_stays_in_its_thread() {
         let built = parse("id => Pk").unwrap().ty;
-        let other = if built == PkType::Uuid { PkType::I32 } else { PkType::Uuid };
+        let other = if built == PkType::Uuid {
+            PkType::I32
+        } else {
+            PkType::Uuid
+        };
         let elsewhere = with_project_pk(other, || {
             std::thread::spawn(|| parse("id => Pk").unwrap().ty)
                 .join()

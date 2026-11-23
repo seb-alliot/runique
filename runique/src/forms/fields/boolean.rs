@@ -78,22 +78,20 @@ impl FormField for BooleanField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
         self.state()
             .map(|checked| Some(sea_orm::Value::from(checked)))
-            .map_err(|()| t("forms.value_unconvertible").into_owned())
+            .map_err(|()| t(runique_i18n::keys::forms::error::VALUE_UNCONVERTIBLE).into_owned())
     }
 
     async fn validate(&mut self) -> bool {
         let refusal = match self.state() {
             // The rendered box only sends its own value: anything else was forged.
             Err(()) => Some((
-                t("forms.value_unconvertible").into_owned(),
+                t(runique_i18n::keys::forms::error::VALUE_UNCONVERTIBLE).into_owned(),
                 "boolean refused: not the value the box sends",
             )),
             Ok(false) if self.base.is_required.choice => Some((
-                self.base
-                    .is_required
-                    .message
-                    .clone()
-                    .unwrap_or_else(|| t("forms.must_be_checked").into_owned()),
+                self.base.is_required.message.clone().unwrap_or_else(|| {
+                    t(runique_i18n::keys::forms::error::MUST_BE_CHECKED).into_owned()
+                }),
                 "required box left unchecked",
             )),
             Ok(_) => None,

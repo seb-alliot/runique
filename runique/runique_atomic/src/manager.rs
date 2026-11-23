@@ -52,7 +52,7 @@ impl PathManager {
         if !self.all_done() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                runique_i18n::t("atomic.unfinished").into_owned(),
+                runique_i18n::t(runique_i18n::keys::atomic::error::UNFINISHED).into_owned(),
             ));
         }
         self.sync_dirs()?;

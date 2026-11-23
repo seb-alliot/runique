@@ -53,5 +53,5 @@ pub(crate) fn on_fields(form: &mut Forms, errors: FieldErrors) -> DbErr {
 }
 
 pub(crate) fn not_found() -> DbErr {
-    DbErr::Custom(t("error.not_found").into_owned())
+    DbErr::Custom(t(runique_i18n::keys::app::error::NOT_FOUND).into_owned())
 }

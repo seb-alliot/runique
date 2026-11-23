@@ -1,0 +1,12 @@
+{
+  "label": {
+    "title": "管理",
+    "breadcrumb": "管理",
+    "toggle": "メニューを折りたたむ",
+    "logout_title": "ログアウト",
+    "theme_toggle": "テーマを切り替え",
+    "back_to_site": "← サイト",
+    "dashboard": "ダッシュボード",
+    "history": "履歴"
+  }
+}

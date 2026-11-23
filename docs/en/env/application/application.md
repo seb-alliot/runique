@@ -8,7 +8,7 @@
 | `DEBUG` | `false` | Shows the detailed error pages and turns every log channel on (see [Tracing](/docs/en/configuration/tracing)) — read **once** at startup. Accepts `true`/`1`/`yes`/`on` and `false`/`0`/`no`/`off`, whatever the case. Also works with `RUNIQUE_ENV=prod` to look into a problem on a live site: not recommended, as every visitor then sees those pages (a warning shows at startup). |
 | `BASE_DIR` | `.` | Application root directory |
 | `TZ` | `UTC` | IANA timezone for the application (e.g. `Europe/Paris`, `America/New_York`). Accessible via `config.timezone` — parse it with `chrono-tz` in your project. |
-| `LANG` | system locale | CLI language (`fr`, `en`, `de`, `es`, `it`, `pt`, `ja`, `zh`, `ru`). Priority: `LANG` / `LC_ALL` / `LC_MESSAGES` from `.env` > system locale > `en`. The app's language is set in code (`set_lang(Lang::En)`) |
+| `LANG` | `en` | Language of the application and of the `runique` command: one of Runique's nine (`fr`, `en`, `de`, `es`, `it`, `pt`, `ja`, `zh`, `ru`) or a language of the project's `locales/` folder. Application: `set_lang()` in the code > `.env` > `en`. Command: `.env` > system locale > `en`. See [i18n](/docs/en/configuration/i18n) |
 
 ---
 

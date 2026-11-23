@@ -91,7 +91,7 @@ fn relative(dir: &Path, beside: Option<&Path>, path: &Path) -> io::Result<(PathB
             return Err(invalid(
                 io::ErrorKind::InvalidInput,
                 path,
-                "atomic.outside_journal",
+                runique_i18n::keys::atomic::error::OUTSIDE_JOURNAL,
             ));
         }
     };
@@ -101,7 +101,7 @@ fn relative(dir: &Path, beside: Option<&Path>, path: &Path) -> io::Result<(PathB
         Err(invalid(
             io::ErrorKind::InvalidInput,
             path,
-            "atomic.leaves_journal",
+            runique_i18n::keys::atomic::error::LEAVES_JOURNAL,
         ))
     }
 }
@@ -156,7 +156,7 @@ pub(super) fn read(dir: &Path) -> io::Result<Option<Journal>> {
         Err(invalid(
             io::ErrorKind::InvalidData,
             &path,
-            "atomic.journal_forged",
+            runique_i18n::keys::atomic::error::JOURNAL_FORGED,
         ))
     }
 }
@@ -164,7 +164,11 @@ pub(super) fn read(dir: &Path) -> io::Result<Option<Journal>> {
 /// Marks the point of no return: every file is in place.
 pub(super) fn mark_placed(dir: &Path) -> io::Result<()> {
     let Some(mut journal) = read(dir)? else {
-        return Err(invalid(io::ErrorKind::NotFound, dir, "atomic.no_journal"));
+        return Err(invalid(
+            io::ErrorKind::NotFound,
+            dir,
+            runique_i18n::keys::atomic::error::NO_JOURNAL,
+        ));
     };
     journal.placed = true;
     write(dir, &journal)
@@ -246,7 +250,7 @@ pub(super) fn examine(dir: &Path, beside: Option<&Path>) -> io::Result<Option<Re
                 invalid(
                     io::ErrorKind::InvalidData,
                     &dir.join(NAME),
-                    "atomic.journal_forged",
+                    runique_i18n::keys::atomic::error::JOURNAL_FORGED,
                 )
             })?
         } else {
@@ -331,11 +335,11 @@ fn found(
 ) -> io::Result<Result<Found, &'static str>> {
     let backup = exists(backup_path)?;
     if !existed && backup {
-        return Ok(Err("atomic.stray_backup"));
+        return Ok(Err(runique_i18n::keys::atomic::error::STRAY_BACKUP));
     }
     if !exists(path)? {
         return Ok(if existed && !backup {
-            Err("atomic.gone")
+            Err(runique_i18n::keys::atomic::error::GONE)
         } else {
             Ok(Found::Nothing)
         });
@@ -344,7 +348,7 @@ fn found(
         return Ok(Ok(Found::Placed));
     }
     if !existed {
-        return Ok(Err("atomic.not_created"));
+        return Ok(Err(runique_i18n::keys::atomic::error::NOT_CREATED));
     }
     if !backup {
         return Ok(Ok(Found::Original));
@@ -352,7 +356,7 @@ fn found(
     Ok(if disk::same(path, backup_path)? {
         Ok(Found::OriginalAndBackup)
     } else {
-        Err("atomic.changed")
+        Err(runique_i18n::keys::atomic::error::CHANGED)
     })
 }
 
@@ -376,7 +380,10 @@ fn strangers(dir: &Path, journal: &Journal) -> io::Result<Vec<String>> {
         for entry in entries {
             let path = entry?.path();
             if !known.contains(&path) {
-                strangers.push(runique_i18n::tf("atomic.stranger", &[path.display()]));
+                strangers.push(runique_i18n::tf(
+                    runique_i18n::keys::atomic::error::STRANGER,
+                    &[path.display()],
+                ));
             }
         }
     }
@@ -400,7 +407,7 @@ fn stays_inside(dir: &Path, path: &Path) -> io::Result<()> {
         Err(invalid(
             io::ErrorKind::InvalidData,
             path,
-            "atomic.moved_out",
+            runique_i18n::keys::atomic::error::MOVED_OUT,
         ))
     }
 }

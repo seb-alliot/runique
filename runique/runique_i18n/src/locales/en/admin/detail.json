@@ -1,0 +1,19 @@
+{
+  "label": {
+    "title": "Detail",
+    "breadcrumb": "Detail",
+    "entry_label": "Entry",
+    "btn_list": "← List",
+    "btn_edit": "Edit",
+    "btn_delete": "Delete",
+    "confirm_delete": "Delete this entry?",
+    "btn_reset_password": "Reset password",
+    "btn_reset_password_short": "Reset",
+    "btn_rights": "Rights",
+    "btn_rank": "Change the rank",
+    "groups_title": "This account's groups",
+    "btn_save_groups": "Assign",
+    "transfer_title": "Group responsable",
+    "btn_transfer": "Transfer"
+  }
+}

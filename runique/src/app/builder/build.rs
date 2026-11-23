@@ -87,6 +87,10 @@ impl<P> RuniqueAppBuilder<P> {
         log_init(self.config.log.clone());
         let log_guards = self.config.log.init_subscriber();
 
+        // The project's own translations, before anything is said in its
+        // language: the checks below answer in it.
+        load_project_locales()?;
+
         // Step 1: validation
         self.validate()?;
         if !self.all_ready() {
@@ -194,7 +198,10 @@ impl<P> RuniqueAppBuilder<P> {
         }
 
         if config.debug && !config.dev {
-            tracing::warn!("{}", crate::utils::trad::t("log.boot.debug_in_prod"));
+            tracing::warn!(
+                "{}",
+                crate::utils::trad::t(runique_i18n::keys::build::log::DEBUG_IN_PROD)
+            );
         }
 
         let engine = new(RuniqueEngine {
@@ -337,7 +344,7 @@ impl<P> RuniqueAppBuilder<P> {
                         crate::runique_log!(
                             level.unwrap_or(tracing::Level::WARN),
                             error = %e,
-                            "{}", crate::utils::trad::t("log.boot.prune_failed")
+                            "{}", crate::utils::trad::t(runique_i18n::keys::build::log::PRUNE_FAILED)
                         );
                     }
                 }
@@ -495,9 +502,11 @@ impl<P> RuniqueAppBuilder<P> {
             report.add(
                 CheckError::new(
                     "Security",
-                    crate::utils::trad::t("build.check.secret_key_weak"),
+                    crate::utils::trad::t(runique_i18n::keys::build::error::SECRET_KEY_WEAK),
                 )
-                .with_suggestion(crate::utils::trad::t("build.check.secret_key_weak_hint")),
+                .with_suggestion(crate::utils::trad::t(
+                    runique_i18n::keys::build::hint::SECRET_KEY_WEAK,
+                )),
             );
         }
 
@@ -513,9 +522,11 @@ impl<P> RuniqueAppBuilder<P> {
             report.add(
                 CheckError::new(
                     "PublicUrl",
-                    crate::utils::trad::t("build.check.public_url_missing"),
+                    crate::utils::trad::t(runique_i18n::keys::build::error::PUBLIC_URL_MISSING),
                 )
-                .with_suggestion(crate::utils::trad::t("build.check.public_url_missing_hint")),
+                .with_suggestion(crate::utils::trad::t(
+                    runique_i18n::keys::build::hint::PUBLIC_URL_MISSING,
+                )),
             );
         }
 
@@ -527,9 +538,11 @@ impl<P> RuniqueAppBuilder<P> {
             report.add(
                 CheckError::new(
                     "Mailer",
-                    crate::utils::trad::t("build.check.mailer_missing"),
+                    crate::utils::trad::t(runique_i18n::keys::build::error::MAILER_MISSING),
                 )
-                .with_suggestion(crate::utils::trad::t("build.check.mailer_missing_hint")),
+                .with_suggestion(crate::utils::trad::t(
+                    runique_i18n::keys::build::hint::MAILER_MISSING,
+                )),
             );
         }
 
@@ -539,10 +552,12 @@ impl<P> RuniqueAppBuilder<P> {
                 report.add(
                     CheckError::new(
                         "ACME",
-                        crate::utils::trad::t("build.check.acme_domain_missing"),
+                        crate::utils::trad::t(
+                            runique_i18n::keys::build::error::ACME_DOMAIN_MISSING,
+                        ),
                     )
                     .with_suggestion(crate::utils::trad::t(
-                        "build.check.acme_domain_missing_hint",
+                        runique_i18n::keys::build::hint::ACME_DOMAIN_MISSING,
                     )),
                 );
             }
@@ -550,9 +565,11 @@ impl<P> RuniqueAppBuilder<P> {
                 report.add(
                     CheckError::new(
                         "ACME",
-                        crate::utils::trad::t("build.check.acme_email_missing"),
+                        crate::utils::trad::t(runique_i18n::keys::build::error::ACME_EMAIL_MISSING),
                     )
-                    .with_suggestion(crate::utils::trad::t("build.check.acme_email_missing_hint")),
+                    .with_suggestion(crate::utils::trad::t(
+                        runique_i18n::keys::build::hint::ACME_EMAIL_MISSING,
+                    )),
                 );
             }
         }
@@ -671,4 +688,61 @@ impl<P> RuniqueAppBuilder<P> {
 
         router
     }
+}
+
+/// Reads the project's `locales/` folder (`LOCALES_DIR`), then takes the
+/// language of the `.env` unless the code chose one. A folder that can't be
+/// read as translations stops the start; what it leaves untranslated or
+/// misspells is only said.
+fn load_project_locales() -> Result<(), BuildError> {
+    use crate::utils::trad::{Lang, keys::build, load_project, project_dir, set_default_lang, tf};
+
+    let report = load_project(&project_dir())
+        .map_err(|e| BuildError::validation(tf(build::error::LOCALES_INVALID, &[e])))?;
+    // After the folder: `LANG=nl` names a language only once it is loaded.
+    // The file's own `LANG`, never the machine's: a server's locale isn't
+    // the language of the site it serves.
+    if let Some(lang) = Lang::from_dotenv() {
+        set_default_lang(lang);
+    }
+    for language in &report.languages {
+        if !language.missing.is_empty() {
+            let total: usize = language.missing.iter().map(|(_, count)| count).sum();
+            let subjects: Vec<String> = language
+                .missing
+                .iter()
+                .map(|(subject, count)| format!("{subject}: {count}"))
+                .collect();
+            tracing::warn!(
+                "{}",
+                tf(
+                    build::log::LOCALES_MISSING,
+                    &[
+                        language.code.clone(),
+                        total.to_string(),
+                        subjects.join(", ")
+                    ]
+                )
+            );
+        }
+        if !language.unknown.is_empty() {
+            tracing::warn!(
+                "{}",
+                tf(
+                    build::log::LOCALES_UNKNOWN,
+                    &[language.code.clone(), language.unknown.join(", ")]
+                )
+            );
+        }
+        if !language.mismatched.is_empty() {
+            tracing::warn!(
+                "{}",
+                tf(
+                    build::log::LOCALES_PLACEHOLDERS,
+                    &[language.code.clone(), language.mismatched.join(", ")]
+                )
+            );
+        }
+    }
+    Ok(())
 }

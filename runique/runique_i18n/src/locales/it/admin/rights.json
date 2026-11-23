@@ -1,0 +1,25 @@
+{
+  "label": {
+    "title": "Diritti",
+    "subtitle": "Cosa può fare questo admin, tabella per tabella e colonna per colonna. Una colonna non spuntata non è né letta né scritta.",
+    "go_to_table": "Vai a una tabella",
+    "toc": "Tabelle",
+    "btn_cancel": "Annulla",
+    "btn_save": "Salva",
+    "th_column": "Colonna",
+    "col_read": "Leggere",
+    "col_create": "Creare",
+    "col_update": "Modificare",
+    "right_create": "Creare",
+    "right_read": "Elencare / leggere",
+    "right_read_own": "Leggere le proprie",
+    "right_update": "Modificare",
+    "right_update_own": "Modificare le proprie",
+    "right_delete": "Eliminare",
+    "right_delete_own": "Eliminare le proprie",
+    "group_subtitle": "Cosa possono fare i membri di questo gruppo, tabella per tabella e colonna per colonna. Una colonna non spuntata non è né letta né scritta.",
+    "group_label": "Gruppo",
+    "btn_show": "Mostra",
+    "group_sheet": "Scheda del gruppo"
+  }
+}

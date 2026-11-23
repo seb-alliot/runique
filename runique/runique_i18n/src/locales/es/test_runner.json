@@ -1,18 +1,20 @@
 {
-  "no_cargo_toml": "No hay Cargo.toml aquí: ejecuta `runique test` desde la raíz de tu proyecto.",
-  "test_utils_missing": "La feature `test-utils` no está activada para runique en Cargo.toml.\nAñádela como dev-dependency para que nunca acabe en una build de release:\n    cargo add --dev runique --features test-utils",
-  "test_utils_shipped": "Cargo.toml activa `test-utils` fuera de [dev-dependencies], así que el builder de pruebas acabaría en tu build de release.\nQuítala de [dependencies] (y de cualquier entrada de [features]) y añádela solo como dev-dependency:\n    cargo add --dev runique --features test-utils",
-  "no_mod_file": "No existe src/runique_test/mod.rs: créalo y declara en él cada archivo de pruebas (`mod user;`).",
-  "module_not_declared": "src/main.rs no declara el módulo de pruebas. Añade:\n    #[cfg(test)]\n    mod runique_test;",
-  "module_not_gated": "El módulo runique_test no está detrás de `cfg(test)`, así que acabaría en todas las builds.\nPon `#[cfg(test)]` justo encima de `mod runique_test;` en src/main.rs.",
-  "file_not_declared_warning": "aviso: src/runique_test/{}.rs no está declarado en mod.rs, así que sus pruebas no se ejecutarán. Añade `mod {};` a mod.rs.",
-  "no_test_file": "No existe src/runique_test/{}.rs. Archivos de pruebas: {}",
-  "file_not_declared": "src/runique_test/{}.rs no está declarado en mod.rs: añade `mod {};`.",
-  "cargo_spawn_failed": "No se pudo ejecutar cargo.",
-  "output_failed": "No se pudo mostrar la salida de cargo.",
-  "cargo_wait_failed": "cargo test no terminó correctamente.",
-  "tests_failed": "cargo test falló, consulta la salida de arriba.",
-  "build_failed": "cargo no pudo compilar las pruebas, consulta los errores de arriba.",
-  "no_such_test": "No hay ninguna prueba \"{}\" en {}.rs. Pruebas disponibles: {}",
-  "dir_read_failed": "No se puede leer {}"
+  "error": {
+    "no_cargo_toml": "No hay Cargo.toml aquí: ejecuta `runique test` desde la raíz de tu proyecto.",
+    "test_utils_missing": "La feature `test-utils` no está activada para runique en Cargo.toml.\nAñádela como dev-dependency para que nunca acabe en una build de release:\n    cargo add --dev runique --features test-utils",
+    "test_utils_shipped": "Cargo.toml activa `test-utils` fuera de [dev-dependencies], así que el builder de pruebas acabaría en tu build de release.\nQuítala de [dependencies] (y de cualquier entrada de [features]) y añádela solo como dev-dependency:\n    cargo add --dev runique --features test-utils",
+    "no_mod_file": "No existe src/runique_test/mod.rs: créalo y declara en él cada archivo de pruebas (`mod user;`).",
+    "module_not_declared": "src/main.rs no declara el módulo de pruebas. Añade:\n    #[cfg(test)]\n    mod runique_test;",
+    "module_not_gated": "El módulo runique_test no está detrás de `cfg(test)`, así que acabaría en todas las builds.\nPon `#[cfg(test)]` justo encima de `mod runique_test;` en src/main.rs.",
+    "file_not_declared_warning": "aviso: src/runique_test/{}.rs no está declarado en mod.rs, así que sus pruebas no se ejecutarán. Añade `mod {};` a mod.rs.",
+    "no_test_file": "No existe src/runique_test/{}.rs. Archivos de pruebas: {}",
+    "file_not_declared": "src/runique_test/{}.rs no está declarado en mod.rs: añade `mod {};`.",
+    "cargo_spawn_failed": "No se pudo ejecutar cargo.",
+    "output_failed": "No se pudo mostrar la salida de cargo.",
+    "cargo_wait_failed": "cargo test no terminó correctamente.",
+    "tests_failed": "cargo test falló, consulta la salida de arriba.",
+    "build_failed": "cargo no pudo compilar las pruebas, consulta los errores de arriba.",
+    "no_such_test": "No hay ninguna prueba \"{}\" en {}.rs. Pruebas disponibles: {}",
+    "dir_read_failed": "No se puede leer {}"
+  }
 }

@@ -366,7 +366,10 @@ fn test_override_exceeds_limit_err() {
     // calculée qui finit par le même chiffre (6597069766656.0).
     assert_eq!(
         msg,
-        runique::utils::trad::tf("forms.max_size_above_model", &["6.0", "5.0"])
+        runique::utils::trad::tf(
+            runique_i18n::keys::forms::error::MAX_SIZE_ABOVE_MODEL,
+            &["6.0", "5.0"]
+        )
     );
     // plafond modèle inchangé
     assert_eq!(f.upload.model_max_size, Some(5 * 1024 * 1024));

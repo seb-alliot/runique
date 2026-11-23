@@ -1,7 +1,26 @@
 {
-  "missing": "缺少 CSRF 令牌",
-  "invalid": "CSRF 令牌无效",
-  "invalid_or_missing": "CSRF 令牌无效或缺失",
-  "forbidden": "CSRF 验证失败",
-  "session_write_error": "会话写入失败"
+  "error": {
+    "missing": "缺少 CSRF 令牌",
+    "invalid": "CSRF 令牌无效",
+    "invalid_or_missing": "CSRF 令牌无效或缺失"
+  },
+  "log": {
+    "refused": "CSRF 被拒绝",
+    "reason_header_invalid": "X-CSRF-Token 请求头中的令牌无效",
+    "reason_not_a_form": "没有令牌，且请求体不是表单",
+    "reason_cross_site": "表单来自其他站点",
+    "reason_form_mismatch": "表单：发送的令牌不是会话的令牌（会话已过期，或页面在登录前打开）",
+    "reason_form_missing": "表单：请求体和 X-CSRF-Token 中都没有令牌",
+    "reason_admin_login_missing": "后台登录：表单中没有令牌",
+    "reason_admin_login_mismatch": "后台登录：发送的令牌不是会话的令牌",
+    "reason_admin_logout": "后台退出：没有有效令牌",
+    "reason_upload": "上传：文件先于有效的 csrf_token 字段到达，未写入任何内容",
+    "token_dropped": "CSRF 令牌已丢弃（登录或退出）：此前打开的页面持有的令牌已失效",
+    "token_new": "为此会话生成新的 CSRF 令牌",
+    "read_token": "从会话读取 CSRF 令牌",
+    "keep_token": "在会话中保留 CSRF 令牌",
+    "read_account": "为 CSRF 令牌读取已登录账户",
+    "write_token": "向会话写入新的 CSRF 令牌",
+    "set_value": "set_value [已收到 CSRF 令牌：其校验见 middleware.csrf 通道]"
+  }
 }

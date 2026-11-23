@@ -1,0 +1,19 @@
+{
+  "label": {
+    "title": "Löschen",
+    "breadcrumb": "Löschen",
+    "heading": "Löschung bestätigen",
+    "btn_cancel": "← Abbrechen",
+    "btn_confirm": "Ja, dauerhaft löschen",
+    "warning_title": "Achtung!",
+    "warning_desc": "Sie sind dabei, den Eintrag",
+    "warning_of": "aus der Ressource",
+    "warning_irreversible": "Diese Aktion ist unwiderruflich."
+  },
+  "info": {
+    "success": "Eintrag erfolgreich gelöscht!"
+  },
+  "error": {
+    "not_found": "Ressource nicht gefunden."
+  }
+}

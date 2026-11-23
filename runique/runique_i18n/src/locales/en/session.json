@@ -1,0 +1,10 @@
+{
+  "log": {
+    "read_account": "read the signed-in account from the session",
+    "read_version": "read the session's version",
+    "read_flash": "read the flash messages from the session",
+    "read_dashboard_template": "read the dashboard template choice from the session",
+    "decode_user_memory": "decode session user_id (load from memory)",
+    "decode_user_db": "decode session user_id (load from the database)"
+  }
+}

@@ -1,14 +1,18 @@
 {
-  "complete_up": "Migrazione completata.",
-  "crate_missing": "Crate delle migrazioni non trovato: '{}' non contiene Cargo.toml.",
-  "sqlite_key_change": "{}: questa migrazione aggiunge o rimuove una chiave esterna su una tabella esistente. SQLite non può farlo senza ricostruire la tabella, cosa che Runique non supporta ancora. Questa migrazione non ha modificato nulla.",
-  "engine_unsupported": "Motore di database non supportato per questa operazione: {}.",
-  "running": "Esecuzione di 'migrate {}' con il crate delle migrazioni '{}'...",
-  "complete_down": "Rollback completato.",
-  "cargo_missing": "Impossibile avviare cargo. Rust è installato e cargo è nel PATH?",
-  "failed": "Il crate delle migrazioni non è riuscito su 'migrate {}' (codice di uscita: {}).",
-  "crate_created": "Crate delle migrazioni creato in '{}'.",
-  "interrupted": "Un makemigrations è stato interrotto in '{}'. Riesegui makemigrations prima di applicare le migrazioni.",
-  "renamed_from_kept": "{}: non è stato possibile rimuovere da questo file i `renamed_from` applicati. Rimuovili a mano.",
-  "engine_defaulted": "Né DATABASE_URL né DB_ENGINE indicano un motore conosciuto: il crate delle migrazioni usa SQLite. Cambia la feature di runique in '{}' se necessario."
+  "info": {
+    "complete_up": "Migrazione completata.",
+    "running": "Esecuzione di 'migrate {}' con il crate delle migrazioni '{}'...",
+    "complete_down": "Rollback completato.",
+    "crate_created": "Crate delle migrazioni creato in '{}'."
+  },
+  "error": {
+    "crate_missing": "Crate delle migrazioni non trovato: '{}' non contiene Cargo.toml.",
+    "sqlite_key_change": "{}: questa migrazione aggiunge o rimuove una chiave esterna su una tabella esistente. SQLite non può farlo senza ricostruire la tabella, cosa che Runique non supporta ancora. Questa migrazione non ha modificato nulla.",
+    "engine_unsupported": "Motore di database non supportato per questa operazione: {}.",
+    "cargo_missing": "Impossibile avviare cargo. Rust è installato e cargo è nel PATH?",
+    "failed": "Il crate delle migrazioni non è riuscito su 'migrate {}' (codice di uscita: {}).",
+    "interrupted": "Un makemigrations è stato interrotto in '{}'. Riesegui makemigrations prima di applicare le migrazioni.",
+    "renamed_from_kept": "{}: non è stato possibile rimuovere da questo file i `renamed_from` applicati. Rimuovili a mano.",
+    "engine_defaulted": "Né DATABASE_URL né DB_ENGINE indicano un motore conosciuto: il crate delle migrazioni usa SQLite. Cambia la feature di runique in '{}' se necessario."
+  }
 }

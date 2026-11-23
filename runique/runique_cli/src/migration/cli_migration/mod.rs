@@ -67,7 +67,10 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     if !paused.is_empty() {
         println!(
             "{}",
-            tf("makemigrations.paused_tables", &[paused.join(", ")])
+            tf(
+                runique_i18n::keys::makemigrations::info::PAUSED_TABLES,
+                &[paused.join(", ")]
+            )
         );
     }
     init_migrate::ensure(migrations_path)?;
@@ -120,15 +123,30 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
         };
         commit_plan(&plan, migrations_path)?;
         if upgraded != 0 {
-            println!("{}", tf("makemigrations.snapshots_upgraded", &[upgraded]));
+            println!(
+                "{}",
+                tf(
+                    runique_i18n::keys::makemigrations::info::SNAPSHOTS_UPGRADED,
+                    &[upgraded]
+                )
+            );
         }
         if !waiting.is_empty() {
-            println!("{}", tf("makemigrations.waiting_removed", &[waiting.len()]));
+            println!(
+                "{}",
+                tf(
+                    runique_i18n::keys::makemigrations::info::WAITING_REMOVED,
+                    &[waiting.len()]
+                )
+            );
         }
         // Silent, a run looked like it did nothing at all; the framework's
         // tables may still be waiting to be applied.
-        println!("{}", t("makemigrations.no_changes"));
-        println!("{}", t("makemigrations.apply_hint"));
+        println!(
+            "{}",
+            t(runique_i18n::keys::makemigrations::info::NO_CHANGES)
+        );
+        println!("{}", t(runique_i18n::keys::makemigrations::hint::APPLY));
         return Ok(());
     }
 
@@ -176,14 +194,23 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     commit_plan(&plan, migrations_path)?;
 
     if rewritten {
-        println!("{}", tf("makemigrations.files_ready", &[module_count]));
+        println!(
+            "{}",
+            tf(
+                runique_i18n::keys::makemigrations::info::FILES_READY,
+                &[module_count]
+            )
+        );
     } else {
         println!(
             "{}",
-            tf("makemigrations.waiting_unchanged", &[waiting.len()])
+            tf(
+                runique_i18n::keys::makemigrations::info::WAITING_UNCHANGED,
+                &[waiting.len()]
+            )
         );
     }
-    println!("{}", t("makemigrations.apply_hint"));
+    println!("{}", t(runique_i18n::keys::makemigrations::hint::APPLY));
     warn_unmigrated_type_changes(&destructive_set);
 
     Ok(())
@@ -213,10 +240,12 @@ pub(crate) async fn makemigrations_with(
         .build();
     // The command only ever needs one connection.
     config.pool(1, 1);
-    let db = config
-        .connect()
-        .await
-        .map_err(|e| anyhow::anyhow!(tf("makemigrations.database_unreachable", &[e])))?;
+    let db = config.connect().await.map_err(|e| {
+        anyhow::anyhow!(tf(
+            runique_i18n::keys::makemigrations::error::DATABASE_UNREACHABLE,
+            &[e]
+        ))
+    })?;
     // Before `lib.rs` is read: a run the power cut short may have left it
     // half written.
     init_migrate::repair_beside(
@@ -226,7 +255,5 @@ pub(crate) async fn makemigrations_with(
     let applied = applied::read(&db).await?;
     applied::check_known(&applied, migrations_path)?;
     // `Pk` in a model is the project's primary key type, not this build's.
-    project_pk::with_project_pk(entities_path, || {
-        run(entities_path, migrations_path, force)
-    })
+    project_pk::with_project_pk(entities_path, || run(entities_path, migrations_path, force))
 }

@@ -1,0 +1,23 @@
+{
+  "label": {
+    "subtitle": "Resumen de la aplicación",
+    "card_resources": "Recursos",
+    "th_resource": "Recurso",
+    "th_key": "Clave",
+    "th_permissions": "Permisos",
+    "th_actions": "Acciones",
+    "btn_list": "Lista",
+    "btn_create": "Crear",
+    "see_list": "Ver la lista →",
+    "empty_title": "No hay recursos registrados",
+    "empty_desc": "Registre sus modelos en src/admin.rs con el builder tipado ModelAdmin, luego cargo run",
+    "kpi_resources": "Recursos",
+    "kpi_entries": "Entradas totales",
+    "kpi_largest": "Mayor",
+    "th_count": "Entradas",
+    "toggle_template": "← Plantilla configurada",
+    "my_groups_title": "Mis grupos",
+    "my_groups_staff": "staff",
+    "my_groups_none": "Este grupo no da ningún derecho sobre las tablas."
+  }
+}

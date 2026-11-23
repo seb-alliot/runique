@@ -1,8 +1,0 @@
-{
-  "welcome": "Bienvenue {}, votre compte est créé !",
-  "fix_errors": "Veuillez corriger les erreurs",
-  "success_demo": "Ceci est un message de succès.",
-  "info_demo": "Ceci est un message d'information.",
-  "warning_demo": "Ceci est un message d'avertissement.",
-  "error_demo": "Ceci est un message d'erreur."
-}

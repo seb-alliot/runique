@@ -1,0 +1,5 @@
+{
+  "log": {
+    "init_twice": "mailer_init() が複数回呼ばれた：最初の設定を維持"
+  }
+}

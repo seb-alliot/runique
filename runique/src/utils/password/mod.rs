@@ -147,14 +147,14 @@ impl BaseHash {
 
     fn hash_argon2(&self, password: &str) -> Result<String, String> {
         if password.is_empty() {
-            return Err(t("forms.password_empty").into_owned());
+            return Err(t(runique_i18n::keys::forms::error::PASSWORD_EMPTY).into_owned());
         }
         // argon2 0.6: `hash_password` generates the salt internally (via `getrandom`),
         // it no longer takes an explicit `SaltString`/RNG.
         Argon2::default()
             .hash_password(password.as_bytes())
             .map(|h| h.to_string())
-            .map_err(|e| tf("forms.hash_error", &[&e.to_string()]).clone())
+            .map_err(|e| tf(runique_i18n::keys::forms::error::HASH, &[&e.to_string()]).clone())
     }
 
     fn verify_argon2(&self, password: &str, hash: &str) -> bool {
@@ -175,10 +175,10 @@ impl BaseHash {
 
     fn hash_bcrypt(&self, password: &str) -> Result<String, String> {
         if password.is_empty() {
-            return Err(t("forms.password_empty").into_owned());
+            return Err(t(runique_i18n::keys::forms::error::PASSWORD_EMPTY).into_owned());
         }
         bcrypt_hash(password, DEFAULT_COST)
-            .map_err(|e| tf("forms.hash_error", &[&e.to_string()]).clone())
+            .map_err(|e| tf(runique_i18n::keys::forms::error::HASH, &[&e.to_string()]).clone())
     }
 
     fn verify_bcrypt(&self, password: &str, hash: &str) -> bool {
@@ -199,14 +199,14 @@ impl BaseHash {
 
     fn hash_scrypt(&self, password: &str) -> Result<String, String> {
         if password.is_empty() {
-            return Err(t("forms.password_empty").into_owned());
+            return Err(t(runique_i18n::keys::forms::error::PASSWORD_EMPTY).into_owned());
         }
         // Like argon2 0.6, `hash_password` generates the salt internally (`getrandom`).
         // `Scrypt` 0.12 is no longer a unit struct (private `params` field) — go through `default()`.
         Scrypt::default()
             .hash_password(password.as_bytes())
             .map(|h| h.to_string())
-            .map_err(|e| tf("forms.hash_error", &[&e.to_string()]).clone())
+            .map_err(|e| tf(runique_i18n::keys::forms::error::HASH, &[&e.to_string()]).clone())
     }
 
     fn verify_scrypt(&self, password: &str, hash: &str) -> bool {

@@ -29,7 +29,10 @@ fn check(item: &ItemsPath) -> io::Result<()> {
         if leftover.try_exists()? {
             return Err(io::Error::new(
                 io::ErrorKind::AlreadyExists,
-                runique_i18n::tf("atomic.in_the_way", &[leftover.display()]),
+                runique_i18n::tf(
+                    runique_i18n::keys::atomic::error::IN_THE_WAY,
+                    &[leftover.display()],
+                ),
             ));
         }
     }

@@ -1,0 +1,12 @@
+{
+  "label": {
+    "title": "Администрирование",
+    "breadcrumb": "Админ",
+    "toggle": "Свернуть меню",
+    "logout_title": "Выход",
+    "theme_toggle": "Сменить тему",
+    "back_to_site": "← Сайт",
+    "dashboard": "Панель управления",
+    "history": "История"
+  }
+}

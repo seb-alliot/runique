@@ -1,0 +1,22 @@
+{
+  "label": {
+    "400": "400",
+    "413": "413",
+    "404": "404",
+    "500": "500",
+    "429": "429",
+    "503": "503",
+    "back_home": "Retour à l'accueil",
+    "critical": "Erreur critique"
+  },
+  "error": {
+    "400": "Requête invalide : les paramètres de l'adresse ne sont pas valides.",
+    "413": "Envoi trop volumineux : réduisez sa taille et réessayez.",
+    "404": "Page non trouvée",
+    "500": "Une erreur est survenue sur le serveur",
+    "429": "Trop de requêtes. Veuillez patienter un moment avant de réessayer.",
+    "503": "Service temporairement indisponible en raison d'une forte charge. Veuillez réessayer dans un instant.",
+    "critical_text": "Le système de gestion d'erreurs a lui-même rencontré une erreur.",
+    "critical_contact": "Cette situation ne devrait jamais se produire. Veuillez contacter l'administrateur système."
+  }
+}

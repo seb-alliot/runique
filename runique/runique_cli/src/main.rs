@@ -87,6 +87,14 @@ async fn main() -> Result<()> {
     let _log_guards = init_logging();
     dotenvy::dotenv().ok();
 
+    // The project's own translations first: `LANG=nl` names a language only
+    // once its folder is read.
+    if let Err(error) = runique::utils::trad::load_project(&runique::utils::trad::project_dir()) {
+        anyhow::bail!(
+            "{}",
+            runique::utils::trad::tf(runique_i18n::keys::build::error::LOCALES_INVALID, &[error])
+        );
+    }
     if let Some(lang) = Lang::from_dotenv().or_else(Lang::from_env) {
         set_lang(lang);
     }

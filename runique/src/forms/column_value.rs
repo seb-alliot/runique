@@ -32,7 +32,7 @@ pub fn parse_bool(raw: &str) -> Option<bool> {
 /// `raw` as `column` stores it. `Err` when the text doesn't read as that
 /// column's type, or the column is one no form field writes.
 pub fn column_value(column: &ColumnType, raw: &str) -> Result<Value, String> {
-    let unreadable = || t("forms.value_unconvertible").into_owned();
+    let unreadable = || t(runique_i18n::keys::forms::error::VALUE_UNCONVERTIBLE).into_owned();
     let number = raw.replace(',', ".");
     let value = match column {
         ColumnType::String(_) | ColumnType::Text | ColumnType::Char(_) => {

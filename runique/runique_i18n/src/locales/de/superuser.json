@@ -1,0 +1,39 @@
+{
+  "label": {
+    "title": "=== Superbenutzer erstellen ===",
+    "algo_prompt": "[1/5] Hash-Algorithmus",
+    "algo_argon2": "Argon2 (empfohlen)",
+    "algo_bcrypt": "Bcrypt",
+    "algo_scrypt": "Scrypt",
+    "algo_custom": "Benutzerdefinierter Anbieter",
+    "provider_path": "Anbieterpfad",
+    "username_prompt": "[2/5] Benutzername",
+    "email_prompt": "[3/5] E-Mail",
+    "password_prompt": "[4/5] Passwort",
+    "confirm_prompt": "[5/5] Passwort bestätigen",
+    "confirm_create": "Bestätigen und erstellen",
+    "change_algo": "Algorithmus ändern",
+    "modify_password": "Passwort ändern"
+  },
+  "error": {
+    "invalid_path": "Ungültiger Pfad.",
+    "username_empty": "Benutzername darf nicht leer sein.",
+    "username_taken": "Ein Benutzer mit diesem Namen existiert bereits.",
+    "email_invalid": "Ungültige E-Mail.",
+    "email_taken": "Ein Benutzer mit dieser E-Mail existiert bereits.",
+    "password_too_short": "Das Passwort muss mindestens 12 Zeichen lang sein.",
+    "password_weak": "Das Passwort muss mindestens einen Kleinbuchstaben, einen Großbuchstaben, eine Ziffer und ein Sonderzeichen enthalten.",
+    "password_mismatch": "Passwörter stimmen nicht überein. Bitte erneut versuchen."
+  },
+  "info": {
+    "review_algo": "  Algorithmus : {}",
+    "review_username": "  Benutzername: {}",
+    "review_email": "  E-Mail      : {}",
+    "review_password": "  Passwort    : ••••••••",
+    "review_action": "Aktion",
+    "success": "✓ Superbenutzer erfolgreich erstellt!",
+    "id_line": "  ID          : {}",
+    "username_line": "  Benutzername: {}",
+    "email_line": "  E-Mail      : {}"
+  }
+}

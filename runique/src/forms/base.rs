@@ -398,8 +398,12 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
     #[doc(hidden)]
     fn render_template(&self, tera: &ATera, context: &tera::Context) -> Result<String, String> {
         let template = &self.get_field_config().template_name;
-        tera.render(template, context)
-            .map_err(|e| tf("forms.finalize_error", &[template, &e.to_string()]))
+        tera.render(template, context).map_err(|e| {
+            tf(
+                runique_i18n::keys::forms::error::FINALIZE,
+                &[template, &e.to_string()],
+            )
+        })
     }
 
     /// Required and left empty: sets the field's own message, or `default_key`

@@ -324,7 +324,7 @@ async fn admin_dashboard(
         .await
         .trace(
             crate::utils::runique_log::log_level!(session.store),
-            "log.session.read_dashboard_template",
+            runique_i18n::keys::session::log::READ_DASHBOARD_TEMPLATE,
         )
         .flatten();
 
@@ -361,7 +361,8 @@ fn my_groups(
     site: &AdminSite,
 ) -> Vec<crate::admin::router::context::MyGroup> {
     use crate::admin::router::context::{MyGroup, MyGroupRight};
-    let label = |key: &str| t(&format!("admin.rights.right_{key}")).into_owned();
+    use crate::admin::router::permission::rights::{right_text, table_right_label};
+    let label = |right: &str| right_text(table_right_label(right), right);
     user.groupes
         .iter()
         .map(|group| {
@@ -477,9 +478,9 @@ async fn admin_login_post(
         crate::middleware::security::csrf::log_refusal(
             &admin.paths.login,
             if data.csrf_token.is_empty() {
-                "log.csrf.reason_admin_login_missing"
+                runique_i18n::keys::csrf::log::REASON_ADMIN_LOGIN_MISSING
             } else {
-                "log.csrf.reason_admin_login_mismatch"
+                runique_i18n::keys::csrf::log::REASON_ADMIN_LOGIN_MISMATCH
             },
         );
         insert_admin_messages(&mut req.context, "login");
@@ -492,7 +493,10 @@ async fn admin_login_post(
             .insert("lang", current_lang().code())
             .insert("site_title", &admin.config.site_title)
             .insert("site_url", admin.config.view_site_href())
-            .insert("error", t("csrf.invalid_or_missing").to_string());
+            .insert(
+                "error",
+                t(runique_i18n::keys::csrf::error::INVALID_OR_MISSING).to_string(),
+            );
         return req
             .render(admin.config.templates.login.resolve())
             .unwrap_or_else(axum::response::IntoResponse::into_response);
@@ -513,7 +517,10 @@ async fn admin_login_post(
                 .insert("lang", current_lang().code())
                 .insert("site_title", &admin.config.site_title)
                 .insert("site_url", admin.config.view_site_href())
-                .insert("error", tf("admin.login.error_locked", &[secs]));
+                .insert(
+                    "error",
+                    tf(runique_i18n::keys::admin::login::error::LOCKED, &[secs]),
+                );
             return req
                 .render(admin.config.templates.login.resolve())
                 .unwrap_or_else(axum::response::IntoResponse::into_response);
@@ -551,7 +558,10 @@ async fn admin_login_post(
                 .insert("lang", current_lang().code())
                 .insert("site_title", &admin.config.site_title)
                 .insert("site_url", admin.config.view_site_href())
-                .insert("error", t("admin.login.error_session").to_string());
+                .insert(
+                    "error",
+                    t(runique_i18n::keys::admin::login::error::SESSION).to_string(),
+                );
             return req
                 .render(admin.config.templates.login.resolve())
                 .unwrap_or_else(axum::response::IntoResponse::into_response);
@@ -575,7 +585,10 @@ async fn admin_login_post(
             .insert("lang", current_lang().code())
             .insert("site_title", &admin.config.site_title)
             .insert("site_url", admin.config.view_site_href())
-            .insert("error", t("admin.login.error_credentials").to_string());
+            .insert(
+                "error",
+                t(runique_i18n::keys::admin::login::error::CREDENTIALS).to_string(),
+            );
         req.render(admin.config.templates.login.resolve())
             .unwrap_or_else(axum::response::IntoResponse::into_response)
     }
@@ -591,7 +604,7 @@ async fn admin_toggle_template(
         .await
         .trace(
             crate::utils::runique_log::log_level!(session.store),
-            "log.session.read_dashboard_template",
+            runique_i18n::keys::session::log::READ_DASHBOARD_TEMPLATE,
         )
         .flatten();
     let session_level = crate::utils::runique_log::log_level!(session.store);
@@ -618,7 +631,7 @@ async fn admin_logout(
     if !req.prisme.csrf_valid {
         crate::middleware::security::csrf::log_refusal(
             &admin.paths.logout,
-            "log.csrf.reason_admin_logout",
+            runique_i18n::keys::csrf::log::REASON_ADMIN_LOGOUT,
         );
         return Ok(Redirect::to(&admin.paths.dashboard).into_response());
     }
@@ -633,6 +646,6 @@ async fn admin_logout(
     // session is still alive and the user must know to try again.
     logout(session, db_store.as_deref()).await?;
     let login_url = format!("{}?from=logout", admin.paths.login);
-    flash_now!(info => t("admin.logout_success").as_ref());
+    flash_now!(info => t(runique_i18n::keys::admin::logout::info::SUCCESS).as_ref());
     Ok(Redirect::to(&login_url).into_response())
 }

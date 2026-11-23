@@ -29,7 +29,9 @@ pub(crate) async fn delete_view(
     let form = match model.delete(&req, &user, &id).await {
         Ok(FormOutcome::Show(form)) => form,
         Ok(FormOutcome::Saved(_)) => {
-            req.notices.success(t("admin.delete.success")).await;
+            req.notices
+                .success(t(runique_i18n::keys::admin::delete::info::SUCCESS))
+                .await;
             return Ok(Redirect::to(&admin.paths.list_of(key)).into_response());
         }
         Err(error) => return failure(error, &req, &admin).await,

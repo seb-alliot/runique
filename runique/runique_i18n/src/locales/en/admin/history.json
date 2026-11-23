@@ -1,0 +1,32 @@
+{
+  "label": {
+    "subtitle": "The creations, updates and deletions made in the admin.",
+    "whole_row": "This row's whole history",
+    "th_column": "Column",
+    "th_old": "Before",
+    "th_new": "After",
+    "no_changes": "No readable change",
+    "all_resources": "All resources",
+    "all_actions": "All actions",
+    "action_create": "Created",
+    "action_update": "Updated",
+    "action_delete": "Deleted",
+    "btn_filter": "Filter",
+    "btn_reset": "Reset",
+    "th_date": "Date",
+    "th_account": "Account",
+    "th_resource": "Resource",
+    "th_object": "Object",
+    "th_action": "Action",
+    "btn_entry": "Details",
+    "empty": "No action recorded",
+    "badge_create": "created",
+    "badge_update": "updated",
+    "badge_delete": "deleted",
+    "badge_rights": "rights changed",
+    "badge_rank": "rank changed",
+    "badge_reset_password": "password link sent",
+    "badge_groups": "Groups",
+    "badge_transfer": "Transfer"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "label": {
+    "title": "Crea",
+    "breadcrumb": "Crea",
+    "card_info": "Informazioni",
+    "no_fields": "Nessun campo disponibile al momento.",
+    "btn_cancel": "Annulla",
+    "btn_submit": "Crea"
+  },
+  "info": {
+    "success": "Voce creata con successo!"
+  }
+}

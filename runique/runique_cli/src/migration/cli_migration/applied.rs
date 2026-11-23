@@ -36,7 +36,10 @@ pub(crate) fn check_known(applied: &[String], migrations_path: &str) -> Result<(
     }
     anyhow::bail!(
         "{}",
-        tf("makemigrations.applied_unknown", &[unknown.join("\n  ")])
+        tf(
+            runique_i18n::keys::makemigrations::error::APPLIED_UNKNOWN,
+            &[unknown.join("\n  ")]
+        )
     )
 }
 

@@ -1,0 +1,12 @@
+{
+  "label": {
+    "email_subject": "欢迎 — 请设置您的密码",
+    "email_greeting": "欢迎，",
+    "email_body": "已为您创建账户。请点击下方链接设置您的密码：",
+    "email_btn": "设置我的密码",
+    "email_validity": "此链接有效期为{}分钟。如果您未期待此消息，请忽略。"
+  },
+  "info": {
+    "email_sent": "欢迎邮件已发送。"
+  }
+}

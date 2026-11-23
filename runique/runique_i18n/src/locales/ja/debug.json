@@ -1,4 +1,34 @@
 {
-  "stack_trace_title": "詳細なエラートレース",
-  "stack_trace_tip": "最上位のエラー（レベル 0）が通常は根本原因です。後続のエラーはエラーがコード内でどのように伝播したかを示しています。"
+  "label": {
+    "info_title": "デバッグ情報",
+    "field_title": "タイトル",
+    "field_count": "フィールド数",
+    "error_count": "エラー数",
+    "main_message": "メインメッセージ",
+    "root_cause": "根本原因",
+    "details": "追加詳細",
+    "request_info": "リクエスト情報",
+    "http_method": "HTTPメソッド",
+    "path": "パス",
+    "query_params": "クエリパラメータ",
+    "http_headers": "HTTPヘッダー",
+    "template_info": "テンプレート情報",
+    "template_name": "テンプレート名",
+    "error_line": "エラー行",
+    "template_source": "テンプレートソースコード",
+    "available_templates": "利用可能なテンプレート",
+    "stack_trace_title": "詳細なエラートレース",
+    "stack_trace_tip": "最上位のエラー（レベル0）が通常根本原因です。後続のエラーは、エラーがコード内でどのように伝播したかを示します。",
+    "environment": "環境",
+    "debug_mode": "デバッグモード",
+    "enabled": "有効",
+    "disabled": "無効",
+    "rust_version": "Rustバージョン",
+    "app_version": "アプリバージョン",
+    "runique_version": "Runique バージョン",
+    "occurred_at": "エラー発生日時:",
+    "status_code": "ステータスコード",
+    "header_name": "名前",
+    "header_value": "値"
+  }
 }

@@ -1,0 +1,8 @@
+{
+  "name": "Italiano",
+  "aliases": [
+    "it-it",
+    "it-ch"
+  ],
+  "fallback": "en"
+}

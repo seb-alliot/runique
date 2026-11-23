@@ -1,0 +1,10 @@
+{
+  "name": "Français",
+  "aliases": [
+    "fr-fr",
+    "fr-ca",
+    "fr-be",
+    "fr-ch"
+  ],
+  "fallback": "en"
+}

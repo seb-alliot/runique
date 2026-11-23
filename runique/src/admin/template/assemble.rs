@@ -199,8 +199,8 @@ fn provided_unread(page: Page) -> Vec<String> {
         keys.extend(
             crate::utils::ADMIN_MESSAGE_KEYS
                 .iter()
-                .filter(|k| k.starts_with(&prefix))
-                .map(|k| k.replace('.', "_")),
+                .filter(|(_, key)| key.starts_with(&prefix))
+                .map(|(variable, _)| variable.to_string()),
         );
     }
     match page {

@@ -1,4 +1,34 @@
 {
-  "stack_trace_title": "详细错误堆栈",
-  "stack_trace_tip": "最上方的错误（层级 0）通常是根本原因，后续错误显示错误在代码中的传播路径。"
+  "label": {
+    "info_title": "调试信息",
+    "field_title": "标题",
+    "field_count": "字段数量",
+    "error_count": "错误数量",
+    "main_message": "主要信息",
+    "root_cause": "根本原因",
+    "details": "附加详情",
+    "request_info": "请求信息",
+    "http_method": "HTTP 方法",
+    "path": "路径",
+    "query_params": "查询参数",
+    "http_headers": "HTTP 请求头",
+    "template_info": "模板信息",
+    "template_name": "模板名称",
+    "error_line": "错误行号",
+    "template_source": "模板源代码",
+    "available_templates": "可用模板",
+    "stack_trace_title": "详细错误追踪",
+    "stack_trace_tip": "最顶层的错误（层级 0）通常是根本原因。后续错误显示错误在代码中的传播路径。",
+    "environment": "环境",
+    "debug_mode": "调试模式",
+    "enabled": "已启用",
+    "disabled": "已禁用",
+    "rust_version": "Rust 版本",
+    "app_version": "应用版本",
+    "runique_version": "Runique 版本",
+    "occurred_at": "错误发生时间：",
+    "status_code": "状态码",
+    "header_name": "名称",
+    "header_value": "值"
+  }
 }

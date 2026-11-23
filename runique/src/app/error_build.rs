@@ -144,10 +144,21 @@ impl fmt::Display for BuildError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.kind {
             BuildErrorKind::ValidationFailed(msg) => {
-                write!(f, "{}", tf("build.validation_failed", &[msg]))?;
+                write!(
+                    f,
+                    "{}",
+                    tf(runique_i18n::keys::build::error::VALIDATION_FAILED, &[msg])
+                )?;
             }
             BuildErrorKind::CheckFailed(report) => {
-                writeln!(f, "{}", tf("build.check_failed", &[report.count()]))?;
+                writeln!(
+                    f,
+                    "{}",
+                    tf(
+                        runique_i18n::keys::build::error::CHECK_FAILED,
+                        &[report.count()]
+                    )
+                )?;
                 writeln!(f)?;
                 for (i, err) in report.errors.iter().enumerate() {
                     write!(
@@ -166,18 +177,34 @@ impl fmt::Display for BuildError {
                 }
             }
             BuildErrorKind::TemplateLoadFailed(msg) => {
-                write!(f, "{}", tf("build.template_failed", &[msg]))?;
+                write!(
+                    f,
+                    "{}",
+                    tf(runique_i18n::keys::build::error::TEMPLATE_FAILED, &[msg])
+                )?;
             }
             BuildErrorKind::DatabaseMissing => {
-                write!(f, "{}", t("build.db_missing"))?;
+                write!(f, "{}", t(runique_i18n::keys::build::error::DB_MISSING))?;
             }
             BuildErrorKind::ComponentNotReady(component) => {
-                write!(f, "{}", tf("build.component_not_ready", &[component]))?;
+                write!(
+                    f,
+                    "{}",
+                    tf(
+                        runique_i18n::keys::build::error::COMPONENT_NOT_READY,
+                        &[component]
+                    )
+                )?;
             }
         }
 
         if let Some(ctx) = &self.context {
-            write!(f, "\n{}: {}", t("build.check.context"), ctx)?;
+            write!(
+                f,
+                "\n{}: {}",
+                t(runique_i18n::keys::build::label::CONTEXT),
+                ctx
+            )?;
         }
 
         Ok(())
@@ -188,7 +215,12 @@ impl fmt::Display for CheckError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "[{}] {}", self.component, self.message)?;
         if let Some(suggestion) = &self.suggestion {
-            write!(f, " ({}: {})", t("build.check.suggestion"), suggestion)?;
+            write!(
+                f,
+                " ({}: {})",
+                t(runique_i18n::keys::build::label::SUGGESTION),
+                suggestion
+            )?;
         }
         Ok(())
     }

@@ -1,0 +1,25 @@
+{
+  "label": {
+    "title": "Rechte",
+    "subtitle": "Was dieser Admin tun darf, Tabelle für Tabelle und Spalte für Spalte. Eine nicht angehakte Spalte wird weder gelesen noch geschrieben.",
+    "go_to_table": "Zu einer Tabelle",
+    "toc": "Tabellen",
+    "btn_cancel": "Abbrechen",
+    "btn_save": "Speichern",
+    "th_column": "Spalte",
+    "col_read": "Lesen",
+    "col_create": "Erstellen",
+    "col_update": "Ändern",
+    "right_create": "Erstellen",
+    "right_read": "Auflisten / lesen",
+    "right_read_own": "Eigene lesen",
+    "right_update": "Ändern",
+    "right_update_own": "Eigene ändern",
+    "right_delete": "Löschen",
+    "right_delete_own": "Eigene löschen",
+    "group_subtitle": "Was die Mitglieder dieser Gruppe tun dürfen, Tabelle für Tabelle und Spalte für Spalte. Eine nicht angehakte Spalte wird weder gelesen noch geschrieben.",
+    "group_label": "Gruppe",
+    "btn_show": "Anzeigen",
+    "group_sheet": "Gruppenseite"
+  }
+}

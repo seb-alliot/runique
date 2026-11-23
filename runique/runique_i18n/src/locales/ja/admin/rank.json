@@ -1,0 +1,11 @@
+{
+  "label": {
+    "superuser": "スーパーユーザー",
+    "lambda": "サイトのアカウント",
+    "admin": "管理者",
+    "dirigeant": "責任者"
+  },
+  "info": {
+    "success": "ランクを変更しました（{}）"
+  }
+}

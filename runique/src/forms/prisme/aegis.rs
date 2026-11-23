@@ -53,7 +53,10 @@ where
         let query = req.uri().query().unwrap_or("");
         parsed = serde_urlencoded::from_str::<StrMap>(query)
             .unwrap_or_else(|e| {
-                warn!("{}", tf("forms.aegis_query_error", &[&e]));
+                warn!(
+                    "{}",
+                    tf(runique_i18n::keys::forms::error::AEGIS_QUERY, &[&e])
+                );
                 StrMap::default()
             })
             .into_iter()
@@ -78,7 +81,7 @@ where
         && len > body_limit
     {
         return Err(BodyRefusal::TooLarge(
-            t("forms.body_too_large").into_owned(),
+            t(runique_i18n::keys::forms::error::BODY_TOO_LARGE).into_owned(),
         ));
     }
 
@@ -87,7 +90,7 @@ where
         let multipart = Multipart::from_request(req, state).await.map_err(|_e| {
             BodyRefusal::Status(
                 StatusCode::BAD_REQUEST,
-                t("forms.multipart_error").into_owned(),
+                t(runique_i18n::keys::forms::error::MULTIPART).into_owned(),
             )
         })?;
 
@@ -112,9 +115,14 @@ where
                 if e.downcast_ref::<http_body_util::LengthLimitError>()
                     .is_some()
                 {
-                    BodyRefusal::TooLarge(t("forms.body_too_large").into_owned())
+                    BodyRefusal::TooLarge(
+                        t(runique_i18n::keys::forms::error::BODY_TOO_LARGE).into_owned(),
+                    )
                 } else {
-                    BodyRefusal::Status(StatusCode::BAD_REQUEST, t("forms.body_error").into_owned())
+                    BodyRefusal::Status(
+                        StatusCode::BAD_REQUEST,
+                        t(runique_i18n::keys::forms::error::BODY).into_owned(),
+                    )
                 }
             })?
             .to_bytes();
@@ -129,7 +137,10 @@ where
         } else if content_type.starts_with("application/json") {
             parsed = serde_json::from_slice::<StrMap>(&bytes)
                 .unwrap_or_else(|e| {
-                    warn!("{}", tf("forms.aegis_json_error", &[&e]));
+                    warn!(
+                        "{}",
+                        tf(runique_i18n::keys::forms::error::AEGIS_JSON, &[&e])
+                    );
                     StrMap::default()
                 })
                 .into_iter()

@@ -1,0 +1,19 @@
+{
+  "label": {
+    "title": "削除",
+    "breadcrumb": "削除",
+    "heading": "削除の確認",
+    "btn_cancel": "← キャンセル",
+    "btn_confirm": "はい、完全に削除します",
+    "warning_title": "警告！",
+    "warning_desc": "エントリを削除しようとしています",
+    "warning_of": "リソース",
+    "warning_irreversible": "この操作は元に戻せません。"
+  },
+  "info": {
+    "success": "エントリが正常に削除されました！"
+  },
+  "error": {
+    "not_found": "リソースが見つかりませんでした。"
+  }
+}

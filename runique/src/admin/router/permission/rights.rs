@@ -42,14 +42,41 @@ const TABLE_RIGHTS: [&str; 7] = [
 ];
 /// The translation key of each table right's label, in `TABLE_RIGHTS`' order.
 const TABLE_LABELS: [&str; 7] = [
-    "admin.rights.right_create",
-    "admin.rights.right_read",
-    "admin.rights.right_read_own",
-    "admin.rights.right_update",
-    "admin.rights.right_update_own",
-    "admin.rights.right_delete",
-    "admin.rights.right_delete_own",
+    runique_i18n::keys::admin::rights::label::RIGHT_CREATE,
+    runique_i18n::keys::admin::rights::label::RIGHT_READ,
+    runique_i18n::keys::admin::rights::label::RIGHT_READ_OWN,
+    runique_i18n::keys::admin::rights::label::RIGHT_UPDATE,
+    runique_i18n::keys::admin::rights::label::RIGHT_UPDATE_OWN,
+    runique_i18n::keys::admin::rights::label::RIGHT_DELETE,
+    runique_i18n::keys::admin::rights::label::RIGHT_DELETE_OWN,
 ];
+
+/// The message that names the table right `right` (`create`, `read_own`…);
+/// `None` for a name that isn't one.
+pub(crate) fn table_right_label(right: &str) -> Option<&'static str> {
+    TABLE_RIGHTS
+        .iter()
+        .zip(TABLE_LABELS)
+        .find(|(name, _)| **name == right)
+        .map(|(_, label)| label)
+}
+
+/// The message that names the right `right` on a column: a column is read,
+/// filled at creation, or changed, and nothing else.
+pub(crate) fn column_right_label(right: &str) -> Option<&'static str> {
+    use runique_i18n::keys::admin::rights::label;
+    match right {
+        "read" => Some(label::COL_READ),
+        "create" => Some(label::COL_CREATE),
+        "update" => Some(label::COL_UPDATE),
+        _ => None,
+    }
+}
+
+/// The text of a right for a page: its message, or its name when it has none.
+pub(crate) fn right_text(label: Option<&'static str>, right: &str) -> String {
+    label.map_or_else(|| right.to_string(), |key| t(key).into_owned())
+}
 
 fn table_box(key: &str, right: &str) -> String {
     format!("t__{key}__{right}")
@@ -227,7 +254,7 @@ pub(crate) async fn rights_view(
     let form = req.form::<ConfirmForm<user::Entity>>(admin_form::RIGHTS);
     if !req.method.is_safe() {
         let message = match ValidationForm::try_form(form, &req).await {
-            Err(_) => Err(t("csrf.invalid_or_missing").into_owned()),
+            Err(_) => Err(t(runique_i18n::keys::csrf::error::INVALID_OR_MISSING).into_owned()),
             Ok(_) => match sent_grid(&site, &req, false) {
                 None => Err(Refusal::new(RefusalReason::NoRight).message()),
                 Some(grants) => set_admin_rights(&user, target, &grants, &req.engine.db)
@@ -242,7 +269,11 @@ pub(crate) async fn rights_view(
             },
         };
         match message {
-            Ok(()) => req.notices.success(t("admin.edit.success")).await,
+            Ok(()) => {
+                req.notices
+                    .success(t(runique_i18n::keys::admin::edit::info::SUCCESS))
+                    .await
+            }
             Err(message) => req.notices.error(message).await,
         }
         return Ok(Redirect::to(&back).into_response());
@@ -362,7 +393,7 @@ async fn group_rights(
     let form = req.form::<ConfirmForm<groupe::Entity>>(admin_form::RIGHTS);
     if !req.method.is_safe() {
         let message = match ValidationForm::try_form(form, &req).await {
-            Err(_) => Err(t("csrf.invalid_or_missing").into_owned()),
+            Err(_) => Err(t(runique_i18n::keys::csrf::error::INVALID_OR_MISSING).into_owned()),
             Ok(_) => match sent_grid(&site, &req, true) {
                 None => Err(Refusal::new(RefusalReason::NoRight).message()),
                 Some(grants) => set_group_rights(&user, group_id, &grants, &req.engine.db)
@@ -377,7 +408,11 @@ async fn group_rights(
             },
         };
         match message {
-            Ok(()) => req.notices.success(t("admin.edit.success")).await,
+            Ok(()) => {
+                req.notices
+                    .success(t(runique_i18n::keys::admin::edit::info::SUCCESS))
+                    .await
+            }
             Err(message) => req.notices.error(message).await,
         }
         return Ok(Redirect::to(&back).into_response());
@@ -488,4 +523,50 @@ pub(crate) async fn group_select_view(
         &group_id.to_string(),
     );
     Ok(Redirect::to(&url).into_response())
+}
+
+#[cfg(test)]
+mod right_label_tests {
+    use super::*;
+
+    // Every table right has its message, each its own, and it exists.
+    #[test]
+    fn each_table_right_has_its_own_message() {
+        let mut seen = std::collections::HashSet::new();
+        for right in TABLE_RIGHTS {
+            let key = table_right_label(right).unwrap_or_else(|| panic!("{right}: no message"));
+            assert!(seen.insert(key), "{right} shares {key}");
+            assert!(key.ends_with(&format!("right_{right}")), "{right}: {key}");
+            assert_ne!(t(key), key, "{right}: no text for {key}");
+        }
+    }
+
+    // A column has three rights; the others are the table's alone.
+    #[test]
+    fn a_column_has_three_rights_and_no_other() {
+        for right in ["read", "create", "update"] {
+            let key = column_right_label(right).unwrap_or_else(|| panic!("{right}: no message"));
+            assert!(key.ends_with(&format!("col_{right}")), "{right}: {key}");
+            assert_ne!(t(key), key, "{right}: no text for {key}");
+            assert_ne!(Some(key), table_right_label(right), "{right}");
+        }
+        for right in ["delete", "read_own", "update_own", "delete_own"] {
+            assert_eq!(column_right_label(right), None, "{right}");
+        }
+    }
+
+    // A name that isn't a right has no message: the page shows the name,
+    // never a key.
+    #[test]
+    fn a_name_that_is_not_a_right_is_shown_as_it_is() {
+        for wrong in ["", "Create", "create ", "right_create", "admin", "creat"] {
+            assert_eq!(table_right_label(wrong), None, "{wrong:?}");
+            assert_eq!(column_right_label(wrong), None, "{wrong:?}");
+        }
+        assert_eq!(right_text(None, "publish"), "publish");
+        assert_eq!(
+            right_text(table_right_label("create"), "create"),
+            t(runique_i18n::keys::admin::rights::label::RIGHT_CREATE)
+        );
+    }
 }

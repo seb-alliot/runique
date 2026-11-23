@@ -1,0 +1,7 @@
+{
+  "error": {
+    "insufficient_rights": "Insufficient rights to access administration",
+    "action_not_allowed": "Action not allowed",
+    "still_responsable": "This account still answers for groups: transfer them first."
+  }
+}

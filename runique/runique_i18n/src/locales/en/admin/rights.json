@@ -1,0 +1,25 @@
+{
+  "label": {
+    "title": "Rights",
+    "subtitle": "What this admin may do, table by table and column by column. An unticked column is neither read nor written.",
+    "go_to_table": "Go to a table",
+    "toc": "Tables",
+    "btn_cancel": "Cancel",
+    "btn_save": "Save",
+    "th_column": "Column",
+    "col_read": "Read",
+    "col_create": "Create",
+    "col_update": "Update",
+    "right_create": "Create",
+    "right_read": "List / read",
+    "right_read_own": "Read its own",
+    "right_update": "Update",
+    "right_update_own": "Update its own",
+    "right_delete": "Delete",
+    "right_delete_own": "Delete its own",
+    "group_subtitle": "What this group's members may do, table by table and column by column. An unticked column is neither read nor written.",
+    "group_label": "Group",
+    "btn_show": "Show",
+    "group_sheet": "Group page"
+  }
+}

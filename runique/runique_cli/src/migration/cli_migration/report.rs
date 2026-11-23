@@ -36,8 +36,8 @@ pub(super) fn check_destructive(
     blocking.extend(collect_destructive_messages(all_changes));
     report_and_bail_if_any(
         &blocking,
-        "makemigrations.destructive_detected",
-        "makemigrations.destructive_require_force",
+        runique_i18n::keys::makemigrations::error::DESTRUCTIVE_DETECTED,
+        runique_i18n::keys::makemigrations::error::DESTRUCTIVE_REQUIRE_FORCE,
         force,
     )
 }
@@ -54,9 +54,9 @@ pub(super) fn warn_unmigrated_type_changes(changes: &[Changes]) {
     }
     let text = format!(
         "\n{}\n{}\n{}\n",
-        t("makemigrations.type_change_not_migrated"),
+        t(runique_i18n::keys::makemigrations::error::TYPE_CHANGE_NOT_MIGRATED),
         lines.join("\n"),
-        t("makemigrations.type_change_write_by_hand")
+        t(runique_i18n::keys::makemigrations::error::TYPE_CHANGE_WRITE_BY_HAND)
     );
     let mut err = std::io::stderr();
     let colored = err.is_terminal() && std::env::var_os("NO_COLOR").is_none();
@@ -79,8 +79,8 @@ pub(super) fn check_identifier_lengths(all_changes: &[Changes]) -> Result<()> {
     let long_ids = collect_long_identifier_messages(all_changes);
     report_and_bail_if_any(
         &long_ids,
-        "makemigrations.long_identifier_detected",
-        "makemigrations.long_identifier_rename_required",
+        runique_i18n::keys::makemigrations::error::LONG_IDENTIFIER_DETECTED,
+        runique_i18n::keys::makemigrations::error::LONG_IDENTIFIER_RENAME_REQUIRED,
         false,
     )
 }

@@ -1,0 +1,23 @@
+{
+  "label": {
+    "subtitle": "Application overview",
+    "card_resources": "Resources",
+    "th_resource": "Resource",
+    "th_key": "Key",
+    "th_permissions": "Permissions",
+    "th_actions": "Actions",
+    "btn_list": "List",
+    "btn_create": "Create",
+    "see_list": "View list →",
+    "empty_title": "No resources registered",
+    "empty_desc": "Register your models in src/admin.rs with the typed ModelAdmin builder, then cargo run",
+    "kpi_resources": "Resources",
+    "kpi_entries": "Total entries",
+    "kpi_largest": "Largest",
+    "th_count": "Entries",
+    "toggle_template": "← Configured template",
+    "my_groups_title": "My groups",
+    "my_groups_staff": "staff",
+    "my_groups_none": "This group gives no right on the tables."
+  }
+}

@@ -60,7 +60,9 @@ pub async fn runique_test<C: TestTransaction>(
     if CURRENT.try_with(|_| ()).is_ok() {
         return report(FormatResult::<C::Error> {
             name_test,
-            reason: Reason::Setup(msg("runique_test.nested").into_owned()),
+            reason: Reason::Setup(
+                msg(runique_i18n::keys::runique_test::error::NESTED).into_owned(),
+            ),
             trace: Vec::new(),
             issues: Vec::new(),
         });
@@ -143,7 +145,7 @@ async fn run<C: TestTransaction>(
         Ok(Ok(())) => {}
         Ok(Err(e)) => issues.push(Issue::RollbackFailed(e.to_string())),
         Err(_) => issues.push(Issue::RollbackFailed(msgf(
-            "runique_test.rollback_timed_out",
+            runique_i18n::keys::runique_test::error::ROLLBACK_TIMED_OUT,
             &[CLEANUP_TIMEOUT.as_secs()],
         ))),
     }
@@ -162,12 +164,15 @@ async fn open<C: TestTransaction>(
     let config = C::load_config(&vars).map_err(|e| e.to_string())?;
     announce(&format!("{} ({})", C::describe(&config), path.display()));
 
-    let connection = C::connect(&config, trace.clone())
-        .await
-        .map_err(|e| msgf("runique_test.connect_failed", &[e]))?;
+    let connection = C::connect(&config, trace.clone()).await.map_err(|e| {
+        msgf(
+            runique_i18n::keys::runique_test::error::CONNECT_FAILED,
+            &[e],
+        )
+    })?;
     let db = C::begin_test(&connection)
         .await
-        .map_err(|e| msgf("runique_test.begin_failed", &[e]))?;
+        .map_err(|e| msgf(runique_i18n::keys::runique_test::error::BEGIN_FAILED, &[e]))?;
     Ok((connection, db, timeout))
 }
 
@@ -199,7 +204,7 @@ fn timeout_from(vars: &StrMap) -> Result<Duration, String> {
         Some(raw) => match raw.trim().parse::<u64>() {
             Ok(secs) if secs > 0 => Ok(Duration::from_secs(secs)),
             _ => Err(msgf(
-                "runique_test.bad_timeout",
+                runique_i18n::keys::runique_test::error::BAD_TIMEOUT,
                 &[TIMEOUT_KEY, raw.as_str()],
             )),
         },
@@ -245,7 +250,9 @@ fn panic_message(payload: &(dyn Any + Send)) -> String {
         .downcast_ref::<&str>()
         .map(|s| s.to_string())
         .or_else(|| payload.downcast_ref::<String>().cloned())
-        .unwrap_or_else(|| msg("runique_test.no_panic_message").into_owned())
+        .unwrap_or_else(|| {
+            msg(runique_i18n::keys::runique_test::error::NO_PANIC_MESSAGE).into_owned()
+        })
 }
 
 /// The running test's name, taken from the thread cargo's test harness starts
@@ -267,7 +274,7 @@ fn read_env_file(path: &Path) -> Result<StrMap, String> {
     dotenvy::from_filename_iter(path)
         .map_err(|e| {
             msgf(
-                "runique_test.env_read_failed",
+                runique_i18n::keys::runique_test::error::ENV_READ_FAILED,
                 &[shown.as_str(), e.to_string().as_str()],
             )
         })?
@@ -280,11 +287,11 @@ fn read_env_file(path: &Path) -> Result<StrMap, String> {
 fn parse_error(path: &str, error: &dotenvy::Error) -> String {
     match error {
         dotenvy::Error::LineParse(_, index) => msgf(
-            "runique_test.env_line_malformed",
+            runique_i18n::keys::runique_test::error::ENV_LINE_MALFORMED,
             &[path, index.to_string().as_str()],
         ),
         other => msgf(
-            "runique_test.env_parse_failed",
+            runique_i18n::keys::runique_test::error::ENV_PARSE_FAILED,
             &[path, other.to_string().as_str()],
         ),
     }
@@ -323,7 +330,10 @@ mod tests {
     fn panic_messages_and_test_names() {
         assert_eq!(panic_message(&"static text"), "static text");
         assert_eq!(panic_message(&String::from("owned text")), "owned text");
-        assert_eq!(panic_message(&42u8), msg("runique_test.no_panic_message"));
+        assert_eq!(
+            panic_message(&42u8),
+            msg(runique_i18n::keys::runique_test::error::NO_PANIC_MESSAGE)
+        );
         assert_eq!(
             current_test_name(),
             "logic::builder_test::tests::panic_messages_and_test_names"

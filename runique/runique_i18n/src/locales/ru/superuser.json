@@ -1,0 +1,39 @@
+{
+  "label": {
+    "title": "=== Создать суперпользователя ===",
+    "algo_prompt": "[1/5] Алгоритм хэширования",
+    "algo_argon2": "Argon2 (рекомендуется)",
+    "algo_bcrypt": "Bcrypt",
+    "algo_scrypt": "Scrypt",
+    "algo_custom": "Пользовательский провайдер",
+    "provider_path": "Путь к провайдеру",
+    "username_prompt": "[2/5] Имя пользователя",
+    "email_prompt": "[3/5] Email",
+    "password_prompt": "[4/5] Пароль",
+    "confirm_prompt": "[5/5] Подтвердите пароль",
+    "confirm_create": "Подтвердить и создать",
+    "change_algo": "Изменить алгоритм",
+    "modify_password": "Изменить пароль"
+  },
+  "error": {
+    "invalid_path": "Неверный путь.",
+    "username_empty": "Имя пользователя не может быть пустым.",
+    "username_taken": "Пользователь с таким именем уже существует.",
+    "email_invalid": "Недействительный email.",
+    "email_taken": "Пользователь с таким email уже существует.",
+    "password_too_short": "Пароль должен содержать не менее 12 символов.",
+    "password_weak": "Пароль должен содержать хотя бы одну строчную букву, одну заглавную букву, одну цифру и один специальный символ.",
+    "password_mismatch": "Пароли не совпадают. Попробуйте снова."
+  },
+  "info": {
+    "review_algo": "  Алгоритм  : {}",
+    "review_username": "  Логин     : {}",
+    "review_email": "  Email     : {}",
+    "review_password": "  Пароль    : ••••••••",
+    "review_action": "Действие",
+    "success": "✓ Суперпользователь успешно создан!",
+    "id_line": "  ID        : {}",
+    "username_line": "  Логин     : {}",
+    "email_line": "  Email     : {}"
+  }
+}

@@ -90,7 +90,11 @@ impl FormRenderer {
                     if let Some(level) = log_render {
                         crate::runique_log!(level, field = %field.name(), error = %e, "render error");
                     }
-                    return Err(tf("forms.finalize_error", &[field.name(), &e]).to_owned());
+                    return Err(tf(
+                        runique_i18n::keys::forms::error::FINALIZE,
+                        &[field.name(), &e],
+                    )
+                    .to_owned());
                 }
             }
         }
@@ -115,14 +119,18 @@ impl FormRenderer {
             .get_template_names()
             .any(|name| name == template_name)
         {
-            return Err(tf("forms.template_missing", &[template_name]).to_owned());
+            return Err(tf(
+                runique_i18n::keys::forms::error::TEMPLATE_MISSING,
+                &[template_name],
+            )
+            .to_owned());
         }
 
         let mut context = tera::Context::new();
         context.insert("errors", errors);
         self.tera
             .render(template_name, &context)
-            .map_err(|e| tf("forms.render_errors_error", &[&e]).to_owned())
+            .map_err(|e| tf(runique_i18n::keys::forms::error::RENDER_ERRORS, &[&e]).to_owned())
     }
 
     pub(crate) fn render_js(&self) -> Result<String, String> {
@@ -136,7 +144,11 @@ impl FormRenderer {
             .get_template_names()
             .any(|name| name == template_name)
         {
-            return Err(tf("forms.template_missing", &[template_name]).to_owned());
+            return Err(tf(
+                runique_i18n::keys::forms::error::TEMPLATE_MISSING,
+                &[template_name],
+            )
+            .to_owned());
         }
 
         let mut context = tera::Context::new();
@@ -147,7 +159,7 @@ impl FormRenderer {
 
         self.tera
             .render(template_name, &context)
-            .map_err(|e| tf("forms.render_js_error", &[&e]).to_owned())
+            .map_err(|e| tf(runique_i18n::keys::forms::error::RENDER_JS, &[&e]).to_owned())
     }
 
     /// Renders a single field to HTML directly, bypassing the global-error

@@ -1,20 +1,25 @@
 {
-  "forgot_title": "Mot de passe oublié",
-  "reset_title": "Nouveau mot de passe",
-  "success_title": "Mot de passe réinitialisé",
-  "email_label": "Adresse email",
-  "new_password_label": "Nouveau mot de passe",
-  "confirm_label": "Confirmer le mot de passe",
-  "email_mismatch": "L'adresse email ne correspond pas au lien.",
-  "invalid_link": "Lien invalide.",
-  "invalid_or_expired": "Lien de réinitialisation invalide ou expiré.",
-  "password_min_length": "Le mot de passe doit contenir au moins {} caractères.",
-  "password_weak": "Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre et un caractère spécial (!@#$%...).",
-  "password_mismatch": "Les mots de passe ne correspondent pas.",
-  "check_inbox": "Si cette adresse est associée à un compte, vous recevrez un email avec la marche à suivre.",
-  "blocked_subject": "Votre compte est bloqué",
-  "blocked_body": "<p>Bonjour {},</p><p>Une demande de réinitialisation de mot de passe a été faite pour votre compte, mais ce compte est bloqué. Contactez l'administrateur du site pour le débloquer.</p><p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>",
-  "email_subject": "Réinitialisation de votre mot de passe",
-  "email_body": "<p>Bonjour {},</p><p>Cliquez sur le lien suivant pour réinitialiser votre mot de passe (valide {} min) :</p><p><a href=\"{}\">{}</a></p>",
-  "unavailable": "La réinitialisation par email n'est pas disponible pour le moment."
+  "label": {
+    "forgot_title": "Mot de passe oublié",
+    "reset_title": "Nouveau mot de passe",
+    "success_title": "Mot de passe réinitialisé",
+    "email_label": "Adresse email",
+    "new_password_label": "Nouveau mot de passe",
+    "confirm_label": "Confirmer le mot de passe",
+    "blocked_subject": "Votre compte est bloqué",
+    "blocked_body": "<p>Bonjour {},</p><p>Une demande de réinitialisation de mot de passe a été faite pour votre compte, mais ce compte est bloqué. Contactez l'administrateur du site pour le débloquer.</p><p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>",
+    "email_subject": "Réinitialisation de votre mot de passe",
+    "email_body": "<p>Bonjour {},</p><p>Cliquez sur le lien suivant pour réinitialiser votre mot de passe (valide {} min) :</p><p><a href=\"{}\">{}</a></p>"
+  },
+  "error": {
+    "email_mismatch": "L'adresse email ne correspond pas au lien.",
+    "invalid_or_expired": "Lien de réinitialisation invalide ou expiré.",
+    "password_min_length": "Le mot de passe doit contenir au moins {} caractères.",
+    "password_weak": "Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre et un caractère spécial (!@#$%...).",
+    "password_mismatch": "Les mots de passe ne correspondent pas.",
+    "unavailable": "La réinitialisation par email n'est pas disponible pour le moment."
+  },
+  "info": {
+    "check_inbox": "Si cette adresse est associée à un compte, vous recevrez un email avec la marche à suivre."
+  }
 }

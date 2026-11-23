@@ -217,7 +217,7 @@ impl FormField for TextField {
         self.submitted = true;
     }
     async fn validate(&mut self) -> bool {
-        if self.fails_required("forms.required") {
+        if self.fails_required(runique_i18n::keys::forms::error::REQUIRED) {
             return false;
         }
         // Initial trim
@@ -231,10 +231,12 @@ impl FormField for TextField {
         if let Some(limits) = &self.config.min_length {
             let count: u32 = val.chars().count() as u32;
             if count < limits.value {
-                let msg = limits
-                    .message
-                    .clone()
-                    .unwrap_or_else(|| tf("forms.too_short", &[&limits.value]));
+                let msg = limits.message.clone().unwrap_or_else(|| {
+                    tf(
+                        runique_i18n::keys::forms::error::TOO_SHORT,
+                        &[&limits.value],
+                    )
+                });
                 self.set_error(msg);
                 return false;
             }
@@ -244,10 +246,9 @@ impl FormField for TextField {
         if let Some(limits) = &self.config.max_length {
             let count: u32 = val.chars().count() as u32;
             if count > limits.value {
-                let msg = limits
-                    .message
-                    .clone()
-                    .unwrap_or_else(|| tf("forms.too_long", &[&limits.value]));
+                let msg = limits.message.clone().unwrap_or_else(|| {
+                    tf(runique_i18n::keys::forms::error::TOO_LONG, &[&limits.value])
+                });
                 self.set_error(msg);
                 return false;
             }
@@ -256,14 +257,14 @@ impl FormField for TextField {
         // Special format validation
         match &self.format {
             SpecialFormat::Email if !val.validate_email() => {
-                self.set_error(t("forms.email_invalid").to_string());
+                self.set_error(t(runique_i18n::keys::forms::error::EMAIL_INVALID).to_string());
                 return false;
             }
             SpecialFormat::Email => {
                 val = val.to_lowercase();
             }
             SpecialFormat::Url if !is_web_url(&val) => {
-                self.set_error(t("forms.url_invalid").to_string());
+                self.set_error(t(runique_i18n::keys::forms::error::URL_INVALID).to_string());
                 return false;
             }
             SpecialFormat::Phone => {
@@ -275,7 +276,7 @@ impl FormField for TextField {
                 let plus_only_at_start = val.match_indices('+').all(|(i, _)| i == 0);
                 if !has_only_valid_chars || !plus_only_at_start || !(7..=15).contains(&digit_count)
                 {
-                    self.set_error(t("forms.phone_invalid").to_string());
+                    self.set_error(t(runique_i18n::keys::forms::error::PHONE_INVALID).to_string());
                     return false;
                 }
             }
@@ -300,9 +301,9 @@ impl FormField for TextField {
                 // A typed value is hashed even when it looks like a hash: stored
                 // as is, it would carry cost parameters of the visitor's choosing.
                 if self.submitted || !service.is_already_hashed(&self.base.value) {
-                    self.base.value = service
-                        .hash(&self.base.value)
-                        .map_err(|e| tf("forms.hash_error", &[&e.to_string()]).to_string())?;
+                    self.base.value = service.hash(&self.base.value).map_err(|e| {
+                        tf(runique_i18n::keys::forms::error::HASH, &[&e.to_string()]).to_string()
+                    })?;
                     self.submitted = false;
                 }
             }

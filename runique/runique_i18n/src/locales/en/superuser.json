@@ -1,0 +1,39 @@
+{
+  "label": {
+    "title": "=== Create Superuser ===",
+    "algo_prompt": "[1/5] Hashing algorithm",
+    "algo_argon2": "Argon2 (recommended)",
+    "algo_bcrypt": "Bcrypt",
+    "algo_scrypt": "Scrypt",
+    "algo_custom": "Custom provider",
+    "provider_path": "Provider path",
+    "username_prompt": "[2/5] Username",
+    "email_prompt": "[3/5] Email",
+    "password_prompt": "[4/5] Password",
+    "confirm_prompt": "[5/5] Confirm password",
+    "confirm_create": "Confirm and create",
+    "change_algo": "Change algorithm",
+    "modify_password": "Modify password"
+  },
+  "error": {
+    "invalid_path": "Invalid path.",
+    "username_empty": "Username cannot be empty.",
+    "username_taken": "A user with this name already exists.",
+    "email_invalid": "Invalid email.",
+    "email_taken": "A user with this email already exists.",
+    "password_too_short": "Password must be at least 12 characters.",
+    "password_weak": "Password must contain at least one lowercase letter, one uppercase letter, one digit and one special character.",
+    "password_mismatch": "Passwords do not match. Please try again."
+  },
+  "info": {
+    "review_algo": "  Algorithm   : {}",
+    "review_username": "  Username    : {}",
+    "review_email": "  Email       : {}",
+    "review_password": "  Password    : ••••••••",
+    "review_action": "Action",
+    "success": "✓ Superuser created successfully!",
+    "id_line": "  ID       : {}",
+    "username_line": "  Username : {}",
+    "email_line": "  Email    : {}"
+  }
+}

@@ -1,5 +1,6 @@
 //! Whole batches run through the builder's own entry points, then each cell of
 //! the step × action table on a disk laid out by hand.
+pub(crate) use super::support::{TempDir, cut_journal};
 use super::{
     action::rollback,
     disk,
@@ -7,7 +8,6 @@ use super::{
     step::{done, placed, prepared, replaced, waiting},
     struct_atomic::{ActionAtomic, AtomicBuilder, AtomicStep, ItemsPath, SourceItems},
 };
-pub(crate) use super::support::{TempDir, cut_journal};
 use std::{
     fs, io,
     path::{Path, PathBuf},
@@ -1356,7 +1356,6 @@ fn a_file_without_a_parent_folder_is_written_in_the_current_one() {
 
 // ── The journal ──────────────────────────────────────────────────────────────
 
-
 #[test]
 fn a_batch_with_a_journal_leaves_none_once_it_is_done() {
     let dir = TempDir::new();
@@ -2181,7 +2180,7 @@ fn a_create_batch_takes_nothing_away() {
     assert_eq!(error.kind(), io::ErrorKind::InvalidInput);
     assert_eq!(
         error.to_string(),
-        runique_i18n::t("atomic.wrong_step")
+        runique_i18n::t(runique_i18n::keys::atomic::error::WRONG_STEP)
     );
     assert_eq!(read(&dir.join("gone.txt")), "old");
 }

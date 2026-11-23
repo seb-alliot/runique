@@ -72,7 +72,7 @@ pub(crate) fn changes<E: ModelMeta>(
                 None => {
                     errors.push((
                         name.to_string(),
-                        t("forms.value_unconvertible").into_owned(),
+                        t(runique_i18n::keys::forms::error::VALUE_UNCONVERTIBLE).into_owned(),
                     ));
                     continue;
                 }
@@ -89,7 +89,7 @@ pub(crate) fn changes<E: ModelMeta>(
         if model.try_set(column, value).is_err() {
             errors.push((
                 name.to_string(),
-                t("forms.value_unconvertible").into_owned(),
+                t(runique_i18n::keys::forms::error::VALUE_UNCONVERTIBLE).into_owned(),
             ));
         }
     }
@@ -275,7 +275,7 @@ mod tests {
     }
 
     fn unconvertible() -> String {
-        t("forms.value_unconvertible").into_owned()
+        t(runique_i18n::keys::forms::error::VALUE_UNCONVERTIBLE).into_owned()
     }
 
     fn stored_item() -> item::Model {

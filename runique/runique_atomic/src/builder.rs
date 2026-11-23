@@ -60,7 +60,7 @@ impl AtomicBuilder {
         if matches!(source, SourceItems::Remove) && self.strategy == ActionAtomic::Create {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                runique_i18n::t("atomic.wrong_step").into_owned(),
+                runique_i18n::t(runique_i18n::keys::atomic::error::WRONG_STEP).into_owned(),
             ));
         }
         // The names the batch works under are its own: a file of the batch
@@ -71,20 +71,29 @@ impl AtomicBuilder {
             Some(_) => {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
-                    runique_i18n::tf("atomic.reserved_name", &[path.display()]),
+                    runique_i18n::tf(
+                        runique_i18n::keys::atomic::error::RESERVED_NAME,
+                        &[path.display()],
+                    ),
                 ));
             }
             None => {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
-                    runique_i18n::tf("atomic.not_a_file", &[path.display()]),
+                    runique_i18n::tf(
+                        runique_i18n::keys::atomic::error::NOT_A_FILE,
+                        &[path.display()],
+                    ),
                 ));
             }
         }
         if self.items.contains_key(&path) {
             return Err(io::Error::new(
                 io::ErrorKind::AlreadyExists,
-                runique_i18n::tf("atomic.duplicate", &[path.display()]),
+                runique_i18n::tf(
+                    runique_i18n::keys::atomic::error::DUPLICATE,
+                    &[path.display()],
+                ),
             ));
         }
         let item = ItemsPath {

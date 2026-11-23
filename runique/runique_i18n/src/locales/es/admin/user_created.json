@@ -1,0 +1,12 @@
+{
+  "label": {
+    "email_subject": "Bienvenido — define tu contraseña",
+    "email_greeting": "Bienvenido,",
+    "email_body": "Se ha creado una cuenta para ti. Haz clic en el enlace para definir tu contraseña:",
+    "email_btn": "Definir mi contraseña",
+    "email_validity": "Este enlace es válido por {} min. Si no esperabas este mensaje, ignóralo."
+  },
+  "info": {
+    "email_sent": "Correo de bienvenida enviado."
+  }
+}

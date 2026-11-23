@@ -1,0 +1,25 @@
+{
+  "label": {
+    "title": "権限",
+    "subtitle": "この管理者ができること（テーブルごと・列ごと）。チェックのない列は読み書きされません。",
+    "go_to_table": "テーブルへ移動",
+    "toc": "テーブル",
+    "btn_cancel": "キャンセル",
+    "btn_save": "保存",
+    "th_column": "列",
+    "col_read": "読み取り",
+    "col_create": "作成",
+    "col_update": "変更",
+    "right_create": "作成",
+    "right_read": "一覧 / 読み取り",
+    "right_read_own": "自分のものを読み取り",
+    "right_update": "変更",
+    "right_update_own": "自分のものを変更",
+    "right_delete": "削除",
+    "right_delete_own": "自分のものを削除",
+    "group_subtitle": "このグループのメンバーができること（テーブルごと・列ごと）。チェックのない列は読み書きされません。",
+    "group_label": "グループ",
+    "btn_show": "表示",
+    "group_sheet": "グループの詳細"
+  }
+}

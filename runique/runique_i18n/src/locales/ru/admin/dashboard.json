@@ -1,0 +1,23 @@
+{
+  "label": {
+    "subtitle": "Обзор приложения",
+    "card_resources": "Ресурсы",
+    "th_resource": "Ресурс",
+    "th_key": "Ключ",
+    "th_permissions": "Разрешения",
+    "th_actions": "Действия",
+    "btn_list": "Список",
+    "btn_create": "Создать",
+    "see_list": "Посмотреть список →",
+    "empty_title": "Нет зарегистрированных ресурсов",
+    "empty_desc": "Зарегистрируйте модели в src/admin.rs через типизированный ModelAdmin, затем cargo run",
+    "kpi_resources": "Ресурсы",
+    "kpi_entries": "Всего записей",
+    "kpi_largest": "Наибольшая",
+    "th_count": "Записи",
+    "toggle_template": "← Настроенный шаблон",
+    "my_groups_title": "Мои группы",
+    "my_groups_staff": "персонал",
+    "my_groups_none": "Эта группа не даёт прав на таблицы."
+  }
+}

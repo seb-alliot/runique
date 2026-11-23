@@ -1,11 +1,23 @@
 {
-  "operational": "Runique ist betriebsbereit",
-  "launched": "Server gestartet auf {}",
-  "connected_db": "Mit der Datenbank verbunden {} -> {}",
-  "connected_engine": "Mit der Datenbank verbunden {}",
-  "stop_hint": "Strg + C zum Beenden",
-  "shutting_down": "Runique-Server wird heruntergefahren...",
-  "acme_not_compiled": "ACME_ENABLED=true, aber das Feature `acme` ist nicht einkompiliert.",
-  "acme_add_feature": "Füge das Feature `acme` zu deiner Cargo.toml hinzu.",
-  "test_utils_feature_enabled": "Feature `test-utils` ist in diesem Build kompiliert — stelle sicher, dass sie unter [dev-dependencies] steht, niemals unter [dependencies], vor einem Produktions-Deployment."
+  "log": {
+    "https_redirected": "Anfrage über HTTP empfangen — auf HTTPS umgeleitet",
+    "https_port80_stopped": "HTTP-Server auf Port 80 (ACME-Challenge und HTTPS-Umleitung) wurde beendet",
+    "ctrl_c_not_installed": "Ctrl+C-Handler nicht installiert",
+    "sigterm_not_installed": "SIGTERM-Handler nicht installiert"
+  },
+  "info": {
+    "operational": "Runique ist betriebsbereit",
+    "launched": "Server gestartet auf {}",
+    "connected_db": "Mit der Datenbank verbunden {} -> {}",
+    "connected_engine": "Mit der Datenbank verbunden {}",
+    "shutting_down": "Runique-Server wird heruntergefahren...",
+    "acme_add_feature": "Füge das Feature `acme` zu deiner Cargo.toml hinzu.",
+    "test_utils_feature_enabled": "Feature `test-utils` ist in diesem Build kompiliert — stelle sicher, dass sie unter [dev-dependencies] steht, niemals unter [dependencies], vor einem Produktions-Deployment."
+  },
+  "hint": {
+    "stop": "Strg + C zum Beenden"
+  },
+  "error": {
+    "acme_not_compiled": "ACME_ENABLED=true, aber das Feature `acme` ist nicht einkompiliert."
+  }
 }

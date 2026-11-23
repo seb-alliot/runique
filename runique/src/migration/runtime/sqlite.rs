@@ -8,5 +8,8 @@ use crate::utils::trad::tf;
 use sea_orm::DbErr;
 
 pub(super) fn key_change_refused(table: &str) -> Result<(), DbErr> {
-    Err(DbErr::Custom(tf("migrate.sqlite_key_change", &[table])))
+    Err(DbErr::Custom(tf(
+        runique_i18n::keys::migrate::error::SQLITE_KEY_CHANGE,
+        &[table],
+    )))
 }

@@ -1,0 +1,24 @@
+{
+  "error": {
+    "source": "ソース: {}",
+    "AppError": "アプリケーションエラー",
+    "build": "ビルドエラー: {}",
+    "internal": "内部エラー",
+    "forbidden": "アクセス禁止",
+    "not_found": "リソースが見つかりません",
+    "validation": "検証エラー: {}",
+    "database": "データベースエラー: {}",
+    "io": "IOエラー: {}",
+    "template": "テンプレートエラー: {}",
+    "custom": "カスタムエラー: {}",
+    "invalid_query": "クエリパラメータが無効です：{}",
+    "path_not_found": "要求されたパス '{}' は見つかりませんでした",
+    "internal_occurred": "内部エラーが発生しました"
+  },
+  "label": {
+    "bad_request": "不正なリクエスト",
+    "not_found": "ページが見つかりません",
+    "internal": "内部サーバーエラー",
+    "template_in": "'{}' のテンプレートエラー"
+  }
+}

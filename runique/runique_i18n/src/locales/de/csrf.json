@@ -1,7 +1,26 @@
 {
-  "missing": "CSRF-Token fehlt",
-  "invalid": "Ungültiger CSRF-Token",
-  "invalid_or_missing": "CSRF-Token ungültig oder fehlt",
-  "forbidden": "Ungültiger CSRF-Token",
-  "session_write_error": "Fehler beim Schreiben der Session"
+  "error": {
+    "missing": "CSRF-Token fehlt",
+    "invalid": "Ungültiger CSRF-Token",
+    "invalid_or_missing": "CSRF-Token ungültig oder fehlt"
+  },
+  "log": {
+    "refused": "CSRF abgelehnt",
+    "reason_header_invalid": "ungültiges Token im Header X-CSRF-Token",
+    "reason_not_a_form": "kein Token, und der Body ist kein Formular",
+    "reason_cross_site": "Formular von einer anderen Website gesendet",
+    "reason_form_mismatch": "Formular: das gesendete Token ist nicht das der Sitzung (Sitzung abgelaufen oder Seite vor einer Anmeldung geöffnet)",
+    "reason_form_missing": "Formular: kein Token im Body und keines in X-CSRF-Token",
+    "reason_admin_login_missing": "Admin-Anmeldung: kein Token im Formular",
+    "reason_admin_login_mismatch": "Admin-Anmeldung: das gesendete Token ist nicht das der Sitzung",
+    "reason_admin_logout": "Admin-Abmeldung: kein gültiges Token",
+    "reason_upload": "Upload: eine Datei kam vor einem gültigen csrf_token-Feld an, nichts wurde geschrieben",
+    "token_dropped": "CSRF-Token verworfen (An- oder Abmeldung): zuvor geöffnete Seiten tragen ein totes Token",
+    "token_new": "neues CSRF-Token für diese Sitzung",
+    "read_token": "CSRF-Token aus der Sitzung lesen",
+    "keep_token": "CSRF-Token in der Sitzung behalten",
+    "read_account": "angemeldetes Konto für das CSRF-Token lesen",
+    "write_token": "neues CSRF-Token in die Sitzung schreiben",
+    "set_value": "set_value [CSRF-Token empfangen — seine Prüfung steht im Kanal middleware.csrf]"
+  }
 }

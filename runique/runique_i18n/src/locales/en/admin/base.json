@@ -1,0 +1,12 @@
+{
+  "label": {
+    "title": "Administration",
+    "breadcrumb": "Admin",
+    "toggle": "Collapse menu",
+    "logout_title": "Logout",
+    "theme_toggle": "Toggle theme",
+    "back_to_site": "← Site",
+    "dashboard": "Dashboard",
+    "history": "History"
+  }
+}

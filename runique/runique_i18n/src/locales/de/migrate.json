@@ -1,14 +1,18 @@
 {
-  "complete_up": "Migration abgeschlossen.",
-  "crate_missing": "Migrations-Crate nicht gefunden: '{}' enthält keine Cargo.toml.",
-  "sqlite_key_change": "{}: Diese Migration fügt einer bestehenden Tabelle einen Fremdschlüssel hinzu oder entfernt ihn. SQLite kann das nicht, ohne die Tabelle neu aufzubauen, was Runique noch nicht unterstützt. Diese Migration hat nichts geändert.",
-  "engine_unsupported": "Datenbank-Engine für diesen Vorgang nicht unterstützt: {}.",
-  "running": "Führe 'migrate {}' mit dem Migrations-Crate '{}' aus...",
-  "complete_down": "Rücksetzung abgeschlossen.",
-  "cargo_missing": "cargo kann nicht gestartet werden. Ist Rust installiert und cargo im PATH?",
-  "failed": "Das Migrations-Crate ist bei 'migrate {}' fehlgeschlagen (Exit-Code: {}).",
-  "crate_created": "Migrations-Crate in '{}' erstellt.",
-  "interrupted": "Ein makemigrations-Lauf wurde in '{}' unterbrochen. Führen Sie makemigrations erneut aus, bevor Sie die Migrationen anwenden.",
-  "renamed_from_kept": "{}: Die angewendeten `renamed_from` konnten nicht aus dieser Datei entfernt werden. Entfernen Sie sie von Hand.",
-  "engine_defaulted": "Weder DATABASE_URL noch DB_ENGINE nennen eine bekannte Engine: Das Migrations-Crate verwendet SQLite. Ändern Sie bei Bedarf das runique-Feature in '{}'."
+  "info": {
+    "complete_up": "Migration abgeschlossen.",
+    "running": "Führe 'migrate {}' mit dem Migrations-Crate '{}' aus...",
+    "complete_down": "Rücksetzung abgeschlossen.",
+    "crate_created": "Migrations-Crate in '{}' erstellt."
+  },
+  "error": {
+    "crate_missing": "Migrations-Crate nicht gefunden: '{}' enthält keine Cargo.toml.",
+    "sqlite_key_change": "{}: Diese Migration fügt einer bestehenden Tabelle einen Fremdschlüssel hinzu oder entfernt ihn. SQLite kann das nicht, ohne die Tabelle neu aufzubauen, was Runique noch nicht unterstützt. Diese Migration hat nichts geändert.",
+    "engine_unsupported": "Datenbank-Engine für diesen Vorgang nicht unterstützt: {}.",
+    "cargo_missing": "cargo kann nicht gestartet werden. Ist Rust installiert und cargo im PATH?",
+    "failed": "Das Migrations-Crate ist bei 'migrate {}' fehlgeschlagen (Exit-Code: {}).",
+    "interrupted": "Ein makemigrations-Lauf wurde in '{}' unterbrochen. Führen Sie makemigrations erneut aus, bevor Sie die Migrationen anwenden.",
+    "renamed_from_kept": "{}: Die angewendeten `renamed_from` konnten nicht aus dieser Datei entfernt werden. Entfernen Sie sie von Hand.",
+    "engine_defaulted": "Weder DATABASE_URL noch DB_ENGINE nennen eine bekannte Engine: Das Migrations-Crate verwendet SQLite. Ändern Sie bei Bedarf das runique-Feature in '{}'."
+  }
 }

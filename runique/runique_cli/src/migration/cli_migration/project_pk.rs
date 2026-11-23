@@ -52,12 +52,18 @@ pub(crate) fn from_cargo() -> Result<PkType> {
     if let Some(host) = host_triple() {
         command.args(["--filter-platform", &host]);
     }
-    let output = command
-        .output()
-        .map_err(|e| anyhow!(tf("makemigrations.project_pk_cargo", &[e.to_string()])))?;
+    let output = command.output().map_err(|e| {
+        anyhow!(tf(
+            runique_i18n::keys::makemigrations::error::PROJECT_PK_CARGO,
+            &[e.to_string()]
+        ))
+    })?;
     if !output.status.success() {
         let reason = String::from_utf8_lossy(&output.stderr).trim().to_string();
-        bail!(tf("makemigrations.project_pk_cargo", &[reason]));
+        bail!(tf(
+            runique_i18n::keys::makemigrations::error::PROJECT_PK_CARGO,
+            &[reason]
+        ));
     }
     pk_of(&String::from_utf8_lossy(&output.stdout))
 }
@@ -75,9 +81,15 @@ fn host_triple() -> Option<String> {
 /// project (`cargo metadata`): `pk-uuid`, else `big-pk`, else `i32`, the
 /// order the framework itself follows.
 fn pk_of(metadata: &str) -> Result<PkType> {
-    let missing = || anyhow!(t("makemigrations.project_pk_no_runique").into_owned());
-    let json: serde_json::Value = serde_json::from_str(metadata)
-        .map_err(|e| anyhow!(tf("makemigrations.project_pk_cargo", &[e.to_string()])))?;
+    let missing = || {
+        anyhow!(t(runique_i18n::keys::makemigrations::error::PROJECT_PK_NO_RUNIQUE).into_owned())
+    };
+    let json: serde_json::Value = serde_json::from_str(metadata).map_err(|e| {
+        anyhow!(tf(
+            runique_i18n::keys::makemigrations::error::PROJECT_PK_CARGO,
+            &[e.to_string()]
+        ))
+    })?;
     let id = json["packages"]
         .as_array()
         .and_then(|packages| {
@@ -92,7 +104,11 @@ fn pk_of(metadata: &str) -> Result<PkType> {
         .and_then(|nodes| nodes.iter().find(|node| node["id"].as_str() == Some(id)))
         .and_then(|node| node["features"].as_array())
         .ok_or_else(missing)?;
-    let has = |name: &str| features.iter().any(|feature| feature.as_str() == Some(name));
+    let has = |name: &str| {
+        features
+            .iter()
+            .any(|feature| feature.as_str() == Some(name))
+    };
     Ok(if has("pk-uuid") {
         PkType::Uuid
     } else if has("big-pk") {
@@ -127,14 +143,29 @@ mod tests {
     // Only the features of `runique` itself count, not those of a neighbour.
     #[test]
     fn the_type_follows_the_features_of_runique() {
-        assert_eq!(pk_of(&metadata(&["default", "postgres"])).unwrap(), PkType::I32);
+        assert_eq!(
+            pk_of(&metadata(&["default", "postgres"])).unwrap(),
+            PkType::I32
+        );
         assert_eq!(pk_of(&metadata(&[])).unwrap(), PkType::I32);
-        assert_eq!(pk_of(&metadata(&["postgres", "big-pk"])).unwrap(), PkType::I64);
-        assert_eq!(pk_of(&metadata(&["pk-uuid", "admin"])).unwrap(), PkType::Uuid);
+        assert_eq!(
+            pk_of(&metadata(&["postgres", "big-pk"])).unwrap(),
+            PkType::I64
+        );
+        assert_eq!(
+            pk_of(&metadata(&["pk-uuid", "admin"])).unwrap(),
+            PkType::Uuid
+        );
         // The framework's own order when both are on.
-        assert_eq!(pk_of(&metadata(&["big-pk", "pk-uuid"])).unwrap(), PkType::Uuid);
+        assert_eq!(
+            pk_of(&metadata(&["big-pk", "pk-uuid"])).unwrap(),
+            PkType::Uuid
+        );
         // A name that only looks like one.
-        assert_eq!(pk_of(&metadata(&["big-pk-extra", "not-pk-uuid"])).unwrap(), PkType::I32);
+        assert_eq!(
+            pk_of(&metadata(&["big-pk-extra", "not-pk-uuid"])).unwrap(),
+            PkType::I32
+        );
     }
 
     // No `runique` in the project, or a description cargo didn't write:
@@ -148,7 +179,7 @@ mod tests {
         .to_string();
         assert_eq!(
             pk_of(&without).unwrap_err().to_string(),
-            t("makemigrations.project_pk_no_runique")
+            t(runique_i18n::keys::makemigrations::error::PROJECT_PK_NO_RUNIQUE)
         );
 
         // Listed, but absent from what cargo resolved.

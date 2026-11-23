@@ -1,0 +1,32 @@
+{
+  "label": {
+    "subtitle": "Создания, изменения и удаления, сделанные в админке.",
+    "whole_row": "Вся история этой строки",
+    "th_column": "Столбец",
+    "th_old": "До",
+    "th_new": "После",
+    "no_changes": "Нет доступных изменений",
+    "all_resources": "Все ресурсы",
+    "all_actions": "Все действия",
+    "action_create": "Создано",
+    "action_update": "Изменено",
+    "action_delete": "Удалено",
+    "btn_filter": "Фильтровать",
+    "btn_reset": "Сбросить",
+    "th_date": "Дата",
+    "th_account": "Учётная запись",
+    "th_resource": "Ресурс",
+    "th_object": "Объект",
+    "th_action": "Действие",
+    "btn_entry": "Подробнее",
+    "empty": "Нет записанных действий",
+    "badge_create": "создано",
+    "badge_update": "изменено",
+    "badge_delete": "удалено",
+    "badge_rights": "права изменены",
+    "badge_rank": "ранг изменён",
+    "badge_reset_password": "ссылка для пароля отправлена",
+    "badge_groups": "Группы",
+    "badge_transfer": "Передача"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "log": {
+    "read_account": "从会话读取已登录账户",
+    "read_version": "读取会话版本",
+    "read_flash": "从会话读取闪现消息",
+    "read_dashboard_template": "从会话读取所选的仪表盘模板",
+    "decode_user_memory": "解码会话 user_id（从内存加载）",
+    "decode_user_db": "解码会话 user_id（从数据库加载）"
+  }
+}

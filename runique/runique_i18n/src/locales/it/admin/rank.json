@@ -1,0 +1,11 @@
+{
+  "label": {
+    "superuser": "Superutente",
+    "lambda": "Account del sito",
+    "admin": "Admin",
+    "dirigeant": "Dirigente"
+  },
+  "info": {
+    "success": "Ruolo modificato ({})"
+  }
+}

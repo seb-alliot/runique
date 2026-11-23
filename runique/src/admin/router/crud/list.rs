@@ -54,7 +54,7 @@ pub(crate) async fn list_view(
             filters = query.filters.len(),
             search = query.search.is_some(),
             "{}",
-            crate::utils::trad::t("log.admin.list")
+            crate::utils::trad::t(runique_i18n::keys::admin::log::LIST)
         );
     }
 

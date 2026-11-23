@@ -8,7 +8,7 @@
 | `DEBUG` | `false` | Affiche les pages d'erreur détaillées et allume tous les canaux de log (voir [Tracing](/docs/fr/configuration/tracing)) — lu **une seule fois** au démarrage. Accepte `true`/`1`/`yes`/`on` et `false`/`0`/`no`/`off`, quelle que soit la casse. Fonctionne aussi avec `RUNIQUE_ENV=prod` pour diagnostiquer un problème en direct : déconseillé, car tous les visiteurs voient alors ces pages (un avertissement s'affiche au démarrage). |
 | `BASE_DIR` | `.` | Répertoire racine de l'application |
 | `TZ` | `UTC` | Fuseau horaire IANA de l'application (ex : `Europe/Paris`, `America/New_York`). Accessible via `config.timezone` — à parser avec `chrono-tz` dans le projet. |
-| `LANG` | locale système | Langue de la CLI (`fr`, `en`, `de`, `es`, `it`, `pt`, `ja`, `zh`, `ru`). Priorité : `LANG` / `LC_ALL` / `LC_MESSAGES` du `.env` > locale système > `en`. La langue de l'application se règle dans le code (`set_lang(Lang::Fr)`) |
+| `LANG` | `en` | Langue de l'application et de la commande `runique` : une des neuf de Runique (`fr`, `en`, `de`, `es`, `it`, `pt`, `ja`, `zh`, `ru`) ou une langue du dossier `locales/` du projet. Application : `set_lang()` dans le code > `.env` > `en`. Commande : `.env` > locale système > `en`. Voir [i18n](/docs/fr/configuration/i18n) |
 
 ---
 

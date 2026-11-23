@@ -9,6 +9,7 @@
 | `MEDIA_ROOT` | `{BASE_DIR}/media`, else `{current folder}/media` | Folder of the files users upload. Created at startup when missing; startup fails if it can't be |
 | `MEDIA_URL` | `/media` | URL prefix that folder is served under |
 | `TEMPLATES_DIR` | `templates` | Tera template folder(s), comma-separated |
+| `LOCALES_DIR` | `locales` | Folder of the project's translations (see [i18n](/docs/en/configuration/i18n)) |
 | `STATICFILES` | `default_storage` | Reserved: read but not used yet |
 | `RUNIQUE_MAX_UPLOAD_MB` | `100` | Largest size of **one** uploaded file (MB), app-wide. See *Upload size* below |
 | `RUNIQUE_MAX_BODY_MB` | `100`, never under `RUNIQUE_MAX_UPLOAD_MB` | Largest size of **one request** carrying files (MB): all its files together, plus 1 MB for the text fields. See *Upload size* below |

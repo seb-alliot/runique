@@ -119,7 +119,11 @@ pub(crate) async fn load_admin_user(
                 crate::runique_log!(level, user = %current_user.username, "admin refused: no admin access, sent to the site");
             }
             let notices = crate::flash::flash_manager::Message { session };
-            notices.error(t("admin.access.action_not_allowed")).await;
+            notices
+                .error(t(
+                    runique_i18n::keys::admin::access::error::ACTION_NOT_ALLOWED,
+                ))
+                .await;
             return Redirect::to("/").into_response();
         }
         // The account is gone or may no longer sign in: its session ends.
@@ -182,7 +186,7 @@ fn account_not_read(user_id: Pk, error: &sea_orm::DbErr) -> Response {
         tracing::Level::WARN,
         user_id = %user_id,
         error = %error,
-        "{}", crate::utils::trad::t("log.auth.admin_account_not_read")
+        "{}", crate::utils::trad::t(runique_i18n::keys::auth::log::ADMIN_ACCOUNT_NOT_READ)
     );
     axum::http::StatusCode::SERVICE_UNAVAILABLE.into_response()
 }
@@ -226,7 +230,11 @@ pub(crate) async fn declared_route_access(
                 crate::runique_log!(level, user = %user.username, "declared admin route refused: no admin access");
             }
             let notices = crate::flash::flash_manager::Message { session };
-            notices.error(t("admin.access.action_not_allowed")).await;
+            notices
+                .error(t(
+                    runique_i18n::keys::admin::access::error::ACTION_NOT_ALLOWED,
+                ))
+                .await;
             Redirect::to("/").into_response()
         }
         None => {

@@ -1,4 +1,6 @@
 {
-  "bad_request": "Richiesta non valida",
-  "slot_collision": "Collisione di slot middleware Runique: '{}' e '{}' rivendicano entrambi lo slot {}. Registra meno middleware personalizzati o assegna a questo uno slot esplicito."
+  "error": {
+    "bad_request": "Richiesta non valida",
+    "slot_collision": "Collisione di slot middleware Runique: '{}' e '{}' rivendicano entrambi lo slot {}. Registra meno middleware personalizzati o assegna a questo uno slot esplicito."
+  }
 }

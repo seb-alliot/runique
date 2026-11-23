@@ -1,0 +1,12 @@
+{
+  "label": {
+    "title": "Administration",
+    "breadcrumb": "Admin",
+    "toggle": "Menü einklappen",
+    "logout_title": "Abmelden",
+    "theme_toggle": "Design wechseln",
+    "back_to_site": "← Website",
+    "dashboard": "Dashboard",
+    "history": "Verlauf"
+  }
+}

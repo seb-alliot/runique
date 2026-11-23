@@ -1,0 +1,32 @@
+{
+  "label": {
+    "subtitle": "Die im Admin vorgenommenen Erstellungen, Änderungen und Löschungen.",
+    "whole_row": "Gesamter Verlauf dieser Zeile",
+    "th_column": "Spalte",
+    "th_old": "Vorher",
+    "th_new": "Nachher",
+    "no_changes": "Keine lesbare Änderung",
+    "all_resources": "Alle Ressourcen",
+    "all_actions": "Alle Aktionen",
+    "action_create": "Erstellt",
+    "action_update": "Geändert",
+    "action_delete": "Gelöscht",
+    "btn_filter": "Filtern",
+    "btn_reset": "Zurücksetzen",
+    "th_date": "Datum",
+    "th_account": "Konto",
+    "th_resource": "Ressource",
+    "th_object": "Objekt",
+    "th_action": "Aktion",
+    "btn_entry": "Details",
+    "empty": "Keine Aktion erfasst",
+    "badge_create": "erstellt",
+    "badge_update": "geändert",
+    "badge_delete": "gelöscht",
+    "badge_rights": "Rechte geändert",
+    "badge_rank": "Rang geändert",
+    "badge_reset_password": "Passwort-Link gesendet",
+    "badge_groups": "Gruppen",
+    "badge_transfer": "Übertragung"
+  }
+}

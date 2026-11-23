@@ -1,0 +1,21 @@
+{
+  "label": {
+    "title": "Transférer le groupe",
+    "from": "Responsable actuel",
+    "to": "Nouveau responsable",
+    "losses": "Droits en jeu",
+    "no_loss": "Le groupe garde tous ses droits.",
+    "btn_confirm": "Confirmer le transfert",
+    "btn_cancel": "Annuler",
+    "gained_right": "reçu par",
+    "lost_right": "perdu par les membres"
+  },
+  "error": {
+    "unsuitable": "Cet utilisateur ne convient pas.",
+    "ranked_members": "Ce groupe compte des membres avec un rang : un admin ne peut en répondre.",
+    "changed": "Les droits ont changé entre-temps : vérifiez à nouveau."
+  },
+  "info": {
+    "success": "Groupe transféré."
+  }
+}

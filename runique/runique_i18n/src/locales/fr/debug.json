@@ -1,4 +1,34 @@
 {
-  "stack_trace_title": "Trace d'erreur détaillée",
-  "stack_trace_tip": "L'erreur la plus haute (niveau 0) est généralement la cause racine. Les erreurs suivantes montrent comment l'erreur s'est propagée dans le code."
+  "label": {
+    "info_title": "Informations de debug",
+    "field_title": "Titre",
+    "field_count": "Nombre de champs",
+    "error_count": "Erreurs",
+    "main_message": "Message principal",
+    "root_cause": "Cause racine",
+    "details": "Détails supplémentaires",
+    "request_info": "Informations de la requête",
+    "http_method": "Méthode HTTP",
+    "path": "Chemin",
+    "query_params": "Paramètres de requête",
+    "http_headers": "En-têtes HTTP",
+    "template_info": "Informations du template",
+    "template_name": "Nom du template",
+    "error_line": "Ligne de l'erreur",
+    "template_source": "Code source du template",
+    "available_templates": "Templates disponibles",
+    "stack_trace_title": "Trace d'erreur détaillée",
+    "stack_trace_tip": "L'erreur la plus haute (niveau 0) est généralement la cause racine. Les erreurs suivantes montrent comment l'erreur s'est propagée dans le code.",
+    "environment": "Environnement",
+    "debug_mode": "Mode debug",
+    "enabled": "Activé",
+    "disabled": "Désactivé",
+    "rust_version": "Version Rust",
+    "app_version": "Version App",
+    "runique_version": "Version Runique",
+    "occurred_at": "Erreur survenue le :",
+    "status_code": "Code de statut",
+    "header_name": "Nom",
+    "header_value": "Valeur"
+  }
 }

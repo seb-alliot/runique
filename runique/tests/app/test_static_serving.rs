@@ -431,7 +431,9 @@ async fn a_refused_upload_shows_the_413_page_with_its_reason() {
     let html = String::from_utf8_lossy(&body);
     assert!(html.contains("<h1"), "{html}");
     assert!(
-        html.contains(runique::utils::trad::t("forms.body_too_large").as_ref()),
+        html.contains(
+            runique::utils::trad::t(runique_i18n::keys::forms::error::BODY_TOO_LARGE).as_ref()
+        ),
         "the reason of this 413: {html}"
     );
 }

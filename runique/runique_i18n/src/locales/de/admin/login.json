@@ -1,0 +1,15 @@
+{
+  "label": {
+    "title": "Anmeldung",
+    "subtitle": "Melden Sie sich an, um auf das Admin-Panel zuzugreifen",
+    "label_username": "Benutzername",
+    "label_password": "Passwort",
+    "btn_submit": "Anmelden",
+    "back_to_site": "← Zurück zur Website"
+  },
+  "error": {
+    "session": "Fehler beim Öffnen der Sitzung.",
+    "credentials": "Falsche Anmeldedaten oder unzureichende Rechte.",
+    "locked": "Zu viele Versuche. Konto vorübergehend gesperrt. Versuchen Sie es in {} Sekunden erneut."
+  }
+}

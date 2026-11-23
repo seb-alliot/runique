@@ -1,16 +1,22 @@
 {
-  "creating_project": "Creazione del progetto '{}'...",
-  "name_empty": "Il nome del progetto non può essere vuoto",
-  "name_invalid": "Il nome del progetto deve contenere solo lettere, numeri, _ o -",
-  "name_dash": "Il nome del progetto non può iniziare con -",
-  "folder_exists": "La cartella '{}' esiste già",
-  "interrupted_run": "Un'esecuzione è stata interrotta in '{}' e alcuni file sono cambiati da allora. Nulla è stato toccato. Correggi quelli elencati qui sotto, poi riesegui il comando:",
-  "run_repaired": "Un'esecuzione interrotta è stata riparata in '{}'.",
-  "project_created": "Progetto '{}' creato con successo!",
-  "getting_started": "Per iniziare:",
-  "cd_hint": "cd {}",
-  "cargo_run_hint": "cargo run",
-  "name_digit": "Il nome del progetto non può iniziare con una cifra",
-  "name_reserved": "'{}' è riservato (parola chiave o crate di Rust, nome di cargo o di Windows, o parte del progetto generato): scegli un altro nome",
-  "migration_up_hint": "runique migration up      (crea le tabelle del framework: account, sessioni, permessi)"
+  "info": {
+    "creating_project": "Creazione del progetto '{}'...",
+    "run_repaired": "Un'esecuzione interrotta è stata riparata in '{}'.",
+    "project_created": "Progetto '{}' creato con successo!",
+    "getting_started": "Per iniziare:"
+  },
+  "error": {
+    "name_empty": "Il nome del progetto non può essere vuoto",
+    "name_invalid": "Il nome del progetto deve contenere solo lettere, numeri, _ o -",
+    "name_dash": "Il nome del progetto non può iniziare con -",
+    "folder_exists": "La cartella '{}' esiste già",
+    "interrupted_run": "Un'esecuzione è stata interrotta in '{}' e alcuni file sono cambiati da allora. Nulla è stato toccato. Correggi quelli elencati qui sotto, poi riesegui il comando:",
+    "name_digit": "Il nome del progetto non può iniziare con una cifra",
+    "name_reserved": "'{}' è riservato (parola chiave o crate di Rust, nome di cargo o di Windows, o parte del progetto generato): scegli un altro nome"
+  },
+  "hint": {
+    "cd": "cd {}",
+    "cargo_run": "cargo run",
+    "migration_up": "runique migration up      (crea le tabelle del framework: account, sessioni, permessi)"
+  }
 }

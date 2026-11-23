@@ -1,0 +1,15 @@
+{
+  "label": {
+    "title": "Connexion",
+    "subtitle": "Connectez-vous pour accéder au panneau d'administration",
+    "label_username": "Nom d'utilisateur",
+    "label_password": "Mot de passe",
+    "btn_submit": "Se connecter",
+    "back_to_site": "← Retour au site"
+  },
+  "error": {
+    "session": "Erreur lors de l'ouverture de session.",
+    "credentials": "Identifiants incorrects ou droits insuffisants.",
+    "locked": "Trop de tentatives. Compte temporairement verrouillé. Réessayez dans {} secondes."
+  }
+}

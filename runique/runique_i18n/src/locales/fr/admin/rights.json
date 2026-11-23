@@ -1,0 +1,25 @@
+{
+  "label": {
+    "title": "Droits",
+    "subtitle": "Ce que cet admin peut faire, table par table et colonne par colonne. Une colonne non cochée n'est ni lue ni écrite.",
+    "go_to_table": "Aller à une table",
+    "toc": "Tables",
+    "btn_cancel": "Annuler",
+    "btn_save": "Enregistrer",
+    "th_column": "Colonne",
+    "col_read": "Lire",
+    "col_create": "Créer",
+    "col_update": "Modifier",
+    "right_create": "Créer",
+    "right_read": "Lister / lire",
+    "right_read_own": "Lire les siennes",
+    "right_update": "Modifier",
+    "right_update_own": "Modifier les siennes",
+    "right_delete": "Supprimer",
+    "right_delete_own": "Supprimer les siennes",
+    "group_subtitle": "Ce que les membres de ce groupe peuvent faire, table par table et colonne par colonne. Une colonne non cochée n'est ni lue ni écrite.",
+    "group_label": "Groupe",
+    "btn_show": "Afficher",
+    "group_sheet": "Fiche du groupe"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "label": {
+    "title": "编辑",
+    "breadcrumb": "编辑",
+    "card_info": "信息",
+    "no_fields": "当前没有可用字段。",
+    "btn_cancel": "取消",
+    "btn_submit": "保存"
+  },
+  "info": {
+    "success": "条目更新成功！"
+  }
+}

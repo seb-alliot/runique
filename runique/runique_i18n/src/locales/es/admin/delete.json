@@ -1,0 +1,19 @@
+{
+  "label": {
+    "title": "Eliminar",
+    "breadcrumb": "Eliminar",
+    "heading": "Confirmar eliminación",
+    "btn_cancel": "← Cancelar",
+    "btn_confirm": "Sí, eliminar permanentemente",
+    "warning_title": "¡Advertencia!",
+    "warning_desc": "Está a punto de eliminar la entrada",
+    "warning_of": "del recurso",
+    "warning_irreversible": "Esta acción es irreversible."
+  },
+  "info": {
+    "success": "¡Entrada eliminada con éxito!"
+  },
+  "error": {
+    "not_found": "Recurso no encontrado."
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "label": {
+    "title": "Delete",
+    "breadcrumb": "Delete",
+    "heading": "Confirm deletion",
+    "btn_cancel": "← Cancel",
+    "btn_confirm": "Yes, delete permanently",
+    "warning_title": "Warning!",
+    "warning_desc": "You are about to delete the entry",
+    "warning_of": "from resource",
+    "warning_irreversible": "This action is irreversible."
+  },
+  "info": {
+    "success": "Entry deleted successfully!"
+  },
+  "error": {
+    "not_found": "Resource not found."
+  }
+}

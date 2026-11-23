@@ -16,32 +16,58 @@ fn locales() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("src/locales")
 }
 
-/// The theme files of a language folder, by name, sorted.
+/// The files of a language folder, by their path in it (`forms.json`,
+/// `admin/login.json`), sorted.
 fn theme_files(code: &str) -> Vec<String> {
+    fn walk(root: &Path, dir: &Path, found: &mut Vec<String>) {
+        for entry in fs::read_dir(dir).unwrap_or_else(|e| panic!("{}: {e}", dir.display())) {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                walk(root, &path, found);
+            } else {
+                let relative = path.strip_prefix(root).unwrap().to_string_lossy();
+                found.push(relative.replace('\\', "/"));
+            }
+        }
+    }
     let folder = locales().join(code);
-    let mut names: Vec<String> = fs::read_dir(&folder)
-        .unwrap_or_else(|e| panic!("{}: {e}", folder.display()))
-        .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
-        .collect();
+    let mut names = Vec::new();
+    walk(&folder, &folder, &mut names);
+    // The language's own description: not a subject, it has no key.
+    names.retain(|name| name != "lang.json");
     names.sort();
     names
 }
 
-/// A whole language as one tree, `{ theme: its file }`: the keys are then the
-/// ones the code writes (`theme.key`).
+/// A whole language as one tree: each file under its path, a folder being
+/// one more level (`admin/login.json` is `admin.login`). The keys are then
+/// the ones the code writes.
 fn language(code: &str) -> Value {
-    let mut themes = serde_json::Map::new();
+    let mut tree = serde_json::Map::new();
     for name in theme_files(code) {
         let path = locales().join(code).join(&name);
-        let theme = name.strip_suffix(".json").unwrap_or_else(|| {
-            panic!("{}: only .json files belong in a language folder", path.display())
+        let dotted = name.strip_suffix(".json").unwrap_or_else(|| {
+            panic!(
+                "{}: only .json files belong in a language folder",
+                path.display()
+            )
         });
         let raw = fs::read_to_string(&path).unwrap();
         let json: Value = serde_json::from_str(&raw)
             .unwrap_or_else(|e| panic!("{} isn't valid JSON: {e}", path.display()));
-        themes.insert(theme.to_string(), json);
+        let mut parts: Vec<&str> = dotted.split('/').collect();
+        let file = parts.pop().unwrap();
+        let mut node = &mut tree;
+        for folder in parts {
+            node = node
+                .entry(folder.to_string())
+                .or_insert_with(|| Value::Object(serde_json::Map::new()))
+                .as_object_mut()
+                .unwrap();
+        }
+        node.insert(file.to_string(), json);
     }
-    Value::Object(themes)
+    Value::Object(tree)
 }
 
 /// Each dotted key with its number of placeholders.
@@ -85,7 +111,10 @@ fn every_language_folder_has_the_english_theme_files() {
     let mut expected: Vec<String> = LANGS.iter().map(|code| code.to_string()).collect();
     expected.push("en".to_string());
     expected.sort();
-    assert_eq!(folders, expected, "a folder that isn't a language of Runique");
+    assert_eq!(
+        folders, expected,
+        "a folder that isn't a language of Runique"
+    );
 }
 
 #[test]
@@ -132,4 +161,65 @@ fn no_translation_holds_a_literal_backslash_n() {
         "literal \\n instead of a line break in:\n{}",
         problems.join("\n")
     );
+}
+
+// The constants of `keys` and the English files hold each other: a key
+// without its message would show as the key itself, a message without its
+// constant can't be asked for by name.
+#[test]
+fn every_key_constant_has_its_message_and_every_message_its_constant() {
+    let mut english = BTreeMap::new();
+    flatten(&language("en"), "", &mut english);
+
+    let constants: std::collections::BTreeSet<&str> =
+        runique_i18n::keys::ALL.iter().copied().collect();
+    assert_eq!(
+        constants.len(),
+        runique_i18n::keys::ALL.len(),
+        "a key twice"
+    );
+
+    let without_message: Vec<&&str> = constants
+        .iter()
+        .filter(|key| !english.contains_key(**key))
+        .collect();
+    let without_constant: Vec<&String> = english
+        .keys()
+        .filter(|key| !constants.contains(key.as_str()))
+        .collect();
+    assert!(
+        without_message.is_empty(),
+        "no message for: {without_message:?}"
+    );
+    assert!(
+        without_constant.is_empty(),
+        "no constant for: {without_constant:?}"
+    );
+}
+
+// A message is found under its constant, in every language, without the
+// fallback to English coming into play.
+#[test]
+fn a_constant_finds_its_message_in_every_language() {
+    use runique_i18n::Lang;
+    let key = runique_i18n::keys::forms::error::REQUIRED;
+    let english = Lang::En.get(key);
+    assert_ne!(english, key, "the key itself means: not found");
+    assert_ne!(Lang::Fr.get(key), english);
+    assert_ne!(Lang::Fr.get(key), key);
+    // In a folder: the screen is part of the file's name.
+    let nested = runique_i18n::keys::admin::login::label::TITLE;
+    assert_ne!(Lang::En.get(nested), nested);
+    assert_ne!(Lang::Fr.get(nested), nested);
+    // Half a key, or a key cut in its file's name, finds nothing.
+    for wrong in [
+        "forms",
+        "forms.",
+        "forms.error",
+        "admin.log",
+        "admin.login",
+        "form.error.required",
+    ] {
+        assert_eq!(Lang::En.get(wrong), wrong, "{wrong}");
+    }
 }

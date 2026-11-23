@@ -1,0 +1,10 @@
+{
+  "log": {
+    "read_account": "lectura de la cuenta conectada de la sesión",
+    "read_version": "lectura de la versión de la sesión",
+    "read_flash": "lectura de los mensajes flash de la sesión",
+    "read_dashboard_template": "lectura de la plantilla del panel elegida en la sesión",
+    "decode_user_memory": "decodificación del user_id de la sesión (carga desde memoria)",
+    "decode_user_db": "decodificación del user_id de la sesión (carga desde la base de datos)"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "label": {
+    "title": "Create",
+    "breadcrumb": "Create",
+    "card_info": "Information",
+    "no_fields": "No fields available at the moment.",
+    "btn_cancel": "Cancel",
+    "btn_submit": "Create"
+  },
+  "info": {
+    "success": "Entry created successfully!"
+  }
+}

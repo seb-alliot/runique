@@ -1,0 +1,16 @@
+{
+  "write": "后台写入",
+  "outcome_saved": "已保存",
+  "outcome_save_refused": "保存被拒绝",
+  "outcome_deleted": "已删除",
+  "outcome_delete_refused": "删除被拒绝",
+  "bulk_done": "批量操作已完成",
+  "bulk_refused": "批量操作被拒绝",
+  "list": "后台列表",
+  "boot_admin": "后台",
+  "boot_model": "后台模型",
+  "boot_route": "后台声明的路由",
+  "boot_no_guard": "后台登录既没有 LoginGuard 也没有限流器：密码尝试次数不受限制（`with_login_guard`、`with_rate_limiter`）",
+  "boot_options_without_effect": "后台列表选项已接受，但目前没有页面显示它们",
+  "boot_stylesheets_missing": "未找到后台所需的 Runique 样式表：请检查 STATIC_RUNIQUE_PATH"
+}

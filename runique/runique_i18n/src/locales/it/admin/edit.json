@@ -1,0 +1,13 @@
+{
+  "label": {
+    "title": "Modifica",
+    "breadcrumb": "Modifica",
+    "card_info": "Informazioni",
+    "no_fields": "Nessun campo disponibile al momento.",
+    "btn_cancel": "Annulla",
+    "btn_submit": "Salva"
+  },
+  "info": {
+    "success": "Voce aggiornata con successo!"
+  }
+}

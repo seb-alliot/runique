@@ -1,0 +1,7 @@
+{
+  "error": {
+    "insufficient_rights": "管理画面へのアクセス権限が不足しています",
+    "action_not_allowed": "この操作は許可されていません",
+    "still_responsable": "このアカウントはまだグループの責任者です。先に移管してください。"
+  }
+}

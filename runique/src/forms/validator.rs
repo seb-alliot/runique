@@ -21,7 +21,11 @@ impl fmt::Display for ValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ValidationError::StackOverflow => {
-                write!(f, "{}", t("forms.validation_overflow"))
+                write!(
+                    f,
+                    "{}",
+                    t(runique_i18n::keys::forms::error::VALIDATION_OVERFLOW)
+                )
             }
             ValidationError::FieldValidation(errors) => {
                 write!(f, "Validation errors: {:?}", errors)

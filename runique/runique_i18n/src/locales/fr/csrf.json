@@ -1,7 +1,26 @@
 {
-  "missing": "Token CSRF manquant",
-  "invalid": "Token CSRF invalide",
-  "invalid_or_missing": "Token CSRF invalide ou manquant",
-  "forbidden": "Token CSRF invalide",
-  "session_write_error": "Erreur d'écriture de session"
+  "error": {
+    "missing": "Token CSRF manquant",
+    "invalid": "Token CSRF invalide",
+    "invalid_or_missing": "Token CSRF invalide ou manquant"
+  },
+  "log": {
+    "refused": "CSRF refusé",
+    "reason_header_invalid": "jeton invalide dans l'en-tête X-CSRF-Token",
+    "reason_not_a_form": "aucun jeton, et le corps n'est pas un formulaire",
+    "reason_cross_site": "formulaire envoyé depuis un autre site",
+    "reason_form_mismatch": "formulaire : le jeton envoyé n'est pas celui de la session (session expirée, ou page ouverte avant une connexion)",
+    "reason_form_missing": "formulaire : aucun jeton dans le corps ni dans X-CSRF-Token",
+    "reason_admin_login_missing": "connexion à l'admin : aucun jeton dans le formulaire",
+    "reason_admin_login_mismatch": "connexion à l'admin : le jeton envoyé n'est pas celui de la session",
+    "reason_admin_logout": "déconnexion de l'admin : aucun jeton valide",
+    "reason_upload": "envoi de fichier : un fichier est arrivé avant un champ csrf_token valide, rien n'a été écrit",
+    "token_dropped": "jeton CSRF abandonné (connexion ou déconnexion) : les pages ouvertes avant portent un jeton mort",
+    "token_new": "nouveau jeton CSRF pour cette session",
+    "read_token": "lecture du jeton CSRF dans la session",
+    "keep_token": "conservation du jeton CSRF dans la session",
+    "read_account": "lecture du compte connecté pour le jeton CSRF",
+    "write_token": "écriture d'un nouveau jeton CSRF dans la session",
+    "set_value": "set_value [jeton CSRF reçu : son contrôle est sur le canal middleware.csrf]"
+  }
 }

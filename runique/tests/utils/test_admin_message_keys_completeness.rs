@@ -4,26 +4,36 @@
 //! `project_tests_detection_bugs_muets`). Motivation : `t()`/`Lang::get()`
 //! retombe silencieusement sur l'anglais puis sur la clé brute si absente —
 //! aucun test de rendu (route crawl inclus) ne peut voir une clé manquante
-//! dans une langue tant qu'elle existe en anglais. Ce test lit le fichier `admin.json`
-//! de chacune des 9 langues directement (via `include_str!`, contournant le fallback de `Lang::get`)
+//! dans une langue tant qu'elle existe en anglais. Ce test lit les fichiers `admin/*.json`
+//! de chacune des 9 langues directement (sur le disque, contournant le fallback de `Lang::get`)
 //! et vérifie que chaque clé de `ADMIN_MESSAGE_KEYS` y résout réellement.
 
 use runique::utils::constante::ADMIN_MESSAGE_KEYS;
 use serde_json::Value;
 
-const LANGS: &[(&str, &str)] = &[
-    ("fr", include_str!("../../runique_i18n/src/locales/fr/admin.json")),
-    ("en", include_str!("../../runique_i18n/src/locales/en/admin.json")),
-    ("it", include_str!("../../runique_i18n/src/locales/it/admin.json")),
-    ("es", include_str!("../../runique_i18n/src/locales/es/admin.json")),
-    ("de", include_str!("../../runique_i18n/src/locales/de/admin.json")),
-    ("pt", include_str!("../../runique_i18n/src/locales/pt/admin.json")),
-    ("ja", include_str!("../../runique_i18n/src/locales/ja/admin.json")),
-    ("zh", include_str!("../../runique_i18n/src/locales/zh/admin.json")),
-    ("ru", include_str!("../../runique_i18n/src/locales/ru/admin.json")),
-];
+const LANGS: &[&str] = &["fr", "en", "it", "es", "de", "pt", "ja", "zh", "ru"];
 
-/// Résout une clé pointée ("admin.login.title") dans un JSON imbriqué, sans
+/// Les fichiers `admin/<écran>.json` d'une langue, remis sous leur clé
+/// (`admin.<écran>`) pour résoudre les clés telles que le code les écrit.
+fn admin_messages(code: &str) -> Value {
+    let folder = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("runique_i18n/src/locales")
+        .join(code)
+        .join("admin");
+    let mut screens = serde_json::Map::new();
+    for entry in std::fs::read_dir(&folder).unwrap_or_else(|e| panic!("{}: {e}", folder.display()))
+    {
+        let path = entry.unwrap().path();
+        let screen = path.file_stem().unwrap().to_string_lossy().into_owned();
+        let raw = std::fs::read_to_string(&path).unwrap();
+        let json: Value = serde_json::from_str(&raw)
+            .unwrap_or_else(|e| panic!("{} invalide : {e}", path.display()));
+        screens.insert(screen, json);
+    }
+    serde_json::json!({ "admin": screens })
+}
+
+/// Résout une clé pointée (runique_i18n::keys::admin::login::label::TITLE) dans un JSON imbriqué, sans
 /// aucun fallback — contrairement à `Lang::get()`.
 fn resolves_to_string(json: &Value, dotted_key: &str) -> bool {
     let mut current = json;
@@ -40,21 +50,11 @@ fn resolves_to_string(json: &Value, dotted_key: &str) -> bool {
 fn admin_message_keys_resolve_in_every_language() {
     let parsed: Vec<(&str, Value)> = LANGS
         .iter()
-        .map(|(code, raw)| {
-            (
-                *code,
-                // Le fichier du thème `admin` : remis sous sa clé, pour résoudre
-                // les clés telles que le code les écrit (`admin.…`).
-                serde_json::json!({
-                    "admin": serde_json::from_str::<Value>(raw)
-                        .unwrap_or_else(|e| panic!("{code}/admin.json invalide : {e}")),
-                }),
-            )
-        })
+        .map(|code| (*code, admin_messages(code)))
         .collect();
 
     let mut missing: Vec<String> = Vec::new();
-    for key in ADMIN_MESSAGE_KEYS {
+    for (_variable, key) in ADMIN_MESSAGE_KEYS {
         for (code, json) in &parsed {
             if !resolves_to_string(json, key) {
                 missing.push(format!("{code}: {key}"));
@@ -68,4 +68,19 @@ fn admin_message_keys_resolve_in_every_language() {
         missing.len(),
         missing.join("\n")
     );
+}
+
+// Deux messages sous la même variable de template : le second écraserait le
+// premier dans le contexte, sans erreur.
+#[test]
+fn every_admin_template_variable_is_unique() {
+    let mut seen = std::collections::HashSet::new();
+    for (variable, key) in ADMIN_MESSAGE_KEYS {
+        assert!(
+            seen.insert(*variable),
+            "{variable} est donnée deux fois ({key})"
+        );
+        assert!(key.starts_with("admin."), "{key}");
+        assert!(variable.starts_with("admin_"), "{variable}");
+    }
 }

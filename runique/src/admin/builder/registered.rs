@@ -477,7 +477,8 @@ where
         };
         if ids.is_empty() {
             return Ok(BulkOutcome::Refused(
-                crate::utils::trad::t("admin.bulk.no_selection").into_owned(),
+                crate::utils::trad::t(runique_i18n::keys::admin::bulk::error::NO_SELECTION)
+                    .into_owned(),
             ));
         }
         if ids.len() as u64 > self.list.default_page_size(site_page_size) {
@@ -500,7 +501,7 @@ where
         match bulk_as::<E>(user, &ids, &change, &req.engine.db).await {
             Ok(count) => {
                 if let Some(level) = level {
-                    crate::runique_log!(level, resource = E::KEY, action = %action, rows = count, "{}", crate::utils::trad::t("log.admin.bulk_done"));
+                    crate::runique_log!(level, resource = E::KEY, action = %action, rows = count, "{}", crate::utils::trad::t(runique_i18n::keys::admin::log::BULK_DONE));
                 }
                 Ok(match change {
                     BulkChange::Delete => BulkOutcome::Deleted(count),
@@ -509,7 +510,7 @@ where
             }
             Err(sea_orm::DbErr::Custom(message)) => {
                 if let Some(level) = level {
-                    crate::runique_log!(level, resource = E::KEY, action = %action, "{}", crate::utils::trad::t("log.admin.bulk_refused"));
+                    crate::runique_log!(level, resource = E::KEY, action = %action, "{}", crate::utils::trad::t(runique_i18n::keys::admin::log::BULK_REFUSED));
                 }
                 Ok(BulkOutcome::Refused(message))
             }
@@ -547,11 +548,14 @@ where
         match ValidationForm::try_form(form, req).await {
             Ok(valid) => match valid.delete(db).await {
                 Ok(_) => {
-                    log_crud(E::KEY, "log.admin.outcome_deleted");
+                    log_crud(E::KEY, runique_i18n::keys::admin::log::OUTCOME_DELETED);
                     Ok(FormOutcome::Saved(None))
                 }
                 Err(form) => {
-                    log_crud(E::KEY, "log.admin.outcome_delete_refused");
+                    log_crud(
+                        E::KEY,
+                        runique_i18n::keys::admin::log::OUTCOME_DELETE_REFUSED,
+                    );
                     Ok(FormOutcome::Show(shown(form.forms())))
                 }
             },
@@ -623,7 +627,7 @@ fn log_crud(resource: &'static str, outcome: &'static str) {
             resource,
             outcome = %crate::utils::trad::t(outcome),
             "{}",
-            crate::utils::trad::t("log.admin.write")
+            crate::utils::trad::t(runique_i18n::keys::admin::log::WRITE)
         );
     }
 }
@@ -644,7 +648,7 @@ where
     match ValidationForm::try_form(form, req).await {
         Ok(form) => match form.save(&req.engine.db).await {
             Ok(form) => {
-                log_crud(E::KEY, "log.admin.outcome_saved");
+                log_crud(E::KEY, runique_i18n::keys::admin::log::OUTCOME_SAVED);
                 Ok(FormOutcome::Saved(E::IS_ACCOUNT_TABLE.then(|| {
                     form.forms()
                         .fields
@@ -654,7 +658,7 @@ where
                 })))
             }
             Err(form) => {
-                log_crud(E::KEY, "log.admin.outcome_save_refused");
+                log_crud(E::KEY, runique_i18n::keys::admin::log::OUTCOME_SAVE_REFUSED);
                 Ok(FormOutcome::Show(shown(form.forms())))
             }
         },

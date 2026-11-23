@@ -1,0 +1,21 @@
+{
+  "label": {
+    "title": "Gruppe übertragen",
+    "from": "Aktuell verantwortlich",
+    "to": "Neu verantwortlich",
+    "losses": "Betroffene Rechte",
+    "no_loss": "Die Gruppe behält alle Rechte.",
+    "btn_confirm": "Übertragung bestätigen",
+    "btn_cancel": "Abbrechen",
+    "gained_right": "erhalten von",
+    "lost_right": "von den Mitgliedern verloren"
+  },
+  "error": {
+    "unsuitable": "Dieser Benutzer ist nicht geeignet.",
+    "ranked_members": "Diese Gruppe hat Mitglieder mit Rang: ein Admin kann nicht für sie verantwortlich sein.",
+    "changed": "Die Rechte haben sich inzwischen geändert: bitte erneut prüfen."
+  },
+  "info": {
+    "success": "Gruppe übertragen."
+  }
+}

@@ -1,7 +1,26 @@
 {
-  "missing": "Token CSRF mancante",
-  "invalid": "Token CSRF non valido",
-  "invalid_or_missing": "Token CSRF non valido o mancante",
-  "forbidden": "Token CSRF non valido",
-  "session_write_error": "Errore di scrittura della sessione"
+  "error": {
+    "missing": "Token CSRF mancante",
+    "invalid": "Token CSRF non valido",
+    "invalid_or_missing": "Token CSRF non valido o mancante"
+  },
+  "log": {
+    "refused": "CSRF rifiutato",
+    "reason_header_invalid": "token non valido nell'intestazione X-CSRF-Token",
+    "reason_not_a_form": "nessun token, e il corpo non è un modulo",
+    "reason_cross_site": "modulo inviato da un altro sito",
+    "reason_form_mismatch": "modulo: il token inviato non è quello della sessione (sessione scaduta, o pagina aperta prima di un accesso)",
+    "reason_form_missing": "modulo: nessun token nel corpo né in X-CSRF-Token",
+    "reason_admin_login_missing": "accesso all'admin: nessun token nel modulo",
+    "reason_admin_login_mismatch": "accesso all'admin: il token inviato non è quello della sessione",
+    "reason_admin_logout": "uscita dall'admin: nessun token valido",
+    "reason_upload": "caricamento: un file è arrivato prima di un campo csrf_token valido, non è stato scritto nulla",
+    "token_dropped": "token CSRF scartato (accesso o uscita): le pagine aperte prima hanno un token non più valido",
+    "token_new": "nuovo token CSRF per questa sessione",
+    "read_token": "lettura del token CSRF dalla sessione",
+    "keep_token": "conservazione del token CSRF nella sessione",
+    "read_account": "lettura dell'account connesso per il token CSRF",
+    "write_token": "scrittura di un nuovo token CSRF nella sessione",
+    "set_value": "set_value [token CSRF ricevuto: il suo controllo è sul canale middleware.csrf]"
+  }
 }

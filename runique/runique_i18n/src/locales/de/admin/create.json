@@ -1,0 +1,13 @@
+{
+  "label": {
+    "title": "Erstellen",
+    "breadcrumb": "Erstellen",
+    "card_info": "Informationen",
+    "no_fields": "Derzeit keine Felder verfügbar.",
+    "btn_cancel": "Abbrechen",
+    "btn_submit": "Erstellen"
+  },
+  "info": {
+    "success": "Eintrag erfolgreich erstellt!"
+  }
+}

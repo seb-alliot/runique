@@ -1,0 +1,24 @@
+{
+  "error": {
+    "source": "Source: {}",
+    "AppError": "Application error",
+    "build": "Build error: {}",
+    "internal": "Internal error",
+    "forbidden": "Access forbidden",
+    "not_found": "Resource not found",
+    "validation": "Validation error: {}",
+    "database": "Database error: {}",
+    "io": "IO error: {}",
+    "template": "Template error: {}",
+    "custom": "Custom error: {}",
+    "invalid_query": "Invalid query parameters: {}",
+    "path_not_found": "The requested path '{}' was not found",
+    "internal_occurred": "An internal error occurred"
+  },
+  "label": {
+    "bad_request": "Bad Request",
+    "not_found": "Page Not Found",
+    "internal": "Internal Server Error",
+    "template_in": "Template error in '{}'"
+  }
+}

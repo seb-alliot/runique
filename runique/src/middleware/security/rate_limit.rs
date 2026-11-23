@@ -227,7 +227,7 @@ pub async fn rate_limit_middleware(
         (
             StatusCode::TOO_MANY_REQUESTS,
             [(header::RETRY_AFTER, retry_after_secs.to_string())],
-            t("html.429_text").into_owned(),
+            t(runique_i18n::keys::http::error::CODE_429).into_owned(),
         )
             .into_response()
     }

@@ -1,0 +1,39 @@
+{
+  "label": {
+    "title": "=== スーパーユーザー作成 ===",
+    "algo_prompt": "[1/5] ハッシュアルゴリズム",
+    "algo_argon2": "Argon2（推奨）",
+    "algo_bcrypt": "Bcrypt",
+    "algo_scrypt": "Scrypt",
+    "algo_custom": "カスタムプロバイダー",
+    "provider_path": "プロバイダーパス",
+    "username_prompt": "[2/5] ユーザー名",
+    "email_prompt": "[3/5] メール",
+    "password_prompt": "[4/5] パスワード",
+    "confirm_prompt": "[5/5] パスワード確認",
+    "confirm_create": "確認して作成",
+    "change_algo": "アルゴリズムを変更",
+    "modify_password": "パスワードを変更"
+  },
+  "error": {
+    "invalid_path": "無効なパスです。",
+    "username_empty": "ユーザー名は空にできません。",
+    "username_taken": "このユーザー名は既に使用されています。",
+    "email_invalid": "無効なメールアドレスです。",
+    "email_taken": "このメールアドレスは既に使用されています。",
+    "password_too_short": "パスワードは12文字以上必要です。",
+    "password_weak": "パスワードには小文字、大文字、数字、記号をそれぞれ1文字以上含めてください。",
+    "password_mismatch": "パスワードが一致しません。もう一度お試しください。"
+  },
+  "info": {
+    "review_algo": "  アルゴリズム: {}",
+    "review_username": "  ユーザー名  : {}",
+    "review_email": "  メール      : {}",
+    "review_password": "  パスワード  : ••••••••",
+    "review_action": "アクション",
+    "success": "✓ スーパーユーザーが正常に作成されました！",
+    "id_line": "  ID          : {}",
+    "username_line": "  ユーザー名  : {}",
+    "email_line": "  メール      : {}"
+  }
+}

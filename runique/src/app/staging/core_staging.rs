@@ -112,8 +112,13 @@ impl CoreStaging {
         #[cfg(feature = "orm")]
         if self.db.is_none() && self.db_config.is_none() {
             report.add(
-                CheckError::new("Database", crate::utils::trad::t("build.check.db_required"))
-                    .with_suggestion(crate::utils::trad::t("build.check.db_required_hint")),
+                CheckError::new(
+                    "Database",
+                    crate::utils::trad::t(runique_i18n::keys::build::error::DB_REQUIRED),
+                )
+                .with_suggestion(crate::utils::trad::t(
+                    runique_i18n::keys::build::hint::DB_REQUIRED,
+                )),
             );
         }
 

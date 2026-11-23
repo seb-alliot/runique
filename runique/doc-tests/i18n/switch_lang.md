@@ -51,9 +51,9 @@ assert_eq!(Lang::from("xx"),    Lang::En);
 ```rust
 use runique::utils::trad::switch_lang::Lang;
 
-assert_eq!(Lang::En.get("forms.required"), "This field is required");
-assert_eq!(Lang::Fr.get("forms.required"), "Ce champ est obligatoire");
-assert_eq!(Lang::It.get("forms.required"), "Questo campo è obbligatorio");
+assert_eq!(Lang::En.get("forms.error.required"), "This field is required");
+assert_eq!(Lang::Fr.get("forms.error.required"), "Ce champ est obligatoire");
+assert_eq!(Lang::It.get("forms.error.required"), "Questo campo è obbligatorio");
 ```
 
 ## `Lang::get` — clé imbriquée
@@ -61,9 +61,9 @@ assert_eq!(Lang::It.get("forms.required"), "Questo campo è obbligatorio");
 ```rust
 use runique::utils::trad::switch_lang::Lang;
 
-assert_eq!(Lang::En.get("error.title.not_found"), "Page Not Found");
-assert_eq!(Lang::Fr.get("error.title.not_found"), "Page non trouvée");
-assert_eq!(Lang::It.get("error.title.not_found"), "Pagina non trovata");
+assert_eq!(Lang::En.get("app.label.not_found"), "Page Not Found");
+assert_eq!(Lang::Fr.get("app.label.not_found"), "Page non trouvée");
+assert_eq!(Lang::It.get("app.label.not_found"), "Pagina non trovata");
 ```
 
 ## `Lang::get` — CSRF
@@ -71,9 +71,9 @@ assert_eq!(Lang::It.get("error.title.not_found"), "Pagina non trovata");
 ```rust
 use runique::utils::trad::switch_lang::Lang;
 
-assert_eq!(Lang::En.get("csrf.missing"), "CSRF token missing");
-assert_eq!(Lang::Fr.get("csrf.missing"), "Token CSRF manquant");
-assert_eq!(Lang::It.get("csrf.missing"), "Token CSRF mancante");
+assert_eq!(Lang::En.get("csrf.error.missing"), "CSRF token missing");
+assert_eq!(Lang::Fr.get("csrf.error.missing"), "Token CSRF manquant");
+assert_eq!(Lang::It.get("csrf.error.missing"), "Token CSRF mancante");
 ```
 
 ## `Lang::get` — clé manquante (fallback sur la clé brute)
@@ -91,13 +91,13 @@ assert_eq!(Lang::It.get("inexistant.cle"), "inexistant.cle");
 ```rust
 use runique::utils::trad::switch_lang::Lang;
 
-assert_eq!(Lang::En.format("forms.too_short", &[3]), "Too short (min 3)");
-assert_eq!(Lang::Fr.format("forms.too_short", &[3]), "Trop court (min 3)");
-assert_eq!(Lang::It.format("forms.too_short", &[3]), "Troppo corto (min 3)");
+assert_eq!(Lang::En.format("forms.error.too_short", &[3]), "Too short (min 3)");
+assert_eq!(Lang::Fr.format("forms.error.too_short", &[3]), "Trop court (min 3)");
+assert_eq!(Lang::It.format("forms.error.too_short", &[3]), "Troppo corto (min 3)");
 
-assert_eq!(Lang::En.format("forms.too_long", &[100]), "Too long (max 100)");
-assert_eq!(Lang::Fr.format("forms.too_long", &[100]), "Trop long (max 100)");
-assert_eq!(Lang::It.format("forms.too_long", &[100]), "Troppo lungo (max 100)");
+assert_eq!(Lang::En.format("forms.error.too_long", &[100]), "Too long (max 100)");
+assert_eq!(Lang::Fr.format("forms.error.too_long", &[100]), "Trop long (max 100)");
+assert_eq!(Lang::It.format("forms.error.too_long", &[100]), "Troppo lungo (max 100)");
 ```
 
 ## `set_lang` / `current_lang` / `t`
@@ -107,5 +107,5 @@ use runique::utils::trad::switch_lang::{Lang, set_lang, current_lang, t};
 
 set_lang(Lang::It);
 assert_eq!(current_lang(), Lang::It);
-assert_eq!(t("forms.required"), "Questo campo è obbligatorio");
+assert_eq!(t("forms.error.required"), "Questo campo è obbligatorio");
 ```

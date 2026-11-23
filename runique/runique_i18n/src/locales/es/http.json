@@ -1,0 +1,22 @@
+{
+  "label": {
+    "400": "400",
+    "413": "413",
+    "404": "404",
+    "500": "500",
+    "429": "429",
+    "503": "503",
+    "back_home": "Volver al inicio",
+    "critical": "Error crítico"
+  },
+  "error": {
+    "400": "Solicitud incorrecta: los parámetros de la dirección no son válidos.",
+    "413": "Envío demasiado grande: reduzca su tamaño e inténtelo de nuevo.",
+    "404": "Página no encontrada",
+    "500": "Error interno del servidor",
+    "429": "Demasiadas solicitudes. Por favor espere un momento antes de intentarlo de nuevo.",
+    "503": "Servicio temporalmente no disponible por sobrecarga. Por favor inténtelo de nuevo en breve.",
+    "critical_text": "El sistema de gestión de errores ha encontrado un error.",
+    "critical_contact": "Esta situación no debería ocurrir nunca. Por favor contacta al administrador del sistema."
+  }
+}

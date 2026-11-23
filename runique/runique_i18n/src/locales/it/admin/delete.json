@@ -1,0 +1,19 @@
+{
+  "label": {
+    "title": "Elimina",
+    "breadcrumb": "Elimina",
+    "heading": "Conferma eliminazione",
+    "btn_cancel": "← Annulla",
+    "btn_confirm": "Sì, elimina definitivamente",
+    "warning_title": "Attenzione!",
+    "warning_desc": "Stai per eliminare la voce",
+    "warning_of": "dalla risorsa",
+    "warning_irreversible": "Questa azione è irreversibile."
+  },
+  "info": {
+    "success": "Voce eliminata con successo!"
+  },
+  "error": {
+    "not_found": "Risorsa non trovata."
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "log": {
+    "read_account": "セッションからログイン中のアカウントを読み取り",
+    "read_version": "セッションのバージョンを読み取り",
+    "read_flash": "セッションからフラッシュメッセージを読み取り",
+    "read_dashboard_template": "セッションから選択中のダッシュボードテンプレートを読み取り",
+    "decode_user_memory": "セッションの user_id をデコード（メモリから読み込み）",
+    "decode_user_db": "セッションの user_id をデコード（データベースから読み込み）"
+  }
+}

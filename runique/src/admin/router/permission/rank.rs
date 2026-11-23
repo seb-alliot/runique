@@ -42,7 +42,10 @@ pub(crate) fn rank_choices(actor: Rang) -> Vec<(&'static str, String)> {
     ]
     .into_iter()
     .filter(|(_, rang)| actor >= Rang::Dirigeant && *rang < actor)
-    .map(|(value, _)| (value, t(&format!("admin.rank.{value}")).into_owned()))
+    .map(|(value, rang)| {
+        let label = crate::admin::router::account::summary::rank_label(rang);
+        (value, t(label).into_owned())
+    })
     .collect()
 }
 
@@ -89,7 +92,11 @@ pub(crate) async fn rank_view(
         )),
     };
     match outcome {
-        Ok(n) => req.notices.success(tf("admin.rank.success", &[n])).await,
+        Ok(n) => {
+            req.notices
+                .success(tf(runique_i18n::keys::admin::rank::info::SUCCESS, &[n]))
+                .await
+        }
         Err(sea_orm::DbErr::Custom(message)) => req.notices.error(message).await,
         Err(e) => return failure(AdminError::Db(e), &req, &admin).await,
     }

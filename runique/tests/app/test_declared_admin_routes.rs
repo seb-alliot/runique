@@ -404,7 +404,7 @@ async fn accounts_without_admin_access_go_home_with_a_notice_and_stay_signed_in(
         let notices = text(&client, format!("{base}/flashes")).await;
         assert_eq!(
             notices,
-            runique::utils::trad::t("admin.access.action_not_allowed"),
+            runique::utils::trad::t(runique_i18n::keys::admin::access::error::ACTION_NOT_ALLOWED),
             "{why}"
         );
         assert_eq!(
@@ -3523,11 +3523,17 @@ async fn a_group_handed_to_an_admin_is_reduced_to_his_rights() {
     // Each line names its table, then the right: the table's, or a column's.
     use runique::utils::trad::t;
     assert!(
-        page.contains(&format!("— {}<", t("admin.rights.right_update"))),
+        page.contains(&format!(
+            "— {}<",
+            t(runique_i18n::keys::admin::rights::label::RIGHT_UPDATE)
+        )),
         "{page}"
     );
     assert!(
-        page.contains(&format!("— title : {}<", t("admin.rights.col_update"))),
+        page.contains(&format!(
+            "— title : {}<",
+            t(runique_i18n::keys::admin::rights::label::COL_UPDATE)
+        )),
         "{page}"
     );
     assert!(
@@ -3612,7 +3618,9 @@ async fn a_transfer_is_refused_outside_its_rules() {
     confirm_transfer(&su, &base, 2, ADMIN, Some(""), &[]).await;
     let flashes = text(&su, format!("{base}/flashes")).await;
     assert!(
-        flashes.contains(&*runique::utils::trad::t("admin.transfer.ranked_members")),
+        flashes.contains(&*runique::utils::trad::t(
+            runique_i18n::keys::admin::transfer::error::RANKED_MEMBERS
+        )),
         "{flashes}"
     );
     assert_eq!(text(&su, format!("{base}/probe/groups")).await, before);

@@ -1,0 +1,19 @@
+{
+  "label": {
+    "title": "Detalhe",
+    "breadcrumb": "Detalhe",
+    "entry_label": "Entrada",
+    "btn_list": "← Lista",
+    "btn_edit": "Editar",
+    "btn_delete": "Excluir",
+    "confirm_delete": "Excluir esta entrada?",
+    "btn_reset_password": "Redefinir senha",
+    "btn_reset_password_short": "Redefinir",
+    "btn_rights": "Direitos",
+    "btn_rank": "Alterar o nível",
+    "groups_title": "Grupos desta conta",
+    "btn_save_groups": "Atribuir",
+    "transfer_title": "Responsável do grupo",
+    "btn_transfer": "Transferir"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "label": {
+    "subtitle": "Les créations, modifications et suppressions faites dans l'admin.",
+    "whole_row": "Toute l'histoire de cette ligne",
+    "th_column": "Colonne",
+    "th_old": "Avant",
+    "th_new": "Après",
+    "no_changes": "Aucun changement lisible",
+    "all_resources": "Toutes les ressources",
+    "all_actions": "Toutes les actions",
+    "action_create": "Créé",
+    "action_update": "Modifié",
+    "action_delete": "Supprimé",
+    "btn_filter": "Filtrer",
+    "btn_reset": "Réinitialiser",
+    "th_date": "Date",
+    "th_account": "Compte",
+    "th_resource": "Ressource",
+    "th_object": "Objet",
+    "th_action": "Action",
+    "btn_entry": "Détail",
+    "empty": "Aucune action enregistrée",
+    "badge_create": "créé",
+    "badge_update": "modifié",
+    "badge_delete": "supprimé",
+    "badge_rights": "droits modifiés",
+    "badge_rank": "rang modifié",
+    "badge_reset_password": "lien de mot de passe envoyé",
+    "badge_groups": "Groupes",
+    "badge_transfer": "Transfert"
+  }
+}

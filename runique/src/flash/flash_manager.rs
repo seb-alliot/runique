@@ -36,7 +36,7 @@ impl Message {
             .await
             .trace(
                 crate::utils::runique_log::log_level!(session.store),
-                "log.session.read_flash",
+                runique_i18n::keys::session::log::READ_FLASH,
             )
             .flatten()
             .unwrap_or_default();
@@ -67,7 +67,7 @@ impl Message {
             .await
             .trace(
                 crate::utils::runique_log::log_level!(session.store),
-                "log.session.read_flash",
+                runique_i18n::keys::session::log::READ_FLASH,
             )
             .flatten()
             .unwrap_or_default();

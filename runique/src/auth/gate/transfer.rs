@@ -29,7 +29,7 @@ fn refused(reason: RefusalReason) -> DbErr {
 /// form or a race, and the cause goes to the logs.
 fn unsuitable(cause: &str) -> DbErr {
     tracing::info!(cause, "group transfer refused: unsuitable receiver");
-    DbErr::Custom(t("admin.transfer.unsuitable").into_owned())
+    DbErr::Custom(t(runique_i18n::keys::admin::transfer::error::UNSUITABLE).into_owned())
 }
 
 /// The accounts that may receive a group: active, of rank admin or above.
@@ -326,7 +326,7 @@ pub(crate) async fn plan<C: ConnectionTrait>(
     if ranked.is_some() {
         tracing::info!("group transfer refused: ranked members for an admin");
         return Err(DbErr::Custom(
-            t("admin.transfer.ranked_members").into_owned(),
+            t(runique_i18n::keys::admin::transfer::error::RANKED_MEMBERS).into_owned(),
         ));
     }
     let grid = groupes_droits::Entity::find()

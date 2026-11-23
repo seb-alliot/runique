@@ -1,0 +1,21 @@
+{
+  "label": {
+    "title": "移交用户组",
+    "from": "当前负责人",
+    "to": "新负责人",
+    "losses": "涉及的权限",
+    "no_loss": "用户组保留全部权限。",
+    "btn_confirm": "确认移交",
+    "btn_cancel": "取消",
+    "gained_right": "接收人",
+    "lost_right": "成员将失去"
+  },
+  "error": {
+    "unsuitable": "该用户不合适。",
+    "ranked_members": "该用户组有带级别的成员：管理员不能负责。",
+    "changed": "权限在此期间已更改：请重新核对。"
+  },
+  "info": {
+    "success": "用户组已移交。"
+  }
+}

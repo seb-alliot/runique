@@ -34,14 +34,18 @@ pub(crate) async fn create_view(
     if model.is_account_table() && !crate::utils::mailer_configured() {
         tracing::warn!("account not created: the mailer configuration is missing or incomplete");
         req.notices
-            .error(t("admin.reset_password.error_no_mailer"))
+            .error(t(
+                runique_i18n::keys::admin::reset_password::error::NO_MAILER,
+            ))
             .await;
         return Ok(Redirect::to(&list).into_response());
     }
     let form = match model.create(&req, &user).await {
         Ok(FormOutcome::Show(form)) => form,
         Ok(FormOutcome::Saved(account_email)) => {
-            req.notices.success(t("admin.create.success")).await;
+            req.notices
+                .success(t(runique_i18n::keys::admin::create::info::SUCCESS))
+                .await;
             // A created account: its owner gets the link to choose a password.
             if let Some(email) = account_email {
                 let account = BuiltinUserEntity::find_by_email(&req.engine.db, &email).await;
@@ -49,12 +53,15 @@ pub(crate) async fn create_view(
                     Some(account) => {
                         send_account_link(&req, &admin, account.id, AccountLink::Welcome).await
                     }
-                    None => Err(t("admin.reset_password.error_unavailable").into_owned()),
+                    None => Err(
+                        t(runique_i18n::keys::admin::reset_password::error::UNAVAILABLE)
+                            .into_owned(),
+                    ),
                 };
                 match sent {
                     Ok(_) => {
                         req.notices
-                            .success(t("admin.user_created.email_sent"))
+                            .success(t(runique_i18n::keys::admin::user_created::info::EMAIL_SENT))
                             .await
                     }
                     Err(message) => req.notices.warning(message).await,
@@ -85,9 +92,10 @@ pub(crate) async fn create_view(
             texts: FormTexts {
                 form_action: admin.paths.create_of(key),
                 cancel_url: list,
-                cancel_label: t("admin.create.btn_cancel").into_owned(),
-                submit_label: t("admin.create.btn_submit").into_owned(),
-                no_fields_label: t("admin.create.no_fields").into_owned(),
+                cancel_label: t(runique_i18n::keys::admin::create::label::BTN_CANCEL).into_owned(),
+                submit_label: t(runique_i18n::keys::admin::create::label::BTN_SUBMIT).into_owned(),
+                no_fields_label: t(runique_i18n::keys::admin::create::label::NO_FIELDS)
+                    .into_owned(),
             },
         },
     )?;

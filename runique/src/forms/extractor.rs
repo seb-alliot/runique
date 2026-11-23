@@ -70,7 +70,7 @@ where
         .ok_or_else(|| {
             BodyRefusal::Status(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                t("forms.config_not_found").to_string(),
+                t(runique_i18n::keys::forms::error::CONFIG_NOT_FOUND).to_string(),
             )
         })?;
 
@@ -81,7 +81,7 @@ where
         .ok_or_else(|| {
             BodyRefusal::Status(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                t("csrf.missing").to_string(),
+                t(runique_i18n::keys::csrf::error::MISSING).to_string(),
             )
         })?;
 

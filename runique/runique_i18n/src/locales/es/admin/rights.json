@@ -1,0 +1,25 @@
+{
+  "label": {
+    "title": "Derechos",
+    "subtitle": "Lo que este admin puede hacer, tabla por tabla y columna por columna. Una columna sin marcar no se lee ni se escribe.",
+    "go_to_table": "Ir a una tabla",
+    "toc": "Tablas",
+    "btn_cancel": "Cancelar",
+    "btn_save": "Guardar",
+    "th_column": "Columna",
+    "col_read": "Leer",
+    "col_create": "Crear",
+    "col_update": "Modificar",
+    "right_create": "Crear",
+    "right_read": "Listar / leer",
+    "right_read_own": "Leer las suyas",
+    "right_update": "Modificar",
+    "right_update_own": "Modificar las suyas",
+    "right_delete": "Eliminar",
+    "right_delete_own": "Eliminar las suyas",
+    "group_subtitle": "Lo que los miembros de este grupo pueden hacer, tabla por tabla y columna por columna. Una columna sin marcar no se lee ni se escribe.",
+    "group_label": "Grupo",
+    "btn_show": "Mostrar",
+    "group_sheet": "Ficha del grupo"
+  }
+}

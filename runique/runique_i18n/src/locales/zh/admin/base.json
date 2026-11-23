@@ -1,0 +1,12 @@
+{
+  "label": {
+    "title": "管理",
+    "breadcrumb": "管理",
+    "toggle": "收起菜单",
+    "logout_title": "登出",
+    "theme_toggle": "切换主题",
+    "back_to_site": "← 网站",
+    "dashboard": "仪表板",
+    "history": "历史记录"
+  }
+}

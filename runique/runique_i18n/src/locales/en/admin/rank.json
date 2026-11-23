@@ -1,0 +1,11 @@
+{
+  "label": {
+    "superuser": "Superuser",
+    "lambda": "Site account",
+    "admin": "Admin",
+    "dirigeant": "Director"
+  },
+  "info": {
+    "success": "Rank changed ({})"
+  }
+}

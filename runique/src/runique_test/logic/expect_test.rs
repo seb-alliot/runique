@@ -30,6 +30,8 @@ pub async fn expect_db_error<T>(
     mark_expected_from(start);
     match attempt {
         Err(refused) => Ok(refused),
-        Ok(_) => Err(DbErr::Custom(msg("runique_test.not_refused").into_owned())),
+        Ok(_) => Err(DbErr::Custom(
+            msg(runique_i18n::keys::runique_test::error::NOT_REFUSED).into_owned(),
+        )),
     }
 }

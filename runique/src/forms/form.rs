@@ -459,7 +459,7 @@ impl Forms {
                         crate::runique_log!(
                             level,
                             field = %field.name(),
-                            "{}", crate::utils::trad::t("log.csrf.set_value")
+                            "{}", crate::utils::trad::t(runique_i18n::keys::csrf::log::SET_VALUE)
                         );
                     } else {
                         crate::runique_log!(level, field = %field.name(), value = %value, "set_value");
@@ -603,7 +603,7 @@ impl Forms {
                     if let Some(level) = log_finalize {
                         crate::runique_log!(level, field = %name, kind = %field.field_type(), error = %e, "finalize error");
                     }
-                    return Err(tf("forms.finalize_error", &[name, &e]));
+                    return Err(tf(runique_i18n::keys::forms::error::FINALIZE, &[name, &e]));
                 }
             }
         }
@@ -702,7 +702,7 @@ impl Forms {
     pub fn render(&self) -> Result<String, String> {
         self.renderer
             .as_ref()
-            .ok_or_else(|| t("forms.tera_not_configured").into_owned())?
+            .ok_or_else(|| t(runique_i18n::keys::forms::error::TERA_NOT_CONFIGURED).into_owned())?
             .render(&self.fields, &self.errors)
     }
 }
@@ -808,27 +808,42 @@ impl Forms {
         #[cfg(any(feature = "sqlite", feature = "postgres", feature = "mysql"))]
         match classify_driver(db_err) {
             DbClass::Unique => self.push_unique(db_err),
-            DbClass::ForeignKey => self.errors.push(t("forms.db_foreign_key").into_owned()),
-            DbClass::NotNull => self.errors.push(t("forms.db_not_null").into_owned()),
-            DbClass::Check => self.errors.push(t("forms.db_check").into_owned()),
-            DbClass::Other => self.errors.push(t("forms.db_error").into_owned()),
+            DbClass::ForeignKey => self
+                .errors
+                .push(t(runique_i18n::keys::forms::error::DB_FOREIGN_KEY).into_owned()),
+            DbClass::NotNull => self
+                .errors
+                .push(t(runique_i18n::keys::forms::error::DB_NOT_NULL).into_owned()),
+            DbClass::Check => self
+                .errors
+                .push(t(runique_i18n::keys::forms::error::DB_CHECK).into_owned()),
+            DbClass::Other => self
+                .errors
+                .push(t(runique_i18n::keys::forms::error::DB).into_owned()),
         }
         #[cfg(not(any(feature = "sqlite", feature = "postgres", feature = "mysql")))]
-        self.errors.push(t("forms.db_error").into_owned());
+        self.errors
+            .push(t(runique_i18n::keys::forms::error::DB).into_owned());
     }
 
     #[cfg(any(feature = "sqlite", feature = "postgres", feature = "mysql"))]
     fn push_unique(&mut self, db_err: &sea_orm::DbErr) {
         let Some(field) = unique_field(db_err) else {
             self.errors
-                .push(t("forms.unique_constraint_violated").into_owned());
+                .push(t(runique_i18n::keys::forms::error::UNIQUE_CONSTRAINT_VIOLATED).into_owned());
             return;
         };
         if let Some(form_field) = self.fields.get_mut(&field) {
             let friendly_name = field.replace("_", " ");
-            form_field.set_error(tf("forms.unique_field_taken", &[&friendly_name]));
+            form_field.set_error(tf(
+                runique_i18n::keys::forms::error::UNIQUE_FIELD_TAKEN,
+                &[&friendly_name],
+            ));
         } else {
-            self.errors.push(tf("forms.unique_value_taken", &[&field]));
+            self.errors.push(tf(
+                runique_i18n::keys::forms::error::UNIQUE_VALUE_TAKEN,
+                &[&field],
+            ));
         }
     }
 
@@ -926,7 +941,10 @@ mod database_error_tests {
         let mut form = form_with("email");
         form.database_error(&DbErr::RecordNotFound("eihwaz_users".into()));
         assert!(form.fields["email"].error().is_none());
-        assert_eq!(form.errors, vec![t("forms.db_error").into_owned()]);
+        assert_eq!(
+            form.errors,
+            vec![t(runique_i18n::keys::forms::error::DB).into_owned()]
+        );
         assert!(!form.errors[0].contains("eihwaz"));
     }
 }
@@ -1023,7 +1041,13 @@ mod driver_error_tests {
             let mut form = form_with("email");
             form.database_error(&driver(ErrorKind::UniqueViolation, message, constraint));
             let shown = form.fields["email"].error().unwrap();
-            assert_eq!(shown, &tf("forms.unique_field_taken", &["email"]));
+            assert_eq!(
+                shown,
+                &tf(
+                    runique_i18n::keys::forms::error::UNIQUE_FIELD_TAKEN,
+                    &["email"]
+                )
+            );
             assert!(form.errors.is_empty(), "{message}");
             hides(shown, "a@b.c");
             hides(shown, "duplicate");
@@ -1055,7 +1079,7 @@ mod driver_error_tests {
         assert!(form.fields["email"].error().is_none());
         assert_eq!(
             form.errors,
-            vec![t("forms.unique_constraint_violated").into_owned()]
+            vec![t(runique_i18n::keys::forms::error::UNIQUE_CONSTRAINT_VIOLATED).into_owned()]
         );
         hides(&form.errors[0], "unique violation");
     }
@@ -1064,11 +1088,23 @@ mod driver_error_tests {
     fn each_other_class_is_one_sentence_and_hides_the_engine_text() {
         let secret = "table eihwaz_users column password value 'x'";
         let cases = [
-            (ErrorKind::ForeignKeyViolation, "forms.db_foreign_key"),
-            (ErrorKind::NotNullViolation, "forms.db_not_null"),
-            (ErrorKind::CheckViolation, "forms.db_check"),
-            (ErrorKind::ExclusionViolation, "forms.db_check"),
-            (ErrorKind::Other, "forms.db_error"),
+            (
+                ErrorKind::ForeignKeyViolation,
+                runique_i18n::keys::forms::error::DB_FOREIGN_KEY,
+            ),
+            (
+                ErrorKind::NotNullViolation,
+                runique_i18n::keys::forms::error::DB_NOT_NULL,
+            ),
+            (
+                ErrorKind::CheckViolation,
+                runique_i18n::keys::forms::error::DB_CHECK,
+            ),
+            (
+                ErrorKind::ExclusionViolation,
+                runique_i18n::keys::forms::error::DB_CHECK,
+            ),
+            (ErrorKind::Other, runique_i18n::keys::forms::error::DB),
         ];
         for (kind, key) in cases {
             let mut form = form_with("email");

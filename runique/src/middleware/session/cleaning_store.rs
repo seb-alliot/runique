@@ -506,7 +506,7 @@ impl SessionStore for CleaningMemoryStore {
                     .and_then(|value| {
                         serde_json::from_value::<crate::utils::pk::Pk>(value.clone()).trace(
                             crate::utils::runique_log::log_level!(session.store),
-                            "log.session.decode_user_memory",
+                            runique_i18n::keys::session::log::DECODE_USER_MEMORY,
                         )
                     })
             {
@@ -547,7 +547,7 @@ impl SessionStore for CleaningMemoryStore {
                             .and_then(|value| {
                                 serde_json::from_value::<crate::utils::pk::Pk>(value.clone()).trace(
                                     crate::utils::runique_log::log_level!(session.store),
-                                    "log.session.decode_user_db",
+                                    runique_i18n::keys::session::log::DECODE_USER_DB,
                                 )
                             })
                         && data_user_id == model.user_id

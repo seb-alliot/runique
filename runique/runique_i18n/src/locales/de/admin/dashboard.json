@@ -1,0 +1,23 @@
+{
+  "label": {
+    "subtitle": "Anwendungsübersicht",
+    "card_resources": "Ressourcen",
+    "th_resource": "Ressource",
+    "th_key": "Schlüssel",
+    "th_permissions": "Berechtigungen",
+    "th_actions": "Aktionen",
+    "btn_list": "Liste",
+    "btn_create": "Erstellen",
+    "see_list": "Liste anzeigen →",
+    "empty_title": "Keine Ressourcen registriert",
+    "empty_desc": "Registrieren Sie Ihre Modelle in src/admin.rs mit dem typisierten ModelAdmin-Builder, dann cargo run",
+    "kpi_resources": "Ressourcen",
+    "kpi_entries": "Einträge gesamt",
+    "kpi_largest": "Größte",
+    "th_count": "Einträge",
+    "toggle_template": "← Konfiguriertes Template",
+    "my_groups_title": "Meine Gruppen",
+    "my_groups_staff": "Staff",
+    "my_groups_none": "Diese Gruppe gibt kein Recht auf die Tabellen."
+  }
+}

@@ -17,7 +17,10 @@ fn backend(manager: &SchemaManager<'_>) -> DbBackend {
 }
 
 fn unsupported(backend: DbBackend) -> DbErr {
-    DbErr::Custom(tf("migrate.engine_unsupported", &[format!("{backend:?}")]))
+    DbErr::Custom(tf(
+        runique_i18n::keys::migrate::error::ENGINE_UNSUPPORTED,
+        &[format!("{backend:?}")],
+    ))
 }
 
 /// Called first by a migration that adds or removes a foreign key on an
@@ -117,7 +120,10 @@ mod tests {
     async fn sqlite_refuses_a_key_change_on_an_existing_table() {
         let db = sqlite().await;
         let manager = SchemaManager::new(&db);
-        let refusal = tf("migrate.sqlite_key_change", &["menus"]);
+        let refusal = tf(
+            runique_i18n::keys::migrate::error::SQLITE_KEY_CHANGE,
+            &["menus"],
+        );
         let key = ForeignKey::create()
             .name("menus_cat_id_categories_fkey")
             .from(Alias::new("menus"), Alias::new("cat_id"))

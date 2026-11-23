@@ -1,0 +1,19 @@
+{
+  "label": {
+    "title": "删除",
+    "breadcrumb": "删除",
+    "heading": "确认删除",
+    "btn_cancel": "← 取消",
+    "btn_confirm": "是，永久删除",
+    "warning_title": "警告！",
+    "warning_desc": "您即将删除条目",
+    "warning_of": "来自资源",
+    "warning_irreversible": "此操作不可撤销。"
+  },
+  "info": {
+    "success": "条目删除成功！"
+  },
+  "error": {
+    "not_found": "资源未找到。"
+  }
+}

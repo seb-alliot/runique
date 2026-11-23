@@ -1,0 +1,8 @@
+{
+  "name": "Português",
+  "aliases": [
+    "pt-pt",
+    "pt-br"
+  ],
+  "fallback": "en"
+}

@@ -185,7 +185,7 @@ impl<E: EntityTrait> Objects<E> {
             Ok(None) => Err(Box::new(AppError::new(ErrorContext::new(
                 ErrorType::NotFound,
                 StatusCode::NOT_FOUND,
-                &t("error.title.not_found"),
+                &t(runique_i18n::keys::app::label::NOT_FOUND),
                 error_msg,
             )))),
             Err(e) => Err(Box::new(AppError::new(ErrorContext::database(e)))),

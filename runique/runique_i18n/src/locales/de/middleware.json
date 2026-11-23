@@ -1,4 +1,6 @@
 {
-  "bad_request": "Ungültige Anfrage",
-  "slot_collision": "Runique-Middleware-Slot-Kollision: „{}\" und „{}\" beanspruchen beide Slot {}. Registrieren Sie weniger benutzerdefinierte Middlewares oder weisen Sie diesem einen expliziten Slot zu."
+  "error": {
+    "bad_request": "Ungültige Anfrage",
+    "slot_collision": "Runique-Middleware-Slot-Kollision: „{}\" und „{}\" beanspruchen beide Slot {}. Registrieren Sie weniger benutzerdefinierte Middlewares oder weisen Sie diesem einen expliziten Slot zu."
+  }
 }

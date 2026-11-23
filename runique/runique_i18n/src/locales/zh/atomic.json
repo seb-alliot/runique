@@ -1,18 +1,20 @@
 {
-  "reserved_name": "{}：此名称为 Runique 保留",
-  "not_a_file": "{}：不是文件路径",
-  "duplicate": "{}：此文件已在批次中",
-  "in_the_way": "{} 挡住了位置：此文件不属于当前运行",
-  "outside_journal": "{}：在日志文件夹之外",
-  "leaves_journal": "{}：此路径离开了日志文件夹",
-  "journal_forged": "{}：日志中列出了 Runique 不可能写入的路径",
-  "no_journal": "{}：没有可标记的日志",
-  "stray_backup": "{}：存在备份，但运行之前这里什么都没有",
-  "gone": "{}：文件已消失，且没有备份保存它",
-  "not_created": "{}：不是 Runique 正在创建的文件",
-  "changed": "{}：中断后已被修改，且其备份内容不同",
-  "stranger": "{}：此文件不属于 Runique，却位于 Runique 创建的文件夹中",
-  "moved_out": "{}：此文件已不在日志文件夹中",
-  "unfinished": "批次在规定的轮次后仍未完成",
-  "wrong_step": "此操作在文件的当前步骤无法执行"
+  "error": {
+    "reserved_name": "{}：此名称为 Runique 保留",
+    "not_a_file": "{}：不是文件路径",
+    "duplicate": "{}：此文件已在批次中",
+    "in_the_way": "{} 挡住了位置：此文件不属于当前运行",
+    "outside_journal": "{}：在日志文件夹之外",
+    "leaves_journal": "{}：此路径离开了日志文件夹",
+    "journal_forged": "{}：日志中列出了 Runique 不可能写入的路径",
+    "no_journal": "{}：没有可标记的日志",
+    "stray_backup": "{}：存在备份，但运行之前这里什么都没有",
+    "gone": "{}：文件已消失，且没有备份保存它",
+    "not_created": "{}：不是 Runique 正在创建的文件",
+    "changed": "{}：中断后已被修改，且其备份内容不同",
+    "stranger": "{}：此文件不属于 Runique，却位于 Runique 创建的文件夹中",
+    "moved_out": "{}：此文件已不在日志文件夹中",
+    "unfinished": "批次在规定的轮次后仍未完成",
+    "wrong_step": "此操作在文件的当前步骤无法执行"
+  }
 }

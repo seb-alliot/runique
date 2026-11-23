@@ -21,22 +21,31 @@ pub fn create_new_project(name: &str) -> Result<()> {
     // would otherwise be refused as an existing project.
     init_migrate::repair(project_dir)?;
     if project_dir.exists() {
-        anyhow::bail!("{}", tf("cli.folder_exists", &[&name]));
+        anyhow::bail!(
+            "{}",
+            tf(runique_i18n::keys::cli::error::FOLDER_EXISTS, &[&name])
+        );
     }
 
-    println!("🦀 {}", tf("cli.creating_project", &[&name]));
+    println!(
+        "🦀 {}",
+        tf(runique_i18n::keys::cli::info::CREATING_PROJECT, &[&name])
+    );
     let runique_version = runique::tooling::VERSION;
 
     // Every file of the project in one batch: all of them, or nothing at all
     write_project_files(project_dir, name, runique_version)?;
 
-    println!("  {}", tf("cli.project_created", &[&name]));
-    println!("\n  {}", t("cli.getting_started"));
-    println!("  {}", tf("cli.cd_hint", &[&name]));
+    println!(
+        "  {}",
+        tf(runique_i18n::keys::cli::info::PROJECT_CREATED, &[&name])
+    );
+    println!("\n  {}", t(runique_i18n::keys::cli::info::GETTING_STARTED));
+    println!("  {}", tf(runique_i18n::keys::cli::hint::CD, &[&name]));
     // Before `cargo run`: the framework's tables (accounts, sessions) must
     // exist, or the first request fails on a missing table.
-    println!("  {}", t("cli.migration_up_hint"));
-    println!("  {}", t("cli.cargo_run_hint"));
+    println!("  {}", t(runique_i18n::keys::cli::hint::MIGRATION_UP));
+    println!("  {}", t(runique_i18n::keys::cli::hint::CARGO_RUN));
 
     Ok(())
 }
@@ -139,23 +148,26 @@ const RESERVED_NAMES: &[&str] = &[
 
 fn validate_project_name(name: &str) -> Result<()> {
     if name.is_empty() {
-        anyhow::bail!("{}", t("cli.name_empty"));
+        anyhow::bail!("{}", t(runique_i18n::keys::cli::error::NAME_EMPTY));
     }
     if !name
         .chars()
         .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
     {
-        anyhow::bail!("{}", t("cli.name_invalid"));
+        anyhow::bail!("{}", t(runique_i18n::keys::cli::error::NAME_INVALID));
     }
     if name.starts_with('-') {
-        anyhow::bail!("{}", t("cli.name_dash"));
+        anyhow::bail!("{}", t(runique_i18n::keys::cli::error::NAME_DASH));
     }
     if name.starts_with(|c: char| c.is_ascii_digit()) {
-        anyhow::bail!("{}", t("cli.name_digit"));
+        anyhow::bail!("{}", t(runique_i18n::keys::cli::error::NAME_DIGIT));
     }
     let normalized = name.to_lowercase().replace('-', "_");
     if RESERVED_NAMES.contains(&normalized.as_str()) {
-        anyhow::bail!("{}", tf("cli.name_reserved", &[name]));
+        anyhow::bail!(
+            "{}",
+            tf(runique_i18n::keys::cli::error::NAME_RESERVED, &[name])
+        );
     }
     Ok(())
 }

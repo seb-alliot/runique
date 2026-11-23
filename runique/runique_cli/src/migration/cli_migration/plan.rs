@@ -117,7 +117,10 @@ pub(super) fn check_parallel(migrations_path: &str) -> Result<()> {
     }
     anyhow::bail!(
         "{}",
-        tf("makemigrations.parallel_changes", &[clashes.join("\n  ")])
+        tf(
+            runique_i18n::keys::makemigrations::error::PARALLEL_CHANGES,
+            &[clashes.join("\n  ")]
+        )
     )
 }
 
@@ -233,7 +236,13 @@ pub(super) fn effective_renames(
             continue;
         }
         if let Some((_, other)) = renames.iter().find(|(o, _)| o == old) {
-            anyhow::bail!("{}", tf("makemigrations.renamed_twice", &[old, other, new]));
+            anyhow::bail!(
+                "{}",
+                tf(
+                    runique_i18n::keys::makemigrations::error::RENAMED_TWICE,
+                    &[old, other, new]
+                )
+            );
         }
         renames.push((old.clone(), new.clone()));
     }

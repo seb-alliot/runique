@@ -1,0 +1,19 @@
+{
+  "label": {
+    "title": "詳細",
+    "breadcrumb": "詳細",
+    "entry_label": "エントリ",
+    "btn_list": "← 一覧",
+    "btn_edit": "編集",
+    "btn_delete": "削除",
+    "confirm_delete": "このエントリを削除しますか？",
+    "btn_reset_password": "パスワードをリセット",
+    "btn_reset_password_short": "リセット",
+    "btn_rights": "権限",
+    "btn_rank": "ランクを変更",
+    "groups_title": "このアカウントのグループ",
+    "btn_save_groups": "割り当て",
+    "transfer_title": "グループの責任者",
+    "btn_transfer": "移管"
+  }
+}

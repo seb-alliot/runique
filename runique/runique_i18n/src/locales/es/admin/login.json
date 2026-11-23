@@ -1,0 +1,15 @@
+{
+  "label": {
+    "title": "Inicio de sesión",
+    "subtitle": "Inicie sesión para acceder al panel de administración",
+    "label_username": "Nombre de usuario",
+    "label_password": "Contraseña",
+    "btn_submit": "Iniciar sesión",
+    "back_to_site": "← Volver al sitio"
+  },
+  "error": {
+    "session": "Error al abrir la sesión.",
+    "credentials": "Credenciales incorrectas o permisos insuficientes.",
+    "locked": "Demasiados intentos. Cuenta bloqueada temporalmente. Inténtelo de nuevo en {} segundos."
+  }
+}

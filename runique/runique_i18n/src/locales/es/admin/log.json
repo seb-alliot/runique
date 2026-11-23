@@ -1,0 +1,16 @@
+{
+  "write": "escritura en el admin",
+  "outcome_saved": "guardado",
+  "outcome_save_refused": "guardado rechazado",
+  "outcome_deleted": "eliminado",
+  "outcome_delete_refused": "eliminación rechazada",
+  "bulk_done": "acción en lote realizada",
+  "bulk_refused": "acción en lote rechazada",
+  "list": "lista del admin",
+  "boot_admin": "admin",
+  "boot_model": "modelo del admin",
+  "boot_route": "ruta declarada del admin",
+  "boot_no_guard": "el inicio de sesión del admin no tiene LoginGuard ni limitador de frecuencia: los intentos de contraseña son ilimitados (`with_login_guard`, `with_rate_limiter`)",
+  "boot_options_without_effect": "opciones de lista del admin aceptadas, pero aún no mostradas por ninguna página",
+  "boot_stylesheets_missing": "hojas de estilo de Runique no encontradas para el admin: compruebe STATIC_RUNIQUE_PATH"
+}

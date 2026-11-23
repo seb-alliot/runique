@@ -94,7 +94,7 @@ impl HostPolicy {
     }
 
     pub(crate) fn make_error_message(&self, _host: &str) -> String {
-        t("middleware.bad_request").into_owned()
+        t(runique_i18n::keys::middleware::error::BAD_REQUEST).into_owned()
     }
 }
 

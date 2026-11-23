@@ -9,6 +9,6 @@ pub(super) mod waiting;
 fn wrong_step<T>() -> std::io::Result<T> {
     Err(std::io::Error::new(
         std::io::ErrorKind::InvalidInput,
-        runique_i18n::t("atomic.wrong_step").into_owned(),
+        runique_i18n::t(runique_i18n::keys::atomic::error::WRONG_STEP).into_owned(),
     ))
 }

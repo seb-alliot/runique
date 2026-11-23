@@ -1,0 +1,32 @@
+{
+  "label": {
+    "subtitle": "Las creaciones, modificaciones y eliminaciones hechas en el admin.",
+    "whole_row": "Todo el historial de esta fila",
+    "th_column": "Columna",
+    "th_old": "Antes",
+    "th_new": "Después",
+    "no_changes": "Ningún cambio legible",
+    "all_resources": "Todos los recursos",
+    "all_actions": "Todas las acciones",
+    "action_create": "Creado",
+    "action_update": "Modificado",
+    "action_delete": "Eliminado",
+    "btn_filter": "Filtrar",
+    "btn_reset": "Restablecer",
+    "th_date": "Fecha",
+    "th_account": "Cuenta",
+    "th_resource": "Recurso",
+    "th_object": "Objeto",
+    "th_action": "Acción",
+    "btn_entry": "Detalle",
+    "empty": "Ninguna acción registrada",
+    "badge_create": "creado",
+    "badge_update": "modificado",
+    "badge_delete": "eliminado",
+    "badge_rights": "derechos modificados",
+    "badge_rank": "rango modificado",
+    "badge_reset_password": "enlace de contraseña enviado",
+    "badge_groups": "Grupos",
+    "badge_transfer": "Transferencia"
+  }
+}

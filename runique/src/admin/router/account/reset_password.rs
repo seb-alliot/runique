@@ -39,8 +39,8 @@ impl AccountLink {
 
     fn subject(self) -> &'static str {
         match self {
-            Self::Reset => "admin.reset_password.email_subject",
-            Self::Welcome => "admin.user_created.email_subject",
+            Self::Reset => runique_i18n::keys::admin::reset_password::label::EMAIL_SUBJECT,
+            Self::Welcome => runique_i18n::keys::admin::user_created::label::EMAIL_SUBJECT,
         }
     }
 
@@ -50,19 +50,49 @@ impl AccountLink {
         let minutes = [minutes.to_string()];
         match self {
             Self::Reset => vec![
-                ("t_title", text("admin.reset_password.email_title")),
-                ("t_greeting", text("admin.reset_password.email_greeting")),
-                ("t_body", tf("admin.reset_password.email_body", &minutes)),
-                ("t_btn", text("admin.reset_password.email_btn")),
-                ("t_ignore", text("admin.reset_password.email_ignore")),
+                (
+                    "t_title",
+                    text(runique_i18n::keys::admin::reset_password::label::EMAIL_TITLE),
+                ),
+                (
+                    "t_greeting",
+                    text(runique_i18n::keys::admin::reset_password::label::EMAIL_GREETING),
+                ),
+                (
+                    "t_body",
+                    tf(
+                        runique_i18n::keys::admin::reset_password::label::EMAIL_BODY,
+                        &minutes,
+                    ),
+                ),
+                (
+                    "t_btn",
+                    text(runique_i18n::keys::admin::reset_password::label::EMAIL_BTN),
+                ),
+                (
+                    "t_ignore",
+                    text(runique_i18n::keys::admin::reset_password::label::EMAIL_IGNORE),
+                ),
             ],
             Self::Welcome => vec![
-                ("t_greeting", text("admin.user_created.email_greeting")),
-                ("t_body", text("admin.user_created.email_body")),
-                ("t_btn", text("admin.user_created.email_btn")),
+                (
+                    "t_greeting",
+                    text(runique_i18n::keys::admin::user_created::label::EMAIL_GREETING),
+                ),
+                (
+                    "t_body",
+                    text(runique_i18n::keys::admin::user_created::label::EMAIL_BODY),
+                ),
+                (
+                    "t_btn",
+                    text(runique_i18n::keys::admin::user_created::label::EMAIL_BTN),
+                ),
                 (
                     "t_validity",
-                    tf("admin.user_created.email_validity", &minutes),
+                    tf(
+                        runique_i18n::keys::admin::user_created::label::EMAIL_VALIDITY,
+                        &minutes,
+                    ),
                 ),
             ],
         }
@@ -78,11 +108,12 @@ pub(crate) async fn send_account_link(
     account_id: Pk,
     kind: AccountLink,
 ) -> Result<String, String> {
-    let unavailable = || t("admin.reset_password.error_unavailable").into_owned();
+    let unavailable =
+        || t(runique_i18n::keys::admin::reset_password::error::UNAVAILABLE).into_owned();
     // Asked before anything else: no token is written for a link that can't leave.
     if !crate::utils::mailer_configured() {
         tracing::warn!("admin link not sent: the mailer configuration is missing or incomplete");
-        return Err(t("admin.reset_password.error_no_mailer").into_owned());
+        return Err(t(runique_i18n::keys::admin::reset_password::error::NO_MAILER).into_owned());
     }
     let Some(account) = BuiltinUserEntity::find_by_id(&req.engine.db, account_id).await else {
         return Err(unavailable());
@@ -120,7 +151,9 @@ pub(crate) async fn reset_password_view(
     let account = match model.reset_password(&req, &user, &id).await {
         Ok(Some(account)) => account,
         Ok(None) => {
-            req.notices.error(t("csrf.invalid_or_missing")).await;
+            req.notices
+                .error(t(runique_i18n::keys::csrf::error::INVALID_OR_MISSING))
+                .await;
             return Ok(Redirect::to(&detail).into_response());
         }
         Err(error) => return failure(error, &req, &admin).await,
@@ -147,7 +180,9 @@ pub(crate) async fn reset_password_view(
                 tracing::error!(error = %e, "admin reset trace failed");
             }
             req.notices
-                .success(t("admin.reset_password.success_email"))
+                .success(t(
+                    runique_i18n::keys::admin::reset_password::info::SUCCESS_EMAIL,
+                ))
                 .await;
         }
         Err(message) => req.notices.error(message).await,
