@@ -254,6 +254,21 @@
     color: var(--text-muted);
 }
 
+.doc-ai-note {
+    margin-top: 2rem;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.doc-ai-note a {
+    color: var(--text-muted);
+    text-decoration: underline;
+}
+
+.doc-ai-note a:hover {
+    color: var(--text-main);
+}
+
 .doc-crumb a {
     color: var(--text-muted);
 }

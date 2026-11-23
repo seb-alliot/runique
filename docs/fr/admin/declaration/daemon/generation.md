@@ -1,12 +1,10 @@
 # Validation au boot
 
-Plus de génération de fichiers admin. À la place, `AdminStaging::validate()` contrôle toute la config **avant** de monter les routes. Une erreur empêche le démarrage avec un message explicite.
+L'admin ne génère plus aucun fichier. Ce que tu déclares dans `src/admin.rs` est contrôlé par `AdminStaging::validate()` avant le montage des routes. S'il y a une erreur, l'application ne démarre pas et le message dit ce qui ne va pas.
 
 ## Quand ça tourne
 
-1. `.with_admin(admin::config)` construit le staging
-2. `build()` appelle `staging.validate()`
-3. Si `Ok`, les routes CRUD sont montées sous `prefix + path`
+`.with_admin(admin::config)` construit le staging, puis `build()` appelle `staging.validate()`. Si le résultat est `Ok`, les routes CRUD sont montées sous `prefix + path`.
 
 Tu peux rejouer les mêmes contrôles en test :
 
@@ -22,70 +20,72 @@ fn every_registered_model_passes_the_boot_checks() {
 
 ## Ce qui est contrôlé
 
-### Par modèle
+### Sur chaque modèle
 
-**Liste**
+Pour la liste :
 
-- `links` et `sortable` ne citent que des colonnes de `display` ;
-- `search_help` sans recherche (`search([])`) est refusé ;
-- une action groupée ne vise pas la clé primaire, sa valeur tient dans la colonne, et une même colonne n'a pas deux fois la même valeur.
+- `links` et `sortable` ne citent que des colonnes de `display`
+- `search_help` sans recherche (`search([])`) est refusé
+- une action groupée ne vise pas la clé primaire, sa valeur tient dans la colonne, et une même colonne n'a pas deux fois la même valeur
 
-**Formulaire**
+Pour le formulaire :
 
-- chaque champ de `fields` existe dans le formulaire du modèle (`ModelMeta::Form`) et peut porter le type de la colonne ;
-- les champs cités ailleurs (libellés, lecture seule…) sont dans `fields` ;
-- une colonne secrète obligatoire à la création (NOT NULL, sans défaut) est refusée : l'admin ne pourrait jamais la remplir, donnez-lui un défaut.
+- chaque champ de `fields` existe dans le formulaire du modèle (`ModelMeta::Form`) et peut porter le type de la colonne
+- les champs cités ailleurs (libellés, lecture seule…) sont dans `fields`
+- une colonne secrète obligatoire à la création (NOT NULL, sans défaut) est refusée : l'admin ne pourrait jamais la remplir, donne-lui un défaut
 
-**Les deux**
+Et pour les deux à la fois :
 
-- une colonne secrète (`password`…) n'apparaît dans aucune liste : affichage, recherche, filtre, tri, formulaire, action ;
-- une action groupée vise une colonne que le formulaire écrit en édition (dans `fields`, ni `readonly` ni `create_only`) ;
-- une action groupée ne vise jamais la colonne propriétaire : un transfert est une opération à part ;
-- sur les comptes : pas d'action groupée sur les rangs ni sur `is_active`, et pas de drapeau de rang dans `fields`.
+- une colonne secrète (`password`…) n'apparaît nulle part : ni affichage, ni recherche, ni filtre, ni tri, ni formulaire, ni action
+- une action groupée vise une colonne que le formulaire écrit en édition, donc présente dans `fields` et ni `readonly` ni `create_only`
+- une action groupée ne vise jamais la colonne propriétaire, un transfert est une opération à part
+- sur les comptes, pas d'action groupée sur les rangs ni sur `is_active`, et pas de drapeau de rang dans `fields`
 
-### Au niveau du site
+### Sur le site
 
-- un modèle enregistré deux fois est refusé ;
-- l'admin des comptes ne se remplace que par `accounts_users`, avec la table `eihwaz_users` (sa clé et ses protections) ;
-- les groupes sont servis par le framework : les enregistrer est refusé.
+Un modèle enregistré deux fois est refusé.
 
-### Au niveau du staging
+L'admin des comptes ne se remplace que par `accounts_users`, avec la table `eihwaz_users`, sa clé et ses protections.
 
-- le chemin de l'admin n'est pas vide ;
-- des routes admin déclarées dans `urlpatterns!` alors que l'admin est désactivé : refusé ;
-- chaque route admin déclarée vise un modèle enregistré, a un chemin absolu (un seul segment `{id}`, et rien d'autre, pour remplacer le détail), ne chevauche ni une route publique ni l'espace de l'admin, n'est déclarée qu'une fois (chemin et nom), et une vue n'est remplacée qu'une fois.
+Les groupes sont servis par le framework. Les enregistrer toi-même est refusé.
+
+### Sur le staging
+
+Le chemin de l'admin ne peut pas être vide, et tu ne peux pas déclarer de routes admin dans `urlpatterns!` si l'admin est désactivé.
+
+Chaque route admin déclarée doit :
+
+- viser un modèle enregistré
+- avoir un chemin absolu, avec un seul segment `{id}` et rien d'autre si elle remplace le détail
+- ne chevaucher ni une route publique ni l'espace de l'admin
+- n'être déclarée qu'une fois, chemin comme nom
+
+Une vue ne se remplace qu'une fois.
 
 ### Ailleurs au démarrage
 
-- les surcharges de templates (voir [Surcharge](/docs/fr/admin/template-surcharge)) ;
-- en production, `with_public_url` est obligatoire quand l'admin est actif ;
-- les droits qui visent un modèle non enregistré (ceux des groupes comme les grilles des admins) sont **supprimés définitivement** de la base (seulement si le projet a enregistré au moins un de ses modèles).
+Les surcharges de templates sont vérifiées aussi, voir [Surcharge](/docs/fr/admin/template-surcharge).
+
+En production, `with_public_url` est obligatoire quand l'admin est actif.
+
+Attention aux droits : ceux qui visent un modèle non enregistré sont supprimés définitivement de la base, que ce soit les droits des groupes ou les grilles des admins. Ça ne se produit que si le projet a enregistré au moins un de ses modèles.
 
 ## Défauts appliqués
 
-- sans `display` : toutes les colonnes sauf les secrètes ; sur les comptes, seulement `username`, `email`, `is_active` ;
-- sans `.form()` : tous les champs du formulaire du modèle (`ModelMeta::Form`).
+Sans `display`, la liste montre toutes les colonnes sauf les secrètes. Sur les comptes, elle se limite à `username`, `email` et `is_active`.
+
+Sans `.form()`, le formulaire prend tous les champs du formulaire du modèle (`ModelMeta::Form`).
 
 À l'exécution, chaque liste de colonnes est ensuite réduite à ce que les droits de l'utilisateur laissent voir ou écrire.
 
 ## Fichiers concernés
 
-| Fichier | Rôle |
-| --- | --- |
-| `src/admin.rs` | Ta config (à maintenir) |
-| `runique/src/admin/builder/` | Builder + validation |
-| `runique/src/app/staging/admin_staging.rs` | Staging + `validate()` |
+Ta config est dans `src/admin.rs`, c'est le seul fichier à maintenir. Côté framework, le builder et sa validation sont dans `runique/src/admin/builder/`, le staging et `validate()` dans `runique/src/app/staging/admin_staging.rs`.
 
 Rien n'est écrit sous `src/admins/` : ce dossier n'existe plus.
 
-## Voir aussi
+## Pages liées
 
-| Section | Description |
-| --- | --- |
-| [Builder ModelAdmin](/docs/fr/admin/declaration-macro) | API qui alimente la validation |
-| [Mise en place](/docs/fr/admin/setup) | Câblage |
-| [Permissions](/docs/fr/admin/permission) | Gate runtime |
+L'API qui alimente ces contrôles est décrite dans [Builder ModelAdmin](/docs/fr/admin/declaration-macro), le câblage dans [Mise en place](/docs/fr/admin/setup) et les droits à l'exécution dans [Permissions](/docs/fr/admin/permission).
 
-## Revenir au sommaire
-
-- [Sommaire Admin](/docs/fr/admin)
+Retour au [sommaire Admin](/docs/fr/admin).

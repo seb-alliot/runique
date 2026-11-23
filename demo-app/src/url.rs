@@ -1,6 +1,6 @@
 use crate::views::{
     about, activate_account, admin_declaration, admin_hub, admin_setup, admin_surcharge,
-    blog_detail, blog_list, blog_save, comparatif, comparatif_detail, configuration_demo,
+    ai_usage_en, ai_usage_fr, blog_detail, blog_list, blog_save, comparatif, comparatif_detail, configuration_demo,
     contribution_list, contribution_submit, database_demo, deconnexion, docs_index_en,
     docs_index_fr, docs_page, docs_section, erreur_502, force_not_found, force_server_error,
     force_to_many_requests, formulaires_champs, formulaires_helpers, formulaires_hub,
@@ -105,6 +105,8 @@ pub fn routes() -> Routes {
         // Readme
         "/readme/fr"                     => view! { readme_fr },              name = "readme_fr",
         "/readme/en"                     => view! { readme_en },              name = "readme_en",
+        "/ai-usage/fr"                   => view! { ai_usage_fr },            name = "ai_usage_fr",
+        "/ai-usage/en"                   => view! { ai_usage_en },            name = "ai_usage_en",
 
         // Rust Courses
         "/cours"                         => view! { view_cours_root },        name = "cours_root",

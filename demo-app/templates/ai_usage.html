@@ -1,0 +1,29 @@
+{% extends "index.html" %}
+
+{% block meta %}
+<meta name="description" content="{% if lang == 'fr' %}Pourquoi la documentation, les commentaires et les tests de Runique sont écrits avec une IA, et ce qui est écrit à la main.{% else %}Why the documentation, comments and tests of Runique are written with an AI, and what is written by hand.{% endif %}">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Runique">
+<meta property="og:title" content="{{ title }} — Runique">
+<meta property="og:url" content="https://runique.io/ai-usage/{{ lang }}">
+<meta property="og:image" content="{{ og_image }}">
+<link rel="canonical" href="https://runique.io/ai-usage/{{ lang }}">
+<link rel="alternate" hreflang="fr" href="https://runique.io/ai-usage/fr">
+<link rel="alternate" hreflang="en" href="https://runique.io/ai-usage/en">
+<link rel="alternate" hreflang="x-default" href="https://runique.io/ai-usage/en">
+{% endblock %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href="{% static "css/doc.css" %}">
+{% endblock %}
+
+{% block content %}
+    <div class="readme-bar"><a href="/docs/{{ lang }}" class="btn btn-sm btn-secondary">Documentation</a>
+    <span class="readme-bar-title">{{ title }}</span>
+</div>
+<div class="readme-container doc-block-content">
+    {{ content | markdown }}
+</div>
+{% endblock %}

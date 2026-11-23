@@ -401,6 +401,34 @@ pub async fn readme_en(mut request: Request) -> AppResult<Response> {
     request.render("readme.html")
 }
 
+pub async fn ai_usage_fr(mut request: Request) -> AppResult<Response> {
+    inject_globals(&mut request).await;
+    let content = find_readme(&[
+        "AI_USAGE.fr.md",
+        "../AI_USAGE.fr.md",
+        "/app/AI_USAGE.fr.md",
+    ]);
+    context_update!(request => {
+        "title"   => "Pourquoi l'usage de l'IA ?",
+        "content" => &content,
+        "lang"    => "fr",
+        "ui_lang" => "fr",
+    });
+    request.render("ai_usage.html")
+}
+
+pub async fn ai_usage_en(mut request: Request) -> AppResult<Response> {
+    inject_globals(&mut request).await;
+    let content = find_readme(&["AI_USAGE.md", "../AI_USAGE.md", "/app/AI_USAGE.md"]);
+    context_update!(request => {
+        "title"   => "Why the use of AI?",
+        "content" => &content,
+        "lang"    => "en",
+        "ui_lang" => "en",
+    });
+    request.render("ai_usage.html")
+}
+
 // ─── Middleware ───────────────────────────────────────────────────────────────
 
 pub async fn middleware_hub(mut request: Request) -> AppResult<Response> {

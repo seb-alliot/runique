@@ -110,6 +110,9 @@ async fn path_in_language(path: &str, lang: &str, request: &Request) -> String {
     if path == "/readme/fr" || path == "/readme/en" {
         return format!("/readme/{lang}");
     }
+    if path == "/ai-usage/fr" || path == "/ai-usage/en" {
+        return format!("/ai-usage/{lang}");
+    }
     if let Some(course) = course_path_in_language(path, lang) {
         return course;
     }
