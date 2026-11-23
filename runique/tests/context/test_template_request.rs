@@ -322,3 +322,86 @@ async fn public_url_never_uses_the_host() {
         assert_eq!(body_str(resp).await, "none", "dev: {dev}");
     }
 }
+
+// ── get_or_404 : l'erreur du handler, rendue avec `?` ───────────────────────
+
+use runique::auth::user::Entity as UserEntity;
+use runique::errors::ErrorContext;
+use runique::sea_orm::ConnectionTrait;
+use runique::utils::config::Pk;
+
+/// By the primary key. `?table` creates the accounts table first: without
+/// it the lookup itself fails.
+async fn handler_get_or_404(tpl: TplRequest) -> AppResult<Response> {
+    if tpl.query_params.contains_key("table") {
+        let create = runique::migrations_table::create_eihwaz_users_table();
+        tpl.engine.db.execute(&create).await.expect("create table");
+    }
+    let user = UserEntity::objects
+        .get_or_404(&tpl.engine.db, Pk::default(), &tpl, "Compte introuvable")
+        .await?;
+    Ok(user.username.into_response())
+}
+
+/// The same through a query.
+async fn handler_query_get_or_404(tpl: TplRequest) -> AppResult<Response> {
+    if tpl.query_params.contains_key("table") {
+        let create = runique::migrations_table::create_eihwaz_users_table();
+        tpl.engine.db.execute(&create).await.expect("create table");
+    }
+    let user = UserEntity::objects
+        .all()
+        .get_or_404(&tpl.engine.db, &tpl, "Compte introuvable")
+        .await?;
+    Ok(user.username.into_response())
+}
+
+async fn get_or_404_app() -> Router {
+    let engine = build_engine().await;
+    let session_layer = SessionManagerLayer::new(MemoryStore::default());
+    Router::new()
+        .route("/by_key", get(handler_get_or_404))
+        .route("/by_query", get(handler_query_get_or_404))
+        .layer(middleware::from_fn_with_state(
+            engine.clone(),
+            csrf_middleware,
+        ))
+        .layer(middleware::from_fn_with_state(
+            engine.clone(),
+            engine_inject,
+        ))
+        .layer(session_layer)
+}
+
+// No row: a 404 carrying the context the error middleware renders, with the
+// message the handler gave.
+#[tokio::test]
+async fn get_or_404_without_the_row_is_a_404_with_its_message() {
+    for path in ["/by_key?table=1", "/by_query?table=1"] {
+        let resp = request::get(get_or_404_app().await, path).await;
+
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND, "{path}");
+        let context = resp
+            .extensions()
+            .get::<Arc<ErrorContext>>()
+            .unwrap_or_else(|| panic!("{path}: no context"));
+        assert_eq!(context.status_code, 404, "{path}");
+        assert_eq!(context.message, "Compte introuvable", "{path}");
+    }
+}
+
+// The lookup fails (no table): a 500 with its own context, not a 404.
+#[tokio::test]
+async fn get_or_404_on_a_failed_lookup_is_a_500() {
+    for path in ["/by_key", "/by_query"] {
+        let resp = request::get(get_or_404_app().await, path).await;
+
+        assert_eq!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR, "{path}");
+        let context = resp
+            .extensions()
+            .get::<Arc<ErrorContext>>()
+            .unwrap_or_else(|| panic!("{path}: no context"));
+        assert_eq!(context.status_code, 500, "{path}");
+        assert_ne!(context.message, "Compte introuvable", "{path}");
+    }
+}

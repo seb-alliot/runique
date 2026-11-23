@@ -218,7 +218,9 @@ where
 
         // Run Prisme pipeline (aegis → CSRF check)
         let req = HttpRequest::from_parts(parts, body);
-        let prisme = prisme_pipeline(req, state).await?;
+        let prisme = prisme_pipeline(req, state)
+            .await
+            .map_err(IntoResponse::into_response)?;
 
         Ok(Self {
             engine,

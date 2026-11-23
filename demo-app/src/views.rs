@@ -403,10 +403,10 @@ pub async fn readme_en(mut request: Request) -> AppResult<Response> {
 
 pub async fn ai_usage_fr(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    let content = find_readme(&["AI_USAGE.fr.md", "../AI_USAGE.fr.md", "/app/AI_USAGE.fr.md"]);
+    let content = include_str!("../../AI_USAGE.fr.md");
     context_update!(request => {
         "title"   => "Pourquoi l'usage de l'IA ?",
-        "content" => &content,
+        "content" => content,
         "lang"    => "fr",
         "ui_lang" => "fr",
     });
@@ -415,10 +415,10 @@ pub async fn ai_usage_fr(mut request: Request) -> AppResult<Response> {
 
 pub async fn ai_usage_en(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    let content = find_readme(&["AI_USAGE.md", "../AI_USAGE.md", "/app/AI_USAGE.md"]);
+    let content = include_str!("../../AI_USAGE.md");
     context_update!(request => {
         "title"   => "Why the use of AI?",
-        "content" => &content,
+        "content" => content,
         "lang"    => "en",
         "ui_lang" => "en",
     });

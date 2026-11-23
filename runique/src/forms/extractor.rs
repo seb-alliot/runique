@@ -1,5 +1,5 @@
 //! Prisme: non-generic CSRF + body extractor integrated into the Request pipeline.
-use crate::forms::prisme::aegis;
+use crate::forms::prisme::{BodyRefusal, aegis};
 use crate::utils::aliases::{ARuniqueConfig, StrMap, StrVecMap};
 use crate::utils::parse_html::StagingDir;
 use crate::utils::trad::t;
@@ -10,7 +10,6 @@ use crate::utils::{
 use axum::{
     body::Body,
     http::{Method, Request, StatusCode},
-    response::{IntoResponse, Response},
 };
 use subtle::ConstantTimeEq;
 
@@ -60,7 +59,7 @@ impl Prisme {
 
 /// Non-generic pipeline: Aegis → CSRF check.
 /// Runs on every request — aegis handles GET (query params) and POST (body).
-pub async fn prisme_pipeline<S>(req: Request<Body>, state: &S) -> Result<Prisme, Response>
+pub async fn prisme_pipeline<S>(req: Request<Body>, state: &S) -> Result<Prisme, BodyRefusal>
 where
     S: Send + Sync,
 {
@@ -69,11 +68,10 @@ where
         .get::<ARuniqueConfig>()
         .cloned()
         .ok_or_else(|| {
-            (
+            BodyRefusal::Status(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 t("forms.config_not_found").to_string(),
             )
-                .into_response()
         })?;
 
     let csrf_session = req
@@ -81,11 +79,10 @@ where
         .get::<crate::utils::csrf::CsrfToken>()
         .cloned()
         .ok_or_else(|| {
-            (
+            BodyRefusal::Status(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 t("csrf.missing").to_string(),
             )
-                .into_response()
         })?;
 
     let method = req.method().clone();

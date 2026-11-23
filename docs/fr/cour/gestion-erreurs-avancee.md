@@ -542,7 +542,7 @@ Constructeurs disponibles sur `ErrorContext` : `not_found(chemin)`, `bad_request
 
 ### 9.4 — Raccourci : `get_or_404`
 
-Pour l'accès le plus courant (une ligne par sa clé, 404 si elle n'existe pas), le gestionnaire `objects` d'une entité fournit `get_or_404(db, id, &request, message)`, qui renvoie la ligne ou directement la réponse d'erreur (404 si absente, 500 si la requête échoue).
+Pour l'accès le plus courant (une ligne par sa clé, 404 si elle n'existe pas), le gestionnaire `objects` d'une entité fournit `get_or_404(db, id, &request, message)`, qui renvoie la ligne ou l'erreur du handler, à propager avec `?` (404 si absente, 500 si la requête échoue).
 
 ### 9.5 — Brancher sa propre erreur sur `?`
 

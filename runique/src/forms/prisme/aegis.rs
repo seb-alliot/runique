@@ -1,5 +1,5 @@
 //! Aegis: extraction and normalization of the request body (multipart, urlencoded, JSON, GET).
-use crate::middleware::errors::error::too_large;
+use super::BodyRefusal;
 use crate::utils::{
     aliases::{ARuniqueConfig, StrMap, StrVecMap},
     parse_html::parse_multipart_guarded,
@@ -9,7 +9,6 @@ use axum::{
     body::Body,
     extract::{FromRequest, Multipart},
     http::{Method, Request, StatusCode},
-    response::{IntoResponse, Response},
 };
 use form_urlencoded;
 use http_body_util::BodyExt;
@@ -27,7 +26,7 @@ pub async fn aegis<S>(
     state: &S,
     config: ARuniqueConfig,
     content_type: &str,
-) -> Result<StrVecMap, Response>
+) -> Result<StrVecMap, BodyRefusal>
 where
     S: Send + Sync,
 {
@@ -44,7 +43,7 @@ pub(crate) async fn aegis_guarded<S>(
     config: ARuniqueConfig,
     content_type: &str,
     upload_gate: Option<&str>,
-) -> Result<(StrVecMap, Option<crate::utils::parse_html::Lease>), Response>
+) -> Result<(StrVecMap, Option<crate::utils::parse_html::Lease>), BodyRefusal>
 where
     S: Send + Sync,
 {
@@ -78,17 +77,18 @@ where
         .and_then(|v| v.parse::<u64>().ok())
         && len > body_limit
     {
-        return Err(too_large(t("forms.body_too_large").into_owned()));
+        return Err(BodyRefusal::TooLarge(
+            t("forms.body_too_large").into_owned(),
+        ));
     }
 
     let mut staging = None;
     if content_type.starts_with("multipart/form-data") {
         let multipart = Multipart::from_request(req, state).await.map_err(|_e| {
-            (
+            BodyRefusal::Status(
                 StatusCode::BAD_REQUEST,
                 t("forms.multipart_error").into_owned(),
             )
-                .into_response()
         })?;
 
         let upload_dir = std::path::Path::new(&config.static_files.media_root);
@@ -112,9 +112,12 @@ where
                 if e.downcast_ref::<http_body_util::LengthLimitError>()
                     .is_some()
                 {
-                    too_large(t("forms.body_too_large").into_owned())
+                    BodyRefusal::TooLarge(t("forms.body_too_large").into_owned())
                 } else {
-                    (StatusCode::BAD_REQUEST, t("forms.body_error").into_owned()).into_response()
+                    BodyRefusal::Status(
+                        StatusCode::BAD_REQUEST,
+                        t("forms.body_error").into_owned(),
+                    )
                 }
             })?
             .to_bytes();

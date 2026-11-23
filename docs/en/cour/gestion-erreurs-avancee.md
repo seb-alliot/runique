@@ -542,7 +542,7 @@ Constructors available on `ErrorContext`: `not_found(path)`, `bad_request(messag
 
 ### 9.4 — Shortcut: `get_or_404`
 
-For the most common access (one row by its key, 404 if it does not exist), the `objects` manager of an entity provides `get_or_404(db, id, &request, message)`, which returns the row or directly the error response (404 if absent, 500 if the query fails).
+For the most common access (one row by its key, 404 if it does not exist), the `objects` manager of an entity provides `get_or_404(db, id, &request, message)`, which returns the row or the handler's error, to propagate with `?` (404 if absent, 500 if the query fails).
 
 ### 9.5 — Plugging your own error into `?`
 

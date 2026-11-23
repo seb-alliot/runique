@@ -67,7 +67,7 @@ let user = users::Entity::find_by_id(user_id)
 | `one(db)` | Retourne le résultat si exactement 1 ligne, `Err` si plusieurs |
 | `count(db)` | Compte les lignes correspondantes |
 | `get(db, id)` / `get_optional(db, id)` | Accès direct par clé primaire |
-| `get_or_404(db, ctx, msg)` | Retourne 404/500 avec rendu Tera si manquant |
+| `get_or_404(db, ctx, msg)` | La ligne, ou l'erreur du handler (`AppResult`, à propager avec `?`) : page 404 si elle manque, 500 si la requête échoue |
 
 ### `order_by_random()`
 

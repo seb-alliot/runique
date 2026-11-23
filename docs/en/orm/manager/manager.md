@@ -67,7 +67,7 @@ let user = users::Entity::find_by_id(user_id)
 | `one(db)` | Return result if exactly 1 row matches, `Err` if multiple |
 | `count(db)` | Count matching rows |
 | `get(db, id)` / `get_optional(db, id)` | Direct primary key access |
-| `get_or_404(db, ctx, msg)` | Returns 404/500 with Tera rendering if missing |
+| `get_or_404(db, ctx, msg)` | The row, or the handler's error (`AppResult`, to propagate with `?`): 404 page if missing, 500 if the query fails |
 
 ### `order_by_random()`
 

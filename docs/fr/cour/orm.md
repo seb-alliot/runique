@@ -208,7 +208,7 @@ impl<E: EntityTrait> Copy for Objects<E> {}
 | `get(db, id)` | oui | `Result<Model, DbErr>` (`RecordNotFound` si absent) |
 | `get_optional(db, id)` | oui | `Result<Option<Model>, DbErr>` |
 | `count(db)` | oui | `Result<u64, DbErr>` |
-| `get_or_404(db, id, &request, message)` | oui | `Result<Model, Response>` (page 404 ou 500) |
+| `get_or_404(db, id, &request, message)` | oui | `AppResult<Model>` (page 404 ou 500, avec `?`) |
 
 ## 5. La macro `impl_objects!`
 
@@ -393,13 +393,10 @@ use runique::prelude::*;
 pub async fn detail(request: Request) -> AppResult<Response> {
     let id = request.get_path_as::<Pk>("id").unwrap_or_default();
 
-    let article = match article::Entity::objects
+    // `?` : page 404 si la ligne n'existe pas, 500 si la requête a échoué
+    let article = article::Entity::objects
         .get_or_404(request.db(), id, &request, "Article introuvable")
-        .await
-    {
-        Ok(a) => a,
-        Err(reponse) => return Ok(reponse),       // page 404 (ou 500 si la requête a échoué)
-    };
+        .await?;
     // ...
 }
 ```

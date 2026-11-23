@@ -208,7 +208,7 @@ To note:
 | `get(db, id)` | yes | `Result<Model, DbErr>` (`RecordNotFound` if missing) |
 | `get_optional(db, id)` | yes | `Result<Option<Model>, DbErr>` |
 | `count(db)` | yes | `Result<u64, DbErr>` |
-| `get_or_404(db, id, &request, message)` | yes | `Result<Model, Response>` (404 or 500 page) |
+| `get_or_404(db, id, &request, message)` | yes | `AppResult<Model>` (404 or 500 page, with `?`) |
 
 ## 5. The `impl_objects!` macro
 
@@ -393,13 +393,10 @@ use runique::prelude::*;
 pub async fn detail(request: Request) -> AppResult<Response> {
     let id = request.get_path_as::<Pk>("id").unwrap_or_default();
 
-    let article = match article::Entity::objects
+    // `?`: 404 page if the row doesn't exist, 500 if the query failed
+    let article = article::Entity::objects
         .get_or_404(request.db(), id, &request, "Article not found")
-        .await
-    {
-        Ok(a) => a,
-        Err(response) => return Ok(response),       // 404 page (or 500 if the query failed)
-    };
+        .await?;
     // ...
 }
 ```

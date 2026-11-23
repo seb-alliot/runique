@@ -273,19 +273,19 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         db: &ADb,
         _ctx: &crate::context::template::Request,
         error_msg: &str,
-    ) -> Result<E::Model, axum::response::Response> {
+    ) -> crate::utils::aliases::AppResult<E::Model> {
         match self.first(db).await {
             Ok(Some(entity)) => Ok(entity),
-            // Bare statuses carrying their context: the error middleware renders
-            // the page (`404.html` / `500.html`, or the debug page with the reason).
-            Ok(None) => Err(ErrorContext::new(
+            // The context of the error: once it is the response, the error
+            // middleware renders the page (`404.html` / `500.html`, or the debug
+            // page with the reason).
+            Ok(None) => Err(Box::new(crate::context::template::AppError::new(ErrorContext::new(
                 ErrorType::NotFound,
                 StatusCode::NOT_FOUND,
                 &t("error.title.not_found"),
                 error_msg,
-            )
-            .into_error_response()),
-            Err(e) => Err(ErrorContext::database(e).into_error_response()),
+            )))),
+            Err(e) => Err(Box::new(crate::context::template::AppError::new(ErrorContext::database(e)))),
         }
     }
 }

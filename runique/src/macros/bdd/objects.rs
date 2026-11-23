@@ -58,12 +58,11 @@
 /// tokio::runtime::Runtime::new().unwrap().block_on(sqlite_objects_example());
 /// ```
 use super::query::RuniqueQueryBuilder;
-use crate::context::template::Request;
+use crate::context::template::{AppError, Request};
 use crate::errors::error::{ErrorContext, ErrorType};
-use crate::utils::aliases::ADb;
+use crate::utils::aliases::{ADb, AppResult};
 use crate::utils::trad::t;
 use axum::http::StatusCode;
-use axum::response::Response;
 use sea_orm::{ColumnTrait, Condition, DbErr, EntityTrait};
 use std::marker::PhantomData;
 
@@ -168,28 +167,28 @@ impl<E: EntityTrait> Objects<E> {
         use sea_orm::PaginatorTrait;
         E::find().count(db).await
     }
-    /// Fetches the row with primary key `id` and returns it, or renders
-    /// `404.html` as an early `Err` response if it doesn't exist (or
-    /// `500.html` if the lookup itself fails).
+    /// Fetches the row with primary key `id` and returns it, or the error a
+    /// handler returns with `?`: `404.html` if it doesn't exist, `500.html`
+    /// if the lookup itself fails.
     pub async fn get_or_404(
         &self,
         db: &ADb,
         id: impl Into<<E::PrimaryKey as sea_orm::PrimaryKeyTrait>::ValueType>,
         _ctx: &Request,
         error_msg: &str,
-    ) -> Result<E::Model, Response> {
+    ) -> AppResult<E::Model> {
         match self.get_optional(db, id).await {
             Ok(Some(entity)) => Ok(entity),
-            // Bare statuses carrying their context: the error middleware renders
-            // the page (`404.html` / `500.html`, or the debug page with the reason).
-            Ok(None) => Err(ErrorContext::new(
+            // The context of the error: once it is the response, the error
+            // middleware renders the page (`404.html` / `500.html`, or the debug
+            // page with the reason).
+            Ok(None) => Err(Box::new(AppError::new(ErrorContext::new(
                 ErrorType::NotFound,
                 StatusCode::NOT_FOUND,
                 &t("error.title.not_found"),
                 error_msg,
-            )
-            .into_error_response()),
-            Err(e) => Err(ErrorContext::database(e).into_error_response()),
+            )))),
+            Err(e) => Err(Box::new(AppError::new(ErrorContext::database(e)))),
         }
     }
 }

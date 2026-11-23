@@ -1,20 +1,16 @@
 //! Multipart request parsing — text field extraction and file uploads to disk.
 use crate::{
     errors::error::ErrorContext,
-    middleware::errors::error::too_large,
+    forms::prisme::BodyRefusal,
     utils::aliases::StrVecMap,
     utils::constante::session_key::session::CSRF_TOKEN_KEY,
     utils::trad::{t, tf},
 };
-use axum::{
-    extract::Multipart,
-    http::StatusCode,
-    response::{IntoResponse, Response},
-};
+use axum::{extract::Multipart, http::StatusCode};
 use futures_util::StreamExt;
 use std::collections::HashSet;
 use std::fs::File;
-use std::sync::{Arc, LazyLock, Mutex};
+use std::sync::{LazyLock, Mutex};
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -293,7 +289,7 @@ pub(crate) async fn parse_multipart(
     upload_dir: &Path,
     max_upload_mb: u64,
     max_text_field_kb: usize,
-) -> Result<StrVecMap, Response> {
+) -> Result<StrVecMap, BodyRefusal> {
     // The request pipeline holds its staging lease until request completion.
     // Direct callers own the returned file paths; the sweeper grants recent
     // files a bounded grace period because this API cannot return that lease.
@@ -323,7 +319,7 @@ pub(crate) async fn parse_multipart_guarded(
     max_upload_mb: u64,
     max_text_field_kb: usize,
     csrf_session: Option<&str>,
-) -> Result<(StrVecMap, Option<Lease>), Response> {
+) -> Result<(StrVecMap, Option<Lease>), BodyRefusal> {
     let max_file_bytes = max_upload_mb.saturating_mul(1024).saturating_mul(1024);
     let max_text_bytes = max_text_field_kb.saturating_mul(1024);
 
@@ -365,11 +361,10 @@ pub(crate) async fn parse_multipart_guarded(
 
             if !csrf_checked {
                 crate::middleware::security::csrf::log_refusal(&name, "log.csrf.reason_upload");
-                return Err((
+                return Err(BodyRefusal::Status(
                     StatusCode::FORBIDDEN,
                     t("csrf.invalid_or_missing").into_owned(),
-                )
-                    .into_response());
+                ));
             }
 
             // Lazy init: create upload_dir and tmp dir only on first real file.
@@ -381,10 +376,10 @@ pub(crate) async fn parse_multipart_guarded(
                         upload_dir,
                         e
                     );
-                    let ctx = ErrorContext::generic(StatusCode::INTERNAL_SERVER_ERROR, &msg);
-                    let mut res = StatusCode::INTERNAL_SERVER_ERROR.into_response();
-                    res.extensions_mut().insert(Arc::new(ctx));
-                    res
+                    BodyRefusal::Context(Box::new(ErrorContext::generic(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        &msg,
+                    )))
                 })?;
                 let dir = upload_dir.join(format!(".staging-{}", Uuid::new_v4()));
                 // Claimed before it exists: a sweep running alongside this body
@@ -393,20 +388,18 @@ pub(crate) async fn parse_multipart_guarded(
                 if let Err(err) = tokio::fs::create_dir_all(lease.path()).await {
                     drop(lease);
                     warn!(error = %err, "staging directory was not created");
-                    return Err((
+                    return Err(BodyRefusal::Status(
                         StatusCode::INTERNAL_SERVER_ERROR,
                         t("forms.upload_dir_error").to_string(),
-                    )
-                        .into_response());
+                    ));
                 }
                 if let Err(err) = lease.lock_dir() {
                     warn!(error = %err, "staging directory was not locked");
                     lease.discard();
-                    return Err((
+                    return Err(BodyRefusal::Status(
                         StatusCode::INTERNAL_SERVER_ERROR,
                         t("forms.upload_dir_error").to_string(),
-                    )
-                        .into_response());
+                    ));
                 }
                 tmp_dir = Some(lease);
             }
@@ -417,13 +410,12 @@ pub(crate) async fn parse_multipart_guarded(
 
             // Stream into staging — the file handle is scoped to this block
             // to ensure its closure before any staging cleanup.
-            let stream_result: Result<(), Response> = async {
+            let stream_result: Result<(), BodyRefusal> = async {
                 let mut file = tokio::fs::File::create(&tmp_path).await.map_err(|_| {
-                    (
+                    BodyRefusal::Status(
                         StatusCode::INTERNAL_SERVER_ERROR,
                         t("forms.file_create_error").to_string(),
                     )
-                        .into_response()
                 })?;
 
                 let mut written: u64 = 0;
@@ -432,25 +424,26 @@ pub(crate) async fn parse_multipart_guarded(
 
                     written = written.saturating_add(bytes.len() as u64);
                     if written > max_file_bytes {
-                        return Err(too_large(tf("forms.upload_too_large", &[&max_upload_mb])));
+                        return Err(BodyRefusal::TooLarge(tf(
+                            "forms.upload_too_large",
+                            &[&max_upload_mb],
+                        )));
                     }
                     file.write_all(&bytes).await.map_err(|_| {
-                        (
+                        BodyRefusal::Status(
                             StatusCode::INTERNAL_SERVER_ERROR,
                             t("forms.file_write_error").to_string(),
                         )
-                            .into_response()
                     })?;
                 }
                 // tokio's write_all returns once the bytes are handed to a
                 // background task: without this, validation can read the size
                 // or content of a partial file, and a failed write goes unseen.
                 file.flush().await.map_err(|_| {
-                    (
+                    BodyRefusal::Status(
                         StatusCode::INTERNAL_SERVER_ERROR,
                         t("forms.file_write_error").to_string(),
                     )
-                        .into_response()
                 })?;
                 Ok(())
             }
@@ -471,13 +464,15 @@ pub(crate) async fn parse_multipart_guarded(
         }
         // --- Text field ---
         else {
-            let text_result: Result<String, Response> = async {
+            let text_result: Result<String, BodyRefusal> = async {
                 let mut bytes: Vec<u8> = Vec::new();
                 while let Some(chunk) = field.next().await {
                     let b = chunk.map_err(multipart_error)?;
 
                     if bytes.len().saturating_add(b.len()) > max_text_bytes {
-                        return Err(too_large(t("forms.text_field_too_large").into_owned()));
+                        return Err(BodyRefusal::TooLarge(
+                            t("forms.text_field_too_large").into_owned(),
+                        ));
                     }
                     bytes.extend_from_slice(&b);
                 }
@@ -628,14 +623,14 @@ fn sanitize_filename(filename: &str) -> String {
     }
 }
 
-/// A multipart error as a response: the body over its limit (413, from axum),
+/// A multipart error as a refusal: the body over its limit (413, from axum),
 /// or anything else (a cut connection, a malformed body).
-fn multipart_error(e: axum::extract::multipart::MultipartError) -> Response {
+fn multipart_error(e: axum::extract::multipart::MultipartError) -> BodyRefusal {
     let status = e.status();
     if status == StatusCode::PAYLOAD_TOO_LARGE {
-        return too_large(t("forms.body_too_large").into_owned());
+        return BodyRefusal::TooLarge(t("forms.body_too_large").into_owned());
     }
-    (status, t("forms.multipart_stream_error").into_owned()).into_response()
+    BodyRefusal::Status(status, t("forms.multipart_stream_error").into_owned())
 }
 
 #[cfg(test)]
@@ -782,7 +777,7 @@ mod staging_tests {
         let out = parse_multipart_guarded(mp, &media, 10, 64, Some(SESSION))
             .await
             .map(|(data, _staging)| data)
-            .map_err(|r| r.status().as_u16());
+            .map_err(|r| axum::response::IntoResponse::into_response(r).status().as_u16());
         let written = std::fs::read_dir(&media).unwrap().next().is_some();
         let _ = std::fs::remove_dir_all(&media);
         (out, written)
@@ -1093,7 +1088,7 @@ mod direct_parse_tests {
                 async move {
                     match parse_multipart(multipart, &dir, 1, 1).await {
                         Ok(_) => StatusCode::OK,
-                        Err(resp) => resp.status(),
+                        Err(refusal) => refusal.into_response().status(),
                     }
                 }
             }),
