@@ -1,12 +1,112 @@
-# Suppression de table par makemigrations : tous les cas
+# makemigrations 4.1 : décisions et reste à faire
 
-Document de travail du chantier makemigrations 4.1 (morceau 1). À supprimer quand le morceau est
-codé, testé et documenté.
+Le détail case par case est dans `evaluation_chantier_makemigration.md` (§13.8, ignoré par git).
+Le code est dans `runique/runique_cli/src/migration/` depuis la sortie de la CLI en crate
+(2026-11-23) ; les fonctions que les migrations générées appellent sont restées dans
+`runique/src/migration/runtime/`.
 
-État au 2026-11-16 : rien n'est codé pour le morceau 1. Le morceau 0 (suppression d'un fichier
-dans un lot du builder atomique, `SourceItems::Remove`) est codé et ses tests passent.
+## État au 2026-11-24
+
+36 cases sur 62 sont faites (codées, testées, mutants passés, documentées).
+
+**Fait.** Le socle (lot atomique, règle de connexion). La ligne 0 en entier : `makemigrations`
+connecté, lecture de `seaql_migrations`, contrôles (migration inconnue, snapshot illisible ou mal
+nommé, modifications parallèles), tag « en attente », relance sans doublon. Dans la ligne 1 :
+suppression de table, `managed: false`, `renamed_from` (colonne, table, champ liste), contrôle
+avant `DROP TYPE`, clé primaire changée refusée, bloc `extend!{}` retiré, un nom d'enum déclaré
+une seule fois, colonne renommée et modifiée. À `migration up` : snapshots écrits depuis les
+entités, tags retirés, `renamed_from` nettoyé, snapshots retirés (table supprimée, `extend!{}`
+devenu vide).
+
+### Ce qui reste
+
+Chaque ligne renvoie à la décision qui la cadre, par sa date dans « Décisions prises ».
+
+**Ligne 1, comparer (7).**
+
+| Morceau | Décision | Remarque |
+|---|---|---|
+| Valeur d'enum retirée | 2026-11-19 (enums) | lignes comptées, question en console, rien sans choix ; aujourd'hui un commentaire dans la migration |
+| Champ obligatoire ajouté à une table remplie | 2026-11-19 et 2026-11-20 (Q27) | choix en console : donner une valeur, ou tout arrêter |
+| Remplissage avant de rendre une colonne obligatoire | trou constaté en migrant Campanile | aujourd'hui `modify_column` direct, qui échoue s'il y a des `NULL` |
+| Changement de type d'une colonne | 2026-11-20 (changement de type) | `--force`, puis réellement généré ; sous SQLite attend la reconstruction de table |
+| Valeur par défaut modifiée | aucune | constat du 2026-11-24 : la détection tient en une condition, mais le générateur n'écrit pas la valeur par défaut quand il modifie une colonne (`generate/alter.rs`, `push_modify_column`) ; cas « valeur retirée » à traiter ; à vérifier sur les trois moteurs |
+| Élément visé par d'autres tables | 2026-11-20 (élément visé par d'autres) | avertissement ; avec `--force`, les autres tables sont mises à jour |
+| Noms réels des clés et des index lus en base | aucune | aujourd'hui supposés d'après une convention (`fk_constraint_name`) |
+
+Cas voisin non traité : une colonne enum renommée dont les valeurs changent dans le même
+lancement (la comparaison des valeurs cherche l'ancienne colonne par son nom actuel).
+
+**Ligne 2, générer (2).** Générateur en liste d'instructions, chacune avec son inverse et son
+caractère destructeur (2026-11-19, Q22) ; instructions destructrices en dernier (2026-11-16,
+compensation MySQL). C'est le préalable de la compensation MySQL.
+
+**Ligne 3, appliquer et revenir en arrière (10).**
+
+| Morceau | Décision | Remarque |
+|---|---|---|
+| Essai : une transaction donnée au migrateur de SeaORM couvre tout le lancement | 2026-11-20 (faits testés, par moteur) | court ; dit si le lanceur est simple |
+| `migration up` en tout ou rien sous PostgreSQL et SQLite | 2026-11-20 (Q6, revu) | par le lanceur ci-dessous |
+| Journal de `migration up` | 2026-11-20 (journal à `migration up`) | reprise après une coupure entre la base et les snapshots |
+| Tables déjà là sans inscription | aucune | rejouer, vérifier tables et colonnes, inscrire |
+| `migration down` (3 cases) | 2026-11-19 et 2026-11-20 (`migration down`) | enveloppe de SeaORM, encapsulé selon le moteur, snapshot ramené, fichier et ligne de `lib.rs` supprimés : ces deux derniers passent par le builder |
+| SQLite : reconstruction de table | 2026-11-20 (SQLite, reconstruction) et 2026-11-21 | débloque le refus des clés sous SQLite, la colonne modifiée, le changement de type et la migration d'une clé primaire |
+| MySQL : exécuteur pas à pas et compensation (2 cases) | 2026-11-16 et 2026-11-20 (compensation sous MySQL) | dépend de la liste d'instructions de la ligne 2 |
+
+Constats du 2026-11-24, lus dans le code, qui cadrent le lanceur :
+
+- `runique migration up` lance `cargo run -- up` dans la crate `migration` du projet, dont le
+  `main.rs` généré appelle `cli::run_cli(migration::Migrator)` de SeaORM. Le tout ou rien du
+  lancement demande donc un lanceur de Runique à la place de cet appel, rangé dans
+  `runique::migration::runtime`.
+- Les fonctions du migrateur de SeaORM 2.0.4 acceptent une transaction à la place d'une
+  connexion (`IntoSchemaManagerConnection`) ; les transactions qu'il ouvre lui-même (une par
+  migration, PostgreSQL seulement) s'ouvrent alors à l'intérieur de celle du lanceur. Non
+  essayé sur une base.
+- Deux choix par moteur, à deux endroits (proposition de Sébastien du 2026-11-24 : un `match`
+  sur le moteur ; précisée avec Claude) :
+
+  | Moteur | Tout ou rien du lancement (le lanceur) | Opération impossible en `ALTER` (dans `runtime`) |
+  |---|---|---|
+  | PostgreSQL | transaction | sans objet |
+  | SQLite | transaction, clés étrangères coupées avant de l'ouvrir | reconstruction de table |
+  | MySQL | compensation de Runique | sans objet |
+
+- `DbBackend` n'est pas limité à trois cas pour le compilateur : chaque `match` de `runtime`
+  garde une branche `other => Err(unsupported(other))`, et le lanceur devra l'avoir aussi.
+
+**Socle (2).** Verrou entre `makemigrations` et `migration up` (2026-11-20, exclusion entre
+commandes) ; tests lancés sous chaque feature seule dans la CI.
+
+**Documentation, FR et EN (5).** Après un `down`, les entités ne sont pas remises en état ; un
+`down` supprime la migration générée ; `--force` et ses conséquences ; limite du tout ou rien
+sous MySQL ; CHANGELOG, `PROJECT_STATUS`, ROADMAP.
+
+### Questions ouvertes, non tranchées
+
+- **Découpage en versions.** Sébastien, le 2026-11-24 : le chantier lui paraît aussi gros que la
+  refonte de l'admin, et trois comportements par moteur seront coûteux à maintenir. Piste donnée
+  par Claude, pas une décision : 4.1 = la CLI, l'i18n, la ligne 1, le lanceur sous PostgreSQL et
+  SQLite, `migration down` ; puis la reconstruction SQLite ; puis la liste d'instructions et la
+  compensation MySQL. Le découpage 4.1 / 4.2 du 2026-11-12 était dit « ajustable en route ».
+- **Compensation MySQL.** La décision du 2026-11-16, confirmée le 2026-11-20, tient. Rappel fait
+  par Claude le 2026-11-24, comme porte de sortie et non comme recommandation : Django ne
+  compense pas sous MySQL et le documente.
+- **`to_snake_case` et `pascal_to_snake`** (`helpers/naming.rs`, anomalie DUP1) : presque
+  identiques, elles diffèrent sur les majuscules accentuées ; `to_snake_case` n'est appelée
+  nulle part dans la CLI. Les fusionner changerait un comportement.
+
+Ordre possible pour la suite, à ajuster (proposition de Claude) : l'essai, puis le lanceur ;
+`migration down` ; la fin de la ligne 1 ; la reconstruction SQLite ; la liste d'instructions puis
+la compensation MySQL.
 
 ## Orientation générale du chantier (Sébastien, 2026-11-16)
+
+Cette section est l'état de la réflexion au 16 novembre. Trois points y ont été remplacés
+depuis, voir « Décisions prises » : le dossier d'historique par table est abandonné
+(2026-11-20, plus de dossier `history/`) ; le tout ou rien porte sur le lancement entier et non
+sur une migration à la fois (2026-11-20, Q6 revu) ; le moteur se lit sur la connexion de SeaORM,
+sans enum de Runique (2026-11-21).
 
 La discussion sur le cas 44 a élargi le sujet au-delà de la suppression de table. Trois points
 posés par Sébastien :
@@ -87,7 +187,7 @@ sens inverse. Un « semblant de transaction » (mot de Sébastien).
   à du code de Runique qui les exécute une par une.
 - Les instructions destructrices sont placées **en dernier** : elles ne se compensent pas (les
   données ne reviennent pas). Aujourd'hui les suppressions de colonnes sont au début
-  ([alter.rs](runique/src/migration/generate/alter.rs), étape 3 sur 11) : ordre à revoir.
+  ([alter.rs](runique/runique_cli/src/migration/generate/alter.rs), étape 3 sur 11) : ordre à revoir.
 - **Règle du point de non-retour, la même que celle du builder (`placed`)** : le point de
   non-retour est la première instruction destructrice. Panne avant : on annule, la table revient
   à l'état d'avant, on peut recommencer. Panne après : on continue d'après le journal et on
@@ -130,10 +230,10 @@ table est une table à supprimer : `makemigrations` écrit une migration
 Ce que le scan lit aujourd'hui, et dont la règle dépend :
 
 - les fichiers `.rs` du **premier niveau** de `src/entities/`, sauf `mod.rs`
-  ([scan.rs:32](runique/src/migration/cli_migration/scan.rs#L32)) ;
+  ([scan.rs:32](runique/runique_cli/src/migration/cli_migration/scan.rs#L32)) ;
 - un fichier sans `model!{}` est ignoré sans message ;
 - chaque champ liste (`checkbox` / `multichoice`) produit sa table `{table}_{champ}`
-  ([to_schema.rs:136](runique/src/migration/parse/builder/to_schema.rs#L136)) ;
+  ([to_schema.rs:136](runique/runique_cli/src/migration/parse/builder/to_schema.rs#L136)) ;
 - les tables du framework (`eihwaz_*`) sont écartées du scan.
 
 ## Colonne « Statut »
@@ -150,6 +250,12 @@ Ce que le scan lit aujourd'hui, et dont la règle dépend :
 
 ## Tous les cas
 
+État au 2026-11-24 : la suppression de table est codée et testée (2026-11-21), et exécutée de
+bout en bout sur la base PostgreSQL de demo-app. Restent ouverts dans ce tableau : le cas 46
+(`migration down`, ligne 3) ; les cas 27 et 31 sous SQLite, qui attendent la reconstruction de
+table ; les cas 52 et 53, non repris depuis. Les statuts de la colonne de droite n'ont pas été
+repassés un par un.
+
 | # | Famille | Situation | Résultat | Statut |
 |---|---|---|---|---|
 | 1 | Base | modèle présent, snapshot présent | diff, `ALTER` s'il y a un écart | existant |
@@ -165,9 +271,9 @@ Ce que le scan lit aujourd'hui, et dont la règle dépend :
 | 11 | Sans effet | fichier renommé, `table_name` inchangé | rien | existant |
 | 12 | Sans effet | un autre modèle reprend le même `table_name` | diff entre l'ancien et le nouveau schéma, pas de `DROP` | règle |
 | 13 | Sans effet | `makemigrations` relancé avant d'appliquer le `drop` | même résultat : la migration en attente est recalculée à l'identique, rien n'est réécrit | décidé |
-| 14 | Retrait non voulu | `table_name` changé | avec `rename_to` : renommage, sans perte ; sans : `DROP` + `CREATE`, bloqués sans `--force` | décidé |
-| 15 | Retrait non voulu | `table_name` changé sur un modèle avec champ liste | comme le cas 14, la table liste suit le renommage | décidé |
-| 16 | Retrait non voulu | champ liste renommé | avec `rename_to` : renommage ; sans : `DROP` + `CREATE`, bloqués sans `--force` | décidé |
+| 14 | Retrait non voulu | `table_name` changé | avec `renamed_from` (2026-11-22, remplace `rename_to`) : renommage, sans perte ; sans : `DROP` + `CREATE`, bloqués sans `--force` | fait |
+| 15 | Retrait non voulu | `table_name` changé sur un modèle avec champ liste | comme le cas 14, la table liste suit le renommage | fait |
+| 16 | Retrait non voulu | champ liste renommé | avec `renamed_from` : renommage ; sans : `DROP` + `CREATE`, bloqués sans `--force` | fait |
 | 17 | Retrait non voulu | champ liste changé en champ simple | `DROP` de la table liste + colonne ajoutée, valeurs perdues | règle |
 | 18 | Retrait non voulu | `menu.rs` déplacé dans un sous-dossier de `entities/` | `DROP TABLE` : le scan ne lit que le premier niveau | décidé |
 | 19 | Retrait non voulu | `model!{}` mis en commentaire | absent pour le lecteur : `DROP TABLE`, bloqué sans `--force` ; la pause se demande par `managed: false` | décidé |
@@ -199,7 +305,7 @@ Ce que le scan lit aujourd'hui, et dont la règle dépend :
 | 45 | Base de données | la table n'existe pas en base quand le `drop` passe | `DROP TABLE IF EXISTS`, pour ne pas faire échouer `migration up` | décidé |
 | 46 | Base de données | `migration down` après le `drop` | la table revient vide ; le fichier de migration généré est supprimé et le snapshot suit ; l'entité n'est pas remise en état, à dire dans la doc | décidé |
 | 47 | Base de données | la table contient des lignes | perdues : le dev en accepte les conséquences en validant `--force` | décidé |
-| 48 | `extend!{}` | le bloc `extend!{}` d'une table du framework est retiré, ou une de ses colonnes | les colonnes ajoutées sont retirées (destructeur, `--force`) ; la table du framework reste ; un snapshot d'`extend!{}` devenu vide est supprimé à l'application | décidé |
+| 48 | `extend!{}` | le bloc `extend!{}` d'une table du framework est retiré, ou une de ses colonnes | les colonnes ajoutées sont retirées (destructeur, `--force`) ; la table du framework reste ; un snapshot d'`extend!{}` devenu vide est supprimé à l'application | fait (2026-11-24) |
 | 49 | Écriture | coupure pendant l'écriture du lot | réparé au lancement suivant | fait |
 | 50 | Écriture | le snapshot disparaît entre le calcul et l'écriture | le lot échoue et tout est remis | fait |
 | 51 | Restes hors base | droits `eihwaz_*` de la ressource | élagués au démarrage | existant |
@@ -208,16 +314,16 @@ Ce que le scan lit aujourd'hui, et dont la règle dépend :
 
 ## Points à trancher
 
-Dans l'ordre proposé. La colonne « Décision » reste vide tant que Sébastien n'a pas tranché.
+Tous tranchés au 2026-11-24.
 
 | Cas | Question | Décision |
 |---|---|---|
-| 18, 19, 20, 21, 23 | Le blocage sans `--force` suffit-il comme seul filet contre un retrait non voulu, ou faut-il un garde de plus ? | |
+| 18, 19, 20, 21, 23 | Le blocage sans `--force` suffit-il comme seul filet contre un retrait non voulu, ou faut-il un garde de plus ? | cas 23 : pas de garde en plus (2026-11-20) ; cas 18 à 21 : `DROP TABLE` bloqué sans `--force`, notés « décidé » dans le tableau des cas ; la pause se demande par `managed: false` |
 | 10, 22 | Refuser quand aucun modèle n'est trouvé : garder ce refus même avec `--force`, au prix du cas « je retire mon dernier modèle » ? | non (2026-11-19) : suppression normale, liste et `--force` |
 | 36, 37 | Un snapshot illisible, ou dont le nom ne correspond pas à sa table : erreur et arrêt ? | oui (2026-11-16) |
 | 44 | Le `drop` non appliqué suivi d'un modèle remis : limite à documenter, ou autre chose ? | réglé (2026-11-19) : `makemigrations` refuse tant que le `drop` est en attente, le dev le retire |
 | 45 | `DROP TABLE IF EXISTS` plutôt que `DROP TABLE` ? | oui (2026-11-16) |
-| 14, 15, 16 | Renommage de table et de champ liste : accepté comme suppression + création jusqu'au `renamed_from` de table (morceau 7), ou à traiter avant ? | |
+| 14, 15, 16 | Renommage de table et de champ liste : accepté comme suppression + création jusqu'au `renamed_from` de table (morceau 7), ou à traiter avant ? | traité : `renamed_from` aux trois endroits (2026-11-22) |
 
 ## Décisions prises
 
