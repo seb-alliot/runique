@@ -132,7 +132,11 @@ fn the_dotenv_file_gives_its_own_language_not_the_environments() {
     }
     {
         let _folder = Folder::with_dotenv("OTHER=it\nLC_MESSAGES=ja\nLC_ALL=pt\n");
-        assert_eq!(Lang::from_dotenv(), Some(Lang::Pt), "LC_ALL before LC_MESSAGES");
+        assert_eq!(
+            Lang::from_dotenv(),
+            Some(Lang::Pt),
+            "LC_ALL before LC_MESSAGES"
+        );
     }
     let _folder = Folder::with_dotenv("OTHER=it\nLANGUAGE=fr\n");
     assert_eq!(Lang::from_dotenv(), None, "no such key in the file");
