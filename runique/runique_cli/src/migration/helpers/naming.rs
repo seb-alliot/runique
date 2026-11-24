@@ -1,8 +1,4 @@
-//! Shared helpers: snake_case conversion.
-
-// ============================================================
-// String helpers
-// ============================================================
+//! Names: from the PascalCase of a model to the snake_case of its table.
 
 /// Converts a PascalCase string to snake_case.
 ///
@@ -20,6 +16,18 @@ pub fn to_snake_case(s: &str) -> String {
             result.push('_');
         }
         result.push(ch.to_ascii_lowercase());
+    }
+    result
+}
+
+/// PascalCase → snake_case to derive target table name from model
+pub(crate) fn pascal_to_snake(s: &str) -> String {
+    let mut result = String::new();
+    for (i, ch) in s.chars().enumerate() {
+        if ch.is_uppercase() && i > 0 {
+            result.push('_');
+        }
+        result.extend(ch.to_lowercase());
     }
     result
 }

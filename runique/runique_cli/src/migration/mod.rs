@@ -7,10 +7,10 @@
 pub mod changes;
 pub mod cli_migration;
 pub mod generate;
+pub mod helpers;
 pub mod parse;
 
 pub mod diff;
-pub mod helpers;
 pub mod paths;
 pub mod types;
 
@@ -23,7 +23,9 @@ mod tests_pipeline;
 pub use changes::*;
 pub use diff::*;
 pub use generate::*;
-pub use helpers::*;
+pub use helpers::{
+    db_columns, decimal_may_shrink, has_marker, length_may_shrink, to_snake_case, without_marker,
+};
 pub use parse::*;
 pub use paths::*;
 pub use schema::*;

@@ -7,19 +7,8 @@ use runique_dsl::ast::{
 };
 use runique_dsl::form_field_to_field_def;
 
+use crate::migration::helpers::naming::pascal_to_snake;
 use crate::migration::types::{ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema};
-
-/// PascalCase → snake_case to derive target table name from model
-pub(crate) fn pascal_to_snake(s: &str) -> String {
-    let mut result = String::new();
-    for (i, ch) in s.chars().enumerate() {
-        if ch.is_uppercase() && i > 0 {
-            result.push('_');
-        }
-        result.extend(ch.to_lowercase());
-    }
-    result
-}
 
 fn fk_action(action: FkAction) -> String {
     match action {

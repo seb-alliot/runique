@@ -3,7 +3,7 @@
 /// A table schema as reconstructed by the AST parsers (from a `model!{}` DSL
 /// source or a generated SeaORM snapshot). Feeds the diff engine that decides
 /// what a migration needs to change.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ParsedSchema {
     pub table_name: String,
     pub primary_key: Option<ParsedColumn>,
@@ -99,7 +99,7 @@ impl TableRenames {
 /// The set of DDL operations needed to bring a table from one [`ParsedSchema`]
 /// version to the next — the output of the diff step, consumed by the
 /// migration file generators to render `up`/`down` bodies.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Changes {
     pub table_name: String,
     pub added_columns: Vec<ParsedColumn>,

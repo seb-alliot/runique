@@ -22,19 +22,8 @@ fn only_plain_type_changes_are_reported_as_unmigrated() {
     };
     let changes = |old: ParsedColumn, new: ParsedColumn| Changes {
         table_name: "t".into(),
-        added_columns: vec![],
-        dropped_columns: vec![],
         modified_columns: vec![(old, new)],
-        renames: Default::default(),
-        renamed_columns: vec![],
-        added_fks: vec![],
-        dropped_fks: vec![],
-        added_indexes: vec![],
-        dropped_indexes: vec![],
-        is_new_table: false,
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
+        ..Default::default()
     };
 
     let plain = changes(col("Integer", &[], false), col("BigInteger", &[], false));
@@ -88,18 +77,9 @@ fn new_table(s: &ParsedSchema) -> Changes {
     Changes {
         table_name: s.table_name.clone(),
         added_columns: s.columns.clone(),
-        dropped_columns: vec![],
-        modified_columns: vec![],
-        renames: Default::default(),
-        renamed_columns: vec![],
         added_fks: s.foreign_keys.clone(),
-        dropped_fks: vec![],
-        added_indexes: vec![],
-        dropped_indexes: vec![],
         is_new_table: true,
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
+        ..Default::default()
     }
 }
 
@@ -3323,7 +3303,7 @@ fn the_extended_tables_are_the_snapshots_of_their_folder() {
     assert!(extended_tables(&path).is_empty(), "no folder yet");
 
     let folder = extend_snapshot_dir(&path);
-    fs::create_dir_all(format!("{folder}/a_folder.rs")).unwrap();
+    fs::create_dir_all(format!("{folder}/a_folder")).unwrap();
     for name in ["eihwaz_users.rs", "eihwaz_groupes.rs", "notes.txt", "bare"] {
         fs::write(format!("{folder}/{name}"), "").unwrap();
     }
@@ -3331,6 +3311,86 @@ fn the_extended_tables_are_the_snapshots_of_their_folder() {
     fs::write(snapshot_file_path(&path, "posts"), "").unwrap();
 
     assert_eq!(extended_tables(&path), ["eihwaz_groupes", "eihwaz_users"]);
+}
+
+// ── A folder named like a `.rs` file, where Runique reads files ──────────────
+
+// Among the entities: the command stops by the folder's name, with or
+// without `--force`, and writes nothing, the models around it included.
+#[test]
+fn a_folder_named_like_a_model_file_stops_the_command() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    fs::create_dir(format!("{entities}/archive.rs")).unwrap();
+    let before = everything(&dir);
+
+    for force in [false, true] {
+        let error = run(&entities, &path, force).unwrap_err().to_string();
+        assert!(error.contains("archive.rs"), "{error}");
+        assert_eq!(everything(&dir), before, "force: {force}");
+    }
+
+    // Renamed: the model beside it is migrated.
+    fs::rename(
+        format!("{entities}/archive.rs"),
+        format!("{entities}/archive"),
+    )
+    .unwrap();
+    run(&entities, &path, false).unwrap();
+    assert_eq!(generated(&path).len(), 1);
+}
+
+// Among the snapshots, of the models or of the extensions: refused the same.
+#[test]
+fn a_folder_named_like_a_snapshot_stops_the_reading() {
+    for extension in [false, true] {
+        let dir = TempDir::new();
+        let path = migrations_src(&dir, None);
+        let folder = if extension {
+            extend_snapshot_dir(&path)
+        } else {
+            snapshot_dir(&path)
+        };
+        fs::create_dir_all(format!("{folder}/gone.rs")).unwrap();
+
+        let error = read_all(&path).unwrap_err().to_string();
+
+        assert!(error.contains("gone.rs"), "{error}");
+    }
+}
+
+// No snapshot folder yet is a new project, not an error.
+#[test]
+fn a_project_without_snapshots_reads_none() {
+    let dir = TempDir::new();
+    let path = migrations_src(&dir, None);
+    assert!(read_all(&path).unwrap().is_empty());
+}
+
+// Blocks on one table, in several files: their columns come in the order of
+// the file names, the same on every machine.
+#[test]
+fn the_blocks_of_a_table_are_read_in_the_order_of_their_files() {
+    let dir = TempDir::new();
+    let (entities, _) = project(&dir);
+    for (file, field) in [
+        ("zebra.rs", "last"),
+        ("alpha.rs", "first"),
+        ("mango.rs", "middle"),
+    ] {
+        fs::write(
+            format!("{entities}/{file}"),
+            format!(r#"extend! {{ table: "eihwaz_users", fields: {{ {field}: text }} }}"#),
+        )
+        .unwrap();
+    }
+
+    let merged = merge_extend_schemas(scan_extend_blocks(&entities).unwrap());
+
+    assert_eq!(merged.len(), 1);
+    let columns: Vec<&str> = merged[0].columns.iter().map(|c| c.name.as_str()).collect();
+    assert_eq!(columns, ["first", "middle", "last"]);
 }
 
 // The block is the only one of the project and it is gone: every column it

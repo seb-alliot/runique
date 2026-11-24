@@ -17,7 +17,8 @@
     "rename_with_new_key": "La tabella `{}` viene rinominata in questa esecuzione e riceve allo stesso tempo una nuova chiave verso `{}`, creata o rinominata nella stessa esecuzione. Procedete in due passaggi: prima la rinomina, `runique migration up`, poi la chiave.",
     "renamed_twice": "Due tabelle dichiarano di essere state rinominate da `{}`: `{}` e `{}`. Una tabella può diventarne una sola: rimuovete uno dei due `renamed_from`.",
     "primary_key_changed": "La chiave primaria di queste tabelle è cambiata, e Runique non sa ancora migrare una chiave primaria:\n{}\nRimettete la chiave d'origine nel modello. Se il tipo è cambiato in tutte le tabelle, è la feature di chiave del progetto (`big-pk`, `pk-uuid`) che è stata aggiunta o rimossa nel suo Cargo.toml: rimettetela com'era.\n`--force` non toglie questo rifiuto. Non è stato scritto nulla.",
-    "enum_declared_twice": "Questi enum sono dichiarati da più modelli:\n{}\nUn nome di enum è un solo tipo nel database: può essere dichiarato una sola volta. Rinominatene uno (ad esempio `StatutCommande`, `StatutFacture`).\n`--force` non toglie questo rifiuto. Non è stato scritto nulla."
+    "enum_declared_twice": "Questi enum sono dichiarati da più modelli:\n{}\nUn nome di enum è un solo tipo nel database: può essere dichiarato una sola volta. Rinominatene uno (ad esempio `StatutCommande`, `StatutFacture`).\n`--force` non toglie questo rifiuto. Non è stato scritto nulla.",
+    "folder_named_rs": "`{}` è una cartella, ma il suo nome finisce con `.rs`: Runique legge ogni `.rs` di questa cartella come un file. Rinominate la cartella o spostatela altrove. Non è stato scritto nulla."
   },
   "info": {
     "files_ready": "{} file pronti per la migrazione.",

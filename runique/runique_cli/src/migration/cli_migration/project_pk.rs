@@ -26,13 +26,11 @@ pub(crate) fn with_project_pk<T>(
 /// counts too: it costs a question to cargo, never a wrong type. A folder
 /// that can't be read answers no: reading the models reports it.
 fn alias_used(entities: &Path) -> bool {
-    let Ok(entries) = fs::read_dir(entities) else {
+    let Ok(files) = crate::migration::helpers::file::rust_files(entities) else {
         return false;
     };
-    entries
-        .filter_map(std::result::Result::ok)
-        .map(|entry| entry.path())
-        .filter(|path| path.extension().and_then(|e| e.to_str()) == Some("rs"))
+    files
+        .into_iter()
         .filter_map(|path| fs::read_to_string(path).ok())
         .any(|source| has_word(&source, "Pk"))
 }

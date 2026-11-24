@@ -141,7 +141,7 @@ Folders follow the steps `makemigrations` goes through.
 - **`changes/`** — ④ order and check the `Changes`: `ordering`, `destructive_changes`, `name_length_limit`
 - **`generate/`** — ⑤ write the migration files: `create`, `alter`, `columns`, `constraints` (FKs, indexes), `enums`
 - **`cli_migration/`** — the commands' logic: `run` (makemigrations: `scan`, `snapshot`, `plan`, `lib_file`, `report`), `migrate` (up/down/status), `init_migrate` (writes a project's `migration` crate, templates in `composant-bin/`)
-- **`paths.rs`**, **`types.rs`**, **`helpers.rs`**, **`tests_pipeline.rs`**
+- **`paths.rs`**, **`types.rs`**, **`helpers/`** (`naming.rs`, `columns.rs`, `schemas.rs`, `markers.rs`, `file.rs`), **`tests_pipeline.rs`**
 
 ### `cli/` — CLI entry points
 Calls only: each command's logic lives in its own module, the binary goes through `runique::cli`.

@@ -9,7 +9,8 @@ use runique_cli::migration::cli_migration::{
     scan_entities, seaorm_alter_file_path, seaorm_alter_module_name, update_migration_lib,
 };
 use runique_cli::migration::{
-    diff::{db_columns, diff_schemas},
+    db_columns,
+    diff::diff_schemas,
     paths::*,
     types::{Changes, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema},
 };

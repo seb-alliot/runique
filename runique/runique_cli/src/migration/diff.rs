@@ -1,38 +1,9 @@
 //! Diff calculation between two [`ParsedSchema`] — added/dropped/modified columns, FKs, indexes, enum renames.
 use std::collections::{HashMap, HashSet};
 
+use crate::migration::helpers::columns::redefined;
+use crate::migration::helpers::schemas::db_columns;
 use crate::migration::types::{Changes, ParsedColumn, ParsedFk, ParsedSchema};
-
-/// Columns that actually exist in the database (excluding ignored and PK)
-///
-/// # Example
-///
-/// ```rust, ignore
-/// use runique_cli::migration::types::{ParsedSchema, ParsedColumn};
-/// use runique_cli::migration::diff::db_columns;
-/// let schema = ParsedSchema {
-///     table_name: "t".to_string(),
-///     columns: vec![
-///         ParsedColumn { name: "id".to_string(), col_type: "int".to_string(), nullable: false, unique: false, ignored: false },
-///         ParsedColumn { name: "name".to_string(), col_type: "string".to_string(), nullable: false, unique: false, ignored: false },
-///         ParsedColumn { name: "tmp".to_string(), col_type: "string".to_string(), nullable: false, unique: false, ignored: true },
-///     ],
-///     primary_key: Some(ParsedColumn { name: "id".to_string(), col_type: "int".to_string(), nullable: false, unique: false, ignored: false }),
-///     foreign_keys: vec![],
-///     indexes: vec![],
-/// };
-/// let cols = db_columns(&schema);
-/// assert_eq!(cols.len(), 1);
-/// assert_eq!(cols[0].name, "name");
-/// ```
-pub fn db_columns(schema: &ParsedSchema) -> Vec<&ParsedColumn> {
-    let pk_name = schema.primary_key.as_ref().map(|pk| pk.name.as_str());
-    schema
-        .columns
-        .iter()
-        .filter(|c| !c.ignored && Some(c.name.as_str()) != pk_name)
-        .collect()
-}
 
 /// Calculates differences between two table schemas.
 pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes {
@@ -80,32 +51,27 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
         .cloned()
         .collect();
 
-    let modified_columns = curr_cols
+    let mut modified_columns: Vec<(ParsedColumn, ParsedColumn)> = curr_cols
         .iter()
         .filter_map(|(name, curr)| {
-            prev_cols.get(name).and_then(|prev| {
-                if prev.col_type != curr.col_type
-                    || prev.nullable != curr.nullable
-                    || prev.unique != curr.unique
-                    || prev.has_default_now != curr.has_default_now
-                    || prev.max_length != curr.max_length
-                    || prev.decimal_len != curr.decimal_len
-                    // Becoming (or stopping being) an enum: `col_type` alone doesn't
-                    // capture this (an enum column keeps col_type "String"), so without
-                    // this check the transition was invisible to `modified_columns` —
-                    // the dedicated enum-diff loop below only compares variants when
-                    // BOTH sides are already enums, it doesn't flag the shape change
-                    // itself. Two enums with different `enum_string_values` are still
-                    // handled there (renames/adds/drops), not here.
-                    || prev.enum_string_values.is_empty() != curr.enum_string_values.is_empty()
-                {
-                    Some(((*prev).clone(), (*curr).clone()))
-                } else {
-                    None
-                }
-            })
+            let prev = prev_cols.get(name)?;
+            redefined(prev, curr).then(|| ((*prev).clone(), (*curr).clone()))
         })
         .collect();
+    // A renamed column is compared to what it was under its former name. It
+    // joins the list under its new name: the rename is written first, so the
+    // modification, and its undoing, find the column as it is called by then.
+    for (old, new) in &renamed_columns {
+        if let (Some(prev), Some(curr)) = (prev_cols.get(old.as_str()), curr_cols.get(new.as_str()))
+            && redefined(prev, curr)
+        {
+            let was = ParsedColumn {
+                name: new.clone(),
+                ..(*prev).clone()
+            };
+            modified_columns.push((was, (*curr).clone()));
+        }
+    }
 
     // FK — the key includes on_delete and on_update to detect action changes
     let fk_key = |fk: &ParsedFk| {

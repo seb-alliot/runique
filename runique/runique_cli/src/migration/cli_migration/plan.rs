@@ -141,18 +141,10 @@ fn creation_of(schema: &ParsedSchema) -> Changes {
     Changes {
         table_name: schema.table_name.clone(),
         added_columns: db_columns(schema).into_iter().cloned().collect(),
-        dropped_columns: vec![],
-        modified_columns: vec![],
-        renames: Default::default(),
-        renamed_columns: vec![],
         added_fks: schema.foreign_keys.clone(),
-        dropped_fks: vec![],
         added_indexes: schema.indexes.clone(),
-        dropped_indexes: vec![],
         is_new_table: true,
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
+        ..Default::default()
     }
 }
 
@@ -465,10 +457,7 @@ pub(super) fn plan_extend_changes(
         if !extend_schemas.iter().any(|s| s.table_name == table) {
             extend_schemas.push(ParsedSchema {
                 table_name: table,
-                primary_key: None,
-                columns: Vec::new(),
-                foreign_keys: Vec::new(),
-                indexes: Vec::new(),
+                ..Default::default()
             });
         }
     }
@@ -481,22 +470,12 @@ pub(super) fn plan_extend_changes(
             let previous = previous_snapshot(&snap_path, &ext_schema)?;
             diff_schemas(&previous, &ext_schema)
         } else {
-            // First time — all columns are new (ADD COLUMN)
+            // First time — all columns are new (ADD COLUMN). Never a new
+            // table: the framework's already exists.
             Changes {
                 table_name: ext_schema.table_name.clone(),
                 added_columns: ext_schema.columns.clone(),
-                dropped_columns: vec![],
-                modified_columns: vec![],
-                renames: Default::default(),
-                renamed_columns: vec![],
-                added_fks: vec![],
-                dropped_fks: vec![],
-                added_indexes: vec![],
-                dropped_indexes: vec![],
-                is_new_table: false, // always false — the framework table already exists
-                enum_renames: vec![],
-                enum_value_adds: vec![],
-                enum_value_drops: vec![],
+                ..Default::default()
             }
         };
 

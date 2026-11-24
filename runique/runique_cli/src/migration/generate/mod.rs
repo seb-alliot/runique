@@ -222,19 +222,6 @@ pub fn renamed_table(content: &str) -> Option<&str> {
         })
 }
 
-/// Whether `content` holds `marker` on a line of its own, wherever it is.
-pub fn has_marker(content: &str, marker: &str) -> bool {
-    content.lines().any(|line| line.trim() == marker)
-}
-
-/// `content` without the lines that are `marker`; the rest byte for byte.
-pub fn without_marker(content: &str, marker: &str) -> String {
-    content
-        .split_inclusive('\n')
-        .filter(|line| line.trim() != marker)
-        .collect()
-}
-
 /// Generates the snapshot file (includes FK stmts so diffs detect FK additions/removals).
 pub fn generate_snapshot_file(schema: &ParsedSchema) -> String {
     // Snapshot keeps FKs as separate stmts (never inline) so the `parse/seaorm.rs` round-trip is stable.

@@ -510,6 +510,7 @@ pub const ALL: &[&str] = &[
     self::makemigrations::error::DESTRUCTIVE_REQUIRE_FORCE,
     self::makemigrations::error::DUPLICATE_TABLE,
     self::makemigrations::error::ENUM_DECLARED_TWICE,
+    self::makemigrations::error::FOLDER_NAMED_RS,
     self::makemigrations::error::LONG_IDENTIFIER_DETECTED,
     self::makemigrations::error::LONG_IDENTIFIER_RENAME_REQUIRED,
     self::makemigrations::error::PARALLEL_CHANGES,

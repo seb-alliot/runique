@@ -1,8 +1,9 @@
 //! Scanning the entities directory for `model!{}` and `extend!{}` declarations.
+use crate::migration::helpers::{file::rust_files, schemas::enums_of};
 use crate::migration::*;
 use crate::utils::trad::tf;
 use anyhow::{Context, Result};
-use std::fs;
+use std::{fs, path::Path};
 
 /// Tables created by `EihwazUsersMigration` + `AdminTableMigration`, never
 /// migrated from the app's entities.
@@ -42,22 +43,14 @@ pub fn scan_models(entities_path: &str) -> Result<ScannedEntities> {
     let mut enums: std::collections::BTreeMap<String, Vec<String>> = Default::default();
     // List fields' tables: their key to the owner is already resolved.
     let mut list_schemas: Vec<ParsedSchema> = Vec::new();
+
     // module name → (table, primary key column)
     let mut targets: std::collections::HashMap<String, (String, String)> = FRAMEWORK_TABLES
         .iter()
         .map(|t| (t.to_string(), (t.to_string(), "id".to_string())))
         .collect();
-    let mut entries: Vec<_> = fs::read_dir(entities_path)
-        .with_context(|| format!("Cannot read entities directory: {}", entities_path))?
-        .collect::<std::io::Result<_>>()?;
 
-    entries.sort_by_key(|e| e.path());
-
-    for entry in entries {
-        let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("rs") {
-            continue;
-        }
+    for path in rust_files(Path::new(entities_path))? {
         let Some(module) = path.file_stem().and_then(|n| n.to_str()) else {
             continue;
         };
@@ -175,15 +168,7 @@ pub fn scan_models(entities_path: &str) -> Result<ScannedEntities> {
 /// (one per block — multiple blocks can target the same table).
 pub fn scan_extend_blocks(entities_path: &str) -> Result<Vec<ParsedSchema>> {
     let mut schemas = Vec::new();
-    let entries = fs::read_dir(entities_path)
-        .with_context(|| format!("Cannot read entities directory: {}", entities_path))?;
-
-    for entry in entries {
-        let entry = entry?;
-        let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("rs") {
-            continue;
-        }
+    for path in rust_files(Path::new(entities_path))? {
         if path.file_name().and_then(|n| n.to_str()) == Some("mod.rs") {
             continue;
         }
@@ -224,24 +209,9 @@ pub fn merge_extend_schemas(schemas: Vec<ParsedSchema>) -> Vec<ParsedSchema> {
             let columns = by_table.remove(&table_name).unwrap_or_default();
             ParsedSchema {
                 table_name,
-                primary_key: None,
                 columns,
-                foreign_keys: Vec::new(),
-                indexes: Vec::new(),
+                ..Default::default()
             }
         })
         .collect()
-}
-
-/// The database enums a model declares: the one its columns an its list
-/// field use, each once.
-fn enums_of(schema: &ParsedSchema, lists: &[ParsedSchema]) -> Vec<String> {
-    let mut names: Vec<String> = std::iter::once(schema)
-        .chain(lists)
-        .flat_map(|table| &table.columns)
-        .filter_map(|column| column.enum_name.clone())
-        .collect();
-    names.sort();
-    names.dedup();
-    names
 }

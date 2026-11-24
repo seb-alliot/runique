@@ -2,7 +2,8 @@
 //! Couvre : diff_schemas, db_columns, Changes::is_empty, update_migration_lib
 
 use runique_cli::migration::cli_migration::update_migration_lib;
-use runique_cli::migration::diff::{db_columns, diff_schemas};
+use runique_cli::migration::db_columns;
+use runique_cli::migration::diff::diff_schemas;
 use runique_cli::migration::types::{ParsedColumn, ParsedSchema};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

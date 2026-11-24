@@ -8,8 +8,9 @@ use runique_dsl::ast::{FormFieldAttr, ModelInput};
 use syn::visit::Visit;
 
 pub(crate) use to_schema::decl_to_column;
-use to_schema::{list_tables, model_to_parsed_schema, pascal_to_snake};
+use to_schema::{list_tables, model_to_parsed_schema};
 
+use crate::migration::helpers::naming::pascal_to_snake;
 use crate::migration::types::ParsedSchema;
 
 /// `line:column: message` — where a DSL error is in the scanned file.

@@ -17,7 +17,8 @@
     "rename_with_new_key": "Die Tabelle `{}` wird in diesem Lauf umbenannt und erhält gleichzeitig einen neuen Schlüssel auf `{}`, die im selben Lauf erstellt oder umbenannt wird. Gehen Sie in zwei Schritten vor: zuerst die Umbenennung, `runique migration up`, dann der Schlüssel.",
     "renamed_twice": "Zwei Tabellen geben an, aus `{}` umbenannt worden zu sein: `{}` und `{}`. Aus einer Tabelle kann nur eine werden: Entfernen Sie eines der beiden `renamed_from`.",
     "primary_key_changed": "Der Primärschlüssel dieser Tabellen hat sich geändert, und Runique kann einen Primärschlüssel noch nicht migrieren:\n{}\nSetzen Sie den ursprünglichen Schlüssel wieder ins Modell. Hat sich der Typ in allen Tabellen geändert, wurde das Schlüssel-Feature des Projekts (`big-pk`, `pk-uuid`) in dessen Cargo.toml hinzugefügt oder entfernt: Stellen Sie es wieder her.\n`--force` hebt diese Ablehnung nicht auf. Es wurde nichts geschrieben.",
-    "enum_declared_twice": "Diese Enums werden von mehreren Modellen deklariert:\n{}\nEin Enum-Name ist ein einziger Typ in der Datenbank: Er kann nur einmal deklariert werden. Benennen Sie einen davon um (zum Beispiel `StatutCommande`, `StatutFacture`).\n`--force` hebt diese Ablehnung nicht auf. Es wurde nichts geschrieben."
+    "enum_declared_twice": "Diese Enums werden von mehreren Modellen deklariert:\n{}\nEin Enum-Name ist ein einziger Typ in der Datenbank: Er kann nur einmal deklariert werden. Benennen Sie einen davon um (zum Beispiel `StatutCommande`, `StatutFacture`).\n`--force` hebt diese Ablehnung nicht auf. Es wurde nichts geschrieben.",
+    "folder_named_rs": "`{}` ist ein Ordner, aber sein Name endet auf `.rs`: Runique liest jedes `.rs` dieses Ordners als Datei. Benennen Sie den Ordner um oder verschieben Sie ihn. Es wurde nichts geschrieben."
   },
   "info": {
     "files_ready": "{} Datei(en) bereit für die Migration.",

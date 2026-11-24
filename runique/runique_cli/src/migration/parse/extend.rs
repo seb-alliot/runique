@@ -36,9 +36,7 @@ pub fn parse_extend_blocks_from_source(source: &str) -> Result<Vec<ParsedSchema>
                 .map(|decl| decl_to_column(decl, &ext.enums))
                 .collect(),
             table_name: ext.table,
-            primary_key: None,
-            foreign_keys: Vec::new(),
-            indexes: Vec::new(),
+            ..Default::default()
         });
     }
     Ok(schemas)

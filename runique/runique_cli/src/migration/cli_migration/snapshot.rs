@@ -1,5 +1,6 @@
 //! Snapshots: reading the previous state of a table, and upgrading old snapshots.
 use super::scan::{merge_extend_schemas, scan_extend_blocks};
+use crate::migration::helpers::file::rust_files;
 use crate::migration::*;
 use crate::utils::trad::tf;
 use anyhow::{Context, Result};
@@ -88,14 +89,10 @@ pub(super) fn read_all(migrations_path: &str) -> Result<Vec<ParsedSchema>> {
         (snapshot_dir(migrations_path), true),
         (extend_snapshot_dir(migrations_path), false),
     ] {
-        let Ok(entries) = fs::read_dir(&dir) else {
+        if !Path::new(&dir).is_dir() {
             continue;
-        };
-        for entry in entries {
-            let path = entry?.path();
-            if path.extension().is_none_or(|ext| ext != "rs") || !path.is_file() {
-                continue;
-            }
+        }
+        for path in rust_files(Path::new(&dir))? {
             let shown = path.display().to_string();
             let schema = parse_create_file(&shown).map_err(|_| {
                 anyhow::anyhow!(tf(
@@ -127,14 +124,11 @@ pub(super) fn read_all(migrations_path: &str) -> Result<Vec<ParsedSchema>> {
 /// The framework tables an `extend!{}` snapshot exists for, sorted the ones
 /// the project's blocks added columns to, as last applied.
 pub(super) fn extended_tables(migrations_path: &str) -> Vec<String> {
-    let Ok(entries) = fs::read_dir(extend_snapshot_dir(migrations_path)) else {
+    let Ok(files) = rust_files(Path::new(&extend_snapshot_dir(migrations_path))) else {
         return Vec::new();
     };
-    let mut tables: Vec<String> = entries
-        .filter_map(|entry| entry.ok().map(|entry| entry.path()))
-        .filter(|path| path.is_file() && path.extension().is_some_and(|ext| ext == "rs"))
+    files
+        .into_iter()
         .filter_map(|path| path.file_stem()?.to_str().map(str::to_string))
-        .collect();
-    tables.sort();
-    tables
+        .collect()
 }

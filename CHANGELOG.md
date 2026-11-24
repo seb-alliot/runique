@@ -77,6 +77,11 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+* **The files of a folder are read in the same order everywhere**: `extend!{}` blocks were read in the order the system returned the files. Two files each adding columns to the same table could give a migration with its columns in a different order from one machine to another. They are now read by file name, like the models.
+* **A folder named like a `.rs` file is said clearly**: an `archive.rs/` sub-folder among the entities stopped `makemigrations` on "Cannot read file", and the same among the snapshots was skipped without a word. Both now stop with the same message, naming the folder and saying to rename or move it.
+
+* **A column renamed and modified in the same run keeps its modification**: with `title: text [required, renamed_from: "job_title"]` on a column optional until then, only the rename was migrated. The column stayed optional in the database while the snapshot recorded it as required, and the gap was never seen again. `makemigrations` now compares the column to what it was under its former name: the migration renames, then modifies, and the modification goes through the usual guard (`--force` for a column that becomes required).
+
 * **A removed `extend!{}` block removes its columns**: deleting a whole `extend!{}` block, or leaving it without a field, produced no migration: the columns stayed in the database and the extension's snapshot on disk. `makemigrations` now also starts from the extensions' snapshots: the columns of the block that is gone are to be dropped, with `--force` like any column removal. `migration up` then deletes the snapshot of an extension that has no field left.
 
 * **`makemigrations` refuses a primary key that changed**: the name or the type of the key of a table already applied could change (in the model, or by adding `big-pk` / `pk-uuid` to a project whose keys are written `Pk`) without the command saying anything or generating a migration: the database kept the former key. The command now stops, lists every table concerned with its former and new key, and writes nothing, with or without `--force`. Migrating a primary key is not supported yet.

@@ -5,12 +5,16 @@
 //! The file is the developer's: only the directive goes, with the comma that
 //! set it apart, and what is left is checked token for token before it is
 //! written.
-use crate::migration::parse::builder::MacroCollector;
+use crate::migration::{helpers::file::rust_files, parse::builder::MacroCollector};
 use crate::utils::trad::tf;
 use anyhow::{Context, Result};
 use proc_macro2::{Delimiter, TokenStream, TokenTree};
 use runique_dsl::{ast::ModelInput, extend::ExtendDsl};
-use std::{fs, ops::Range, path::PathBuf};
+use std::{
+    fs,
+    ops::Range,
+    path::{Path, PathBuf},
+};
 use syn::visit::Visit;
 
 /// The tokens of a macro call, as they are written.
@@ -30,17 +34,8 @@ pub(super) fn cleared_files(
     entities_path: &str,
     targets: &[(bool, String)],
 ) -> Result<Vec<(PathBuf, String)>> {
-    let mut paths: Vec<PathBuf> = fs::read_dir(entities_path)
-        .with_context(|| format!("Cannot read entities directory: {entities_path}"))?
-        .map(|entry| entry.map(|e| e.path()))
-        .collect::<std::io::Result<_>>()?;
-    paths.sort();
-
     let mut files = Vec::new();
-    for path in paths {
-        if path.extension().and_then(|e| e.to_str()) != Some("rs") {
-            continue;
-        }
+    for path in rust_files(Path::new(entities_path))? {
         let source = fs::read_to_string(&path)
             .with_context(|| format!("Cannot read file: {}", path.display()))?;
         let ranges = applied_ranges(&source, targets);

@@ -235,6 +235,8 @@ model! {
 
 `makemigrations` émet alors `ALTER TABLE employes RENAME COLUMN job_title TO title` (PostgreSQL, MySQL, SQLite). L'attribut est une directive de migration uniquement : aucun effet sur l'entité ou le formulaire générés. Garde-fou : si l'ancienne colonne existe encore dans le snapshot (hint périmé), aucun rename n'est émis.
 
+La colonne peut être modifiée dans le même lancement (`title: text [required, renamed_from: "job_title"]`) : elle est comparée à ce qu'elle était sous son ancien nom, et la migration la renomme puis la modifie. La modification suit les règles habituelles : rendre obligatoire une colonne facultative demande `--force`.
+
 ### Étendre une table framework avec `extend!{}`
 
 Pour ajouter des colonnes à `eihwaz_users` (ou `eihwaz_groupes`) sans toucher au framework :

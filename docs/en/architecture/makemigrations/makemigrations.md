@@ -235,6 +235,8 @@ model! {
 
 `makemigrations` then emits `ALTER TABLE employees RENAME COLUMN job_title TO title` (PostgreSQL, MySQL, SQLite). The attribute is a migration-only directive: no effect on the generated entity or form. Safeguard: if the old column still exists in the snapshot (stale hint), no rename is emitted.
 
+The column may be modified in the same run (`title: text [required, renamed_from: "job_title"]`): it is compared to what it was under its former name, and the migration renames it, then modifies it. The modification follows the usual rules: making an optional column required asks for `--force`.
+
 ### Extending a framework table with `extend!{}`
 
 To add columns to `eihwaz_users` (or `eihwaz_groupes`) without touching the framework:

@@ -1,5 +1,6 @@
 //! Destructive changes: listing them (dropped columns, type changes, narrowed
 //! lengths, dropped FKs…) and the type changes that are not migrated yet.
+use crate::migration::helpers::columns::{decimal_may_shrink, length_may_shrink};
 use crate::migration::types::Changes;
 
 /// Scans a set of changes for destructive operations (dropped columns, type
@@ -141,31 +142,6 @@ pub fn collect_destructive_messages(all_changes: &[Changes]) -> Vec<String> {
         .chain(dropped_fks)
         .chain(cascade_fks)
         .collect()
-}
-
-/// Whether going from `old` to `new` column length can drop data on some
-/// engine. No length is unbounded on Postgres but `VARCHAR(255)` on MySQL, so
-/// both directions out of "no length" are checked against each.
-pub fn length_may_shrink(old: Option<u32>, new: Option<u32>) -> bool {
-    match (old, new) {
-        (Some(old), Some(new)) => new < old,
-        (None, Some(_)) => true,
-        (Some(old), None) => old > 255,
-        (None, None) => false,
-    }
-}
-
-/// Whether going from `old` to `new` decimal precision can drop data. No
-/// precision is unbounded on Postgres and `DECIMAL(10, 0)` on MySQL, so a
-/// first precision always may: fewer digits before the point, or after it.
-pub fn decimal_may_shrink(old: Option<(u32, u32)>, new: Option<(u32, u32)>) -> bool {
-    match (old, new) {
-        (Some((old_p, old_s)), Some((new_p, new_s))) => {
-            new_s < old_s || new_p.saturating_sub(new_s) < old_p.saturating_sub(old_s)
-        }
-        (None, Some(_)) => true,
-        (_, None) => false,
-    }
 }
 
 /// The columns whose type changed: `--force` let them through, but their
