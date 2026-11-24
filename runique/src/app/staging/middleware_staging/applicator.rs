@@ -27,7 +27,7 @@
 //!   the lowest slot is applied LAST (.layer) = the most EXTERNAL
 //!
 //! RESULT on an incoming request:
-//!   → Extensions(0) → TrustedProxies(2) → CORS(8) → ErrorHandler(10) → Host(15)
+//!   → Extensions(0) → TrustedProxies(2) → CORS(8) → Lang(9) → ErrorHandler(10) → Host(15)
 //!   → HttpsRedirect(17) → Custom(20+)
 //!   → OpenRedirect(25) → CSP(30) → Cache(40) → Session(50) → CSRF(60) → Handler
 //!
@@ -40,7 +40,7 @@ use crate::context::RequestExtensions;
 use crate::middleware::session::CleaningMemoryStore;
 use crate::middleware::{
     allowed_hosts_middleware, anti_bot_middleware, csrf_middleware, dev_no_cache_middleware,
-    error_handler_middleware, https_redirect_middleware, open_redirect_middleware,
+    error_handler_middleware, https_redirect_middleware, lang_middleware, open_redirect_middleware,
     security_headers_middleware, trusted_proxies_middleware,
 };
 use crate::utils::aliases::{AEngine, ARuniqueConfig, ATera};
@@ -59,6 +59,7 @@ const SLOT_EXTENSIONS: u16 = 0; // Engine/Tera/Config injection (outermost)
 const SLOT_TRUSTED_PROXIES: u16 = 2; // Real client IP extraction — before everything
 const SLOT_COMPRESSION: u16 = 5; // Compression (external, before any other middleware)
 const SLOT_CORS: u16 = 8; // Outside ErrorHandler — OPTIONS preflight never reaches CSRF
+const SLOT_LANG: u16 = 9; // Outside ErrorHandler: an error page is in the visitor's language too
 const SLOT_ERROR_HANDLER: u16 = 10; // Catches errors of the WHOLE stack
 const SLOT_CUSTOM_BASE: u16 = 20; // Dev's custom middlewares start here
 const SLOT_OPEN_REDIRECT: u16 = 25; // After custom, before CSP — wraps response inspection
@@ -211,6 +212,15 @@ impl MiddlewareStaging {
                 slot: SLOT_CORS,
                 name: "CORS",
                 apply: Box::new(move |r| r.layer(layer)),
+            });
+        }
+
+        // Slot 9: the visitor's language, for everything inside — error pages included
+        if self.lang {
+            entries.push(MiddlewareEntry {
+                slot: SLOT_LANG,
+                name: "Lang",
+                apply: Box::new(|r| r.layer(middleware::from_fn(lang_middleware))),
             });
         }
 

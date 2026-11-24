@@ -48,8 +48,14 @@ impl AccountLink {
     fn texts(self, minutes: u64) -> Vec<(&'static str, String)> {
         let text = |key: &str| t(key).into_owned();
         let minutes = [minutes.to_string()];
+        // The language the mail is written in, for its `<html lang>`.
+        let lang = (
+            "lang",
+            crate::utils::trad::current_lang().code().to_string(),
+        );
         match self {
             Self::Reset => vec![
+                lang,
                 (
                     "t_title",
                     text(runique_i18n::keys::admin::reset_password::label::EMAIL_TITLE),
@@ -75,6 +81,7 @@ impl AccountLink {
                 ),
             ],
             Self::Welcome => vec![
+                lang,
                 (
                     "t_greeting",
                     text(runique_i18n::keys::admin::user_created::label::EMAIL_GREETING),

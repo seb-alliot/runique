@@ -13,6 +13,7 @@ pub mod test_csrf_login_rotation;
 pub mod test_debug_page_headers;
 pub mod test_dev_cache;
 pub mod test_errors;
+pub mod test_lang;
 pub mod test_login_guard;
 pub mod test_open_redirect;
 pub mod test_rate_limit;

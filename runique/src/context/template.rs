@@ -181,6 +181,7 @@ where
         let mut context = Context::new();
         context.insert("debug", &engine.config.debug);
         context.insert("dev", &engine.config.dev);
+        context.insert("lang", crate::utils::trad::current_lang().code());
         context.insert(
             "csrf_token",
             &csrf_token
@@ -277,6 +278,7 @@ impl Request {
         // The backend cannot be reloaded here because it is shared between requests
         context.insert("debug", &engine.config.debug);
         context.insert("dev", &engine.config.dev);
+        context.insert("lang", crate::utils::trad::current_lang().code());
         context.insert("static_runique", &engine.config.static_files);
         context.insert(
             "csrf_token",

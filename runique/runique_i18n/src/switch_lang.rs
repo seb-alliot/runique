@@ -59,6 +59,15 @@ const UNSET: usize = usize::MAX;
 
 static GLOBAL_LANG: AtomicUsize = AtomicUsize::new(UNSET);
 
+tokio::task_local! {
+    /// The language of the request being answered (see [`with_lang`]).
+    static REQUEST_LANG: Lang;
+}
+
+/// How many languages of an `Accept-Language` header are looked at: a browser
+/// sends a handful, and the header is a visitor's input.
+const MAX_ACCEPTED: usize = 16;
+
 /// The messages on disk: one folder per language, one file per subject
 /// (`locales/<language>/<subject>.json`), the folders mirroring each other,
 /// plus the language's own `lang.json` (its name, its regional variants, the
@@ -348,6 +357,26 @@ pub(crate) fn normalize(name: &str) -> String {
         .to_lowercase()
 }
 
+/// The weight of an entry without `q`, in thousandths.
+const FULL_QUALITY: u16 = 1000;
+
+/// The weight `q=0.8` gives an `Accept-Language` entry, in thousandths: from
+/// `0` to `1`, three decimals at most. `None` for anything else: the entry
+/// is dropped, not guessed.
+fn quality(params: &str) -> Option<u16> {
+    let value = params.trim().strip_prefix("q=")?.trim();
+    let (whole, decimals) = value.split_once('.').unwrap_or((value, ""));
+    if decimals.len() > 3 || !decimals.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    let thousandths: u16 = format!("{decimals:0<3}").parse().ok()?;
+    match whole {
+        "0" => Some(thousandths),
+        "1" if thousandths == 0 => Some(FULL_QUALITY),
+        _ => None,
+    }
+}
+
 /// Sets the language of the application: the one asked for comes before any
 /// default (see [`set_default_lang`]).
 pub fn set_lang(lang: Lang) {
@@ -361,10 +390,20 @@ pub fn set_default_lang(lang: Lang) {
     let _ = GLOBAL_LANG.compare_exchange(UNSET, lang.index(), Ordering::Relaxed, Ordering::Relaxed);
 }
 
-/// Returns the language in use (default: `En`). A language of the project
-/// that is no longer loaded counts as English.
+/// Runs `work` in `lang`: inside it, [`current_lang`], [`t`] and [`tf`] answer
+/// in that language, whatever the application's own. For one request: a task
+/// spawned from `work` is another task, and is back to the application's.
+pub async fn with_lang<F: Future>(lang: Lang, work: F) -> F::Output {
+    REQUEST_LANG.scope(lang, work).await
+}
+
+/// Returns the language in use: the one of the request being answered (see
+/// [`with_lang`]), else the application's (default: `En`). A language of the
+/// project that is no longer loaded counts as English.
 pub fn current_lang() -> Lang {
-    let at = GLOBAL_LANG.load(Ordering::Relaxed);
+    let at = REQUEST_LANG
+        .try_with(|lang| lang.index())
+        .unwrap_or_else(|_| GLOBAL_LANG.load(Ordering::Relaxed));
     if at < registry().languages.len() {
         Lang::from_index(at)
     } else {
@@ -424,6 +463,40 @@ impl Lang {
             .iter()
             .find_map(|key| vars.iter().find(|(k, _)| k == key))
             .map(|(_, v)| Lang::from(v.as_str()))
+    }
+
+    /// The language a browser asks for in its `Accept-Language` header
+    /// (`nl-BE, fr;q=0.8, en;q=0.5`): the preferred one among those loaded.
+    /// A regional variant nobody declares counts as its language (`fr-LU` is
+    /// `fr`). `None` when none is loaded: the caller keeps its own language.
+    ///
+    /// The header is a visitor's input: it only ever picks a loaded language,
+    /// and only its first few entries are read.
+    #[must_use]
+    pub fn from_accept_language(header: &str) -> Option<Lang> {
+        let registry = registry();
+        let mut wanted: Vec<(u16, usize)> = header
+            .split(',')
+            .take(MAX_ACCEPTED)
+            .filter_map(|entry| {
+                let (tag, quality) = match entry.split_once(';') {
+                    Some((tag, params)) => (tag, quality(params)?),
+                    None => (entry, FULL_QUALITY),
+                };
+                if quality == 0 {
+                    return None;
+                }
+                let tag = normalize(tag);
+                let language = tag.split('-').next().unwrap_or(&tag);
+                registry
+                    .position(&tag)
+                    .or_else(|| registry.position(language))
+                    .map(|at| (quality, at))
+            })
+            .collect();
+        // Stable: at the same weight, the order of the header decides.
+        wanted.sort_by_key(|(quality, _)| std::cmp::Reverse(*quality));
+        wanted.first().map(|(_, at)| Lang::from_index(*at))
     }
 
     /// Every language loaded: Runique's nine, then the project's.

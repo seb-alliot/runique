@@ -7,5 +7,5 @@ pub use runique_i18n::switch_lang;
 pub use runique_i18n::project::{
     LanguageReport, LocaleError, ProjectReport, load_project, project_dir,
 };
-pub use switch_lang::{Lang, LangId, current_lang, set_default_lang, set_lang};
+pub use switch_lang::{Lang, LangId, current_lang, set_default_lang, set_lang, with_lang};
 pub use switch_lang::{t, tf};

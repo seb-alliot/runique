@@ -13,6 +13,8 @@ categories = ["internationalization"]
 [dependencies]
 serde_json.workspace = true
 dotenvy.workspace = true
+# The language of one request: a value that follows its task, whatever thread runs it.
+tokio = { version = "1", default-features = false, features = ["rt"] }
 
 [dev-dependencies]
 # The language is global to the process: the tests that change it run one at a time.

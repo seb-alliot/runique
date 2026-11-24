@@ -78,6 +78,8 @@ pub struct MiddlewareStaging {
     pub(crate) trusted_proxies_config: Option<TrustedProxiesConfig>,
     /// Anti-bot honeypot middleware (false by default)
     pub(crate) anti_bot: bool,
+    /// Each visitor in the language of its browser (false by default)
+    pub(crate) lang: bool,
 }
 
 impl MiddlewareStaging {
@@ -108,6 +110,7 @@ impl MiddlewareStaging {
             permissions_policy: None,
             trusted_proxies_config: None,
             anti_bot: false,
+            lang: false,
         }
     }
 
@@ -153,6 +156,7 @@ impl MiddlewareStaging {
             permissions_policy: None,
             trusted_proxies_config: None,
             anti_bot: false,
+            lang: false,
         }
     }
 
@@ -347,6 +351,18 @@ impl MiddlewareStaging {
     /// is filled the form is automatically marked invalid — no handler change needed.
     pub fn with_anti_bot(mut self) -> Self {
         self.anti_bot = true;
+        self
+    }
+
+    /// Answers each visitor in the language of its browser.
+    ///
+    /// The `Accept-Language` header of the request picks the language, among
+    /// Runique's and the ones of the project's `locales/` folder; when none
+    /// of them is asked for, the application's own language stays (the one
+    /// of `set_lang()` or of `LANG` in the `.env`). Without this call, every
+    /// visitor gets the application's language.
+    pub fn with_lang(mut self) -> Self {
+        self.lang = true;
         self
     }
 
