@@ -211,6 +211,8 @@ When you use `extend! { table: "eihwaz_users", ... }`, `makemigrations`:
 2. Stores the extension in a dedicated snapshot folder.
 3. Generates an `ALTER TABLE` instead of a `CREATE TABLE`.
 
+Removing a field from the block removes its column. Removing the whole block, or leaving it without a field, removes every column it had added: `makemigrations` sees it through the extension's snapshot, even when the project has no block left. Both are a column removal, refused without `--force` since its data is lost. Once the removal is applied by `migration up`, the snapshot of an extension that has no field left is deleted. The framework's table itself is never dropped.
+
 ---
 
 ## Concrete examples

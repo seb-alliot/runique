@@ -4,9 +4,11 @@
 pub mod destructive_changes;
 pub mod name_length_limit;
 pub mod ordering;
+pub mod primary_pk;
 pub mod renames;
 
 pub use destructive_changes::*;
 pub use name_length_limit::*;
 pub use ordering::*;
+pub use primary_pk::*;
 pub use renames::*;

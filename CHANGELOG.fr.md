@@ -19,6 +19,8 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ### Ruptures
 
+* **Un nom d'enum ne se déclare qu'une fois** : deux modèles (ou un modèle et un bloc `extend!{}`) qui déclarent un enum texte du même nom font maintenant échouer `makemigrations`, qui nomme l'enum et les modèles et n'écrit rien, avec ou sans `--force`. Jusqu'ici la commande ne disait rien : sous PostgreSQL le type n'était créé qu'une fois, et le second modèle recevait en silence les valeurs du premier. Renommez l'un des deux (`StatutCommande`, `StatutFacture`). Plusieurs champs d'un même modèle sur son enum, et les enums entiers, ne sont pas concernés.
+
 * **Canaux de log `admin.filter_fn` et `admin.daemon` supprimés** : ils dataient de l'ancien admin (fonctions de filtre, générateur de code) et ne produisaient plus rien. Retirer `.filter_fn(...)` et `.daemon(...)` des appels à `with_log(|l| l.admin(...))`. Les filtres d'une liste sont maintenant visibles dans le journal `admin.list`.
 
 * **`hot_reload` de l'admin supprimé** : `AdminConfig.hot_reload` et `.hot_reload(...)` dans `with_admin` ne faisaient plus rien depuis le nouvel admin (en développement, les templates sont rechargés à chaque rendu, avec ou sans ce réglage). Retirer l'appel.
@@ -74,6 +76,10 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 * **Tag des migrations en attente** : chaque migration écrite par `makemigrations` commence par la ligne `// runique: waiting migrate up` (constante `WAIT_MIGRATION`). C'est un commentaire : rien ne change à l'application des migrations. `runique migration up` le retire de chaque migration de `lib.rs` quand le lancement a réussi, en un seul lot de fichiers. Il est reconnu où qu'il soit dans le fichier, seul sur sa ligne ; le marqueur `// runique: column lengths recorded` des snapshots aussi, alors qu'il n'était lu qu'en première ligne. Il servira à remplacer les migrations en attente quand `makemigrations` est relancé.
 
 ### Corrigé
+
+* **Un bloc `extend!{}` retiré retire ses colonnes** : supprimer un bloc `extend!{}` en entier, ou le laisser sans champ, ne produisait aucune migration : les colonnes restaient en base et le snapshot de l'extension sur le disque. `makemigrations` part maintenant aussi des snapshots des extensions : les colonnes du bloc disparu sont à retirer, avec `--force` comme tout retrait de colonne. `migration up` supprime ensuite le snapshot d'une extension qui n'a plus de champ.
+
+* **`makemigrations` refuse une clé primaire qui a changé** : le nom ou le type de la clé d'une table déjà appliquée pouvait changer (dans le modèle, ou en ajoutant `big-pk` / `pk-uuid` à un projet dont les clés sont écrites `Pk`) sans que la commande ne dise rien ni ne génère de migration : la base gardait l'ancienne clé. La commande s'arrête maintenant, liste toutes les tables concernées avec l'ancienne et la nouvelle clé, et n'écrit rien, avec ou sans `--force`. La migration d'une clé primaire n'est pas encore prise en charge.
 
 * **Deux messages de l'admin affichaient leur clé** : le message après déconnexion (`admin.logout_success`) et le libellé du champ mot de passe du formulaire de connexion (`admin.password`) appelaient des clés qui n'existaient dans aucune langue. Le premier pointe sur le message existant, le second a maintenant son texte dans les 9 langues.
 

@@ -211,6 +211,8 @@ Quand vous utilisez `extend! { table: "eihwaz_users", ... }`, `makemigrations` :
 2. Stocke l'extension dans un dossier de snapshot dédié.
 3. Génère un `ALTER TABLE` au lieu d'un `CREATE TABLE`.
 
+Retirer un champ du bloc retire sa colonne. Retirer le bloc entier, ou le laisser sans champ, retire toutes les colonnes qu'il avait ajoutées : `makemigrations` le voit par le snapshot de l'extension, même quand le projet n'a plus aucun bloc. Dans les deux cas c'est un retrait de colonne, refusé sans `--force` puisque ses données sont perdues. Une fois le retrait appliqué par `migration up`, le snapshot d'une extension qui n'a plus de champ est supprimé. La table du framework, elle, n'est jamais supprimée.
+
 ---
 
 ## Exemples concrets

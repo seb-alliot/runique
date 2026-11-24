@@ -2,11 +2,12 @@
 
 ## Formulaire d'upload
 
+Le minimum à écrire :
+
 ```rust
 use runique::prelude::*;
-use serde::Serialize;
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize)]
 #[serde(transparent)]
 pub struct ImageForm {
     pub form: Forms,
@@ -14,21 +15,44 @@ pub struct ImageForm {
 
 impl FormAccess for ImageForm {
     fn register_fields(form: &mut Forms) {
-        form.field(
-            &MediaField::image("image")
-                .label("Image")
-                .upload_to_env()        // → {MEDIA_ROOT}/image/
-                .max_size(FileSize::mb(5))
-                .max_files(1)
-                .max_dimensions(1920, 1080)
-                .allowed_extensions(vec!["jpg", "png", "webp", "avif"])
-        );
+        form.field(&MediaField::image("image").label("Image"));
     }
     impl_form_access!();
 }
 
 impl RuniqueForm for ImageForm {}
 ```
+
+- Le champ de la struct doit s'appeler `form` : `impl_form_access!()` s'appuie sur ce nom.
+- `impl RuniqueForm for ImageForm {}` reste vide, mais il est requis par `request.form()`.
+- `Serialize` sert à passer le formulaire au template (`"image_form" => &form`). `Debug` et `Clone` ne sont pas demandés par Runique.
+- `#[serde(transparent)]` est facultatif pour `{% form.image_form %}`, qui lit le formulaire aussi bien directement que sous la clé `form`. Il sert à l'accès direct dans le template : `{{ image_form.errors }}` au lieu de `{{ image_form.form.errors }}`. Pour sérialiser d'autres champs à côté de `form`, mettre `#[serde(flatten)]` sur le champ `form` à la place.
+
+### Options du champ
+
+Chaque réglage est facultatif. Sans lui, le champ prend la valeur de la colonne de droite :
+
+```rust
+form.field(
+    &MediaField::image("image")
+        .label("Image")
+        .upload_to_env()        // → {MEDIA_ROOT}/image/
+        .max_size(FileSize::mb(5))
+        .max_files(1)
+        .max_dimensions(1920, 1080)
+        .allowed_extensions(vec!["jpg", "png", "webp", "avif"])
+);
+```
+
+| Méthode | Sans elle |
+| --- | --- |
+| `.label(...)` | libellé vide : il n'est pas déduit du nom du champ |
+| `.upload_to(...)` / `.upload_to_env()` | fichier à la racine de `MEDIA_ROOT` |
+| `.max_size(...)` | 10 Mo par fichier |
+| `.max_files(n)` | un seul fichier proposé par le navigateur, mais aucun contrôle du nombre côté serveur |
+| `.max_dimensions(l, h)` | aucune limite de dimensions (la signature de l'image reste vérifiée) |
+| `.allowed_extensions(...)` | jpg, jpeg, png, gif, webp, avif |
+| `.required()` | champ facultatif |
 
 ---
 

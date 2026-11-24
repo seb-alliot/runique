@@ -19,6 +19,8 @@ All notable changes to this project will be documented in this file.
 
 ### Breaking changes
 
+* **An enum name is declared only once**: two models (or a model and an `extend!{}` block) declaring a text enum of the same name now make `makemigrations` fail: it names the enum and the models and writes nothing, with or without `--force`. Until now the command said nothing: under PostgreSQL the type was created once only, and the second model silently got the values of the first. Rename one of the two (`OrderStatus`, `InvoiceStatus`). Several fields of one model on its enum, and integer enums, are not concerned.
+
 * **Log channels `admin.filter_fn` and `admin.daemon` removed**: they came from the former admin (filter functions, code generator) and no longer produced anything. Drop `.filter_fn(...)` and `.daemon(...)` from `with_log(|l| l.admin(...))` calls. A list's filters now show in the `admin.list` log.
 
 * **Admin `hot_reload` removed**: `AdminConfig.hot_reload` and `.hot_reload(...)` in `with_admin` had done nothing since the new admin (in development, templates are reloaded on every render, with or without this setting). Drop the call.
@@ -74,6 +76,10 @@ All notable changes to this project will be documented in this file.
 * **Tag of pending migrations**: every migration `makemigrations` writes starts with the line `// runique: waiting migrate up` (constant `WAIT_MIGRATION`). It is a comment: nothing changes in how migrations are applied. `runique migration up` removes it from every migration of `lib.rs` once the run succeeded, as one batch of files. It is recognised wherever it is in the file, alone on its line; so is the `// runique: column lengths recorded` marker of snapshots, which was only read on the first line. It will be used to replace the pending migrations when `makemigrations` is run again.
 
 ### Fixed
+
+* **A removed `extend!{}` block removes its columns**: deleting a whole `extend!{}` block, or leaving it without a field, produced no migration: the columns stayed in the database and the extension's snapshot on disk. `makemigrations` now also starts from the extensions' snapshots: the columns of the block that is gone are to be dropped, with `--force` like any column removal. `migration up` then deletes the snapshot of an extension that has no field left.
+
+* **`makemigrations` refuses a primary key that changed**: the name or the type of the key of a table already applied could change (in the model, or by adding `big-pk` / `pk-uuid` to a project whose keys are written `Pk`) without the command saying anything or generating a migration: the database kept the former key. The command now stops, lists every table concerned with its former and new key, and writes nothing, with or without `--force`. Migrating a primary key is not supported yet.
 
 * **Two admin messages showed their key**: the message after logging out (`admin.logout_success`) and the label of the password field of the login form (`admin.password`) asked for keys that existed in no language. The first now points to the existing message, the second has its text in the 9 languages.
 

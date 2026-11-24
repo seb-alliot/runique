@@ -15,7 +15,9 @@
     "duplicate_table": "Two tables are named `{}`. A list field's table is named `<owner table>_<field>`: rename the field or the other table.",
     "parallel_changes": "Two migrations start from the same point for the same table:\n  {}\nThey were written in parallel: Runique can't tell which one the table should follow. Nothing was written.",
     "rename_with_new_key": "Table `{}` is renamed in this run and gets, at the same time, a new key to `{}`, created or renamed in this same run. Do it in two steps: the rename first, `runique migration up`, then the key.",
-    "renamed_twice": "Two tables say they were renamed from `{}`: `{}` and `{}`. A table can only become one: remove one of the two `renamed_from`."
+    "renamed_twice": "Two tables say they were renamed from `{}`: `{}` and `{}`. A table can only become one: remove one of the two `renamed_from`.",
+    "primary_key_changed": "The primary key of these tables changed, and Runique can't migrate a primary key yet:\n{}\nPut the former key back in the model. If the type changed on every table, the project's key feature (`big-pk`, `pk-uuid`) was added to or removed from its Cargo.toml: put it back as it was.\n`--force` doesn't lift this refusal. Nothing was written.",
+    "enum_declared_twice": "These enums are declared by several models:\n{}\nAn enum name is one type in the database: it can only be declared once. Rename one of them (for example `StatutCommande`, `StatutFacture`).\n`--force` doesn't lift this refusal. Nothing was written."
   },
   "info": {
     "files_ready": "{} file(s) ready to migrate.",

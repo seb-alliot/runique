@@ -3045,3 +3045,607 @@ fn a_renamed_key_name_is_accepted_up_to_63_characters() {
     let one_over = renamed_change(&"t".repeat(64 - around), Some("shop"), &["owner"]);
     assert_eq!(collect_long_identifier_messages(&[one_over]).len(), 1);
 }
+
+// ── A primary key that changed since its snapshot ────────────────────────────
+
+fn keyed(table: &str, key: Option<(&str, &str)>) -> ParsedSchema {
+    ParsedSchema {
+        primary_key: key.map(|(name, col_type)| ParsedColumn {
+            name: name.into(),
+            col_type: col_type.into(),
+            ..ParsedColumn::default()
+        }),
+        ..schema(table, &[])
+    }
+}
+
+// Name, type, or both: one line naming the table and both keys. The same
+// key, or a side without one, says nothing.
+#[test]
+fn a_primary_key_is_compared_by_its_name_and_its_type() {
+    let was = keyed("users", Some(("id", "Integer")));
+    let change = |now: Option<(&str, &str)>| primary_key_change(&was, &keyed("users", now));
+
+    assert_eq!(change(Some(("id", "Integer"))), None);
+    assert_eq!(
+        change(Some(("id", "Uuid"))).as_deref(),
+        Some("  users: id (Integer) -> id (Uuid)")
+    );
+    assert_eq!(
+        change(Some(("uid", "Integer"))).as_deref(),
+        Some("  users: id (Integer) -> uid (Integer)")
+    );
+    assert_eq!(
+        change(Some(("uid", "BigInteger"))).as_deref(),
+        Some("  users: id (Integer) -> uid (BigInteger)")
+    );
+    assert_eq!(change(None), None, "a model without a key");
+    assert_eq!(
+        primary_key_change(&keyed("users", None), &was),
+        None,
+        "a snapshot without a key"
+    );
+}
+
+// The line names the table as the model calls it now.
+#[test]
+fn a_changed_key_is_reported_under_the_name_of_the_model() {
+    let was = keyed("shop", Some(("id", "Integer")));
+    let now = keyed("bakery", Some(("id", "Uuid")));
+    assert_eq!(
+        primary_key_change(&was, &now).as_deref(),
+        Some("  bakery: id (Integer) -> id (Uuid)")
+    );
+}
+
+/// `users` applied with an `i32` key, then its model rewritten by `change`.
+fn users_with_another_key(dir: &TempDir, change: (&str, &str)) -> (String, String) {
+    let (entities, path) = project(dir);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    run(&entities, &path, false).unwrap();
+    applied(&entities, &path);
+    let model = USERS.replace(change.0, change.1);
+    assert_ne!(model, USERS);
+    fs::write(format!("{entities}/user.rs"), model).unwrap();
+    (entities, path)
+}
+
+// The whole command: a key whose type changed is refused, `--force` or not,
+// and nothing is written.
+#[test]
+fn a_key_that_changed_type_is_refused_with_or_without_force() {
+    let dir = TempDir::new();
+    let (entities, path) = users_with_another_key(&dir, ("id => i32", "id => uuid"));
+    let before = everything(&dir);
+
+    for force in [false, true] {
+        let error = run(&entities, &path, force).unwrap_err().to_string();
+        assert!(
+            error.contains("  users: id (Integer) -> id (Uuid)"),
+            "{error}"
+        );
+        assert_eq!(everything(&dir), before, "force: {force}");
+    }
+}
+
+#[test]
+fn a_key_that_changed_name_is_refused() {
+    let dir = TempDir::new();
+    let (entities, path) = users_with_another_key(&dir, ("id => i32", "uid => i32"));
+    let before = everything(&dir);
+
+    let error = run(&entities, &path, true).unwrap_err().to_string();
+    assert!(
+        error.contains("  users: id (Integer) -> uid (Integer)"),
+        "{error}"
+    );
+    assert_eq!(everything(&dir), before);
+}
+
+// The key put back as it was: the command runs again, and the other change
+// of the model is migrated.
+#[test]
+fn the_former_key_put_back_lets_the_command_run() {
+    let dir = TempDir::new();
+    let (entities, path) = users_with_another_key(&dir, ("id => i32", "id => i64"));
+    assert!(run(&entities, &path, false).is_err());
+
+    fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
+    run(&entities, &path, false).unwrap();
+    assert_eq!(generated(&path).len(), 2);
+}
+
+// Every table is named in one refusal, not one per run; a table whose key
+// didn't move is not.
+#[test]
+fn every_table_with_a_changed_key_is_named_at_once() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    fs::write(format!("{entities}/post.rs"), POSTS).unwrap();
+    fs::write(format!("{entities}/owner.rs"), OWNER).unwrap();
+    run(&entities, &path, false).unwrap();
+    applied(&entities, &path);
+    fs::write(
+        format!("{entities}/user.rs"),
+        USERS.replace("id => i32", "id => i64"),
+    )
+    .unwrap();
+    fs::write(
+        format!("{entities}/post.rs"),
+        POSTS.replace("id => i32", "id => uuid"),
+    )
+    .unwrap();
+    let before = everything(&dir);
+
+    let error = run(&entities, &path, true).unwrap_err().to_string();
+
+    assert!(
+        error.contains("  users: id (Integer) -> id (BigInteger)"),
+        "{error}"
+    );
+    assert!(
+        error.contains("  posts: id (Integer) -> id (Uuid)"),
+        "{error}"
+    );
+    assert!(!error.contains("owner"), "{error}");
+    assert_eq!(everything(&dir), before);
+}
+
+// The refusal comes before the destructive guard: a column dropped in the
+// same run is not what the dev is told about.
+#[test]
+fn a_changed_key_is_refused_before_the_destructive_changes_are_listed() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
+    run(&entities, &path, false).unwrap();
+    applied(&entities, &path);
+    let model = USERS_NO_EMAIL.replace("id => i32", "id => i64");
+    fs::write(format!("{entities}/user.rs"), model).unwrap();
+
+    let error = run(&entities, &path, false).unwrap_err().to_string();
+
+    assert!(
+        error.contains("  users: id (Integer) -> id (BigInteger)"),
+        "{error}"
+    );
+    assert!(!error.contains("DROP COLUMN"), "{error}");
+}
+
+// A table renamed in the same run is compared to the snapshot of its former
+// name, and named as the model calls it now.
+#[test]
+fn a_renamed_table_keeps_the_key_of_its_former_snapshot() {
+    let dir = TempDir::new();
+    let (entities, path) = shop_project(&dir);
+    fs::write(
+        format!("{entities}/shop.rs"),
+        BAKERY.replace("id => i32", "id => i64"),
+    )
+    .unwrap();
+    let before = everything(&dir);
+
+    let error = run(&entities, &path, false).unwrap_err().to_string();
+
+    assert!(
+        error.contains("  bakery: id (Integer) -> id (BigInteger)"),
+        "{error}"
+    );
+    assert_eq!(everything(&dir), before);
+}
+
+// `Pk` follows the project's feature: the day the project changes it, every
+// key written `Pk` changes type, and the command says so instead of running.
+#[test]
+fn a_project_changing_its_key_feature_is_refused() {
+    use runique_dsl::ast::PkType;
+    use runique_dsl::with_project_pk;
+
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    let model = USERS.replace("id => i32", "id => Pk");
+    fs::write(format!("{entities}/user.rs"), model).unwrap();
+    with_project_pk(PkType::I32, || run(&entities, &path, false)).unwrap();
+    // The snapshot is written from the model: read with the same feature.
+    with_project_pk(PkType::I32, || applied(&entities, &path));
+    let settled = everything(&dir);
+
+    // The same feature: nothing changed.
+    with_project_pk(PkType::I32, || run(&entities, &path, false)).unwrap();
+    assert_eq!(everything(&dir), settled);
+
+    for (ty, line) in [
+        (PkType::I64, "  users: id (Integer) -> id (BigInteger)"),
+        (PkType::Uuid, "  users: id (Integer) -> id (Uuid)"),
+    ] {
+        let error = with_project_pk(ty, || run(&entities, &path, true))
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains(line), "{error}");
+        assert_eq!(everything(&dir), settled);
+    }
+}
+
+// ── An `extend!{}` block removed since its columns were applied ──────────────
+
+const PROFILE: &str = r#"extend! { table: "eihwaz_users", fields: { bio: text, website: url } }"#;
+const PROFILE_BIO: &str = r#"extend! { table: "eihwaz_users", fields: { bio: text } }"#;
+const PROFILE_EMPTY: &str = r#"extend! { table: "eihwaz_users", fields: { } }"#;
+const TEAM: &str = r#"extend! { table: "eihwaz_groupes", fields: { motto: text } }"#;
+
+/// A project whose `blocks` (file name, content) are applied: their
+/// snapshots are there, as `migration up` writes them, and nothing waits.
+/// Written directly: a second migration of the same table in the same second
+/// would take the name of the first.
+fn extended_project(dir: &TempDir, blocks: &[(&str, &str)]) -> (String, String) {
+    let (entities, path) = project(dir);
+    for (name, content) in blocks {
+        fs::write(format!("{entities}/{name}"), content).unwrap();
+    }
+    fs::create_dir_all(extend_snapshot_dir(&path)).unwrap();
+    for schema in merge_extend_schemas(scan_extend_blocks(&entities).unwrap()) {
+        fs::write(
+            extend_snapshot_file_path(&path, &schema.table_name),
+            extend_snapshot_content(&schema),
+        )
+        .unwrap();
+    }
+    run(&entities, &path, false).unwrap();
+    assert!(generated(&path).is_empty(), "nothing to migrate");
+    (entities, path)
+}
+
+/// The names of the columns a run would drop, per table.
+fn dropped_by_extensions(entities: &str, path: &str) -> Vec<(String, Vec<String>)> {
+    plan_extend_changes(entities, path)
+        .unwrap()
+        .into_iter()
+        .map(|(schema, changes)| {
+            let mut columns: Vec<String> = changes
+                .dropped_columns
+                .iter()
+                .map(|c| c.name.clone())
+                .collect();
+            columns.sort();
+            assert!(changes.added_columns.is_empty(), "{}", schema.table_name);
+            (schema.table_name, columns)
+        })
+        .collect()
+}
+
+// The tables of `snapshots/runique/`: the `.rs` files, by their name, sorted.
+// No folder, no table.
+#[test]
+fn the_extended_tables_are_the_snapshots_of_their_folder() {
+    let dir = TempDir::new();
+    let path = migrations_src(&dir, None);
+    assert!(extended_tables(&path).is_empty(), "no folder yet");
+
+    let folder = extend_snapshot_dir(&path);
+    fs::create_dir_all(format!("{folder}/a_folder.rs")).unwrap();
+    for name in ["eihwaz_users.rs", "eihwaz_groupes.rs", "notes.txt", "bare"] {
+        fs::write(format!("{folder}/{name}"), "").unwrap();
+    }
+    // A snapshot of a model, one folder up, is not an extension.
+    fs::write(snapshot_file_path(&path, "posts"), "").unwrap();
+
+    assert_eq!(extended_tables(&path), ["eihwaz_groupes", "eihwaz_users"]);
+}
+
+// The block is the only one of the project and it is gone: every column it
+// added is to drop. Refused without `--force`, nothing written.
+#[test]
+fn a_removed_block_drops_its_columns_and_is_refused_without_force() {
+    let dir = TempDir::new();
+    let (entities, path) = extended_project(&dir, &[("profile.rs", PROFILE)]);
+    assert!(
+        dropped_by_extensions(&entities, &path).is_empty(),
+        "applied"
+    );
+
+    fs::remove_file(format!("{entities}/profile.rs")).unwrap();
+    let before = everything(&dir);
+
+    assert_eq!(
+        dropped_by_extensions(&entities, &path),
+        [(
+            "eihwaz_users".to_string(),
+            vec!["bio".to_string(), "website".to_string()]
+        )]
+    );
+    assert!(run(&entities, &path, false).is_err());
+    assert_eq!(everything(&dir), before);
+}
+
+// With `--force`: one migration, the snapshot stays until it is applied,
+// then goes; after that the project has nothing left to migrate.
+#[test]
+fn a_forced_block_removal_takes_its_snapshot_away_once_applied() {
+    let dir = TempDir::new();
+    let (entities, path) = extended_project(&dir, &[("profile.rs", PROFILE)]);
+    let snapshot = extend_snapshot_file_path(&path, "eihwaz_users");
+    assert!(Path::new(&snapshot).exists());
+    fs::remove_file(format!("{entities}/profile.rs")).unwrap();
+
+    run(&entities, &path, true).unwrap();
+
+    let files = generated(&path);
+    assert_eq!(files.len(), 1, "{files:?}");
+    let removal = &files[0];
+    assert!(removal.0.ends_with("_extend_eihwaz_users_table.rs"));
+    assert!(has_marker(&removal.1, WAIT_MIGRATION));
+    assert!(removal.1.contains("bio") && removal.1.contains("website"));
+    assert!(Path::new(&snapshot).exists(), "not applied yet");
+
+    // Run again before applying: the same removal, not a file moves.
+    let waiting = everything(&dir);
+    run(&entities, &path, true).unwrap();
+    assert_eq!(everything(&dir), waiting);
+
+    applied(&entities, &path);
+    assert!(!Path::new(&snapshot).exists());
+    assert!(!crate::atomic::interrupted(Path::new(&path)));
+
+    let settled = everything(&dir);
+    for force in [false, true] {
+        run(&entities, &path, force).unwrap();
+        assert_eq!(everything(&dir), settled, "force: {force}");
+    }
+}
+
+// A block kept without a field is a block removed: same columns to drop,
+// and no snapshot describing nothing once applied.
+#[test]
+fn a_block_left_without_a_field_is_treated_as_removed() {
+    let dir = TempDir::new();
+    let (entities, path) = extended_project(&dir, &[("profile.rs", PROFILE)]);
+    fs::write(format!("{entities}/profile.rs"), PROFILE_EMPTY).unwrap();
+
+    assert_eq!(
+        dropped_by_extensions(&entities, &path),
+        [(
+            "eihwaz_users".to_string(),
+            vec!["bio".to_string(), "website".to_string()]
+        )]
+    );
+    assert!(run(&entities, &path, false).is_err());
+    run(&entities, &path, true).unwrap();
+    applied(&entities, &path);
+
+    assert!(!Path::new(&extend_snapshot_file_path(&path, "eihwaz_users")).exists());
+    let settled = everything(&dir);
+    run(&entities, &path, false).unwrap();
+    assert_eq!(everything(&dir), settled);
+}
+
+// The other side: a block that keeps a field keeps its snapshot, rewritten
+// with what is left.
+#[test]
+fn a_block_that_keeps_a_field_keeps_its_snapshot() {
+    let dir = TempDir::new();
+    let (entities, path) = extended_project(&dir, &[("profile.rs", PROFILE)]);
+    fs::write(format!("{entities}/profile.rs"), PROFILE_BIO).unwrap();
+
+    assert_eq!(
+        dropped_by_extensions(&entities, &path),
+        [("eihwaz_users".to_string(), vec!["website".to_string()])]
+    );
+    run(&entities, &path, true).unwrap();
+    applied(&entities, &path);
+
+    let snapshot = fs::read_to_string(extend_snapshot_file_path(&path, "eihwaz_users")).unwrap();
+    assert!(
+        snapshot.contains("bio") && !snapshot.contains("website"),
+        "{snapshot}"
+    );
+    assert!(dropped_by_extensions(&entities, &path).is_empty());
+}
+
+// Two tables extended, one block removed: only its columns go, and the
+// other table keeps its block, its columns and its snapshot.
+#[test]
+fn only_the_removed_block_loses_its_columns() {
+    let dir = TempDir::new();
+    let (entities, path) = extended_project(&dir, &[("profile.rs", PROFILE), ("team.rs", TEAM)]);
+    let team = fs::read_to_string(extend_snapshot_file_path(&path, "eihwaz_groupes")).unwrap();
+    fs::remove_file(format!("{entities}/profile.rs")).unwrap();
+
+    assert_eq!(
+        dropped_by_extensions(&entities, &path),
+        [(
+            "eihwaz_users".to_string(),
+            vec!["bio".to_string(), "website".to_string()]
+        )]
+    );
+    run(&entities, &path, true).unwrap();
+    applied(&entities, &path);
+
+    assert!(!Path::new(&extend_snapshot_file_path(&path, "eihwaz_users")).exists());
+    assert_eq!(
+        fs::read_to_string(extend_snapshot_file_path(&path, "eihwaz_groupes")).unwrap(),
+        team
+    );
+}
+
+// The block put back before the removal is applied: the waiting migration
+// goes, file and `lib.rs` entry, and the block and its snapshot are as they
+// were. The `lib.rs` the removal created stays, without the migration.
+#[test]
+fn a_block_put_back_before_applying_cancels_its_removal() {
+    let dir = TempDir::new();
+    let (entities, path) = extended_project(&dir, &[("profile.rs", PROFILE)]);
+    let settled = everything(&dir);
+    fs::remove_file(format!("{entities}/profile.rs")).unwrap();
+    run(&entities, &path, true).unwrap();
+    assert_eq!(generated(&path).len(), 1);
+    assert!(
+        fs::read_to_string(lib_path(&path))
+            .unwrap()
+            .contains("_extend_eihwaz_users_table")
+    );
+
+    fs::write(format!("{entities}/profile.rs"), PROFILE).unwrap();
+    run(&entities, &path, false).unwrap();
+
+    assert!(generated(&path).is_empty());
+    assert!(
+        !fs::read_to_string(lib_path(&path))
+            .unwrap()
+            .contains("_extend_")
+    );
+    let left: Vec<(String, String)> = everything(&dir)
+        .into_iter()
+        .filter(|(file, _)| file != "src/lib.rs")
+        .collect();
+    assert_eq!(left, settled);
+}
+
+// ── An enum name declared by more than one model ─────────────────────────────
+
+const ORDERS: &str = r#"model! { Order, table: "commandes", pk: id => i32, enums: { Statut: [Attente, Payee] },
+    { reference: text [required], statut: choice [enum(Statut), required] } }"#;
+const INVOICES: &str = r#"model! { Invoice, table: "factures", pk: id => i32, enums: { Statut: [Brouillon, Emise] },
+    { numero: text [required], statut: choice [enum(Statut), required] } }"#;
+
+/// What reading the models of `files` (file name, content) answers.
+fn scanned(files: &[(&str, &str)]) -> Result<Vec<String>, String> {
+    let dir = TempDir::new();
+    let (entities, _) = project(&dir);
+    for (name, content) in files {
+        fs::write(format!("{entities}/{name}"), content).unwrap();
+    }
+    scan_models(&entities)
+        .map(|found| found.schemas.into_iter().map(|s| s.table_name).collect())
+        .map_err(|e| e.to_string())
+}
+
+// Two models, one enum name: refused, naming the enum and both tables,
+// whether the values differ or not.
+#[test]
+fn an_enum_declared_by_two_models_is_refused() {
+    let error = scanned(&[("order.rs", ORDERS), ("invoice.rs", INVOICES)]).unwrap_err();
+    assert!(error.contains("  Statut: commandes, factures"), "{error}");
+
+    let same_values = INVOICES.replace("[Brouillon, Emise]", "[Attente, Payee]");
+    let error = scanned(&[("order.rs", ORDERS), ("invoice.rs", &same_values)]).unwrap_err();
+    assert!(error.contains("  Statut: commandes, factures"), "{error}");
+}
+
+// The other side: each model its own name, and both are read.
+#[test]
+fn two_models_with_their_own_enum_names_are_read() {
+    let renamed = INVOICES.replace("Statut", "StatutFacture");
+    assert_eq!(
+        scanned(&[("order.rs", ORDERS), ("invoice.rs", &renamed)]).unwrap(),
+        ["factures", "commandes"]
+    );
+}
+
+// One declaration used by several fields of its model, a list field
+// included, is still one declaration.
+#[test]
+fn several_fields_of_a_model_share_its_enum() {
+    let model = r#"model! { Order, table: "commandes", pk: id => i32, enums: { Statut: [Attente, Payee] },
+        { statut: choice [enum(Statut), required], ancien: choice [enum(Statut), nullable],
+          etapes: checkbox [enum(Statut)] } }"#;
+    assert_eq!(
+        scanned(&[("order.rs", model)]).unwrap(),
+        ["commandes", "commandes_etapes"]
+    );
+}
+
+// Every name declared twice is listed at once, sorted; a name declared once
+// is not.
+#[test]
+fn every_enum_declared_twice_is_named_at_once() {
+    let orders = r#"model! { Order, table: "commandes", pk: id => i32,
+        enums: { Statut: [Attente, Payee], Canal: [Web, Boutique], Devise: [Eur, Usd] },
+        { statut: choice [enum(Statut), required], canal: choice [enum(Canal), required],
+          devise: choice [enum(Devise), required] } }"#;
+    let invoices = r#"model! { Invoice, table: "factures", pk: id => i32,
+        enums: { Statut: [Brouillon, Emise], Canal: [Web, Courrier] },
+        { statut: choice [enum(Statut), required], canal: choice [enum(Canal), required] } }"#;
+
+    let error = scanned(&[("order.rs", orders), ("invoice.rs", invoices)]).unwrap_err();
+
+    let canal = error.find("  Canal: commandes, factures").expect(&error);
+    let statut = error.find("  Statut: commandes, factures").expect(&error);
+    assert!(canal < statut, "{error}");
+    assert!(!error.contains("Devise"), "{error}");
+}
+
+// An enum stored as an integer is no type of the database: two models may
+// each have one of the same name.
+#[test]
+fn an_integer_enum_is_not_a_database_type_and_may_be_declared_twice() {
+    let orders = r#"model! { Order, table: "commandes", pk: id => i32, enums: { Priorite: i16 [Basse = 0, Haute = 1] },
+        { priorite: choice [enum(Priorite), required] } }"#;
+    let invoices = orders
+        .replace("Order", "Invoice")
+        .replace("commandes", "factures");
+    assert_eq!(
+        scanned(&[("order.rs", orders), ("invoice.rs", &invoices)]).unwrap(),
+        ["factures", "commandes"]
+    );
+}
+
+// A block extending a framework table declares its enums like a model.
+#[test]
+fn an_enum_of_an_extend_block_counts_as_a_declaration() {
+    const BLOCK: &str = r#"extend! { table: "eihwaz_users", enums: { Statut: [Actif, Inactif] },
+        fields: { statut: choice [enum(Statut), nullable] } }"#;
+
+    let error = scanned(&[("order.rs", ORDERS), ("profile.rs", BLOCK)]).unwrap_err();
+    assert!(
+        error.contains("  Statut: commandes, extend!{} eihwaz_users"),
+        "{error}"
+    );
+
+    let renamed = BLOCK.replace("Statut", "StatutCompte");
+    assert_eq!(
+        scanned(&[("order.rs", ORDERS), ("profile.rs", &renamed)]).unwrap(),
+        ["commandes"]
+    );
+}
+
+// A paused model is out of everything the command does, this check included.
+#[test]
+fn a_paused_model_is_out_of_the_enum_check() {
+    let paused = INVOICES.replace(
+        "statut: choice [enum(Statut), required] }",
+        "statut: choice [enum(Statut), required] }, meta: { managed: false }",
+    );
+    assert_ne!(paused, INVOICES);
+    assert_eq!(
+        scanned(&[("order.rs", ORDERS), ("invoice.rs", &paused)]).unwrap(),
+        ["commandes"]
+    );
+}
+
+// The whole command: refused with or without `--force`, nothing written,
+// not even the table of the model that is right.
+#[test]
+fn the_command_writes_nothing_when_an_enum_is_declared_twice() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    fs::write(format!("{entities}/order.rs"), ORDERS).unwrap();
+    fs::write(format!("{entities}/invoice.rs"), INVOICES).unwrap();
+    let before = everything(&dir);
+
+    for force in [false, true] {
+        let error = run(&entities, &path, force).unwrap_err().to_string();
+        assert!(error.contains("  Statut: commandes, factures"), "{error}");
+        assert_eq!(everything(&dir), before, "force: {force}");
+    }
+
+    // One of the two renamed: the three tables are migrated.
+    fs::write(
+        format!("{entities}/invoice.rs"),
+        INVOICES.replace("Statut", "StatutFacture"),
+    )
+    .unwrap();
+    run(&entities, &path, false).unwrap();
+    assert_eq!(generated(&path).len(), 3);
+}

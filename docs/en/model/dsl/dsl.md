@@ -111,6 +111,11 @@ column fixed as `bigint`/`int`/`uuid` must be updated manually if you switch fea
 > schema stays untouched. Switching after the fact requires a manual migration to `ALTER` every
 > PK and FK column, risking truncation (`big-pk` → default) or total format incompatibility
 > (`pk-uuid` ↔ any integer type). Pick one mode at project start.
+>
+> `makemigrations` doesn't migrate a primary key. If the name or the type of the key of a table
+> already applied changes (in the model, or through the feature for a key written `Pk`), the
+> command stops, lists the tables concerned (`users: id (Integer) -> id (Uuid)`) and writes
+> nothing, with or without `--force`. Put the former key back to go on.
 
 ---
 
@@ -346,6 +351,8 @@ is and tells you: remove it by hand then.
 ## Enums
 
 Declared in a separate `enums: { ... }` block, then referenced via `enum(EnumName)`.
+
+> **An enum name is declared only once in the project.** Under PostgreSQL, a text enum is a type of the database, and there is only one per name: two models each declaring a `Status` enum would fight over the same type. `makemigrations` therefore stops, naming the enum and the models (`Status: orders, invoices`), whether the values are identical or not, with or without `--force`, and an `extend!{}` block counts as a model. Give each its own name: `OrderStatus`, `InvoiceStatus`. Several fields of one model may share its enum. An integer enum (`EnumName: i16 [...]`) is not a type of the database and is not concerned.
 
 ```rust
 model! {

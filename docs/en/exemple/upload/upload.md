@@ -2,11 +2,12 @@
 
 ## Upload form
 
+The minimum to write:
+
 ```rust
 use runique::prelude::*;
-use serde::Serialize;
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize)]
 #[serde(transparent)]
 pub struct ImageForm {
     pub form: Forms,
@@ -14,21 +15,44 @@ pub struct ImageForm {
 
 impl FormAccess for ImageForm {
     fn register_fields(form: &mut Forms) {
-        form.field(
-            &MediaField::image("image")
-                .label("Image")
-                .upload_to_env()        // → {MEDIA_ROOT}/image/
-                .max_size(FileSize::mb(5))
-                .max_files(1)
-                .max_dimensions(1920, 1080)
-                .allowed_extensions(vec!["jpg", "png", "webp", "avif"])
-        );
+        form.field(&MediaField::image("image").label("Image"));
     }
     impl_form_access!();
 }
 
 impl RuniqueForm for ImageForm {}
 ```
+
+- The struct field must be named `form`: `impl_form_access!()` relies on that name.
+- `impl RuniqueForm for ImageForm {}` stays empty, but `request.form()` requires it.
+- `Serialize` is what lets the form go to the template (`"image_form" => &form`). Runique does not ask for `Debug` or `Clone`.
+- `#[serde(transparent)]` is optional for `{% form.image_form %}`, which reads the form either directly or under the `form` key. It gives direct access in the template: `{{ image_form.errors }}` instead of `{{ image_form.form.errors }}`. To serialize other fields next to `form`, put `#[serde(flatten)]` on the `form` field instead.
+
+### Field options
+
+Every setting is optional. Without it, the field takes the value in the right-hand column:
+
+```rust
+form.field(
+    &MediaField::image("image")
+        .label("Image")
+        .upload_to_env()        // → {MEDIA_ROOT}/image/
+        .max_size(FileSize::mb(5))
+        .max_files(1)
+        .max_dimensions(1920, 1080)
+        .allowed_extensions(vec!["jpg", "png", "webp", "avif"])
+);
+```
+
+| Method | Without it |
+| --- | --- |
+| `.label(...)` | empty label: it is not derived from the field name |
+| `.upload_to(...)` / `.upload_to_env()` | file at the root of `MEDIA_ROOT` |
+| `.max_size(...)` | 10 MB per file |
+| `.max_files(n)` | the browser offers a single file, but the server does not check the count |
+| `.max_dimensions(w, h)` | no dimension limit (the image signature is still checked) |
+| `.allowed_extensions(...)` | jpg, jpeg, png, gif, webp, avif |
+| `.required()` | optional field |
 
 ---
 

@@ -15,7 +15,9 @@
     "duplicate_table": "Dos tablas se llaman `{}`. La tabla de un campo de lista se llama `<tabla del modelo>_<campo>`: renombre el campo o la otra tabla.",
     "parallel_changes": "Dos migraciones parten del mismo punto para la misma tabla:\n  {}\nSe escribieron en paralelo: Runique no puede saber cuál debe seguir la tabla. No se ha escrito nada.",
     "rename_with_new_key": "La tabla `{}` se renombra en esta ejecución y recibe al mismo tiempo una nueva clave hacia `{}`, creada o renombrada en esta misma ejecución. Hágalo en dos pasos: primero el renombrado, `runique migration up`, y después la clave.",
-    "renamed_twice": "Dos tablas dicen haber sido renombradas desde `{}`: `{}` y `{}`. Una tabla solo puede convertirse en una: retire uno de los dos `renamed_from`."
+    "renamed_twice": "Dos tablas dicen haber sido renombradas desde `{}`: `{}` y `{}`. Una tabla solo puede convertirse en una: retire uno de los dos `renamed_from`.",
+    "primary_key_changed": "La clave primaria de estas tablas ha cambiado, y Runique aún no sabe migrar una clave primaria:\n{}\nVuelva a poner la clave original en el modelo. Si el tipo ha cambiado en todas las tablas, es la feature de clave del proyecto (`big-pk`, `pk-uuid`) la que se ha añadido o retirado en su Cargo.toml: déjela como estaba.\n`--force` no levanta este rechazo. No se ha escrito nada.",
+    "enum_declared_twice": "Estos enums están declarados por varios modelos:\n{}\nUn nombre de enum es un solo tipo en la base de datos: solo puede declararse una vez. Renombre uno de ellos (por ejemplo `StatutCommande`, `StatutFacture`).\n`--force` no levanta este rechazo. No se ha escrito nada."
   },
   "info": {
     "files_ready": "{} archivo(s) listo(s) para migrar.",

@@ -15,7 +15,9 @@
     "duplicate_table": "有两个表名为 `{}`。列表字段的表名为 `<模型的表>_<字段>`：请重命名该字段或另一个表。",
     "parallel_changes": "两个迁移针对同一张表从同一起点出发：\n  {}\n它们是并行编写的：Runique 无法判断该表应遵循哪一个。未写入任何内容。",
     "rename_with_new_key": "表 `{}` 在本次运行中被重命名，同时又新增了一个指向 `{}` 的外键，而后者也在本次运行中被创建或重命名。请分两步进行：先重命名，执行 `runique migration up`，再添加外键。",
-    "renamed_twice": "有两张表都声明是从 `{}` 重命名而来：`{}` 和 `{}`。一张表只能变成一张表：请删除其中一个 `renamed_from`。"
+    "renamed_twice": "有两张表都声明是从 `{}` 重命名而来：`{}` 和 `{}`。一张表只能变成一张表：请删除其中一个 `renamed_from`。",
+    "primary_key_changed": "这些表的主键已更改，而 Runique 尚不能迁移主键：\n{}\n请在模型中恢复原来的主键。如果所有表的类型都变了，说明项目 Cargo.toml 中的主键 feature（`big-pk`、`pk-uuid`）被添加或移除了：请将其恢复原状。\n`--force` 不会解除此拒绝。未写入任何内容。",
+    "enum_declared_twice": "这些 enum 被多个模型声明：\n{}\n一个 enum 名称在数据库中是同一个类型：只能声明一次。请重命名其中一个（例如 `StatutCommande`、`StatutFacture`）。\n`--force` 不会解除此拒绝。未写入任何内容。"
   },
   "info": {
     "files_ready": "{}个文件已准备好迁移。",

@@ -83,13 +83,16 @@ pub fn record_applied(entities_path: &str, migrations_path: &str) -> Result<()> 
     if !targets.is_empty() {
         files.extend(cleared_files(entities_path, &targets)?);
     }
+    // Extensions whose block is gone or has no field left: their snapshot goes.
+    let mut emptied: Vec<PathBuf> = Vec::new();
     for (extend, table) in targets {
         if extend {
-            if let Some(schema) = extends.iter().find(|s| s.table_name == table) {
-                files.push((
-                    extend_snapshot_file_path(migrations_path, &table).into(),
-                    extend_snapshot_content(schema),
-                ));
+            let snapshot = PathBuf::from(extend_snapshot_file_path(migrations_path, &table));
+            match extends.iter().find(|s| s.table_name == table) {
+                Some(schema) if !schema.columns.is_empty() => {
+                    files.push((snapshot, extend_snapshot_content(schema)));
+                }
+                _ => emptied.push(snapshot),
             }
         } else if let Some(schema) = models.iter().find(|s| s.table_name == table) {
             files.push((
@@ -110,6 +113,11 @@ pub fn record_applied(entities_path: &str, migrations_path: &str) -> Result<()> 
     for table in gone {
         let snapshot = PathBuf::from(snapshot_file_path(migrations_path, &table));
         // Already gone (removed by hand): nothing to take away.
+        if snapshot.exists() {
+            batch = batch.add(snapshot, SourceItems::Remove, false)?;
+        }
+    }
+    for snapshot in emptied {
         if snapshot.exists() {
             batch = batch.add(snapshot, SourceItems::Remove, false)?;
         }

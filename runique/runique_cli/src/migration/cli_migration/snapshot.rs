@@ -123,3 +123,18 @@ pub(super) fn read_all(migrations_path: &str) -> Result<Vec<ParsedSchema>> {
     }
     Ok(found)
 }
+
+/// The framework tables an `extend!{}` snapshot exists for, sorted the ones
+/// the project's blocks added columns to, as last applied.
+pub(super) fn extended_tables(migrations_path: &str) -> Vec<String> {
+    let Ok(entries) = fs::read_dir(extend_snapshot_dir(migrations_path)) else {
+        return Vec::new();
+    };
+    let mut tables: Vec<String> = entries
+        .filter_map(|entry| entry.ok().map(|entry| entry.path()))
+        .filter(|path| path.is_file() && path.extension().is_some_and(|ext| ext == "rs"))
+        .filter_map(|path| path.file_stem()?.to_str().map(str::to_string))
+        .collect();
+    tables.sort();
+    tables
+}

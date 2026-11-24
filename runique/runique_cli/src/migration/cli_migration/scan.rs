@@ -39,6 +39,7 @@ pub fn scan_models(entities_path: &str) -> Result<ScannedEntities> {
     let mut paused: Vec<String> = Vec::new();
     let mut renames: Vec<(String, String)> = Vec::new();
     let mut schemas = Vec::new();
+    let mut enums: std::collections::BTreeMap<String, Vec<String>> = Default::default();
     // List fields' tables: their key to the owner is already resolved.
     let mut list_schemas: Vec<ParsedSchema> = Vec::new();
     // module name → (table, primary key column)
@@ -90,12 +91,47 @@ pub fn scan_models(entities_path: &str) -> Result<ScannedEntities> {
                 paused.extend(lists.into_iter().map(|list| list.table_name));
                 continue;
             }
+            for name in enums_of(&schema, &lists) {
+                enums
+                    .entry(name)
+                    .or_default()
+                    .push(schema.table_name.clone());
+            }
             schemas.push(schema);
             list_schemas.extend(lists);
             renames.extend(declared);
         }
     }
 
+    for block in scan_extend_blocks(entities_path)? {
+        for name in enums_of(&block, &[]) {
+            enums
+                .entry(name)
+                .or_default()
+                .push(format!("extend!{{}} {}", block.table_name));
+        }
+    }
+
+    // One enum name is one type in the database: a second declaration would
+    // silently get the values of the first, whose type already exists.
+    let declared_twice: Vec<String> = enums
+        .into_iter()
+        .filter(|(_, models)| models.len() > 1)
+        .map(|(name, mut models)| {
+            models.sort();
+            format!("  {name}: {}", models.join(", "))
+        })
+        .collect();
+
+    if !declared_twice.is_empty() {
+        anyhow::bail!(
+            "{}",
+            tf(
+                runique_i18n::keys::makemigrations::error::ENUM_DECLARED_TWICE,
+                &[declared_twice.join("\n")]
+            )
+        );
+    }
     for schema in &mut schemas {
         for fk in &mut schema.foreign_keys {
             let Some((table, pk)) = targets.get(&fk.to_table) else {
@@ -195,4 +231,17 @@ pub fn merge_extend_schemas(schemas: Vec<ParsedSchema>) -> Vec<ParsedSchema> {
             }
         })
         .collect()
+}
+
+/// The database enums a model declares: the one its columns an its list
+/// field use, each once.
+fn enums_of(schema: &ParsedSchema, lists: &[ParsedSchema]) -> Vec<String> {
+    let mut names: Vec<String> = std::iter::once(schema)
+        .chain(lists)
+        .flat_map(|table| &table.columns)
+        .filter_map(|column| column.enum_name.clone())
+        .collect();
+    names.sort();
+    names.dedup();
+    names
 }

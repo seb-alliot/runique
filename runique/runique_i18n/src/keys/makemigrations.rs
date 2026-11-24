@@ -5,10 +5,12 @@ pub mod error {
     pub const DESTRUCTIVE_DETECTED: &str = "makemigrations.error.destructive_detected";
     pub const DESTRUCTIVE_REQUIRE_FORCE: &str = "makemigrations.error.destructive_require_force";
     pub const DUPLICATE_TABLE: &str = "makemigrations.error.duplicate_table";
+    pub const ENUM_DECLARED_TWICE: &str = "makemigrations.error.enum_declared_twice";
     pub const LONG_IDENTIFIER_DETECTED: &str = "makemigrations.error.long_identifier_detected";
     pub const LONG_IDENTIFIER_RENAME_REQUIRED: &str =
         "makemigrations.error.long_identifier_rename_required";
     pub const PARALLEL_CHANGES: &str = "makemigrations.error.parallel_changes";
+    pub const PRIMARY_KEY_CHANGED: &str = "makemigrations.error.primary_key_changed";
     pub const PROJECT_PK_CARGO: &str = "makemigrations.error.project_pk_cargo";
     pub const PROJECT_PK_NO_RUNIQUE: &str = "makemigrations.error.project_pk_no_runique";
     pub const RENAME_WITH_NEW_KEY: &str = "makemigrations.error.rename_with_new_key";

@@ -112,6 +112,11 @@ si vous changez de feature après coup.
 > schéma reste intact. Changer après coup nécessite une migration manuelle pour `ALTER` chaque
 > colonne PK et FK, avec un risque de troncature (`big-pk` → défaut) ou d'incompatibilité totale
 > de format (`pk-uuid` ↔ n'importe quel type entier). Choisissez un mode au démarrage du projet.
+>
+> `makemigrations` ne migre pas une clé primaire. Si le nom ou le type de la clé d'une table
+> déjà appliquée change (dans le modèle, ou par la feature pour une clé écrite `Pk`), la commande
+> s'arrête, liste les tables concernées (`users: id (Integer) -> id (Uuid)`) et n'écrit rien,
+> avec ou sans `--force`. Remettez la clé d'origine pour continuer.
 
 ---
 
@@ -352,6 +357,8 @@ laisse le fichier tel quel et vous le dit : retirez-la alors à la main.
 ## Enums
 
 Les enums se déclarent dans un bloc `enums: { ... }` distinct des champs, puis sont référencés via `enum(NomEnum)`.
+
+> **Un nom d'enum ne se déclare qu'une fois dans le projet.** Sous PostgreSQL, un enum texte est un type de la base, et il n'y en a qu'un par nom : deux modèles qui déclarent chacun un enum `Statut` se disputeraient le même type. `makemigrations` s'arrête donc en nommant l'enum et les modèles (`Statut: commandes, factures`), que les valeurs soient identiques ou non, avec ou sans `--force`, et un bloc `extend!{}` compte comme un modèle. Donnez à chacun son nom : `StatutCommande`, `StatutFacture`. Plusieurs champs d'un même modèle peuvent partager son enum. Un enum entier (`NomEnum: i16 [...]`) n'est pas un type de la base et n'est pas concerné.
 
 ```rust
 model! {

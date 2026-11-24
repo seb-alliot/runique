@@ -36,6 +36,7 @@ scip
 index.json
 evaluation_chantier_makemigration.md
 evaluation_encapsulation_formulaire.md
+tableau_suppression_table.md
 
 # cargo-mutants reports
 mutants.out/

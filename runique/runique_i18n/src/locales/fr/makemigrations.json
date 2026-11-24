@@ -15,7 +15,9 @@
     "duplicate_table": "Deux tables portent le nom `{}`. La table d'un champ liste s'appelle `<table du modèle>_<champ>` : renommez le champ ou l'autre table.",
     "parallel_changes": "Deux migrations partent du même point pour la même table :\n  {}\nElles ont été écrites en parallèle : Runique ne peut pas savoir laquelle la table doit suivre. Rien n'a été écrit.",
     "rename_with_new_key": "La table `{}` est renommée dans ce lancement et reçoit en même temps une nouvelle clé vers `{}`, créée ou renommée dans ce même lancement. Faites-le en deux fois : le renommage d'abord, `runique migration up`, puis la clé.",
-    "renamed_twice": "Deux tables se disent renommées depuis `{}` : `{}` et `{}`. Une table ne peut en devenir qu'une : retirez l'un des deux `renamed_from`."
+    "renamed_twice": "Deux tables se disent renommées depuis `{}` : `{}` et `{}`. Une table ne peut en devenir qu'une : retirez l'un des deux `renamed_from`.",
+    "primary_key_changed": "La clé primaire de ces tables a changé, et Runique ne sait pas encore migrer une clé primaire :\n{}\nRemettez la clé d'origine dans le modèle. Si le type a changé sur toutes les tables, c'est la feature de clé du projet (`big-pk`, `pk-uuid`) qui a été ajoutée ou retirée dans son Cargo.toml : remettez-la comme elle était.\n`--force` ne lève pas ce refus. Rien n'a été écrit.",
+    "enum_declared_twice": "Ces enums sont déclarés par plusieurs modèles :\n{}\nUn nom d'enum est un seul type dans la base : il ne peut être déclaré qu'une fois. Renommez-en un (par exemple `StatutCommande`, `StatutFacture`).\n`--force` ne lève pas ce refus. Rien n'a été écrit."
   },
   "info": {
     "files_ready": "{} fichier(s) prêt(s) à migrer.",

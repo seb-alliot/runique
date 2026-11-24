@@ -1,7 +1,7 @@
 //! The migration plan: computing every change, then writing it in one atomic commit.
 use super::lib_file::{lib_modules, planned_lib, strip_sea_orm_cli_placeholder_file};
 use super::scan::{merge_extend_schemas, scan_extend_blocks};
-use super::snapshot::previous_snapshot;
+use super::snapshot::{extended_tables, previous_snapshot};
 use crate::atomic::{AtomicBuilder, SourceItems};
 use crate::migration::*;
 use crate::utils::trad::tf;
@@ -259,14 +259,21 @@ pub(super) fn compute_main_changes(
     migrations_path: &str,
 ) -> Result<Vec<Changes>> {
     let mut all_changes: Vec<Changes> = Vec::new();
+    let mut changed_keys: Vec<String> = Vec::new();
+
     for schema in schemas {
         let snapshot_of = renames
             .iter()
             .find(|(_, new)| *new == schema.table_name)
             .map_or(&schema.table_name, |(old, _)| old);
+
         let snap_path = snapshot_file_path(migrations_path, snapshot_of);
+
         let changes = if Path::new(&snap_path).exists() {
             let mut previous = previous_snapshot(&snap_path, schema)?;
+
+            changed_keys.extend(primary_key_change(&previous, schema));
+
             let followed = follow_renames(&mut previous, schema, renames);
             Changes {
                 renames: followed,
@@ -278,6 +285,15 @@ pub(super) fn compute_main_changes(
         if !changes.is_empty() {
             all_changes.push(changes);
         }
+    }
+    if !changed_keys.is_empty() {
+        anyhow::bail!(
+            "{}",
+            tf(
+                runique_i18n::keys::makemigrations::error::PRIMARY_KEY_CHANGED,
+                &[changed_keys.join("\n")]
+            )
+        );
     }
     Ok(all_changes)
 }
@@ -441,12 +457,21 @@ pub(super) fn plan_extend_changes(
     entities_path: &str,
     migrations_path: &str,
 ) -> Result<Vec<(ParsedSchema, Changes)>> {
-    let raw_extends = scan_extend_blocks(entities_path)?;
-    if raw_extends.is_empty() {
-        return Ok(Vec::new());
+    let mut extend_schemas = merge_extend_schemas(scan_extend_blocks(entities_path)?);
+    // A block removed since its columns were applied leaves its snapshot
+    // behind: compared as a block without a field, every column it added
+    // becomes a column to drop, guarded like any other.
+    for table in extended_tables(migrations_path) {
+        if !extend_schemas.iter().any(|s| s.table_name == table) {
+            extend_schemas.push(ParsedSchema {
+                table_name: table,
+                primary_key: None,
+                columns: Vec::new(),
+                foreign_keys: Vec::new(),
+                indexes: Vec::new(),
+            });
+        }
     }
-
-    let extend_schemas = merge_extend_schemas(raw_extends);
 
     let mut planned: Vec<(ParsedSchema, Changes)> = Vec::new();
     for ext_schema in extend_schemas {

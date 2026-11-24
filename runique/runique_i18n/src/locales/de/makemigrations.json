@@ -15,7 +15,9 @@
     "duplicate_table": "Zwei Tabellen heißen `{}`. Die Tabelle eines Listenfelds heißt `<Tabelle des Modells>_<Feld>`: Benennen Sie das Feld oder die andere Tabelle um.",
     "parallel_changes": "Zwei Migrationen gehen für dieselbe Tabelle vom selben Punkt aus:\n  {}\nSie wurden parallel geschrieben: Runique kann nicht wissen, welcher die Tabelle folgen soll. Es wurde nichts geschrieben.",
     "rename_with_new_key": "Die Tabelle `{}` wird in diesem Lauf umbenannt und erhält gleichzeitig einen neuen Schlüssel auf `{}`, die im selben Lauf erstellt oder umbenannt wird. Gehen Sie in zwei Schritten vor: zuerst die Umbenennung, `runique migration up`, dann der Schlüssel.",
-    "renamed_twice": "Zwei Tabellen geben an, aus `{}` umbenannt worden zu sein: `{}` und `{}`. Aus einer Tabelle kann nur eine werden: Entfernen Sie eines der beiden `renamed_from`."
+    "renamed_twice": "Zwei Tabellen geben an, aus `{}` umbenannt worden zu sein: `{}` und `{}`. Aus einer Tabelle kann nur eine werden: Entfernen Sie eines der beiden `renamed_from`.",
+    "primary_key_changed": "Der Primärschlüssel dieser Tabellen hat sich geändert, und Runique kann einen Primärschlüssel noch nicht migrieren:\n{}\nSetzen Sie den ursprünglichen Schlüssel wieder ins Modell. Hat sich der Typ in allen Tabellen geändert, wurde das Schlüssel-Feature des Projekts (`big-pk`, `pk-uuid`) in dessen Cargo.toml hinzugefügt oder entfernt: Stellen Sie es wieder her.\n`--force` hebt diese Ablehnung nicht auf. Es wurde nichts geschrieben.",
+    "enum_declared_twice": "Diese Enums werden von mehreren Modellen deklariert:\n{}\nEin Enum-Name ist ein einziger Typ in der Datenbank: Er kann nur einmal deklariert werden. Benennen Sie einen davon um (zum Beispiel `StatutCommande`, `StatutFacture`).\n`--force` hebt diese Ablehnung nicht auf. Es wurde nichts geschrieben."
   },
   "info": {
     "files_ready": "{} Datei(en) bereit für die Migration.",
