@@ -2,8 +2,8 @@
 //! diff against their snapshots, the generated migration files, and the
 //! commands themselves (`cli_migration`).
 //!
-//! What an application runs with (the schema of a model, the functions the
-//! generated migrations call) stays in `runique::migration`, re-exported here.
+//! The functions the generated migrations call are in `runtime`. The schema of
+//! a model, which an application runs with, is `runique::schema`.
 pub mod changes;
 pub mod cli_migration;
 pub mod generate;
@@ -12,9 +12,8 @@ pub mod parse;
 
 pub mod diff;
 pub mod paths;
+pub mod runtime;
 pub mod types;
-
-pub use runique::migration::{runtime, schema};
 
 #[cfg(test)]
 mod tests_pipeline;
@@ -28,6 +27,5 @@ pub use helpers::{
 };
 pub use parse::*;
 pub use paths::*;
-pub use schema::*;
 pub use sea_query::ForeignKeyAction;
 pub use types::*;

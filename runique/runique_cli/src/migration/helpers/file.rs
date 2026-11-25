@@ -1,6 +1,6 @@
 //! The files of a folder.
-use crate::utils::trad::tf;
 use anyhow::{Context, Result};
+use runique_i18n::tf;
 use std::{
     fs,
     path::{Path, PathBuf},

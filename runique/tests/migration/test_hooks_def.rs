@@ -1,6 +1,6 @@
 // Tests pour HooksDef, Hook et HookType
 
-use runique_cli::migration::{HookType, HooksDef};
+use runique::schema::{HookType, HooksDef};
 
 // ═══════════════════════════════════════════════════════════════
 // HookType — PartialEq / Eq

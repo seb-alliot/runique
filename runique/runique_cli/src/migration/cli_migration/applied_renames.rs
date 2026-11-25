@@ -6,10 +6,10 @@
 //! set it apart, and what is left is checked token for token before it is
 //! written.
 use crate::migration::{helpers::file::rust_files, parse::builder::MacroCollector};
-use crate::utils::trad::tf;
 use anyhow::{Context, Result};
 use proc_macro2::{Delimiter, TokenStream, TokenTree};
 use runique_dsl::{ast::ModelInput, extend::ExtendDsl};
+use runique_i18n::tf;
 use std::{
     fs,
     ops::Range,

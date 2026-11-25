@@ -13,8 +13,8 @@
 - une constante `PRIMARY_KEY`, le nom de la clé primaire (`#[form]` refuse ce nom dans `fields`).
 
 ```rust
-pub fn schema() -> runique::migration::schema::ModelSchema {
-    runique::migration::ModelSchema::new("User")
+pub fn schema() -> runique::schema::ModelSchema {
+    runique::schema::ModelSchema::new("User")
         .table_name("users")
         // pk, colonnes (types, bornes, enums), FK, index, meta...
         .build()

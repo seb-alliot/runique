@@ -332,84 +332,84 @@ pub const PRIMARY_KEY: &str = "id";
 
 /// Returns the `ModelSchema` of the `eihwaz_users` table.
 /// Used by `#[form(schema = runique_users)]` — no need to declare the entity locally.
-pub fn schema() -> crate::migration::schema::ModelSchema {
+pub fn schema() -> crate::schema::ModelSchema {
     #[cfg(feature = "pk-uuid")]
-    let pk = crate::migration::PrimaryKeyDef::new("id")
+    let pk = crate::schema::PrimaryKeyDef::new("id")
         .uuid()
         .no_auto_increment();
     #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
-    let pk = crate::migration::PrimaryKeyDef::new("id")
+    let pk = crate::schema::PrimaryKeyDef::new("id")
         .i64()
         .auto_increment();
     #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
-    let pk = crate::migration::PrimaryKeyDef::new("id")
+    let pk = crate::schema::PrimaryKeyDef::new("id")
         .i32()
         .auto_increment();
 
-    crate::migration::ModelSchema::new("EihwazUsers")
+    crate::schema::ModelSchema::new("EihwazUsers")
         .table_name("eihwaz_users")
         .primary_key(pk)
         .column(
-            crate::migration::ColumnDef::new("username")
+            crate::schema::ColumnDef::new("username")
                 .varchar(150)
                 .required()
                 .unique(),
         )
         .column(
-            crate::migration::ColumnDef::new("email")
+            crate::schema::ColumnDef::new("email")
                 .varchar(254)
                 .required()
                 .unique(),
         )
         .column(
-            crate::migration::ColumnDef::new("password")
+            crate::schema::ColumnDef::new("password")
                 .string()
                 .required(),
         )
         .column(
-            crate::migration::ColumnDef::new("is_active")
+            crate::schema::ColumnDef::new("is_active")
                 .boolean()
                 .required()
                 .default(false.into()),
         )
         .column(
-            crate::migration::ColumnDef::new("is_dirigeant")
+            crate::schema::ColumnDef::new("is_dirigeant")
                 .boolean()
                 .required()
                 .default(false.into()),
         )
         .column(
-            crate::migration::ColumnDef::new("is_admin")
+            crate::schema::ColumnDef::new("is_admin")
                 .boolean()
                 .required()
                 .default(false.into()),
         )
         .column(
-            crate::migration::ColumnDef::new("is_superuser")
+            crate::schema::ColumnDef::new("is_superuser")
                 .boolean()
                 .required()
                 .default(false.into()),
         )
         .column(
-            crate::migration::ColumnDef::new("created_at")
+            crate::schema::ColumnDef::new("created_at")
                 .datetime()
                 .nullable(),
         )
         .column(
-            crate::migration::ColumnDef::new("updated_at")
+            crate::schema::ColumnDef::new("updated_at")
                 .datetime()
                 .nullable(),
         )
         // Written only by the owner's activation link: never a form field.
         .column(
-            crate::migration::ColumnDef::new("activated_at")
+            crate::schema::ColumnDef::new("activated_at")
                 .datetime()
                 .nullable()
                 .ignore(),
         )
         // Written only by the password reset and `close_user_sessions`.
         .column(
-            crate::migration::ColumnDef::new("session_version")
+            crate::schema::ColumnDef::new("session_version")
                 .integer()
                 .required()
                 .default(0.into())

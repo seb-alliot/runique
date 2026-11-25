@@ -112,7 +112,7 @@ impl ColumnDef {
 
     // ── Types ───────────────────────────────────────────────────────────────
     /// Binary field with default length of 255 bytes.
-    #[doc = include_str!("../../../doc-tests/migration/column_binary.md")]
+    #[doc = include_str!("../../doc-tests/migration/column_binary.md")]
     pub fn binary(mut self) -> Self {
         self.col_type = ColumnType::Binary(255);
         self
@@ -123,7 +123,7 @@ impl ColumnDef {
     /// # Examples
     ///
     /// ```rust, ignore
-    /// use runique::migration::ColumnDef;
+    /// use runique::schema::ColumnDef;
     /// ColumnDef::new("short_id").binary_len(16);
     /// ColumnDef::new("sha256_hash").binary_len(32);
     /// ColumnDef::new("sha512_hash").binary_len(64);

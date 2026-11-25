@@ -14,3 +14,4 @@ sea-orm-migration = { version = "2.0.4", features = [
 tokio = { version = "1", features = ["full"] }
 async-trait = "0.1"
 runique = { path = "../../runique" }
+runique-cli = { path = "../../runique/runique_cli" }

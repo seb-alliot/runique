@@ -3,7 +3,7 @@
 //!          binary/char/var_binary
 
 use runique::forms::base::FormField;
-use runique_cli::migration::ColumnDef;
+use runique::schema::ColumnDef;
 use sea_query::ColumnType;
 // ═══════════════════════════════════════════════════════════════
 // Types Postgres

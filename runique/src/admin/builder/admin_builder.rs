@@ -312,7 +312,7 @@ where
         }
 
         // What a create can't do without, and nothing else fills.
-        let filled_elsewhere = |col: &crate::migration::ColumnDef| {
+        let filled_elsewhere = |col: &crate::schema::ColumnDef| {
             let name = col.name.as_str();
             col.nullable
                 || col.default.is_some()
@@ -697,12 +697,12 @@ mod tests {
             type Form = ArticleForm;
             const SECRET: &'static [Column] = &[Column::Password];
             const OWNER: Option<Column> = Some(Column::OwnerId);
-            fn schema() -> crate::migration::schema::ModelSchema {
-                use crate::migration::ColumnDef;
-                crate::migration::ModelSchema::new("Article")
+            fn schema() -> crate::schema::ModelSchema {
+                use crate::schema::ColumnDef;
+                crate::schema::ModelSchema::new("Article")
                     .table_name("articles")
                     .primary_key(
-                        crate::migration::PrimaryKeyDef::new("id")
+                        crate::schema::PrimaryKeyDef::new("id")
                             .i32()
                             .auto_increment(),
                     )

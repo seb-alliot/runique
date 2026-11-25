@@ -56,8 +56,8 @@ impl ActiveModelBehavior for ActiveModel {}
 
 /// The `eihwaz_groupes` table as the migration creates it, for the admin's
 /// form and its boot checks.
-pub fn schema() -> crate::migration::schema::ModelSchema {
-    use crate::migration::ColumnDef;
+pub fn schema() -> crate::schema::ModelSchema {
+    use crate::schema::ColumnDef;
     // The responsable is an account: its column is typed like the accounts' key.
     #[cfg(feature = "pk-uuid")]
     let account = |name: &str| ColumnDef::new(name).uuid();
@@ -65,10 +65,10 @@ pub fn schema() -> crate::migration::schema::ModelSchema {
     let account = |name: &str| ColumnDef::new(name).big_integer();
     #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
     let account = |name: &str| ColumnDef::new(name).integer();
-    crate::migration::ModelSchema::new("EihwazGroupes")
+    crate::schema::ModelSchema::new("EihwazGroupes")
         .table_name("eihwaz_groupes")
         .primary_key(
-            crate::migration::PrimaryKeyDef::new("id")
+            crate::schema::PrimaryKeyDef::new("id")
                 .i32()
                 .auto_increment(),
         )

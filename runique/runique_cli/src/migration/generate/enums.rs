@@ -64,7 +64,9 @@ fn enum_create_stmt(name: &str, values: &[String]) -> String {
 /// drop of the generator goes through here.
 fn enum_drop_stmt(name: &str) -> String {
     let name = name.to_lowercase();
-    format!("        runique::migration::runtime::drop_enum_type(manager, {name:?}).await?;\n\n")
+    format!(
+        "        runique_cli::migration::runtime::drop_enum_type(manager, {name:?}).await?;\n\n"
+    )
 }
 
 /// A column entering or leaving enum-ness, both directions (`up`: old -> new,

@@ -3,9 +3,9 @@
 //! `Pk` follows a feature of `runique` (`big-pk`, `pk-uuid`). The command is
 //! built once and serves every project: its own features say nothing of the
 //! project's, so it asks cargo which ones the project turns on.
-use crate::utils::trad::{t, tf};
 use anyhow::{Result, anyhow, bail};
 use runique_dsl::ast::PkType;
+use runique_i18n::{t, tf};
 use std::{fs, path::Path, process::Command};
 
 /// Runs `read`, which reads the models, with `Pk` as the project has it.

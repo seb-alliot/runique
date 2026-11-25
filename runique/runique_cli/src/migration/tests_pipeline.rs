@@ -305,7 +305,9 @@ fn enum_create_type_is_postgres_only() {
         "the enum type must always be created (runtime-guarded):\n{sql}"
     );
     assert!(
-        sql.contains(r#"runique::migration::runtime::drop_enum_type(manager, "status").await?;"#),
+        sql.contains(
+            r#"runique_cli::migration::runtime::drop_enum_type(manager, "status").await?;"#
+        ),
         "down() must always hand the type over to be dropped once unused:\n{sql}"
     );
 }
@@ -1186,7 +1188,7 @@ fn alter_add_fk_up_creates_down_drops() {
 /// Both bodies of a migration that changes keys start by asking the engine
 /// whether it can: nothing of the migration runs before.
 fn key_guard_comes_first(up: &str, down: &str) {
-    let guard = r#"runique::migration::runtime::key_changes_supported(manager, "t")?;"#;
+    let guard = r#"runique_cli::migration::runtime::key_changes_supported(manager, "t")?;"#;
     for body in [up, down] {
         let first = body
             .lines()

@@ -22,8 +22,8 @@ pub fn generate_schema(model: &ModelInput) -> TokenStream2 {
     quote! {
         /// The primary key's column: the database sets it, `#[form]` refuses it.
         pub const PRIMARY_KEY: &str = #pk_name;
-        pub fn schema() -> ::runique::migration::schema::ModelSchema {
-            ::runique::migration::ModelSchema::new(stringify!(#name))
+        pub fn schema() -> ::runique::schema::ModelSchema {
+            ::runique::schema::ModelSchema::new(stringify!(#name))
                 .table_name(#table)
                 #pk
                 #(#columns)*
@@ -58,7 +58,7 @@ fn generate_foreign_keys(model: &ModelInput) -> Vec<TokenStream2> {
             let on_update = fk_action_tokens(*on_update);
             Some(quote! {
                 .foreign_key(
-                    ::runique::migration::ForeignKeyDef::new(#via)
+                    ::runique::schema::ForeignKeyDef::new(#via)
                         .references(::sea_orm::EntityName::table_name(&#entity))
                         .to_column(::sea_orm::IdenStatic::as_str(&#pk_column))
                         .on_delete(#on_delete)
@@ -80,9 +80,9 @@ fn generate_meta(model: &ModelInput) -> TokenStream2 {
         .map(|(desc, field)| {
             let field_str = field.to_string();
             if *desc {
-                quote! { .order_by(#field_str, ::runique::migration::OrderDir::Desc) }
+                quote! { .order_by(#field_str, ::runique::schema::OrderDir::Desc) }
             } else {
-                quote! { .order_by(#field_str, ::runique::migration::OrderDir::Asc) }
+                quote! { .order_by(#field_str, ::runique::schema::OrderDir::Asc) }
             }
         })
         .collect();
@@ -101,7 +101,7 @@ fn generate_meta(model: &ModelInput) -> TokenStream2 {
         .iter()
         .map(|group| {
             let fields: Vec<String> = group.iter().map(|f| f.to_string()).collect();
-            quote! { .index(::runique::migration::IndexDef::new(vec![#(#fields.to_string()),*])) }
+            quote! { .index(::runique::schema::IndexDef::new(vec![#(#fields.to_string()),*])) }
         })
         .collect();
 

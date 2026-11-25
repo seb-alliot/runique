@@ -15,7 +15,7 @@ impl MigrationTrait for Migration {
                     .to_owned(),
             )
             .await?;
-        runique::migration::runtime::drop_enum_type(manager, "issuetype").await?;
+        runique_cli::migration::runtime::drop_enum_type(manager, "issuetype").await?;
 
         Ok(())
     }

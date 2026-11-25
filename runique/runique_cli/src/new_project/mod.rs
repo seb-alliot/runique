@@ -3,9 +3,9 @@ use crate::atomic::{AtomicBuilder, SourceItems};
 use crate::migration::cli_migration::init_migrate::{
     self, Engine, SEA_ORM_MIGRATION_REQ, SEA_ORM_REQ,
 };
-use crate::utils::trad::{t, tf};
 use anyhow::Result;
 use rand::RngExt;
+use runique_i18n::{t, tf};
 use std::{fs, path::Path};
 
 /// Scaffolds a new Runique project named `name`: creates the standard directory
@@ -31,7 +31,7 @@ pub fn create_new_project(name: &str) -> Result<()> {
         "🦀 {}",
         tf(runique_i18n::keys::cli::info::CREATING_PROJECT, &[&name])
     );
-    let runique_version = runique::tooling::VERSION;
+    let runique_version = crate::tooling::VERSION;
 
     // Every file of the project in one batch: all of them, or nothing at all
     write_project_files(project_dir, name, runique_version)?;
@@ -459,11 +459,21 @@ mod generated_files_tests {
         write_project_files(&dir, "generated_app", "0.0.0").unwrap();
         for manifest in ["Cargo.toml", "migration/Cargo.toml"] {
             let path = dir.join(manifest);
-            let content = std::fs::read_to_string(&path).unwrap().replace(
-                r#"runique = { version = "0.0.0""#,
-                // A literal TOML string: a Windows path keeps its backslashes.
-                &format!("runique = {{ path = '{runique}'"),
-            );
+            let content = std::fs::read_to_string(&path)
+                .unwrap()
+                .replace(
+                    r#"runique = { version = "0.0.0""#,
+                    // A literal TOML string: a Windows path keeps its backslashes.
+                    &format!("runique = {{ path = '{runique}'"),
+                )
+                .replace(
+                    concat!(
+                        r#"runique-cli = { version = ""#,
+                        env!("CARGO_PKG_VERSION"),
+                        '"'
+                    ),
+                    &format!("runique-cli = {{ path = '{}'", env!("CARGO_MANIFEST_DIR")),
+                );
             std::fs::write(&path, content).unwrap();
         }
 

@@ -1,6 +1,6 @@
 //! SeaORM Hooks — before/after save/delete, ordered by execution slot.
 //!
-//! [`HooksDef`] is optional in [`crate::migration::ModelSchema`]:
+//! [`HooksDef`] is optional in [`crate::schema::ModelSchema`]:
 //! absent = empty `impl ActiveModelBehavior for ActiveModel {}`.
 
 /// SeaORM hook type.

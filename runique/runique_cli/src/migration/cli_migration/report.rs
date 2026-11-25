@@ -2,8 +2,8 @@
 //! (destructive changes, unless `--force`; name lengths, always), and warn
 //! about the type changes `--force` let through.
 use crate::migration::*;
-use crate::utils::trad::t;
 use anyhow::Result;
+use runique_i18n::t;
 
 /// Prints `messages` under the translated `header_key`, then bails with the translated
 /// `bail_key` — the shared "list every violation, then stop" shape behind both

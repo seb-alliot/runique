@@ -7,7 +7,7 @@ mod postgres;
 mod server;
 mod sqlite;
 
-use crate::utils::trad::tf;
+use runique_i18n::tf;
 use sea_orm::{ConnectionTrait, DbBackend, DbErr};
 use sea_orm_migration::SchemaManager;
 use sea_query::ForeignKeyCreateStatement;

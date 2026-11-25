@@ -17,12 +17,10 @@ mod tests;
 
 use crate::db::DatabaseConfig;
 use crate::migration::*;
-use crate::utils::trad::{t, tf};
 use anyhow::Result;
 use chrono::Utc;
+use runique_i18n::{t, tf};
 use std::fs;
-
-pub use crate::utils::*;
 
 // Logic that lives in `migration/`, offered here too: the integration tests
 // reach the whole command from this one module.

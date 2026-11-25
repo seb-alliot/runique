@@ -51,7 +51,7 @@ pub struct UserModelForm {
 }
 
 impl crate::forms::model_form::ModelForm for UserModelForm {
-    fn schema() -> crate::migration::schema::ModelSchema {
+    fn schema() -> crate::schema::ModelSchema {
         crate::auth::user::schema()
     }
     fn fields() -> Option<&'static [&'static str]> {
@@ -79,7 +79,7 @@ pub struct GroupeModelForm {
 }
 
 impl crate::forms::model_form::ModelForm for GroupeModelForm {
-    fn schema() -> crate::migration::schema::ModelSchema {
+    fn schema() -> crate::schema::ModelSchema {
         crate::auth::permissions::groupe::schema()
     }
     fn fields() -> Option<&'static [&'static str]> {

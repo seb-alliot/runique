@@ -384,7 +384,7 @@ fn generate_model_meta(table: &str) -> TokenStream2 {
         impl ::runique::auth::meta::ModelMeta for Entity {
             #rules
             type Form = Form;
-            fn schema() -> ::runique::migration::schema::ModelSchema {
+            fn schema() -> ::runique::schema::ModelSchema {
                 self::schema()
             }
         }
@@ -408,8 +408,8 @@ pub(crate) fn generate_schema_fn(dsl: &ExtendDsl) -> TokenStream2 {
     quote! {
         /// The primary key's column: the database sets it, `#[form]` refuses it.
         pub const PRIMARY_KEY: &str = #pk_name;
-        pub fn schema() -> ::runique::migration::schema::ModelSchema {
-            ::runique::migration::schema::ModelSchema::new(#table)
+        pub fn schema() -> ::runique::schema::ModelSchema {
+            ::runique::schema::ModelSchema::new(#table)
                 .table_name(#table)
                 #(#col_defs)*
         }

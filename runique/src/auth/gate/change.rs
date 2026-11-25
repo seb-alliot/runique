@@ -197,10 +197,10 @@ mod tests {
         const KEY: &'static str = "chg_items";
         type Form = ItemForm;
         const SECRET: &'static [item::Column] = &[item::Column::Secret];
-        fn schema() -> crate::migration::schema::ModelSchema {
-            crate::migration::ModelSchema::new("Item")
+        fn schema() -> crate::schema::ModelSchema {
+            crate::schema::ModelSchema::new("Item")
                 .table_name("chg_items")
-                .primary_key(crate::migration::PrimaryKeyDef::new("id").i32())
+                .primary_key(crate::schema::PrimaryKeyDef::new("id").i32())
                 .build()
                 .unwrap()
         }

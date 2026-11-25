@@ -4,8 +4,8 @@ use super::scan::{merge_extend_schemas, scan_extend_blocks};
 use super::snapshot::{extended_tables, previous_snapshot};
 use crate::atomic::{AtomicBuilder, SourceItems};
 use crate::migration::*;
-use crate::utils::trad::tf;
 use anyhow::Result;
+use runique_i18n::tf;
 use std::fs;
 use std::path::{Path, PathBuf};
 

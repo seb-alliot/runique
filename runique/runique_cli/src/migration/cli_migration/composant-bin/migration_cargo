@@ -13,6 +13,9 @@ path = "src/lib.rs"
 # Same database feature as the app; the primary key features (big-pk, pk-uuid)
 # follow the app's through the workspace.
 runique = { version = "{{RUNIQUE_VERSION}}", features = ["{{DB_FEATURE}}"] }
+# The functions the generated migrations call (keys added or removed on an
+# existing table, enum types): they live with the command that writes them.
+runique-cli = { version = "{{CLI_VERSION}}", default-features = false, features = ["{{DB_FEATURE}}"] }
 # Pinned to the exact version runique is built with: change both together.
 sea-orm-migration = { version = "{{SEA_ORM_MIGRATION_REQ}}", features = [
     "runtime-tokio-rustls",

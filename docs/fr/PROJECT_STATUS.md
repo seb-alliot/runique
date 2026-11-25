@@ -12,7 +12,7 @@ La commande `runique` décidait du type de clé primaire et du moteur d'après s
 
 | État | Étape |
 |:---:|---|
-| ✓ | `runique-cli` : la commande `runique` (`new`, `makemigrations`, `migration`, `create-superuser`, `test`) dans sa crate, avec sa propre version ; installer la commande n'installe plus le framework entier |
+| ✓ | `runique-cli` : la commande `runique` (`new`, `makemigrations`, `migration`, `create-superuser`, `test`) dans sa crate, avec sa propre version ; elle ne dépend plus de `runique` : l'installer ne compile que la commande et les pilotes de base de données (614 dépendances au lieu de 704), et la crate `runique` d'un projet n'embarque plus ce qui ne sert qu'à la commande (`clap`, `syn`, `dialoguer`…) |
 | ✓ | Le type de `Pk` et la clé du superutilisateur suivent la feature du projet (`big-pk`, `pk-uuid`), lue dans son `Cargo.toml`, et non celle de la commande installée |
 | ✓ | `runique_atomic` : le lot de fichiers en tout ou rien, son journal et sa réparation, partagé par le framework et la commande |
 | ✓ | `runique_i18n` : le moteur de traduction et les messages du framework, réexporté par `runique::utils::trad` |

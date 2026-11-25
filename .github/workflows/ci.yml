@@ -81,16 +81,25 @@ jobs:
           # Without `test-utils`, six modules are left out with no warning (0 test
           # run): test_validation_form, test_form_guarantees, test_hooks,
           # test_login_form, test_builder and the handler_req helper.
+          # The whole workspace: every crate, and demo-app with its own tests
+          # against a migrated database.
           - name: all features
             features: orm,sqlite,postgres,mysql,all-databases,acme,admin,test-utils
+            workspace: true
+            dir: .
+          # From `runique/`, the framework alone: demo-app doesn't build with
+          # these key types, and always turns the admin on.
           - name: big-pk
             features: big-pk,all-databases,admin
+            dir: runique
           - name: pk-uuid
             features: pk-uuid,all-databases,admin
+            dir: runique
           # The admin is an opt-in feature: the framework must build and pass its
           # tests without it too (admin tests are `#[cfg(feature = "admin")]`).
           - name: without admin
             features: all-databases
+            dir: runique
     services:
       mysql:
         image: mysql:8.4
@@ -155,9 +164,42 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-test-${{ matrix.features }}-${{ hashFiles('**/Cargo.toml') }}
 
+      # demo-app's tests read `demo-app/.env` and work on its real tables: its
+      # own database, then its migrations applied by the command, installed
+      # the way a user installs it.
+      # One env file per engine, as `demo-app/src/runique_test/mod.rs` names
+      # them: `.env` for Postgres, `.env.mysql` for MySQL, each pointing at a
+      # database of that engine. With every engine compiled, as here, the
+      # tests read `.env`.
+      - name: Create demo-app's databases and env files
+        if: matrix.workspace
+        run: |
+          docker exec ${{ job.services.postgres.id }} createdb -U runique runique_demo
+          docker exec ${{ job.services.mysql.id }} \
+            mysql -uroot -proot -e "CREATE DATABASE runique_demo;"
+          cat > demo-app/.env <<'EOF'
+          RUNIQUE_ENV=dev
+          DEBUG=true
+          DB_ENGINE=postgres
+          DATABASE_URL=postgres://runique:runique_test@127.0.0.1:5433/runique_demo
+          SECRET_KEY=ci-only-key-with-at-least-32-characters
+          EOF
+          cat > demo-app/.env.mysql <<'EOF'
+          DATABASE_URL=mysql://runique:runique_test@127.0.0.1:3307/runique_demo
+          EOF
+
+      - name: Install the runique command
+        if: matrix.workspace
+        run: cargo install --path runique/runique_cli
+
+      - name: Apply demo-app's migrations
+        if: matrix.workspace
+        run: runique migration up
+        working-directory: demo-app
+
       - name: Run tests
-        run: cargo test --verbose --features ${{ matrix.features }}
-        working-directory: runique
+        run: cargo test --verbose ${{ matrix.workspace && '--workspace' || '' }} --features ${{ matrix.features }}
+        working-directory: ${{ matrix.dir }}
 
   # `runique new`'s project, built against this checkout: the scaffold must
   # follow the API. Ignored locally (it compiles a whole project).

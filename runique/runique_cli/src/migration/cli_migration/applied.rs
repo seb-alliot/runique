@@ -2,8 +2,8 @@
 //! records, and the checks `makemigrations` runs on them before computing.
 use super::lib_file::lib_modules;
 use crate::auth::migrations_table::FRAMEWORK_MIGRATION_NAMES;
-use crate::utils::trad::tf;
 use anyhow::Result;
+use runique_i18n::tf;
 use sea_orm::{DatabaseConnection, EntityTrait, QueryOrder};
 use sea_orm_migration::{SchemaManager, seaql_migrations};
 

@@ -8,13 +8,13 @@ pub fn generate_pk(pk: &PkDef) -> TokenStream2 {
     let name = pk.name.to_string();
     match pk.ty {
         PkType::I32 => quote! {
-            .primary_key(::runique::migration::PrimaryKeyDef::new(#name).i32().auto_increment())
+            .primary_key(::runique::schema::PrimaryKeyDef::new(#name).i32().auto_increment())
         },
         PkType::I64 => quote! {
-            .primary_key(::runique::migration::PrimaryKeyDef::new(#name).i64().auto_increment())
+            .primary_key(::runique::schema::PrimaryKeyDef::new(#name).i64().auto_increment())
         },
         PkType::Uuid => quote! {
-            .primary_key(::runique::migration::PrimaryKeyDef::new(#name).uuid())
+            .primary_key(::runique::schema::PrimaryKeyDef::new(#name).uuid())
         },
     }
 }
@@ -40,7 +40,7 @@ pub fn generate_column(field: &FieldDef, enums: &[EnumDef]) -> TokenStream2 {
     };
 
     quote! {
-        .column(::runique::migration::ColumnDef::new(#name) #ty #kind #choices #(#options)*)
+        .column(::runique::schema::ColumnDef::new(#name) #ty #kind #choices #(#options)*)
     }
 }
 
@@ -108,11 +108,11 @@ fn generate_option(opt: &FieldOption) -> TokenStream2 {
         FieldOption::Label(label) => quote! { .label(#label) },
         FieldOption::File { kind, .. } => {
             let kind_tok = match kind {
-                FileKind::Image => quote! { ::runique::migration::FileKind::Image },
-                FileKind::Audio => quote! { ::runique::migration::FileKind::Audio },
-                FileKind::Video => quote! { ::runique::migration::FileKind::Video },
-                FileKind::Document => quote! { ::runique::migration::FileKind::Document },
-                FileKind::Any => quote! { ::runique::migration::FileKind::Any },
+                FileKind::Image => quote! { ::runique::schema::FileKind::Image },
+                FileKind::Audio => quote! { ::runique::schema::FileKind::Audio },
+                FileKind::Video => quote! { ::runique::schema::FileKind::Video },
+                FileKind::Document => quote! { ::runique::schema::FileKind::Document },
+                FileKind::Any => quote! { ::runique::schema::FileKind::Any },
             };
             quote! { .file(#kind_tok) }
         }

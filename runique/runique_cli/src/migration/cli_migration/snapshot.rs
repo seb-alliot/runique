@@ -2,8 +2,8 @@
 use super::scan::{merge_extend_schemas, scan_extend_blocks};
 use crate::migration::helpers::file::rust_files;
 use crate::migration::*;
-use crate::utils::trad::tf;
 use anyhow::{Context, Result};
+use runique_i18n::tf;
 use std::{fs, path::Path};
 
 /// Reads a snapshot/migration file from disk and parses it into a `ParsedSchema`.

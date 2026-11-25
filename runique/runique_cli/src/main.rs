@@ -3,16 +3,16 @@
 //! does lives in this crate's library.
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use runique::utils::{init_logging, trad::Lang};
 use runique_cli::{
     create_superuser::create_superuser,
     migration::cli_migration::{makemigrations, migrate},
     new_project::create_new_project,
     test_runner::run_tests,
 };
+use runique_i18n::Lang;
 
 #[derive(Parser)]
-#[command(name = "runique", version)]
+#[command(name = "runique", display_name = "runique-cli", version)]
 #[command(about = "Runique framework CLI", long_about = None)]
 struct Cli {
     #[command(subcommand)]
@@ -81,15 +81,14 @@ enum MigrateAction {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let _log_guards = init_logging();
     dotenvy::dotenv().ok();
 
     // The project's own translations first: `LANG=nl` names a language only
     // once its folder is read.
-    if let Err(error) = runique::utils::trad::load_project(&runique::utils::trad::project_dir()) {
+    if let Err(error) = runique_i18n::load_project(&runique_i18n::project_dir()) {
         anyhow::bail!(
             "{}",
-            runique::utils::trad::tf(runique_i18n::keys::build::error::LOCALES_INVALID, &[error])
+            runique_i18n::tf(runique_i18n::keys::build::error::LOCALES_INVALID, &[error])
         );
     }
     if let Some(lang) = Lang::from_dotenv().or_else(Lang::from_env) {

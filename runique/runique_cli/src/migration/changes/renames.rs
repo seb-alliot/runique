@@ -1,8 +1,8 @@
 //! Table renames (`renamed_from`): what follows a rename in the snapshot a
 //! table is compared to, and where each renamed key points while it runs.
 use crate::migration::types::{Changes, ParsedFk, ParsedSchema, RenamedKey, TableRenames};
-use crate::utils::trad::tf;
 use anyhow::Result;
+use runique_i18n::tf;
 
 /// Brings `previous`, the snapshot `current` is compared to, in line with the
 /// table renames of this run (`renames`: old name, new name), so the diff

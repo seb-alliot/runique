@@ -1,13 +1,9 @@
 // Tests pour ModelSchema et SchemaDiff
 
 use runique::forms::Forms;
-use runique_cli::migration::{
-    column::ColumnDef,
-    foreign_key::ForeignKeyDef,
-    hooks::HooksDef,
-    index::IndexDef,
-    primary_key::PrimaryKeyDef,
-    schema::{ModelSchema, SchemaDiff},
+use runique::schema::{
+    ModelSchema, SchemaDiff, column::ColumnDef, foreign_key::ForeignKeyDef, hooks::HooksDef,
+    index::IndexDef, primary_key::PrimaryKeyDef,
 };
 
 // ═══════════════════════════════════════════════════════════════

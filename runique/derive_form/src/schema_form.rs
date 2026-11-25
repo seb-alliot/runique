@@ -151,7 +151,7 @@ pub(crate) fn model_schema(attr: TokenStream, item: TokenStream) -> TokenStream 
         }
 
         impl ::runique::forms::model_form::ModelForm for #name {
-            fn schema() -> ::runique::migration::schema::ModelSchema {
+            fn schema() -> ::runique::schema::ModelSchema {
                 #schema_path::schema()
             }
             fn fields() -> Option<&'static [&'static str]> {

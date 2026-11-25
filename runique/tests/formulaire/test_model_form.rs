@@ -1,7 +1,7 @@
 // Tests pour ModelForm — valeurs par défaut des méthodes `fields()` et `exclude()`
 
 use runique::forms::model_form::ModelForm;
-use runique::migration::schema::ModelSchema;
+use runique::schema::ModelSchema;
 
 // Implémentation minimale pour tester les valeurs par défaut du trait
 struct SimpleForm;
@@ -80,7 +80,7 @@ fn test_model_form_schema_table_name_snake_case() {
 #[test]
 fn test_model_register_fields_fills_the_form_without_excluded_columns() {
     use runique::forms::Forms;
-    use runique::migration::{column::ColumnDef, primary_key::PrimaryKeyDef};
+    use runique::schema::{column::ColumnDef, primary_key::PrimaryKeyDef};
     struct Account;
     impl ModelForm for Account {
         fn schema() -> ModelSchema {

@@ -140,7 +140,7 @@ pub(super) fn push_drop_index(buf: &mut String, table: &str, idx: &ParsedIndex) 
 /// before any statement of the migration.
 pub(super) fn key_changes_guard(table: &str) -> String {
     format!(
-        "        runique::migration::runtime::key_changes_supported(manager, \"{table}\")?;\n\n"
+        "        runique_cli::migration::runtime::key_changes_supported(manager, \"{table}\")?;\n\n"
     )
 }
 
@@ -148,7 +148,7 @@ pub(super) fn key_changes_guard(table: &str) -> String {
 // (`migration::runtime`), which does them as the engine needs.
 pub(super) fn push_drop_fk(buf: &mut String, table: &str, from_col: &str, to_table: &str) {
     buf.push_str(&format!(
-        "        runique::migration::runtime::drop_foreign_key(manager, \"{table}\", \"{fk_name}\")\n            .await?;\n\n",
+        "        runique_cli::migration::runtime::drop_foreign_key(manager, \"{table}\", \"{fk_name}\")\n            .await?;\n\n",
         fk_name = fk_constraint_name(table, from_col, to_table),
         table = table,
     ));
@@ -164,7 +164,7 @@ pub(super) fn push_create_fk(
     on_update: &str,
 ) {
     buf.push_str(&format!(
-        "        runique::migration::runtime::add_foreign_key(\n            manager,\n            \"{table}\",\n            ForeignKey::create()\n                .name(\"{fk_name}\")\n                .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n                .on_delete(ForeignKeyAction::{on_delete})\n                .on_update(ForeignKeyAction::{on_update})\n                .to_owned(),\n        )\n        .await?;\n\n",
+        "        runique_cli::migration::runtime::add_foreign_key(\n            manager,\n            \"{table}\",\n            ForeignKey::create()\n                .name(\"{fk_name}\")\n                .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n                .on_delete(ForeignKeyAction::{on_delete})\n                .on_update(ForeignKeyAction::{on_update})\n                .to_owned(),\n        )\n        .await?;\n\n",
         fk_name = fk_constraint_name(table, from_col, to_table),
         table = table,
         from = from_col,
@@ -193,7 +193,7 @@ pub(super) fn push_rename_fk(
     target: &str,
 ) {
     buf.push_str(&format!(
-        "        runique::migration::runtime::rename_foreign_key(\n            manager,\n            \"{table}\",\n            \"{old_name}\",\n            ForeignKey::create()\n                .name(\"{new_name}\")\n                .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                .to(Alias::new(\"{target}\"), Alias::new(\"{to_col}\"))\n                .on_delete(ForeignKeyAction::{on_delete})\n                .on_update(ForeignKeyAction::{on_update})\n                .to_owned(),\n        )\n        .await?;\n\n",
+        "        runique_cli::migration::runtime::rename_foreign_key(\n            manager,\n            \"{table}\",\n            \"{old_name}\",\n            ForeignKey::create()\n                .name(\"{new_name}\")\n                .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                .to(Alias::new(\"{target}\"), Alias::new(\"{to_col}\"))\n                .on_delete(ForeignKeyAction::{on_delete})\n                .on_update(ForeignKeyAction::{on_update})\n                .to_owned(),\n        )\n        .await?;\n\n",
         new_name = fk_constraint_name(named_for.0, &fk.from_column, named_for.1),
         from = fk.from_column,
         to_col = fk.to_column,
@@ -241,7 +241,7 @@ pub(super) fn push_drop_index_named_for(
 /// table's former name.
 pub(super) fn push_drop_fk_named(buf: &mut String, table: &str, fk_name: &str) {
     buf.push_str(&format!(
-        "        runique::migration::runtime::drop_foreign_key(manager, \"{table}\", \"{fk_name}\")\n            .await?;\n\n"
+        "        runique_cli::migration::runtime::drop_foreign_key(manager, \"{table}\", \"{fk_name}\")\n            .await?;\n\n"
     ));
 }
 
@@ -249,7 +249,7 @@ pub(super) fn push_drop_fk_named(buf: &mut String, table: &str, fk_name: &str) {
 /// [`push_drop_fk_named`], for the way back.
 pub(super) fn push_create_fk_named(buf: &mut String, table: &str, fk_name: &str, fk: &ParsedFk) {
     buf.push_str(&format!(
-        "        runique::migration::runtime::add_foreign_key(\n            manager,\n            \"{table}\",\n            ForeignKey::create()\n                .name(\"{fk_name}\")\n                .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n                .on_delete(ForeignKeyAction::{on_delete})\n                .on_update(ForeignKeyAction::{on_update})\n                .to_owned(),\n        )\n        .await?;\n\n",
+        "        runique_cli::migration::runtime::add_foreign_key(\n            manager,\n            \"{table}\",\n            ForeignKey::create()\n                .name(\"{fk_name}\")\n                .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n                .on_delete(ForeignKeyAction::{on_delete})\n                .on_update(ForeignKeyAction::{on_update})\n                .to_owned(),\n        )\n        .await?;\n\n",
         from = fk.from_column,
         to_table = fk.to_table,
         to_col = fk.to_column,

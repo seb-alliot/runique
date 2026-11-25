@@ -13,8 +13,8 @@ use crate::migration::{
     WAIT_MIGRATION, dropped_table, extend_snapshot_file_path, generate_snapshot_file, has_marker,
     migration_target, renamed_table, snapshot_file_path, without_marker,
 };
-use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result};
+use runique_i18n::{t, tf};
 use std::fs;
 use std::path::{Path, PathBuf};
 

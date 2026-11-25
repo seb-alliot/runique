@@ -1,6 +1,6 @@
 // Tests pour ColumnDef
 
-use runique_cli::migration::ColumnDef;
+use runique::schema::ColumnDef;
 use sea_query::ColumnType;
 
 // ═══════════════════════════════════════════════════════════════

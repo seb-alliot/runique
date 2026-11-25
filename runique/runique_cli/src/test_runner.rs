@@ -1,7 +1,7 @@
 //! `test` command: checks the project is set up for `runique_test`, then runs
 //! its tests through `cargo test`, one at a time and with their output shown.
-use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result, bail};
+use runique_i18n::{t, tf};
 use std::{
     fs,
     io::{IsTerminal, Read, Write},
@@ -13,7 +13,7 @@ const TEST_DIR: &str = "src/runique_test";
 
 /// Set by `runique test` when it writes to a terminal: the framework's test
 /// code reads it (`runique::tooling`).
-pub const COLOR_ENV: &str = runique::tooling::TEST_COLOR_ENV;
+pub const COLOR_ENV: &str = crate::tooling::TEST_COLOR_ENV;
 
 /// Entry point of `runique test [file] [test]`, run from the project root.
 ///

@@ -55,16 +55,16 @@ pub(crate) mod fixtures {
         const KEY: &'static str = "notes";
         type Form = NoteForm;
         const OWNER: Option<note::Column> = Some(note::Column::OwnerId);
-        fn schema() -> crate::migration::schema::ModelSchema {
-            crate::migration::ModelSchema::new("Note")
+        fn schema() -> crate::schema::ModelSchema {
+            crate::schema::ModelSchema::new("Note")
                 .table_name("notes")
                 .primary_key(
-                    crate::migration::PrimaryKeyDef::new("id")
+                    crate::schema::PrimaryKeyDef::new("id")
                         .i32()
                         .auto_increment(),
                 )
                 .column(
-                    crate::migration::ColumnDef::new("owner_id")
+                    crate::schema::ColumnDef::new("owner_id")
                         .integer()
                         .nullable(),
                 )

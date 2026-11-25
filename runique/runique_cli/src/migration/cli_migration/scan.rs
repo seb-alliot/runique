@@ -1,8 +1,8 @@
 //! Scanning the entities directory for `model!{}` and `extend!{}` declarations.
 use crate::migration::helpers::{file::rust_files, schemas::enums_of};
 use crate::migration::*;
-use crate::utils::trad::tf;
 use anyhow::{Context, Result};
+use runique_i18n::tf;
 use std::{fs, path::Path};
 
 /// Tables created by `EihwazUsersMigration` + `AdminTableMigration`, never

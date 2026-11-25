@@ -3,11 +3,11 @@ use crate::auth::user::{Column, Entity};
 use crate::utils::{
     aliases::ADb,
     password::{BaseHash, Manual},
-    trad::{t, tf},
 };
 use anyhow::Result;
 use dialoguer::{Input, Password, Select, theme::ColorfulTheme};
 use runique_dsl::ast::PkType;
+use runique_i18n::{t, tf};
 use sea_orm::{
     ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QuerySelect,
     sea_query::{Alias, Expr, ExprTrait, Query},
@@ -345,7 +345,7 @@ pub async fn create_superuser() -> Result<()> {
     let pk = crate::migration::cli_migration::project_pk::from_cargo()?;
 
     let config = superuser_db_config(|key| std::env::var(key).ok())?;
-    let db: ADb = ADb::from_connection(config.connect().await?);
+    let db: ADb = config.connect().await?;
 
     println!("{}", t(runique_i18n::keys::superuser::label::TITLE));
 
@@ -703,8 +703,8 @@ mod password_rule_tests {
 #[cfg(all(test, feature = "sqlite"))]
 mod superuser_tests {
     use super::*;
-    use crate::auth::migrations_table::EihwazUsersMigration;
-    use crate::auth::user::BuiltinUserEntity;
+    use runique::auth::migrations_table::EihwazUsersMigration;
+    use runique::auth::user::BuiltinUserEntity;
     use sea_orm::{ConnectionTrait, EntityTrait, PaginatorTrait};
     use sea_orm_migration::{MigrationTrait, SchemaManager};
 
@@ -714,7 +714,12 @@ mod superuser_tests {
             .up(&SchemaManager::new(&conn))
             .await
             .unwrap();
-        ADb::from_connection(conn)
+        conn
+    }
+
+    /// The same connection as the framework's own handle, for its queries.
+    fn framework(db: &ADb) -> runique::utils::aliases::ADb {
+        runique::utils::aliases::ADb::from_connection(db.clone())
     }
 
     async fn count(db: &ADb) -> u64 {
@@ -779,7 +784,7 @@ mod superuser_tests {
         .await
         .unwrap();
 
-        let stored = BuiltinUserEntity::find_by_username(&db, "root")
+        let stored = BuiltinUserEntity::find_by_username(&framework(&db), "root")
             .await
             .unwrap();
         assert!(stored.is_active && stored.is_superuser);
@@ -837,7 +842,7 @@ mod superuser_tests {
         db.execute_unprepared("SELECT 1 FROM eihwaz_users")
             .await
             .expect("the table is still there");
-        let found = BuiltinUserEntity::find_by_username(&db, username)
+        let found = BuiltinUserEntity::find_by_username(&framework(&db), username)
             .await
             .unwrap();
         assert_eq!(
@@ -845,17 +850,17 @@ mod superuser_tests {
             (username, email)
         );
         assert!(
-            BuiltinUserEntity::find_by_username(&db, "' OR '1'='1")
+            BuiltinUserEntity::find_by_username(&framework(&db), "' OR '1'='1")
                 .await
                 .is_none()
         );
         assert!(
-            BuiltinUserEntity::find_by_email(&db, "' OR '1'='1")
+            BuiltinUserEntity::find_by_email(&framework(&db), "' OR '1'='1")
                 .await
                 .is_none()
         );
         assert!(
-            BuiltinUserEntity::find_by_username(&db, "root")
+            BuiltinUserEntity::find_by_username(&framework(&db), "root")
                 .await
                 .is_none()
         );

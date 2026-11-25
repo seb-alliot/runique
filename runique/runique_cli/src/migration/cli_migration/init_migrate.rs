@@ -4,14 +4,14 @@
 //! version runique is built with nor any database driver, and lacks runique.
 use crate::atomic::{AtomicBuilder, SourceItems};
 use crate::db::engine::DatabaseEngine;
-use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result};
+use runique_i18n::{t, tf};
 use std::path::{Path, PathBuf};
 
 /// The exact SeaORM requirement runique is built with, read from its manifest
 /// by `build.rs`.
-pub(crate) const SEA_ORM_REQ: &str = runique::tooling::SEA_ORM_REQ;
-pub(crate) const SEA_ORM_MIGRATION_REQ: &str = runique::tooling::SEA_ORM_MIGRATION_REQ;
+pub(crate) const SEA_ORM_REQ: &str = crate::tooling::SEA_ORM_REQ;
+pub(crate) const SEA_ORM_MIGRATION_REQ: &str = crate::tooling::SEA_ORM_MIGRATION_REQ;
 
 /// A database engine as a runique feature and the sqlx driver of
 /// `sea-orm-migration` that goes with it.
@@ -73,6 +73,7 @@ pub(crate) fn files(
 ) -> Vec<(PathBuf, Vec<u8>)> {
     let cargo = include_str!("composant-bin/migration_cargo")
         .replace("{{RUNIQUE_VERSION}}", runique_version)
+        .replace("{{CLI_VERSION}}", env!("CARGO_PKG_VERSION"))
         .replace("{{DB_FEATURE}}", engine.feature())
         .replace("{{SEA_ORM_MIGRATION_REQ}}", SEA_ORM_MIGRATION_REQ)
         .replace("{{SQLX_FEATURE}}", engine.sqlx_feature());
@@ -162,7 +163,7 @@ pub(crate) fn ensure(migrations_path: &str) -> Result<()> {
         );
         Engine::Sqlite
     });
-    write(migration_dir, engine, runique::tooling::VERSION)?;
+    write(migration_dir, engine, crate::tooling::VERSION)?;
     println!(
         "{}",
         tf(
@@ -239,7 +240,7 @@ mod tests {
         // One column in the docs for both crates.
         assert_eq!(SEA_ORM_REQ, SEA_ORM_MIGRATION_REQ);
         let docs = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs");
-        let row = format!("| {} | `{SEA_ORM_REQ}` |", runique::tooling::VERSION);
+        let row = format!("| {} | `{SEA_ORM_REQ}` |", crate::tooling::VERSION);
         let snippet = format!(r#"sea-orm = "{SEA_ORM_REQ}""#);
         for (page, expected) in [
             ("fr/installation/base-de-donnees/base-de-donnees.md", &row),

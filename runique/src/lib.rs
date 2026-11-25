@@ -53,7 +53,7 @@ pub mod engine;
 pub mod flash;
 pub mod forms;
 pub mod macros;
-pub mod migration;
+pub mod schema;
 
 #[cfg(feature = "admin")]
 pub mod admin;
@@ -143,7 +143,7 @@ pub mod prelude {
         model_form::ModelForm,
         validation_form::ValidationForm,
     };
-    pub use crate::migration::schema::ModelSchema;
+    pub use crate::schema::ModelSchema;
     pub use crate::utils::aliases::*;
     pub use crate::utils::config::Pk;
     pub use derive_form::{extend, form, model};

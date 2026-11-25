@@ -4,7 +4,7 @@
 //! a key would stop on a panic of the SQL builder, and dropping the table the
 //! key points to would, with `ON DELETE CASCADE`, delete the rows of the
 //! table that stays.
-use crate::utils::trad::tf;
+use runique_i18n::tf;
 use sea_orm::DbErr;
 
 pub(super) fn key_change_refused(table: &str) -> Result<(), DbErr> {

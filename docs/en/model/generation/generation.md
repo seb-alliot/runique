@@ -13,8 +13,8 @@ From the DSL read by `runique_dsl`, the macro generates, among others:
 - a `PRIMARY_KEY` constant, the primary key's name (`#[form]` refuses that name in `fields`).
 
 ```rust
-pub fn schema() -> runique::migration::schema::ModelSchema {
-    runique::migration::ModelSchema::new("User")
+pub fn schema() -> runique::schema::ModelSchema {
+    runique::schema::ModelSchema::new("User")
         .table_name("users")
         // pk, columns (types, bounds, enums), FK, indexes, meta...
         .build()

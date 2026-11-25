@@ -640,8 +640,8 @@ mod tests {
         const KEY: &'static str = "tickets";
         type Form = TicketForm;
         const OWNER: Option<ticket::Column> = Some(ticket::Column::OwnerId);
-        fn schema() -> crate::migration::schema::ModelSchema {
-            use crate::migration::{ColumnDef, ModelSchema, PrimaryKeyDef};
+        fn schema() -> crate::schema::ModelSchema {
+            use crate::schema::{ColumnDef, ModelSchema, PrimaryKeyDef};
             ModelSchema::new("Ticket")
                 .table_name("save_tickets")
                 .primary_key(PrimaryKeyDef::new("id").i32().auto_increment())
@@ -1324,8 +1324,8 @@ mod tests {
         type Form = VaultForm;
         const SECRET: &'static [vault::Column] = &[vault::Column::Hash];
         const LABEL: Option<vault::Column> = Some(vault::Column::Nick);
-        fn schema() -> crate::migration::schema::ModelSchema {
-            use crate::migration::{ColumnDef, ModelSchema, PrimaryKeyDef};
+        fn schema() -> crate::schema::ModelSchema {
+            use crate::schema::{ColumnDef, ModelSchema, PrimaryKeyDef};
             ModelSchema::new("Vault")
                 .table_name("save_vaults")
                 .primary_key(PrimaryKeyDef::new("id").i32().auto_increment())
@@ -1363,8 +1363,8 @@ mod tests {
         type Form = LockedForm;
         const SECRET: &'static [locked::Column] = &[locked::Column::Hash];
         const LABEL: Option<locked::Column> = Some(locked::Column::Hash);
-        fn schema() -> crate::migration::schema::ModelSchema {
-            use crate::migration::{ColumnDef, ModelSchema, PrimaryKeyDef};
+        fn schema() -> crate::schema::ModelSchema {
+            use crate::schema::{ColumnDef, ModelSchema, PrimaryKeyDef};
             ModelSchema::new("Locked")
                 .table_name("save_locked")
                 .primary_key(PrimaryKeyDef::new("id").i32().auto_increment())

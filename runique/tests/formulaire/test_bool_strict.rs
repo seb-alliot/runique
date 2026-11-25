@@ -165,8 +165,8 @@ fn the_generated_write_refuses_a_forged_boolean() {
 
 #[test]
 fn a_not_null_bool_column_gives_an_optional_box() {
-    use runique::migration::ColumnDef;
     use runique::runique_dsl::ast::FormFieldKind;
+    use runique::schema::ColumnDef;
     let field = ColumnDef::new("actif")
         .boolean()
         .kind(FormFieldKind::Bool)
@@ -177,8 +177,8 @@ fn a_not_null_bool_column_gives_an_optional_box() {
 
 #[test]
 fn a_declared_required_bool_gives_a_box_to_check() {
-    use runique::migration::ColumnDef;
     use runique::runique_dsl::ast::FormFieldKind;
+    use runique::schema::ColumnDef;
     let field = ColumnDef::new("cgu")
         .boolean()
         .required()
@@ -190,8 +190,8 @@ fn a_declared_required_bool_gives_a_box_to_check() {
 
 #[test]
 fn a_not_null_text_column_stays_required() {
-    use runique::migration::ColumnDef;
     use runique::runique_dsl::ast::FormFieldKind;
+    use runique::schema::ColumnDef;
     let field = ColumnDef::new("titre")
         .kind(FormFieldKind::Text)
         .to_form_field()

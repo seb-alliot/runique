@@ -19,15 +19,15 @@ path = "src/main.rs"
 # drivers by default. A single engine (`--no-default-features --features
 # postgres`) only makes a lighter build.
 default = ["all-databases"]
-sqlite = ["runique/sqlite"]
-postgres = ["runique/postgres"]
-mysql = ["runique/mysql"]
-all-databases = ["runique/all-databases"]
-big-pk = ["runique/big-pk"]
-pk-uuid = ["runique/pk-uuid"]
+sqlite = ["sea-orm/sqlx-sqlite", "sea-orm-migration/sqlx-sqlite", "sea-orm/runtime-tokio-rustls"]
+postgres = ["sea-orm/sqlx-postgres", "sea-orm-migration/sqlx-postgres", "sea-orm/runtime-tokio-rustls"]
+mysql = ["sea-orm/sqlx-mysql", "sea-orm-migration/sqlx-mysql", "sea-orm/runtime-tokio-rustls"]
+all-databases = ["sqlite", "postgres", "mysql"]
+# The key type of the models read without a project.
+big-pk = ["runique_dsl/big-pk"]
+pk-uuid = ["runique_dsl/pk-uuid", "sea-orm/with-uuid"]
 
 [dependencies]
-runique.workspace = true
 runique_dsl.workspace = true
 runique_atomic.workspace = true
 runique_i18n.workspace = true
@@ -56,5 +56,20 @@ proc-macro2.workspace = true
 crossterm.workspace = true
 dialoguer.workspace = true
 
+# The superuser's password: the same algorithms as the framework.
+argon2.workspace = true
+bcrypt.workspace = true
+scrypt.workspace = true
+dyn-clone.workspace = true
+
+# The connection: its address read and written, its own error lines.
+url.workspace = true
+urlencoding.workspace = true
+tracing.workspace = true
+
 [dev-dependencies]
+# The framework itself, for the tests only: they create its tables, and
+# compare each copied piece with the original. Never built at installation,
+# so no feature of the command may name it: its engines are asked for here.
+runique = { workspace = true, features = ["all-databases"] }
 runique_atomic = { workspace = true, features = ["test-support"] }

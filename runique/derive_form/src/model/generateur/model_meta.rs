@@ -97,7 +97,7 @@ pub fn generate_model_meta(model: &ModelInput) -> TokenStream2 {
         impl ::runique::auth::meta::ModelMeta for Entity {
             const KEY: &'static str = #key;
             type Form = Form;
-            fn schema() -> ::runique::migration::schema::ModelSchema {
+            fn schema() -> ::runique::schema::ModelSchema {
                 self::schema()
             }
             #owner

@@ -4,7 +4,7 @@
 use crate::utils::env::{restore_media_root, set_env};
 use runique::forms::Forms;
 use runique::forms::field::FormAccess;
-use runique::migration::OrderDir;
+use runique::schema::OrderDir;
 use runique::sea_orm::ActiveEnum;
 use runique::sea_orm::sea_query::ColumnType;
 use serial_test::serial;
