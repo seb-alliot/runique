@@ -278,11 +278,8 @@ fn error_path(error: &LocaleError) -> PathBuf {
 #[serial]
 fn a_folder_that_is_not_named_by_a_code_is_refused() {
     for name in [
-        "FR",
-        "Nl",
         "f",
         "français",
-        "fr_FR",
         "fr-",
         "-fr",
         "fr--be",

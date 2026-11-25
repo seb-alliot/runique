@@ -52,6 +52,8 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ### Ajouté
 
+* **Le fuseau horaire du site, `TZ`** : la clé `TZ` du `.env` (`TZ=Europe/Paris`) était lue et rangée dans `config.timezone`, sans que rien ne s'en serve. L'administration affiche maintenant à l'heure du site les dates qui portent leur fuseau (colonnes `timestamp_tz`), heure d'été comprise ; une colonne `timestamp` classique, qui ne dit pas de quel instant il s'agit, reste affichée telle qu'elle est stockée. Les templates reçoivent `{{ timezone }}`, à passer au filtre `date` (`date(format=…, timezone=timezone)`). Un nom qui n'est pas un fuseau arrête le démarrage. Sans `TZ`, ou avec `UTC`, rien ne change.
+
 * **`.with_lang("fr")` sur le builder** : fixe la langue du site depuis le code, avant le `LANG` du `.env`. Le code peut être écrit `fr`, `fr-FR` ou `fr_FR.UTF-8`, ou être celui d'une langue du dossier `locales/` du projet. Un code auquel aucune langue chargée ne répond arrête le démarrage, avec la liste des langues chargées. `Lang::find(code)` donne la langue d'un code, ou rien.
 * **Un code, une langue** : seule la première partie d'un code de langue compte, partout. `fr-LU` est le français et `pt-BR` le portugais, dans le `.env`, dans `.with_lang()` et pour le navigateur du visiteur ; auparavant une variante absente de la liste de sa langue donnait l'anglais sans un mot dans le `.env`. Les fiches des langues n'énumèrent plus leurs variantes régionales. Dans le dossier `locales/` d'un projet, un dossier `nl-NL` ou `nl_NL` est accepté et donne la langue `nl`, un dossier `pt-BR` complète le portugais de Runique, et deux dossiers pour une même langue arrêtent le démarrage.
 

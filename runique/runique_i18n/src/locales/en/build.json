@@ -18,7 +18,8 @@
     "acme_email_missing": "ACME_ENABLED=true but ACME_EMAIL is not set",
     "mailer_missing": "Password reset without a mailer: the link could never be sent",
     "locales_invalid": "The project's translations folder is invalid: {}",
-    "lang_unknown": "`.with_lang(\"{}\")`: no loaded language answers to that code. Loaded: {}. A language of the project is a folder of its `locales/`."
+    "lang_unknown": "`.with_lang(\"{}\")`: no loaded language answers to that code. Loaded: {}. A language of the project is a folder of its `locales/`.",
+    "timezone_unknown": "`TZ={}` is not a time zone. Write its name as region/city, for example `Europe/Paris`; without `TZ`, the site is in `UTC`."
   },
   "hint": {
     "db_required": "Add .with_database(db) or .with_database_config(config) to your construction chain",

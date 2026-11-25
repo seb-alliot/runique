@@ -18,7 +18,8 @@
     "acme_email_missing": "ACME_ENABLED=true ですが ACME_EMAIL が設定されていません",
     "mailer_missing": "メーラーなしのパスワードリセット：リンクを送信できません",
     "locales_invalid": "プロジェクトの翻訳フォルダーが無効です：{}",
-    "lang_unknown": "`.with_lang(\"{}\")`：このコードに対応する読み込み済みの言語はありません。読み込み済み：{}。プロジェクトの言語は `locales/` 内のフォルダです。"
+    "lang_unknown": "`.with_lang(\"{}\")`：このコードに対応する読み込み済みの言語はありません。読み込み済み：{}。プロジェクトの言語は `locales/` 内のフォルダです。",
+    "timezone_unknown": "`TZ={}` はタイムゾーンではありません。地域/都市の形式で名前を書いてください（例：`Europe/Paris`）。`TZ` がない場合、サイトは `UTC` になります。"
   },
   "hint": {
     "db_required": "構築チェーンに .with_database(db) または .with_database_config(config) を追加してください",

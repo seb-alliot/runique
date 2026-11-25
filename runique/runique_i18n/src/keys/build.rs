@@ -18,6 +18,7 @@ pub mod error {
     pub const SECRET_KEY_WEAK: &str = "build.error.secret_key_weak";
     pub const SUBSCRIBER_ALREADY_INSTALLED: &str = "build.error.subscriber_already_installed";
     pub const TEMPLATE_FAILED: &str = "build.error.template_failed";
+    pub const TIMEZONE_UNKNOWN: &str = "build.error.timezone_unknown";
     pub const VALIDATION_FAILED: &str = "build.error.validation_failed";
 }
 pub mod hint {

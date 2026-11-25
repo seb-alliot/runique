@@ -18,7 +18,8 @@
     "acme_email_missing": "ACME_ENABLED=true ma ACME_EMAIL non è impostato",
     "mailer_missing": "Reimpostazione della password senza mailer: il link non potrebbe mai essere inviato",
     "locales_invalid": "La cartella delle traduzioni del progetto non è valida: {}",
-    "lang_unknown": "`.with_lang(\"{}\")`: nessuna lingua caricata risponde a questo codice. Caricate: {}. Una lingua del progetto è una cartella del suo `locales/`."
+    "lang_unknown": "`.with_lang(\"{}\")`: nessuna lingua caricata risponde a questo codice. Caricate: {}. Una lingua del progetto è una cartella del suo `locales/`.",
+    "timezone_unknown": "`TZ={}` non è un fuso orario. Scrivetene il nome nella forma regione/città, ad esempio `Europe/Paris`; senza `TZ`, il sito è in `UTC`."
   },
   "hint": {
     "db_required": "Aggiungi .with_database(db) o .with_database_config(config) alla tua catena di costruzione",

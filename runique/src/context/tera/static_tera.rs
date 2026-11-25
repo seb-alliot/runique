@@ -58,9 +58,15 @@ pub(crate) fn display_datetime(value: &NaiveDateTime) -> String {
 
 /// The readable form of a date-time or time as a row's JSON gives it; `None`
 /// for anything else, a plain date included, which reads well as it is.
-fn display_time_text(value: &str) -> Option<String> {
+fn display_time_text(value: &str, zone: Option<chrono_tz::Tz>) -> Option<String> {
     if let Ok(with_offset) = DateTime::parse_from_rfc3339(value) {
-        return Some(display_datetime(&with_offset.naive_local()));
+        // A date that carries its offset is an exact instant: shown at the
+        // site's hour. Without a zone, as stored.
+        let local = match zone {
+            Some(zone) => with_offset.with_timezone(&zone).naive_local(),
+            None => with_offset.naive_local(),
+        };
+        return Some(display_datetime(&local));
     }
     if let Ok(datetime) = NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S%.f") {
         return Some(display_datetime(&datetime));
@@ -71,11 +77,20 @@ fn display_time_text(value: &str) -> Option<String> {
 }
 
 // Any other value goes through untouched: a row's cell can be a number too.
-fn display_time_filter(value: Value, _: Kwargs, _: &State) -> Value {
-    match value.as_str().and_then(display_time_text) {
+fn display_time_filter(zone: Option<chrono_tz::Tz>) -> impl Fn(Value, Kwargs, &State) -> Value {
+    move |value, _, _| match value
+        .as_str()
+        .and_then(|text| display_time_text(text, zone))
+    {
         Some(text) => Value::from(text),
         None => value,
     }
+}
+
+/// Registers `display_time` for the site's time zone. Registering again
+/// replaces the zone.
+pub fn register_time_zone(tera: &mut Tera, zone: chrono_tz::Tz) {
+    tera.register_filter("display_time", display_time_filter(Some(zone)));
 }
 
 // Markdown filter → HTML (tables, strikethrough, heading ids)
@@ -233,7 +248,7 @@ pub fn register_asset_filters(
     // Auto-escaped like any plain value.
     tera.register_filter("plaintext", plaintext_filter);
     tera.register_filter("format_date", format_date_filter);
-    tera.register_filter("display_time", display_time_filter);
+    tera.register_filter("display_time", display_time_filter(None));
     tera.register_filter("humanize", humanize_filter);
     tera.register_function("csrf_token", CsrfTokenFunction);
     tera.register_function("link", LinkFunction { url_registry });
@@ -245,7 +260,7 @@ mod display_time_tests {
 
     fn render(value: impl Into<Value>) -> String {
         let mut tera = Tera::default();
-        tera.register_filter("display_time", display_time_filter);
+        tera.register_filter("display_time", display_time_filter(None));
         // `.html`: Tera only escapes templates with an HTML-like extension.
         tera.add_raw_template("t.html", "{{ value | display_time }}")
             .unwrap();
@@ -287,6 +302,73 @@ mod display_time_tests {
     #[test]
     fn a_plain_value_is_still_escaped() {
         assert_eq!(render("<b>"), "&lt;b&gt;");
+    }
+
+    /// `value` as the admin shows it on a site whose time zone is `zone`.
+    fn render_in(zone: &str, value: &str) -> String {
+        let mut tera = Tera::default();
+        register_time_zone(&mut tera, zone.parse().unwrap());
+        tera.add_raw_template("t.html", "{{ value | display_time }}")
+            .unwrap();
+        let mut context = tera::Context::new();
+        context.insert("value", value);
+        tera.render("t.html", &context).unwrap()
+    }
+
+    // A date that carries its offset is an instant: shown at the site's
+    // hour, winter and summer time included, the day changing with it.
+    #[test]
+    fn a_date_with_its_offset_is_shown_at_the_sites_hour() {
+        for (value, shown) in [
+            ("2026-11-06T14:58:32Z", "2026-11-06 15:58:32"),
+            ("2026-07-06T14:58:32Z", "2026-07-06 16:58:32"),
+            ("2026-11-06T23:30:00Z", "2026-11-07 00:30:00"),
+            ("2026-11-06T14:58:32+02:00", "2026-11-06 13:58:32"),
+            ("2026-11-06T14:58:32.907849+00:00", "2026-11-06 15:58:32"),
+        ] {
+            assert_eq!(render_in("Europe/Paris", value), shown, "{value}");
+        }
+        assert_eq!(
+            render_in("America/Toronto", "2026-11-06T02:00:00Z"),
+            "2026-11-05 21:00:00"
+        );
+        assert_eq!(
+            render_in("UTC", "2026-11-06T14:58:32+02:00"),
+            "2026-11-06 12:58:32"
+        );
+    }
+
+    // The other side: a date without an offset says no instant, a time and
+    // anything else even less. The site's zone leaves them as they are.
+    #[test]
+    fn a_date_without_an_offset_is_left_as_stored_whatever_the_zone() {
+        for (value, shown) in [
+            ("2026-11-06T14:58:32", "2026-11-06 14:58:32"),
+            ("2026-11-06T14:58:32.907849", "2026-11-06 14:58:32"),
+            ("14:58:32.907849", "14:58:32"),
+            ("2026-11-06", "2026-11-06"),
+            ("Corte, 14:58", "Corte, 14:58"),
+        ] {
+            assert_eq!(render_in("Europe/Paris", value), shown, "{value}");
+            assert_eq!(render(value), shown, "{value}, no zone");
+        }
+    }
+
+    // Registering the zone again replaces the former one.
+    #[test]
+    fn the_last_zone_registered_is_the_one_used() {
+        let mut tera = Tera::default();
+        tera.register_filter("display_time", display_time_filter(None));
+        register_time_zone(&mut tera, chrono_tz::Europe::Paris);
+        register_time_zone(&mut tera, chrono_tz::Asia::Tokyo);
+        tera.add_raw_template("t.html", "{{ value | display_time }}")
+            .unwrap();
+        let mut context = tera::Context::new();
+        context.insert("value", "2026-11-06T14:58:32Z");
+        assert_eq!(
+            tera.render("t.html", &context).unwrap(),
+            "2026-11-06 23:58:32"
+        );
     }
 
     #[test]

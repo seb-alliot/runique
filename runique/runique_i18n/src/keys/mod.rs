@@ -298,6 +298,7 @@ pub const ALL: &[&str] = &[
     self::build::error::SECRET_KEY_WEAK,
     self::build::error::SUBSCRIBER_ALREADY_INSTALLED,
     self::build::error::TEMPLATE_FAILED,
+    self::build::error::TIMEZONE_UNKNOWN,
     self::build::error::VALIDATION_FAILED,
     self::build::hint::ACME_DOMAIN_MISSING,
     self::build::hint::ACME_EMAIL_MISSING,

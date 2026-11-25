@@ -103,6 +103,13 @@ impl TemplateLoader {
             url_registry.clone(),
         );
 
+        // `UTC`, the default, changes nothing: dates are stored in it.
+        if let Ok(zone) = config.timezone.parse::<chrono_tz::Tz>()
+            && zone != chrono_tz::UTC
+        {
+            static_tera::register_time_zone(&mut tera, zone);
+        }
+
         static_tera::register_integrity_filter(&mut tera, integrity_map.site.clone());
 
         // 3. Runique's templates, the admin's with their block includes

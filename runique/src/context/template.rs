@@ -189,6 +189,7 @@ where
                 .unwrap_or_else(|_| csrf_token.clone())
                 .as_str(),
         );
+        context.insert("timezone", &engine.config.timezone);
         context.insert("csp_nonce", nonce);
         context.insert("static_runique", &engine.config.static_files);
         context.insert("messages", &messages);
@@ -279,6 +280,7 @@ impl Request {
         context.insert("debug", &engine.config.debug);
         context.insert("dev", &engine.config.dev);
         context.insert("lang", crate::utils::trad::current_lang().code());
+        context.insert("timezone", &engine.config.timezone);
         context.insert("static_runique", &engine.config.static_files);
         context.insert(
             "csrf_token",

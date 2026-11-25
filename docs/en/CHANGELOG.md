@@ -52,6 +52,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+* **The site's time zone, `TZ`**: the `.env`'s `TZ` key (`TZ=Europe/Paris`) was read and kept in `config.timezone`, with nothing using it. The admin now shows at the site's hour the dates that carry their offset (`timestamp_tz` columns), summer time included; a plain `timestamp` column, which doesn't say what instant it is, is still shown as stored. Templates get `{{ timezone }}`, to hand to the `date` filter (`date(format=…, timezone=timezone)`). A name that is no time zone stops the start. Without `TZ`, or with `UTC`, nothing changes.
+
 * **`.with_lang("fr")` on the builder**: sets the language of the site from the code, before the `.env`'s `LANG`. The code may be written `fr`, `fr-FR` or `fr_FR.UTF-8`, or be that of a language of the project's `locales/` folder. A code no loaded language answers to stops the start, with the list of the loaded languages. `Lang::find(code)` gives the language of a code, or nothing.
 * **One code, one language**: only the first part of a language code counts, everywhere. `fr-LU` is French and `pt-BR` Portuguese, in the `.env`, in `.with_lang()` and for the visitor's browser; before, a variant missing from its language's list gave English without a word in the `.env`. The language descriptions no longer list their regional variants. In a project's `locales/` folder, a `nl-NL` or `nl_NL` folder is accepted and gives the language `nl`, a `pt-BR` folder completes Runique's Portuguese, and two folders for one language stop the start.
 

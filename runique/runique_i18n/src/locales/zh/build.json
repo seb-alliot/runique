@@ -18,7 +18,8 @@
     "acme_email_missing": "ACME_ENABLED=true 但未设置 ACME_EMAIL",
     "mailer_missing": "没有邮件服务的密码重置：链接永远无法发送",
     "locales_invalid": "项目的翻译文件夹无效：{}",
-    "lang_unknown": "`.with_lang(\"{}\")`：没有已加载的语言对应此代码。已加载：{}。项目的语言是其 `locales/` 中的一个文件夹。"
+    "lang_unknown": "`.with_lang(\"{}\")`：没有已加载的语言对应此代码。已加载：{}。项目的语言是其 `locales/` 中的一个文件夹。",
+    "timezone_unknown": "`TZ={}` 不是一个时区。请以“地区/城市”的形式书写其名称，例如 `Europe/Paris`；没有 `TZ` 时，站点使用 `UTC`。"
   },
   "hint": {
     "db_required": "请在构建链中添加 .with_database(db) 或 .with_database_config(config)",

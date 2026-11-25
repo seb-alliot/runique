@@ -28,6 +28,13 @@ La commande `runique` décidait du type de clé primaire et du moteur d'après s
 | ✓ | Langue du site par `LANG` dans le `.env` ou `.with_lang("fr")` sur le builder, qui a le dernier mot ; `set_lang()` n'est plus exposé aux projets |
 | ✓ | Langue de chaque visiteur d'après son navigateur (`.with_lang()`, en-tête `Accept-Language`), pages d'erreur comprises |
 
+### Fuseau horaire
+
+| État | Étape |
+|:---:|---|
+| ✓ | `TZ` du `.env` vérifié au démarrage ; l'administration affiche à l'heure du site les dates des colonnes `timestamp_tz` ; `{{ timezone }}` dans les templates |
+| ☐ | Saisie des dates dans les formulaires à l'heure du site |
+
 ### makemigrations
 
 | État | Étape |

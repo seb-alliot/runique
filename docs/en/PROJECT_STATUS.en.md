@@ -28,6 +28,13 @@ The `runique` command decided the primary key type and the engine from its own f
 | ✓ | Language of the site through `LANG` in the `.env` or `.with_lang("fr")` on the builder, which has the last word; `set_lang()` is no longer exposed to projects |
 | ✓ | Each visitor's language from their browser (`.with_lang()`, `Accept-Language` header), error pages included |
 
+### Time zone
+
+| Status | Step |
+|:---:|---|
+| ✓ | The `.env`'s `TZ` checked at start; the admin shows the dates of `timestamp_tz` columns at the site's hour; `{{ timezone }}` in templates |
+| ☐ | Dates typed in forms read at the site's hour |
+
 ### makemigrations
 
 | Status | Step |

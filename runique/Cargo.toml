@@ -95,7 +95,7 @@ rust_decimal.workspace = true
 image.workspace = true
 imagesize.workspace = true
 walkdir.workspace = true
-
+chrono-tz.workspace = true
 
 # Logging
 tracing.workspace = true

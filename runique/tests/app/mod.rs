@@ -15,3 +15,4 @@ pub mod test_security_builders;
 pub mod test_security_e2e;
 pub mod test_staging_builders;
 pub mod test_static_serving;
+pub mod test_timezone;

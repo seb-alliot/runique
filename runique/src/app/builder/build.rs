@@ -91,6 +91,14 @@ impl<P> RuniqueAppBuilder<P> {
         // language: the checks below answer in it.
         load_project_locales(self.config.lang.as_deref())?;
 
+        // A zone nobody knows would leave every date as stored, without a word.
+        if self.config.timezone.parse::<chrono_tz::Tz>().is_err() {
+            return Err(BuildError::validation(crate::utils::trad::tf(
+                runique_i18n::keys::build::error::TIMEZONE_UNKNOWN,
+                &[&self.config.timezone],
+            )));
+        }
+
         // Step 1: validation
         self.validate()?;
         if !self.all_ready() {
