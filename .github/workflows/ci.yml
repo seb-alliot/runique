@@ -54,9 +54,8 @@ jobs:
       - name: Run clippy
         run: cargo clippy --all-targets --features orm,sqlite,postgres,mysql,all-databases,acme,admin,test-utils -- -D warnings
 
-      # working-directory: runique — sans ça, cargo cible tout le workspace (demo-app
-      # inclus), qui hérite de la feature par unification et casse pour du code qui
-      # ne l'a jamais demandée (cf. contribution.rs, seeds/*.rs en i32 en dur).
+      # working-directory: runique — le framework seul, avec ce type de clé. demo-app
+      # est compilée et testée avec chaque type de clé dans son propre job (`demo`).
       - name: Run clippy (big-pk)
         run: cargo clippy --all-targets --features big-pk -- -D warnings
         working-directory: runique
@@ -335,15 +334,17 @@ jobs:
         working-directory: runique/runique_cli
 
   # The engines are mutually exclusive for a user, who always builds one of
-  # them alone: every other job uses `all-databases`, so a `cfg` branch of a
-  # single engine is only compiled here.
+  # them alone: the `runique` jobs use `all-databases`, so a `cfg` branch of a
+  # single engine is only compiled here. With the admin, which compiles
+  # everything an engine alone does; what is only built without it is covered
+  # by the "without admin" tests.
   engines:
     name: Single engine (${{ matrix.features }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        features: [sqlite, postgres, mysql, "sqlite,admin", "postgres,admin", "mysql,admin"]
+        features: ["sqlite,admin", "postgres,admin", "mysql,admin"]
     steps:
       - uses: actions/checkout@v4
         with:
