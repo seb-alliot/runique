@@ -209,14 +209,14 @@ jobs:
               mysql:8.4
             env_file: .env.mysql
             url: mysql://runique:runique_test@127.0.0.1:3307/runique_demo
-          # No container: the database is a file, created by the first connection.
+          # No container: the database is a file, created by the first
+          # connection. Its address needs the checkout's folder, which only a
+          # step knows: see "Name the database".
           - engine: sqlite
             env_file: .env.sqlite
-            url: sqlite://${{ github.workspace }}/demo-app/ci.db?mode=rwc
     env:
       # Read at compile time by the model macros, and by the command.
       DB_ENGINE: ${{ matrix.engine }}
-      DATABASE_URL: ${{ matrix.url }}
       RUST_BACKTRACE: "1"
     steps:
       - uses: actions/checkout@v4
@@ -238,6 +238,19 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-demo-${{ matrix.engine }}-${{ matrix.key }}-${{ hashFiles('**/Cargo.toml') }}
+
+      # For every later step. SQLite's file is named in full, and by `DB_NAME`
+      # as well: when `DATABASE_URL` doesn't answer, the connection falls back
+      # on the `DB_*` keys, which without a name mean `local_base.sqlite`,
+      # another database.
+      - name: Name the database
+        run: |
+          if [ "${{ matrix.engine }}" = "sqlite" ]; then
+            echo "DATABASE_URL=sqlite://$GITHUB_WORKSPACE/demo-app/ci.db?mode=rwc" >> "$GITHUB_ENV"
+            echo "DB_NAME=$GITHUB_WORKSPACE/demo-app/ci.db" >> "$GITHUB_ENV"
+          else
+            echo "DATABASE_URL=${{ matrix.url }}" >> "$GITHUB_ENV"
+          fi
 
       # Started here, not as a service: SQLite has none, and a job can't
       # leave a service out for one engine. Waits until the engine answers.
@@ -269,27 +282,26 @@ jobs:
 
       - name: Write demo-app's env file
         run: |
-          cat > demo-app/${{ matrix.env_file }} <<'EOF'
+          cat > demo-app/${{ matrix.env_file }} <<EOF
           RUNIQUE_ENV=dev
           DEBUG=true
           DB_ENGINE=${{ matrix.engine }}
-          DATABASE_URL=${{ matrix.url }}
+          DATABASE_URL=$DATABASE_URL
           SECRET_KEY=ci-only-key-with-at-least-32-characters
           EOF
-          # When `DATABASE_URL` doesn't answer, the connection falls back on the
-          # `DB_*` keys: without a name they mean `local_base.sqlite`, another
-          # database, empty. Named, they mean the same file.
-          if [ "${{ matrix.engine }}" = "sqlite" ]; then
-            echo "DB_NAME=${{ github.workspace }}/demo-app/ci.db" >> demo-app/${{ matrix.env_file }}
+          if [ -n "${DB_NAME:-}" ]; then
+            echo "DB_NAME=$DB_NAME" >> demo-app/${{ matrix.env_file }}
           fi
 
       - name: Install the runique command
         run: cargo install --path runique/runique_cli --force
 
       # The migrations kept in the repository are written for `int` keys:
-      # another key type has them written again from the models.
-      - name: Write the migrations for this key type
-        if: matrix.key != 'int'
+      # another key type has them written again from the models. So does
+      # SQLite: one of them changes a foreign key on an existing table, which
+      # SQLite can't do; written again, they are only creations.
+      - name: Write the migrations again from the models
+        if: matrix.key != 'int' || matrix.engine == 'sqlite'
         working-directory: demo-app
         run: |
           find migration/src -maxdepth 1 -name 'm[0-9]*.rs' -delete
