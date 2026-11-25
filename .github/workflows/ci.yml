@@ -276,6 +276,12 @@ jobs:
           DATABASE_URL=${{ matrix.url }}
           SECRET_KEY=ci-only-key-with-at-least-32-characters
           EOF
+          # When `DATABASE_URL` doesn't answer, the connection falls back on the
+          # `DB_*` keys: without a name they mean `local_base.sqlite`, another
+          # database, empty. Named, they mean the same file.
+          if [ "${{ matrix.engine }}" = "sqlite" ]; then
+            echo "DB_NAME=${{ github.workspace }}/demo-app/ci.db" >> demo-app/${{ matrix.env_file }}
+          fi
 
       - name: Install the runique command
         run: cargo install --path runique/runique_cli --force
