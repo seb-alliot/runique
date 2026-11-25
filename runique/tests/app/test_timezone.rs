@@ -31,11 +31,19 @@ async fn a_known_time_zone_lets_the_application_start() {
     }
 }
 
+// `TZ=` left empty, or a configuration built without the `.env`: no zone was
+// asked for, the site stays in UTC.
+#[tokio::test]
+#[serial]
+async fn an_empty_time_zone_lets_the_application_start() {
+    assert_eq!(started_in("").await, None);
+}
+
 // The name is given back in the refusal, as it was written.
 #[tokio::test]
 #[serial]
 async fn a_name_that_is_no_time_zone_stops_the_start() {
-    for zone in ["Europe/Pari", "Paris", "+01:00", "", "Europe/Paris "] {
+    for zone in ["Europe/Pari", "Paris", "+01:00", " ", "Europe/Paris "] {
         let refusal = started_in(zone)
             .await
             .unwrap_or_else(|| panic!("{zone:?} was accepted"));
