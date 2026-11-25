@@ -1,4 +1,4 @@
-🌍 **Languages**: [English](ROADMAP.md) | [Français](ROADMAP.fr.md)
+🌍 **Languages**: [English](ROADMAP.md) | [Français](../fr/ROADMAP.fr.md)
 
 # Runique — Roadmap
 

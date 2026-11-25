@@ -231,8 +231,8 @@ Détail complet par fichier : [docs/couverture_test.md](docs/couverture_test.md)
 ## État du projet & ressources
 
 - [État du projet](https://github.com/seb-alliot/runique/blob/main/docs/fr/PROJECT_STATUS.md) — avancement des versions 4.1 et 4.2
-- [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md)
-- [Passer de la 3.0 à la 4.0](https://github.com/seb-alliot/runique/blob/main/MIGRATION-4.0.fr.md)
+- [Changelog](https://github.com/seb-alliot/runique/blob/main/docs/fr/CHANGELOG.fr.md)
+- [Passer de la 3.0 à la 4.0](https://github.com/seb-alliot/runique/blob/main/docs/fr/MIGRATION-4.0.fr.md)
 - [Runique vs Django — comparatif des fonctionnalités](https://runique.io/comparatif/runique-vs-django)
 - [Crates.io](https://crates.io/crates/runique)
 - [Politique de sécurité](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)

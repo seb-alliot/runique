@@ -17,7 +17,6 @@ use sea_orm::sea_query::prelude::time::ext::NumericalDuration;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     password_init(PasswordConfig::auto_with(Manual::Argon2));
-    set_lang(Lang::En);
 
     let config: RuniqueConfig = RuniqueConfig::from_env();
 
@@ -28,6 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     builder::new(config)
         .routes(url::routes())
+        .with_lang("fr")
         .with_public_url("https://runique.io")
         .with_database(db)
         .with_log(|l| l.dev())

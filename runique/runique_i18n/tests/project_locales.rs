@@ -347,11 +347,11 @@ fn fallbacks_that_never_reach_english_are_refused() {
 }
 
 // One name, one language: an alias already taken would answer for the wrong
-// one.
+// one. A regional variant nobody declared is free to take.
 #[test]
 #[serial]
 fn a_name_given_to_two_languages_is_refused() {
-    for taken in ["fr", "fr-ca", "FR-be", "af"] {
+    for taken in ["fr", "FR", "af"] {
         let error = refused(&[
             ("nl/lang.json", &format!(r#"{{ "aliases": ["{taken}"] }}"#)),
             ("af/forms.json", "{}"),
@@ -440,7 +440,8 @@ fn the_languages_of_runique_are_described_by_their_own_files() {
         ("es-MX", Lang::Es, "es"),
         ("it-CH", Lang::It, "it"),
         ("en-US", Lang::En, "en"),
-        ("fr-LU", Lang::En, "en"),
+        ("fr-LU", Lang::Fr, "fr"),
+        ("sv-SE", Lang::En, "en"),
     ] {
         assert_eq!(Lang::from(written), lang, "{written}");
         assert_eq!(Lang::from(written).code(), code, "{written}");
@@ -461,4 +462,99 @@ fn the_languages_of_runique_are_described_by_their_own_files() {
             Lang::Ru
         ]
     );
+}
+
+// Only the first part of a code counts: a regional variant is its language.
+// `find` says when nothing answers, where `from` says English.
+#[test]
+#[serial]
+fn a_code_is_its_language_whatever_its_region() {
+    let _project = Project::with(&[]);
+    for (written, lang) in [
+        ("fr", Some(Lang::Fr)),
+        ("fr-LU", Some(Lang::Fr)),
+        ("fr_FR.UTF-8", Some(Lang::Fr)),
+        ("PT-br", Some(Lang::Pt)),
+        ("zh-Hant-TW", Some(Lang::Zh)),
+        ("sv-SE", None),
+        ("sv", None),
+        ("", None),
+        ("-fr", None),
+    ] {
+        assert_eq!(Lang::find(written), lang, "{written:?}");
+        assert_eq!(Lang::from(written), lang.unwrap_or(Lang::En), "{written:?}");
+    }
+}
+
+// A folder named after a variant of one of Runique's languages is that
+// language: its messages come over Runique's, for every variant.
+#[test]
+#[serial]
+fn a_variant_folder_completes_the_language_of_runique() {
+    let project = Project::with(&[(
+        "pt-BR/forms.json",
+        r#"{ "error": { "required": "Campo obrigatório" } }"#,
+    )]);
+    let report = load_project(&project.dir()).unwrap();
+
+    assert_eq!(Lang::available().len(), 9, "no language added");
+    assert_eq!(report.languages.len(), 1);
+    assert_eq!(report.languages[0].code, "pt");
+    assert!(!report.languages[0].new);
+    for written in ["pt", "pt-BR", "pt-PT", "pt_BR.UTF-8"] {
+        assert_eq!(Lang::find(written), Some(Lang::Pt), "{written}");
+    }
+    assert_eq!(Lang::Pt.get(REQUIRED), "Campo obrigatório");
+    assert_eq!(Lang::Pt.get(TOO_SHORT), Lang::from("pt").get(TOO_SHORT));
+}
+
+// A folder named `nl-NL`, `nl_NL` or `NL` is the language `nl`, found by its
+// code and by every variant of it; a name that is no code is still refused.
+#[test]
+#[serial]
+fn a_language_folder_is_named_by_its_language_whatever_its_region() {
+    for folder in ["nl", "nl-NL", "nl_NL", "NL-be", "NL"] {
+        let project = Project::with(&[(
+            &format!("{folder}/forms.json"),
+            r#"{ "error": { "required": "Verplicht" } }"#,
+        )]);
+        load_project(&project.dir()).unwrap();
+        let dutch = Lang::find("nl").unwrap_or_else(|| panic!("{folder}"));
+        assert_eq!(dutch.code(), "nl", "{folder}");
+        assert_eq!(dutch.get(REQUIRED), "Verplicht", "{folder}");
+        for written in ["nl-NL", "nl-BE", "nl_NL.UTF-8", "NL"] {
+            assert_eq!(Lang::find(written), Some(dutch), "{folder}: {written}");
+        }
+    }
+    for folder in ["N L", "nl.bak", "-nl", "nl-"] {
+        let error = refused(&[(&format!("{folder}/forms.json"), "{}")]);
+        assert!(
+            matches!(error, LocaleError::NotALanguage { .. }),
+            "{folder}: {error:?}"
+        );
+    }
+}
+
+// Two folders of one language would answer one for the other: refused by
+// the language they share, for a new language as for one of Runique's.
+#[test]
+#[serial]
+fn two_folders_of_one_language_are_refused() {
+    for (first, second, shared) in [
+        ("nl-NL", "nl-BE", "nl"),
+        ("pt-BR", "pt-PT", "pt"),
+        ("fr", "fr-CA", "fr"),
+    ] {
+        let error = refused(&[
+            (&format!("{first}/forms.json"), "{}"),
+            (&format!("{second}/forms.json"), "{}"),
+        ]);
+        assert_eq!(
+            error,
+            LocaleError::SameName {
+                name: shared.to_string()
+            },
+            "{first} + {second}"
+        );
+    }
 }

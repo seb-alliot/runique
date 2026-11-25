@@ -89,7 +89,7 @@ impl<P> RuniqueAppBuilder<P> {
 
         // The project's own translations, before anything is said in its
         // language: the checks below answer in it.
-        load_project_locales()?;
+        load_project_locales(self.config.lang.as_deref())?;
 
         // Step 1: validation
         self.validate()?;
@@ -694,16 +694,31 @@ impl<P> RuniqueAppBuilder<P> {
 /// language of the `.env` unless the code chose one. A folder that can't be
 /// read as translations stops the start; what it leaves untranslated or
 /// misspells is only said.
-fn load_project_locales() -> Result<(), BuildError> {
-    use crate::utils::trad::{Lang, keys::build, load_project, project_dir, set_default_lang, tf};
+fn load_project_locales(wanted: Option<&str>) -> Result<(), BuildError> {
+    use crate::utils::trad::{Lang, keys::build, load_project, project_dir, tf};
+    use runique_i18n::{set_default_lang, set_lang};
 
     let report = load_project(&project_dir())
         .map_err(|e| BuildError::validation(tf(build::error::LOCALES_INVALID, &[e])))?;
     // After the folder: `LANG=nl` names a language only once it is loaded.
     // The file's own `LANG`, never the machine's: a server's locale isn't
     // the language of the site it serves.
-    if let Some(lang) = Lang::from_dotenv() {
-        set_default_lang(lang);
+    match wanted {
+        Some(code) => {
+            let Some(lang) = Lang::find(code) else {
+                let loaded: Vec<&str> = Lang::available().iter().map(Lang::code).collect();
+                return Err(BuildError::validation(tf(
+                    build::error::LANG_UNKNOWN,
+                    &[code.to_string(), loaded.join(", ")],
+                )));
+            };
+            set_lang(lang);
+        }
+        None => {
+            if let Some(lang) = Lang::from_dotenv() {
+                set_default_lang(lang);
+            }
+        }
     }
     for language in &report.languages {
         if !language.missing.is_empty() {

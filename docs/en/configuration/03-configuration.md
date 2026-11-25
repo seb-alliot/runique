@@ -10,7 +10,7 @@ All configuration is handled through `.env` and loaded into a `RuniqueConfig` st
 | [Access in Code](/docs/en/configuration/code) | `RuniqueConfig`, validation, conditional configuration |
 | [Builder](/docs/en/configuration/builder) | Classic Builder, Intelligent Builder, methods, default values |
 | [Passwords](/docs/en/configuration/password) | `PasswordConfig`: Auto, Manual, Delegated, Custom — `password_init()`, `hash()`, `verify()` |
-| [Internationalisation (i18n)](/docs/en/configuration/i18n) | Languages, `set_lang()`, `t()`, `tf()`, `LANG` variable, fallback |
+| [Internationalisation (i18n)](/docs/en/configuration/i18n) | Languages, `.with_lang()`, `t()`, `tf()`, `LANG` variable, `locales/` folder, fallback |
 | [Structured Tracing](/docs/en/configuration/tracing) | `RuniqueLog`, per-domain activation, `.dev()`, `runique_log!` |
 
 ## Next Steps

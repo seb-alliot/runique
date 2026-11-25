@@ -27,7 +27,7 @@ Un canal réglé à la main garde son niveau. `.manual()` coupe ce mécanisme : 
 >
 > À réserver à une adresse de test, ou à une fenêtre courte sur un site réel. Coupez-le dès que le problème est trouvé, et purgez les journaux écrits pendant ce temps.
 
-> **Langue des journaux.** Les messages du CSRF, de l'admin, des sessions et du démarrage ajoutés en 4.1 suivent la langue de l'application (`set_lang`), comme les messages affichés aux visiteurs. Les noms de champs (`at`, `reason`, `resource`, `error`…) restent en anglais ; la valeur de `reason` et de `outcome` est traduite. Pour filtrer ou agréger des journaux par leur texte, gardez la langue par défaut (`en`).
+> **Langue des journaux.** Les messages du CSRF, de l'admin, des sessions et du démarrage ajoutés en 4.1 suivent la langue de l'application (`.with_lang()` ou `LANG`), comme les messages affichés aux visiteurs. Les noms de champs (`at`, `reason`, `resource`, `error`…) restent en anglais ; la valeur de `reason` et de `outcome` est traduite. Pour filtrer ou agréger des journaux par leur texte, gardez la langue par défaut (`en`).
 
 ---
 

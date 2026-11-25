@@ -6,21 +6,40 @@ Navigate the Runique Framework codebase.
 
 ---
 
+## Documents
+
+Every document exists in English and in French.
+
+| Document | English | Français |
+|---|---|---|
+| Presentation | [README.md](README.md) | [README.fr.md](README.fr.md) |
+| Changelog | [CHANGELOG.md](docs/en/CHANGELOG.md) | [CHANGELOG.fr.md](docs/fr/CHANGELOG.fr.md) |
+| Upgrading from 3.0 to 4.0 | [MIGRATION-4.0.md](docs/en/MIGRATION-4.0.md) | [MIGRATION-4.0.fr.md](docs/fr/MIGRATION-4.0.fr.md) |
+| Roadmap | [ROADMAP.md](docs/en/ROADMAP.md) | [ROADMAP.fr.md](docs/fr/ROADMAP.fr.md) |
+| Project status | [PROJECT_STATUS.en.md](docs/en/PROJECT_STATUS.en.md) | [PROJECT_STATUS.md](docs/fr/PROJECT_STATUS.md) |
+| Known issues | [KNOWN_ISSUES.md](docs/en/KNOWN_ISSUES.md) | [KNOWN_ISSUES.fr.md](docs/fr/KNOWN_ISSUES.fr.md) |
+| Compatibility | [COMPATIBILITY.en.md](docs/en/COMPATIBILITY.en.md) | [COMPATIBILITY.md](docs/fr/COMPATIBILITY.md) |
+| Running the tests | [TESTING.md](docs/en/TESTING.md) | [TESTING.fr.md](docs/fr/TESTING.fr.md) |
+| Use of AI | [AI_USAGE.md](docs/en/AI_USAGE.md) | [AI_USAGE.fr.md](docs/fr/AI_USAGE.fr.md) |
+| Security policy | [SECURITY.md](SECURITY.md) | [SECURITY.fr.md](SECURITY.fr.md) |
+| Contributing | [CONTRIBUTING.md](CONTRIBUTING.md) | [CONTRIBUTING.fr.md](CONTRIBUTING.fr.md) |
+| User documentation | [docs/en/](docs/en/README.md) | [docs/fr/](docs/fr/README.fr.md) |
+
+`README`, `SECURITY` and `CONTRIBUTING` stay at the root: GitHub only shows them from there.
+
 ## Root Level
 
 ```
 runique/
-├── README.md                 # Main documentation (English)
+├── README.md, SECURITY.md, CONTRIBUTING.md   # + their `.fr.md`
 ├── INDEX.md                  # This file
-├── CHANGELOG.md              # Version history & release notes
-├── SECURITY.md               # Security policy & guidelines
 ├── LICENSE                   # MIT License
 ├── Cargo.toml                # Workspace configuration
 ├── Cargo.lock                # Dependency lock file
 ├── audit.toml                # Cargo audit configuration
 │
-├── docs/                     # EN/FR documentation (sections)
-├── runique/                  # Main framework crate (+ runique/derive_form, runique/runique_dsl)
+├── docs/                     # EN/FR documentation: the documents above, then one folder per section
+├── runique/                  # The framework crate, and beside it runique_cli, runique_dsl, derive_form, runique_i18n, runique_atomic
 ├── demo-app/                 # Test/validation application
 └── target/                   # Build output (git-ignored)
 ```

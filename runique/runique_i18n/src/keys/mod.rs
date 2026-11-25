@@ -290,6 +290,7 @@ pub const ALL: &[&str] = &[
     self::build::error::DB_REQUIRED,
     self::build::error::DRIVER_NOT_ENABLED,
     self::build::error::EXTERNAL_OUTPUTS_IGNORED,
+    self::build::error::LANG_UNKNOWN,
     self::build::error::LOCALES_INVALID,
     self::build::error::MAILER_MISSING,
     self::build::error::MEDIA_ROOT_UNUSABLE,

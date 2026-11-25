@@ -18,7 +18,7 @@ All configuration keys available through `.env`. The listed values are the defau
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `LANG` | `en` | Language of the application and of the `runique` command: one of Runique's nine (`fr`, `en`, `de`, `es`, `it`, `pt`, `ja`, `zh`, `ru`) or a language of the project's `locales/` folder. Application: `set_lang()` in the code > `.env` > `en`. Command: `.env` > system locale > `en`. See [i18n](/docs/en/configuration/i18n) |
+| `LANG` | `en` | Language of the application and of the `runique` command: one of Runique's nine (`fr`, `en`, `de`, `es`, `it`, `pt`, `ja`, `zh`, `ru`) or a language of the project's `locales/` folder. Application: the builder's `.with_lang()` > `.env` > `en`. Command: `.env` > system locale > `en`. See [i18n](/docs/en/configuration/i18n) |
 
 ---
 

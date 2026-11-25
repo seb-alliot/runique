@@ -359,7 +359,7 @@ impl MiddlewareStaging {
     /// The `Accept-Language` header of the request picks the language, among
     /// Runique's and the ones of the project's `locales/` folder; when none
     /// of them is asked for, the application's own language stays (the one
-    /// of `set_lang()` or of `LANG` in the `.env`). Without this call, every
+    /// of `.with_lang()` or of `LANG` in the `.env`). Without this call, every
     /// visitor gets the application's language.
     pub fn with_lang(mut self) -> Self {
         self.lang = true;

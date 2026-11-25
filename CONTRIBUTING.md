@@ -3,7 +3,7 @@
 # Contributing to Runique
 
 Thank you for your interest in contributing! This page lists what a change needs before it is
-merged. To run the tests and the demo site locally, see [TESTING.md](TESTING.md).
+merged. To run the tests and the demo site locally, see [TESTING.md](docs/en/TESTING.md).
 
 **Found a security issue?** Don't open a public issue: follow [SECURITY.md](SECURITY.md).
 
@@ -79,7 +79,7 @@ time and again by `AdminStaging::validate()` at boot.
 ## Documentation
 
 - The documentation exists in French and English: update `docs/fr/` and `docs/en/` together,
-  and both `CHANGELOG.md` / `CHANGELOG.fr.md`.
+  and both `docs/en/CHANGELOG.md` / `docs/fr/CHANGELOG.fr.md`.
 - Internal links are checked:
 
   ```bash
@@ -95,7 +95,7 @@ Runique follows semantic versioning, with a fixed cycle:
 1. **Regular security checks** on what already exists. Fixes pile up in the "Unreleased"
    section of the CHANGELOG and ship together in a **patch release** (4.0.**x**).
 2. **One feature at a time**, developed until it's "finished" (see the
-   [roadmap](ROADMAP.md)), released as a **minor version** (4.**x**.0).
+   [roadmap](docs/en/ROADMAP.md)), released as a **minor version** (4.**x**.0).
 3. **A security check targeted at that feature**, and its fixes in a patch release
    (4.x.**y**).
 4. Only then does the next feature start.

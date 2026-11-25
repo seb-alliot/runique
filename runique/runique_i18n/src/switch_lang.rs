@@ -307,11 +307,13 @@ impl Registry {
         Self { languages }
     }
 
-    /// The place of the language written `name`: its code, or one of its
-    /// aliases. `name` is expected normalized.
+    /// The place of the language written `name`: only its first part counts,
+    /// `fr-lu` is `fr`. An alias is looked for as written. `name` is expected
+    /// normalized.
     pub(crate) fn position(&self, name: &str) -> Option<usize> {
-        self.languages.iter().position(|language| {
-            language.code == name || language.aliases.iter().any(|a| a == name)
+        let language = name.split('-').next().unwrap_or(name);
+        self.languages.iter().position(|loaded| {
+            loaded.code == language || loaded.aliases.iter().any(|alias| alias == name)
         })
     }
 
@@ -449,6 +451,13 @@ impl Lang {
             .map(Lang::from)
     }
 
+    /// The language written `code` (`fr`, `fr-FR`, `fr_FR.UTF-8`), or `None`
+    /// when no loaded language answers to it, where [`Lang::from`] says English.
+    #[must_use]
+    pub fn find(code: &str) -> Option<Lang> {
+        registry().position(&normalize(code)).map(Lang::from_index)
+    }
+
     /// The language the `.env` file sets, under the same keys, read without
     /// touching the environment: the system always sets `LANG`, so the file's
     /// would never win otherwise, while every other key (`DATABASE_URL`…)
@@ -486,12 +495,7 @@ impl Lang {
                 if quality == 0 {
                     return None;
                 }
-                let tag = normalize(tag);
-                let language = tag.split('-').next().unwrap_or(&tag);
-                registry
-                    .position(&tag)
-                    .or_else(|| registry.position(language))
-                    .map(|at| (quality, at))
+                registry.position(&normalize(tag)).map(|at| (quality, at))
             })
             .collect();
         // Stable: at the same weight, the order of the header decides.

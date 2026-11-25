@@ -142,7 +142,7 @@ Les autres variables (dossiers des templates, des fichiers statiques et des méd
 
 ## Utiliser Runique depuis le dépôt (version en développement)
 
-Le dépôt contient le travail en cours, en avance sur la version publiée sur crates.io. Il porte un numéro de pré-version (`4.1.0-preview`) : ce que vous clonez est la dernière version publiée plus les changements de la section la plus récente du [CHANGELOG](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md).
+Le dépôt contient le travail en cours, en avance sur la version publiée sur crates.io. Il porte un numéro de pré-version (`4.1.0-preview`) : ce que vous clonez est la dernière version publiée plus les changements de la section la plus récente du [CHANGELOG](https://github.com/seb-alliot/runique/blob/main/docs/fr/CHANGELOG.fr.md).
 
 Une pré-version n'existe pas sur crates.io. Un projet créé par un `runique new` installé depuis le dépôt demande donc `runique = { version = "4.1.0-preview", … }`, que Cargo ne trouvera pas : remplacez cette ligne par l'une des formes 2 ou 3 ci-dessous.
 

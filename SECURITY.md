@@ -145,7 +145,7 @@ Re-checked against a local `Cargo.lock` on 2026-11-07; that file isn't committed
 | 2.1.9 | Admin write permission granularity (create/update/delete indistinct) | Medium |
 | 2.1.9 | IDOR — can_update_own/can_delete_own not enforced | Low |
 
-The main 4.0 fixes are described under "Active Advisories (fixed in 4.0)" above. Details in the CHANGELOG: [3.0.3](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md#303---2026-10-10), [3.0.2](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md#302---2026-10-09).
+The main 4.0 fixes are described under "Active Advisories (fixed in 4.0)" above. Details in the CHANGELOG: [3.0.3](https://github.com/seb-alliot/runique/blob/main/docs/en/CHANGELOG.md#303---2026-10-10), [3.0.2](https://github.com/seb-alliot/runique/blob/main/docs/en/CHANGELOG.md#302---2026-10-09).
 
 ## Reporting a Vulnerability
 

@@ -3,10 +3,7 @@
 //! does lives in this crate's library.
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use runique::utils::{
-    init_logging,
-    trad::{Lang, set_lang},
-};
+use runique::utils::{init_logging, trad::Lang};
 use runique_cli::{
     create_superuser::create_superuser,
     migration::cli_migration::{makemigrations, migrate},
@@ -96,7 +93,7 @@ async fn main() -> Result<()> {
         );
     }
     if let Some(lang) = Lang::from_dotenv().or_else(Lang::from_env) {
-        set_lang(lang);
+        runique_i18n::set_lang(lang);
     }
 
     let cli = Cli::parse();

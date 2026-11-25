@@ -17,7 +17,8 @@
     "acme_domain_missing": "ACME_ENABLED=true, aber ACME_DOMAIN ist nicht gesetzt",
     "acme_email_missing": "ACME_ENABLED=true, aber ACME_EMAIL ist nicht gesetzt",
     "mailer_missing": "Passwort-Zurücksetzung ohne Mailer: der Link könnte nie gesendet werden",
-    "locales_invalid": "Der Übersetzungsordner des Projekts ist ungültig: {}"
+    "locales_invalid": "Der Übersetzungsordner des Projekts ist ungültig: {}",
+    "lang_unknown": "`.with_lang(\"{}\")`: Keine geladene Sprache entspricht diesem Code. Geladen: {}. Eine Sprache des Projekts ist ein Ordner in dessen `locales/`."
   },
   "hint": {
     "db_required": "Fügen Sie .with_database(db) oder .with_database_config(config) zu Ihrer Builder-Kette hinzu",

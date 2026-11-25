@@ -141,7 +141,7 @@ The other variables (templates, static and media folders, logging…) have defau
 
 ## Using Runique from the repository (development version)
 
-The repository holds the work in progress, ahead of the version published on crates.io. It carries a pre-release number (`4.1.0-preview`): what you clone is the last published version plus the changes of the most recent section of the [CHANGELOG](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md).
+The repository holds the work in progress, ahead of the version published on crates.io. It carries a pre-release number (`4.1.0-preview`): what you clone is the last published version plus the changes of the most recent section of the [CHANGELOG](https://github.com/seb-alliot/runique/blob/main/docs/en/CHANGELOG.md).
 
 A pre-release does not exist on crates.io. A project created by a `runique new` installed from the repository therefore asks for `runique = { version = "4.1.0-preview", … }`, which Cargo will not find: replace that line with form 2 or 3 below.
 

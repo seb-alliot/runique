@@ -17,7 +17,8 @@
     "acme_domain_missing": "ACME_ENABLED=true ma ACME_DOMAIN non è impostato",
     "acme_email_missing": "ACME_ENABLED=true ma ACME_EMAIL non è impostato",
     "mailer_missing": "Reimpostazione della password senza mailer: il link non potrebbe mai essere inviato",
-    "locales_invalid": "La cartella delle traduzioni del progetto non è valida: {}"
+    "locales_invalid": "La cartella delle traduzioni del progetto non è valida: {}",
+    "lang_unknown": "`.with_lang(\"{}\")`: nessuna lingua caricata risponde a questo codice. Caricate: {}. Una lingua del progetto è una cartella del suo `locales/`."
   },
   "hint": {
     "db_required": "Aggiungi .with_database(db) o .with_database_config(config) alla tua catena di costruzione",

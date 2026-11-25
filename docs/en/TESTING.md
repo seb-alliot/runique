@@ -1,4 +1,4 @@
-🌍 **Languages**: [English](TESTING.md) | [Français](TESTING.fr.md)
+🌍 **Languages**: [English](TESTING.md) | [Français](../fr/TESTING.fr.md)
 
 # Testing Runique and running demo-app locally
 

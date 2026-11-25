@@ -229,8 +229,8 @@ Full per-file breakdown: [docs/couverture_test.md](docs/couverture_test.md)
 ## Project status & resources
 
 - [Project status](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.en.md) — progress of the `makemigrations` work
-- [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md)
-- [Upgrading from 3.0 to 4.0](https://github.com/seb-alliot/runique/blob/main/MIGRATION-4.0.md)
+- [Changelog](https://github.com/seb-alliot/runique/blob/main/docs/en/CHANGELOG.md)
+- [Upgrading from 3.0 to 4.0](https://github.com/seb-alliot/runique/blob/main/docs/en/MIGRATION-4.0.md)
 - [Runique vs Django — feature comparison](https://runique.io/comparatif/runique-vs-django)
 - [Crates.io](https://crates.io/crates/runique)
 - [Security policy](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)

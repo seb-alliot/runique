@@ -17,7 +17,8 @@
     "acme_domain_missing": "ACME_ENABLED=true but ACME_DOMAIN is not set",
     "acme_email_missing": "ACME_ENABLED=true but ACME_EMAIL is not set",
     "mailer_missing": "Password reset without a mailer: the link could never be sent",
-    "locales_invalid": "The project's translations folder is invalid: {}"
+    "locales_invalid": "The project's translations folder is invalid: {}",
+    "lang_unknown": "`.with_lang(\"{}\")`: no loaded language answers to that code. Loaded: {}. A language of the project is a folder of its `locales/`."
   },
   "hint": {
     "db_required": "Add .with_database(db) or .with_database_config(config) to your construction chain",

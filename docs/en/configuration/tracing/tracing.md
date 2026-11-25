@@ -27,7 +27,7 @@ A channel set by hand keeps its level. `.manual()` switches this off: only the c
 >
 > Keep it for a test address, or a short window on a live site. Turn it off as soon as the problem is found, and purge the logs written meanwhile.
 
-> **Language of the logs.** The CSRF, admin, session and startup messages added in 4.1 follow the application's language (`set_lang`), like the messages shown to visitors. Field names (`at`, `reason`, `resource`, `error`…) stay in English; the value of `reason` and `outcome` is translated. To filter or aggregate logs by their text, keep the default language (`en`).
+> **Language of the logs.** The CSRF, admin, session and startup messages added in 4.1 follow the application's language (`.with_lang()` or `LANG`), like the messages shown to visitors. Field names (`at`, `reason`, `resource`, `error`…) stay in English; the value of `reason` and `outcome` is translated. To filter or aggregate logs by their text, keep the default language (`en`).
 
 ---
 

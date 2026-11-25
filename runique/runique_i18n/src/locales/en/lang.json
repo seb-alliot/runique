@@ -1,8 +1,4 @@
 {
   "name": "English",
-  "aliases": [
-    "en-us",
-    "en-gb"
-  ],
   "fallback": "en"
 }

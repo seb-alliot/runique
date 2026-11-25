@@ -145,7 +145,7 @@ Vérifié à nouveau sur un `Cargo.lock` local le 2026-11-07 ; ce fichier n'est 
 | 2.1.9 | Granularité droits write admin (create/update/delete indistincts) | Moyenne |
 | 2.1.9 | IDOR — can_update_own/can_delete_own non appliqués | Faible |
 
-Les principaux correctifs de la 4.0 sont décrits plus haut, dans « Failles en cours (corrigées en 4.0) ». Détails dans le CHANGELOG : [3.0.3](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md#303---2026-10-10), [3.0.2](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md#302---2026-10-09).
+Les principaux correctifs de la 4.0 sont décrits plus haut, dans « Failles en cours (corrigées en 4.0) ». Détails dans le CHANGELOG : [3.0.3](https://github.com/seb-alliot/runique/blob/main/docs/fr/CHANGELOG.fr.md#303---2026-10-10), [3.0.2](https://github.com/seb-alliot/runique/blob/main/docs/fr/CHANGELOG.fr.md#302---2026-10-09).
 
 ## Signaler une vulnérabilité
 

@@ -186,10 +186,16 @@ fn language_folders(dir: &Path) -> Result<Vec<(String, PathBuf)>, LocaleError> {
             .file_name()
             .map(|name| name.to_string_lossy().into_owned())
             .unwrap_or_default();
-        if !is_language_code(&name) {
+        // `nl-NL` and `nl_NL` are the language `nl`: only the first part counts.
+        let written = name.replace('_', "-").to_lowercase();
+        if !is_language_code(&written) {
             return Err(LocaleError::NotALanguage { path });
         }
-        folders.push((name, path));
+        let code = written.split('-').next().unwrap_or(&written).to_string();
+        if folders.iter().any(|(taken, _)| *taken == code) {
+            return Err(LocaleError::SameName { name: code });
+        }
+        folders.push((code, path));
     }
     Ok(folders)
 }

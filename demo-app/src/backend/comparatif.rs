@@ -73,9 +73,9 @@ pub async fn limites_page(request: &mut Request) -> AppResult<Response> {
     // there, so search engines index the documentation page only.
     let limits = doc_blocks(lang, "limites", "index", request).await;
     let roadmap = split_markdown_sections(if lang == "fr" {
-        include_str!("../../../ROADMAP.fr.md")
+        include_str!("../../../docs/fr/ROADMAP.fr.md")
     } else {
-        include_str!("../../../ROADMAP.md")
+        include_str!("../../../docs/en/ROADMAP.md")
     });
     context_update!(request => {
         "title"   => if lang == "fr" { "Limites et feuille de route" } else { "Limits and roadmap" },

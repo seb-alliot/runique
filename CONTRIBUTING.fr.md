@@ -4,7 +4,7 @@
 
 Merci de votre intérêt pour le projet ! Cette page liste ce qu'un changement doit remplir avant
 d'être fusionné. Pour lancer les tests et le site de démonstration en local, voir
-[TESTING.fr.md](TESTING.fr.md).
+[TESTING.fr.md](docs/fr/TESTING.fr.md).
 
 **Vous avez trouvé une faille de sécurité ?** N'ouvrez pas d'issue publique : suivez
 [SECURITY.md](SECURITY.md).
@@ -80,7 +80,7 @@ ordinaire, vérifié à la compilation puis par `AdminStaging::validate()` au d�
 ## Documentation
 
 - La documentation existe en français et en anglais : mettez à jour `docs/fr/` et `docs/en/`
-  ensemble, ainsi que `CHANGELOG.md` et `CHANGELOG.fr.md`.
+  ensemble, ainsi que `docs/en/CHANGELOG.md` et `docs/fr/CHANGELOG.fr.md`.
 - Les liens internes sont vérifiés :
 
   ```bash
@@ -97,7 +97,7 @@ Runique suit le versionnage sémantique, avec un cycle fixe :
    section « Non publié » du CHANGELOG et sortent ensemble dans une **version corrective**
    (4.0.**x**).
 2. **Une seule fonctionnalité à la fois**, développée jusqu'au « fini » (voir la
-   [feuille de route](ROADMAP.fr.md)), publiée en **version mineure** (4.**x**.0).
+   [feuille de route](docs/fr/ROADMAP.fr.md)), publiée en **version mineure** (4.**x**.0).
 3. **Un contrôle de sécurité ciblé sur cette fonctionnalité**, et ses correctifs en version
    corrective (4.x.**y**).
 4. La fonctionnalité suivante ne commence qu'ensuite.

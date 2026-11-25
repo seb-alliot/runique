@@ -1,4 +1,4 @@
-🌍 **Langues** : [English](TESTING.md) | [Français](TESTING.fr.md)
+🌍 **Langues** : [English](../en/TESTING.md) | [Français](TESTING.fr.md)
 
 # Tester Runique et lancer demo-app en local
 

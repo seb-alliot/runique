@@ -237,9 +237,9 @@ pub async fn releases(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
     let lang = visitor_lang(&request.headers);
     let content = if lang == "fr" {
-        include_str!("../../CHANGELOG.fr.md")
+        include_str!("../../docs/fr/CHANGELOG.fr.md")
     } else {
-        include_str!("../../CHANGELOG.md")
+        include_str!("../../docs/en/CHANGELOG.md")
     };
     let versions = split_markdown_sections(content);
     let index = request
@@ -317,9 +317,9 @@ pub async fn probleme_connu(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
     let lang = visitor_lang(&request.headers);
     let sections = split_markdown_sections(if lang == "fr" {
-        include_str!("../../KNOWN_ISSUES.fr.md")
+        include_str!("../../docs/fr/KNOWN_ISSUES.fr.md")
     } else {
-        include_str!("../../KNOWN_ISSUES.md")
+        include_str!("../../docs/en/KNOWN_ISSUES.md")
     });
     context_update!(request => {
         "title"       => if lang == "fr" { "Problèmes connus" } else { "Known issues" },
@@ -403,7 +403,7 @@ pub async fn readme_en(mut request: Request) -> AppResult<Response> {
 
 pub async fn ai_usage_fr(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    let content = include_str!("../../AI_USAGE.fr.md");
+    let content = include_str!("../../docs/fr/AI_USAGE.fr.md");
     context_update!(request => {
         "title"   => "Pourquoi l'usage de l'IA ?",
         "content" => content,
@@ -415,7 +415,7 @@ pub async fn ai_usage_fr(mut request: Request) -> AppResult<Response> {
 
 pub async fn ai_usage_en(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    let content = include_str!("../../AI_USAGE.md");
+    let content = include_str!("../../docs/en/AI_USAGE.md");
     context_update!(request => {
         "title"   => "Why the use of AI?",
         "content" => content,

@@ -1,8 +1,8 @@
-🌍 **Langues** : [English](KNOWN_ISSUES.md) | [Français](KNOWN_ISSUES.fr.md)
+🌍 **Langues** : [English](../en/KNOWN_ISSUES.md) | [Français](KNOWN_ISSUES.fr.md)
 
 # Problèmes connus
 
-Les défauts connus de chaque version publiée de Runique, leur contournement et la version qui les corrige. Les failles de sécurité sont dans [SECURITY.fr.md](SECURITY.fr.md), les corrections dans [CHANGELOG.fr.md](CHANGELOG.fr.md).
+Les défauts connus de chaque version publiée de Runique, leur contournement et la version qui les corrige. Les failles de sécurité sont dans [SECURITY.fr.md](../../SECURITY.fr.md), les corrections dans [CHANGELOG.fr.md](CHANGELOG.fr.md).
 
 ## 4.0.0
 

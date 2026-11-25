@@ -388,6 +388,15 @@ impl<S> RuniqueAppBuilder<S> {
 
     // ─── Middleware ───────────────────────────────────────────────────────────
 
+    /// Sets the language of the site: `"fr"`, `"pt-BR"`, or a language of the
+    /// project's `locales/` folder. Comes before `LANG` in the `.env`; without
+    /// either, the site is in English. A code no loaded language answers to
+    /// stops the start.
+    pub fn with_lang(mut self, code: &str) -> Self {
+        self.config.lang = Some(code.to_string());
+        self
+    }
+
     /// Configures middlewares via a closure.
     ///
     /// The order of calls inside the closure does not matter:

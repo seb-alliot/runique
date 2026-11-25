@@ -17,7 +17,8 @@
     "acme_domain_missing": "ACME_ENABLED=true mas ACME_DOMAIN não está definido",
     "acme_email_missing": "ACME_ENABLED=true mas ACME_EMAIL não está definido",
     "mailer_missing": "Redefinição de senha sem mailer: o link nunca poderia ser enviado",
-    "locales_invalid": "A pasta de traduções do projeto é inválida: {}"
+    "locales_invalid": "A pasta de traduções do projeto é inválida: {}",
+    "lang_unknown": "`.with_lang(\"{}\")`: nenhuma língua carregada responde a este código. Carregadas: {}. Uma língua do projeto é uma pasta do seu `locales/`."
   },
   "hint": {
     "db_required": "Adicione .with_database(db) ou .with_database_config(config) à sua cadeia de construção",

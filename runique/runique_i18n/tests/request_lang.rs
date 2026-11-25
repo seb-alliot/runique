@@ -89,15 +89,15 @@ fn the_header_is_read_whatever_its_case_and_spacing() {
     assert_eq!(asked("  de  ;q=0.5 ,  fr  "), Some(Lang::Fr));
 }
 
-// A regional variant nobody declares counts as its language, here only:
-// `Lang::from` keeps answering English for a name it doesn't know.
+// A regional variant nobody declares counts as its language, as everywhere
+// a language is looked for by its code.
 #[test]
 #[serial]
 fn an_undeclared_regional_variant_counts_as_its_language() {
     assert_eq!(asked("fr-LU"), Some(Lang::Fr));
     assert_eq!(asked("de-LI, fr;q=0.9"), Some(Lang::De));
     assert_eq!(asked("sv-SE"), None);
-    assert_eq!(Lang::from("fr-LU"), Lang::En);
+    assert_eq!(Lang::from("fr-LU"), Lang::Fr);
 }
 
 // Only the first sixteen entries are read: the seventeenth picks nothing.

@@ -17,7 +17,8 @@
     "acme_domain_missing": "ACME_ENABLED=true mais ACME_DOMAIN n'est pas défini",
     "acme_email_missing": "ACME_ENABLED=true mais ACME_EMAIL n'est pas défini",
     "mailer_missing": "Réinitialisation du mot de passe sans mailer : le lien ne pourrait jamais être envoyé",
-    "locales_invalid": "Le dossier de traductions du projet est invalide : {}"
+    "locales_invalid": "Le dossier de traductions du projet est invalide : {}",
+    "lang_unknown": "`.with_lang(\"{}\")` : aucune langue chargée ne répond à ce code. Chargées : {}. Une langue du projet est un dossier de son `locales/`."
   },
   "hint": {
     "db_required": "Ajoutez .with_database(db) ou .with_database_config(config) à votre chaîne de construction",

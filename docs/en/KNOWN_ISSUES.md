@@ -1,8 +1,8 @@
-🌍 **Languages**: [English](KNOWN_ISSUES.md) | [Français](KNOWN_ISSUES.fr.md)
+🌍 **Languages**: [English](KNOWN_ISSUES.md) | [Français](../fr/KNOWN_ISSUES.fr.md)
 
 # Known issues
 
-The known defects of each published version of Runique, their workaround and the release that fixes them. Security vulnerabilities are in [SECURITY.md](SECURITY.md), fixes in [CHANGELOG.md](CHANGELOG.md).
+The known defects of each published version of Runique, their workaround and the release that fixes them. Security vulnerabilities are in [SECURITY.md](../../SECURITY.md), fixes in [CHANGELOG.md](CHANGELOG.md).
 
 ## 4.0.0
 

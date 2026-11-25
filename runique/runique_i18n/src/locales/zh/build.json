@@ -17,7 +17,8 @@
     "acme_domain_missing": "ACME_ENABLED=true 但未设置 ACME_DOMAIN",
     "acme_email_missing": "ACME_ENABLED=true 但未设置 ACME_EMAIL",
     "mailer_missing": "没有邮件服务的密码重置：链接永远无法发送",
-    "locales_invalid": "项目的翻译文件夹无效：{}"
+    "locales_invalid": "项目的翻译文件夹无效：{}",
+    "lang_unknown": "`.with_lang(\"{}\")`：没有已加载的语言对应此代码。已加载：{}。项目的语言是其 `locales/` 中的一个文件夹。"
   },
   "hint": {
     "db_required": "请在构建链中添加 .with_database(db) 或 .with_database_config(config)",

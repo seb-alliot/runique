@@ -25,6 +25,9 @@ pub struct RuniqueConfig {
     /// IANA timezone name — read from `TZ` env var. Default: `"UTC"`.
     /// Parse with `chrono-tz`: `config.timezone.parse::<chrono_tz::Tz>()`.
     pub timezone: String,
+    /// The language of the site, as the code asked for it (`.with_lang("fr")`).
+    /// `None` follows `LANG` in the `.env`, then English.
+    pub lang: Option<String>,
     /// The admin blocks the developer replaced, served in place of Runique's
     /// whenever Tera loads the templates, the debug reload included. Set by
     /// the builder, never by hand.
@@ -61,6 +64,7 @@ impl RuniqueConfig {
             timezone: std::env::var("TZ").unwrap_or_else(|_| "UTC".to_string()),
             block_dispatch: Vec::new(),
             log: RuniqueLog::default(),
+            lang: None,
         }
     }
 }

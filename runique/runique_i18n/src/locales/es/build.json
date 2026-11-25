@@ -17,7 +17,8 @@
     "acme_domain_missing": "ACME_ENABLED=true pero ACME_DOMAIN no está definido",
     "acme_email_missing": "ACME_ENABLED=true pero ACME_EMAIL no está definido",
     "mailer_missing": "Restablecimiento de contraseña sin mailer: el enlace nunca podría enviarse",
-    "locales_invalid": "La carpeta de traducciones del proyecto no es válida: {}"
+    "locales_invalid": "La carpeta de traducciones del proyecto no es válida: {}",
+    "lang_unknown": "`.with_lang(\"{}\")`: ningún idioma cargado responde a ese código. Cargados: {}. Un idioma del proyecto es una carpeta de su `locales/`."
   },
   "hint": {
     "db_required": "Añada .with_database(db) o .with_database_config(config) a su cadena de construcción",

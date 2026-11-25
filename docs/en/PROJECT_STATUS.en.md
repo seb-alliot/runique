@@ -1,10 +1,32 @@
 # Project status — 4.1 and 4.2
 
-What remains for the next two versions. An item may move from one version to the other along the way, when they have to ship together. What comes next for the project is in the [roadmap](https://github.com/seb-alliot/runique/blob/main/ROADMAP.md).
+What remains for the next two versions. An item may move from one version to the other along the way, when they have to ship together. What comes next for the project is in the [roadmap](https://github.com/seb-alliot/runique/blob/main/docs/en/ROADMAP.md).
 
-**Last update**: November 21, 2026
+**Last update**: November 25, 2026
 
 ## 4.1: database infrastructure (in progress)
+
+### Split into crates
+
+The `runique` command decided the primary key type and the engine from its own features, the ones it had been installed with, while the project's `Cargo.toml` is what sets them. For `makemigrations` to follow the project, the command left `runique` for a crate of its own, which reads the project's features through cargo. What it shares with the framework left with it, so that it exists in one place only.
+
+| Status | Step |
+|:---:|---|
+| ✓ | `runique-cli`: the `runique` command (`new`, `makemigrations`, `migration`, `create-superuser`, `test`) in its own crate, with its own version; installing the command no longer installs the whole framework |
+| ✓ | The type of `Pk` and the superuser's key follow the project's feature (`big-pk`, `pk-uuid`), read from its `Cargo.toml`, not the installed command's |
+| ✓ | `runique_atomic`: the all-or-nothing batch of files, its journal and its repair, shared by the framework and the command |
+| ✓ | `runique_i18n`: the translation engine and the framework's messages, re-exported by `runique::utils::trad` |
+| ☐ | Tests of the three new crates run by the CI |
+| ☐ | Installation pages updated at publication (`cargo install runique-cli`) |
+
+### Internationalization
+
+| Status | Step |
+|:---:|---|
+| ✓ | One folder per language, one file per subject; keys named `subject.section.key`, each with its constant checked at compile time |
+| ✓ | The project's translations in its `locales/` folder: subjects of its own, Runique's messages rewritten, a language Runique doesn't ship (`lang.json` description) |
+| ✓ | Language of the site through `LANG` in the `.env` or `.with_lang("fr")` on the builder, which has the last word; `set_lang()` is no longer exposed to projects |
+| ✓ | Each visitor's language from their browser (`.with_lang()`, `Accept-Language` header), error pages included |
 
 ### makemigrations
 
@@ -28,11 +50,13 @@ What remains for the next two versions. An item may move from one version to the
 | ☐ | SQLite: table rebuild when a column is modified, or a foreign key is added or removed (today the column change is skipped) |
 | ☐ | Nullable to `NOT NULL` with a default: fill existing `NULL`s before the constraint |
 | ☐ | Required field added to a table that already holds rows: a choice on the console, give the value of the existing rows or do nothing |
-| ☐ | Column both renamed and modified (today only the rename applies, and the snapshot records the change as done) |
+| ✓ | Column both renamed and modified: the migration renames, then modifies, and the modification goes through the usual guard |
 | ☐ | Detect a default value change |
 | ☐ | Constraint names read from the database instead of assumed |
-| ☐ | Enums: error when two models declare the same name with different values; removed value handled |
-| ☐ | Removed `extend!{}` block: its columns are removed from the database, the framework's table stays |
+| ✓ | Enums: an enum name is declared only once in the project, otherwise `makemigrations` stops, naming the enum and the models |
+| ☐ | Enums: removed value handled |
+| ✓ | Removed `extend!{}` block: its columns are removed from the database (with `--force`), the framework's table stays |
+| ✓ | Changed primary key (name or type): refused with the list of tables, until it is really migrated; the `Pk` alias follows the project's feature, read from its `Cargo.toml` |
 
 ### migration up and down
 
@@ -49,6 +73,7 @@ What remains for the next two versions. An item may move from one version to the
 
 | Status | Step |
 |:---:|---|
+| ✓ | `get_or_404` returns the handler's error: `let article = …get_or_404(…).await?;` is enough, 404 when the row doesn't exist, 500 when the lookup fails |
 | ☐ | `get_or_create`: fetch a row from conditions, or create it with default values |
 | ☐ | `update_or_create`: update a row from conditions, or create it |
 | ☐ | `exists()` and `last()` |

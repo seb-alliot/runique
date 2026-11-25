@@ -1,4 +1,4 @@
-🌍 **Langues** : [English](https://github.com/seb-alliot/runique/blob/main/MIGRATION-4.0.md) | [Français](https://github.com/seb-alliot/runique/blob/main/MIGRATION-4.0.fr.md)
+🌍 **Langues** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/MIGRATION-4.0.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/MIGRATION-4.0.fr.md)
 
 # Passer de Runique 3.0 à 4.0
 

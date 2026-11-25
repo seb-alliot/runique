@@ -10,6 +10,7 @@ pub mod error {
     pub const DB_REQUIRED: &str = "build.error.db_required";
     pub const DRIVER_NOT_ENABLED: &str = "build.error.driver_not_enabled";
     pub const EXTERNAL_OUTPUTS_IGNORED: &str = "build.error.external_outputs_ignored";
+    pub const LANG_UNKNOWN: &str = "build.error.lang_unknown";
     pub const LOCALES_INVALID: &str = "build.error.locales_invalid";
     pub const MAILER_MISSING: &str = "build.error.mailer_missing";
     pub const MEDIA_ROOT_UNUSABLE: &str = "build.error.media_root_unusable";

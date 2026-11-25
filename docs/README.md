@@ -199,7 +199,7 @@ Pour l'avancement des versions 4.1 et 4.2, voir [PROJECT_STATUS.md](https://gith
 
 ## Ressources
 
-- [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md)
+- [Changelog](https://github.com/seb-alliot/runique/blob/main/docs/fr/CHANGELOG.fr.md)
 - [Runique vs Django — Comparaison des fonctionnalités](https://runique.io/comparatif/runique-vs-django)
 - [Crates.io](https://crates.io/crates/runique)
 - [Politique de sécurité](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)

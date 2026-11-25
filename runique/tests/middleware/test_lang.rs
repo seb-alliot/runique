@@ -14,7 +14,8 @@ use http_body_util::BodyExt;
 use runique::app::RuniqueApp;
 use runique::config::RuniqueConfig;
 use runique::middleware::lang_middleware;
-use runique::utils::trad::{Lang, current_lang, set_lang};
+use runique::utils::trad::{Lang, current_lang};
+use runique_i18n::set_lang;
 use sea_orm::Database;
 use serial_test::serial;
 use tower::ServiceExt;
@@ -222,4 +223,85 @@ async fn the_builder_puts_handlers_and_error_pages_in_the_visitors_language() {
     assert_eq!(resp.status(), StatusCode::NOT_FOUND);
     let page = text(resp).await;
     assert!(!page.contains(&*german_404), "{page}");
+}
+
+// ── `.with_lang("fr")` on the builder: the language of the site ──────────────
+
+/// An application whose own language is `lang` when given, following the
+/// visitor's browser or not; the refusal when it doesn't build.
+async fn site(lang: Option<&str>, follow_browser: bool) -> Result<Router, String> {
+    let mut config = RuniqueConfig::from_env();
+    config.dev = false;
+    config.debug = false;
+    config.server.secret_key = "a-long-enough-test-secret-key-for-production-0123456789".into();
+    let mut builder = RuniqueApp::builder(config)
+        .with_database(Database::connect("sqlite::memory:").await.unwrap())
+        .routes(Router::new().route("/spoken", get(spoken)))
+        .static_files(|s| s.enabled(false))
+        .middleware(move |m| {
+            let m = m.with_session_store(tower_sessions::MemoryStore::default());
+            if follow_browser { m.with_lang() } else { m }
+        });
+    if let Some(code) = lang {
+        builder = builder.with_lang(code);
+    }
+    builder
+        .build()
+        .await
+        .map(|app| app.router)
+        .map_err(|e| e.to_string())
+}
+
+async fn spoken_by(app: Router, accept_language: Option<HeaderValue>) -> String {
+    let resp = app
+        .oneshot(request("/spoken", accept_language))
+        .await
+        .unwrap();
+    text(resp).await
+}
+
+// The code given to the builder is the language of the site, however it is
+// written; without it the site keeps the language it had.
+#[tokio::test]
+#[serial]
+async fn the_builder_sets_the_language_of_the_site() {
+    for written in ["fr", "FR", "fr-FR", "fr_FR.UTF-8", "fr-LU"] {
+        let _site = Site::in_lang(Lang::En);
+        let app = site(Some(written), false).await.expect(written);
+        assert_eq!(spoken_by(app, None).await, "fr", "{written}");
+    }
+
+    let _site = Site::in_lang(Lang::De);
+    let app = site(None, false).await.expect("no language asked");
+    assert_eq!(spoken_by(app, None).await, "de");
+}
+
+// A code no loaded language answers to stops the start, naming the code and
+// the languages there are; the language of the site is left as it was.
+#[tokio::test]
+#[serial]
+async fn a_language_nobody_has_stops_the_start() {
+    let _site = Site::in_lang(Lang::It);
+    for unknown in ["xx", "sv-SE", ""] {
+        let refusal = site(Some(unknown), false).await.expect_err(unknown);
+        assert!(refusal.contains(&format!("\"{unknown}\"")), "{refusal}");
+        assert!(refusal.contains("fr, en"), "{refusal}");
+        assert_eq!(current_lang(), Lang::It, "{unknown}");
+    }
+}
+
+// The site's language is what a visitor gets when the browser asks for none
+// the site has; following the browser stays a separate choice.
+#[tokio::test]
+#[serial]
+async fn the_sites_language_is_the_fallback_of_the_browsers() {
+    let _site = Site::in_lang(Lang::En);
+
+    let followed = site(Some("fr"), true).await.unwrap();
+    assert_eq!(spoken_by(followed.clone(), asking("de")).await, "de");
+    assert_eq!(spoken_by(followed.clone(), asking("sv, da")).await, "fr");
+    assert_eq!(spoken_by(followed, None).await, "fr");
+
+    let fixed = site(Some("fr"), false).await.unwrap();
+    assert_eq!(spoken_by(fixed, asking("de")).await, "fr");
 }

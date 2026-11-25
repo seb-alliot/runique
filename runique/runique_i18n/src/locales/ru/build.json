@@ -17,7 +17,8 @@
     "acme_domain_missing": "ACME_ENABLED=true, но ACME_DOMAIN не задан",
     "acme_email_missing": "ACME_ENABLED=true, но ACME_EMAIL не задан",
     "mailer_missing": "Сброс пароля без почтовой службы: ссылку невозможно отправить",
-    "locales_invalid": "Папка переводов проекта недействительна: {}"
+    "locales_invalid": "Папка переводов проекта недействительна: {}",
+    "lang_unknown": "`.with_lang(\"{}\")`: ни один загруженный язык не соответствует этому коду. Загружены: {}. Язык проекта — это папка в его `locales/`."
   },
   "hint": {
     "db_required": "Добавьте .with_database(db) или .with_database_config(config) в цепочку построения",

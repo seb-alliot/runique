@@ -119,7 +119,7 @@ Dans le MCD, `cle_compte` désigne ce type.
 | `reset_tokens.user_id` sans unicité | UNIQUE : un seul lien vivant par compte |
 
 Le passage de 3.0 à 4.0 ne modifie pas une table existante (`IF NOT EXISTS`) : SQL fourni dans
-[`MIGRATION-4.0`](../MIGRATION-4.0.fr.md).
+[`MIGRATION-4.0`](../../docs/fr/MIGRATION-4.0.fr.md).
 
 ## Anomalies / dette données
 

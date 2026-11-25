@@ -1,10 +1,32 @@
 # État du projet — 4.1 et 4.2
 
-Ce qui reste à faire pour les deux prochaines versions. Un élément peut passer d'une version à l'autre en cours de route, s'il faut les livrer ensemble. La suite du projet est dans la [feuille de route](https://github.com/seb-alliot/runique/blob/main/ROADMAP.fr.md).
+Ce qui reste à faire pour les deux prochaines versions. Un élément peut passer d'une version à l'autre en cours de route, s'il faut les livrer ensemble. La suite du projet est dans la [feuille de route](https://github.com/seb-alliot/runique/blob/main/docs/fr/ROADMAP.fr.md).
 
-**Dernière mise à jour** : 21 novembre 2026
+**Dernière mise à jour** : 25 novembre 2026
 
 ## 4.1 : infrastructure base de données (en cours)
+
+### Découpage en crates
+
+La commande `runique` décidait du type de clé primaire et du moteur d'après ses propres features, celles avec lesquelles elle avait été installée, alors que c'est le `Cargo.toml` du projet qui les fixe. Pour que `makemigrations` suive le projet, la commande est sortie de `runique` dans sa propre crate, qui lit les features du projet par cargo. Ce qu'elle partage avec le framework est sorti avec elle, pour n'exister qu'à un seul endroit.
+
+| État | Étape |
+|:---:|---|
+| ✓ | `runique-cli` : la commande `runique` (`new`, `makemigrations`, `migration`, `create-superuser`, `test`) dans sa crate, avec sa propre version ; installer la commande n'installe plus le framework entier |
+| ✓ | Le type de `Pk` et la clé du superutilisateur suivent la feature du projet (`big-pk`, `pk-uuid`), lue dans son `Cargo.toml`, et non celle de la commande installée |
+| ✓ | `runique_atomic` : le lot de fichiers en tout ou rien, son journal et sa réparation, partagé par le framework et la commande |
+| ✓ | `runique_i18n` : le moteur de traduction et les messages du framework, réexporté par `runique::utils::trad` |
+| ☐ | Tests des trois nouvelles crates lancés par la CI |
+| ☐ | Pages d'installation mises à jour à la publication (`cargo install runique-cli`) |
+
+### Internationalisation
+
+| État | Étape |
+|:---:|---|
+| ✓ | Un dossier par langue, un fichier par sujet ; clés nommées `sujet.nature.clé`, chacune avec sa constante vérifiée à la compilation |
+| ✓ | Traductions du projet dans son dossier `locales/` : sujets à lui, messages de Runique réécrits, langue que Runique n'a pas (fiche `lang.json`) |
+| ✓ | Langue du site par `LANG` dans le `.env` ou `.with_lang("fr")` sur le builder, qui a le dernier mot ; `set_lang()` n'est plus exposé aux projets |
+| ✓ | Langue de chaque visiteur d'après son navigateur (`.with_lang()`, en-tête `Accept-Language`), pages d'erreur comprises |
 
 ### makemigrations
 
@@ -28,11 +50,13 @@ Ce qui reste à faire pour les deux prochaines versions. Un élément peut passe
 | ☐ | SQLite : reconstruction de la table quand une colonne est modifiée, ou qu'une clé étrangère est ajoutée ou retirée (aujourd'hui la modification de colonne est sautée) |
 | ☐ | Passage de nullable à `NOT NULL` avec défaut : remplir les `NULL` existants avant la contrainte |
 | ☐ | Champ obligatoire ajouté à une table qui contient déjà des lignes : choix en console, donner la valeur des lignes existantes ou ne rien faire |
-| ☐ | Colonne à la fois renommée et modifiée (aujourd'hui seul le renommage est appliqué, et le snapshot enregistre la modification comme faite) |
+| ✓ | Colonne à la fois renommée et modifiée : la migration renomme puis modifie, et la modification passe par le garde habituel |
 | ☐ | Détection d'un changement de valeur par défaut |
 | ☐ | Noms de contraintes lus en base au lieu d'être supposés |
-| ☐ | Enums : erreur quand deux modèles déclarent le même nom avec des valeurs différentes ; valeur retirée prise en charge |
-| ☐ | Bloc `extend!{}` retiré : ses colonnes sont retirées de la base, la table du framework reste |
+| ✓ | Enums : un nom d'enum ne se déclare qu'une fois dans le projet, sinon `makemigrations` s'arrête en nommant l'enum et les modèles |
+| ☐ | Enums : valeur retirée prise en charge |
+| ✓ | Bloc `extend!{}` retiré : ses colonnes sont retirées de la base (avec `--force`), la table du framework reste |
+| ✓ | Clé primaire changée (nom ou type) : refus avec la liste des tables, en attendant sa vraie migration ; l'alias `Pk` suit la feature du projet, lue dans son `Cargo.toml` |
 
 ### migration up et down
 
@@ -49,6 +73,7 @@ Ce qui reste à faire pour les deux prochaines versions. Un élément peut passe
 
 | État | Étape |
 |:---:|---|
+| ✓ | `get_or_404` rend l'erreur du handler : `let article = …get_or_404(…).await?;` suffit, 404 si la ligne n'existe pas, 500 si la recherche échoue |
 | ☐ | `get_or_create` : récupérer une ligne selon des conditions, ou la créer avec des valeurs par défaut |
 | ☐ | `update_or_create` : mettre à jour une ligne selon des conditions, ou la créer |
 | ☐ | `exists()` et `last()` |

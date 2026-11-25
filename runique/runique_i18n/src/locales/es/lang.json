@@ -1,11 +1,4 @@
 {
   "name": "Español",
-  "aliases": [
-    "es-es",
-    "es-mx",
-    "es-ar",
-    "es-co",
-    "es-cl"
-  ],
   "fallback": "en"
 }
