@@ -92,7 +92,10 @@ impl<P> RuniqueAppBuilder<P> {
         load_project_locales(self.config.lang.as_deref())?;
 
         // A zone nobody knows would leave every date as stored, without a word.
-        if self.config.timezone.parse::<chrono_tz::Tz>().is_err() {
+        // An empty one is no zone asked for: the site stays in UTC.
+        if !self.config.timezone.is_empty()
+            && self.config.timezone.parse::<chrono_tz::Tz>().is_err()
+        {
             return Err(BuildError::validation(crate::utils::trad::tf(
                 runique_i18n::keys::build::error::TIMEZONE_UNKNOWN,
                 &[&self.config.timezone],

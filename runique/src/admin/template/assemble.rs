@@ -172,6 +172,7 @@ const REQUEST_KEYS: &[&str] = &[
     "dev",
     "messages",
     "static_runique",
+    "timezone",
 ];
 
 /// The translation sections `insert_admin_messages` gives `page`.
