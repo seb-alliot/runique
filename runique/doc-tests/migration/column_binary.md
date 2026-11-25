@@ -1,7 +1,7 @@
 # Exemples
 
 ```rust
-use runique::migration::ColumnDef;
+use runique::schema::ColumnDef;
 // Default: BINARY(255)
 ColumnDef::new("token").binary();
 

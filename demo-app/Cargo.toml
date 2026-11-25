@@ -4,11 +4,12 @@ version = "1.0.0"
 edition = "2024"
 
 [features]
-# Le site tourne sur Postgres ; MySQL sert aux tests :
+# Le site tourne sur Postgres ; MySQL et SQLite servent aux tests :
 # `cargo test -p demo-app --no-default-features --features mysql`.
 default = ["postgres"]
 postgres = ["runique/postgres"]
 mysql = ["runique/mysql"]
+sqlite = ["runique/sqlite"]
 big-pk = ["runique/big-pk"]
 pk-uuid = ["runique/pk-uuid"]
 

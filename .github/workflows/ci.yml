@@ -81,14 +81,14 @@ jobs:
           # Without `test-utils`, six modules are left out with no warning (0 test
           # run): test_validation_form, test_form_guarantees, test_hooks,
           # test_login_form, test_builder and the handler_req helper.
-          # The whole workspace: every crate, and demo-app with its own tests
-          # against a migrated database.
+          # Every crate of the workspace but demo-app, which has its own job
+          # (`demo`): one build of it per engine.
           - name: all features
             features: orm,sqlite,postgres,mysql,all-databases,acme,admin,test-utils
             workspace: true
             dir: .
-          # From `runique/`, the framework alone: demo-app doesn't build with
-          # these key types, and always turns the admin on.
+          # From `runique/`, the framework alone: demo-app has its own job per
+          # key type, and always turns the admin on.
           - name: big-pk
             features: big-pk,all-databases,admin
             dir: runique
@@ -167,39 +167,135 @@ jobs:
       # demo-app's tests read `demo-app/.env` and work on its real tables: its
       # own database, then its migrations applied by the command, installed
       # the way a user installs it.
-      # One env file per engine, as `demo-app/src/runique_test/mod.rs` names
-      # them: `.env` for Postgres, `.env.mysql` for MySQL, each pointing at a
-      # database of that engine. With every engine compiled, as here, the
-      # tests read `.env`.
-      - name: Create demo-app's databases and env files
-        if: matrix.workspace
+      - name: Run tests
+        run: cargo test --verbose ${{ matrix.workspace && '--workspace --exclude demo-app --exclude migration' || '' }} --features ${{ matrix.features }}
+        working-directory: ${{ matrix.dir }}
+
+  # demo-app the way a project is set up: its `Cargo.toml` names one engine
+  # and one key type, and both change from one job to the next. One job per
+  # pair, each with its own database and nothing else: a container for
+  # Postgres and MySQL, a file for SQLite. The env file is the one
+  # `demo-app/src/runique_test/mod.rs` names for that engine; the tables come
+  # from the command, installed the way a user installs it.
+  demo:
+    name: demo-app (${{ matrix.engine }}, ${{ matrix.key }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [postgres, mysql, sqlite]
+        # `int` is the key type without any feature.
+        key: [int, big-pk, pk-uuid]
+        include:
+          - engine: postgres
+            container: >-
+              -p 5433:5432
+              -e POSTGRES_USER=runique
+              -e POSTGRES_PASSWORD=runique_test
+              -e POSTGRES_DB=runique_demo
+              -e POSTGRES_INITDB_ARGS="--locale=C --lc-messages=C"
+              --health-cmd="pg_isready -h 127.0.0.1 -U runique -d runique_demo"
+              postgres:16-alpine
+            env_file: .env
+            url: postgres://runique:runique_test@127.0.0.1:5433/runique_demo
+          - engine: mysql
+            container: >-
+              -p 3307:3306
+              -e MYSQL_ROOT_PASSWORD=root
+              -e MYSQL_USER=runique
+              -e MYSQL_PASSWORD=runique_test
+              -e MYSQL_DATABASE=runique_demo
+              --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+              mysql:8.4
+            env_file: .env.mysql
+            url: mysql://runique:runique_test@127.0.0.1:3307/runique_demo
+          # No container: the database is a file, created by the first connection.
+          - engine: sqlite
+            env_file: .env.sqlite
+            url: sqlite://${{ github.workspace }}/demo-app/ci.db?mode=rwc
+    env:
+      # Read at compile time by the model macros, and by the command.
+      DB_ENGINE: ${{ matrix.engine }}
+      DATABASE_URL: ${{ matrix.url }}
+      RUST_BACKTRACE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.94"
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-demo-${{ matrix.engine }}-${{ matrix.key }}-${{ hashFiles('**/Cargo.toml') }}
+
+      # Started here, not as a service: SQLite has none, and a job can't
+      # leave a service out for one engine. Waits until the engine answers.
+      - name: Start the database container
+        if: matrix.container
         run: |
-          docker exec ${{ job.services.postgres.id }} createdb -U runique runique_demo
-          docker exec ${{ job.services.mysql.id }} \
-            mysql -uroot -proot -e "CREATE DATABASE runique_demo;"
-          cat > demo-app/.env <<'EOF'
+          docker run -d --name db --health-interval=5s --health-timeout=5s --health-retries=10 ${{ matrix.container }}
+          for _ in $(seq 60); do
+            [ "$(docker inspect -f '{{.State.Health.Status}}' db)" = healthy ] && exit 0
+            sleep 2
+          done
+          docker logs db
+          exit 1
+
+      # The engine and the key type are written where a project writes them:
+      # the default features of the app, and the `runique` line of its
+      # `migration` crate, which is built on its own by `runique migration up`.
+      - name: Set the engine and the key type in demo-app's Cargo.toml
+        run: |
+          features='"${{ matrix.engine }}"'
+          if [ "${{ matrix.key }}" != "int" ]; then
+            features="$features, \"${{ matrix.key }}\""
+            sed -i 's|^runique = { path = "../../runique" }|runique = { path = "../../runique", features = ["${{ matrix.key }}"] }|' demo-app/migration/Cargo.toml
+            grep -q '"${{ matrix.key }}"' demo-app/migration/Cargo.toml
+          fi
+          sed -i "s|^default = .*|default = [$features]|" demo-app/Cargo.toml
+          grep '^default = ' demo-app/Cargo.toml
+          grep '^runique = ' demo-app/migration/Cargo.toml
+
+      - name: Write demo-app's env file
+        run: |
+          cat > demo-app/${{ matrix.env_file }} <<'EOF'
           RUNIQUE_ENV=dev
           DEBUG=true
-          DB_ENGINE=postgres
-          DATABASE_URL=postgres://runique:runique_test@127.0.0.1:5433/runique_demo
+          DB_ENGINE=${{ matrix.engine }}
+          DATABASE_URL=${{ matrix.url }}
           SECRET_KEY=ci-only-key-with-at-least-32-characters
-          EOF
-          cat > demo-app/.env.mysql <<'EOF'
-          DATABASE_URL=mysql://runique:runique_test@127.0.0.1:3307/runique_demo
           EOF
 
       - name: Install the runique command
-        if: matrix.workspace
-        run: cargo install --path runique/runique_cli
+        run: cargo install --path runique/runique_cli --force
+
+      # The migrations kept in the repository are written for `int` keys:
+      # another key type has them written again from the models.
+      - name: Write the migrations for this key type
+        if: matrix.key != 'int'
+        working-directory: demo-app
+        run: |
+          find migration/src -maxdepth 1 -name 'm[0-9]*.rs' -delete
+          rm -rf migration/src/snapshots migration/src/lib.rs
+          runique makemigrations
 
       - name: Apply demo-app's migrations
-        if: matrix.workspace
         run: runique migration up
         working-directory: demo-app
 
-      - name: Run tests
-        run: cargo test --verbose ${{ matrix.workspace && '--workspace' || '' }} --features ${{ matrix.features }}
-        working-directory: ${{ matrix.dir }}
+      - name: Run demo-app's tests
+        run: cargo test --verbose -p demo-app
 
   # `runique new`'s project, built against this checkout: the scaffold must
   # follow the API. Ignored locally (it compiles a whole project).
