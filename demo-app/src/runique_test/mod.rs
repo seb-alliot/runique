@@ -5,10 +5,7 @@
 pub const ENV: &str = ".env";
 #[cfg(all(feature = "mysql", not(feature = "postgres")))]
 pub const ENV: &str = ".env.mysql";
-#[cfg(all(
-    feature = "sqlite",
-    not(any(feature = "postgres", feature = "mysql"))
-))]
+#[cfg(all(feature = "sqlite", not(any(feature = "postgres", feature = "mysql"))))]
 pub const ENV: &str = ".env.sqlite";
 
 mod blog;
