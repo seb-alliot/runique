@@ -16,7 +16,7 @@ runique test [fichier] [test]     # Lancer src/runique_test/ (voir Tests)
 runique --version                 # Version de la commande installée (aussi : -V)
 ```
 
-`runique --version` affiche la version de Runique avec laquelle la commande a été compilée : c'est celle que `runique new` écrit dans le `Cargo.toml` d'un nouveau projet. Si elle diffère de la version de `runique` de votre projet, réinstallez la commande.
+`runique --version` affiche le nom et la version de la commande, par exemple `runique-cli 0.1.0`. La commande vit dans sa propre crate, `runique-cli`, et a sa propre version : elle n'est pas celle de la crate `runique` de votre projet, et les deux évoluent séparément.
 
 Pas de `runique start` : l'application se lance avec `cargo run`. L'admin se déclare en Rust (`ModelAdmin` + `.with_admin(...)`), sans daemon ni génération de code.
 
