@@ -170,7 +170,7 @@ where
             .await
         }
         .await;
-        written(form, result)
+        written(form, result).await
     }
 
     /// Deletes the row the URL points at.
@@ -198,7 +198,7 @@ where
         }
         .await
         .map_err(linked_delete_error);
-        written(form, result)
+        written(form, result).await
     }
 }
 
@@ -219,13 +219,13 @@ where
             Refusal::new(RefusalReason::InTransaction).message(),
         )),
     };
-    written(form, result)
+    written(form, result).await
 }
 
 /// The form back from its write: `Ok` once written, `Err` with the reason on
 /// it — refused fields already carry theirs; otherwise the refusal's message,
 /// or the database's error.
-fn written<F: RuniqueForm>(mut form: F, result: Result<(), DbErr>) -> Result<F, F> {
+async fn written<F: RuniqueForm>(mut form: F, result: Result<(), DbErr>) -> Result<F, F> {
     let Err(err) = result else {
         return Ok(form);
     };
