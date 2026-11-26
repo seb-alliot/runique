@@ -212,9 +212,6 @@ mod tests {
 
         RuniqueMigrator(Passing).up(&db, Some(1)).await.unwrap();
 
-        assert_eq!(
-            left(&db).await,
-            (vec!["first"], vec!["first".to_owned()])
-        );
+        assert_eq!(left(&db).await, (vec!["first"], vec!["first".to_owned()]));
     }
 }

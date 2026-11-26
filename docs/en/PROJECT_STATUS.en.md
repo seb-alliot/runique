@@ -64,6 +64,9 @@ The `runique` command decided the primary key type and the engine from its own f
 | ☐ | Enums: removed value handled |
 | ✓ | Removed `extend!{}` block: its columns are removed from the database (with `--force`), the framework's table stays |
 | ✓ | Changed primary key (name or type): refused with the list of tables, until it is really migrated; the `Pk` alias follows the project's feature, read from its `Cargo.toml` |
+| ✓ | In an ALTER migration, a column drop comes last: it is the one instruction that destroys data, and `down` starts by putting the column back |
+| ✓ | Generator laid out by case: an action (create, delete, modify, rename) on an object (table, column, key, index, enum type, enum value), one function per case; the generated text doesn't change |
+| ☐ | Enums: a value renamed in an enum several columns use is written once, with its places (today once per table, which fails under PostgreSQL) |
 
 ### migration up and down
 

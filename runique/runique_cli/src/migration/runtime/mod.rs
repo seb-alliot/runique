@@ -3,17 +3,18 @@
 //! operation; the engine is read on the open connection, so a migration
 //! written once behaves as each engine needs, and gains what Runique learns
 //! later without being generated again.
+mod check;
+mod create;
+mod delete;
 mod engine;
-mod enums;
-mod keys;
 mod launch;
-mod postgres;
-mod server;
-mod sqlite;
+mod rename;
 
-pub use enums::drop_enum_type;
-pub use keys::{add_foreign_key, drop_foreign_key, key_changes_supported, rename_foreign_key};
+pub use check::key_changes_supported;
+pub use create::add_foreign_key;
+pub use delete::{drop_enum_type, drop_foreign_key};
 pub use launch::RuniqueMigrator;
+pub use rename::rename_foreign_key;
 
 #[cfg(all(test, feature = "sqlite"))]
 mod tests {

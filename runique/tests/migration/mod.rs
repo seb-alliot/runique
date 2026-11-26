@@ -7,7 +7,7 @@
 //! | `test_parser_seaorm`    | Parsing depuis source SeaORM                 |
 //! | `test_diff`             | diff_schemas, db_columns, Changes            |
 //! | `test_eihwaz_tables_pk` | Colonnes PK/FK des tables eihwaz_* vs big-pk/pk-uuid |
-//! | `test_helpers`          | col_type_to_method et utilitaires internes   |
+//! | `test_helpers`          | ColumnType et utilitaires internes           |
 //! | `test_paths`            | snapshot_dir, migration_dir, chemins         |
 //! | `test_types`            | ParsedSchema et types de colonnes            |
 //! | `test_hooks_def`        | HooksDef, Hook, HookType                     |

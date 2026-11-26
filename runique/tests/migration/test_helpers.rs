@@ -1,61 +1,36 @@
 mod helpers_migration {
-    // Tests pour col_type_to_method
+    // A type gives the method a migration calls for it.
     #[test]
-    fn test_col_type_to_method_basic() {
-        use runique_cli::migration::col_type_to_method;
-        // Cas non reconnu ("int") doit retourner "string()"
-        assert_eq!(
-            col_type_to_method("int"),
-            "string()",
-            "'int' doit retourner 'string()'"
-        );
-        // Cas exacts
-        assert_eq!(
-            col_type_to_method("Text"),
-            "text()",
-            "'Text' doit retourner 'text()'"
-        );
-        assert_eq!(
-            col_type_to_method("TinyInteger"),
-            "tiny_integer()",
-            "'TinyInteger' doit retourner 'tiny_integer()'"
-        );
-        assert_eq!(
-            col_type_to_method("Integer"),
-            "integer()",
-            "'Integer' doit retourner 'integer()'"
-        );
-        assert_eq!(
-            col_type_to_method("Inconnu"),
-            "string()",
-            "'Inconnu' doit retourner 'string()'"
-        );
+    fn test_column_type_method_basic() {
+        use runique_cli::migration::ColumnType;
+        assert_eq!(ColumnType::Text.method(), "text()");
+        assert_eq!(ColumnType::TinyInteger.method(), "tiny_integer()");
+        assert_eq!(ColumnType::Integer.method(), "integer()");
+        assert_eq!(ColumnType::String.method(), "string()");
+    }
+
+    // A name that is not a type has no type: there is no fallback any more.
+    #[test]
+    fn test_column_type_from_name() {
+        use runique_cli::migration::ColumnType;
+        assert_eq!(ColumnType::from_name("Integer"), Some(ColumnType::Integer));
+        assert_eq!(ColumnType::from_name("int"), None);
+        assert_eq!(ColumnType::from_name("Inconnu"), None);
+        assert_eq!(ColumnType::from_name(""), None);
     }
 
     #[test]
-    fn test_detect_col_type_builder() {
-        use runique_cli::migration::detect_col_type_builder;
-        let methods = vec!["tiny_integer".to_string()];
-        assert_eq!(detect_col_type_builder(&methods), "TinyInteger");
-        let methods = vec!["text".to_string()];
-        assert_eq!(detect_col_type_builder(&methods), "Text");
-        let methods = vec!["blob".to_string()];
-        assert_eq!(detect_col_type_builder(&methods), "Blob");
-        let methods = vec!["unknown".to_string()];
-        assert_eq!(detect_col_type_builder(&methods), "String");
-    }
-
-    #[test]
-    fn test_detect_col_type_seaorm() {
-        use runique_cli::migration::detect_col_type_seaorm;
+    fn test_column_type_from_methods() {
+        use runique_cli::migration::ColumnType;
         let methods = vec!["big_integer".to_string()];
-        assert_eq!(detect_col_type_seaorm(&methods), "BigInteger");
+        assert_eq!(ColumnType::from_methods(&methods), "BigInteger");
         let methods = vec!["json".to_string()];
-        assert_eq!(detect_col_type_seaorm(&methods), "Json");
+        assert_eq!(ColumnType::from_methods(&methods), "Json");
         let methods = vec!["cidr".to_string()];
-        assert_eq!(detect_col_type_seaorm(&methods), "Cidr");
-        let methods = vec!["unknown".to_string()];
-        assert_eq!(detect_col_type_seaorm(&methods), "String");
+        assert_eq!(ColumnType::from_methods(&methods), "Cidr");
+        // No type method: the column is a string (an enum column has none).
+        let methods = vec!["not_null".to_string()];
+        assert_eq!(ColumnType::from_methods(&methods), "String");
     }
 
     // Les tests AST nécessitent syn::parse_str, on vérifie juste que les helpers ne paniquent pas et retournent un résultat attendu minimal.
@@ -120,7 +95,7 @@ mod helpers_migration {
         use runique_cli::migration;
         let expr: Expr = parse_str("foo.on_delete(Cascade)").unwrap();
         let action = migration::extract_fk_action(&expr, "on_delete");
-        assert_eq!(action, "Cascade");
+        assert_eq!(action, runique_cli::migration::FkAction::Cascade);
     }
 
     #[test]
@@ -128,7 +103,7 @@ mod helpers_migration {
         use runique_cli::migration;
         let expr: Expr = parse_str("Cascade").unwrap();
         let action = migration::extract_fk_action_value(&expr);
-        assert_eq!(action, "Cascade");
+        assert_eq!(action, runique_cli::migration::FkAction::Cascade);
     }
 
     #[test]
@@ -151,11 +126,10 @@ mod helpers_migration {
 // Written from cargo-mutants survivors (2026-10-07): every type, and every
 // alternative spelling a detector accepts, checked one by one.
 mod helpers_type_table {
-    use runique_cli::migration::{
-        col_type_to_method, detect_col_type_builder, detect_col_type_seaorm,
-    };
+    use runique_cli::migration::ColumnType;
 
     const TYPES: &[(&str, &str)] = &[
+        ("String", "string"),
         ("Text", "text"),
         ("TinyInteger", "tiny_integer"),
         ("SmallInteger", "small_integer"),
@@ -190,37 +164,47 @@ mod helpers_type_table {
         names.iter().map(|n| n.to_string()).collect()
     }
 
-    /// What `makemigrations` writes for a type is read back as that same type.
+    /// Every type of the list is in the table above, and the table holds
+    /// nothing else: a type added to the list must be added here.
+    #[test]
+    fn the_table_holds_every_type_once() {
+        assert_eq!(TYPES.len(), ColumnType::ALL.len());
+        for column_type in ColumnType::ALL {
+            let rows = TYPES
+                .iter()
+                .filter(|(name, _)| *column_type == *name)
+                .count();
+            assert_eq!(rows, 1, "{column_type}");
+        }
+    }
+
+    /// What `makemigrations` writes for a type is read back as that same
+    /// type, and its name gives it back too.
     #[test]
     fn every_type_round_trips_through_its_method() {
-        for (ty, method) in TYPES {
-            assert_eq!(col_type_to_method(ty), format!("{method}()"), "{ty}");
-            assert_eq!(detect_col_type_seaorm(&m(&[method])), *ty, "{method}");
-        }
-        assert_eq!(col_type_to_method("String"), "string()");
-    }
-
-    #[test]
-    fn builder_detector_reads_every_alternative_spelling() {
-        for (methods, ty) in [
-            (&["binary_len"][..], "Binary"),
-            (&["char_len"], "Char"),
-            (&["varchar"], "String"),
-            (&["string_len"], "String"),
-            (&["decimal_len"], "Decimal"),
-            (&["timestamp_tz"], "TimestampWithTimeZone"),
-            (&["datetime"], "DateTime"),
-            (&["auto_now"], "DateTime"),
-            (&["auto_now_update"], "DateTime"),
-            (&["small_integer"], "SmallInteger"),
-        ] {
-            assert_eq!(detect_col_type_builder(&m(methods)), ty, "{methods:?}");
+        for (name, method) in TYPES {
+            let column_type = ColumnType::from_name(name).expect(name);
+            assert_eq!(column_type.as_str(), *name);
+            assert_eq!(column_type.to_string(), *name);
+            // Three types have no call without an argument in sea-query.
+            let written = match *name {
+                "VarBinary" => "var_binary(255)".to_string(),
+                "Interval" => "interval(None, None)".to_string(),
+                "Enum" => "string()".to_string(),
+                _ => format!("{method}()"),
+            };
+            assert_eq!(column_type.method(), written, "{name}");
+            assert_eq!(
+                ColumnType::from_methods(&m(&[method])),
+                column_type,
+                "{method}"
+            );
         }
     }
 
     #[test]
-    fn seaorm_detector_reads_every_alternative_spelling() {
-        for (methods, ty) in [
+    fn every_alternative_spelling_is_read() {
+        for (methods, name) in [
             (&["binary_len"][..], "Binary"),
             (&["char_len"], "Char"),
             (&["decimal_len"], "Decimal"),
@@ -228,8 +212,25 @@ mod helpers_type_table {
             (&["auto_now"], "DateTime"),
             (&["auto_now_update"], "DateTime"),
             (&["enumeration"], "Enum"),
+            (&["string"], "String"),
+            (&["string_len"], "String"),
         ] {
-            assert_eq!(detect_col_type_seaorm(&m(methods)), ty, "{methods:?}");
+            assert_eq!(ColumnType::from_methods(&m(methods)), name, "{methods:?}");
         }
+    }
+
+    // The more specific method wins when a definition calls several.
+    #[test]
+    fn the_first_type_of_the_list_wins() {
+        assert_eq!(ColumnType::from_methods(&m(&["blob", "text"])), "Blob");
+        assert_eq!(ColumnType::from_methods(&m(&["text", "integer"])), "Text");
+        assert_eq!(
+            ColumnType::from_methods(&m(&["json_binary", "json"])),
+            "JsonBinary"
+        );
+        assert_eq!(
+            ColumnType::from_methods(&m(&["date_time", "date", "time"])),
+            "DateTime"
+        );
     }
 }

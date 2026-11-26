@@ -33,3 +33,10 @@ The known defects of each published version of Runique, their workaround and the
 - **Who is affected**: SQLite projects with a migration that adds, removes or changes a `belongs_to` on a table already created. PostgreSQL and MySQL are not affected. Neither are migrations that only create tables.
 - **Workaround**: on a database whose data needn't be kept, delete the database and the migration files, then run `runique makemigrations` again: migrations written again from the models only hold creations, which SQLite accepts. On a database to keep, the table has to be rebuilt by hand.
 - **Fix**: Runique 4.1.0 for the crash: the migration is refused at its first statement, with a message naming the table, and nothing is applied. Migrations written by 4.0.0 keep their former text and must be generated again to benefit from it. The table rebuild, which will make this change possible under SQLite, is not written yet.
+
+### PostgreSQL: renaming a value of an enum several columns use makes `migration up` fail
+
+- **What it does**: `runique migration up` stops on a PostgreSQL error saying the former value doesn't exist in the type. `makemigrations` writes the rename once per column using the enum, while under PostgreSQL these columns share a single type: the first rename passes, the next one no longer finds the former value.
+- **Who is affected**: PostgreSQL projects with a model that has several fields on the same enum (two `checkbox` or `multichoice` fields, for instance, or a `choice` field and a list field), when a value of that enum is renamed. MySQL and SQLite are not affected: each table updates its own rows there. Adding a value is not affected either.
+- **Workaround**: after `runique makemigrations` and before `runique migration up`, keep the rename in the migration of one of the tables concerned and remove, from the migrations of the others, the block that renames the value (in `up` and in `down`). Don't run `makemigrations` again in between: it would rewrite these migrations. This workaround holds for a PostgreSQL database only.
+- **Fix**: not fixed yet. Planned for Runique 4.1.0: the rename will be written once per enum.

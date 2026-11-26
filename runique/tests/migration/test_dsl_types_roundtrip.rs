@@ -179,7 +179,7 @@ fn cli_column(source: &str) -> (String, Option<u32>, String) {
         .expect("the CLI parses the model");
     let column = &schema.columns[0];
     let method = col_type_method(column);
-    (column.col_type.clone(), column.max_length, method)
+    (column.col_type.to_string(), column.max_length, method)
 }
 
 /// Builds the column with the sea-query method the CLI writes for `col_type`

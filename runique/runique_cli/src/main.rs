@@ -5,7 +5,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use runique_cli::{
     create_superuser::create_superuser,
-    migration::cli_migration::{makemigrations, migrate},
+    migration::{makemigrations::makemigrations, steps::apply::migrate},
     new_project::create_new_project,
     test_runner::run_tests,
 };

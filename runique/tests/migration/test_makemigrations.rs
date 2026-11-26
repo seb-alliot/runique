@@ -3,7 +3,7 @@
 //!          update_migration_lib (création + mise à jour), parse_create_file,
 //!          collect_destructive_messages
 
-use runique_cli::migration::cli_migration::{
+use runique_cli::migration::{
     seaorm_alter_file_path, seaorm_alter_module_name, update_migration_lib,
 };
 use std::fs;
@@ -113,14 +113,14 @@ fn test_update_migration_lib_ajoute_second_module() {
 
 #[test]
 fn test_parse_create_file_fichier_inexistant_retourne_err() {
-    use runique_cli::migration::cli_migration::parse_create_file;
+    use runique_cli::migration::parse_create_file;
     let result = parse_create_file("/chemin/inexistant/fichier.rs");
     assert!(result.is_err());
 }
 
 #[test]
 fn test_parse_create_file_contenu_invalide_retourne_err() {
-    use runique_cli::migration::cli_migration::parse_create_file;
+    use runique_cli::migration::parse_create_file;
     let dir = temp_dir("parse_invalid");
     let file_path = dir.join("invalid.rs");
     fs::write(&file_path, "ce n'est pas du rust valide !!!@@@").unwrap();
@@ -132,7 +132,7 @@ fn test_parse_create_file_contenu_invalide_retourne_err() {
 // scan_entities
 // ═══════════════════════════════════════════════════════════════
 
-use runique_cli::migration::cli_migration::scan_entities;
+use runique_cli::migration::scan_entities;
 
 fn entity_user() -> &'static str {
     r#"
@@ -353,7 +353,7 @@ fn test_scan_entities_belongs_to_vise_la_vraie_table_et_pk() {
     let fk = &book.foreign_keys[0];
     assert_eq!(fk.to_table, "library_shelves");
     assert_eq!(fk.to_column, "code");
-    assert_eq!(fk.on_delete, "Cascade");
+    assert_eq!(fk.on_delete, runique_cli::migration::FkAction::Cascade);
 }
 
 #[test]
@@ -390,13 +390,14 @@ fn test_scan_entities_belongs_to_table_framework() {
 // collect_destructive_messages
 // ═══════════════════════════════════════════════════════════════
 
-use runique_cli::migration::cli_migration::collect_destructive_messages;
+use runique_cli::migration::collect_destructive_messages;
 use runique_cli::migration::types::{Changes, ParsedColumn, ParsedFk};
 
 fn col(name: &str, col_type: &str, nullable: bool) -> ParsedColumn {
     ParsedColumn {
         name: name.to_string(),
-        col_type: col_type.to_string(),
+        col_type: runique_cli::migration::ColumnType::from_name(col_type)
+            .expect("the name of a column type"),
         nullable,
         ..Default::default()
     }
@@ -420,7 +421,7 @@ fn empty_changes(table: &str) -> Changes {
         dropped_fks: vec![],
         added_indexes: vec![],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
@@ -438,7 +439,7 @@ fn no_changes_returns_empty() {
 #[test]
 fn dropped_column_detected() {
     let mut c = empty_changes("users");
-    c.dropped_columns.push(col("email", "text", true));
+    c.dropped_columns.push(col("email", "Text", true));
     let msgs = collect_destructive_messages(&[c]);
     assert_eq!(msgs.len(), 1);
     assert!(msgs[0].contains("users.email"));
@@ -448,13 +449,18 @@ fn dropped_column_detected() {
 #[test]
 fn type_change_detected() {
     let mut c = empty_changes("posts");
-    c.modified_columns
-        .push((col("views", "int", false), col("views", "bigint", false)));
+    c.modified_columns.push((
+        col("views", "Integer", false),
+        col("views", "BigInteger", false),
+    ));
     let msgs = collect_destructive_messages(&[c]);
     assert_eq!(msgs.len(), 1);
     assert!(msgs[0].contains("posts.views"));
-    assert!(msgs[0].contains("int"));
-    assert!(msgs[0].contains("bigint"));
+    assert!(
+        msgs[0].contains("type Integer -> BigInteger"),
+        "{}",
+        msgs[0]
+    );
 }
 
 #[test]
@@ -478,7 +484,7 @@ fn string_to_enum_requires_force() {
 fn nullable_to_required_detected() {
     let mut c = empty_changes("orders");
     c.modified_columns
-        .push((col("note", "text", true), col("note", "text", false)));
+        .push((col("note", "Text", true), col("note", "Text", false)));
     let msgs = collect_destructive_messages(&[c]);
     assert_eq!(msgs.len(), 1);
     assert!(msgs[0].contains("orders.note"));
@@ -489,18 +495,20 @@ fn nullable_to_required_detected() {
 fn same_type_nullable_to_nullable_not_destructive() {
     let mut c = empty_changes("items");
     c.modified_columns
-        .push((col("desc", "text", true), col("desc", "text", true)));
+        .push((col("desc", "Text", true), col("desc", "Text", true)));
     assert!(collect_destructive_messages(&[c]).is_empty());
 }
 
 #[test]
 fn multiple_tables_all_collected() {
     let mut c1 = empty_changes("users");
-    c1.dropped_columns.push(col("phone", "text", true));
+    c1.dropped_columns.push(col("phone", "Text", true));
 
     let mut c2 = empty_changes("orders");
-    c2.modified_columns
-        .push((col("amount", "int", false), col("amount", "bigint", false)));
+    c2.modified_columns.push((
+        col("amount", "Integer", false),
+        col("amount", "BigInteger", false),
+    ));
 
     let msgs = collect_destructive_messages(&[c1, c2]);
     assert_eq!(msgs.len(), 2);
@@ -510,20 +518,24 @@ fn multiple_tables_all_collected() {
 
 // ── FK tests ──────────────────────────────────────────────────────────────────
 
-fn fk(from: &str, to_table: &str, on_delete: &str) -> ParsedFk {
+fn fk(from: &str, to_table: &str, on_delete: runique_cli::migration::FkAction) -> ParsedFk {
     ParsedFk {
         from_column: from.to_string(),
         to_table: to_table.to_string(),
         to_column: "id".to_string(),
-        on_delete: on_delete.to_string(),
-        on_update: "NO ACTION".to_string(),
+        on_delete,
+        on_update: runique_cli::migration::FkAction::NoAction,
     }
 }
 
 #[test]
 fn dropped_fk_detected() {
     let mut c = empty_changes("comments");
-    c.dropped_fks.push(fk("post_id", "posts", "RESTRICT"));
+    c.dropped_fks.push(fk(
+        "post_id",
+        "posts",
+        runique_cli::migration::FkAction::Restrict,
+    ));
     let msgs = collect_destructive_messages(&[c]);
     assert_eq!(msgs.len(), 1);
     assert!(msgs[0].contains("comments.post_id"));
@@ -534,7 +546,11 @@ fn dropped_fk_detected() {
 #[test]
 fn added_fk_cascade_detected() {
     let mut c = empty_changes("orders");
-    c.added_fks.push(fk("user_id", "users", "CASCADE"));
+    c.added_fks.push(fk(
+        "user_id",
+        "users",
+        runique_cli::migration::FkAction::Cascade,
+    ));
     let msgs = collect_destructive_messages(&[c]);
     assert_eq!(msgs.len(), 1);
     assert!(msgs[0].contains("orders.user_id"));
@@ -544,7 +560,11 @@ fn added_fk_cascade_detected() {
 #[test]
 fn added_fk_cascade_case_insensitive() {
     let mut c = empty_changes("orders");
-    c.added_fks.push(fk("user_id", "users", "cascade"));
+    c.added_fks.push(fk(
+        "user_id",
+        "users",
+        runique_cli::migration::FkAction::Cascade,
+    ));
     let msgs = collect_destructive_messages(&[c]);
     assert_eq!(msgs.len(), 1);
 }
@@ -552,22 +572,33 @@ fn added_fk_cascade_case_insensitive() {
 #[test]
 fn added_fk_restrict_not_destructive() {
     let mut c = empty_changes("orders");
-    c.added_fks.push(fk("user_id", "users", "RESTRICT"));
+    c.added_fks.push(fk(
+        "user_id",
+        "users",
+        runique_cli::migration::FkAction::Restrict,
+    ));
     assert!(collect_destructive_messages(&[c]).is_empty());
 }
 
 #[test]
 fn added_fk_set_null_not_destructive() {
     let mut c = empty_changes("orders");
-    c.added_fks.push(fk("user_id", "users", "SET NULL"));
+    c.added_fks.push(fk(
+        "user_id",
+        "users",
+        runique_cli::migration::FkAction::SetNull,
+    ));
     assert!(collect_destructive_messages(&[c]).is_empty());
 }
 
 #[test]
 fn added_fk_no_action_not_destructive() {
     let mut c = empty_changes("items");
-    c.added_fks
-        .push(fk("category_id", "categories", "NO ACTION"));
+    c.added_fks.push(fk(
+        "category_id",
+        "categories",
+        runique_cli::migration::FkAction::NoAction,
+    ));
     assert!(collect_destructive_messages(&[c]).is_empty());
 }
 
@@ -575,7 +606,7 @@ fn added_fk_no_action_not_destructive() {
 // seaorm_extend_module_name / seaorm_extend_file_path
 // ═══════════════════════════════════════════════════════════════
 
-use runique_cli::migration::cli_migration::{seaorm_extend_file_path, seaorm_extend_module_name};
+use runique_cli::migration::{seaorm_extend_file_path, seaorm_extend_module_name};
 
 #[test]
 fn extend_module_name_format() {
@@ -611,7 +642,7 @@ fn extend_file_path_termine_par_rs() {
 // merge_extend_schemas
 // ═══════════════════════════════════════════════════════════════
 
-use runique_cli::migration::cli_migration::merge_extend_schemas;
+use runique_cli::migration::merge_extend_schemas;
 use runique_cli::migration::types::ParsedSchema;
 
 fn extend_schema(table: &str, col_names: &[&str]) -> ParsedSchema {
@@ -622,7 +653,7 @@ fn extend_schema(table: &str, col_names: &[&str]) -> ParsedSchema {
             .iter()
             .map(|n| ParsedColumn {
                 name: n.to_string(),
-                col_type: "text".to_string(),
+                col_type: runique_cli::migration::ColumnType::Text,
                 ..Default::default()
             })
             .collect(),
@@ -674,7 +705,7 @@ fn merge_vide_retourne_vide() {
 // scan_extend_blocks
 // ═══════════════════════════════════════════════════════════════
 
-use runique_cli::migration::cli_migration::scan_extend_blocks;
+use runique_cli::migration::scan_extend_blocks;
 
 #[test]
 fn scan_extend_dir_vide_retourne_vide() {
@@ -726,7 +757,7 @@ fn scan_extend_ignore_mod_rs() {
 // ensure_admin_migration_positioned
 // ═══════════════════════════════════════════════════════════════
 
-use runique_cli::migration::cli_migration::ensure_admin_migration_positioned;
+use runique_cli::migration::ensure_admin_migration_positioned;
 
 fn lib_with_vec(modules: &[&str]) -> String {
     let mods: String = modules.iter().map(|m| format!("mod {};\n", m)).collect();

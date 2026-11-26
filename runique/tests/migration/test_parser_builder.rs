@@ -373,7 +373,7 @@ fn auto_now_keeps_the_time_zone_of_a_timestamp_tz() {
     let ty = |name: &str| {
         let c = schema.columns.iter().find(|c| c.name == name).unwrap();
         assert!(c.has_default_now, "{name}");
-        c.col_type.clone()
+        c.col_type
     };
     assert_eq!(ty("created"), "TimestampWithTimeZone");
     assert_eq!(ty("updated"), "TimestampWithTimeZone");

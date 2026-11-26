@@ -16,7 +16,7 @@ mod types_migration {
     fn test_parsed_column() {
         let col = ParsedColumn {
             name: "id".to_string(),
-            col_type: "Integer".to_string(),
+            col_type: runique_cli::migration::ColumnType::Integer,
             unique: true,
             ..ParsedColumn::default()
         };
@@ -30,13 +30,13 @@ mod types_migration {
             from_column: "user_id".to_string(),
             to_table: "accounts".to_string(),
             to_column: "id".to_string(),
-            on_delete: "Cascade".to_string(),
-            on_update: String::new(),
+            on_delete: runique_cli::migration::FkAction::Cascade,
+            on_update: runique_cli::migration::FkAction::NoAction,
         };
         assert_eq!(fk.from_column, "user_id");
         assert_eq!(fk.to_table, "accounts");
         assert_eq!(fk.to_column, "id");
-        assert_eq!(fk.on_delete, "Cascade".to_string());
+        assert_eq!(fk.on_delete, runique_cli::migration::FkAction::Cascade);
     }
 
     #[test]
@@ -60,7 +60,7 @@ mod types_migration {
             dropped_fks: vec![],
             added_indexes: vec![],
             dropped_indexes: vec![],
-            is_new_table: false,
+            table: runique_cli::migration::TableChange::Altered,
             renames: Default::default(),
             renamed_columns: vec![],
             enum_renames: vec![],

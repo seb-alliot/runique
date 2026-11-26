@@ -7,8 +7,8 @@
 
 use crate::utils::clean_tpm_test::TestTempDir;
 use crate::utils::env::{del_env, set_env};
-use runique_cli::migration::cli_migration::migrate::record_applied;
-use runique_cli::migration::cli_migration::run;
+use runique_cli::migration::run;
+use runique_cli::migration::steps::apply::migrate::record_applied;
 use std::fs;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

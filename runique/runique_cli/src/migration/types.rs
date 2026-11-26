@@ -1,5 +1,12 @@
 //! Shared data types between migration utilities: parsed schemas, columns, FKs, indexes, diffs.
 
+/// What a foreign key does when the row it points to is deleted or updated.
+pub use runique_dsl::ast::FkAction;
+
+/// The type of a column in the database: the closed list of what a
+/// migration can hold.
+pub use runique_dsl::ColumnType;
+
 /// A table schema as reconstructed by the AST parsers (from a `model!{}` DSL
 /// source or a generated SeaORM snapshot). Feeds the diff engine that decides
 /// what a migration needs to change.
@@ -18,7 +25,7 @@ pub struct ParsedSchema {
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct ParsedColumn {
     pub name: String,
-    pub col_type: String,
+    pub col_type: ColumnType,
     pub nullable: bool,
     pub unique: bool,
     pub ignored: bool,
@@ -50,8 +57,8 @@ pub struct ParsedFk {
     pub from_column: String,
     pub to_table: String,
     pub to_column: String,
-    pub on_delete: String,
-    pub on_update: String,
+    pub on_delete: FkAction,
+    pub on_update: FkAction,
 }
 
 /// A parsed table index.
@@ -96,6 +103,16 @@ impl TableRenames {
     }
 }
 
+/// What a run does to a table as a whole: it creates it, drops it, or
+/// leaves it in place and changes what it holds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TableChange {
+    Created,
+    #[default]
+    Altered,
+    Deleted,
+}
+
 /// The set of DDL operations needed to bring a table from one [`ParsedSchema`]
 /// version to the next — the output of the diff step, consumed by the
 /// migration file generators to render `up`/`down` bodies.
@@ -114,7 +131,8 @@ pub struct Changes {
     pub dropped_fks: Vec<ParsedFk>,
     pub added_indexes: Vec<ParsedIndex>,
     pub dropped_indexes: Vec<ParsedIndex>,
-    pub is_new_table: bool,
+    /// What happens to the table itself.
+    pub table: TableChange,
     /// String enum value renames: (column_name, enum_name, old_value, new_value).
     pub enum_renames: Vec<(String, String, String, String)>,
     /// Added enum values: (column_name, value).
@@ -127,7 +145,7 @@ impl Changes {
     /// True if this change set has no effect — a fresh migration would have
     /// nothing to write.
     pub fn is_empty(&self) -> bool {
-        !self.is_new_table
+        self.table == TableChange::Altered
             && self.added_columns.is_empty()
             && self.dropped_columns.is_empty()
             && self.modified_columns.is_empty()

@@ -1,17 +1,18 @@
 //! Tests — Migration Diff + update_migration_lib
 //! Couvre : diff_schemas, db_columns, Changes::is_empty, update_migration_lib
 
-use runique_cli::migration::cli_migration::update_migration_lib;
 use runique_cli::migration::db_columns;
-use runique_cli::migration::diff::diff_schemas;
+use runique_cli::migration::steps::diff::diff_schemas;
 use runique_cli::migration::types::{ParsedColumn, ParsedSchema};
+use runique_cli::migration::update_migration_lib;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 fn col(name: &str, col_type: &str) -> ParsedColumn {
     ParsedColumn {
         name: name.to_string(),
-        col_type: col_type.to_string(),
+        col_type: runique_cli::migration::ColumnType::from_name(col_type)
+            .expect("the name of a column type"),
         ..ParsedColumn::default()
     }
 }
@@ -33,7 +34,7 @@ fn col_ignored(name: &str, col_type: &str) -> ParsedColumn {
 fn schema(table: &str, pk_name: &str, columns: Vec<ParsedColumn>) -> ParsedSchema {
     ParsedSchema {
         table_name: table.to_string(),
-        primary_key: Some(col(pk_name, "i32")),
+        primary_key: Some(col(pk_name, "Integer")),
         columns,
         foreign_keys: vec![],
         indexes: vec![],
@@ -44,7 +45,11 @@ fn schema(table: &str, pk_name: &str, columns: Vec<ParsedColumn>) -> ParsedSchem
 
 #[test]
 fn test_db_columns_excludes_pk() {
-    let s = schema("users", "id", vec![col("id", "i32"), col("name", "String")]);
+    let s = schema(
+        "users",
+        "id",
+        vec![col("id", "Integer"), col("name", "String")],
+    );
     let cols = db_columns(&s);
     assert!(!cols.iter().any(|c| c.name == "id"), "PK doit être exclue");
     assert!(cols.iter().any(|c| c.name == "name"));
@@ -95,7 +100,7 @@ fn test_changes_not_empty_for_new_table() {
     let s = schema("blog", "id", vec![col("title", "String")]);
     let empty = ParsedSchema {
         table_name: "blog".to_string(),
-        primary_key: Some(col("id", "i32")),
+        primary_key: Some(col("id", "Integer")),
         columns: vec![],
         foreign_keys: vec![],
         indexes: vec![],
@@ -111,7 +116,7 @@ fn test_diff_no_changes_identical_schemas() {
     let s = schema(
         "blog",
         "id",
-        vec![col("title", "String"), col("views", "i32")],
+        vec![col("title", "String"), col("views", "Integer")],
     );
     let changes = diff_schemas(&s, &s);
     assert!(changes.added_columns.is_empty());
@@ -125,7 +130,7 @@ fn test_diff_detects_added_column() {
     let curr = schema(
         "blog",
         "id",
-        vec![col("title", "String"), col("views", "i32")],
+        vec![col("title", "String"), col("views", "Integer")],
     );
     let changes = diff_schemas(&prev, &curr);
     assert_eq!(changes.added_columns.len(), 1);
@@ -137,7 +142,7 @@ fn test_diff_detects_dropped_column() {
     let prev = schema(
         "blog",
         "id",
-        vec![col("title", "String"), col("views", "i32")],
+        vec![col("title", "String"), col("views", "Integer")],
     );
     let curr = schema("blog", "id", vec![col("title", "String")]);
     let changes = diff_schemas(&prev, &curr);
@@ -147,13 +152,13 @@ fn test_diff_detects_dropped_column() {
 
 #[test]
 fn test_diff_detects_type_change() {
-    let prev = schema("blog", "id", vec![col("views", "i32")]);
-    let curr = schema("blog", "id", vec![col("views", "i64")]);
+    let prev = schema("blog", "id", vec![col("views", "Integer")]);
+    let curr = schema("blog", "id", vec![col("views", "BigInteger")]);
     let changes = diff_schemas(&prev, &curr);
     assert_eq!(changes.modified_columns.len(), 1);
     let (old, new) = &changes.modified_columns[0];
-    assert_eq!(old.col_type, "i32");
-    assert_eq!(new.col_type, "i64");
+    assert_eq!(old.col_type, "Integer");
+    assert_eq!(new.col_type, "BigInteger");
 }
 
 #[test]
@@ -174,7 +179,7 @@ fn test_diff_multiple_changes() {
     let curr = schema(
         "blog",
         "id",
-        vec![col("title", "String"), col("new_field", "i32")],
+        vec![col("title", "String"), col("new_field", "Integer")],
     );
     let changes = diff_schemas(&prev, &curr);
     assert_eq!(changes.added_columns.len(), 1, "new_field ajouté");

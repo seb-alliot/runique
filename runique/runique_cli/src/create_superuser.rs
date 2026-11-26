@@ -342,7 +342,7 @@ pub async fn create_superuser() -> Result<()> {
 
     // Before any question: the key of the accounts table follows a feature
     // of the project (`big-pk`, `pk-uuid`), not one of this build.
-    let pk = crate::migration::cli_migration::project_pk::from_cargo()?;
+    let pk = crate::migration::steps::parser::files::project_pk::from_cargo()?;
 
     let config = superuser_db_config(|key| std::env::var(key).ok())?;
     let db: ADb = config.connect().await?;

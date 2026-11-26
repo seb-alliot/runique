@@ -64,6 +64,9 @@ La commande `runique` décidait du type de clé primaire et du moteur d'après s
 | ☐ | Enums : valeur retirée prise en charge |
 | ✓ | Bloc `extend!{}` retiré : ses colonnes sont retirées de la base (avec `--force`), la table du framework reste |
 | ✓ | Clé primaire changée (nom ou type) : refus avec la liste des tables, en attendant sa vraie migration ; l'alias `Pk` suit la feature du projet, lue dans son `Cargo.toml` |
+| ✓ | Dans une migration de modification, le retrait de colonne passe en dernier : c'est la seule instruction qui détruit des données, et `down` commence par remettre la colonne |
+| ✓ | Générateur rangé par cas : une action (créer, supprimer, modifier, renommer) sur un objet (table, colonne, clé, index, type enum, valeur d'enum), une fonction par cas ; le texte généré ne change pas |
+| ☐ | Enums : une valeur renommée dans un enum que plusieurs colonnes utilisent est écrite une seule fois, avec ses endroits (aujourd'hui une fois par table, ce qui échoue sous PostgreSQL) |
 
 ### migration up et down
 

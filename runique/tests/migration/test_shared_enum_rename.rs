@@ -15,7 +15,7 @@
 
 use crate::helpers::db_postgres;
 use runique::sea_orm::ConnectionTrait;
-use runique_cli::migration::cli_migration::scan_entities;
+use runique_cli::migration::scan_entities;
 use runique_cli::migration::{diff_schemas, generate_alter_file};
 use sea_query::Alias;
 use sea_query::extension::postgres::Type;

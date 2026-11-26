@@ -328,14 +328,13 @@ fn test_pk_not_nullable() {
 // Mapping des types de champs — types scalar classiques
 // ═══════════════════════════════════════════════════════════════
 
-fn col_type(src: &str, field: &str) -> String {
+fn col_type(src: &str, field: &str) -> runique_cli::migration::ColumnType {
     let s = parse_schema_from_source(src).unwrap().unwrap().1;
     s.columns
         .iter()
         .find(|c| c.name == field)
         .unwrap_or_else(|| panic!("champ '{field}' introuvable"))
         .col_type
-        .clone()
 }
 
 #[test]
@@ -910,8 +909,8 @@ fn test_belongs_to_on_delete_no_action_par_defaut() {
         .unwrap()
         .1;
     let fk = &s.foreign_keys[0];
-    assert_eq!(fk.on_delete, "NoAction");
-    assert_eq!(fk.on_update, "NoAction");
+    assert_eq!(fk.on_delete, runique_cli::migration::FkAction::NoAction);
+    assert_eq!(fk.on_update, runique_cli::migration::FkAction::NoAction);
 }
 
 #[test]
@@ -939,8 +938,8 @@ fn test_belongs_to_cascade_on_delete() {
         .iter()
         .find(|fk| fk.from_column == "post_id")
         .unwrap();
-    assert_eq!(fk.on_delete, "Cascade");
-    assert_eq!(fk.on_update, "NoAction");
+    assert_eq!(fk.on_delete, runique_cli::migration::FkAction::Cascade);
+    assert_eq!(fk.on_update, runique_cli::migration::FkAction::NoAction);
 }
 
 #[test]
@@ -954,8 +953,8 @@ fn test_belongs_to_cascade_et_restrict() {
         .iter()
         .find(|fk| fk.from_column == "author_id")
         .unwrap();
-    assert_eq!(fk.on_delete, "Cascade");
-    assert_eq!(fk.on_update, "Restrict");
+    assert_eq!(fk.on_delete, runique_cli::migration::FkAction::Cascade);
+    assert_eq!(fk.on_update, runique_cli::migration::FkAction::Restrict);
 }
 
 #[test]

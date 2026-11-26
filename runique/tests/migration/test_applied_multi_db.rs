@@ -8,7 +8,7 @@
 
 use crate::helpers::{db, db_mysql, db_postgres};
 use runique::sea_orm::{ConnectionTrait, DatabaseConnection};
-use runique_cli::migration::cli_migration::applied_migrations;
+use runique_cli::migration::applied_migrations;
 use sea_query::{Alias, ColumnDef, Query, Table};
 use serial_test::serial;
 

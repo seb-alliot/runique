@@ -1,6 +1,6 @@
 //! An enum column takes a value added by a later migration, on every engine.
 //! `makemigrations` writes the column as a Postgres enum type on Postgres and
-//! a plain string elsewhere (see `tests_pipeline.rs`), and a value added
+//! a plain string elsewhere (see `migration/tests/`), and a value added
 //! later as `ALTER TYPE … ADD VALUE` on Postgres, nothing elsewhere. A native
 //! `ENUM(...)` on MySQL would keep its first list and refuse the new
 //! value.

@@ -168,7 +168,7 @@ fn test_parse_fk_to_table() {
 fn test_parse_fk_on_delete_cascade() {
     let schema = parse_seaorm_source(TABLE_WITH_FK).expect("doit réussir");
     let fk = &schema.foreign_keys[0];
-    assert_eq!(fk.on_delete, "Cascade");
+    assert_eq!(fk.on_delete, runique_cli::migration::FkAction::Cascade);
 }
 
 // ═══════════════════════════════════════════════════════════════

@@ -46,10 +46,19 @@ fn references_without_a_table_name_are_none_never_a_panic() {
 #[test]
 fn fk_actions_are_found_in_receivers_and_in_arguments() {
     let in_receiver = expr("ForeignKey::create().on_delete(ForeignKeyAction::Cascade).to_owned()");
-    assert_eq!(extract_fk_action(&in_receiver, "on_delete"), "Cascade");
+    assert_eq!(
+        extract_fk_action(&in_receiver, "on_delete"),
+        runique_cli::migration::FkAction::Cascade
+    );
     let in_argument = expr("wrap.call(fk.on_delete(ForeignKeyAction::SetNull))");
-    assert_eq!(extract_fk_action(&in_argument, "on_delete"), "SetNull");
-    assert_eq!(extract_fk_action(&in_argument, "on_update"), "NoAction");
+    assert_eq!(
+        extract_fk_action(&in_argument, "on_delete"),
+        runique_cli::migration::FkAction::SetNull
+    );
+    assert_eq!(
+        extract_fk_action(&in_argument, "on_update"),
+        runique_cli::migration::FkAction::NoAction
+    );
 }
 
 #[test]
@@ -137,7 +146,6 @@ fn integer_enums_get_their_integer_column_type() {
             .find(|c| c.name == name)
             .unwrap()
             .col_type
-            .clone()
     };
     assert_eq!(ty("tiny"), "TinyInteger");
     assert_eq!(ty("huge"), "BigInteger");

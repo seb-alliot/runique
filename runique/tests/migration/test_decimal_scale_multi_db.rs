@@ -1,5 +1,5 @@
 //! A `decimal` field keeps its cents on every engine. `makemigrations` writes
-//! it as `.decimal_len(max_digits, decimal_places)` (see `tests_pipeline.rs`):
+//! it as `.decimal_len(max_digits, decimal_places)` (see `migration/tests/`):
 //! a bare `.decimal()` is what MySQL read as `DECIMAL(10, 0)`, where
 //! 9.99 came back as 10, silently.
 //!

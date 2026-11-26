@@ -5,16 +5,16 @@
 //! Ces tests reproduisent manuellement ce que `makemigrations::run()` fait,
 //! en utilisant uniquement des fonctions synchrones et des répertoires temporaires.
 
-use runique_cli::migration::cli_migration::{
-    scan_entities, seaorm_alter_file_path, seaorm_alter_module_name, update_migration_lib,
-};
 use runique_cli::migration::{
     db_columns,
-    diff::diff_schemas,
     paths::*,
+    steps::diff::diff_schemas,
     types::{Changes, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema},
 };
 use runique_cli::migration::{generate_alter_file, generate_create_file};
+use runique_cli::migration::{
+    scan_entities, seaorm_alter_file_path, seaorm_alter_module_name, update_migration_lib,
+};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -139,7 +139,8 @@ fn product_entity() -> &'static str {
 fn col(name: &str, ty: &str) -> ParsedColumn {
     ParsedColumn {
         name: name.to_string(),
-        col_type: ty.to_string(),
+        col_type: runique_cli::migration::ColumnType::from_name(ty)
+            .expect("the name of a column type"),
         ..ParsedColumn::default()
     }
 }
@@ -147,7 +148,8 @@ fn col(name: &str, ty: &str) -> ParsedColumn {
 fn col_opt(name: &str, ty: &str, nullable: bool, unique: bool, ignored: bool) -> ParsedColumn {
     ParsedColumn {
         name: name.to_string(),
-        col_type: ty.to_string(),
+        col_type: runique_cli::migration::ColumnType::from_name(ty)
+            .expect("the name of a column type"),
         nullable,
         unique,
         ignored,
@@ -190,8 +192,8 @@ fn schema_posts() -> ParsedSchema {
             from_column: "user_id".to_string(),
             to_table: "users".to_string(),
             to_column: "id".to_string(),
-            on_delete: "Cascade".to_string(),
-            on_update: "NoAction".to_string(),
+            on_delete: runique_cli::migration::FkAction::Cascade,
+            on_update: runique_cli::migration::FkAction::NoAction,
         }],
         indexes: vec![ParsedIndex {
             name: "idx_posts_slug".to_string(),
@@ -398,7 +400,7 @@ fn test_flow_diff_modification_type() {
     let mut new = schema_users();
     // Changer le type de "view_count" de Integer → BigInteger
     if let Some(c) = new.columns.iter_mut().find(|c| c.name == "is_active") {
-        c.col_type = "String".to_string();
+        c.col_type = runique_cli::migration::ColumnType::String;
     }
     let changes = diff_schemas(&old, &new);
     assert_eq!(changes.modified_columns.len(), 1);
@@ -415,8 +417,8 @@ fn test_flow_diff_ajout_fk() {
         from_column: "manager_id".to_string(),
         to_table: "users".to_string(),
         to_column: "id".to_string(),
-        on_delete: "SetNull".to_string(),
-        on_update: "NoAction".to_string(),
+        on_delete: runique_cli::migration::FkAction::SetNull,
+        on_update: runique_cli::migration::FkAction::NoAction,
     });
     let changes = diff_schemas(&old, &new);
     assert_eq!(changes.added_fks.len(), 1);
@@ -463,7 +465,7 @@ fn test_flow_generate_alter_ajout_colonne() {
         dropped_fks: vec![],
         added_indexes: vec![],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
@@ -489,7 +491,7 @@ fn test_flow_generate_alter_suppression_colonne() {
         dropped_fks: vec![],
         added_indexes: vec![],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
@@ -516,7 +518,7 @@ fn test_flow_generate_alter_up_et_down_sont_inverses() {
         dropped_fks: vec![],
         added_indexes: vec![],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
@@ -548,7 +550,7 @@ fn test_flow_generate_alter_type_change_commente() {
         dropped_fks: vec![],
         added_indexes: vec![],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],

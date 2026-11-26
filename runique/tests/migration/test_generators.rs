@@ -10,7 +10,8 @@ use runique_cli::migration::{generate_alter_file, generate_create_file, generate
 fn col(name: &str, col_type: &str) -> ParsedColumn {
     ParsedColumn {
         name: name.to_string(),
-        col_type: col_type.to_string(),
+        col_type: runique_cli::migration::ColumnType::from_name(col_type)
+            .expect("the name of a column type"),
         ..ParsedColumn::default()
     }
 }
@@ -25,7 +26,7 @@ fn col_nullable(name: &str, col_type: &str) -> ParsedColumn {
 fn simple_schema(table: &str) -> ParsedSchema {
     ParsedSchema {
         table_name: table.to_string(),
-        primary_key: Some(col("id", "i32")),
+        primary_key: Some(col("id", "Integer")),
         columns: vec![col("name", "String"), col_nullable("bio", "String")],
         foreign_keys: vec![],
         indexes: vec![],
@@ -35,14 +36,14 @@ fn simple_schema(table: &str) -> ParsedSchema {
 fn schema_with_fk() -> ParsedSchema {
     ParsedSchema {
         table_name: "posts".to_string(),
-        primary_key: Some(col("id", "i32")),
-        columns: vec![col("title", "String"), col("user_id", "i32")],
+        primary_key: Some(col("id", "Integer")),
+        columns: vec![col("title", "String"), col("user_id", "Integer")],
         foreign_keys: vec![ParsedFk {
             from_column: "user_id".to_string(),
             to_table: "users".to_string(),
             to_column: "id".to_string(),
-            on_delete: "Cascade".to_string(),
-            on_update: "NoAction".to_string(),
+            on_delete: runique_cli::migration::FkAction::Cascade,
+            on_update: runique_cli::migration::FkAction::NoAction,
         }],
         indexes: vec![],
     }
@@ -51,7 +52,7 @@ fn schema_with_fk() -> ParsedSchema {
 fn schema_with_index() -> ParsedSchema {
     ParsedSchema {
         table_name: "articles".to_string(),
-        primary_key: Some(col("id", "i32")),
+        primary_key: Some(col("id", "Integer")),
         columns: vec![col("slug", "String")],
         foreign_keys: vec![],
         indexes: vec![ParsedIndex {
@@ -66,13 +67,13 @@ fn simple_changes(table: &str) -> Changes {
     Changes {
         table_name: table.to_string(),
         added_columns: vec![col("new_col", "String")],
-        dropped_columns: vec![col("old_col", "i32")],
+        dropped_columns: vec![col("old_col", "Integer")],
         modified_columns: vec![],
         added_fks: vec![],
         dropped_fks: vec![],
         added_indexes: vec![],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
@@ -145,7 +146,7 @@ fn test_create_file_avec_index() {
 fn test_create_file_schema_vide_colonnes() {
     let schema = ParsedSchema {
         table_name: "empty_table".to_string(),
-        primary_key: Some(col("id", "i32")),
+        primary_key: Some(col("id", "Integer")),
         columns: vec![],
         foreign_keys: vec![],
         indexes: vec![],
@@ -159,7 +160,7 @@ fn test_create_file_sans_pk() {
     let schema = ParsedSchema {
         table_name: "junction_table".to_string(),
         primary_key: None,
-        columns: vec![col("user_id", "i32"), col("tag_id", "i32")],
+        columns: vec![col("user_id", "Integer"), col("tag_id", "Integer")],
         foreign_keys: vec![],
         indexes: vec![],
     };
@@ -198,7 +199,7 @@ fn test_alter_file_sans_changements() {
         dropped_fks: vec![],
         added_indexes: vec![],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
@@ -220,13 +221,13 @@ fn test_alter_file_avec_ajout_fk() {
             from_column: "author_id".to_string(),
             to_table: "users".to_string(),
             to_column: "id".to_string(),
-            on_delete: "Cascade".to_string(),
-            on_update: "NoAction".to_string(),
+            on_delete: runique_cli::migration::FkAction::Cascade,
+            on_update: runique_cli::migration::FkAction::NoAction,
         }],
         dropped_fks: vec![],
         added_indexes: vec![],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
@@ -252,7 +253,7 @@ fn test_alter_file_enum_rename_genere_update_up() {
         dropped_fks: vec![],
         added_indexes: vec![],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![(
@@ -286,7 +287,7 @@ fn test_alter_file_enum_rename_genere_update_down() {
         dropped_fks: vec![],
         added_indexes: vec![],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![(
@@ -318,7 +319,7 @@ fn test_alter_file_enum_rename_contient_nom_table() {
         dropped_fks: vec![],
         added_indexes: vec![],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![(
@@ -345,10 +346,10 @@ fn test_alter_file_enum_rename_contient_nom_table() {
 fn test_create_file_postgres_enum_stmts() {
     let schema = ParsedSchema {
         table_name: "articles".to_string(),
-        primary_key: Some(col("id", "i32")),
+        primary_key: Some(col("id", "Integer")),
         columns: vec![ParsedColumn {
             name: "status".to_string(),
-            col_type: "String".to_string(),
+            col_type: runique_cli::migration::ColumnType::String,
             enum_string_values: vec!["Draft".to_string(), "Published".to_string()],
             ..ParsedColumn::default()
         }],
@@ -370,10 +371,10 @@ fn test_create_file_escapes_enum_values_as_rust_literals_everywhere() {
     let value = "draft\"); compile_error!(\"injected\"); //";
     let schema = ParsedSchema {
         table_name: "articles".to_string(),
-        primary_key: Some(col("id", "i32")),
+        primary_key: Some(col("id", "Integer")),
         columns: vec![ParsedColumn {
             name: "status".to_string(),
-            col_type: "String".to_string(),
+            col_type: runique_cli::migration::ColumnType::String,
             enum_name: Some("Status".to_string()),
             enum_string_values: vec![value.to_string()],
             ..ParsedColumn::default()
@@ -394,10 +395,10 @@ fn test_create_file_escapes_enum_values_as_rust_literals_everywhere() {
 fn test_create_file_postgres_enum_drops() {
     let schema = ParsedSchema {
         table_name: "articles".to_string(),
-        primary_key: Some(col("id", "i32")),
+        primary_key: Some(col("id", "Integer")),
         columns: vec![ParsedColumn {
             name: "status".to_string(),
-            col_type: "String".to_string(),
+            col_type: runique_cli::migration::ColumnType::String,
             enum_string_values: vec!["Draft".to_string()],
             ..ParsedColumn::default()
         }],
@@ -433,10 +434,10 @@ fn test_alter_file_escapes_added_enum_values_as_rust_literals() {
 fn test_create_file_postgres_updated_at_has_no_trigger() {
     let schema = ParsedSchema {
         table_name: "posts".to_string(),
-        primary_key: Some(col("id", "i32")),
+        primary_key: Some(col("id", "Integer")),
         columns: vec![ParsedColumn {
             name: "updated_at".to_string(),
-            col_type: "DateTime".to_string(),
+            col_type: runique_cli::migration::ColumnType::DateTime,
             has_default_now: true,
             ..ParsedColumn::default()
         }],
@@ -454,10 +455,10 @@ fn test_create_file_postgres_updated_at_has_no_trigger() {
 fn test_create_file_mysql_updated_at_has_no_on_update() {
     let schema = ParsedSchema {
         table_name: "posts".to_string(),
-        primary_key: Some(col("id", "i32")),
+        primary_key: Some(col("id", "Integer")),
         columns: vec![ParsedColumn {
             name: "updated_at".to_string(),
-            col_type: "DateTime".to_string(),
+            col_type: runique_cli::migration::ColumnType::DateTime,
             has_default_now: true,
             ..ParsedColumn::default()
         }],
@@ -476,10 +477,10 @@ fn test_create_file_mysql_updated_at_has_no_on_update() {
 fn test_create_file_col_nullable_unique_default_now() {
     let schema = ParsedSchema {
         table_name: "items".to_string(),
-        primary_key: Some(col("id", "i32")),
+        primary_key: Some(col("id", "Integer")),
         columns: vec![ParsedColumn {
             name: "created_at".to_string(),
-            col_type: "DateTime".to_string(),
+            col_type: runique_cli::migration::ColumnType::DateTime,
             nullable: true,
             unique: true,
             has_default_now: true,
@@ -507,10 +508,10 @@ fn test_create_file_col_nullable_unique_default_now() {
 fn test_create_file_col_enum_values_columndef_with_type() {
     let schema = ParsedSchema {
         table_name: "events".to_string(),
-        primary_key: Some(col("id", "i32")),
+        primary_key: Some(col("id", "Integer")),
         columns: vec![ParsedColumn {
             name: "kind".to_string(),
-            col_type: "String".to_string(),
+            col_type: runique_cli::migration::ColumnType::String,
             enum_string_values: vec!["A".to_string(), "B".to_string()],
             enum_name: Some("event_kind".to_string()),
             ..ParsedColumn::default()
@@ -531,7 +532,7 @@ fn test_create_file_pk_non_integer_no_autoinc() {
         table_name: "tokens".to_string(),
         primary_key: Some(ParsedColumn {
             name: "token".to_string(),
-            col_type: "String".to_string(),
+            col_type: runique_cli::migration::ColumnType::String,
             ..ParsedColumn::default()
         }),
         columns: vec![],
@@ -557,12 +558,12 @@ fn test_create_file_pk_non_integer_no_autoinc() {
 fn test_alter_file_type_change_generates_warning() {
     let old_col = ParsedColumn {
         name: "age".to_string(),
-        col_type: "Integer".to_string(),
+        col_type: runique_cli::migration::ColumnType::Integer,
         ..ParsedColumn::default()
     };
     let new_col = ParsedColumn {
         name: "age".to_string(),
-        col_type: "BigInteger".to_string(),
+        col_type: runique_cli::migration::ColumnType::BigInteger,
         ..ParsedColumn::default()
     };
     let changes = Changes {
@@ -574,7 +575,7 @@ fn test_alter_file_type_change_generates_warning() {
         dropped_fks: vec![],
         added_indexes: vec![],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
@@ -593,13 +594,13 @@ fn test_alter_file_type_change_generates_warning() {
 fn test_alter_file_nullable_to_not_null_modify_column() {
     let old_col = ParsedColumn {
         name: "bio".to_string(),
-        col_type: "String".to_string(),
+        col_type: runique_cli::migration::ColumnType::String,
         nullable: true,
         ..ParsedColumn::default()
     };
     let new_col = ParsedColumn {
         name: "bio".to_string(),
-        col_type: "String".to_string(),
+        col_type: runique_cli::migration::ColumnType::String,
         nullable: false,
         ..ParsedColumn::default()
     };
@@ -612,7 +613,7 @@ fn test_alter_file_nullable_to_not_null_modify_column() {
         dropped_fks: vec![],
         added_indexes: vec![],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
@@ -637,7 +638,7 @@ fn test_alter_file_enum_value_adds() {
         dropped_fks: vec![],
         added_indexes: vec![],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
@@ -667,7 +668,7 @@ fn test_alter_file_enum_value_drops_warning() {
         dropped_fks: vec![],
         added_indexes: vec![],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
@@ -701,7 +702,7 @@ fn test_alter_file_drop_index_in_up() {
             columns: vec!["slug".to_string()],
             unique: false,
         }],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
@@ -731,7 +732,7 @@ fn test_alter_file_add_index_in_up() {
             unique: true,
         }],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
@@ -762,12 +763,12 @@ fn test_alter_file_drop_fk_in_up() {
             from_column: "post_id".to_string(),
             to_table: "posts".to_string(),
             to_column: "id".to_string(),
-            on_delete: "Cascade".to_string(),
-            on_update: "NoAction".to_string(),
+            on_delete: runique_cli::migration::FkAction::Cascade,
+            on_update: runique_cli::migration::FkAction::NoAction,
         }],
         added_indexes: vec![],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
@@ -789,7 +790,7 @@ fn test_alter_file_drop_fk_in_up() {
 fn test_alter_file_postgres_enum_add_column_generates_create_type() {
     let enum_col = ParsedColumn {
         name: "status".to_string(),
-        col_type: "Enum".to_string(),
+        col_type: runique_cli::migration::ColumnType::Enum,
         nullable: true,
         enum_name: Some("article_status".to_string()),
         enum_string_values: vec!["draft".to_string(), "published".to_string()],
@@ -804,7 +805,7 @@ fn test_alter_file_postgres_enum_add_column_generates_create_type() {
         dropped_fks: vec![],
         added_indexes: vec![],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
@@ -832,7 +833,7 @@ fn test_alter_file_postgres_enum_add_column_generates_create_type() {
 fn test_alter_file_enum_add_column_create_type_is_runtime_guarded() {
     let enum_col = ParsedColumn {
         name: "status".to_string(),
-        col_type: "Enum".to_string(),
+        col_type: runique_cli::migration::ColumnType::Enum,
         nullable: true,
         enum_name: Some("article_status".to_string()),
         enum_string_values: vec!["draft".to_string(), "published".to_string()],
@@ -847,7 +848,7 @@ fn test_alter_file_enum_add_column_create_type_is_runtime_guarded() {
         dropped_fks: vec![],
         added_indexes: vec![],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
@@ -870,13 +871,13 @@ fn test_alter_file_enum_add_column_create_type_is_runtime_guarded() {
 fn test_alter_file_string_to_enum_postgres_generates_create_type_and_cast() {
     let old_col = ParsedColumn {
         name: "block_type".to_string(),
-        col_type: "String".to_string(),
+        col_type: runique_cli::migration::ColumnType::String,
         nullable: false,
         ..ParsedColumn::default()
     };
     let new_col = ParsedColumn {
         name: "block_type".to_string(),
-        col_type: "String".to_string(),
+        col_type: runique_cli::migration::ColumnType::String,
         nullable: false,
         enum_name: Some("CourBlockType".to_string()),
         enum_string_values: vec!["text".to_string(), "code".to_string()],
@@ -891,7 +892,7 @@ fn test_alter_file_string_to_enum_postgres_generates_create_type_and_cast() {
         dropped_fks: vec![],
         added_indexes: vec![],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],
@@ -935,13 +936,13 @@ fn test_alter_file_string_to_enum_postgres_generates_create_type_and_cast() {
 fn test_alter_file_string_to_enum_create_type_is_runtime_guarded() {
     let old_col = ParsedColumn {
         name: "block_type".to_string(),
-        col_type: "String".to_string(),
+        col_type: runique_cli::migration::ColumnType::String,
         nullable: false,
         ..ParsedColumn::default()
     };
     let new_col = ParsedColumn {
         name: "block_type".to_string(),
-        col_type: "String".to_string(),
+        col_type: runique_cli::migration::ColumnType::String,
         nullable: false,
         enum_name: Some("CourBlockType".to_string()),
         enum_string_values: vec!["text".to_string(), "code".to_string()],
@@ -956,7 +957,7 @@ fn test_alter_file_string_to_enum_create_type_is_runtime_guarded() {
         dropped_fks: vec![],
         added_indexes: vec![],
         dropped_indexes: vec![],
-        is_new_table: false,
+        table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
         enum_renames: vec![],

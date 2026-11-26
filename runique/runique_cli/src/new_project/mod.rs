@@ -1,6 +1,6 @@
 //! `new` command — scaffolds a new Runique project (files, dependencies, SECRET_KEY).
 use crate::atomic::{AtomicBuilder, SourceItems};
-use crate::migration::cli_migration::init_migrate::{
+use crate::migration::steps::generate::init_migrate::{
     self, Engine, SEA_ORM_MIGRATION_REQ, SEA_ORM_REQ,
 };
 use anyhow::Result;

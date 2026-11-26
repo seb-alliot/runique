@@ -238,8 +238,11 @@ fn test_full_snapshot_reads_back_every_detail() {
         ("author_id", "eihwaz_users", "id")
     );
     assert_eq!(
-        (fk.on_delete.as_str(), fk.on_update.as_str()),
-        ("Restrict", "SetNull")
+        (fk.on_delete, fk.on_update),
+        (
+            runique_cli::migration::FkAction::Restrict,
+            runique_cli::migration::FkAction::SetNull
+        )
     );
 
     let idx = s.indexes.first().expect("index");

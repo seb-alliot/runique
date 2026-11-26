@@ -1,6 +1,6 @@
 //! `checkbox` / `multichoice` list fields: no column on the model, a table of
 //! their own in the migrations; `i8` / `i16` enums.
-use runique_cli::migration::cli_migration::scan_entities;
+use runique_cli::migration::scan_entities;
 use std::fs;
 
 mod book {
@@ -87,9 +87,14 @@ fn each_list_field_gets_its_own_table() {
             fk.from_column.as_str(),
             fk.to_table.as_str(),
             fk.to_column.as_str(),
-            fk.on_delete.as_str()
+            fk.on_delete
         ),
-        ("owner_id", "books", "id", "Cascade")
+        (
+            "owner_id",
+            "books",
+            "id",
+            runique_cli::migration::FkAction::Cascade
+        )
     );
     let unique = genres.indexes.iter().find(|i| i.unique).unwrap();
     assert_eq!(unique.columns, ["owner_id", "value"]);
