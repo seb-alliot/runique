@@ -69,7 +69,8 @@ The `runique` command decided the primary key type and the engine from its own f
 
 | Status | Step |
 |:---:|---|
-| ☐ | All-or-nothing `migration up`: when a migration fails, none of that run stays applied (transaction on PostgreSQL and SQLite, compensation on MySQL) |
+| ✓ | All-or-nothing `migration up` on PostgreSQL and SQLite: when a migration fails, none of that run stays applied (one transaction around the run) |
+| ☐ | All-or-nothing `migration up` on MySQL, by compensation |
 | ✓ | Snapshots written when applied: `makemigrations` no longer writes any, `migration up` writes the one of each table it changed once the run succeeded and removes the "pending" mark |
 | ☐ | Snapshots brought back by `migration down` |
 | ☐ | Tables already in the database without being recorded: checked, then recorded without being recreated |

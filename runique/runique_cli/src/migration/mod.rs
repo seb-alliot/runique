@@ -22,9 +22,7 @@ mod tests_pipeline;
 pub use changes::*;
 pub use diff::*;
 pub use generate::*;
-pub use helpers::{
-    db_columns, decimal_may_shrink, has_marker, length_may_shrink, to_snake_case, without_marker,
-};
+pub use helpers::{db_columns, decimal_may_shrink, has_marker, length_may_shrink, without_marker};
 pub use parse::*;
 pub use paths::*;
 pub use sea_query::ForeignKeyAction;

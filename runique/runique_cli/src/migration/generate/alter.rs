@@ -51,7 +51,13 @@ pub(super) fn build_alter_bodies(change: &Changes) -> (String, String) {
         push_rename_column(&mut up, &change.table_name, old, new);
     }
 
-    // 1) DROP indexes (up) / DROP added indexes (down)
+    // 1) Recreate dropped columns first in DOWN: the mirror of their drop,
+    // which closes `up` (section 11).
+    for col in &change.dropped_columns {
+        push_add_column(&mut down, &change.table_name, col);
+    }
+
+    // 2) DROP indexes (up) / DROP added indexes (down)
     for idx in &change.dropped_indexes {
         push_drop_index_named_for(&mut up, table, former, idx);
     }
@@ -59,7 +65,7 @@ pub(super) fn build_alter_bodies(change: &Changes) -> (String, String) {
         push_drop_index(&mut down, &change.table_name, idx);
     }
 
-    // 2) DROP FK
+    // 3) DROP FK
     // A key of a renamed table that goes still has the name it was given
     // under the former table name.
     for fk in &change.dropped_fks {
@@ -73,15 +79,12 @@ pub(super) fn build_alter_bodies(change: &Changes) -> (String, String) {
         push_drop_fk(&mut down, &change.table_name, &fk.from_column, &fk.to_table);
     }
 
-    // 3) DROP columns
-    for col in &change.dropped_columns {
-        push_drop_column(&mut up, &change.table_name, &col.name);
-    }
+    // 4) DROP added columns (down)
     for col in &change.added_columns {
         push_drop_column(&mut down, &change.table_name, &col.name);
     }
 
-    // 4) MODIFY columns
+    // 5) MODIFY columns
     for (old, new) in &change.modified_columns {
         // Becoming (or stopping being) an enum: `col_type` alone doesn't capture this
         // (an enum column keeps col_type "String"), so this must be checked before the
@@ -118,14 +121,9 @@ pub(super) fn build_alter_bodies(change: &Changes) -> (String, String) {
         push_modify_column(&mut down, &change.table_name, old);
     }
 
-    // 5) ADD columns
+    // 6) ADD columns
     for col in &change.added_columns {
         push_add_column(&mut up, &change.table_name, col);
-    }
-
-    // 6) Recreate dropped columns in DOWN (now correct because we store ParsedColumn)
-    for col in &change.dropped_columns {
-        push_add_column(&mut down, &change.table_name, col);
     }
 
     // 7) ADD FK
@@ -199,12 +197,18 @@ pub(super) fn build_alter_bodies(change: &Changes) -> (String, String) {
         ));
     }
 
-    // 11) Reverse the column renames last in DOWN (undo of section 0).
+    // 11) DROP columns last in UP: what destroys data closes the migration,
+    // so a failure before it leaves nothing that can't be undone.
+    for col in &change.dropped_columns {
+        push_drop_column(&mut up, &change.table_name, &col.name);
+    }
+
+    // 12) Reverse the column renames last in DOWN (undo of section 0).
     for (old, new) in &change.renamed_columns {
         push_rename_column(&mut down, &change.table_name, new, old);
     }
 
-    // 12) The table rename is undone last, in the reverse order: keys, then
+    // 13) The table rename is undone last, in the reverse order: keys, then
     // indexes, take back their former names while the table still has the
     // new one, and the table goes back to its own.
     for key in change.renames.keys.iter().rev() {

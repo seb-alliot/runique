@@ -68,7 +68,7 @@ profiles::ActiveModel {
 txn.commit().await?;
 ```
 
-C'est adapté à une commande qui crée un compte et ses lignes liées. Les migrations, elles, ne passent pas par là : `runique migration up` laisse sea-orm-migration décider, et il n'enveloppe chaque migration dans une transaction que sous Postgres. Voir [Migrations](/docs/fr/installation/migrations).
+C'est adapté à une commande qui crée un compte et ses lignes liées. Les migrations, elles, ne passent pas par là : `runique migration up` enveloppe tout son lancement dans une seule transaction sous PostgreSQL et SQLite, pas sous MySQL. Voir [Migrations](/docs/fr/installation/migrations).
 
 ---
 

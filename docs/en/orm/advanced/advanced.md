@@ -68,7 +68,7 @@ profiles::ActiveModel {
 txn.commit().await?;
 ```
 
-This suits a command that creates an account and its linked rows. Migrations don't go through this: `runique migration up` leaves the decision to sea-orm-migration, which only wraps each migration in a transaction under Postgres. See [Migrations](/docs/en/installation/migrations).
+This suits a command that creates an account and its linked rows. Migrations don't go through this: `runique migration up` wraps its whole run in a single transaction under PostgreSQL and SQLite, not under MySQL. See [Migrations](/docs/en/installation/migrations).
 
 ---
 

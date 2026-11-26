@@ -7,8 +7,8 @@ use runique_dsl::ast::{
 };
 use runique_dsl::form_field_to_field_def;
 
-use crate::migration::helpers::naming::pascal_to_snake;
 use crate::migration::types::{ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema};
+use runique_dsl::snake_case;
 
 fn fk_action(action: FkAction) -> String {
     match action {
@@ -227,7 +227,7 @@ pub(super) fn model_to_parsed_schema(model: &ModelInput) -> ParsedSchema {
                 from_column: via.to_string(),
                 // The target's module name; `scan_entities` swaps in its real
                 // table and primary key.
-                to_table: pascal_to_snake(&target.to_string()),
+                to_table: snake_case(&target.to_string()),
                 to_column: "id".to_string(),
                 on_delete: fk_action(*on_delete),
                 on_update: fk_action(*on_update),

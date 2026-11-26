@@ -4,10 +4,8 @@
 pub mod columns;
 pub mod file;
 pub mod markers;
-pub mod naming;
 pub mod schemas;
 
 pub use columns::{decimal_may_shrink, length_may_shrink};
 pub use markers::{has_marker, without_marker};
-pub use naming::to_snake_case;
 pub use schemas::db_columns;

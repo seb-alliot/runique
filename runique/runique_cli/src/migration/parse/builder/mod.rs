@@ -10,8 +10,8 @@ use syn::visit::Visit;
 pub(crate) use to_schema::decl_to_column;
 use to_schema::{list_tables, model_to_parsed_schema};
 
-use crate::migration::helpers::naming::pascal_to_snake;
 use crate::migration::types::ParsedSchema;
+use runique_dsl::snake_case;
 
 /// `line:column: message` — where a DSL error is in the scanned file.
 pub(crate) fn located(err: &syn::Error) -> String {
@@ -90,7 +90,7 @@ pub fn parse_model_from_source(source: &str) -> Result<Option<ParsedModel>> {
     Ok(models.pop().map(|model| {
         let schema = model_to_parsed_schema(&model);
         ParsedModel {
-            name: pascal_to_snake(&model.name.to_string()),
+            name: snake_case(&model.name.to_string()),
             lists: list_tables(&model, &schema),
             managed: model.meta.as_ref().is_none_or(|meta| meta.managed),
             renames: declared_renames(&model),

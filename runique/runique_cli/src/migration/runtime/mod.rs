@@ -3,101 +3,24 @@
 //! operation; the engine is read on the open connection, so a migration
 //! written once behaves as each engine needs, and gains what Runique learns
 //! later without being generated again.
+mod engine;
+mod enums;
+mod keys;
+mod launch;
 mod postgres;
 mod server;
 mod sqlite;
 
-use runique_i18n::tf;
-use sea_orm::{ConnectionTrait, DbBackend, DbErr};
-use sea_orm_migration::SchemaManager;
-use sea_query::ForeignKeyCreateStatement;
-
-fn backend(manager: &SchemaManager<'_>) -> DbBackend {
-    manager.get_connection().get_database_backend()
-}
-
-fn unsupported(backend: DbBackend) -> DbErr {
-    DbErr::Custom(tf(
-        runique_i18n::keys::migrate::error::ENGINE_UNSUPPORTED,
-        &[format!("{backend:?}")],
-    ))
-}
-
-/// Called first by a migration that adds or removes a foreign key on an
-/// existing table, before it changes anything: an engine that can't do it
-/// stops the migration while the table is still as it was.
-pub fn key_changes_supported(manager: &SchemaManager<'_>, table: &str) -> Result<(), DbErr> {
-    match backend(manager) {
-        DbBackend::Postgres | DbBackend::MySql => Ok(()),
-        DbBackend::Sqlite => sqlite::key_change_refused(table),
-        other => Err(unsupported(other)),
-    }
-}
-
-/// Removes the foreign key `name` of the existing table `table`.
-pub async fn drop_foreign_key(
-    manager: &SchemaManager<'_>,
-    table: &str,
-    name: &str,
-) -> Result<(), DbErr> {
-    match backend(manager) {
-        DbBackend::Postgres | DbBackend::MySql => {
-            server::drop_foreign_key(manager, table, name).await
-        }
-        DbBackend::Sqlite => sqlite::key_change_refused(table),
-        other => Err(unsupported(other)),
-    }
-}
-
-/// Adds the foreign key `key` to the existing table `table`.
-pub async fn add_foreign_key(
-    manager: &SchemaManager<'_>,
-    table: &str,
-    key: ForeignKeyCreateStatement,
-) -> Result<(), DbErr> {
-    match backend(manager) {
-        DbBackend::Postgres | DbBackend::MySql => server::add_foreign_key(manager, key).await,
-        DbBackend::Sqlite => sqlite::key_change_refused(table),
-        other => Err(unsupported(other)),
-    }
-}
-
-/// Gives the foreign key `old_name` of `table` the name of `key`, which says
-/// the same thing: after a table rename, the name still holds the former
-/// table. PostgreSQL and MySQL have no statement that renames a key, it is
-/// removed and added again. Under SQLite a key follows its table by itself
-/// and its name is never used to reach it: nothing to do.
-pub async fn rename_foreign_key(
-    manager: &SchemaManager<'_>,
-    table: &str,
-    old_name: &str,
-    key: ForeignKeyCreateStatement,
-) -> Result<(), DbErr> {
-    match backend(manager) {
-        DbBackend::Postgres | DbBackend::MySql => {
-            server::drop_foreign_key(manager, table, old_name).await?;
-            server::add_foreign_key(manager, key).await
-        }
-        DbBackend::Sqlite => Ok(()),
-        other => Err(unsupported(other)),
-    }
-}
-
-/// Drops the enum type `name` once no column uses it any more. Only
-/// PostgreSQL has such types: elsewhere an enum column is plain text and
-/// there is nothing to drop.
-pub async fn drop_enum_type(manager: &SchemaManager<'_>, name: &str) -> Result<(), DbErr> {
-    match backend(manager) {
-        DbBackend::Postgres => postgres::drop_enum_type_if_unused(manager, name).await,
-        DbBackend::MySql | DbBackend::Sqlite => Ok(()),
-        other => Err(unsupported(other)),
-    }
-}
+pub use enums::drop_enum_type;
+pub use keys::{add_foreign_key, drop_foreign_key, key_changes_supported, rename_foreign_key};
+pub use launch::RuniqueMigrator;
 
 #[cfg(all(test, feature = "sqlite"))]
 mod tests {
     use super::*;
-    use sea_orm::Database;
+    use runique_i18n::tf;
+    use sea_orm::{ConnectionTrait, Database, DbErr};
+    use sea_orm_migration::SchemaManager;
     use sea_query::{Alias, ColumnDef, ForeignKey, Table};
 
     /// SQLite with a `menus` table.

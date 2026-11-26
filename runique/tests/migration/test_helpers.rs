@@ -58,13 +58,6 @@ mod helpers_migration {
         assert_eq!(detect_col_type_seaorm(&methods), "String");
     }
 
-    #[test]
-    fn test_to_snake_case() {
-        use runique_cli::migration::to_snake_case;
-        let result = to_snake_case("TestCase");
-        assert_eq!(result, "test_case");
-    }
-
     // Les tests AST nécessitent syn::parse_str, on vérifie juste que les helpers ne paniquent pas et retournent un résultat attendu minimal.
     use syn::{Expr, parse_str};
 

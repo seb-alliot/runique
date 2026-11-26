@@ -10,6 +10,7 @@ pub use foreign_key::*;
 pub use hooks::*;
 pub use index::*;
 pub use primary_key::*;
+use runique_dsl::snake_case;
 
 /// Sort direction for `ModelSchema::order_by`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -42,7 +43,7 @@ impl ModelSchema {
     pub fn new(model_name: impl Into<String>) -> Self {
         let name: String = model_name.into();
         // PascalCase → snake_case conversion for table name
-        let table_name = to_snake_case(&name);
+        let table_name = snake_case(&name);
         Self {
             model_name: name,
             table_name,
@@ -391,16 +392,4 @@ impl SchemaDiff {
             && self.dropped_columns.is_empty()
             && self.modified_columns.is_empty()
     }
-}
-
-/// PascalCase → snake_case
-fn to_snake_case(s: &str) -> String {
-    let mut result = String::new();
-    for (i, ch) in s.chars().enumerate() {
-        if ch.is_uppercase() && i > 0 {
-            result.push('_');
-        }
-        result.push(ch.to_lowercase().next().unwrap());
-    }
-    result
 }

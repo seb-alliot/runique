@@ -966,6 +966,82 @@ fn combined_alter_runs_rename_before_drop_and_add() {
     );
 }
 
+// A dropped column is the one instruction of an ALTER that loses data: it
+// closes `up`, after everything that can still be undone, and its way back
+// opens `down`.
+#[test]
+fn a_dropped_column_closes_up_and_its_return_opens_down() {
+    let changes = Changes {
+        renamed_columns: vec![("old_name".into(), "new_name".into())],
+        dropped_columns: vec![ParsedColumn {
+            name: "gone".into(),
+            col_type: "Integer".into(),
+            nullable: true,
+            ..Default::default()
+        }],
+        modified_columns: vec![(
+            ParsedColumn {
+                name: "kept".into(),
+                col_type: "String".into(),
+                nullable: true,
+                ..Default::default()
+            },
+            ParsedColumn {
+                name: "kept".into(),
+                col_type: "String".into(),
+                nullable: false,
+                ..Default::default()
+            },
+        )],
+        added_columns: vec![ParsedColumn {
+            name: "fresh".into(),
+            col_type: "Integer".into(),
+            nullable: true,
+            ..Default::default()
+        }],
+        added_fks: vec![fk("post_id", "post")],
+        added_indexes: vec![ParsedIndex {
+            name: "idx_t_fresh".into(),
+            columns: vec!["fresh".into()],
+            unique: false,
+        }],
+        enum_renames: vec![("status".into(), "Status".into(), "old".into(), "new".into())],
+        enum_value_adds: vec![("status".into(), "Status".into(), "more".into())],
+        ..empty_changes()
+    };
+    let sql = generate_alter_file(&changes);
+    let (up, down) = sql.split_once("async fn down").unwrap();
+
+    let dropped = up.find(r#".drop_column(Alias::new("gone"))"#).expect(up);
+    for earlier in [
+        "rename_column",
+        "modify_column",
+        "add_column",
+        "add_foreign_key",
+        "create_index",
+        "rename_value",
+        "add_value",
+    ] {
+        let position = up.rfind(earlier).unwrap_or_else(|| panic!("{earlier}:\n{up}"));
+        assert!(position < dropped, "{earlier} must come before the drop:\n{up}");
+    }
+
+    let back = down
+        .find(r#".add_column(ColumnDef::new(Alias::new("gone"))"#)
+        .expect(down);
+    for later in [
+        "drop_index",
+        "drop_foreign_key",
+        "drop_column",
+        "modify_column",
+        "rename_value",
+        "rename_column",
+    ] {
+        let position = down.find(later).unwrap_or_else(|| panic!("{later}:\n{down}"));
+        assert!(back < position, "the column must be back before {later}:\n{down}");
+    }
+}
+
 // ── Reading a file back: the columns in the order they were written ──────────
 
 // A snapshot and a creation are read back with their columns in the order of

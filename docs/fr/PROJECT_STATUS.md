@@ -69,7 +69,8 @@ La commande `runique` décidait du type de clé primaire et du moteur d'après s
 
 | État | Étape |
 |:---:|---|
-| ☐ | `migration up` en tout ou rien : si une migration échoue, aucune de celles du lancement ne reste appliquée (transaction sous PostgreSQL et SQLite, compensation sous MySQL) |
+| ✓ | `migration up` en tout ou rien sous PostgreSQL et SQLite : si une migration échoue, aucune de celles du lancement ne reste appliquée (une transaction autour du lancement) |
+| ☐ | `migration up` en tout ou rien sous MySQL, par compensation |
 | ✓ | Snapshots écrits à l'application : `makemigrations` n'en écrit plus, `migration up` écrit celui de chaque table touchée une fois le lancement réussi et retire la marque « en attente » |
 | ☐ | Snapshots ramenés en arrière par `migration down` |
 | ☐ | Tables déjà présentes en base sans être inscrites : vérifiées, puis inscrites sans être recréées |

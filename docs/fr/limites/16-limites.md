@@ -9,7 +9,7 @@ Ce que Runique ne fait pas encore (4.1 en cours de développement), ou fait avec
 | Limite | Détail |
 | --- | --- |
 | Un moteur par compilation (`sqlite`, `postgres`, `mysql`)<br>SQLite : un seul écrivain à la fois, `SQLITE_BUSY` sous forte charge<br>Changer de moteur demande une base neuve : les données ne sont pas transférées | [Base de données](/docs/fr/installation/base-de-donnees) |
-| Le changement de type d'une colonne n'est pas migré (`--force` écrit une migration vide, à compléter à la main)<br>Des snapshots copiés sans leurs migrations font croire que les tables existent<br>Noms d'index et de clés étrangères limités à 63 caractères, sur tous les moteurs : `makemigrations` refuse au-delà<br>`migration up` : une migration n'est atomique que sous Postgres (SQLite, MySQL : une migration qui échoue peut rester à moitié appliquée) | [Migrations](/docs/fr/installation/migrations), [Makemigrations](/docs/fr/architecture/makemigrations) |
+| Le changement de type d'une colonne n'est pas migré (`--force` écrit une migration vide, à compléter à la main)<br>Des snapshots copiés sans leurs migrations font croire que les tables existent<br>Noms d'index et de clés étrangères limités à 63 caractères, sur tous les moteurs : `makemigrations` refuse au-delà<br>`migration up` : tout ou rien sous PostgreSQL et SQLite ; sous MySQL, un lancement qui échoue peut rester à moitié appliqué | [Migrations](/docs/fr/installation/migrations), [Makemigrations](/docs/fr/architecture/makemigrations) |
 | `search!` : `in (vec)` avec un vec vide, pas de filtre conditionnel inline | [Requêtes](/docs/fr/orm/requetes) |
 
 ## Formulaires et messages

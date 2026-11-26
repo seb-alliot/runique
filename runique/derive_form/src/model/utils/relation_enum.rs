@@ -1,6 +1,7 @@
 use crate::model::{FkAction, ModelInput, RelationDef};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
+use runique_dsl::snake_case;
 
 /// Tables provided by the framework — their SeaORM entities are in `runique`, not in `super::`.
 const FRAMEWORK_TABLES: &[(&str, &str)] = &[
@@ -32,7 +33,7 @@ fn related_module_tokens(table_name: &str) -> TokenStream2 {
 
 /// The target entity of a relation, as a path expression.
 pub(crate) fn target_entity(target: &syn::Ident) -> TokenStream2 {
-    related_module_tokens(&to_snake_case(&target.to_string()))
+    related_module_tokens(&snake_case(&target.to_string()))
 }
 
 /// The target entity's primary key column, read from the entity: a
@@ -128,7 +129,7 @@ fn relation_def(rel: &RelationDef) -> TokenStream2 {
             quote! { <Entity as ::sea_orm::EntityTrait>::has_one(#entity).into() }
         }
         RelationDef::ManyToMany { through, .. } => {
-            let through_module = quote::format_ident!("{}", to_snake_case(&through.to_string()));
+            let through_module = quote::format_ident!("{}", snake_case(&through.to_string()));
             quote! { <Entity as ::sea_orm::EntityTrait>::has_many(super::#through_module::Entity).into() }
         }
     }
@@ -140,7 +141,7 @@ fn generate_related_impl(rel: &RelationDef, self_model: &syn::Ident) -> TokenStr
         | RelationDef::HasMany { model: target, .. }
         | RelationDef::HasOne { model: target, .. } => {
             let variant = ident_pascal(target);
-            let entity_tokens = related_module_tokens(&to_snake_case(&target.to_string()));
+            let entity_tokens = related_module_tokens(&snake_case(&target.to_string()));
             quote! {
                 impl ::sea_orm::Related<#entity_tokens> for Entity {
                     fn to() -> ::sea_orm::RelationDef {
@@ -155,8 +156,8 @@ fn generate_related_impl(rel: &RelationDef, self_model: &syn::Ident) -> TokenStr
             through,
             ..
         } => {
-            let target_entity = related_module_tokens(&to_snake_case(&target.to_string()));
-            let through_name = to_snake_case(&through.to_string());
+            let target_entity = related_module_tokens(&snake_case(&target.to_string()));
+            let through_name = snake_case(&through.to_string());
             let through_module = quote::format_ident!("{}", through_name);
             let target_variant = ident_pascal(target);
             // The through entity's `belongs_to` pointing back to *this* model is
@@ -196,32 +197,4 @@ fn pascal_case(s: &str) -> String {
             }
         })
         .collect()
-}
-
-fn to_snake_case(s: &str) -> String {
-    // Already in snake_case (contains _ or all lowercase)
-    if s.contains('_') || s.chars().all(|c| c.is_lowercase()) {
-        return s.to_string();
-    }
-    // Otherwise PascalCase → snake_case conversion
-    let mut result = String::new();
-    for (i, ch) in s.chars().enumerate() {
-        if ch.is_uppercase() && i > 0 {
-            result.push('_');
-        }
-        result.push(ch.to_ascii_lowercase());
-    }
-    result
-}
-
-#[cfg(test)]
-mod tests {
-    use super::to_snake_case;
-
-    #[test]
-    fn a_pascal_case_model_name_becomes_its_module_name() {
-        assert_eq!(to_snake_case("Article"), "article");
-        assert_eq!(to_snake_case("BlogPost"), "blog_post");
-        assert_eq!(to_snake_case("blog_post"), "blog_post");
-    }
 }

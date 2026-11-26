@@ -4,7 +4,9 @@
 pub mod ast;
 pub mod extend;
 mod parser;
+pub mod transform_name;
 pub mod types;
 
 pub use parser::form_field::form_field_to_field_def;
 pub use parser::pk::with_project_pk;
+pub use transform_name::snake_case;

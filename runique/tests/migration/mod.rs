@@ -41,6 +41,8 @@ pub mod test_generators;
 pub mod test_helpers;
 pub mod test_hooks_def;
 pub mod test_index_def;
+#[cfg(feature = "all-databases")]
+pub mod test_launch_transaction_multi_db;
 pub mod test_list_fields;
 pub mod test_makemigrations;
 pub mod test_migrate;
@@ -60,5 +62,6 @@ pub mod test_run;
 #[cfg(feature = "all-databases")]
 pub mod test_runtime_keys_multi_db;
 pub mod test_sea_migrate;
+pub mod test_shared_enum_rename;
 pub mod test_types;
 pub mod test_users_activation;

@@ -6,9 +6,9 @@ Migrations live in a Rust crate of their own, `migration/`, part of the project'
 
 ```
 migration/
-├── Cargo.toml        runique + sea-orm-migration, same engine as the app
+├── Cargo.toml        runique + runique-cli + sea-orm-migration, same engine as the app
 └── src/
-    ├── main.rs       runs SeaORM's CLI (up, down, status)
+    ├── main.rs       runs SeaORM's CLI (up, down, status), with Runique's up
     ├── lib.rs        the list of migrations, kept up to date by makemigrations
     ├── m<date>_*.rs  the generated migrations
     └── snapshots/    the schema already migrated, model by model
@@ -32,7 +32,8 @@ name = "migration"
 path = "src/lib.rs"
 
 [dependencies]
-runique = { version = "4.0.0", features = ["postgres"] }
+runique = { version = "4.1.0", features = ["postgres"] }
+runique-cli = { version = "4.1.0", default-features = false, features = ["postgres"] }
 sea-orm-migration = { version = "=2.0.4", features = [
     "runtime-tokio-rustls",
     "sqlx-postgres",
@@ -44,6 +45,7 @@ async-trait = "0.1"
 What is required:
 
 - **`runique`** with the same engine feature as the app (`sqlite`, `postgres`, `mysql`): it provides the framework's tables.
+- **`runique-cli`** without its default features, with the same engine feature: it provides the functions the generated migrations call, and the `up` that `main.rs` hands to SeaORM.
 - **`sea-orm-migration`** at the **exact same version** as Runique's, with `runtime-tokio-rustls` and the engine's driver: `sqlx-sqlite`, `sqlx-postgres`, or `sqlx-mysql`.
 - **`sea-orm-migration`'s default features**: they bring `cli::run_cli`, called by `src/main.rs`. With `default-features = false`, add `"cli"` to the list, or the crate no longer compiles.
 - **`tokio`** with `macros` and `rt-multi-thread` (`#[tokio::main]` in `main.rs`), and **`async-trait`** (the generated migrations).
@@ -76,6 +78,16 @@ Every generated migration starts with the line `// runique: waiting migrate up`:
 ```bash
 runique migration up
 ```
+
+Under PostgreSQL and SQLite, the run is **all or nothing**: every pending migration goes through a single transaction. When one fails, none is applied or recorded in `seaql_migrations`, and the database is as it was before the command. Fix, then run it again. Under MySQL this is not the case: see "Current limits" below.
+
+The `main.rs` of the `migration` crate is what asks for it, by handing the project's migrator to Runique's, which only brings its own `up`:
+
+```rust
+cli::run_cli(runique_cli::migration::runtime::RuniqueMigrator(migration::Migrator)).await;
+```
+
+A `migration` crate written before 4.1 holds `cli::run_cli(migration::Migrator).await;`: replace that line with the one above. Without this change, `runique migration up` works as before, one migration at a time, not all or nothing.
 
 ### Roll back or check
 
@@ -176,7 +188,7 @@ Files left by a cut, refusals to repair, what to do: [Atomic file writes](/docs/
 - **Removing a model drops its table**, blocked without `--force`: see [Dropping a table](/docs/en/architecture/makemigrations). A model the reader no longer sees (commented out, moved to a sub-folder or into `mod.rs`) counts as removed. Under MySQL, an applied drop can't be undone when a later migration of the same run fails.
 - **Don't copy another project's snapshots without its migrations**: a snapshot means "already migrated". `makemigrations` then writes nothing for those models, while no migration creates their tables.
 - **Index and foreign key names are capped at 63 characters, on every engine** (they are built from table and column names; 63 is PostgreSQL's limit, MySQL accept 64): `makemigrations` refuses a name that is too long before writing any file, rather than truncate it; shorten the names involved.
-- **`runique migration up` applies a migration atomically under Postgres only.** sea-orm-migration wraps each migration (and its row in `seaql_migrations`) in a transaction on that engine alone. Under SQLite and MySQL, a migration failing midway can stay half applied; under MySQL no transaction would help (each DDL statement commits on its own). In development under SQLite, delete the database file and run `runique migration up` again; elsewhere, fix the database by hand before running it again.
+- **Under MySQL, `runique migration up` is not all or nothing.** MySQL commits each schema statement on its own, a transaction changes nothing there: when a migration fails, the ones before it stay applied, and the one that failed can stay half done. Fix the database by hand before running it again. Under PostgreSQL and SQLite, the whole run is rolled back (see "Apply the migrations"), provided the `main.rs` of the `migration` crate is the one of 4.1.
 - **Under SQLite, a foreign key can't be added to or removed from an existing table.** SQLite requires rebuilding the table, which Runique doesn't do yet. A migration that adds or removes a `belongs_to` on a table already created is therefore refused by `runique migration up`, before it changed anything, with a message naming the table. It applies normally under PostgreSQL and MySQL. A key declared when the table is created is not concerned.
 
 ---

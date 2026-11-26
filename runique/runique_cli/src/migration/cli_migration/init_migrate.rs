@@ -206,6 +206,22 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
     }
 
+    // The crate's `main.rs` gives `run_cli` the project's migrator inside
+    // Runique's: without it, a launch that fails stays half applied.
+    #[test]
+    fn the_crate_runs_its_migrator_through_runique_s() {
+        let dir = std::env::temp_dir().join(format!("rq_mig_{}", uuid::Uuid::new_v4()));
+        write(&dir, Engine::Sqlite, "9.8.7").unwrap();
+        let main = fs::read_to_string(dir.join("src/main.rs")).unwrap();
+        let _ = fs::remove_dir_all(&dir);
+        assert!(
+            main.contains(
+                "cli::run_cli(runique_cli::migration::runtime::RuniqueMigrator(migration::Migrator))"
+            ),
+            "{main}"
+        );
+    }
+
     #[test]
     fn ensure_writes_a_missing_crate_and_never_touches_an_existing_folder() {
         let root = std::env::temp_dir().join(format!("rq_mig_{}", uuid::Uuid::new_v4()));
