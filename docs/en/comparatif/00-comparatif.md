@@ -42,7 +42,7 @@ Real commands of the `runique` binary (see `runique/runique_cli/src/main.rs`): `
 |---------|--------|---------|
 | Function view | `def my_view(request)` | `async fn my_view(...)` |
 | Class view | `class MyView(View)` | — |
-| Session access | `request.session` | `request.session` via `context::template::Request` |
+| Session access | `request.session` | `request.session` via `http::request::Request` |
 | DB access | `Model.objects.get(...)` | `Model::objects.get(...)` or SeaORM query builders |
 | Template render | `render(request, "template.html", ctx)` | `request.render("template.html")` |
 | Redirect | `redirect("url_name")` | `Redirect::to("/url")` or `reverse(&engine, "name")` |

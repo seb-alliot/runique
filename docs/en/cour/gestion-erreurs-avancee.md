@@ -495,7 +495,7 @@ The `match` is exhaustive: adding a variant forces you to decide its HTTP code.
 A Runique handler returns `AppResult<Response>`, an alias of `Result<Response, Box<AppError>>`. `AppError` is not an enum: it is a struct that carries an `ErrorContext` (HTTP code, title, message, information for the debug page).
 
 ```rust
-// runique/src/context/template.rs
+// runique/src/errors/app_error.rs
 pub struct AppError {
     pub context: ErrorContext,
 }
@@ -511,7 +511,7 @@ pub type AppResult<T> = Result<T, Box<AppError>>;
 `DbErr`, `anyhow::Error` and session errors go through `?` without writing anything:
 
 ```rust
-// runique/src/context/template.rs
+// runique/src/errors/app_error.rs
 impl_from_error!(
     anyhow::Error => from_anyhow,
     DbErr => database,

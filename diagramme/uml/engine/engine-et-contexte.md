@@ -32,7 +32,7 @@ classDiagram
 
 ## Request (contexte handler, via FromRequest)
 
-[`runique/src/context/template.rs:93`](../../../runique/src/context/template.rs#L93)
+[`runique/src/http/request.rs:93`](../../../runique/src/http/request.rs#L93)
 
 ```mermaid
 classDiagram

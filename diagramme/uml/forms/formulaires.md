@@ -220,7 +220,7 @@ poser son propre message d'erreur CSRF — lequel dépendait de
 `set_expected_value()`, **jamais appelé en production** (code mort). Résultat :
 un CSRF invalide/expiré échouait sans **aucun** message nulle part — l'utilisateur
 voyait juste le formulaire revenir vide, sans explication. Corrigé dans
-`Request::form()` (`context/template.rs`) : `t("csrf.invalid_or_missing")` est
+`Request::form()` (`http/request.rs`) : `t("csrf.invalid_or_missing")` est
 poussé directement dans `Forms.errors` dès la détection, avant le court-circuit.
 Détail complet : [../../flux/requete-csrf-upload.md](../../flux/requete-csrf-upload.md) (C6).
 

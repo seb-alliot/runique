@@ -42,7 +42,7 @@ Commandes réelles du binaire `runique` (voir `runique/runique_cli/src/main.rs`)
 |----------------|--------|---------|
 | Vue fonction | `def ma_vue(request)` | `async fn ma_vue(...)` |
 | Vue classe | `class MaVue(View)` | — |
-| Accès session | `request.session` | `request.session` via `context::template::Request` |
+| Accès session | `request.session` | `request.session` via `http::request::Request` |
 | Accès DB | `Model.objects.get(...)` | `Model::objects.get(...)` ou builders SeaORM |
 | Rendu template | `render(request, "template.html", ctx)` | `request.render("template.html")` |
 | Redirect | `redirect("nom_url")` | `Redirect::to("/url")` ou `reverse(&engine, "nom")` |

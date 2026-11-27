@@ -1,7 +1,7 @@
 # UML / Flux — Pipeline d'extraction `Request`
 
 Construction du contexte handler via `FromRequest` (body-consuming → **dernier** paramètre).
-[`context/template.rs:123`](../../../runique/src/context/template.rs#L123)
+[`http/request.rs:123`](../../../runique/src/http/request.rs#L123)
 
 ```mermaid
 sequenceDiagram

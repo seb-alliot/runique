@@ -15,7 +15,7 @@ The `runique` command decided the primary key type and the engine from its own f
 | ✓ | `runique-cli`: the `runique` command (`new`, `makemigrations`, `migration`, `create-superuser`, `test`) in its own crate, with its own version; it no longer depends on `runique`: installing it only builds the command and the database drivers (614 dependencies instead of 704), and a project's `runique` crate no longer carries what only the command needs (`clap`, `syn`, `dialoguer`…) |
 | ✓ | The type of `Pk` and the superuser's key follow the project's feature (`big-pk`, `pk-uuid`), read from its `Cargo.toml`, not the installed command's |
 | ✓ | `runique_atomic`: the all-or-nothing batch of files, its journal and its repair, shared by the framework and the command |
-| ✓ | `runique_i18n`: the translation engine and the framework's messages, re-exported by `runique::utils::trad` |
+| ✓ | `runique_i18n`: the translation engine and the framework's messages, re-exported by `runique::utils::translation` |
 | ☐ | Tests of the three new crates run by the CI |
 | ☐ | Installation pages updated at publication (`cargo install runique-cli`) |
 

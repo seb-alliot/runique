@@ -82,7 +82,7 @@ sequenceDiagram
   - `csrf_exempt` saute ces contrôles ; le jeton reste généré.
 - **`prisme_pipeline`** ([extractor.rs:63](../../runique/src/forms/extractor.rs#L63)) : aegis
   (parse) → `check_csrf` (flag seulement, **ne rejette pas**). Sentinel et `GuardRules` n'existent plus.
-- **Enforcement réel** : `request.form(nom)` ([template.rs:467](../../runique/src/context/template.rs#L467))
+- **Enforcement réel** : `request.form(nom)` ([request.rs:467](../../runique/src/http/request.rs#L467))
   pose `force_invalid = true` si CSRF KO → `is_save_allowed()` renvoie false, et
   pousse un message (`t("csrf.invalid_or_missing")`) dans `Forms.errors`. Seul le formulaire
   dont le nom revient (`runique_form`) subit ce contrôle : les autres de la page restent vierges.
@@ -90,7 +90,7 @@ sequenceDiagram
   `allow_get`/`allow_post` selon `request.method.is_safe()`. Détail :
   [../uml/forms/formulaires.md](../uml/forms/formulaires.md).
 - **`csrf.js`** : `request.render()` ajoute une seule balise par page contenant un champ
-  `csrf_token` (`with_csrf_script`, [template.rs:244](../../runique/src/context/template.rs#L244)),
+  `csrf_token` (`with_csrf_script`, [request.rs:244](../../runique/src/http/request.rs#L244)),
   aucune si la page le charge déjà.
 
 ## Anomalies / flux suspects

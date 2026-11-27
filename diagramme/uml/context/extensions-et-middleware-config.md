@@ -2,7 +2,7 @@
 
 ## RequestExtensions — injection des extensions
 
-[`context/request_extensions.rs`](../../../runique/src/context/request_extensions.rs)
+[`http/extension.rs`](../../../runique/src/http/extension.rs)
 
 ```mermaid
 classDiagram
@@ -24,7 +24,7 @@ C'est le **producteur** des extensions que `Request` consomme : le contrat slot�
 
 ## MiddlewareConfig — toggles
 
-[`middleware/config.rs`](../../../runique/src/middleware/config.rs)
+[`middleware/config/mod.rs`](../../../runique/src/middleware/config/mod.rs)
 
 ```mermaid
 classDiagram
@@ -45,7 +45,7 @@ pipeline vivant (`applicator.rs`) — voir CX2 ci-dessous, et E2/E3 dans `anomal
 
 ## Helpers Tera & cache dev (fonctions)
 
-[`context/tera/`](../../../runique/src/context/tera/) · [`middleware/dev/cache.rs`](../../../runique/src/middleware/dev/cache.rs)
+[`templates/`](../../../runique/src/templates/) · [`middleware/dev/cache.rs`](../../../runique/src/middleware/dev/cache.rs)
 
 ```mermaid
 flowchart LR
