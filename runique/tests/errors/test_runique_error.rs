@@ -1,7 +1,7 @@
 // Tests pour RuniqueError, ErrorContext et ErrorType
 
 use axum::http::StatusCode;
-use runique::errors::error::{ErrorContext, ErrorType, RuniqueError};
+use runique::errors::{ErrorContext, ErrorType, RuniqueError};
 use runique::middleware::RequestSnapshot;
 
 // ═══════════════════════════════════════════════════════════════
@@ -249,7 +249,7 @@ fn test_error_context_environment_info() {
 #[test]
 fn test_app_package_reads_the_project_manifest() {
     use crate::helpers::temp::TempDir;
-    use runique::errors::error::app_package;
+    use runique::errors::app_package;
 
     let dir = TempDir::new("rq_app_pkg");
     std::fs::write(
@@ -265,7 +265,7 @@ fn test_app_package_reads_the_project_manifest() {
 #[test]
 fn test_app_package_follows_workspace_version() {
     use crate::helpers::temp::TempDir;
-    use runique::errors::error::app_package;
+    use runique::errors::app_package;
 
     let root = TempDir::new("rq_app_ws");
     std::fs::write(
@@ -287,7 +287,7 @@ fn test_app_package_follows_workspace_version() {
 #[test]
 fn test_app_package_without_manifest_gives_nothing() {
     use crate::helpers::temp::TempDir;
-    use runique::errors::error::app_package;
+    use runique::errors::app_package;
 
     let dir = TempDir::new("rq_app_none");
     assert_eq!(app_package(dir.path().to_str().unwrap()), (None, None));
@@ -479,14 +479,14 @@ fn test_from_runique_error_a_stack_trace() {
 
 #[test]
 fn test_read_template_source_inexistant_retourne_none() {
-    use runique::errors::error::read_template_source;
+    use runique::errors::read_template_source;
     let result = read_template_source("template_qui_nexiste_pas.html");
     assert!(result.is_none());
 }
 
 #[test]
 fn test_read_template_source_lit_un_template_reel() {
-    use runique::errors::error::read_template_source;
+    use runique::errors::read_template_source;
     assert!(read_template_source("errors/corps-error/template-info.html").is_some());
 }
 
@@ -494,7 +494,7 @@ fn test_read_template_source_lit_un_template_reel() {
 /// fichier hors de `templates/`. `../Cargo.toml` existe bien, il serait lu sans la garde.
 #[test]
 fn test_read_template_source_refuse_de_sortir_de_templates() {
-    use runique::errors::error::read_template_source;
+    use runique::errors::read_template_source;
     assert!(std::path::Path::new("templates/../Cargo.toml").exists());
     assert!(read_template_source("../Cargo.toml").is_none());
     assert!(read_template_source("errors/../../Cargo.toml").is_none());

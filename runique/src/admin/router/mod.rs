@@ -27,7 +27,7 @@ use crate::admin::builder::site::AdminSite;
 use crate::admin::translation::{inject_admin_prefix, insert_admin_messages};
 use crate::auth::current_user::CurrentUser;
 use crate::errors::AppError;
-use crate::errors::error::ErrorContext;
+use crate::errors::ErrorContext;
 use crate::http::Request;
 use crate::urlpatterns;
 use crate::utils::aliases::AppResult;

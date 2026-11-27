@@ -1,5 +1,5 @@
 //! Why a request body was refused, kept small until it becomes the response.
-use crate::errors::error::ErrorContext;
+use crate::errors::ErrorContext;
 use crate::middleware::errors::error::too_large;
 use axum::{
     http::StatusCode,

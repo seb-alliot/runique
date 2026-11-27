@@ -59,7 +59,7 @@
 /// ```
 use super::query::RuniqueQueryBuilder;
 use crate::errors::AppError;
-use crate::errors::error::{ErrorContext, ErrorType};
+use crate::errors::{ErrorContext, ErrorType};
 use crate::http::Request;
 use crate::utils::aliases::{ADb, AppResult};
 use crate::utils::translation::t;

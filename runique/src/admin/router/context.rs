@@ -11,7 +11,7 @@
 //! its button isn't shown; the gate decides again on the page it leads to.
 use crate::admin::router::account::summary::AccountSummary;
 use crate::errors::AppError;
-use crate::errors::error::ErrorContext;
+use crate::errors::ErrorContext;
 use crate::http::Request;
 use crate::utils::aliases::{AppResult, StrMap};
 use serde::Serialize;

@@ -1,6 +1,6 @@
 //! `RuniqueQueryBuilder<E>` — Django-style query builder: filter, exclude, order_by, limit, all, get, count…
 use crate::auth::gate::{Authorized, Guarded, List};
-use crate::errors::error::{ErrorContext, ErrorType};
+use crate::errors::{ErrorContext, ErrorType};
 /// Django-inspired query builder for SeaORM
 ///
 /// This struct wraps SeaORM's `Select<E>` and provides convenient,

@@ -20,7 +20,7 @@ use runique::auth::permissions::group_rights;
 use runique::auth::{BuiltinUserEntity, LoginGuard, login, user};
 use runique::config::RuniqueConfig;
 use runique::errors::AppError;
-use runique::errors::error::ErrorContext;
+use runique::errors::ErrorContext;
 use runique::http::Request;
 use runique::middleware::RateLimiter;
 use runique::prelude::{FormAccess, RuniqueForm, ValidationForm, form};

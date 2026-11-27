@@ -1,6 +1,6 @@
 //! Multipart request parsing — text field extraction and file uploads to disk.
 use crate::{
-    errors::error::ErrorContext,
+    errors::ErrorContext,
     forms::prisme::BodyRefusal,
     utils::aliases::StrVecMap,
     utils::constants::session_key::session::CSRF_TOKEN_KEY,

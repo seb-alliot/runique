@@ -5,7 +5,7 @@ use crate::utils::{
 };
 use crate::{
     config::RuniqueConfig,
-    errors::error::{ErrorContext, ErrorType, RuniqueError, app_package},
+    errors::{ErrorContext, ErrorType, RuniqueError, app_package},
     utils::csrf::CsrfToken,
     utils::translation::t,
 };

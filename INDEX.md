@@ -115,7 +115,9 @@ runique/
 ### `errors/` — Error Types
 - **`build.rs`** — build-time error types (`BuildError`, `BuildFailure`, `CheckError`, `CheckReport`)
 - **`app_error.rs`** — `AppError`: the error a handler returns, turned into the response
-- **`error.rs`** — `RuniqueError`, `ErrorContext`, `ErrorType`
+- **`context.rs`** — `ErrorContext`, `ErrorType`: what an error page is rendered from
+- **`debug_page.rs`** — what the debug page reads from the project (template source, package name and version)
+- **`error.rs`** — `RuniqueError`, `RuniqueResult`: what went wrong, by kind
 
 ### `flash/` — Flash Messages
 - **`flash_struct.rs`** — `FlashMessage` data structure

@@ -1,6 +1,6 @@
 //! `AppError`: the error a handler returns. It carries an [`ErrorContext`] and
 //! becomes the HTTP response, which the error middleware then renders.
-use super::error::ErrorContext;
+use super::context::ErrorContext;
 use crate::impl_from_error;
 use axum::{
     http::StatusCode,

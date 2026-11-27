@@ -1,7 +1,7 @@
 //! `Request`: what a handler receives, and what it renders its template with.
 use crate::auth::current_user::CurrentUser;
 use crate::errors::AppError;
-use crate::errors::error::ErrorContext;
+use crate::errors::ErrorContext;
 use crate::flash::Message;
 use crate::forms::{
     extractor::{Prisme, csrf_required, prisme_pipeline},

@@ -5,7 +5,7 @@ use http_body_util::BodyExt;
 use runique::{
     config::app::RuniqueConfig,
     errors::AppError,
-    errors::error::ErrorContext,
+    errors::ErrorContext,
     middleware::errors::error::{RequestSnapshot, error_handler_middleware},
 };
 use std::{collections::HashMap, sync::Arc};
