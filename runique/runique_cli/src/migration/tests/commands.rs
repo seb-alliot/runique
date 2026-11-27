@@ -1016,10 +1016,10 @@ async fn with_a_reachable_database_the_command_runs() {
     let (entities, migrations) = (temp("ent_db_ok"), temp("mig_db_ok"));
     let get = |key: &str| (key == "DATABASE_URL").then(|| "sqlite::memory:".to_string());
 
-    let result = BuilderMaster::new(migrations.to_str().unwrap())
+    let result = BuilderMaster::new()
         .env(get)
         .cargo(project_with(&["orm", "sqlite"]))
-        .makemigrations(entities.to_str().unwrap())
+        .makemigrations(entities.to_str().unwrap(), migrations.to_str().unwrap())
         .await;
     // `run` creates the snapshot folder first: proof the command went on.
     let reached = Path::new(&snapshot_dir(migrations.to_str().unwrap())).exists();
@@ -1042,10 +1042,10 @@ async fn with_an_unreachable_database_nothing_is_written() {
             .then(|| "postgres://app:s3cr3t-Pw@127.0.0.1:1/shop?password=0ther-Pw".to_string())
     };
 
-    let error = BuilderMaster::new(migrations.to_str().unwrap())
+    let error = BuilderMaster::new()
         .env(get)
         .cargo(project_with(&["orm", "postgres"]))
-        .makemigrations(entities.to_str().unwrap())
+        .makemigrations(entities.to_str().unwrap(), migrations.to_str().unwrap())
         .await
         .unwrap_err();
     let written = fs::read_dir(&migrations).unwrap().count();
@@ -1067,10 +1067,10 @@ async fn an_engine_the_project_is_not_compiled_for_stops_the_command() {
     let (entities, migrations) = (temp("ent_engine_ko"), temp("mig_engine_ko"));
     let get = |key: &str| (key == "DATABASE_URL").then(|| "sqlite::memory:".to_string());
 
-    let error = BuilderMaster::new(migrations.to_str().unwrap())
+    let error = BuilderMaster::new()
         .env(get)
         .cargo(project_with(&["orm", "postgres"]))
-        .makemigrations(entities.to_str().unwrap())
+        .makemigrations(entities.to_str().unwrap(), migrations.to_str().unwrap())
         .await
         .unwrap_err()
         .to_string();
@@ -1097,10 +1097,10 @@ async fn without_cargo_s_answer_the_command_stops() {
     let (entities, migrations) = (temp("ent_cargo_ko"), temp("mig_cargo_ko"));
     let get = |key: &str| (key == "DATABASE_URL").then(|| "sqlite::memory:".to_string());
 
-    let error = BuilderMaster::new(migrations.to_str().unwrap())
+    let error = BuilderMaster::new()
         .env(get)
         .cargo(|| anyhow::bail!("no Cargo.toml here"))
-        .makemigrations(entities.to_str().unwrap())
+        .makemigrations(entities.to_str().unwrap(), migrations.to_str().unwrap())
         .await
         .unwrap_err()
         .to_string();

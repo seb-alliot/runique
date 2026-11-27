@@ -60,8 +60,8 @@ pub fn run(
 /// does an engine in `.env` that the project is not compiled for.
 pub async fn makemigrations(entities_path: &str, migrations_path: &str, force: bool) -> Result<()> {
     dotenvy::dotenv().ok();
-    BuilderMaster::new(migrations_path)
+    BuilderMaster::new()
         .force(force)
-        .makemigrations(entities_path)
+        .makemigrations(entities_path, migrations_path)
         .await
 }

@@ -3,7 +3,9 @@
 //! It reads the project (`.env`, the features of `runique` in `Cargo.toml`)
 //! and refuses two engines that differ; each command then does its own
 //! work: `makemigrations` hands a run to the orchestrator, `migration up |
-//! down | status` launches the project's migration crate.
+//! down | status` launches the project's migration crate, and
+//! `create-superuser` opens its wizard.
+mod create_superuser;
 mod makemigrations;
 mod migration;
 mod project;
@@ -24,7 +26,6 @@ type Env<'a> = Box<dyn Fn(&str) -> Option<String> + 'a>;
 type Cargo<'a> = Box<dyn FnOnce() -> Result<String> + 'a>;
 
 pub(crate) struct BuilderMaster<'a> {
-    migrations_path: &'a str,
     force: bool,
     env: Env<'a>,
     cargo: Cargo<'a>,
@@ -32,9 +33,8 @@ pub(crate) struct BuilderMaster<'a> {
 
 impl<'a> BuilderMaster<'a> {
     /// The project as it is: its environment, and cargo asked for real.
-    pub(crate) fn new(migrations_path: &'a str) -> Self {
+    pub(crate) fn new() -> Self {
         Self {
-            migrations_path,
             force: false,
             env: Box::new(|key: &str| std::env::var(key).ok()),
             cargo: Box::new(project_pk::cargo_metadata),

@@ -149,10 +149,10 @@ mod tests {
             })
             .to_string())
         };
-        let error = BuilderMaster::new(&path)
+        let error = BuilderMaster::new()
             .env(get)
             .cargo(metadata)
-            .makemigrations(entities.to_str().unwrap())
+            .makemigrations(entities.to_str().unwrap(), &path)
             .await
             .unwrap_err();
 

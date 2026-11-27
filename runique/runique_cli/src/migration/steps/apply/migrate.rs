@@ -27,8 +27,8 @@ use std::path::{Path, PathBuf};
 /// (see [`record_applied`]).
 pub async fn up(entities_path: &str, migrations_path: &str) -> Result<()> {
     dotenvy::dotenv().ok();
-    BuilderMaster::new(migrations_path)
-        .migration_up(entities_path)
+    BuilderMaster::new()
+        .migration_up(entities_path, migrations_path)
         .await?;
     println!("{}", t(runique_i18n::keys::migrate::info::COMPLETE_UP));
     Ok(())
@@ -274,8 +274,8 @@ fn drop_unused_enum_snapshots(entities_path: &str, migrations_path: &str) -> Res
 /// Rolls back the last `n` applied migrations.
 pub async fn down(migrations_path: &str, n: u32) -> Result<()> {
     dotenvy::dotenv().ok();
-    BuilderMaster::new(migrations_path)
-        .migration_down(n)
+    BuilderMaster::new()
+        .migration_down(migrations_path, n)
         .await?;
     println!("{}", t(runique_i18n::keys::migrate::info::COMPLETE_DOWN));
     Ok(())
@@ -284,7 +284,7 @@ pub async fn down(migrations_path: &str, n: u32) -> Result<()> {
 /// Lists the migrations and whether each one is applied.
 pub async fn status(migrations_path: &str) -> Result<()> {
     dotenvy::dotenv().ok();
-    BuilderMaster::new(migrations_path).migration_status().await
+    BuilderMaster::new().migration_status(migrations_path).await
 }
 
 /// The configuration of the project's database, by the app's own rule
@@ -838,7 +838,7 @@ mod tests {
         let dir = TempDir::new();
         let path = migration_crate(&dir);
         let master = || {
-            BuilderMaster::new(&path)
+            BuilderMaster::new()
                 .env(|key| (key == "DATABASE_URL").then(|| "sqlite::memory:".to_string()))
                 .cargo(|| {
                     Ok(serde_json::json!({
@@ -850,9 +850,9 @@ mod tests {
         };
 
         for outcome in [
-            master().migration_up("src/entities").await,
-            master().migration_down(1).await,
-            master().migration_status().await,
+            master().migration_up("src/entities", &path).await,
+            master().migration_down(&path, 1).await,
+            master().migration_status(&path).await,
         ] {
             assert_eq!(
                 outcome.unwrap_err().to_string(),

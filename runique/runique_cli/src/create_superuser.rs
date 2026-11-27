@@ -339,14 +339,15 @@ fn hash_via_provider(password: &str, provider_path: &str) -> Result<String, Stri
 
 pub async fn create_superuser() -> Result<()> {
     dotenvy::dotenv().ok();
+    crate::migration::master::BuilderMaster::new()
+        .create_superuser()
+        .await
+}
 
-    // Before any question: the key of the accounts table follows a feature
-    // of the project (`big-pk`, `pk-uuid`), not one of this build.
-    let pk = crate::migration::steps::parser::files::project_pk::from_cargo()?;
-
-    let config = superuser_db_config(|key| std::env::var(key).ok())?;
-    let db: ADb = config.connect().await?;
-
+/// The questions, then the account. `db` is the project's database, `pk`
+/// the type of the key of its accounts table: both come from the master,
+/// which read the project.
+pub(crate) async fn wizard(db: &ADb, pk: PkType) -> Result<()> {
     println!("{}", t(runique_i18n::keys::superuser::label::TITLE));
 
     let mut state = WizardState::default();
@@ -373,7 +374,7 @@ pub async fn create_superuser() -> Result<()> {
                 }
             },
 
-            Step::Username => match step_username(&db).await {
+            Step::Username => match step_username(db).await {
                 None => step = Step::Algorithm,
                 Some(u) => {
                     state.username = Some(u);
@@ -381,7 +382,7 @@ pub async fn create_superuser() -> Result<()> {
                 }
             },
 
-            Step::Email => match step_email(&db).await {
+            Step::Email => match step_email(db).await {
                 None => step = Step::Username,
                 Some(e) => {
                     state.email = Some(e);
@@ -416,7 +417,7 @@ pub async fn create_superuser() -> Result<()> {
     let username = state.username.unwrap();
     let email = state.email.unwrap();
 
-    let id = insert_superuser(&db, pk, &username, &email, password, algo).await?;
+    let id = insert_superuser(db, pk, &username, &email, password, algo).await?;
 
     println!("\n{}", t(runique_i18n::keys::superuser::info::SUCCESS));
     println!(
@@ -436,16 +437,6 @@ pub async fn create_superuser() -> Result<()> {
     );
 
     Ok(())
-}
-
-/// The same keys as the app (`DATABASE_URL`, or `DB_ENGINE` + `DB_*`), so a
-/// project that boots also reaches its database from the wizard. One
-/// connection: the wizard runs a handful of queries, one at a time.
-fn superuser_db_config(get: impl Fn(&str) -> Option<String>) -> Result<crate::db::DatabaseConfig> {
-    Ok(crate::db::DatabaseConfig::from_lookup(get)
-        .map_err(anyhow::Error::msg)?
-        .pool_size(1, 1)
-        .build())
 }
 
 /// Whether an account already holds `value` in `column`. Only that column is
@@ -610,7 +601,7 @@ mod hashing_tests {
 
 #[cfg(test)]
 mod db_config_tests {
-    use super::superuser_db_config;
+    use crate::migration::steps::apply::migrate::configuration;
     use std::collections::HashMap;
 
     fn lookup(vars: &[(&'static str, &'static str)]) -> impl Fn(&str) -> Option<String> {
@@ -620,7 +611,7 @@ mod db_config_tests {
 
     #[test]
     fn the_url_is_rebuilt_from_the_separate_keys() {
-        let config = superuser_db_config(lookup(&[
+        let config = configuration(lookup(&[
             ("DB_ENGINE", "postgres"),
             ("DB_USER", "bob"),
             ("DB_PASSWORD", "secret"),
@@ -635,7 +626,7 @@ mod db_config_tests {
 
     #[test]
     fn database_url_is_taken_as_is() {
-        let config = superuser_db_config(lookup(&[
+        let config = configuration(lookup(&[
             ("DATABASE_URL", "sqlite://direct.db"),
             ("DB_ENGINE", "postgres"),
         ]))
@@ -643,9 +634,35 @@ mod db_config_tests {
         assert_eq!(config.url, "sqlite://direct.db");
     }
 
+    // `.env` asks for SQLite, the project is compiled for PostgreSQL: the
+    // command stops before it connects, and before any question.
+    #[tokio::test]
+    async fn an_engine_the_project_is_not_compiled_for_stops_the_wizard() {
+        let error = crate::migration::master::BuilderMaster::new()
+            .env(lookup(&[("DATABASE_URL", "sqlite::memory:")]))
+            .cargo(|| {
+                Ok(serde_json::json!({
+                    "packages": [{ "name": "runique", "id": "runique 4.1.0" }],
+                    "resolve": { "nodes": [{ "id": "runique 4.1.0", "features": ["postgres"] }] },
+                })
+                .to_string())
+            })
+            .create_superuser()
+            .await
+            .unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            runique_i18n::tf(
+                runique_i18n::keys::makemigrations::error::ENGINE_NOT_IN_FEATURES,
+                &["SQLite", "postgres", "SQLite", "sqlite"]
+            )
+        );
+    }
+
     #[test]
     fn a_missing_key_is_an_error_not_a_panic() {
-        let err = superuser_db_config(lookup(&[
+        let err = configuration(lookup(&[
             ("DB_ENGINE", "postgres"),
             ("DB_USER", "bob"),
             ("DB_PASSWORD", "secret"),

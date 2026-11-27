@@ -7,7 +7,6 @@
 mod alias_used;
 mod cargo_metadata;
 mod features_of;
-mod from_cargo;
 mod has_word;
 mod host_triple;
 mod pk_of;
@@ -21,7 +20,6 @@ use std::{fs, path::Path, process::Command};
 use alias_used::alias_used;
 pub(crate) use cargo_metadata::cargo_metadata;
 pub(crate) use features_of::features_of;
-pub(crate) use from_cargo::from_cargo;
 use has_word::has_word;
 use host_triple::host_triple;
 pub(crate) use pk_of::pk_of;
