@@ -6,7 +6,7 @@
 //!   - Le rendu d'un champ (même le dernier) n'auto-injecte plus les scripts
 
 use crate::helpers::tera::{kwargs, no_kwargs};
-use runique::context::tera::form::FormFilter;
+use runique::templates::form::FormFilter;
 use serde_json::json;
 use tera::{Context, Filter, State, Value};
 

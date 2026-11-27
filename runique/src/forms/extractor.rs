@@ -24,7 +24,7 @@ pub struct Prisme {
     pub(crate) data: StrMap,
     pub csrf_valid: bool,
     /// `.staging-*` directory this request created. `None` when the body wrote
-    /// no file. [`Request`](crate::context::Request) drops it when the request
+    /// no file. [`Request`](crate::http::Request) drops it when the request
     /// ends; the last clone removes the directory.
     pub(crate) staging: Option<std::sync::Arc<StagingDir>>,
 }

@@ -6,7 +6,7 @@ use crate::admin::router::context::{DetailContext, ResourceRef, RowLinks, put};
 use crate::admin::router::{chrome, failure, unknown_resource};
 use crate::admin::translation::insert_admin_messages;
 use crate::auth::current_user::CurrentUser;
-use crate::context::template::Request;
+use crate::http::request::Request;
 use crate::utils::aliases::AppResult;
 use axum::Extension;
 use axum::extract::Path;

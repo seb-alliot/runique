@@ -5,7 +5,7 @@ use axum::http::{Request, StatusCode, header};
 use axum::routing::get;
 use runique::app::RuniqueApp;
 use runique::config::RuniqueConfig;
-use runique::macros::{RouterExt, Routes};
+use runique::router::{RouterExt, Routes};
 use sea_orm::Database;
 use serial_test::serial;
 use tower::ServiceExt;

@@ -1,7 +1,7 @@
 //! CSRF Middleware: generates and stores the token in session, validates mutating requests.
 use crate::auth::session::is_authenticated;
-use crate::context::RequestExtensions;
 use crate::forms::extractor::{csrf_required, is_csrf_exempt};
+use crate::http::RequestExtensions;
 use crate::utils::config::TraceResult;
 use crate::utils::{
     aliases::AEngine,

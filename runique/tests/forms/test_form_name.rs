@@ -7,7 +7,6 @@
 
 use crate::helpers::{handler_req::build_handler_req, server::build_engine};
 use axum::http::Method;
-use runique::context::register_asset_filters;
 use runique::forms::{
     field::{FormAccess, RuniqueForm, build_form_for_test},
     fields::text::TextField,
@@ -15,6 +14,7 @@ use runique::forms::{
     renderer::FormRenderer,
 };
 use runique::prelude::ValidationForm;
+use runique::templates::register_asset_filters;
 use runique::utils::aliases::new_registry;
 use runique::utils::constants::session_key::session::{CSRF_TOKEN_KEY, FORM_NAME_KEY};
 use serde_json::Value;
@@ -278,7 +278,7 @@ fn an_unnamed_form_shows_the_failed_field_instead_of_dropping_it() {
 #[tokio::test]
 async fn field_by_field_rendering_injects_the_name_then_csrf_before_the_first_field() {
     let mut page = Tera::default();
-    page.register_filter("form", runique::context::tera::form::FormFilter);
+    page.register_filter("form", runique::templates::form::FormFilter);
     page.add_raw_template("t", "{{ f | form(field='q') }}")
         .unwrap();
     let mut ctx = tera::Context::new();

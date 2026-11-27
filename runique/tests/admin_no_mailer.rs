@@ -16,8 +16,8 @@ use helpers::pk::{pk, pk_sql_literal};
 use runique::app::RuniqueApp;
 use runique::auth::{BuiltinUserEntity, login};
 use runique::config::RuniqueConfig;
-use runique::context::template::Request;
 use runique::flash::Message;
+use runique::http::request::Request;
 
 const SUPERUSER: u32 = 1;
 

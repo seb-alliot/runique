@@ -3,7 +3,7 @@ is shown or accepted from the URL.
 
 ```rust
 use runique::admin::ModelAdmin;
-use runique::auth::permissions::groupe::{Column, Entity};
+use runique::auth::permissions::group::{Column, Entity};
 use runique::sea_orm::Order;
 
 let groups: ModelAdmin<Entity> = ModelAdmin::new().list(|l| {

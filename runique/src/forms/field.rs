@@ -1,8 +1,8 @@
 //! `RuniqueForm` trait: common interface for all Runique forms.
-use crate::context::Request;
 pub use crate::forms::{
     base::FormField, form::Forms, renderer::FormRenderer, validator::ValidationError,
 };
+use crate::http::Request;
 use crate::utils::{
     aliases::{ATera, StrMap},
     translation::t,

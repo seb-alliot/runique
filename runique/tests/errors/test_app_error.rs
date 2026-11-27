@@ -2,7 +2,7 @@
 
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use runique::context::AppError;
+use runique::errors::AppError;
 use runique::errors::{ErrorContext, ErrorType};
 
 // ── AppError::new ────────────────────────────────────────────────

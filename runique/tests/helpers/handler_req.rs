@@ -1,4 +1,4 @@
-//! `build_handler_req` : construit le `runique::context::Request` directement —
+//! `build_handler_req` : construit le `runique::http::Request` directement —
 //! tests unitaires des handlers sans monter de serveur. Passe par
 //! `Prisme::for_test`, d'où la feature `test-utils`.
 //!
@@ -23,8 +23,8 @@ use axum::{
 };
 use runique::{
     auth::current_user::CurrentUser,
-    context::template::Request as HandlerReq,
     forms::Prisme,
+    http::request::Request as HandlerReq,
     utils::{aliases::StrMap, crypto::csrf::CsrfToken},
 };
 use std::sync::{Arc, Mutex};
@@ -32,7 +32,7 @@ use tera::Context;
 use tower::ServiceExt;
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 
-/// Construit un `runique::context::Request` utilisable directement dans les tests de handlers.
+/// Construit un `runique::http::Request` utilisable directement dans les tests de handlers.
 ///
 /// La session est récupérée via un router oneshot minimal + `SessionManagerLayer` pour
 /// garantir une vraie session tower-sessions (pas de constructeur public sur `Session`).

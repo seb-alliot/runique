@@ -52,7 +52,7 @@ impl FormAccess for SearchForm {
 }
 
 impl RuniqueForm for SearchForm {
-    fn allow_get(&self, _request: &runique::context::Request) -> bool {
+    fn allow_get(&self, _request: &runique::http::Request) -> bool {
         self.is_submitted()
     }
 }
@@ -152,7 +152,7 @@ impl FormAccess for AlwaysPostOnlyForm {
 impl RuniqueForm for AlwaysPostOnlyForm {
     // Explicit override matching the (now-default) `false` — kept to assert
     // the override mechanism itself still works, independent of the default.
-    fn allow_get(&self, _request: &runique::context::Request) -> bool {
+    fn allow_get(&self, _request: &runique::http::Request) -> bool {
         false
     }
 }
@@ -188,7 +188,7 @@ async fn honeypot_filled_on_post_forces_invalid() {
     data.insert("q".to_string(), "rust".to_string());
     data.insert("hp_trap".to_string(), "i_am_a_bot".to_string());
     let mut request = build_handler_req(engine, None, named(data), Method::POST).await;
-    request.honeypot_field_name = Some("hp_trap".to_string());
+    request.honeypot = Some("hp_trap".to_string());
 
     let mut form: SearchForm = request.form(NAME);
     assert!(
@@ -206,7 +206,7 @@ async fn honeypot_is_checked_on_every_writing_method() {
         data.insert("q".to_string(), "rust".to_string());
         data.insert("hp_trap".to_string(), "i_am_a_bot".to_string());
         let mut request = build_handler_req(engine, None, named(data), method.clone()).await;
-        request.honeypot_field_name = Some("hp_trap".to_string());
+        request.honeypot = Some("hp_trap".to_string());
         let mut form: SearchForm = request.form(NAME);
         assert!(!form.is_valid().await, "filled trap on {method}");
 
@@ -214,7 +214,7 @@ async fn honeypot_is_checked_on_every_writing_method() {
         let mut data = HashMap::new();
         data.insert("q".to_string(), "rust".to_string());
         let mut request = build_handler_req(engine, None, named(data), method.clone()).await;
-        request.honeypot_field_name = Some("hp_trap".to_string());
+        request.honeypot = Some("hp_trap".to_string());
         let mut form: SearchForm = request.form(NAME);
         assert!(form.is_valid().await, "empty trap on {method}");
     }
@@ -226,7 +226,7 @@ async fn honeypot_empty_on_post_does_not_force_invalid() {
     let mut data = HashMap::new();
     data.insert("q".to_string(), "rust".to_string());
     let mut request = build_handler_req(engine, None, named(data), Method::POST).await;
-    request.honeypot_field_name = Some("hp_trap".to_string());
+    request.honeypot = Some("hp_trap".to_string());
 
     let mut form: SearchForm = request.form(NAME);
     assert!(
@@ -245,7 +245,7 @@ async fn honeypot_filled_on_get_does_not_force_invalid() {
     data.insert("q".to_string(), "rust".to_string());
     data.insert("hp_trap".to_string(), "i_am_a_bot".to_string());
     let mut request = build_handler_req(engine, None, named(data), Method::GET).await;
-    request.honeypot_field_name = Some("hp_trap".to_string());
+    request.honeypot = Some("hp_trap".to_string());
 
     let mut form: SearchForm = request.form(NAME);
     assert!(

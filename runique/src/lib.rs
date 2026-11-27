@@ -47,14 +47,16 @@ pub mod app;
 pub mod atomic;
 pub mod auth;
 pub mod config;
-pub mod context;
 #[cfg(feature = "orm")]
 pub mod db;
 pub mod engine;
 pub mod flash;
 pub mod forms;
+pub mod http;
 pub mod macros;
+pub mod router;
 pub mod schema;
+pub mod templates;
 
 #[cfg(feature = "admin")]
 pub mod admin;
@@ -122,8 +124,8 @@ pub mod prelude {
     // ========================================================================
     pub use crate::app::{RuniqueApp, RuniqueAppBuilder};
     pub use crate::config::app::RuniqueConfig;
-    pub use crate::context::{AppError, Request};
     pub use crate::engine::RuniqueEngine;
+    pub use crate::errors::AppError;
     pub use crate::flash::{FlashMessage, Message, MessageLevel};
     pub use crate::forms::{
         FormEntity, Forms, Prisme,
@@ -144,6 +146,7 @@ pub mod prelude {
         model_form::ModelForm,
         validation_form::ValidationForm,
     };
+    pub use crate::http::Request;
     pub use crate::schema::ModelSchema;
     pub use crate::utils::aliases::*;
     pub use crate::utils::config::Pk;
@@ -161,7 +164,7 @@ pub mod prelude {
     // ========================================================================
     // UTILS
     // ========================================================================
-    pub use crate::macros::{
+    pub use crate::router::{
         RouterExt, Routes, UrlError, register_name_url, register_pending, reverse,
         reverse_with_parameters,
     };
@@ -174,8 +177,7 @@ pub mod prelude {
     // ========================================================================
     // CONTEXT & TEMPLATE
     // ========================================================================
-    // pub use crate::context::error::*;
-    pub use crate::context::request::RuniqueContext;
+    pub use crate::http::context::RuniqueContext;
 
     // ========================================================================
     // MIDDLEWARE

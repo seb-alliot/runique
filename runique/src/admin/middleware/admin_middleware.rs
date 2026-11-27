@@ -18,7 +18,7 @@ use crate::auth::{
     permissions::rank::Rang,
     session::{get_user_id, logout},
 };
-use crate::context::RequestExtensions;
+use crate::http::RequestExtensions;
 use crate::utils::aliases::AEngine;
 use crate::utils::config::TraceResult;
 use crate::utils::pk::Pk;

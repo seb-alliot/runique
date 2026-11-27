@@ -1,4 +1,4 @@
-// Tests pour context::template::Request — from_request_parts, render (erreur
+// Tests pour http::request::Request — from_request_parts, render (erreur
 // et succès), insert, map_tera.
 //
 // Stack : csrf_router — csrf_middleware (GET seulement, token validé).
@@ -14,7 +14,7 @@ use axum::{
     routing::get,
 };
 use runique::{
-    context::{RequestExtensions, template::Request as TplRequest},
+    http::{RequestExtensions, request::Request as TplRequest},
     middleware::security::csrf::csrf_middleware,
     utils::aliases::{AEngine, AppResult},
 };
@@ -333,7 +333,7 @@ use runique::utils::config::Pk;
 /// By the primary key. `?table` creates the accounts table first: without
 /// it the lookup itself fails.
 async fn handler_get_or_404(tpl: TplRequest) -> AppResult<Response> {
-    if tpl.query_params.contains_key("table") {
+    if tpl.query.contains_key("table") {
         let create = runique::migrations_table::create_eihwaz_users_table();
         tpl.engine.db.execute(&create).await.expect("create table");
     }
@@ -345,7 +345,7 @@ async fn handler_get_or_404(tpl: TplRequest) -> AppResult<Response> {
 
 /// The same through a query.
 async fn handler_query_get_or_404(tpl: TplRequest) -> AppResult<Response> {
-    if tpl.query_params.contains_key("table") {
+    if tpl.query.contains_key("table") {
         let create = runique::migrations_table::create_eihwaz_users_table();
         tpl.engine.db.execute(&create).await.expect("create table");
     }

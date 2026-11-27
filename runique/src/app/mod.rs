@@ -3,8 +3,8 @@ pub mod builder;
 pub mod runique_app;
 pub mod staging;
 
-pub use builder::RuniqueAppBuilder;
 pub use crate::errors::build::{BuildError, BuildFailure, CheckError, CheckReport};
+pub use builder::RuniqueAppBuilder;
 pub use runique_app::RuniqueApp;
 #[cfg(feature = "admin")]
 pub use staging::AdminStaging;

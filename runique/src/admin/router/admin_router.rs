@@ -19,7 +19,7 @@ use crate::auth::{
     guard::LoginGuard,
     session::{login, logout},
 };
-use crate::context::template::Request;
+use crate::http::request::Request;
 use crate::middleware::security::rate_limit_middleware;
 use crate::urlpatterns;
 use crate::utils::{

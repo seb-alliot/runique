@@ -271,7 +271,7 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
     pub async fn get_or_404(
         self,
         db: &ADb,
-        _ctx: &crate::context::template::Request,
+        _ctx: &crate::http::request::Request,
         error_msg: &str,
     ) -> crate::utils::aliases::AppResult<E::Model> {
         match self.first(db).await {
@@ -279,15 +279,13 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
             // The context of the error: once it is the response, the error
             // middleware renders the page (`404.html` / `500.html`, or the debug
             // page with the reason).
-            Ok(None) => Err(Box::new(crate::context::template::AppError::new(
-                ErrorContext::new(
-                    ErrorType::NotFound,
-                    StatusCode::NOT_FOUND,
-                    &t(runique_i18n::keys::app::label::NOT_FOUND),
-                    error_msg,
-                ),
-            ))),
-            Err(e) => Err(Box::new(crate::context::template::AppError::new(
+            Ok(None) => Err(Box::new(crate::errors::AppError::new(ErrorContext::new(
+                ErrorType::NotFound,
+                StatusCode::NOT_FOUND,
+                &t(runique_i18n::keys::app::label::NOT_FOUND),
+                error_msg,
+            )))),
+            Err(e) => Err(Box::new(crate::errors::AppError::new(
                 ErrorContext::database(e),
             ))),
         }

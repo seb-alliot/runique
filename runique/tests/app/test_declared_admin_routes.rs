@@ -17,10 +17,10 @@ use runique::admin::{AdminSite, AdminState, admin_page_context};
 use runique::app::RuniqueApp;
 use runique::auth::{BuiltinUserEntity, login};
 use runique::config::RuniqueConfig;
-use runique::context::template::Request;
 use runique::flash::Message;
-use runique::macros::Routes;
+use runique::http::request::Request;
 use runique::prelude::{FormAccess, RuniqueForm, ValidationForm, form};
+use runique::router::Routes;
 use runique::sea_orm::{EntityTrait, QueryOrder};
 use serial_test::serial;
 use std::sync::Arc;
@@ -587,7 +587,7 @@ impl RuniqueForm for ProbeForm {
 /// Validates the form `"probe"` sent in the query, then `save`s it, or
 /// `delete`s it with `?delete`. The body tells what came of it.
 async fn probe_write(req: Request) -> String {
-    let delete = req.query_params.contains_key("delete");
+    let delete = req.query.contains_key("delete");
     let form = req.form::<ProbeForm>("probe");
     let form = match ValidationForm::try_form(form, &req).await {
         Ok(form) => form,
@@ -622,7 +622,7 @@ async fn probe_write_by_code(req: Request) -> String {
     let mut form = req.form::<ProbeTitleForm>("probe");
     form.add_value("body", "by code");
     form.add_value("ghost", "never a column");
-    if let Some(code) = req.query_params.get("by_code") {
+    if let Some(code) = req.query.get("by_code") {
         form.add_value("code", code);
     }
     let form = match ValidationForm::try_form(form, &req).await {

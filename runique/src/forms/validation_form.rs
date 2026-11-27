@@ -6,12 +6,12 @@ use crate::auth::gate::refusal::{Refusal, RefusalReason};
 use crate::auth::gate::save::save_as;
 use crate::auth::gate::write::linked_delete_error;
 use crate::auth::permissions::rights::ColumnRights;
-use crate::context::Request;
 use crate::db::DbWrite;
 use crate::forms::FormEntity;
 use crate::forms::field::RuniqueForm;
 use crate::forms::form::{SaveComportement, write_replacing_uploads, write_with_uploads};
 use crate::forms::save::{SaveAction, not_found, on_fields, url_key};
+use crate::http::Request;
 use sea_orm::sea_query::IntoValueTuple;
 use sea_orm::{
     ActiveModelTrait, DbErr, EntityTrait, IntoActiveModel, Iterable, PrimaryKeyToColumn,
@@ -74,9 +74,9 @@ impl<F: RuniqueForm> ValidationForm<F> {
 
 /// Writing a validated form of an entity. The row comes from the URL:
 /// `{<name>_<pk>}`, where `name` is the one given to
-/// [`Request::form`](crate::context::Request::form); without it, `save` creates.
+/// [`Request::form`](crate::http::Request::form); without it, `save` creates.
 /// A plain `{<pk>}` is not the form's row: read it with
-/// [`Request::get_path_as`](crate::context::Request::get_path_as) when the handler needs it. On a route
+/// [`Request::get_path_as`](crate::http::Request::get_path_as) when the handler needs it. On a route
 /// declared `admin` the gate writes, as the checked account, with its
 /// history; elsewhere SeaORM does, and checking that the user may touch that
 /// row is the handler's job.
@@ -85,7 +85,7 @@ impl<F: RuniqueForm> ValidationForm<F> {
 /// render again), `Err` with the reason on its fields or its errors.
 ///
 /// `db` is the connection, or a transaction from
-/// [`Request::db_atomic`](crate::context::Request::db_atomic) to tie the write
+/// [`Request::db_atomic`](crate::http::Request::db_atomic) to tie the write
 /// to the handler's own: nothing is real before its `commit()`. A file moved by
 /// the save stays on disk if that transaction is never committed. A form on a
 /// route declared `admin` refuses a transaction: the gate decides on what it

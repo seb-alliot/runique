@@ -1,8 +1,8 @@
-//! Tests — macros/router/router_ext
+//! Tests — router/router_ext
 //! Couvre : RouterExt::rate_limit, rate_limit_many, login_required (smoke tests)
 
 use axum::{Router, routing::get};
-use runique::macros::RouterExt;
+use runique::router::RouterExt;
 
 use crate::helpers::request;
 

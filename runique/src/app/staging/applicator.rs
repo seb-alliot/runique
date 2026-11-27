@@ -36,7 +36,7 @@
 //! header is rejected before paying for session load, auth lookup and CSRF
 //! checks. Moving it any lower than ErrorHandler would remove that panic net.
 
-use crate::context::RequestExtensions;
+use crate::http::RequestExtensions;
 use crate::middleware::session::CleaningMemoryStore;
 use crate::middleware::{
     allowed_hosts_middleware, anti_bot_middleware, csrf_middleware, dev_no_cache_middleware,

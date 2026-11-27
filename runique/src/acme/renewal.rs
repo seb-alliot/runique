@@ -39,7 +39,11 @@ pub(super) async fn cert_needs_renewal(cert_path: &std::path::Path, domain: &str
 
 /// Runs `renew` when the certificate at `cert_path` must be replaced (see
 /// [`cert_needs_renewal`]). Returns whether it ran.
-pub(super) async fn renew_if_due<F, Fut>(cert_path: &std::path::Path, domain: &str, renew: F) -> bool
+pub(super) async fn renew_if_due<F, Fut>(
+    cert_path: &std::path::Path,
+    domain: &str,
+    renew: F,
+) -> bool
 where
     F: FnOnce() -> Fut,
     Fut: std::future::Future<Output = ()>,

@@ -718,7 +718,7 @@ impl Forms {
 
     /// Whether `request` is this form's own submission: its name, given by
     /// `request.form(name)`, came back in the hidden `FORM_NAME_KEY` field.
-    pub(crate) fn sent_by(&self, request: &crate::context::Request) -> bool {
+    pub(crate) fn sent_by(&self, request: &crate::http::Request) -> bool {
         self.name.is_some_and(|name| {
             request.prisme.data.get(FORM_NAME_KEY).map(String::as_str) == Some(name)
         })

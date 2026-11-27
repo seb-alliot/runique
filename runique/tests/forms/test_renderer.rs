@@ -34,7 +34,7 @@ fn make_renderer_with_templates() -> runique::forms::renderer::FormRenderer {
 fn make_renderer_with_error_template() -> runique::forms::renderer::FormRenderer {
     let mut tera = Tera::default();
     tera.autoescape_on(vec!["html", "xml"]);
-    runique::context::register_asset_filters(
+    runique::templates::register_asset_filters(
         &mut tera,
         "/static".to_string(),
         "/media".to_string(),
@@ -44,7 +44,7 @@ fn make_renderer_with_error_template() -> runique::forms::renderer::FormRenderer
     );
     tera.add_raw_template(
         "form_errors.html",
-        &runique::context::tera::loader::preprocess(include_str!(
+        &runique::templates::loader::preprocess(include_str!(
             "../../templates/field_html/form_errors.html"
         )),
     )
@@ -422,7 +422,7 @@ fn test_render_js_vrai_template_interne_ordre_et_nonce() {
     // lot pour `{% include %}`/`{% extends %}` — cf. commentaire de
     // `load_internal_templates`), donc `static`/`runique_static` doivent déjà
     // être enregistrés avant `add_raw_templates`.
-    runique::context::tera::static_tera::register_asset_filters(
+    runique::templates::static_tera::register_asset_filters(
         &mut tera,
         "/static".to_string(),
         "/media".to_string(),
@@ -436,7 +436,7 @@ fn test_render_js_vrai_template_interne_ordre_et_nonce() {
     let templates: Vec<(&str, String)> = SIMPLE_TEMPLATES
         .iter()
         .chain(ERROR_CORPS.iter())
-        .map(|(name, content)| (*name, runique::context::tera::loader::preprocess(content)))
+        .map(|(name, content)| (*name, runique::templates::loader::preprocess(content)))
         .collect();
     tera.add_raw_templates(templates)
         .expect("le vrai js_files.html (+ dépendances internes) doit charger");
@@ -469,7 +469,7 @@ fn test_render_js_vrai_template_interne_ordre_et_nonce() {
 fn real_js_template(hashes: &[(&str, &str)]) -> runique::forms::renderer::FormRenderer {
     let mut tera = Tera::default();
     tera.autoescape_on(vec!["html", "xml"]);
-    runique::context::register_asset_filters(
+    runique::templates::register_asset_filters(
         &mut tera,
         "/static".to_string(),
         "/media".to_string(),
@@ -481,7 +481,7 @@ fn real_js_template(hashes: &[(&str, &str)]) -> runique::forms::renderer::FormRe
         .iter()
         .map(|(file, hash)| (file.to_string(), hash.to_string()))
         .collect();
-    runique::context::tera::static_tera::register_integrity_filter(&mut tera, hashes);
+    runique::templates::static_tera::register_integrity_filter(&mut tera, hashes);
     tera.add_raw_template(
         "js_files.html",
         include_str!("../../templates/asset/js.html"),
@@ -547,7 +547,7 @@ fn test_render_js_sans_nonce_pas_d_attribut() {
 fn a_richtext_value_comes_back_in_its_textarea_exactly() {
     let mut tera = Tera::default();
     tera.autoescape_on(vec!["html", "xml"]);
-    runique::context::register_asset_filters(
+    runique::templates::register_asset_filters(
         &mut tera,
         "/static".to_string(),
         "/media".to_string(),
@@ -557,7 +557,7 @@ fn a_richtext_value_comes_back_in_its_textarea_exactly() {
     );
     tera.add_raw_template(
         "base_string.html",
-        &runique::context::tera::loader::preprocess(include_str!(
+        &runique::templates::loader::preprocess(include_str!(
             "../../templates/field_html/base_string.html"
         )),
     )

@@ -8,7 +8,7 @@ use axum::{Router, routing::get};
 use runique::app::RuniqueApp;
 use runique::auth::{BuiltinUserEntity, login};
 use runique::config::RuniqueConfig;
-use runique::context::template::Request;
+use runique::http::request::Request;
 use runique::sea_orm::{ConnectionTrait, DatabaseConnection};
 use serial_test::serial;
 

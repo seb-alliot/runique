@@ -375,7 +375,7 @@ An integration test (`tests/macros.rs`) uses the macro exactly like another crat
 ### 10.1 `urlpatterns!`: `$crate`, hidden methods
 
 ```rust
-// runique/src/macros/router/urlpatterns.rs
+// runique/src/router/urlpatterns.rs
 #[macro_export]
 macro_rules! urlpatterns {
     // ...
@@ -385,7 +385,7 @@ macro_rules! urlpatterns {
     };
 }
 
-// runique/src/macros/router/routes.rs
+// runique/src/router/routes.rs
 impl Routes {
     /// Used by `urlpatterns!`; construct route sets through the macro.
     #[doc(hidden)]

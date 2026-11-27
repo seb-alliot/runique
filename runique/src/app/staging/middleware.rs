@@ -1,7 +1,7 @@
 //! Middleware staging: configuration API for the middleware stack.
 
-use crate::errors::build::BuildError;
 use crate::config::RuniqueConfig;
+use crate::errors::build::BuildError;
 use crate::middleware::{
     CompressionConfig, CorsConfig, CspConfig, HostConfig, MiddlewareConfig, PermissionsPolicy,
     PermissionsPolicyConfig, SecurityPolicy, TrustedProxiesConfig,

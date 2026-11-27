@@ -1,8 +1,8 @@
 //! Definition of all type aliases: `ATera`, `ADb`, `StrMap`, `FieldsMap`, `AppResult`…
 use crate::auth::current_user::CurrentUser;
 use crate::config::app::RuniqueConfig;
-use crate::context::template::AppError;
 use crate::engine::RuniqueEngine;
+use crate::errors::AppError;
 use crate::prelude::{HostPolicy, PermissionsPolicy, SecurityPolicy};
 use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
 use std::{collections::HashMap, result::Result, sync::Arc, sync::RwLock};

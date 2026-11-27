@@ -43,7 +43,7 @@ Macros associées :
 
 ## routeur — routing déclaratif
 
-[`macros/router/`](../../../runique/src/macros/router/)
+[`router/`](../../../runique/src/router/)
 
 ```mermaid
 flowchart LR
@@ -55,7 +55,7 @@ flowchart LR
 
 - `urlpatterns!{}` — déclare les routes (`"/x" => view`, `[get:…, post:…]`), peuple le
   registre d'URL nommées (reverse `{% url %}`).
-- `view!` ([get_post.rs](../../../runique/src/macros/router/get_post.rs)) — sépare handlers GET/POST.
+- `view!` ([get_post.rs](../../../runique/src/router/get_post.rs)) — sépare handlers GET/POST.
 - `register_url` / `router_ext` — extension du Router + enregistrement reverse.
 
 ## context / forms / template — macros

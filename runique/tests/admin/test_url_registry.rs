@@ -6,7 +6,7 @@
 //! d'instancier RuniqueEngine complet.
 
 use crate::helpers::tera::kwargs;
-use runique::context::tera::url::LinkFunction;
+use runique::templates::url::LinkFunction;
 use runique::utils::aliases::new_registry;
 use tera::{Context, Function, State, TeraResult, Value};
 

@@ -7,7 +7,7 @@ use crate::auth::current_user::CurrentUser;
 use crate::auth::history::{ActionLog, log_action};
 use crate::auth::password::{ResetMail, send_reset_link};
 use crate::auth::user::BuiltinUserEntity;
-use crate::context::template::Request;
+use crate::http::request::Request;
 use crate::utils::aliases::AppResult;
 use crate::utils::pk::Pk;
 use crate::utils::translation::{t, tf};

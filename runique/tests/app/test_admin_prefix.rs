@@ -276,7 +276,7 @@ async fn test_sans_prefixe_urls_inchangees() {
 #[tokio::test]
 #[serial]
 async fn test_url_nommee_admin_login_suit_le_prefixe() {
-    use runique::macros::reverse;
+    use runique::router::reverse;
 
     let app = build_app("secret", "/site-admin").await;
     let url = reverse(&app.engine, "admin_login").expect("admin_login non enregistre");
@@ -288,7 +288,7 @@ async fn test_url_nommee_admin_login_suit_le_prefixe() {
 #[tokio::test]
 #[serial]
 async fn test_url_nommee_dashboard_suit_le_prefixe() {
-    use runique::macros::reverse;
+    use runique::router::reverse;
 
     let app = build_app("secret", "/site-admin").await;
     let url = reverse(&app.engine, "admin_dashboard").expect("admin_dashboard non enregistre");
@@ -318,7 +318,7 @@ async fn test_slashs_optionnels_dans_le_prefixe() {
 #[tokio::test]
 #[serial]
 async fn test_url_nommee_admin_est_la_base_publique() {
-    use runique::macros::reverse;
+    use runique::router::reverse;
 
     let app = build_app("secret", "/site-admin").await;
     assert_eq!(

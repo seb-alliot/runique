@@ -3,7 +3,7 @@
 use crate::helpers::pk::pk;
 use axum::{body::Body, http::Request};
 use runique::auth::current_user::CurrentUser;
-use runique::context::RequestExtensions;
+use runique::http::RequestExtensions;
 use runique::utils::csp_nonce::CspNonce;
 use runique::utils::csrf::CsrfToken;
 

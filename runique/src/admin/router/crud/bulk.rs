@@ -5,7 +5,7 @@ use crate::admin::builder::site::AdminSite;
 use crate::admin::router::admin_router::AdminState;
 use crate::admin::router::{failure, unknown_resource};
 use crate::auth::current_user::CurrentUser;
-use crate::context::template::Request;
+use crate::http::request::Request;
 use crate::utils::aliases::AppResult;
 use crate::utils::translation::t;
 use axum::Extension;

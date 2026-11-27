@@ -19,7 +19,7 @@ use axum::{
     routing::get,
 };
 use runique::{
-    context::RequestExtensions, context::RuniqueContext,
+    http::RequestExtensions, http::RuniqueContext,
     middleware::security::csrf::csrf_middleware, utils::aliases::AEngine,
 };
 use tower_sessions::{MemoryStore, SessionManagerLayer};

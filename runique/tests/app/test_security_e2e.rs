@@ -19,8 +19,9 @@ use runique::app::RuniqueApp;
 use runique::auth::permissions::group_rights;
 use runique::auth::{BuiltinUserEntity, LoginGuard, login, user};
 use runique::config::RuniqueConfig;
-use runique::context::template::{AppError, Request};
+use runique::errors::AppError;
 use runique::errors::error::ErrorContext;
+use runique::http::Request;
 use runique::middleware::RateLimiter;
 use runique::prelude::{FormAccess, RuniqueForm, ValidationForm, form};
 use runique::sea_orm::{

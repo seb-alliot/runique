@@ -702,7 +702,7 @@ const README: &str = include_str!("../README.md");        // le fichier est int�
 ### 14.1 `urlpatterns!` : un tt muncher
 
 ```rust
-// runique/src/macros/router/urlpatterns.rs (début)
+// runique/src/router/urlpatterns.rs (début)
 macro_rules! urlpatterns {
     (@parse $routes:ident;) => {};
 

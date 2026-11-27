@@ -6,7 +6,7 @@
 use super::block::{Block, GlobalBlock};
 use super::page::{AdminTemplate, ModelTemplates};
 use super::stylesheet::Page;
-use crate::context::tera::loader::BlockDispatch;
+use crate::templates::loader::BlockDispatch;
 
 /// `text` as a Tera string literal's content, refused when it could close
 /// the literal or open a tag: a key or a path is written into the template.

@@ -58,8 +58,9 @@
 /// tokio::runtime::Runtime::new().unwrap().block_on(sqlite_objects_example());
 /// ```
 use super::query::RuniqueQueryBuilder;
-use crate::context::template::{AppError, Request};
+use crate::errors::AppError;
 use crate::errors::error::{ErrorContext, ErrorType};
+use crate::http::Request;
 use crate::utils::aliases::{ADb, AppResult};
 use crate::utils::translation::t;
 use axum::http::StatusCode;

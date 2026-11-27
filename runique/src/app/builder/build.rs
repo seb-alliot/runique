@@ -17,16 +17,16 @@ use axum::{
 };
 use tower_http::{services::ServeDir, set_header::SetResponseHeaderLayer};
 
-use crate::errors::build::BuildError;
 use super::super::runique_app::RuniqueApp;
-use crate::context::tera::loader::TemplateLoader;
 use super::RuniqueAppBuilder;
 #[cfg(feature = "admin")]
 use crate::admin::build_admin_router;
 use crate::config::RuniqueConfig;
 use crate::engine::RuniqueEngine;
-use crate::macros::{add_urls, register_name_url};
+use crate::errors::build::BuildError;
 use crate::middleware::HostPolicy;
+use crate::router::{add_urls, register_name_url};
+use crate::templates::loader::TemplateLoader;
 use crate::utils::aliases::{ADb, new};
 use crate::utils::runique_log::log_init;
 
@@ -41,7 +41,7 @@ fn body_limit(max_upload_mb: u64) -> usize {
 
 /// Runique's welcome page, served at `/` in debug when the app declares no `/`.
 async fn default_index(
-    mut request: crate::context::template::Request,
+    mut request: crate::http::request::Request,
 ) -> crate::utils::aliases::AppResult<axum::response::Response> {
     request.render("base_index.html")
 }

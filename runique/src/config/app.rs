@@ -33,7 +33,7 @@ pub struct RuniqueConfig {
     /// the builder, never by hand.
     #[doc(hidden)]
     #[serde(skip)]
-    pub block_dispatch: Vec<crate::context::tera::loader::BlockDispatch>,
+    pub block_dispatch: Vec<crate::templates::loader::BlockDispatch>,
 }
 
 impl RuniqueConfig {

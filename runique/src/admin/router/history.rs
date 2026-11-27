@@ -14,7 +14,7 @@ use crate::auth::current_user::CurrentUser;
 use crate::auth::gate::Refusal;
 use crate::auth::gate::refusal::RefusalReason;
 use crate::auth::history;
-use crate::context::template::Request;
+use crate::http::request::Request;
 use crate::utils::aliases::{AppResult, StrMap};
 use axum::Extension;
 use axum::extract::{Path, Query};
@@ -30,7 +30,7 @@ fn row(entry: &history::Model, scope: &HistoryScope, paths: &AdminPaths) -> Hist
     let has_changes = !changes(entry, scope).is_empty();
     HistoryRow {
         id: entry.id,
-        created_at: crate::context::tera::static_tera::display_datetime(&entry.created_at),
+        created_at: crate::templates::static_tera::display_datetime(&entry.created_at),
         username: entry.username.clone(),
         resource_key: entry.resource_key.clone(),
         resource_title: scope.title.clone(),

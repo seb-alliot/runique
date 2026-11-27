@@ -702,7 +702,7 @@ const README: &str = include_str!("../README.md");        // the file is embedde
 ### 14.1 `urlpatterns!`: a tt muncher
 
 ```rust
-// runique/src/macros/router/urlpatterns.rs (start)
+// runique/src/router/urlpatterns.rs (start)
 macro_rules! urlpatterns {
     (@parse $routes:ident;) => {};
 

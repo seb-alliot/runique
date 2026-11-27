@@ -10,8 +10,9 @@
 //! or the admin's prefix. A link the account may not follow is `None`, and
 //! its button isn't shown; the gate decides again on the page it leads to.
 use crate::admin::router::account::summary::AccountSummary;
-use crate::context::template::{AppError, Request};
+use crate::errors::AppError;
 use crate::errors::error::ErrorContext;
+use crate::http::Request;
 use crate::utils::aliases::{AppResult, StrMap};
 use serde::Serialize;
 

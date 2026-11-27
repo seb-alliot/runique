@@ -1,6 +1,6 @@
 //! Loading and initialization of the Tera template engine (internal + user).
 use crate::config::RuniqueConfig;
-use crate::context::tera::static_tera;
+use crate::templates::static_tera;
 use crate::utils::aliases::{ARlockmap, StrMap};
 use crate::utils::constants::*;
 use regex::Captures;

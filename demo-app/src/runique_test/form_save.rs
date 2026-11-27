@@ -6,9 +6,9 @@ use crate::entities::blog::{
 };
 use crate::forms::BlogForm;
 use runique::config::app::RuniqueConfig;
-use runique::context::template::Request;
 use runique::engine::RuniqueEngine;
 use runique::forms::Prisme;
+use runique::http::request::Request;
 use runique::middleware::config::MiddlewareConfig;
 use runique::middleware::security::{allowed_hosts::HostPolicy, csp::SecurityPolicy};
 use runique::prelude::*;

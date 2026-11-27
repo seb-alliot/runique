@@ -1,14 +1,14 @@
-//! Main request context: `AppError`, `RuniqueContext`, and Tera context construction.
-use crate::context::tera::loader::TemplateLoader;
+//! `Request`: what a handler receives, and what it renders its template with.
 use crate::auth::current_user::CurrentUser;
+use crate::errors::AppError;
 use crate::errors::error::ErrorContext;
 use crate::flash::Message;
 use crate::forms::{
     extractor::{Prisme, csrf_required, prisme_pipeline},
     field::RuniqueForm,
 };
-use crate::impl_from_error;
 use crate::middleware::security::anti_bot::HoneypotFieldName;
+use crate::templates::loader::TemplateLoader;
 use crate::utils::aliases::{ADb, AEngine, AppResult, StrMap};
 use crate::utils::translation::{t, tf};
 use crate::utils::url_params::UrlParams;
@@ -22,7 +22,7 @@ use axum::{
 use sea_orm::DbErr;
 use serde::de::DeserializeOwned;
 use std::str::FromStr;
-use std::sync::{Arc, LazyLock};
+use std::sync::LazyLock;
 
 // Read once, on the first request: it never changes while the server runs,
 // and `std::env::var` takes the process-wide environment lock on every call.
@@ -32,67 +32,6 @@ static ICON_IMAGE: LazyLock<String> = LazyLock::new(|| {
 use tera::Context;
 use tower_sessions::Session;
 use tracing::error;
-
-// --- ERROR HANDLING ---
-
-/// Application error returned by handlers: encapsulates an [`ErrorContext`] and implements [`IntoResponse`].
-pub struct AppError {
-    /// Error context: status code, message, type.
-    pub context: ErrorContext,
-}
-
-impl AppError {
-    /// Wraps an [`ErrorContext`] into an `AppError`.
-    pub fn new(context: ErrorContext) -> Self {
-        Self { context }
-    }
-
-    /// Converts a Tera rendering error into an `AppError`, logging detail in debug mode.
-    pub fn map_tera(e: tera::Error, route: &str, tera: &tera::Tera) -> Box<Self> {
-        // Log the detailed error in the console
-        error!(
-            template = route,
-            error = ?e,
-            "Template rendering error"
-        );
-
-        Box::new(Self {
-            context: ErrorContext::from_tera_error(&e, route, tera),
-        })
-    }
-}
-
-impl_from_error!(
-    anyhow::Error => from_anyhow,
-    DbErr => database,
-    tower_sessions::session::Error => database
-);
-
-impl IntoResponse for AppError {
-    fn into_response(self) -> Response {
-        let status = StatusCode::from_u16(self.context.status_code)
-            .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
-
-        //  Log the error in detail
-        error!(
-            status = status.as_u16(),
-            error_type = ?self.context.error_type,
-            message = %self.context.message,
-            "AppError occurred"
-        );
-
-        let mut res = status.into_response();
-        //  Insert ErrorContext so that the middleware can retrieve it
-        res.extensions_mut().insert(Arc::new(self.context));
-        res
-    }
-}
-
-impl IntoResponse for Box<AppError> {
-    fn into_response(self) -> Response {
-        (*self).into_response()
-    }
-}
 
 // --- TEMPLATE CONTEXT ---
 
@@ -120,14 +59,14 @@ pub struct Request {
     /// Raw query string (`?a=1&b=2`), preserved for typed deserialization.
     pub raw_query: String,
     /// Query string parameters.
-    pub query_params: StrMap,
+    pub query: StrMap,
     /// Current user (None if not authenticated).
     pub user: Option<CurrentUser>,
     /// Parsed form data from the request (query params on GET, body on POST).
     /// CSRF is validated — csrf_valid = false signals an invalid token.
     pub prisme: Prisme,
     /// Honeypot field name injected by anti_bot middleware (None if middleware not active).
-    pub honeypot_field_name: Option<String>,
+    pub honeypot: Option<String>,
     /// Inside the admin's constraint, the account its middleware checked:
     /// forms built here save through the gate, as this account.
     pub(crate) admin_constraint: Option<CurrentUser>,
@@ -168,7 +107,7 @@ where
             .ok_or_else(|| err("session missing"))?;
         let nonce = ex.get::<CspNonce>().map(|n| n.as_str()).unwrap_or_default();
         let user = ex.get::<CurrentUser>().cloned();
-        let honeypot_field_name = ex.get::<HoneypotFieldName>().map(|h| h.0.clone());
+        let honeypot = ex.get::<HoneypotFieldName>().map(|h| h.0.clone());
         let admin_constraint = ex
             .get::<crate::auth::gate::AdminConstraint>()
             .map(|c| c.0.clone());
@@ -213,7 +152,7 @@ where
         context.insert("current_path", parts.uri.path());
 
         let raw_query = parts.uri.query().unwrap_or_default().to_string();
-        let query_params = serde_urlencoded::from_str::<StrMap>(&raw_query).unwrap_or_default();
+        let query = serde_urlencoded::from_str::<StrMap>(&raw_query).unwrap_or_default();
 
         let method = parts.method.clone();
         let headers = parts.headers.clone();
@@ -234,10 +173,10 @@ where
             headers,
             path_params,
             raw_query,
-            query_params,
+            query,
             user,
             prisme,
-            honeypot_field_name,
+            honeypot,
             admin_constraint,
         })
     }
@@ -300,7 +239,7 @@ impl Request {
             headers: axum::http::HeaderMap::new(),
             path_params: StrMap::new(),
             raw_query: String::new(),
-            query_params: StrMap::new(),
+            query: StrMap::new(),
             user: None,
             prisme: Prisme {
                 data: Default::default(),
@@ -309,7 +248,7 @@ impl Request {
                 csrf_valid: false,
                 staging: None,
             },
-            honeypot_field_name: None,
+            honeypot: None,
             admin_constraint: None,
         }
     }
@@ -430,7 +369,7 @@ impl Request {
 
     /// Returns a query parameter as a string slice (`?page=2` → `get_query("page")`).
     pub fn get_query(&self, key: &str) -> Option<&str> {
-        self.query_params.get(key).map(|s| s.as_str())
+        self.query.get(key).map(|s| s.as_str())
     }
 
     /// Deserializes the full query string into a typed struct deriving
@@ -457,7 +396,7 @@ impl Request {
 
     /// Returns an `UrlParams` combining path and query — to be passed to `form.cleaned()`
     pub fn url_params(&self) -> UrlParams<'_> {
-        UrlParams::new(&self.path_params, &self.query_params)
+        UrlParams::new(&self.path_params, &self.query)
     }
 
     /// Constructs the form `T` named `name`, and fills it from the request
@@ -498,7 +437,7 @@ impl Request {
                 crate::forms::form::SaveComportement::Gated { user: user.clone() };
         }
 
-        if let Some(ref hp_name) = self.honeypot_field_name {
+        if let Some(ref hp_name) = self.honeypot {
             forms.set_honeypot(hp_name);
         }
 
@@ -507,7 +446,7 @@ impl Request {
         }
         let forms = form.forms_mut();
 
-        if let Some(ref hp_name) = self.honeypot_field_name
+        if let Some(ref hp_name) = self.honeypot
             && csrf_required(&self.method)
             && self.prisme.data.get(hp_name).is_some_and(|v| !v.is_empty())
         {

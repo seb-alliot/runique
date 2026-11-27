@@ -444,7 +444,7 @@ async fn field_errors_and_global_errors_are_told_apart() {
 
 fn render_form(template: &str, form: serde_json::Value) -> String {
     let mut tera = tera::Tera::default();
-    tera.register_filter("form", runique::context::tera::form::FormFilter);
+    tera.register_filter("form", runique::templates::form::FormFilter);
     tera.add_raw_template("t", template).unwrap();
     let mut ctx = tera::Context::new();
     ctx.insert("f", &form);

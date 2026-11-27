@@ -4,7 +4,7 @@ use axum::{Extension, Router, http::StatusCode, middleware, routing::get};
 use http_body_util::BodyExt;
 use runique::{
     config::app::RuniqueConfig,
-    context::template::AppError,
+    errors::AppError,
     errors::error::ErrorContext,
     middleware::errors::error::{RequestSnapshot, error_handler_middleware},
 };
@@ -219,7 +219,7 @@ fn internal_tera() -> tera::Tera {
     use runique::utils::constants::template::{ERROR_CORPS, SIMPLE_TEMPLATES};
     let mut tera = tera::Tera::default();
     tera.autoescape_on(vec!["html", "xml"]);
-    runique::context::tera::static_tera::register_asset_filters(
+    runique::templates::static_tera::register_asset_filters(
         &mut tera,
         "/static".to_string(),
         "/media".to_string(),
@@ -230,7 +230,7 @@ fn internal_tera() -> tera::Tera {
     let templates: Vec<(&str, String)> = SIMPLE_TEMPLATES
         .iter()
         .chain(ERROR_CORPS.iter())
-        .map(|(name, content)| (*name, runique::context::tera::loader::preprocess(content)))
+        .map(|(name, content)| (*name, runique::templates::loader::preprocess(content)))
         .collect();
     tera.add_raw_templates(templates)
         .expect("internal templates");

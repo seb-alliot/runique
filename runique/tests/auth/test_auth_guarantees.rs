@@ -392,7 +392,7 @@ mod login_required {
     use axum::{Router, body::Body, http::Request, middleware::Next, routing::get};
     use runique::auth::current_user::CurrentUser;
     use runique::auth::permissions::rank::Rang;
-    use runique::macros::router::router_ext::RouterExt;
+    use runique::router::router_ext::RouterExt;
     use runique::utils::constants::session_key::session::SESSION_USER_ID_KEY;
     use tower::ServiceExt;
     use tower_sessions::{MemoryStore, Session, SessionManagerLayer};

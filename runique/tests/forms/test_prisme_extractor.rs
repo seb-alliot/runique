@@ -14,7 +14,7 @@ use axum::{
     response::{IntoResponse, Response},
     routing::get,
 };
-use runique::{context::RequestExtensions, utils::aliases::AEngine};
+use runique::{http::RequestExtensions, utils::aliases::AEngine};
 use std::sync::Arc;
 use tower_sessions::{MemoryStore, SessionManagerLayer};
 
@@ -49,7 +49,7 @@ async fn no_config_inject(
 
 // ── Handler ──────────────────────────────────────────────────────────────────
 
-async fn prisme_handler(request: runique::context::Request) -> impl IntoResponse {
+async fn prisme_handler(request: runique::http::Request) -> impl IntoResponse {
     let _ = request.prisme.csrf_valid;
     StatusCode::OK
 }

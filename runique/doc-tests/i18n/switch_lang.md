@@ -3,7 +3,7 @@
 ## Enum `Lang` — Debug et code
 
 ```rust
-use runique::utils::trad::Lang;
+use runique::utils::translation::Lang;
 
 assert_eq!(format!("{:?}", Lang::Fr), "Fr");
 assert_eq!(format!("{:?}", Lang::En), "En");
@@ -16,7 +16,7 @@ assert_eq!(Lang::It.code(), "it");
 ## Conversion `Lang::from(&str)`
 
 ```rust
-use runique::utils::trad::Lang;
+use runique::utils::translation::Lang;
 
 // Français
 assert_eq!(Lang::from("fr"),    Lang::Fr);
@@ -49,7 +49,7 @@ assert_eq!(Lang::from("xx"),    Lang::En);
 ## `Lang::get` — clé simple
 
 ```rust
-use runique::utils::trad::Lang;
+use runique::utils::translation::Lang;
 
 assert_eq!(Lang::En.get("forms.error.required"), "This field is required");
 assert_eq!(Lang::Fr.get("forms.error.required"), "Ce champ est obligatoire");
@@ -59,7 +59,7 @@ assert_eq!(Lang::It.get("forms.error.required"), "Questo campo è obbligatorio")
 ## `Lang::get` — clé imbriquée
 
 ```rust
-use runique::utils::trad::Lang;
+use runique::utils::translation::Lang;
 
 assert_eq!(Lang::En.get("app.label.not_found"), "Page Not Found");
 assert_eq!(Lang::Fr.get("app.label.not_found"), "Page non trouvée");
@@ -69,7 +69,7 @@ assert_eq!(Lang::It.get("app.label.not_found"), "Pagina non trovata");
 ## `Lang::get` — CSRF
 
 ```rust
-use runique::utils::trad::Lang;
+use runique::utils::translation::Lang;
 
 assert_eq!(Lang::En.get("csrf.error.missing"), "CSRF token missing");
 assert_eq!(Lang::Fr.get("csrf.error.missing"), "Token CSRF manquant");
@@ -79,7 +79,7 @@ assert_eq!(Lang::It.get("csrf.error.missing"), "Token CSRF mancante");
 ## `Lang::get` — clé manquante (fallback sur la clé brute)
 
 ```rust
-use runique::utils::trad::Lang;
+use runique::utils::translation::Lang;
 
 assert_eq!(Lang::En.get("inexistant.cle"), "inexistant.cle");
 assert_eq!(Lang::Fr.get("inexistant.cle"), "inexistant.cle");
@@ -89,7 +89,7 @@ assert_eq!(Lang::It.get("inexistant.cle"), "inexistant.cle");
 ## `Lang::format` — avec paramètres
 
 ```rust
-use runique::utils::trad::Lang;
+use runique::utils::translation::Lang;
 
 assert_eq!(Lang::En.format("forms.error.too_short", &[3]), "Too short (min 3)");
 assert_eq!(Lang::Fr.format("forms.error.too_short", &[3]), "Trop court (min 3)");
@@ -105,7 +105,7 @@ assert_eq!(Lang::It.format("forms.error.too_long", &[100]), "Troppo lungo (max 1
 The language of the site comes from `.with_lang("fr")` on the builder, else from `LANG` in the `.env`, else it is English.
 
 ```rust
-use runique::utils::trad::{Lang, current_lang, t};
+use runique::utils::translation::{Lang, current_lang, t};
 
 assert_eq!(current_lang(), Lang::En);
 assert_eq!(t("forms.error.required"), "This field is required");

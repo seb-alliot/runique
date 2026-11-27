@@ -1,7 +1,7 @@
-//! Tests — context/tera/static_tera.rs
+//! Tests — templates/static_tera.rs
 //! Couvre : register_asset_filters, mask_filter, csrf_filter, register_filter
 
-use runique::context::register_asset_filters;
+use runique::templates::register_asset_filters;
 use runique::utils::env::css_token;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};

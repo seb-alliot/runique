@@ -3,7 +3,7 @@
 //! route introuvable) et les cas nominaux avec paramètres.
 
 use crate::helpers::tera::{kwargs, no_kwargs};
-use runique::context::tera::url::LinkFunction;
+use runique::templates::url::LinkFunction;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};

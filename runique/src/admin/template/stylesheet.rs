@@ -212,7 +212,7 @@ impl PageSheets {
         models: &[(&'static str, &ModelTemplates)],
         statics: &Statics,
     ) -> Result<Self, String> {
-        use crate::context::tera::static_tera::asset_url;
+        use crate::templates::static_tera::asset_url;
         // Runique's own sheets that aren't on disk: the admin would be served
         // without its style (a `STATIC_RUNIQUE_PATH` that doesn't hold them).
         let missing = std::cell::RefCell::new(std::collections::BTreeSet::new());

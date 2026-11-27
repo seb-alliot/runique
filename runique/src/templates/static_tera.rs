@@ -1,7 +1,7 @@
 //! Global registration of Tera filters/functions — `register_asset_filters` and `| markdown` filter.
-use crate::context::tera::form::FormFilter;
-use crate::context::tera::url::LinkFunction;
 use crate::middleware::CsrfTokenFunction;
+use crate::templates::form::FormFilter;
+use crate::templates::url::LinkFunction;
 use crate::utils::aliases::{ARlockmap, StrMap};
 use chrono::{DateTime, NaiveDateTime, NaiveTime};
 use pulldown_cmark::{Options, Parser, html};
@@ -223,7 +223,7 @@ pub fn register_asset_filters(
     // Filters inherited from Tera 1's `builtins` feature (urlencode, slug, date…),
     // moved to `tera-contrib` in 2.0. Registered first: the internal templates
     // rely on them.
-    crate::context::tera::contrib::register_contrib(tera);
+    crate::templates::contrib::register_contrib(tera);
 
     tera.register_filter("mask", mask_filter);
     tera.register_filter("static", register_filter(static_url, version.clone()));

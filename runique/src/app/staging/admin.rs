@@ -3,8 +3,8 @@
 use crate::admin::builder::site::AdminSite;
 use crate::admin::router::AdminView;
 use crate::admin::{AdminConfig, template::AdminTemplate};
-use crate::errors::build::{BuildError, CheckError, CheckReport};
 use crate::auth::guard::LoginGuard;
+use crate::errors::build::{BuildError, CheckError, CheckReport};
 use crate::middleware::security::RateLimiter;
 
 /// An admin route declaration retained from `urlpatterns!` until build.

@@ -14,12 +14,12 @@ use async_trait::async_trait;
 use crate::auth::session::logout;
 use crate::auth::user::BuiltinUserEntity;
 use crate::auth::user_trait::RuniqueUser;
-use crate::context::template::Request;
 use crate::forms::{
     Forms,
     field::{FormAccess, RuniqueForm},
     fields::{hidden::HiddenField, text::TextField},
 };
+use crate::http::request::Request;
 use crate::utils::password::PasswordService;
 use crate::utils::{
     aliases::{AppResult, StrMap},
@@ -242,7 +242,7 @@ impl PasswordResetConfig {
 /// when the reset or the admin is on (`cross_validate`), and it never falls back
 /// on the `Host` header: that is the client's to choose, and a link pointing at
 /// someone else's site would hand them the token. Apps reach it through
-/// [`Request::public_url`](crate::context::template::Request::public_url).
+/// [`Request::public_url`](crate::http::request::Request::public_url).
 pub(crate) fn public_link_base(configured: Option<&str>) -> Option<String> {
     configured.map(|base| base.trim_end_matches('/').to_string())
 }

@@ -607,7 +607,7 @@ fn echec_de_connexion(ip: &str) {
 Les extensions de routes et le builder de l'admin lancent eux-mêmes le nettoyage quand ils créent un limiteur :
 
 ```rust
-// runique/src/macros/router/router_ext.rs (extrait)
+// runique/src/router/router_ext.rs (extrait)
 let limiter = Arc::new(limiter);
 limiter.spawn_cleanup(limiter.cleanup_interval());
 ```

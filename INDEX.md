@@ -92,15 +92,17 @@ runique/
 - **`security.rs`** — `SecurityConfig` from `.env` (`ENFORCE_HTTPS`, HSTS, ACME)
 - **`static_files.rs`** — static file paths
 
-### `context/` — Request Context
-- **`request_extensions.rs`** — `RequestExtensions` (injects CSRF, user data into requests)
-- **`template.rs`** — template context builder
-- **`request/extractor.rs`** — `Request` extractor for handlers
-- **`request/mod.rs`** — request module exports
-- **`tera/form.rs`** — form rendering Tera functions
-- **`tera/loader.rs`** — Tera engine initialization & template loader (`TemplateLoader`, `preprocess`)
-- **`tera/static_tera.rs`** — `static_url` filter
-- **`tera/url.rs`** — `url` reverse routing filter
+### `http/` — What a handler receives
+- **`request.rs`** — `Request`: the extractor handlers take, and its rendering helpers
+- **`context.rs`** — `RuniqueContext` (engine, session, CSRF, flash)
+- **`extension.rs`** — `RequestExtensions` (injects engine, Tera, config, CSRF, current user)
+
+### `templates/` — Template engine (Tera)
+- **`loader.rs`** — Tera engine initialization & template loader (`TemplateLoader`, `preprocess`)
+- **`form.rs`** — form rendering Tera functions
+- **`static_tera.rs`** — `static_url` filter, `| markdown`
+- **`url.rs`** — `url` reverse routing function
+- **`contrib.rs`** — the filters and functions Tera 1 shipped by itself
 
 ### `db/` — Database
 - **`adb.rs`** — `ADb`, the framework's database handle (`ConnectionTrait` + `TransactionTrait`, wraps a test transaction with `test-utils`)
@@ -112,7 +114,8 @@ runique/
 
 ### `errors/` — Error Types
 - **`build.rs`** — build-time error types (`BuildError`, `BuildFailure`, `CheckError`, `CheckReport`)
-- **`error.rs`** — `AppError`, `AppResult`, `IntoResponse` impl, `html_escape` helpers
+- **`app_error.rs`** — `AppError`: the error a handler returns, turned into the response
+- **`error.rs`** — `RuniqueError`, `ErrorContext`, `ErrorType`
 
 ### `flash/` — Flash Messages
 - **`flash_struct.rs`** — `FlashMessage` data structure
@@ -137,7 +140,6 @@ runique/
 - **`database/`** — `impl_objects!`, `search!` / `search_cond!` (+ internal `search_apply_op!`, `search_munch!`), `Objects` query builder (`objects.rs`, `query.rs`), list fields `HasLists` / `ListField` (`list.rs`)
 - **`context/`** — `context!` / `context_update!` (`context_simplifier.rs`), flash macros `flash_now!` / `info!` / `success!` / `warning!` / `error!` (`flash.rs`), `impl_from_error!` (`impl_error.rs`)
 - **`forms/`** — `impl_form_access!` (`impl_form.rs`), `define_enum_kind!` (`enum_kind.rs`), `delegate_to_kind!` (`kind.rs`)
-- **`router/`** — `view!` macro (`get_post.rs`), `urlpatterns!` (`urlpatterns.rs`), URL registry/reverse helpers (`register_url.rs`, `router_ext.rs`)
 - **`template/`** — template context macros
 
 ### `middleware/` — Middleware
@@ -171,6 +173,13 @@ Folders follow the steps `makemigrations` goes through.
 Calls only: each command's logic lives in its own module, the binary goes through `runique::cli`.
 - `makemigration.rs` → `migration::cli_migration`, `migrate.rs` → `migration::cli_migration::migrate`, `new_project.rs` → `new_project`, `create_superuser.rs` → `auth::create_superuser`
 - `test_runner.rs` (`runique test`) — still holds its logic, to be moved out
+
+### `router/` — Routing
+- **`urlpatterns.rs`** — `urlpatterns!` macro
+- **`get_post.rs`** — `view!` macro (GET and POST on one route)
+- **`routes.rs`** — `Routes`, what `urlpatterns!` produces
+- **`register_url.rs`** — registry of URL names: `register_name_url`, `reverse`, `reverse_with_parameters`
+- **`router_ext.rs`** — `RouterExt`: rate limit and login guard on a route
 
 ### `utils/` — Utilities
 - **`aliases/`** — `ADb`, `AEngine`, `JsonMap`, `StrMap`… type aliases
@@ -209,7 +218,8 @@ tests/
 ├── app/                      # robots.txt, runique_app
 ├── auth/                     # admin auth, current user, login form, middlewares, session
 ├── config/                   # app config, builder, router, security, server, static
-├── context/                  # app error, request extensions, Tera context, URL function
+├── http/                     # Request, RuniqueContext, request extensions
+├── templates/                # Tera filters, URL function, autoescape
 ├── db/                       # SQLite, Postgres, MySQL config tests
 ├── errors/                   # error rendering
 ├── flash/                    # flash manager
