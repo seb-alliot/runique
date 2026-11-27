@@ -4,7 +4,7 @@ impl BuilderOrchestrator<'_> {
     /// Has one file created per change, each put in its stage. Nothing is
     /// written yet, and no file knows yet which migration it starts from:
     /// `build` says it, once the stages are in order.
-    pub(crate) fn create_files(mut self) -> Self {
+    pub(in crate::migration::makemigrations) fn create_files(mut self) -> Self {
         let (migrations_path, timestamp, engine) =
             (self.migrations_path, self.timestamp.as_str(), &self.engine);
         let stages = &mut self.stages;

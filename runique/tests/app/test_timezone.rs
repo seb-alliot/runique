@@ -1,4 +1,4 @@
-//! `TZ` in the `.env`: the time zone of the site. A name that is no zone
+//! `TIME_ZONE` in the `.env`: the time zone of the site. A name that is no zone
 //! stops the start instead of leaving every date as stored without a word.
 use axum::Router;
 use runique::app::RuniqueApp;
@@ -31,7 +31,7 @@ async fn a_known_time_zone_lets_the_application_start() {
     }
 }
 
-// `TZ=` left empty, or a configuration built without the `.env`: no zone was
+// `TIME_ZONE=` left empty, or a configuration built without the `.env`: no zone was
 // asked for, the site stays in UTC.
 #[tokio::test]
 #[serial]
@@ -48,7 +48,7 @@ async fn a_name_that_is_no_time_zone_stops_the_start() {
             .await
             .unwrap_or_else(|| panic!("{zone:?} was accepted"));
         assert!(
-            refusal.contains(&format!("TZ={zone}")),
+            refusal.contains(&format!("TIME_ZONE={zone}")),
             "{zone:?}: {refusal}"
         );
     }

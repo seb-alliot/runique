@@ -15,7 +15,7 @@ pub(crate) mod report;
 
 pub use check_parallel::check_parallel;
 pub use create::{cycle_keys, topological_sort_changes};
-pub use delete::drop_order;
+pub use delete::{drop_order, dropped_as_changes};
 pub use destructive::*;
 pub use modify::{
     decimal_may_shrink, length_may_shrink, primary_key_change, unmigrated_type_changes,

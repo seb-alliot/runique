@@ -4,7 +4,7 @@ pub(crate) use super::support::{TempDir, cut_journal};
 use super::{
     action::rollback,
     disk,
-    journal::recover,
+    journal::recover_from,
     step::{done, placed, prepared, replaced, waiting},
     struct_atomic::{ActionAtomic, AtomicBuilder, AtomicStep, ItemsPath, SourceItems},
 };
@@ -1372,7 +1372,7 @@ fn a_batch_with_a_journal_leaves_none_once_it_is_done() {
 
     assert_eq!(read(&dir.join("old.txt")), "after");
     assert_eq!(dir.entries(), ["old.txt", "sub", "sub/new.txt"]);
-    assert!(!recover(dir.path()).unwrap());
+    assert!(!recover_from(dir.path()).unwrap());
 }
 
 // The journal's folder does not exist yet: it is created with the batch, and
@@ -1493,8 +1493,8 @@ fn without_a_journal_there_is_nothing_to_repair() {
     let dir = TempDir::new();
     write(&dir.join(PATH), "mine");
 
-    assert!(!recover(dir.path()).unwrap());
-    assert!(!recover(&dir.join("missing")).unwrap());
+    assert!(!recover_from(dir.path()).unwrap());
+    assert!(!recover_from(&dir.join("missing")).unwrap());
 
     assert_eq!(dir.entries(), [PATH]);
 }
@@ -1514,7 +1514,7 @@ fn a_cut_replacement_gives_the_original_back() {
         lay_out(&cut, at_path, Some("new"), backup);
         cut_journal(dir.path(), false, &[(PATH, true)], &[]);
 
-        assert!(recover(dir.path()).unwrap());
+        assert!(recover_from(dir.path()).unwrap());
 
         assert_eq!(read(&dir.join(PATH)), "original", "{at_path:?} {backup:?}");
         assert_eq!(dir.entries(), [PATH], "{at_path:?} {backup:?}");
@@ -1543,7 +1543,7 @@ fn a_cut_creation_leaves_nothing() {
             &["sub", "sub/deep"],
         );
 
-        assert!(recover(dir.path()).unwrap());
+        assert!(recover_from(dir.path()).unwrap());
 
         assert!(dir.entries().is_empty(), "{at_path:?} {temp:?}");
     }
@@ -1558,7 +1558,7 @@ fn a_file_that_was_there_before_a_cut_creation_is_left_alone() {
     lay_out(&cut, Some("mine"), Some("new"), None);
     cut_journal(dir.path(), false, &[(PATH, true)], &[]);
 
-    assert!(recover(dir.path()).unwrap());
+    assert!(recover_from(dir.path()).unwrap());
 
     assert_eq!(read(&dir.join(PATH)), "mine");
     assert_eq!(dir.entries(), [PATH]);
@@ -1578,7 +1578,7 @@ fn a_cut_cleanup_is_finished_and_keeps_the_new_content() {
         lay_out(&cut, Some("new"), temp, backup);
         cut_journal(dir.path(), true, &[(PATH, true)], &[]);
 
-        assert!(recover(dir.path()).unwrap());
+        assert!(recover_from(dir.path()).unwrap());
 
         assert_eq!(read(&dir.join(PATH)), "new");
         assert_eq!(dir.entries(), [PATH], "{temp:?} {backup:?}");
@@ -1593,11 +1593,11 @@ fn a_repair_that_fails_keeps_the_journal_for_the_next_start() {
     fs::create_dir(dir.join(PATH)).unwrap();
     cut_journal(dir.path(), false, &[(PATH, false)], &[]);
 
-    assert!(recover(dir.path()).is_err());
+    assert!(recover_from(dir.path()).is_err());
     assert!(dir.join(".runique-journal").exists());
 
     fs::remove_dir(dir.join(PATH)).unwrap();
-    assert!(recover(dir.path()).unwrap());
+    assert!(recover_from(dir.path()).unwrap());
     assert!(dir.entries().is_empty());
 }
 
@@ -1607,7 +1607,7 @@ fn a_journal_that_cannot_be_read_stops_everything_and_touches_nothing() {
     write(&dir.join(PATH), "mine");
     write(&dir.join(".runique-journal"), "not a journal");
 
-    let error = recover(dir.path()).unwrap_err();
+    let error = recover_from(dir.path()).unwrap_err();
 
     assert_eq!(error.kind(), io::ErrorKind::InvalidData);
     assert!(error.to_string().contains(".runique-journal"), "{error}");
@@ -1627,7 +1627,7 @@ fn a_journal_is_repaired_wherever_its_folder_is() {
     cut_journal(&dir.join("here"), false, &[(PATH, true)], &[]);
 
     fs::rename(dir.join("here"), dir.join("there")).unwrap();
-    assert!(recover(&dir.join("there")).unwrap());
+    assert!(recover_from(&dir.join("there")).unwrap());
 
     assert_eq!(read(&dir.join("there/file.txt")), "original");
     assert_eq!(dir.entries(), ["there", "there/file.txt"]);
@@ -1701,7 +1701,7 @@ fn a_file_the_batch_did_not_place_stops_the_repair() {
     cut_journal(dir.path(), false, &[(PATH, false)], &[]);
     let before = dir.entries();
 
-    let error = recover(dir.path()).unwrap_err();
+    let error = recover_from(dir.path()).unwrap_err();
 
     assert_eq!(error.kind(), io::ErrorKind::InvalidData);
     assert!(error.to_string().contains(PATH), "{error}");
@@ -1709,7 +1709,7 @@ fn a_file_the_batch_did_not_place_stops_the_repair() {
     assert_eq!(dir.entries(), before);
 
     fs::rename(dir.join(PATH), dir.join("theirs.txt")).unwrap();
-    assert!(recover(dir.path()).unwrap());
+    assert!(recover_from(dir.path()).unwrap());
     assert_eq!(dir.entries(), ["theirs.txt"]);
 }
 
@@ -1727,7 +1727,7 @@ fn a_file_edited_since_the_cut_stops_the_repair() {
     cut_journal(dir.path(), false, &[("first.txt", true), (PATH, true)], &[]);
     let before = dir.entries();
 
-    let error = recover(dir.path()).unwrap_err();
+    let error = recover_from(dir.path()).unwrap_err();
 
     assert_eq!(error.kind(), io::ErrorKind::InvalidData);
     assert!(error.to_string().contains(PATH), "{error}");
@@ -1763,7 +1763,7 @@ fn a_journal_naming_a_path_outside_its_folder_is_refused() {
     for (files, dirs) in cases {
         cut_journal(&dir.join("project"), false, files, dirs);
 
-        let error = recover(&dir.join("project")).unwrap_err();
+        let error = recover_from(&dir.join("project")).unwrap_err();
 
         assert_eq!(
             error.kind(),
@@ -1789,7 +1789,7 @@ fn a_symlinked_folder_does_not_lead_a_repair_out_of_the_project() {
     std::os::unix::fs::symlink(dir.join("outside"), dir.join("project/src")).unwrap();
     cut_journal(&dir.join("project"), false, &[("src/file.txt", false)], &[]);
 
-    let error = recover(&dir.join("project")).unwrap_err();
+    let error = recover_from(&dir.join("project")).unwrap_err();
 
     assert_eq!(error.kind(), io::ErrorKind::InvalidData);
     assert_eq!(read(&dir.join("outside/file.txt")), "theirs");
@@ -1878,7 +1878,7 @@ fn an_original_that_is_gone_without_a_backup_stops_the_repair() {
     cut_journal(dir.path(), false, &[(PATH, true)], &[]);
     let before = dir.entries();
 
-    let error = recover(dir.path()).unwrap_err();
+    let error = recover_from(dir.path()).unwrap_err();
 
     assert_eq!(error.kind(), io::ErrorKind::InvalidData);
     assert_eq!(dir.entries(), before);
@@ -1894,7 +1894,7 @@ fn a_backup_of_a_file_that_was_not_there_stops_the_repair() {
     cut_journal(dir.path(), false, &[(PATH, false)], &[]);
     let before = dir.entries();
 
-    assert!(recover(dir.path()).is_err());
+    assert!(recover_from(dir.path()).is_err());
 
     assert_eq!(read(&dir.join(BACKUP)), "whose?");
     assert_eq!(dir.entries(), before);
@@ -1917,14 +1917,14 @@ fn a_file_added_in_a_folder_the_batch_created_stops_the_repair() {
     );
     let before = dir.entries();
 
-    let error = recover(dir.path()).unwrap_err();
+    let error = recover_from(dir.path()).unwrap_err();
 
     assert_eq!(error.kind(), io::ErrorKind::InvalidData);
     assert!(error.to_string().contains("notes.md"), "{error}");
     assert_eq!(dir.entries(), before);
 
     fs::rename(dir.join("made/notes.md"), dir.join("notes.md")).unwrap();
-    assert!(recover(dir.path()).unwrap());
+    assert!(recover_from(dir.path()).unwrap());
     assert_eq!(dir.entries(), ["notes.md"]);
 }
 
@@ -1947,7 +1947,7 @@ fn every_file_that_does_not_match_is_listed() {
         &[],
     );
 
-    let message = recover(dir.path()).unwrap_err().to_string();
+    let message = recover_from(dir.path()).unwrap_err().to_string();
 
     assert_eq!(message.lines().count(), 2, "{message}");
     assert!(
@@ -1968,7 +1968,7 @@ fn a_file_the_journal_does_not_know_is_left_where_it_is() {
     write(&dir.join("by_hand.rs"), "// the developer's");
     cut_journal(dir.path(), false, &[(PATH, true)], &[]);
 
-    assert!(recover(dir.path()).unwrap());
+    assert!(recover_from(dir.path()).unwrap());
 
     assert_eq!(read(&dir.join(PATH)), "original");
     assert_eq!(read(&dir.join("by_hand.rs")), "// the developer's");
@@ -1987,7 +1987,7 @@ fn a_folder_is_interrupted_while_its_journal_is_there() {
     cut_journal(dir.path(), false, &[(PATH, true)], &[]);
     assert!(super::interrupted(dir.path()));
 
-    assert!(recover(dir.path()).unwrap());
+    assert!(recover_from(dir.path()).unwrap());
     assert!(!super::interrupted(dir.path()));
 }
 
@@ -2266,7 +2266,7 @@ fn a_cut_removal_gives_the_file_back() {
         lay_out(&cut, at_path, None, backup);
         cut_journal(dir.path(), false, &[(PATH, true)], &[]);
 
-        assert!(recover(dir.path()).unwrap());
+        assert!(recover_from(dir.path()).unwrap());
 
         assert_eq!(read(&dir.join(PATH)), "original", "{at_path:?} {backup:?}");
         assert_eq!(dir.entries(), [PATH], "{at_path:?} {backup:?}");
@@ -2282,7 +2282,7 @@ fn a_cut_cleanup_finishes_taking_the_file_away() {
         lay_out(&cut, None, None, backup);
         cut_journal(dir.path(), true, &[(PATH, true)], &[]);
 
-        assert!(recover(dir.path()).unwrap());
+        assert!(recover_from(dir.path()).unwrap());
 
         assert!(dir.entries().is_empty(), "{backup:?}");
     }

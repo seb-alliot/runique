@@ -13,7 +13,7 @@ mod read;
 
 use super::*;
 
-pub(crate) struct BuilderOrchestrator<'a> {
+pub(super) struct BuilderOrchestrator<'a> {
     entities_path: &'a str,
     migrations_path: &'a str,
     engine: DatabaseEngine,
@@ -48,7 +48,7 @@ pub(crate) struct BuilderOrchestrator<'a> {
 
 impl<'a> BuilderOrchestrator<'a> {
     /// `engine` is the one the project's database runs on.
-    pub(crate) fn new(
+    pub(super) fn new(
         entities_path: &'a str,
         migrations_path: &'a str,
         engine: DatabaseEngine,
@@ -78,7 +78,7 @@ impl<'a> BuilderOrchestrator<'a> {
     }
 
     /// Lets the destructive changes through.
-    pub(crate) fn force(mut self, force: bool) -> Self {
+    pub(super) fn force(mut self, force: bool) -> Self {
         self.force = force;
         self
     }

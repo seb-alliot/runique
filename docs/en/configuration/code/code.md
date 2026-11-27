@@ -21,7 +21,7 @@ println!("Port: {}", config.server.port);
 | `config.static_files` | Folders and prefixes: templates, static, media |
 | `config.security` | HTTPS, HSTS, ACME |
 | `config.password` | The `PasswordConfig` |
-| `config.timezone` | `TZ` |
+| `config.timezone` | `TIME_ZONE` |
 
 ---
 

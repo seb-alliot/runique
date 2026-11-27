@@ -32,7 +32,7 @@ La commande `runique` décidait du type de clé primaire et du moteur d'après s
 
 | État | Étape |
 |:---:|---|
-| ✓ | `TZ` du `.env` vérifié au démarrage ; l'administration affiche à l'heure du site les dates des colonnes `timestamp_tz` ; `{{ timezone }}` dans les templates |
+| ✓ | `TIME_ZONE` du `.env` vérifié au démarrage ; l'administration affiche à l'heure du site les dates des colonnes `timestamp_tz` ; `{{ timezone }}` dans les templates |
 | ☐ | Saisie des dates dans les formulaires à l'heure du site |
 
 ### makemigrations

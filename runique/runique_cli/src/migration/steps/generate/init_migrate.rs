@@ -91,14 +91,14 @@ pub(crate) fn write(migration_dir: &Path, engine: Engine, runique_version: &str)
 /// Repairs a run the power cut short in `dir`, before the command reads
 /// anything there. When files changed since, the repair touches nothing: they
 /// are listed for the user to put right.
-pub(crate) fn repair(dir: &Path) -> Result<()> {
-    repaired(dir, crate::atomic::recover(dir))
+pub(crate) fn repair_after_cut_short(dir: &Path) -> Result<()> {
+    repaired(dir, crate::atomic::recover_from(dir))
 }
 
-/// [`repair`] for the migrations folder, whose runs may also have been
+/// [`repair_after_cut_short`] for the migrations folder, whose runs may also have been
 /// rewriting entity files (`migration up` taking out a `renamed_from`).
-pub(crate) fn repair_beside(dir: &Path, entities: &Path) -> Result<()> {
-    repaired(dir, crate::atomic::recover_beside(dir, Some(entities)))
+pub(crate) fn repair_after_cut_short_with_entities(dir: &Path, entities: &Path) -> Result<()> {
+    repaired(dir, crate::atomic::recover_from_both(dir, Some(entities)))
 }
 
 fn repaired(dir: &Path, outcome: std::io::Result<bool>) -> Result<()> {
@@ -137,7 +137,7 @@ pub(crate) fn ensure(migrations_path: &str, engine: Engine) -> Result<()> {
     };
     // A crate half written when the power went is taken back first: its folder
     // would otherwise pass for one that may hold migrations.
-    repair(migration_dir)?;
+    repair_after_cut_short(migration_dir)?;
     if migration_dir.exists() {
         return Ok(());
     }

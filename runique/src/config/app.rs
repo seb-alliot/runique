@@ -22,7 +22,7 @@ pub struct RuniqueConfig {
     pub debug: bool,
     /// Development mode (env: `RUNIQUE_ENV=dev`); `false` means production.
     pub dev: bool,
-    /// IANA timezone name — read from `TZ` env var. Default: `"UTC"`.
+    /// IANA timezone name — read from `TIME_ZONE` env var. Default: `"UTC"`.
     /// Parse with `chrono-tz`: `config.timezone.parse::<chrono_tz::Tz>()`.
     pub timezone: String,
     /// The language of the site, as the code asked for it (`.with_lang("fr")`).
@@ -61,7 +61,7 @@ impl RuniqueConfig {
             base_dir: std::env::var("BASE_DIR").unwrap_or_else(|_| ".".to_string()),
             debug: debug_from(std::env::var("DEBUG").ok().as_deref()),
             dev: dev_from(runique_env.as_deref()),
-            timezone: std::env::var("TZ").unwrap_or_else(|_| "UTC".to_string()),
+            timezone: std::env::var("TIME_ZONE").unwrap_or_else(|_| "UTC".to_string()),
             block_dispatch: Vec::new(),
             log: RuniqueLog::default(),
             lang: None,

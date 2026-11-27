@@ -1016,10 +1016,10 @@ async fn with_a_reachable_database_the_command_runs() {
     let (entities, migrations) = (temp("ent_db_ok"), temp("mig_db_ok"));
     let get = |key: &str| (key == "DATABASE_URL").then(|| "sqlite::memory:".to_string());
 
-    let result = BuilderMaster::new(entities.to_str().unwrap(), migrations.to_str().unwrap())
+    let result = BuilderMaster::new(migrations.to_str().unwrap())
         .env(get)
         .cargo(project_with(&["orm", "sqlite"]))
-        .run()
+        .makemigrations(entities.to_str().unwrap())
         .await;
     // `run` creates the snapshot folder first: proof the command went on.
     let reached = Path::new(&snapshot_dir(migrations.to_str().unwrap())).exists();
@@ -1042,10 +1042,10 @@ async fn with_an_unreachable_database_nothing_is_written() {
             .then(|| "postgres://app:s3cr3t-Pw@127.0.0.1:1/shop?password=0ther-Pw".to_string())
     };
 
-    let error = BuilderMaster::new(entities.to_str().unwrap(), migrations.to_str().unwrap())
+    let error = BuilderMaster::new(migrations.to_str().unwrap())
         .env(get)
         .cargo(project_with(&["orm", "postgres"]))
-        .run()
+        .makemigrations(entities.to_str().unwrap())
         .await
         .unwrap_err();
     let written = fs::read_dir(&migrations).unwrap().count();
@@ -1067,10 +1067,10 @@ async fn an_engine_the_project_is_not_compiled_for_stops_the_command() {
     let (entities, migrations) = (temp("ent_engine_ko"), temp("mig_engine_ko"));
     let get = |key: &str| (key == "DATABASE_URL").then(|| "sqlite::memory:".to_string());
 
-    let error = BuilderMaster::new(entities.to_str().unwrap(), migrations.to_str().unwrap())
+    let error = BuilderMaster::new(migrations.to_str().unwrap())
         .env(get)
         .cargo(project_with(&["orm", "postgres"]))
-        .run()
+        .makemigrations(entities.to_str().unwrap())
         .await
         .unwrap_err()
         .to_string();
@@ -1097,10 +1097,10 @@ async fn without_cargo_s_answer_the_command_stops() {
     let (entities, migrations) = (temp("ent_cargo_ko"), temp("mig_cargo_ko"));
     let get = |key: &str| (key == "DATABASE_URL").then(|| "sqlite::memory:".to_string());
 
-    let error = BuilderMaster::new(entities.to_str().unwrap(), migrations.to_str().unwrap())
+    let error = BuilderMaster::new(migrations.to_str().unwrap())
         .env(get)
         .cargo(|| anyhow::bail!("no Cargo.toml here"))
-        .run()
+        .makemigrations(entities.to_str().unwrap())
         .await
         .unwrap_err()
         .to_string();
@@ -1868,6 +1868,18 @@ fn a_dropped_table_is_announced_as_a_loss_of_data() {
         ]
     );
     assert!(dropped_table_messages(&[]).is_empty());
+}
+
+// What the guard is given for a dropped table: its name, and the drop.
+#[test]
+fn a_dropped_table_reaches_the_guard_under_its_name() {
+    let changes = dropped_as_changes(&[schema("menus", &[]), schema("plats", &[])]);
+
+    assert_eq!(
+        collect_destructive_messages(&changes),
+        dropped_table_messages(&["menus".to_string(), "plats".to_string()])
+    );
+    assert!(dropped_as_changes(&[]).is_empty());
 }
 
 // The table that references goes before the one it references, whatever
@@ -4444,6 +4456,51 @@ fn the_snapshots_of_the_tables_follow_the_values_of_their_enum() {
 }
 
 // ── An enum beside what else changes in the same run ─────────────────────────
+
+// Two enums created by the same run: applied, each has its snapshot.
+#[test]
+fn two_enums_applied_together_are_both_recorded() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    let books = r#"model! { Book, table: "books", pk: id => i32,
+    enums: { Genre: [Roman, Policier], Size: [Small, Large] },
+    { title: text [required], genre: choice [enum(Genre), required], size: choice [enum(Size), required] } }"#;
+    fs::write(format!("{entities}/book.rs"), books).unwrap();
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+
+    applied(&entities, &path);
+
+    let mut recorded = enums_recorded(&path);
+    recorded.sort();
+    assert_eq!(recorded, ["genre", "size"]);
+}
+
+// An enum renamed while its table gets a column: the table has a migration
+// of its own, so its snapshot is written from the model, new column
+// included, and not from the former snapshot with the enum corrected.
+#[test]
+fn a_table_changed_with_its_renamed_enum_keeps_its_own_snapshot() {
+    let dir = TempDir::new();
+    let (entities, path) = books_applied(&dir, DatabaseEngine::PostgreSQL);
+    let books = books_as_category().replace(
+        "title: text [required],",
+        "title: text [required], pages: int [nullable],",
+    );
+    assert_ne!(books, books_as_category());
+    fs::write(format!("{entities}/book.rs"), books).unwrap();
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+
+    applied(&entities, &path);
+
+    let columns = parse_create_file(&snapshot_file_path(&path, "books"))
+        .unwrap()
+        .columns;
+    assert!(columns.iter().any(|column| column.name == "pages"));
+    assert_eq!(
+        enum_in_snapshot(&path, "books", "genre").as_deref(),
+        Some("Category")
+    );
+}
 
 const NOVEL: (&str, &str) = ("[Roman, Policier]", "[Novel, Policier]");
 

@@ -5,6 +5,7 @@
 //! `down()` keeps `seaql_migrations` in sync with the schema.
 use crate::atomic::{AtomicBuilder, SourceItems};
 use crate::db::DatabaseConfig;
+use crate::migration::master::BuilderMaster;
 use crate::migration::steps::apply::applied_renames::cleared_files;
 use crate::migration::steps::generate::lib_file::lib_modules;
 use crate::migration::steps::parser::files::scan::{
@@ -25,13 +26,10 @@ use std::path::{Path, PathBuf};
 /// Applies every pending migration, then records what was applied
 /// (see [`record_applied`]).
 pub async fn up(entities_path: &str, migrations_path: &str) -> Result<()> {
-    run(migrations_path, &["up"]).await?;
-    // The snapshots are written from the models: `Pk` as the project has it.
-    crate::migration::steps::parser::files::project_pk::with_project_pk(
-        entities_path,
-        crate::migration::steps::parser::files::project_pk::from_cargo,
-        || record_applied(entities_path, migrations_path),
-    )?;
+    dotenvy::dotenv().ok();
+    BuilderMaster::new(migrations_path)
+        .migration_up(entities_path)
+        .await?;
     println!("{}", t(runique_i18n::keys::migrate::info::COMPLETE_UP));
     Ok(())
 }
@@ -275,41 +273,46 @@ fn drop_unused_enum_snapshots(entities_path: &str, migrations_path: &str) -> Res
 
 /// Rolls back the last `n` applied migrations.
 pub async fn down(migrations_path: &str, n: u32) -> Result<()> {
-    run(migrations_path, &["down", "-n", &n.to_string()]).await?;
+    dotenvy::dotenv().ok();
+    BuilderMaster::new(migrations_path)
+        .migration_down(n)
+        .await?;
     println!("{}", t(runique_i18n::keys::migrate::info::COMPLETE_DOWN));
     Ok(())
 }
 
 /// Lists the migrations and whether each one is applied.
 pub async fn status(migrations_path: &str) -> Result<()> {
-    run(migrations_path, &["status"]).await
+    dotenvy::dotenv().ok();
+    BuilderMaster::new(migrations_path).migration_status().await
 }
 
 /// The configuration of the project's database, by the app's own rule
 /// ([`DatabaseConfig`]); an error when what the project sets is not enough.
-fn configuration(get: impl Fn(&str) -> Option<String>) -> Result<DatabaseConfig> {
+pub(crate) fn configuration(get: impl Fn(&str) -> Option<String>) -> Result<DatabaseConfig> {
     let mut config = DatabaseConfig::from_lookup(get)
         .map_err(anyhow::Error::msg)?
         .build();
-    // The command only checks which address answers.
+    // A command only ever needs one connection.
     config.pool(1, 1);
     Ok(config)
 }
 
-/// `cargo run` on the migration crate behind `migrations_path` (its trailing
-/// `/src` stripped), from the project root: the crate reads `DATABASE_URL`
-/// from the root `.env`, and a relative SQLite path resolves as the app's.
-async fn run(migrations_path: &str, args: &[&str]) -> Result<()> {
-    dotenvy::dotenv().ok();
-
-    let migration_dir = migrations_path
+/// The folder of the migration crate behind `migrations_path`: its trailing
+/// `/src` stripped.
+fn crate_dir(migrations_path: &str) -> &str {
+    migrations_path
         .trim_end_matches("/src")
-        .trim_end_matches("\\src");
-    let manifest = std::path::Path::new(migration_dir).join("Cargo.toml");
+        .trim_end_matches("\\src")
+}
 
+/// Refuses what cannot run: a path with no migration crate behind it, or a
+/// crate a `makemigrations` cut short left half written.
+pub(crate) fn runnable(migrations_path: &str) -> Result<()> {
+    let migration_dir = crate_dir(migrations_path);
     // Checked first: cargo's own error for a wrong path is a raw "manifest
     // path does not exist".
-    if !manifest.is_file() {
+    if !Path::new(migration_dir).join("Cargo.toml").is_file() {
         anyhow::bail!(
             "{}",
             tf(
@@ -323,14 +326,25 @@ async fn run(migrations_path: &str, args: &[&str]) -> Result<()> {
     // nothing of them is applied. Refused, not repaired: this command writes
     // no file, the one that wrote them puts them right.
     for dir in [migration_dir, migrations_path] {
-        if crate::atomic::interrupted(std::path::Path::new(dir)) {
+        if crate::atomic::interrupted(Path::new(dir)) {
             anyhow::bail!(
                 "{}",
                 tf(runique_i18n::keys::migrate::error::INTERRUPTED, &[dir])
             );
         }
     }
+    Ok(())
+}
 
+/// `cargo run` on the migration crate behind `migrations_path`, from the
+/// project root: a relative SQLite path resolves as the app's. `config` is
+/// the database of the project, as the master read it.
+pub(crate) async fn launch(
+    migrations_path: &str,
+    args: &[&str],
+    config: &DatabaseConfig,
+) -> Result<()> {
+    let migration_dir = crate_dir(migrations_path);
     println!(
         "{}",
         tf(
@@ -343,7 +357,7 @@ async fn run(migrations_path: &str, args: &[&str]) -> Result<()> {
     command
         .arg("run")
         .arg("--manifest-path")
-        .arg(&manifest)
+        .arg(Path::new(migration_dir).join("Cargo.toml"))
         .arg("--")
         .args(args);
     // The crate reads `DATABASE_URL` and nothing else, while the app also
@@ -351,7 +365,6 @@ async fn run(migrations_path: &str, args: &[&str]) -> Result<()> {
     // is found here and handed over, so both use the same database.
     // Through the crate's environment, never as an argument: the URL holds the
     // password, and arguments can be read by every user of the machine.
-    let config = configuration(|key| std::env::var(key).ok())?;
     let (_, answered) = config.connect_resolved().await.map_err(|e| {
         anyhow::anyhow!(tf(
             runique_i18n::keys::makemigrations::error::DATABASE_UNREACHABLE,
@@ -816,6 +829,39 @@ mod tests {
             renaming()
         );
         assert!(!crate::atomic::interrupted(Path::new(&path)));
+    }
+
+    // `.env` asks for SQLite, the project is compiled for PostgreSQL:
+    // whatever the command, the crate is not launched.
+    #[tokio::test]
+    async fn an_engine_the_project_is_not_compiled_for_launches_nothing() {
+        let dir = TempDir::new();
+        let path = migration_crate(&dir);
+        let master = || {
+            BuilderMaster::new(&path)
+                .env(|key| (key == "DATABASE_URL").then(|| "sqlite::memory:".to_string()))
+                .cargo(|| {
+                    Ok(serde_json::json!({
+                        "packages": [{ "name": "runique", "id": "runique 4.1.0" }],
+                        "resolve": { "nodes": [{ "id": "runique 4.1.0", "features": ["postgres"] }] },
+                    })
+                    .to_string())
+                })
+        };
+
+        for outcome in [
+            master().migration_up("src/entities").await,
+            master().migration_down(1).await,
+            master().migration_status().await,
+        ] {
+            assert_eq!(
+                outcome.unwrap_err().to_string(),
+                tf(
+                    runique_i18n::keys::makemigrations::error::ENGINE_NOT_IN_FEATURES,
+                    &["SQLite", "postgres", "SQLite", "sqlite"]
+                )
+            );
+        }
     }
 
     /// The address `configuration` retains for a project's environment.

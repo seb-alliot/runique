@@ -32,7 +32,7 @@ impl AtomicBuilder {
     }
 
     /// Keeps a journal in `dir` while the batch runs, so that a power cut can
-    /// be repaired by `recover(dir)` at the next start. Every file of the batch
+    /// be repaired by `recover_from(dir)` at the next start. Every file of the batch
     /// must be under `dir`. For a command run by one person at a time: two
     /// batches at once in the same folder would share the journal.
     pub fn journal(mut self, dir: impl Into<PathBuf>) -> Self {
@@ -42,7 +42,7 @@ impl AtomicBuilder {
 
     /// Lets the journal name files of a second folder, outside its own. The
     /// journal doesn't keep where that folder is: the command that repairs
-    /// gives it again (`recover_beside`), so a journal can't send the repair
+    /// gives it again (`recover_from_both`), so a journal can't send the repair
     /// anywhere the command didn't.
     pub fn beside(mut self, dir: impl Into<PathBuf>) -> Self {
         self.beside = Some(dir.into());

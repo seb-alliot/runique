@@ -19,7 +19,7 @@
     "mailer_missing": "Passwort-Zurücksetzung ohne Mailer: der Link könnte nie gesendet werden",
     "locales_invalid": "Der Übersetzungsordner des Projekts ist ungültig: {}",
     "lang_unknown": "`.with_lang(\"{}\")`: Keine geladene Sprache entspricht diesem Code. Geladen: {}. Eine Sprache des Projekts ist ein Ordner in dessen `locales/`.",
-    "timezone_unknown": "`TZ={}` ist keine Zeitzone. Schreiben Sie ihren Namen in der Form Region/Stadt, zum Beispiel `Europe/Paris`; ohne `TZ` ist die Website in `UTC`."
+    "timezone_unknown": "`TIME_ZONE={}` ist keine Zeitzone. Schreiben Sie ihren Namen in der Form Region/Stadt, zum Beispiel `Europe/Paris`; ohne `TIME_ZONE` ist die Website in `UTC`."
   },
   "hint": {
     "db_required": "Fügen Sie .with_database(db) oder .with_database_config(config) zu Ihrer Builder-Kette hinzu",

@@ -199,14 +199,14 @@ pub fn interrupted(dir: &Path) -> bool {
 /// returns every file that does not match, one per line, for the command to
 /// show. Choosing between a file edited by hand and its original is not the
 /// repair's call.
-pub fn recover(dir: &Path) -> io::Result<bool> {
-    recover_beside(dir, None)
+pub fn recover_from(dir: &Path) -> io::Result<bool> {
+    recover_from_both(dir, None)
 }
 
-/// [`recover`], for a command whose batches may name files of a second
+/// [`recover_from`], for a command whose batches may name files of a second
 /// folder (`AtomicBuilder::beside`): `beside` is that folder, as the command
 /// has it now.
-pub fn recover_beside(dir: &Path, beside: Option<&Path>) -> io::Result<bool> {
+pub fn recover_from_both(dir: &Path, beside: Option<&Path>) -> io::Result<bool> {
     let Some(mut repair) = examine(dir, beside)? else {
         return Ok(false);
     };
@@ -445,7 +445,7 @@ mod tests {
         fs::create_dir(dir.join(NAME)).unwrap();
 
         assert!(read(dir.path()).is_err());
-        assert!(recover(dir.path()).is_err());
+        assert!(recover_from(dir.path()).is_err());
         assert!(dir.join(NAME).is_dir());
     }
 
@@ -465,7 +465,7 @@ mod tests {
         write(dir.path(), &journal).unwrap();
         fs::set_permissions(dir.join("made"), fs::Permissions::from_mode(0o000)).unwrap();
 
-        let outcome = recover(dir.path());
+        let outcome = recover_from(dir.path());
         fs::set_permissions(dir.join("made"), fs::Permissions::from_mode(0o755)).unwrap();
 
         assert_eq!(outcome.unwrap_err().kind(), io::ErrorKind::PermissionDenied);

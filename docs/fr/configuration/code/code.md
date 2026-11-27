@@ -21,7 +21,7 @@ println!("Port: {}", config.server.port);
 | `config.static_files` | Dossiers et préfixes : templates, statiques, médias |
 | `config.security` | HTTPS, HSTS, ACME |
 | `config.password` | La `PasswordConfig` |
-| `config.timezone` | `TZ` |
+| `config.timezone` | `TIME_ZONE` |
 
 ---
 

@@ -19,7 +19,7 @@
     "mailer_missing": "Réinitialisation du mot de passe sans mailer : le lien ne pourrait jamais être envoyé",
     "locales_invalid": "Le dossier de traductions du projet est invalide : {}",
     "lang_unknown": "`.with_lang(\"{}\")` : aucune langue chargée ne répond à ce code. Chargées : {}. Une langue du projet est un dossier de son `locales/`.",
-    "timezone_unknown": "`TZ={}` n'est pas un fuseau horaire. Écrivez son nom sous la forme région/ville, par exemple `Europe/Paris` ; sans `TZ`, le site est en `UTC`."
+    "timezone_unknown": "`TIME_ZONE={}` n'est pas un fuseau horaire. Écrivez son nom sous la forme région/ville, par exemple `Europe/Paris` ; sans `TIME_ZONE`, le site est en `UTC`."
   },
   "hint": {
     "db_required": "Ajoutez .with_database(db) ou .with_database_config(config) à votre chaîne de construction",

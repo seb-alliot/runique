@@ -14,7 +14,7 @@ mod step;
 mod struct_atomic;
 
 pub use disk::remove;
-pub use journal::{interrupted, recover, recover_beside};
+pub use journal::{interrupted, recover_from, recover_from_both};
 pub use struct_atomic::{AtomicBuilder, SourceItems};
 
 #[cfg(any(test, feature = "test-support"))]

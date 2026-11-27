@@ -19,7 +19,7 @@
     "mailer_missing": "Redefinição de senha sem mailer: o link nunca poderia ser enviado",
     "locales_invalid": "A pasta de traduções do projeto é inválida: {}",
     "lang_unknown": "`.with_lang(\"{}\")`: nenhuma língua carregada responde a este código. Carregadas: {}. Uma língua do projeto é uma pasta do seu `locales/`.",
-    "timezone_unknown": "`TZ={}` não é um fuso horário. Escreva o seu nome na forma região/cidade, por exemplo `Europe/Paris`; sem `TZ`, o site está em `UTC`."
+    "timezone_unknown": "`TIME_ZONE={}` não é um fuso horário. Escreva o seu nome na forma região/cidade, por exemplo `Europe/Paris`; sem `TIME_ZONE`, o site está em `UTC`."
   },
   "hint": {
     "db_required": "Adicione .with_database(db) ou .with_database_config(config) à sua cadeia de construção",

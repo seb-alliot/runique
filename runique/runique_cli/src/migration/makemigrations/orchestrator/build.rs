@@ -4,7 +4,7 @@ impl BuilderOrchestrator<'_> {
     /// The final plan: the files of the run in the order of their stages,
     /// taking the place of the migrations that were waiting, written with
     /// `lib.rs` in one batch. All of it, or the project as it was.
-    pub(crate) fn build(self) -> Result<()> {
+    pub(in crate::migration::makemigrations) fn build(self) -> Result<()> {
         if self.main_changes.is_empty()
             && self.extend_planned.is_empty()
             && self.dropped.is_empty()

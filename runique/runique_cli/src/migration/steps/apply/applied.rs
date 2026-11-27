@@ -47,7 +47,7 @@ pub(crate) fn check_known(applied: &[String], migrations_path: &str) -> Result<(
 mod tests {
     use super::*;
     use crate::atomic::tests::TempDir;
-    use crate::migration::makemigrations::BuilderMaster;
+    use crate::migration::master::BuilderMaster;
     use crate::migration::steps::generate::lib_file::initial_lib;
     use sea_orm::{ActiveModelTrait, ConnectionTrait, Database, DbBackend, Schema, Set};
     use std::fs;
@@ -149,10 +149,10 @@ mod tests {
             })
             .to_string())
         };
-        let error = BuilderMaster::new(entities.to_str().unwrap(), &path)
+        let error = BuilderMaster::new(&path)
             .env(get)
             .cargo(metadata)
-            .run()
+            .makemigrations(entities.to_str().unwrap())
             .await
             .unwrap_err();
 

@@ -5,7 +5,7 @@ impl BuilderOrchestrator<'_> {
     /// it has migrated (snapshots of tables, of extensions, of enums), then
     /// the migrations still waiting. Parallel runs are refused here, before
     /// anything is compared.
-    pub(crate) fn read(mut self) -> Result<Self> {
+    pub(in crate::migration::makemigrations) fn read(mut self) -> Result<Self> {
         let ScannedEntities {
             schemas,
             paused,
@@ -27,7 +27,7 @@ impl BuilderOrchestrator<'_> {
         init_migrate::ensure(self.migrations_path, self.engine.clone().into())?;
         // Before anything reads the snapshots: a run the power cut short is
         // taken back, so the changes are computed on migrations that are whole.
-        init_migrate::repair_beside(
+        init_migrate::repair_after_cut_short_with_entities(
             std::path::Path::new(self.migrations_path),
             std::path::Path::new(self.entities_path),
         )?;

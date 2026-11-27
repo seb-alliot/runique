@@ -19,7 +19,7 @@ pub fn create_new_project(name: &str) -> Result<()> {
     let project_dir = Path::new(name);
     // A creation the power cut short is taken back first: the folder it left
     // would otherwise be refused as an existing project.
-    init_migrate::repair(project_dir)?;
+    init_migrate::repair_after_cut_short(project_dir)?;
     if project_dir.exists() {
         anyhow::bail!(
             "{}",

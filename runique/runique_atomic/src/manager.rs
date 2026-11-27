@@ -339,7 +339,7 @@ mod tests {
             drop(cut_after(&dir, passes));
             assert!(dir.join(".runique-journal").exists(), "pass {passes}");
 
-            assert!(journal::recover(dir.path()).unwrap(), "pass {passes}");
+            assert!(journal::recover_from(dir.path()).unwrap(), "pass {passes}");
 
             assert_eq!(
                 fs::read_to_string(dir.join("a.txt")).unwrap(),
@@ -348,7 +348,7 @@ mod tests {
             );
             assert_eq!(dir.entries(), ["a.txt"], "pass {passes}");
             assert!(
-                !journal::recover(dir.path()).unwrap(),
+                !journal::recover_from(dir.path()).unwrap(),
                 "nothing left to repair"
             );
         }
@@ -384,7 +384,7 @@ mod tests {
             drop(cut_beside_after(&dir, &other, passes));
 
             assert!(
-                journal::recover_beside(dir.path(), Some(other.path())).unwrap(),
+                journal::recover_from_both(dir.path(), Some(other.path())).unwrap(),
                 "pass {passes}"
             );
 
@@ -408,7 +408,7 @@ mod tests {
         manager.mark_placed().unwrap();
         drop(manager);
 
-        assert!(journal::recover_beside(dir.path(), Some(other.path())).unwrap());
+        assert!(journal::recover_from_both(dir.path(), Some(other.path())).unwrap());
 
         assert_eq!(fs::read_to_string(dir.join("a.txt")).unwrap(), "new");
         assert_eq!(fs::read_to_string(other.join("m.rs")).unwrap(), "new");
@@ -424,14 +424,14 @@ mod tests {
         drop(cut_beside_after(&dir, &other, 2));
         let (in_dir, in_other) = (dir.entries(), other.entries());
 
-        let error = journal::recover(dir.path()).unwrap_err();
+        let error = journal::recover_from(dir.path()).unwrap_err();
 
         assert_eq!(error.kind(), io::ErrorKind::InvalidData);
         assert_eq!(dir.entries(), in_dir);
         assert_eq!(other.entries(), in_other);
         assert!(dir.join(".runique-journal").exists());
         // Given the folder, the same journal is repaired.
-        assert!(journal::recover_beside(dir.path(), Some(other.path())).unwrap());
+        assert!(journal::recover_from_both(dir.path(), Some(other.path())).unwrap());
         assert_eq!(fs::read_to_string(other.join("m.rs")).unwrap(), "original");
     }
 
@@ -487,7 +487,7 @@ mod tests {
             }
             drop(manager);
 
-            assert!(journal::recover(dir.path()).unwrap());
+            assert!(journal::recover_from(dir.path()).unwrap());
 
             assert_eq!(fs::read_to_string(dir.join("a.txt")).unwrap(), "new");
             assert_eq!(fs::read_to_string(dir.join("sub/b.txt")).unwrap(), "new");
@@ -504,7 +504,7 @@ mod tests {
         last.step = dispatch(&ActionAtomic::Rollback, last).unwrap();
         drop(manager);
 
-        assert!(journal::recover(dir.path()).unwrap());
+        assert!(journal::recover_from(dir.path()).unwrap());
 
         assert_eq!(fs::read_to_string(dir.join("a.txt")).unwrap(), "original");
         assert_eq!(dir.entries(), ["a.txt"]);
@@ -658,7 +658,7 @@ mod tests {
             originals(&dir);
             cut_at(&dir, &ActionAtomic::Modify, &REPLACED, cut);
 
-            let repaired = journal::recover(dir.path()).unwrap();
+            let repaired = journal::recover_from(dir.path()).unwrap();
 
             assert_eq!(repaired, cut < last, "cut {cut}");
             let expected = if cut <= point_of_no_return {
@@ -737,7 +737,7 @@ mod tests {
                 cut,
             ));
 
-            let repaired = journal::recover(dir.path()).unwrap();
+            let repaired = journal::recover_from(dir.path()).unwrap();
 
             assert_eq!(repaired, cut < last, "cut {cut}");
             let undone = cut <= point_of_no_return;
@@ -771,7 +771,7 @@ mod tests {
             let dir = TempDir::new();
             cut_at(&dir, &ActionAtomic::Create, &files, cut);
 
-            let repaired = journal::recover(dir.path()).unwrap();
+            let repaired = journal::recover_from(dir.path()).unwrap();
 
             assert_eq!(repaired, cut < last, "cut {cut}");
             if cut <= point_of_no_return {
@@ -860,7 +860,7 @@ mod tests {
                 cut_at(&dir, &ActionAtomic::Modify, &REPLACED, cut);
 
                 let interrupted = repair_cut_at(&dir, steps);
-                journal::recover(dir.path()).unwrap();
+                journal::recover_from(dir.path()).unwrap();
 
                 let expected = if cut <= POINT_OF_NO_RETURN {
                     &before
@@ -885,11 +885,11 @@ mod tests {
                 let dir = TempDir::new();
                 originals(&dir);
                 cut_at(&dir, &ActionAtomic::Modify, &REPLACED, first);
-                journal::recover(dir.path()).unwrap();
+                journal::recover_from(dir.path()).unwrap();
                 let start = disk(&dir);
 
                 cut_at(&dir, &ActionAtomic::Modify, &REPLACED, second);
-                assert!(journal::recover(dir.path()).unwrap());
+                assert!(journal::recover_from(dir.path()).unwrap());
 
                 let expected = if second <= POINT_OF_NO_RETURN {
                     &start
@@ -923,7 +923,7 @@ mod tests {
 
         assert!(undone.is_err());
         assert!(dir.join(".runique-journal").exists());
-        assert!(journal::recover(dir.path()).unwrap());
+        assert!(journal::recover_from(dir.path()).unwrap());
         assert_eq!(disk(&dir), before);
     }
 
@@ -946,11 +946,14 @@ mod tests {
         assert!(manager.finish().is_err());
         drop(manager);
         assert!(dir.join(".runique-journal").exists());
-        assert!(journal::recover(dir.path()).is_err(), "still in the way");
+        assert!(
+            journal::recover_from(dir.path()).is_err(),
+            "still in the way"
+        );
         assert!(dir.join(".runique-journal").exists());
 
         fs::remove_dir(dir.join("copy_a.txt.runique-bak")).unwrap();
-        assert!(journal::recover(dir.path()).unwrap());
+        assert!(journal::recover_from(dir.path()).unwrap());
         assert_eq!(disk(&dir), after);
     }
 
@@ -968,7 +971,7 @@ mod tests {
             "{ \"placed\": fal",
         )
         .unwrap();
-        assert!(!journal::recover(dir.path()).unwrap());
+        assert!(!journal::recover_from(dir.path()).unwrap());
         whole_batch(&dir, true, &REPLACED).unwrap();
         assert_eq!(disk(&dir), after);
 
@@ -980,7 +983,7 @@ mod tests {
             "{ \"placed\": tru",
         )
         .unwrap();
-        assert!(journal::recover(dir.path()).unwrap());
+        assert!(journal::recover_from(dir.path()).unwrap());
         assert_eq!(disk(&dir), before);
     }
 
@@ -999,7 +1002,7 @@ mod tests {
             fs::remove_file(dir.join(removed)).unwrap();
             let on_disk = disk(&dir);
 
-            let error = journal::recover(dir.path()).unwrap_err();
+            let error = journal::recover_from(dir.path()).unwrap_err();
 
             assert_eq!(error.kind(), io::ErrorKind::InvalidData, "{removed}");
             assert!(error.to_string().contains(named), "{error}");
@@ -1013,7 +1016,7 @@ mod tests {
         cut_at(&dir, &ActionAtomic::Modify, &REPLACED, 10);
         fs::remove_file(dir.join("same_2.txt.runique-bak")).unwrap();
 
-        assert!(journal::recover(dir.path()).unwrap());
+        assert!(journal::recover_from(dir.path()).unwrap());
 
         assert_eq!(
             disk(&dir),
@@ -1033,7 +1036,7 @@ mod tests {
         let dir = TempDir::new();
         originals(&dir);
         cut_at(&dir, &ActionAtomic::Modify, &REPLACED, 8);
-        assert!(journal::recover(dir.path()).unwrap());
+        assert!(journal::recover_from(dir.path()).unwrap());
         fs::create_dir(dir.join("blocked.txt")).unwrap();
         let mut files = REPLACED.to_vec();
         files.push(("blocked.txt", "never written"));
@@ -1054,7 +1057,7 @@ mod tests {
         originals(&dir);
         fs::create_dir_all(dir.join("sub/deep")).unwrap();
 
-        assert!(!journal::recover(dir.path()).unwrap());
+        assert!(!journal::recover_from(dir.path()).unwrap());
         whole_batch(&dir, true, &REPLACED).unwrap();
 
         assert_eq!(disk(&dir), after);
@@ -1080,7 +1083,10 @@ mod tests {
             cut_at(&dir, &ActionAtomic::Modify, &REPLACED, 10);
             remove(&dir);
 
-            assert!(journal::recover(dir.path()).unwrap(), "removal {index}");
+            assert!(
+                journal::recover_from(dir.path()).unwrap(),
+                "removal {index}"
+            );
 
             assert_eq!(disk(&dir), before, "removal {index}");
         }
@@ -1097,7 +1103,7 @@ mod tests {
         fs::remove_file(dir.join("same_2.txt")).unwrap();
         let on_disk = disk(&dir);
 
-        let error = journal::recover(dir.path()).unwrap_err();
+        let error = journal::recover_from(dir.path()).unwrap_err();
 
         assert_eq!(error.kind(), io::ErrorKind::InvalidData);
         assert!(error.to_string().contains("same_2.txt"), "{error}");
@@ -1116,7 +1122,7 @@ mod tests {
             fs::remove_file(dir.join(".runique-journal")).unwrap();
             let on_disk = disk(&dir);
 
-            assert!(!journal::recover(dir.path()).unwrap(), "cut {cut}");
+            assert!(!journal::recover_from(dir.path()).unwrap(), "cut {cut}");
             let error = whole_batch(&dir, true, &REPLACED).unwrap_err();
 
             assert_eq!(error.kind(), io::ErrorKind::AlreadyExists, "cut {cut}");

@@ -16,6 +16,7 @@ pub mod steps;
 
 pub mod helpers;
 pub mod makemigrations;
+pub(crate) mod master;
 pub mod paths;
 pub mod runtime;
 pub mod types;

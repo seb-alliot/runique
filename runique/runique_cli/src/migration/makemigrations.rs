@@ -1,15 +1,14 @@
-//! The `makemigrations` command: the master (`master`) checks the project
+//! The `makemigrations` command: the master (`migration::master`) checks the project
 //! and connects, then hands the run to the orchestrator (`orchestrator`), which goes through the steps (`steps`):
 //! reads the models and the snapshots, compares them, checks what changed,
 //! and writes the migration files in one batch.
-use crate::db::{DatabaseConfig, DatabaseEngine};
+use crate::db::DatabaseEngine;
 use crate::migration::*;
 use anyhow::Result;
 use chrono::Utc;
 use runique_i18n::{t, tf};
 use std::fs;
 
-use crate::migration::steps::apply::applied;
 use crate::migration::steps::changes::report::{
     check_destructive, check_identifier_lengths, warn_unmigrated_type_changes,
 };
@@ -20,11 +19,9 @@ use crate::migration::steps::generate::plan::{
 };
 use crate::migration::steps::parser::files::scan::{merge_extend_schemas, scan_extend_blocks};
 use crate::migration::steps::parser::files::snapshot::{self, snapshot_upgrades};
-use crate::migration::steps::parser::files::{project_engine, project_pk};
 
-mod master;
 mod orchestrator;
-pub(crate) use master::BuilderMaster;
+use crate::migration::master::BuilderMaster;
 use orchestrator::BuilderOrchestrator;
 
 #[cfg(test)]
@@ -63,8 +60,8 @@ pub fn run(
 /// does an engine in `.env` that the project is not compiled for.
 pub async fn makemigrations(entities_path: &str, migrations_path: &str, force: bool) -> Result<()> {
     dotenvy::dotenv().ok();
-    BuilderMaster::new(entities_path, migrations_path)
+    BuilderMaster::new(migrations_path)
         .force(force)
-        .run()
+        .makemigrations(entities_path)
         .await
 }

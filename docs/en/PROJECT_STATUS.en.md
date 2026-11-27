@@ -32,7 +32,7 @@ The `runique` command decided the primary key type and the engine from its own f
 
 | Status | Step |
 |:---:|---|
-| ✓ | The `.env`'s `TZ` checked at start; the admin shows the dates of `timestamp_tz` columns at the site's hour; `{{ timezone }}` in templates |
+| ✓ | The `.env`'s `TIME_ZONE` checked at start; the admin shows the dates of `timestamp_tz` columns at the site's hour; `{{ timezone }}` in templates |
 | ☐ | Dates typed in forms read at the site's hour |
 
 ### makemigrations

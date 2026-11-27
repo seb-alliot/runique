@@ -4,7 +4,7 @@ impl BuilderOrchestrator<'_> {
     /// Compares what is declared with what is migrated: the tables, the
     /// extensions, the enums, and the tables no model produces any more.
     /// Nothing is written.
-    pub(crate) fn compare(mut self) -> Result<Self> {
+    pub(in crate::migration::makemigrations) fn compare(mut self) -> Result<Self> {
         let renames = effective_renames(
             &self.declared_renames,
             &self.schemas,
