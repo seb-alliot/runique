@@ -5,7 +5,7 @@
 //!
 //! No database: the migration's column is what the CLI parses, built the way
 //! its generated file builds it.
-use runique::runique_dsl::ast::FormFieldKind;
+use runique::runique_dsl::ast::FormFieldType;
 use runique::sea_orm::sea_query::{ColumnType, StringLen};
 use runique_cli::migration::parse_schema_from_source;
 
@@ -115,8 +115,8 @@ type Case = (
 
 /// Every DSL type, with no catch-all: a new type doesn't compile here until
 /// it says which column it stores, or why it has none.
-fn cases_of(kind: FormFieldKind) -> Vec<Case> {
-    use FormFieldKind::*;
+fn cases_of(kind: FormFieldType) -> Vec<Case> {
+    use FormFieldType::*;
     macro_rules! of {
         ($($module:ident),+) => {
             vec![$(($module::SOURCE, $module::entity as fn() -> ColumnType, $module::schema_type as fn() -> ColumnType, $module::form_accepts as fn() -> bool)),+]
@@ -207,7 +207,7 @@ fn migration_column_type(source: &str) -> ColumnType {
 #[test]
 fn every_type_declares_the_column_the_migration_creates() {
     let mut checked = 0;
-    for &kind in FormFieldKind::ALL {
+    for &kind in FormFieldType::ALL {
         for (source, entity, schema, _) in cases_of(kind) {
             let migration = migration_column_type(source);
             assert_eq!(
@@ -229,7 +229,7 @@ fn every_type_declares_the_column_the_migration_creates() {
 #[test]
 fn every_generated_form_field_holds_its_column() {
     let mut checked = 0;
-    for &kind in FormFieldKind::ALL {
+    for &kind in FormFieldType::ALL {
         for (source, _, _, form_accepts) in cases_of(kind) {
             assert!(
                 form_accepts(),

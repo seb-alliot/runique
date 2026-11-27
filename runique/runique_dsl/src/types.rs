@@ -4,7 +4,7 @@
 //! The macro, the admin and the forms built from a schema all read this table,
 //! so the same field can't be a password in one place and plain text in
 //! another, or accept a value its column can't hold.
-use crate::ast::{EnumBackingType, FieldDef, FieldOption, FieldType, FileKind, FormFieldKind};
+use crate::ast::{EnumBackingType, FieldDef, FieldOption, FieldType, FormFieldType, UploadType};
 
 /// The form field a DSL type is edited with.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -28,7 +28,7 @@ pub enum Widget {
     Date,
     Time,
     DateTime,
-    File(FileKind),
+    File(UploadType),
     /// Upload stored as bytes in the column.
     Binary,
     Choice,
@@ -50,10 +50,10 @@ pub enum Engine {
     Sqlite,
 }
 
-impl FormFieldKind {
+impl FormFieldType {
     /// The form field this type is edited with.
     pub fn widget(self) -> Widget {
-        use FormFieldKind::*;
+        use FormFieldType::*;
         match self {
             Text | Char => Widget::Text,
             Textarea => Widget::Textarea,
@@ -75,11 +75,11 @@ impl FormFieldKind {
             Date => Widget::Date,
             Time => Widget::Time,
             Datetime | Timestamp | TimestampTz => Widget::DateTime,
-            Image => Widget::File(FileKind::Image),
-            Audio => Widget::File(FileKind::Audio),
-            Video => Widget::File(FileKind::Video),
-            Document => Widget::File(FileKind::Document),
-            File => Widget::File(FileKind::Any),
+            Image => Widget::File(UploadType::Image),
+            Audio => Widget::File(UploadType::Audio),
+            Video => Widget::File(UploadType::Video),
+            Document => Widget::File(UploadType::Document),
+            File => Widget::File(UploadType::Any),
             Choice => Widget::Choice,
             Radio => Widget::Radio,
             Checkbox => Widget::Checkbox,
@@ -99,7 +99,7 @@ impl FormFieldKind {
     /// has no unsigned or one-byte integers (sqlx sends an `i8` as `"char"`),
     /// and sqlx only decodes `u64` on MySQL.
     pub fn unsupported_on(self) -> &'static [Engine] {
-        use FormFieldKind::*;
+        use FormFieldType::*;
         match self {
             I8 | U32 => &[Engine::Postgres],
             U64 => &[Engine::Postgres, Engine::Sqlite],
@@ -108,11 +108,11 @@ impl FormFieldKind {
     }
 }
 
-impl FormFieldKind {
+impl FormFieldType {
     /// A list of enum values (`checkbox`, `multichoice`), stored in a table
     /// of its own rather than a column.
     pub fn is_list(self) -> bool {
-        matches!(self, FormFieldKind::Checkbox | FormFieldKind::Multichoice)
+        matches!(self, FormFieldType::Checkbox | FormFieldType::Multichoice)
     }
 }
 
@@ -127,19 +127,19 @@ impl EnumBackingType {
     }
 }
 
-impl FormFieldKind {
+impl FormFieldType {
     /// Largest value a binary column holds, in bytes: its declared length
     /// (`[max_length: n]`), 255 by default like the column itself; `None` for
     /// `blob`, bounded only by the engine.
     pub fn byte_limit(self, max_length: Option<u32>) -> Option<u32> {
         match self {
-            FormFieldKind::Binary | FormFieldKind::VarBinary => Some(max_length.unwrap_or(255)),
+            FormFieldType::Binary | FormFieldType::VarBinary => Some(max_length.unwrap_or(255)),
             _ => None,
         }
     }
 }
 
-impl FormFieldKind {
+impl FormFieldType {
     /// The column this type is stored in. `max_length` sets the length of the
     /// text and binary types that take one; `decimal_len` a decimal's
     /// precision and scale; `enum_ref` is the enum a choice field draws from.
@@ -149,7 +149,7 @@ impl FormFieldKind {
         decimal_len: Option<(u32, u32)>,
         enum_ref: Option<&syn::Ident>,
     ) -> FieldType {
-        use FormFieldKind::*;
+        use FormFieldType::*;
         match self {
             Text => max_length.map_or(FieldType::String, FieldType::Varchar),
             Email => FieldType::Varchar(254),
@@ -250,7 +250,7 @@ impl FieldDef {
             } => Some((*max_digits, *decimal_places)),
             _ => None,
         });
-        self.kind
+        self.field_type
             .column_type(max_length, decimal_len, self.enum_ref.as_ref())
     }
 }
@@ -265,20 +265,20 @@ mod tests {
 
     #[test]
     fn integer_bounds_follow_the_rust_type() {
-        assert_eq!(FormFieldKind::I8.widget(), integer(-128, 127));
-        assert_eq!(FormFieldKind::U64.widget(), integer(0, u64::MAX.into()));
+        assert_eq!(FormFieldType::I8.widget(), integer(-128, 127));
+        assert_eq!(FormFieldType::U64.widget(), integer(0, u64::MAX.into()));
     }
 
     #[test]
     fn engines_refused_per_type() {
-        assert_eq!(FormFieldKind::I8.unsupported_on(), &[Engine::Postgres]);
-        assert_eq!(FormFieldKind::U32.unsupported_on(), &[Engine::Postgres]);
+        assert_eq!(FormFieldType::I8.unsupported_on(), &[Engine::Postgres]);
+        assert_eq!(FormFieldType::U32.unsupported_on(), &[Engine::Postgres]);
         assert_eq!(
-            FormFieldKind::U64.unsupported_on(),
+            FormFieldType::U64.unsupported_on(),
             &[Engine::Postgres, Engine::Sqlite]
         );
-        assert!(FormFieldKind::Int.unsupported_on().is_empty());
-        assert!(FormFieldKind::I16.unsupported_on().is_empty());
+        assert!(FormFieldType::Int.unsupported_on().is_empty());
+        assert!(FormFieldType::I16.unsupported_on().is_empty());
     }
 
     #[test]
@@ -290,13 +290,13 @@ mod tests {
 
     #[test]
     fn byte_limit_is_the_column_length() {
-        assert_eq!(FormFieldKind::Binary.byte_limit(None), Some(255));
-        assert_eq!(FormFieldKind::VarBinary.byte_limit(Some(8)), Some(8));
+        assert_eq!(FormFieldType::Binary.byte_limit(None), Some(255));
+        assert_eq!(FormFieldType::VarBinary.byte_limit(Some(8)), Some(8));
         assert_eq!(
-            FormFieldKind::Blob.byte_limit(Some(8)),
+            FormFieldType::Blob.byte_limit(Some(8)),
             None,
             "a blob has no column length"
         );
-        assert_eq!(FormFieldKind::Text.byte_limit(Some(8)), None);
+        assert_eq!(FormFieldType::Text.byte_limit(Some(8)), None);
     }
 }

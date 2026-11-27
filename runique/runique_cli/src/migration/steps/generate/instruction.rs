@@ -5,13 +5,17 @@
 //! - [`write`]: its text, given to the one function that writes that case;
 //! - [`Instruction::order`]: when it runs in `up`;
 //! - [`Instruction::inverse`]: what undoes it;
-//! - [`body`]: a whole `up` or `down`, by its [`Direction`].
+//! - [`Instruction::runs_on`]: whether an engine has anything to run for it;
+//! - [`body`]: a whole `up` or `down`, by its [`Direction`], for an engine.
 //!
 //! A `down` is never written on its own: it is the `up` read backwards, each
 //! instruction replaced by its inverse.
 use super::constraints::fk_constraint_name;
 use super::{create, delete, modify, rename};
-use crate::migration::types::{ColumnType, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema};
+use crate::db::DatabaseEngine;
+use crate::migration::types::{
+    ColumnType, EnumPlace, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema,
+};
 
 /// Which body of a migration is written.
 #[derive(Clone, Copy)]
@@ -33,8 +37,9 @@ pub(super) enum File {
 /// goes before the columns change, what depends on them comes after, and
 /// what destroys data closes the migration. `down` runs the other way.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(super) enum Order {
+pub(crate) enum Order {
     CreateEnumTypes,
+    RenameEnumTypes,
     CreateTable,
     RenameTable,
     RenameIndexes,
@@ -180,12 +185,16 @@ pub(super) enum Rename<'a> {
         from: (&'a ParsedIndex, &'a str),
         to: (&'a ParsedIndex, &'a str),
     },
+    EnumType {
+        from: &'a str,
+        to: &'a str,
+    },
+    /// Once for the enum: `places` are every column that uses it.
     EnumValue {
-        table: &'a str,
-        column: &'a str,
         enum_name: &'a str,
         from: &'a str,
         to: &'a str,
+        places: &'a [EnumPlace],
     },
 }
 
@@ -268,13 +277,13 @@ pub(super) fn write(instruction: &Instruction<'_>) -> String {
                 target,
             ),
             Rename::Index { table, from, to } => rename::index(table, *from, *to),
+            Rename::EnumType { from, to } => rename::enum_type(from, to),
             Rename::EnumValue {
-                table,
-                column,
                 enum_name,
                 from,
                 to,
-            } => rename::enum_value(table, column, enum_name, from, to),
+                places,
+            } => rename::enum_value(enum_name, from, to, places),
         },
     }
 }
@@ -310,6 +319,7 @@ impl<'a> Instruction<'a> {
                 Rename::Index { .. } => Order::RenameIndexes,
                 Rename::Key { .. } => Order::RenameKeys,
                 Rename::Column { .. } => Order::RenameColumns,
+                Rename::EnumType { .. } => Order::RenameEnumTypes,
                 Rename::EnumValue { .. } => Order::RenameEnumValues,
             },
         }
@@ -424,21 +434,37 @@ impl<'a> Instruction<'a> {
                     from: to,
                     to: from,
                 },
+                Rename::EnumType { from, to } => Rename::EnumType { from: to, to: from },
                 Rename::EnumValue {
-                    table,
-                    column,
                     enum_name,
                     from,
                     to,
+                    places,
                 } => Rename::EnumValue {
-                    table,
-                    column,
                     enum_name,
                     from: to,
                     to: from,
+                    places,
                 },
             }),
         })
+    }
+
+    /// Whether `engine` has anything to run for this instruction. Only
+    /// PostgreSQL keeps an enum as an object of its own, with a type to
+    /// create, to rename, to give a value to and to drop: under MySQL and
+    /// SQLite an enum column is text, and of an enum only a renamed value
+    /// has something to write, in the rows. Everything else runs everywhere.
+    pub(super) fn runs_on(&self, engine: &DatabaseEngine) -> bool {
+        match engine {
+            DatabaseEngine::PostgreSQL => true,
+            DatabaseEngine::MySQL | DatabaseEngine::SQLite => !matches!(
+                self,
+                Instruction::Create(Create::EnumType { .. } | Create::EnumValue { .. })
+                    | Instruction::Delete(Delete::EnumType { .. })
+                    | Instruction::Rename(Rename::EnumType { .. })
+            ),
+        }
     }
 }
 
@@ -447,19 +473,31 @@ pub(super) fn chain(instructions: &[Instruction<'_>]) -> String {
     instructions.iter().map(write).collect()
 }
 
-/// A body of a migration that changes a table, from the instructions of its
-/// `up` in any order: `Up` puts them in theirs; `Down` runs that order
-/// backwards, each instruction replaced by its inverse.
-pub(super) fn body(instructions: &[Instruction<'_>], direction: Direction) -> String {
+/// A body of a migration, from the instructions of its `up` in any order:
+/// `Up` puts them in theirs; `Down` runs that order backwards, each
+/// instruction replaced by its inverse. With an `engine`, the body holds
+/// what that engine has something to run for and nothing else; without one
+/// it holds every instruction, for a file that is not written for an engine.
+pub(super) fn body(
+    instructions: &[Instruction<'_>],
+    direction: Direction,
+    engine: Option<&DatabaseEngine>,
+) -> String {
+    let wanted = |instruction: &Instruction<'_>| engine.is_none_or(|e| instruction.runs_on(e));
     let mut ordered: Vec<&Instruction<'_>> = instructions.iter().collect();
     // Stable: the instructions of one step keep the order they were given in.
     ordered.sort_by_key(|instruction| instruction.order());
     match direction {
-        Direction::Up => ordered.into_iter().map(write).collect(),
+        Direction::Up => ordered
+            .into_iter()
+            .filter(|instruction| wanted(instruction))
+            .map(write)
+            .collect(),
         Direction::Down => ordered
             .into_iter()
             .rev()
             .filter_map(|instruction| instruction.inverse())
+            .filter(wanted)
             .map(|instruction| write(&instruction))
             .collect(),
     }

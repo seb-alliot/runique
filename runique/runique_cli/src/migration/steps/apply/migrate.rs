@@ -10,10 +10,12 @@ use crate::migration::steps::generate::lib_file::lib_modules;
 use crate::migration::steps::parser::files::scan::{
     merge_extend_schemas, scan_entities, scan_extend_blocks,
 };
-use crate::migration::steps::parser::files::snapshot::extend_snapshot_content;
+use crate::migration::steps::parser::files::snapshot::{self, extend_snapshot_content};
 use crate::migration::{
-    WAIT_MIGRATION, dropped_table, extend_snapshot_file_path, generate_snapshot_file, has_marker,
-    migration_target, renamed_table, snapshot_file_path, without_marker,
+    ParsedEnum, ParsedSchema, WAIT_MIGRATION, dropped_table, enum_snapshot_file_path, enum_target,
+    enums_of_schemas, extend_snapshot_file_path, generate_enum_snapshot_file,
+    generate_snapshot_file, has_marker, migration_target, read_enum_snapshots, renamed_table,
+    snapshot_file_path, without_marker,
 };
 use anyhow::{Context, Result};
 use runique_i18n::{t, tf};
@@ -37,10 +39,13 @@ pub async fn up(entities_path: &str, migrations_path: &str) -> Result<()> {
 /// After a run that succeeded, in one batch: every migration of `lib.rs`
 /// still tagged as waiting loses its tag, and the table it changed gets its
 /// snapshot written from its model. A model no applied migration concerns is
-/// left without one: its table isn't created yet.
+/// left without one: its table isn't created yet. An enum is recorded the
+/// same way: the migration that created it or changed its values, applied,
+/// gets its snapshot written from the models.
 pub fn record_applied(entities_path: &str, migrations_path: &str) -> Result<()> {
     let mut files: Vec<(PathBuf, String)> = Vec::new();
     let mut targets: Vec<(bool, String)> = Vec::new();
+    let mut enum_targets: Vec<String> = Vec::new();
     // Tables an applied migration dropped, and former names of the ones it
     // renamed: their snapshot goes.
     let mut gone: Vec<String> = Vec::new();
@@ -58,10 +63,14 @@ pub fn record_applied(entities_path: &str, migrations_path: &str) -> Result<()> 
 
             if let Some(table) = dropped_table(&module) {
                 gone.push(table.to_string());
-            } else if let Some((extend, table)) = migration_target(&module)
-                && !targets.iter().any(|(e, t)| *e == extend && t == table)
+            } else if let Some((extend, table)) = migration_target(&module) {
+                if !targets.iter().any(|(e, t)| *e == extend && t == table) {
+                    targets.push((extend, table.to_string()));
+                }
+            } else if let Some(name) = enum_target(&module)
+                && !enum_targets.iter().any(|known| known == name)
             {
-                targets.push((extend, table.to_string()));
+                enum_targets.push(name.to_string());
             }
         }
     }
@@ -74,7 +83,7 @@ pub fn record_applied(entities_path: &str, migrations_path: &str) -> Result<()> 
     targets.retain(|(extend, table)| *extend || !gone.contains(table));
     // The models are only read when a snapshot is to be written: a run that
     // drops the last tables of a project has none left to read.
-    let (models, extends) = if targets.is_empty() {
+    let (models, extends) = if targets.is_empty() && enum_targets.is_empty() {
         (Vec::new(), Vec::new())
     } else {
         (
@@ -87,6 +96,8 @@ pub fn record_applied(entities_path: &str, migrations_path: &str) -> Result<()> 
     if !targets.is_empty() {
         files.extend(cleared_files(entities_path, &targets)?);
     }
+    // The tables whose snapshot this batch writes from their model.
+    let rewritten: Vec<String> = targets.iter().map(|(_, table)| table.clone()).collect();
     // Extensions whose block is gone or has no field left: their snapshot goes.
     let mut emptied: Vec<PathBuf> = Vec::new();
     for (extend, table) in targets {
@@ -104,6 +115,30 @@ pub fn record_applied(entities_path: &str, migrations_path: &str) -> Result<()> 
                 generate_snapshot_file(schema),
             ));
         }
+    }
+
+    // The enums the applied migrations created or changed, as the models
+    // declare them now. One no model declares any more has no snapshot to
+    // write: it goes below, with the last column that used it.
+    if !enum_targets.is_empty() {
+        let declared: Vec<ParsedSchema> = models.iter().chain(&extends).cloned().collect();
+        let applied: Vec<ParsedEnum> = enums_of_schemas(&declared)
+            .into_iter()
+            .filter(|found| enum_targets.contains(&found.name))
+            .collect();
+        for found in &applied {
+            files.push((
+                enum_snapshot_file_path(migrations_path, &found.name).into(),
+                generate_enum_snapshot_file(found),
+            ));
+        }
+        files.extend(tables_following_their_enums(
+            migrations_path,
+            &applied,
+            &declared,
+            &rewritten,
+            &gone,
+        )?);
     }
 
     let mut batch = AtomicBuilder::modify()
@@ -125,6 +160,114 @@ pub fn record_applied(entities_path: &str, migrations_path: &str) -> Result<()> 
         if snapshot.exists() {
             batch = batch.add(snapshot, SourceItems::Remove, false)?;
         }
+    }
+    batch.start()?;
+    drop_unused_enum_snapshots(entities_path, migrations_path)
+}
+
+/// The snapshots of the tables `applied` enums are used by, when no migration
+/// of their own rewrites them (`rewritten`) or takes them away (`gone`): as
+/// (path, content), each with its enum columns as the enum is now, its name
+/// and its values. A renamed enum has no migration of its tables: without
+/// this, their snapshots would still name it as it was, and the rename would
+/// be found again.
+///
+/// Only the enum columns change: the rest of a snapshot is written back as it
+/// was read, never from the model, which may hold changes not migrated yet.
+fn tables_following_their_enums(
+    migrations_path: &str,
+    applied: &[ParsedEnum],
+    declared: &[ParsedSchema],
+    rewritten: &[String],
+    gone: &[String],
+) -> Result<Vec<(PathBuf, String)>> {
+    // (path, the snapshot as read then corrected, of an extension)
+    let mut followed: Vec<(String, ParsedSchema, bool)> = Vec::new();
+    for found in applied {
+        for place in &found.places {
+            if rewritten.contains(&place.table) || gone.contains(&place.table) {
+                continue;
+            }
+            let of_model = snapshot_file_path(migrations_path, &place.table);
+            let of_extension = extend_snapshot_file_path(migrations_path, &place.table);
+            let (path, extension) = if Path::new(&of_model).exists() {
+                (of_model, false)
+            } else if Path::new(&of_extension).exists() {
+                (of_extension, true)
+            } else {
+                continue;
+            };
+            // A snapshot that doesn't record lengths can't be written back
+            // as it was read: `makemigrations` rewrites it first.
+            if !snapshot::records_lengths(&path)? {
+                continue;
+            }
+            let index = match followed.iter().position(|(known, ..)| *known == path) {
+                Some(index) => index,
+                None => {
+                    followed.push((path.clone(), snapshot::parse_create_file(&path)?, extension));
+                    followed.len() - 1
+                }
+            };
+            // The name as the model writes it, which the snapshot keeps.
+            let declared_name = declared
+                .iter()
+                .find(|schema| schema.table_name == place.table)
+                .and_then(|schema| schema.columns.iter().find(|c| c.name == place.column))
+                .and_then(|column| column.enum_name.clone());
+            if let Some(column) = followed[index]
+                .1
+                .columns
+                .iter_mut()
+                .find(|column| column.name == place.column)
+            {
+                column.enum_name = declared_name;
+                column.enum_string_values = found.values.clone();
+            }
+        }
+    }
+    Ok(followed
+        .into_iter()
+        .map(|(path, schema, extension)| {
+            let content = if extension {
+                extend_snapshot_content(&schema)
+            } else {
+                generate_snapshot_file(&schema)
+            };
+            (PathBuf::from(path), content)
+        })
+        .collect())
+}
+
+/// Once the snapshots of the tables are written: the snapshot of an enum no
+/// table uses any more is taken away. Its type went with the last column
+/// that used it, and the same enum declared again later is a new one.
+fn drop_unused_enum_snapshots(entities_path: &str, migrations_path: &str) -> Result<()> {
+    let recorded = read_enum_snapshots(migrations_path)?;
+    if recorded.is_empty() {
+        return Ok(());
+    }
+    let tables: Vec<ParsedSchema> = snapshot::read_all(migrations_path)?
+        .into_iter()
+        .chain(snapshot::read_extend(migrations_path)?)
+        .collect();
+    let used = enums_of_schemas(&tables);
+    let unused: Vec<&ParsedEnum> = recorded
+        .iter()
+        .filter(|enum_snapshot| !used.iter().any(|known| known.name == enum_snapshot.name))
+        .collect();
+    if unused.is_empty() {
+        return Ok(());
+    }
+    let mut batch = AtomicBuilder::modify()
+        .journal(migrations_path)
+        .beside(entities_path);
+    for gone in unused {
+        batch = batch.add(
+            PathBuf::from(enum_snapshot_file_path(migrations_path, &gone.name)),
+            SourceItems::Remove,
+            false,
+        )?;
     }
     batch.start()?;
     Ok(())

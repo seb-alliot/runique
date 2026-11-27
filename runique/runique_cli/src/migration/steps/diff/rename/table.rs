@@ -1,11 +1,15 @@
-use super::*;
+//! A table renamed.
+use crate::migration::*;
+use anyhow::Result;
+use runique_i18n::tf;
+use std::path::Path;
 
 /// The declared renames (`declared`: former table, table) that hold: the
 /// former name has a snapshot and no model any more, and the new name has no
 /// snapshot yet. Same guard as a column's `renamed_from`: once applied, or
 /// when it never matched, the declaration does nothing. Two tables can't
 /// both come from one.
-pub(crate) fn effective_renames(
+pub fn effective_renames(
     declared: &[(String, String)],
     schemas: &[ParsedSchema],
     paused: &[String],

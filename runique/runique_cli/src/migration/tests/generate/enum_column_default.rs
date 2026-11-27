@@ -76,10 +76,23 @@ fn extend_enum_column_default_is_emitted_on_add_all_engines() {
     );
     assert!(
         sql.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
-        "CREATE TYPE must be runtime-guarded to Postgres:\n{sql}"
+        "the type of the column must be chosen when the migration runs:\n{sql}"
+    );
+    // The type is the enum's to create, in its own migration, earlier in the
+    // run: the file that adds the column finds it there.
+    assert!(
+        !sql.contains("Type::create()") && !sql.contains("create_enum_type"),
+        "the file of the table must not create the enum type:\n{sql}"
+    );
+    let found = enums_of_schemas(std::slice::from_ref(schema));
+    let created = generate_enum_file(
+        &diff_enum(None, &found[0]),
+        &crate::db::DatabaseEngine::PostgreSQL,
     );
     assert!(
-        sql.contains("Type::create()"),
-        "must still create the enum type:\n{sql}"
+        created.contains(
+            r#"runique_cli::migration::runtime::create_enum_type(manager, "status", &["Draft", "Published", "Archived"]).await?;"#
+        ),
+        "the enum's own migration creates the type with the default among its values:\n{created}"
     );
 }

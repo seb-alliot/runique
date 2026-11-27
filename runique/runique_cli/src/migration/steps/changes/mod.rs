@@ -7,11 +7,14 @@ mod delete;
 mod modify;
 mod rename;
 
+mod check_parallel;
+
 pub mod destructive;
 pub mod name_length_limit;
 pub(crate) mod report;
 
-pub use create::topological_sort_changes;
+pub use check_parallel::check_parallel;
+pub use create::{cycle_keys, topological_sort_changes};
 pub use delete::drop_order;
 pub use destructive::*;
 pub use modify::{

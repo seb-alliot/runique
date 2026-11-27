@@ -18,24 +18,24 @@ pub(crate) fn column_type(all_changes: &[Changes]) -> Vec<Destructive> {
                 })
                 .map(move |(old, new)| {
                     let column = old.name.clone();
-                    let kind = if old.col_type != new.col_type {
-                        DestructiveKind::ChangeType {
+                    let item = if old.col_type != new.col_type {
+                        DestructiveItem::ChangeType {
                             column,
                             from: old.col_type.to_string(),
                             to: new.col_type.to_string(),
                         }
                     } else if new.enum_string_values.is_empty() {
-                        DestructiveKind::LeaveEnum {
+                        DestructiveItem::LeaveEnum {
                             column,
                             to: new.col_type.to_string(),
                         }
                     } else {
-                        DestructiveKind::EnterEnum {
+                        DestructiveItem::EnterEnum {
                             column,
                             from: old.col_type.to_string(),
                         }
                     };
-                    found(c, kind)
+                    found(c, item)
                 })
         })
         .collect()

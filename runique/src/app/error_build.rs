@@ -5,13 +5,13 @@ use std::fmt;
 /// Main build phase error
 #[derive(Debug, Clone)]
 pub struct BuildError {
-    pub kind: BuildErrorKind,
+    pub failure: BuildFailure,
     pub context: Option<String>,
 }
 
 /// Possible error types during build
 #[derive(Debug, Clone)]
-pub enum BuildErrorKind {
+pub enum BuildFailure {
     /// Structural validation failed (missing component, invalid config)
     ValidationFailed(String),
 
@@ -55,7 +55,7 @@ impl BuildError {
     /// Creates a validation error
     pub fn validation(msg: impl Into<String>) -> Self {
         Self {
-            kind: BuildErrorKind::ValidationFailed(msg.into()),
+            failure: BuildFailure::ValidationFailed(msg.into()),
             context: None,
         }
     }
@@ -63,7 +63,7 @@ impl BuildError {
     /// Creates a health check error
     pub fn check(report: CheckReport) -> Self {
         Self {
-            kind: BuildErrorKind::CheckFailed(report),
+            failure: BuildFailure::CheckFailed(report),
             context: None,
         }
     }
@@ -71,7 +71,7 @@ impl BuildError {
     /// Creates a template error
     pub fn template(err: impl Into<String>) -> Self {
         Self {
-            kind: BuildErrorKind::TemplateLoadFailed(err.into()),
+            failure: BuildFailure::TemplateLoadFailed(err.into()),
             context: None,
         }
     }
@@ -79,7 +79,7 @@ impl BuildError {
     /// Creates a missing DB error
     pub fn database_missing() -> Self {
         Self {
-            kind: BuildErrorKind::DatabaseMissing,
+            failure: BuildFailure::DatabaseMissing,
             context: None,
         }
     }
@@ -142,15 +142,15 @@ impl CheckError {
 
 impl fmt::Display for BuildError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.kind {
-            BuildErrorKind::ValidationFailed(msg) => {
+        match &self.failure {
+            BuildFailure::ValidationFailed(msg) => {
                 write!(
                     f,
                     "{}",
                     tf(runique_i18n::keys::build::error::VALIDATION_FAILED, &[msg])
                 )?;
             }
-            BuildErrorKind::CheckFailed(report) => {
+            BuildFailure::CheckFailed(report) => {
                 writeln!(
                     f,
                     "{}",
@@ -176,17 +176,17 @@ impl fmt::Display for BuildError {
                     }
                 }
             }
-            BuildErrorKind::TemplateLoadFailed(msg) => {
+            BuildFailure::TemplateLoadFailed(msg) => {
                 write!(
                     f,
                     "{}",
                     tf(runique_i18n::keys::build::error::TEMPLATE_FAILED, &[msg])
                 )?;
             }
-            BuildErrorKind::DatabaseMissing => {
+            BuildFailure::DatabaseMissing => {
                 write!(f, "{}", t(runique_i18n::keys::build::error::DB_MISSING))?;
             }
-            BuildErrorKind::ComponentNotReady(component) => {
+            BuildFailure::ComponentNotReady(component) => {
                 write!(
                     f,
                     "{}",

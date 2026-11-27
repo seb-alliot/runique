@@ -404,7 +404,7 @@ fn an_extend_change_enters_the_plan_with_its_module_and_no_snapshot() {
     );
 
     let mut plan = Plan::default();
-    build_extend_plan(&mut plan, &planned, m, "20260101_000000", &[]);
+    build_extend_plan(&mut plan, &planned, m, "20260101_000000");
 
     let paths: Vec<&str> = plan.files.iter().map(|(path, _)| path.as_str()).collect();
     assert_eq!(
@@ -423,8 +423,16 @@ fn an_extend_change_enters_the_plan_with_its_module_and_no_snapshot() {
 
     // Nothing to extend: the plan is left as it was.
     let mut empty = Plan::default();
-    build_extend_plan(&mut empty, &[], m, "20260101_000000", &[]);
+    build_extend_plan(&mut empty, &[], m, "20260101_000000");
     assert!(empty.files.is_empty() && empty.lib_modules.is_empty());
+}
+
+/// `files` as a run writes them: tagged as waiting, each starting from the
+/// last migration of `settled` about the same thing.
+fn as_written(files: Plan, settled: &[String]) -> Plan {
+    let mut stages = Stages::default();
+    *stages.files_of(Stage::Tables) = files;
+    stages.in_order(settled)
 }
 
 // ── The tag of a migration nothing applied yet ───────────────────────────────
@@ -451,15 +459,15 @@ fn every_generated_migration_starts_with_the_waiting_tag() {
         &[menus.clone(), plats.clone()],
         "m",
         "20260101_000000",
-        &[],
     );
     build_extend_plan(
         &mut plan,
         &[(users.clone(), altered(&users))],
         "m",
         "20260101_000000",
-        &[],
     );
+
+    let plan = as_written(plan, &[]);
 
     assert_eq!(
         plan.lib_modules,
@@ -488,8 +496,9 @@ fn a_tagged_migration_is_still_read_back() {
         std::slice::from_ref(&menus),
         "m",
         "20260101_000000",
-        &[],
     );
+
+    let plan = as_written(plan, &[]);
 
     let read = parse_seaorm_source(&plan.files[0].1).unwrap();
     assert_eq!(read.table_name, "menus");
@@ -890,49 +899,101 @@ fn a_file_added_in_a_folder_the_run_created_stops_the_command() {
     assert_eq!(dir.entries(), on_disk);
 }
 
-// ── The steps of a run ───────────────────────────────────────────────────────
+// ── The stages of a run ──────────────────────────────────────────────────────
 
-// The plan comes out in the order of the run, each file beside its module.
+const STAGES: [(Stage, &str); 5] = [
+    (Stage::CreateEnums, "create_enums"),
+    (Stage::RenameEnums, "rename_enums"),
+    (Stage::Tables, "tables"),
+    (Stage::EnumValues, "enum_values"),
+    (Stage::DropTables, "drop_tables"),
+];
+
+// The plan comes out in the order of the run, each file beside its module,
+// whatever the order the stages were filled in.
 #[test]
-fn the_steps_of_a_run_come_out_in_their_order() {
-    let step = |name: &str| Plan {
-        files: vec![(format!("{name}.rs"), name.to_string())],
-        lib_modules: vec![name.to_string()],
-        ..Plan::default()
-    };
-    let steps = Run {
-        deleted: step("deleted"),
-        enums_modified: step("enums_modified"),
-        tables: step("tables"),
-        enums_created: step("enums_created"),
-    };
+fn the_stages_of_a_run_come_out_in_their_order() {
+    let mut stages = Stages::default();
+    for (stage, name) in STAGES.iter().rev() {
+        let files = stages.files_of(*stage);
+        files.files.push((format!("{name}.rs"), name.to_string()));
+        files.lib_modules.push(name.to_string());
+    }
 
-    let plan = steps.in_order();
+    let plan = stages.in_order(&[]);
 
-    let order = ["enums_created", "tables", "enums_modified", "deleted"];
+    let order = STAGES.map(|(_, name)| name);
     assert_eq!(plan.lib_modules, order);
     let files: Vec<&str> = plan
         .files
         .iter()
-        .map(|(_, content)| content.as_str())
+        .map(|(_, content)| content.lines().last().unwrap())
         .collect();
     assert_eq!(files, order);
     assert!(plan.dropped_modules.is_empty());
 }
 
-// A step given several files keeps them as they were given.
+// Each stage has a place of its own: two that shared one would be mixed.
 #[test]
-fn the_files_of_a_step_keep_the_order_they_were_given_in() {
-    let mut steps = Run::default();
+fn every_stage_has_its_own_place() {
+    let places: std::collections::BTreeSet<Order> =
+        STAGES.iter().map(|(stage, _)| Order::of(*stage)).collect();
+
+    assert_eq!(places.len(), STAGES.len());
+}
+
+// A stage given several files keeps them as they were given.
+#[test]
+fn the_files_of_a_stage_keep_the_order_they_were_given_in() {
+    let mut stages = Stages::default();
+    let tables = stages.files_of(Stage::Tables);
     for name in ["shop", "book", "author"] {
-        steps
-            .tables
-            .files
-            .push((format!("{name}.rs"), String::new()));
-        steps.tables.lib_modules.push(name.to_string());
+        tables.files.push((format!("{name}.rs"), String::new()));
+        tables.lib_modules.push(name.to_string());
     }
 
-    assert_eq!(steps.in_order().lib_modules, ["shop", "book", "author"]);
+    assert_eq!(stages.in_order(&[]).lib_modules, ["shop", "book", "author"]);
+}
+
+// A file starts from the last migration about the same thing, and one the
+// run puts before it counts like a settled one: an enum renamed then given a
+// value has two migrations, the second starting from the first.
+#[test]
+fn a_file_starts_from_what_the_run_puts_before_it() {
+    let mut stages = Stages::default();
+    for (stage, module) in [
+        (Stage::EnumValues, "m20260101_000000_alter_genre_enum"),
+        (Stage::RenameEnums, "m20260101_000000_rename_genre_enum"),
+        (Stage::Tables, "m20260101_000000_alter_books_table"),
+    ] {
+        let files = stages.files_of(stage);
+        files.files.push((format!("{module}.rs"), String::new()));
+        files.lib_modules.push(module.to_string());
+    }
+    let settled = [
+        "m20250101_000000_create_genre_enum".to_string(),
+        "m20250101_000000_create_books_table".to_string(),
+    ];
+
+    let plan = stages.in_order(&settled);
+
+    assert_eq!(
+        plan.lib_modules,
+        [
+            "m20260101_000000_rename_genre_enum",
+            "m20260101_000000_alter_books_table",
+            "m20260101_000000_alter_genre_enum",
+        ]
+    );
+    let from: Vec<Option<&str>> = plan.files.iter().map(|(_, c)| started_from(c)).collect();
+    assert_eq!(
+        from,
+        [
+            Some("m20250101_000000_create_genre_enum"),
+            Some("m20250101_000000_create_books_table"),
+            Some("m20260101_000000_rename_genre_enum"),
+        ]
+    );
 }
 
 // ── `makemigrations`: the database first ─────────────────────────────────────
@@ -955,14 +1016,11 @@ async fn with_a_reachable_database_the_command_runs() {
     let (entities, migrations) = (temp("ent_db_ok"), temp("mig_db_ok"));
     let get = |key: &str| (key == "DATABASE_URL").then(|| "sqlite::memory:".to_string());
 
-    let result = makemigrations_with(
-        get,
-        project_with(&["orm", "sqlite"]),
-        entities.to_str().unwrap(),
-        migrations.to_str().unwrap(),
-        false,
-    )
-    .await;
+    let result = BuilderMaster::new(entities.to_str().unwrap(), migrations.to_str().unwrap())
+        .env(get)
+        .cargo(project_with(&["orm", "sqlite"]))
+        .run()
+        .await;
     // `run` creates the snapshot folder first: proof the command went on.
     let reached = Path::new(&snapshot_dir(migrations.to_str().unwrap())).exists();
     let _ = (
@@ -984,15 +1042,12 @@ async fn with_an_unreachable_database_nothing_is_written() {
             .then(|| "postgres://app:s3cr3t-Pw@127.0.0.1:1/shop?password=0ther-Pw".to_string())
     };
 
-    let error = makemigrations_with(
-        get,
-        project_with(&["orm", "postgres"]),
-        entities.to_str().unwrap(),
-        migrations.to_str().unwrap(),
-        false,
-    )
-    .await
-    .unwrap_err();
+    let error = BuilderMaster::new(entities.to_str().unwrap(), migrations.to_str().unwrap())
+        .env(get)
+        .cargo(project_with(&["orm", "postgres"]))
+        .run()
+        .await
+        .unwrap_err();
     let written = fs::read_dir(&migrations).unwrap().count();
     let _ = (
         fs::remove_dir_all(&entities),
@@ -1012,16 +1067,13 @@ async fn an_engine_the_project_is_not_compiled_for_stops_the_command() {
     let (entities, migrations) = (temp("ent_engine_ko"), temp("mig_engine_ko"));
     let get = |key: &str| (key == "DATABASE_URL").then(|| "sqlite::memory:".to_string());
 
-    let error = makemigrations_with(
-        get,
-        project_with(&["orm", "postgres"]),
-        entities.to_str().unwrap(),
-        migrations.to_str().unwrap(),
-        false,
-    )
-    .await
-    .unwrap_err()
-    .to_string();
+    let error = BuilderMaster::new(entities.to_str().unwrap(), migrations.to_str().unwrap())
+        .env(get)
+        .cargo(project_with(&["orm", "postgres"]))
+        .run()
+        .await
+        .unwrap_err()
+        .to_string();
     let written = fs::read_dir(&migrations).unwrap().count();
     let _ = (
         fs::remove_dir_all(&entities),
@@ -1045,16 +1097,13 @@ async fn without_cargo_s_answer_the_command_stops() {
     let (entities, migrations) = (temp("ent_cargo_ko"), temp("mig_cargo_ko"));
     let get = |key: &str| (key == "DATABASE_URL").then(|| "sqlite::memory:".to_string());
 
-    let error = makemigrations_with(
-        get,
-        || anyhow::bail!("no Cargo.toml here"),
-        entities.to_str().unwrap(),
-        migrations.to_str().unwrap(),
-        false,
-    )
-    .await
-    .unwrap_err()
-    .to_string();
+    let error = BuilderMaster::new(entities.to_str().unwrap(), migrations.to_str().unwrap())
+        .env(get)
+        .cargo(|| anyhow::bail!("no Cargo.toml here"))
+        .run()
+        .await
+        .unwrap_err()
+        .to_string();
     let written = fs::read_dir(&migrations).unwrap().count();
     let _ = (
         fs::remove_dir_all(&entities),
@@ -1568,15 +1617,15 @@ fn a_planned_migration_starts_from_the_last_settled_one_of_its_table() {
         &[menus.clone(), plats.clone()],
         "m",
         "20260101_000000",
-        &settled,
     );
     build_extend_plan(
         &mut plan,
         &[(users.clone(), altered(&users))],
         "m",
         "20260101_000000",
-        &settled,
     );
+
+    let plan = as_written(plan, &settled);
 
     let from: Vec<Option<&str>> = plan.files.iter().map(|(_, c)| started_from(c)).collect();
     assert_eq!(
@@ -1827,7 +1876,7 @@ fn a_dropped_table_is_announced_as_a_loss_of_data() {
 fn tables_are_dropped_from_the_one_that_references() {
     let order = |tables: Vec<ParsedSchema>| -> Vec<String> {
         let mut plan = Plan::default();
-        build_drop_plan(&mut plan, &tables, "m", "20260101_000000", &[]);
+        build_drop_plan(&mut plan, &tables, "m", "20260101_000000");
         plan.lib_modules
             .iter()
             .map(|m| migration_target(m).unwrap().1.to_string())
@@ -1875,8 +1924,8 @@ fn a_drop_migration_mirrors_the_creation() {
         std::slice::from_ref(&menus),
         "m",
         "20260101_000000",
-        &["m20250101_000000_create_menus_table".to_string()],
     );
+    let plan = as_written(plan, &["m20250101_000000_create_menus_table".to_string()]);
 
     assert_eq!(plan.lib_modules, ["m20260101_000000_drop_menus_table"]);
     let (path, content) = &plan.files[0];
@@ -1913,7 +1962,6 @@ fn a_cycle_of_dropped_tables_loses_its_closing_key_first() {
         &[schema("a", &["b"]), schema("b", &["a"])],
         "m",
         "20260101_000000",
-        &[],
     );
 
     // Created `a` then `b`: dropped `b` first, which `a` still points to.
@@ -3880,4 +3928,807 @@ fn the_command_writes_nothing_when_an_enum_is_declared_twice() {
     .unwrap();
     run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     assert_eq!(generated(&path).len(), 3);
+}
+
+// ── An enum through the whole command: its own migrations, its snapshot ──────
+
+const BOOKS: &str = r#"model! { Book, table: "books", pk: id => i32, enums: { Genre: [Roman, Policier] },
+    { title: text [required], genre: choice [enum(Genre), required], genres: checkbox [enum(Genre)] } }"#;
+
+/// The migrations of `lib.rs` in the order they run, each without its date:
+/// `create_books_table`, `alter_genre_enum`.
+fn migration_names(path: &str) -> Vec<String> {
+    lib_modules(path)
+        .unwrap()
+        .iter()
+        .filter_map(|module| module.strip_prefix('m')?.splitn(3, '_').nth(2))
+        .map(str::to_string)
+        .collect()
+}
+
+/// The content of the migration of `lib.rs` whose name ends on `ending`.
+fn migration(path: &str, ending: &str) -> String {
+    let module = lib_modules(path)
+        .unwrap()
+        .into_iter()
+        .find(|module| module.ends_with(ending))
+        .unwrap_or_else(|| panic!("no migration ends on {ending}"));
+    fs::read_to_string(format!("{path}/{module}.rs")).unwrap()
+}
+
+/// The values the snapshot of the enum `genre` holds, when there is one.
+fn genre_recorded(path: &str) -> Option<Vec<String>> {
+    read_enum_snapshots(path)
+        .unwrap()
+        .into_iter()
+        .find(|recorded| recorded.name == "genre")
+        .map(|recorded| recorded.values)
+}
+
+/// A project whose `books` model is migrated and applied on `engine`.
+fn books_applied(dir: &TempDir, engine: DatabaseEngine) -> (String, String) {
+    let (entities, path) = project(dir);
+    fs::write(format!("{entities}/book.rs"), BOOKS).unwrap();
+    run(&entities, &path, false, engine).unwrap();
+    applied(&entities, &path);
+    (entities, path)
+}
+
+// A new enum has its own migration, before the tables that use it: under
+// PostgreSQL it creates the type, which the files of the tables don't.
+#[test]
+fn a_new_enum_is_created_by_its_own_migration_before_its_tables() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/book.rs"), BOOKS).unwrap();
+
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+
+    assert_eq!(
+        migration_names(&path),
+        [
+            "create_genre_enum",
+            "create_books_table",
+            "create_books_genres_table"
+        ]
+    );
+    let of_enum = migration(&path, "create_genre_enum");
+    assert!(has_marker(&of_enum, WAIT_MIGRATION));
+    assert!(
+        of_enum.contains(
+            r#"runtime::create_enum_type(manager, "genre", &["Roman", "Policier"]).await?;"#
+        ),
+        "{of_enum}"
+    );
+    for table in ["create_books_table", "create_books_genres_table"] {
+        let of_table = migration(&path, table);
+        assert!(!of_table.contains("create_enum_type"), "{of_table}");
+        assert!(!of_table.contains("Type::create()"), "{of_table}");
+    }
+    // Not applied yet: the enum has no snapshot.
+    assert_eq!(genre_recorded(&path), None);
+}
+
+// Applied, the enum is recorded; run again, the command has nothing to write.
+#[test]
+fn an_applied_enum_is_recorded_and_not_migrated_again() {
+    let dir = TempDir::new();
+    let (entities, path) = books_applied(&dir, DatabaseEngine::PostgreSQL);
+
+    assert_eq!(
+        genre_recorded(&path),
+        Some(vec!["Roman".to_string(), "Policier".to_string()])
+    );
+    assert!(!has_marker(
+        &migration(&path, "create_genre_enum"),
+        WAIT_MIGRATION
+    ));
+
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+    assert_eq!(
+        migration_names(&path).len(),
+        3,
+        "{:?}",
+        migration_names(&path)
+    );
+}
+
+// A value renamed in an enum two columns use: one migration, the enum's,
+// after the tables, with one rename that names both columns. No table has a
+// migration of its own.
+#[test]
+fn a_renamed_value_is_one_migration_of_the_enum_with_every_place() {
+    let dir = TempDir::new();
+    let (entities, path) = books_applied(&dir, DatabaseEngine::PostgreSQL);
+    fs::write(
+        format!("{entities}/book.rs"),
+        BOOKS.replace("[Roman, Policier]", "[Novel, Policier]"),
+    )
+    .unwrap();
+
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+
+    assert_eq!(
+        migration_names(&path),
+        [
+            "create_genre_enum",
+            "create_books_table",
+            "create_books_genres_table",
+            "alter_genre_enum"
+        ]
+    );
+    let of_enum = migration(&path, "alter_genre_enum");
+    let up = of_enum.split("async fn down").next().unwrap();
+    assert_eq!(up.matches("rename_enum_value").count(), 1, "{of_enum}");
+    assert!(
+        up.contains(
+            r#"runtime::rename_enum_value(manager, "genre", "Roman", "Novel", &[("books", "genre"), ("books_genres", "value")]).await?;"#
+        ),
+        "{of_enum}"
+    );
+    // Waiting: the snapshot still holds what the database has.
+    assert_eq!(
+        genre_recorded(&path),
+        Some(vec!["Roman".to_string(), "Policier".to_string()])
+    );
+
+    applied(&entities, &path);
+    assert_eq!(
+        genre_recorded(&path),
+        Some(vec!["Novel".to_string(), "Policier".to_string()])
+    );
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+    assert_eq!(
+        migration_names(&path).len(),
+        4,
+        "{:?}",
+        migration_names(&path)
+    );
+}
+
+// Where the column is text, the enum has nothing to run when it is created or
+// given a value: its migration says so, and is still what records it. Without
+// it the snapshot would keep the former values, and the next rename would be
+// taken for an addition.
+#[test]
+fn where_the_column_is_text_the_enum_is_still_recorded() {
+    for engine in [DatabaseEngine::SQLite, DatabaseEngine::MySQL] {
+        let dir = TempDir::new();
+        let (entities, path) = books_applied(&dir, engine.clone());
+
+        let created = migration(&path, "create_genre_enum");
+        assert!(
+            created.contains("Nothing to run on this engine"),
+            "{created}"
+        );
+        assert!(!created.contains("create_enum_type"), "{created}");
+        assert_eq!(
+            genre_recorded(&path),
+            Some(vec!["Roman".to_string(), "Policier".to_string()])
+        );
+
+        fs::write(
+            format!("{entities}/book.rs"),
+            BOOKS.replace("[Roman, Policier]", "[Roman, Policier, Essai]"),
+        )
+        .unwrap();
+        run(&entities, &path, false, engine.clone()).unwrap();
+        let added = migration(&path, "alter_genre_enum");
+        assert!(added.contains("Nothing to run on this engine"), "{added}");
+        assert!(!added.contains("add_enum_value"), "{added}");
+
+        applied(&entities, &path);
+        assert_eq!(
+            genre_recorded(&path).unwrap(),
+            ["Roman", "Policier", "Essai"]
+        );
+        // Recorded: nothing left to migrate.
+        run(&entities, &path, false, engine).unwrap();
+        assert_eq!(
+            migration_names(&path).len(),
+            4,
+            "{:?}",
+            migration_names(&path)
+        );
+    }
+}
+
+// A project migrated before enums had snapshots: its enums are known from the
+// snapshots of its tables. They are not created again, and each gets its
+// snapshot with the values the database has, with no migration.
+#[test]
+fn a_project_without_enum_snapshots_gets_them_with_no_migration() {
+    let dir = TempDir::new();
+    let (entities, path) = books_applied(&dir, DatabaseEngine::PostgreSQL);
+    fs::remove_dir_all(enum_snapshot_dir(&path)).unwrap();
+
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+
+    assert_eq!(
+        migration_names(&path).len(),
+        3,
+        "{:?}",
+        migration_names(&path)
+    );
+    assert_eq!(
+        genre_recorded(&path),
+        Some(vec!["Roman".to_string(), "Policier".to_string()])
+    );
+}
+
+// The same project, with a value renamed since: the snapshot written holds
+// the former value, the one the database has, and the rename is migrated.
+#[test]
+fn a_project_without_enum_snapshots_still_has_its_rename_found() {
+    let dir = TempDir::new();
+    let (entities, path) = books_applied(&dir, DatabaseEngine::PostgreSQL);
+    fs::remove_dir_all(enum_snapshot_dir(&path)).unwrap();
+    fs::write(
+        format!("{entities}/book.rs"),
+        BOOKS.replace("[Roman, Policier]", "[Novel, Policier]"),
+    )
+    .unwrap();
+
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+
+    assert_eq!(migration_names(&path).last().unwrap(), "alter_genre_enum");
+    assert_eq!(
+        migration_names(&path).len(),
+        4,
+        "{:?}",
+        migration_names(&path)
+    );
+    let of_enum = migration(&path, "alter_genre_enum");
+    assert!(
+        of_enum.contains(r#"rename_enum_value(manager, "genre", "Roman", "Novel","#),
+        "{of_enum}"
+    );
+    assert!(!of_enum.contains("create_enum_type"), "{of_enum}");
+    assert_eq!(
+        genre_recorded(&path),
+        Some(vec!["Roman".to_string(), "Policier".to_string()])
+    );
+}
+
+// An enum that is new and one whose values change, in one run: the first
+// before the tables, the second after them.
+#[test]
+fn a_created_enum_runs_before_the_tables_and_a_changed_one_after() {
+    let dir = TempDir::new();
+    let (entities, path) = books_applied(&dir, DatabaseEngine::PostgreSQL);
+    fs::write(
+        format!("{entities}/book.rs"),
+        BOOKS.replace("[Roman, Policier]", "[Roman, Policier, Essai]"),
+    )
+    .unwrap();
+    fs::write(
+        format!("{entities}/shop.rs"),
+        r#"model! { Shop, table: "shops", pk: id => i32, enums: { Size: [Small, Large] },
+            { name: text [required], size: choice [enum(Size), required] } }"#,
+    )
+    .unwrap();
+
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+
+    assert_eq!(
+        migration_names(&path)[3..],
+        ["create_size_enum", "create_shops_table", "alter_genre_enum"]
+    );
+    assert!(
+        migration(&path, "alter_genre_enum")
+            .contains(r#"runtime::add_enum_value(manager, "genre", "Essai").await?;"#)
+    );
+}
+
+// The enum goes with the last table that used it: once the drop is applied,
+// its snapshot is taken away, and the same enum declared again is a new one.
+#[test]
+fn an_enum_no_table_uses_any_more_loses_its_snapshot() {
+    let dir = TempDir::new();
+    let (entities, path) = books_applied(&dir, DatabaseEngine::PostgreSQL);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    fs::remove_file(format!("{entities}/book.rs")).unwrap();
+
+    run(&entities, &path, true, DatabaseEngine::PostgreSQL).unwrap();
+    // Waiting: the tables are still there, and so is the enum.
+    assert!(genre_recorded(&path).is_some());
+
+    applied(&entities, &path);
+    assert_eq!(genre_recorded(&path), None);
+    assert!(!Path::new(&enum_snapshot_file_path(&path, "genre")).exists());
+}
+
+// The other side: an enum still used by a table keeps its snapshot when
+// another table is dropped.
+#[test]
+fn an_enum_still_used_keeps_its_snapshot() {
+    let dir = TempDir::new();
+    let (entities, path) = books_applied(&dir, DatabaseEngine::PostgreSQL);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+    applied(&entities, &path);
+    fs::remove_file(format!("{entities}/user.rs")).unwrap();
+
+    run(&entities, &path, true, DatabaseEngine::PostgreSQL).unwrap();
+    applied(&entities, &path);
+
+    assert_eq!(
+        genre_recorded(&path),
+        Some(vec!["Roman".to_string(), "Policier".to_string()])
+    );
+}
+
+// ── An enum renamed, through the whole command ───────────────────────────────
+
+/// `BOOKS` with its enum under the name `Category`.
+fn books_as_category() -> String {
+    BOOKS.replace("Genre", "Category")
+}
+
+/// The enum the snapshot of `table` names for `column`.
+fn enum_in_snapshot(path: &str, table: &str, column: &str) -> Option<String> {
+    parse_create_file(&snapshot_file_path(path, table))
+        .unwrap()
+        .columns
+        .into_iter()
+        .find(|found| found.name == column)
+        .and_then(|found| found.enum_name)
+}
+
+/// The names of the enums that have a snapshot.
+fn enums_recorded(path: &str) -> Vec<String> {
+    read_enum_snapshots(path)
+        .unwrap()
+        .into_iter()
+        .map(|recorded| recorded.name)
+        .collect()
+}
+
+// The enum of two columns takes another name in the model: one migration,
+// the enum's, before any table, that renames it. Nothing is created, and no
+// table has a migration of its own.
+#[test]
+fn a_renamed_enum_is_one_migration_that_renames_it() {
+    let dir = TempDir::new();
+    let (entities, path) = books_applied(&dir, DatabaseEngine::PostgreSQL);
+    fs::write(format!("{entities}/book.rs"), books_as_category()).unwrap();
+
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+
+    assert_eq!(migration_names(&path)[3..], ["rename_category_enum"]);
+    let of_enum = migration(&path, "rename_category_enum");
+    let up = of_enum.split("async fn down").next().unwrap();
+    assert!(
+        up.contains(r#"runtime::rename_enum_type(manager, "genre", "category").await?;"#),
+        "{of_enum}"
+    );
+    assert!(!of_enum.contains("create_enum_type"), "{of_enum}");
+    // Waiting: the snapshots still tell what the database has.
+    assert_eq!(enums_recorded(&path), ["genre"]);
+}
+
+// Applied: the enum is recorded under its new name and no longer under the
+// former one, the snapshots of its tables name it as it is, and the command
+// has nothing left to write.
+#[test]
+fn an_applied_rename_is_followed_by_every_snapshot() {
+    for engine in [
+        DatabaseEngine::PostgreSQL,
+        DatabaseEngine::MySQL,
+        DatabaseEngine::SQLite,
+    ] {
+        let dir = TempDir::new();
+        let (entities, path) = books_applied(&dir, engine.clone());
+        let books_before = fs::read_to_string(snapshot_file_path(&path, "books")).unwrap();
+        fs::write(format!("{entities}/book.rs"), books_as_category()).unwrap();
+        run(&entities, &path, false, engine.clone()).unwrap();
+
+        applied(&entities, &path);
+
+        assert_eq!(enums_recorded(&path), ["category"]);
+        assert_eq!(
+            enum_in_snapshot(&path, "books", "genre").as_deref(),
+            Some("Category")
+        );
+        assert_eq!(
+            enum_in_snapshot(&path, "books_genres", "value").as_deref(),
+            Some("Category")
+        );
+        // Nothing but the name of the enum changed in the table's snapshot.
+        assert_eq!(
+            fs::read_to_string(snapshot_file_path(&path, "books")).unwrap(),
+            books_before.replace("\"Genre\"", "\"Category\"")
+        );
+
+        run(&entities, &path, false, engine).unwrap();
+        assert_eq!(
+            migration_names(&path).len(),
+            4,
+            "{:?}",
+            migration_names(&path)
+        );
+    }
+}
+
+// Where the column is text the rename has nothing to run, and is still what
+// makes the snapshots follow.
+#[test]
+fn where_the_column_is_text_a_renamed_enum_is_a_migration_that_runs_nothing() {
+    let dir = TempDir::new();
+    let (entities, path) = books_applied(&dir, DatabaseEngine::SQLite);
+    fs::write(format!("{entities}/book.rs"), books_as_category()).unwrap();
+
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
+
+    let of_enum = migration(&path, "rename_category_enum");
+    assert!(
+        of_enum.contains("Nothing to run on this engine"),
+        "{of_enum}"
+    );
+    assert!(!of_enum.contains("rename_enum_type"), "{of_enum}");
+}
+
+// Renamed, and a value renamed too: the enum takes its name before the
+// tables, its value after them, under the new name of the enum.
+#[test]
+fn a_renamed_enum_with_a_renamed_value_is_two_migrations() {
+    let dir = TempDir::new();
+    let (entities, path) = books_applied(&dir, DatabaseEngine::PostgreSQL);
+    fs::write(
+        format!("{entities}/book.rs"),
+        books_as_category().replace("[Roman, Policier]", "[Novel, Policier]"),
+    )
+    .unwrap();
+
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+
+    assert_eq!(
+        migration_names(&path)[3..],
+        ["rename_category_enum", "alter_category_enum"]
+    );
+    let values = migration(&path, "alter_category_enum");
+    // The second starts from the first: two migrations of one enum that
+    // started from the same point would be taken for a parallel change.
+    let renaming = lib_modules(&path).unwrap()[3].clone();
+    assert_eq!(started_from(&values), Some(renaming.as_str()));
+    assert_ne!(
+        started_from(&migration(&path, "rename_category_enum")),
+        started_from(&values)
+    );
+    assert!(
+        values.contains(
+            r#"runtime::rename_enum_value(manager, "category", "Roman", "Novel", &[("books", "genre"), ("books_genres", "value")]).await?;"#
+        ),
+        "{values}"
+    );
+
+    applied(&entities, &path);
+    assert_eq!(enums_recorded(&path), ["category"]);
+    assert_eq!(
+        read_enum_snapshots(&path).unwrap()[0].values,
+        ["Novel", "Policier"]
+    );
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+    assert_eq!(
+        migration_names(&path).len(),
+        5,
+        "{:?}",
+        migration_names(&path)
+    );
+}
+
+// A value renamed with nothing else: the snapshots of the tables take the
+// new value too, though no table has a migration of its own.
+#[test]
+fn the_snapshots_of_the_tables_follow_the_values_of_their_enum() {
+    let dir = TempDir::new();
+    let (entities, path) = books_applied(&dir, DatabaseEngine::PostgreSQL);
+    fs::write(
+        format!("{entities}/book.rs"),
+        BOOKS.replace("[Roman, Policier]", "[Novel, Policier]"),
+    )
+    .unwrap();
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+    applied(&entities, &path);
+
+    for (table, column) in [("books", "genre"), ("books_genres", "value")] {
+        let values = parse_create_file(&snapshot_file_path(&path, table))
+            .unwrap()
+            .columns
+            .into_iter()
+            .find(|found| found.name == column)
+            .unwrap()
+            .enum_string_values;
+        assert_eq!(values, ["Novel", "Policier"], "{table}.{column}");
+    }
+}
+
+// ── An enum beside what else changes in the same run ─────────────────────────
+
+const NOVEL: (&str, &str) = ("[Roman, Policier]", "[Novel, Policier]");
+
+// A value renamed, and its column renamed too: the enum's migration runs
+// after the table's, and names the column as it is by then.
+#[test]
+fn a_value_renamed_with_its_column_names_the_column_as_it_is_by_then() {
+    let dir = TempDir::new();
+    let (entities, path) = books_applied(&dir, DatabaseEngine::SQLite);
+    fs::write(
+        format!("{entities}/book.rs"),
+        BOOKS
+            .replace(
+                "genre: choice [enum(Genre), required]",
+                r#"style: choice [enum(Genre), required, renamed_from: "genre"]"#,
+            )
+            .replace(NOVEL.0, NOVEL.1),
+    )
+    .unwrap();
+
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
+
+    assert_eq!(
+        migration_names(&path)[3..],
+        ["alter_books_table", "alter_genre_enum"]
+    );
+    let of_enum = migration(&path, "alter_genre_enum");
+    assert!(
+        of_enum.contains(r#"&[("books", "style"), ("books_genres", "value")]"#),
+        "{of_enum}"
+    );
+    assert!(!of_enum.contains(r#"("books", "genre")"#), "{of_enum}");
+}
+
+// The same with its table renamed: the list table follows, and both are
+// named as they are once the tables' migrations ran.
+#[test]
+fn a_value_renamed_with_its_table_names_the_table_as_it_is_by_then() {
+    let dir = TempDir::new();
+    let (entities, path) = books_applied(&dir, DatabaseEngine::SQLite);
+    fs::write(
+        format!("{entities}/book.rs"),
+        BOOKS
+            .replace(
+                r#"table: "books""#,
+                r#"table: "library", renamed_from: "books""#,
+            )
+            .replace(NOVEL.0, NOVEL.1),
+    )
+    .unwrap();
+
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
+
+    let written = migration_names(&path);
+    assert_eq!(written.last().unwrap(), "alter_genre_enum");
+    assert!(
+        written[3..written.len() - 1]
+            .iter()
+            .all(|name| name.ends_with("_table")),
+        "{written:?}"
+    );
+    let of_enum = migration(&path, "alter_genre_enum");
+    assert!(
+        of_enum.contains(r#"&[("library", "genre"), ("library_genres", "value")]"#),
+        "{of_enum}"
+    );
+    assert!(!of_enum.contains(r#"("books"#), "{of_enum}");
+}
+
+// ── The enum of an `extend!{}` block ─────────────────────────────────────────
+
+const USERS_STATUT: &str = r#"extend! { table: "eihwaz_users", enums: { Statut: [Actif, Inactif] },
+    fields: { statut: choice [enum(Statut), nullable] } }"#;
+
+/// The values the snapshot of the extension of `eihwaz_users` holds for
+/// `statut`.
+fn statut_in_extension(path: &str) -> Vec<String> {
+    parse_create_file(&extend_snapshot_file_path(path, "eihwaz_users"))
+        .unwrap()
+        .columns
+        .into_iter()
+        .find(|found| found.name == "statut")
+        .unwrap()
+        .enum_string_values
+}
+
+// It is an enum like one of a model: created by its own migration before the
+// extension that uses it, recorded once applied, and its values migrated
+// once, with the framework's table as its place.
+#[test]
+fn the_enum_of_an_extension_has_its_own_migrations() {
+    let dir = TempDir::new();
+    let (entities, path) = project(&dir);
+    fs::write(format!("{entities}/users_ext.rs"), USERS_STATUT).unwrap();
+
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+
+    let written = migration_names(&path);
+    let position = |name: &str| {
+        written
+            .iter()
+            .position(|found| found == name)
+            .unwrap_or_else(|| panic!("{name} in {written:?}"))
+    };
+    assert!(position("create_statut_enum") < position("extend_eihwaz_users_table"));
+    assert!(
+        !migration(&path, "extend_eihwaz_users_table").contains("create_enum_type"),
+        "the extension finds its enum there"
+    );
+    applied(&entities, &path);
+    assert_eq!(enums_recorded(&path), ["statut"]);
+
+    fs::write(
+        format!("{entities}/users_ext.rs"),
+        USERS_STATUT.replace("[Actif, Inactif]", "[Active, Inactif]"),
+    )
+    .unwrap();
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+
+    assert_eq!(migration_names(&path).last().unwrap(), "alter_statut_enum");
+    let of_enum = migration(&path, "alter_statut_enum");
+    assert!(
+        of_enum.contains(
+            r#"runtime::rename_enum_value(manager, "statut", "Actif", "Active", &[("eihwaz_users", "statut")]).await?;"#
+        ),
+        "{of_enum}"
+    );
+
+    // Applied: the snapshot of the extension follows its enum, though the
+    // extension has no migration of its own.
+    let before = migration_names(&path).len();
+    applied(&entities, &path);
+    assert_eq!(statut_in_extension(&path), ["Active", "Inactif"]);
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+    assert_eq!(
+        migration_names(&path).len(),
+        before,
+        "{:?}",
+        migration_names(&path)
+    );
+}
+
+// ── An enum's migration still waiting ────────────────────────────────────────
+
+// Run again before `migration up`: the waiting migration of the enum is
+// kept as it is, not written a second time; with the model changed again,
+// it is replaced by one that goes from what the database has to the model.
+#[test]
+fn a_waiting_migration_of_an_enum_is_replaced_not_piled_on() {
+    let dir = TempDir::new();
+    let (entities, path) = books_applied(&dir, DatabaseEngine::PostgreSQL);
+    fs::write(
+        format!("{entities}/book.rs"),
+        BOOKS.replace(NOVEL.0, NOVEL.1),
+    )
+    .unwrap();
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+    let first = migration(&path, "alter_genre_enum");
+
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+    assert_eq!(
+        migration_names(&path).len(),
+        4,
+        "{:?}",
+        migration_names(&path)
+    );
+    assert_eq!(migration(&path, "alter_genre_enum"), first);
+
+    fs::write(
+        format!("{entities}/book.rs"),
+        BOOKS.replace(NOVEL.0, "[Story, Policier]"),
+    )
+    .unwrap();
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+
+    assert_eq!(
+        migration_names(&path).len(),
+        4,
+        "{:?}",
+        migration_names(&path)
+    );
+    let replaced = migration(&path, "alter_genre_enum");
+    assert!(
+        replaced.contains(r#"rename_enum_value(manager, "genre", "Roman", "Story","#),
+        "{replaced}"
+    );
+    assert!(!replaced.contains("Novel"), "{replaced}");
+    // The change taken back before it was applied: nothing is left waiting.
+    fs::write(format!("{entities}/book.rs"), BOOKS).unwrap();
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+    assert_eq!(
+        migration_names(&path).len(),
+        3,
+        "{:?}",
+        migration_names(&path)
+    );
+}
+
+// Two migrations of an enum from the same point were written in parallel:
+// refused, naming the enum and both. A table, an extension and an enum of
+// one name are three things, and each may start from `none`.
+#[test]
+fn two_migrations_of_an_enum_from_the_same_point_are_refused() {
+    let (create, a, b) = (
+        "m20260101_000000_create_genre_enum",
+        "m20260102_000000_alter_genre_enum",
+        "m20260103_000000_alter_genre_enum",
+    );
+    let dir = TempDir::new();
+    let path = with_migrations(
+        &dir,
+        &[(create, Some("none")), (a, Some(create)), (b, Some(create))],
+    );
+    assert_eq!(
+        check_parallel(&path).unwrap_err().to_string(),
+        tf(
+            runique_i18n::keys::makemigrations::error::PARALLEL_CHANGES,
+            &[format!("genre: {a}, {b}")]
+        )
+    );
+
+    let dir = TempDir::new();
+    let path = with_migrations(
+        &dir,
+        &[
+            (create, Some("none")),
+            ("m20260101_000000_create_genre_table", Some("none")),
+            ("m20260101_000000_extend_genre_table", Some("none")),
+            (a, Some(create)),
+            ("m20260103_000000_rename_category_enum", Some("none")),
+            (
+                "m20260104_000000_alter_category_enum",
+                Some("m20260103_000000_rename_category_enum"),
+            ),
+        ],
+    );
+    check_parallel(&path).unwrap();
+}
+
+// ── An enum that goes, an enum that comes back ───────────────────────────────
+
+// The columns of the enum leave a table that stays: once applied, no table
+// uses the enum any more, and its snapshot goes.
+#[test]
+fn an_enum_whose_columns_left_their_table_loses_its_snapshot() {
+    let dir = TempDir::new();
+    let (entities, path) = books_applied(&dir, DatabaseEngine::PostgreSQL);
+    fs::write(
+        format!("{entities}/book.rs"),
+        r#"model! { Book, table: "books", pk: id => i32, { title: text [required] } }"#,
+    )
+    .unwrap();
+
+    run(&entities, &path, true, DatabaseEngine::PostgreSQL).unwrap();
+    assert!(genre_recorded(&path).is_some());
+    applied(&entities, &path);
+
+    assert_eq!(genre_recorded(&path), None);
+    assert!(Path::new(&snapshot_file_path(&path, "books")).exists());
+}
+
+// A table dropped after its enum was given a value: on the way back the
+// enum is created again with the values it has now, the added one included.
+#[test]
+fn a_dropped_table_brings_its_enum_back_with_the_values_it_has() {
+    let dir = TempDir::new();
+    let (entities, path) = books_applied(&dir, DatabaseEngine::PostgreSQL);
+    fs::write(
+        format!("{entities}/book.rs"),
+        BOOKS.replace(NOVEL.0, "[Roman, Policier, Essai]"),
+    )
+    .unwrap();
+    run(&entities, &path, false, DatabaseEngine::PostgreSQL).unwrap();
+    applied(&entities, &path);
+    fs::write(format!("{entities}/user.rs"), USERS).unwrap();
+    fs::remove_file(format!("{entities}/book.rs")).unwrap();
+
+    run(&entities, &path, true, DatabaseEngine::PostgreSQL).unwrap();
+
+    let dropping = migration(&path, "drop_books_table");
+    let down = dropping.split("async fn down").nth(1).unwrap();
+    assert!(
+        down.contains(
+            r#"runtime::create_enum_type(manager, "genre", &["Roman", "Policier", "Essai"]).await?;"#
+        ),
+        "{dropping}"
+    );
 }

@@ -9,7 +9,7 @@ pub(crate) fn replace_waiting(plan: &mut Plan, waiting: &[(String, String)]) -> 
     // The same table and the same content: a creation and an alteration
     // never share one, so the content tells the kind too.
     fn same(waiting: &(String, String), module: &str, content: &str) -> bool {
-        migration_target(module) == migration_target(&waiting.0) && content == waiting.1
+        module_target(module) == module_target(&waiting.0) && content == waiting.1
     }
     let unchanged = waiting.len() == plan.lib_modules.len()
         && waiting.iter().all(|w| {

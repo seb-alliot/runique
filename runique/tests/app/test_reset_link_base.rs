@@ -4,7 +4,7 @@
 
 use axum::Router;
 use runique::app::builder::state::{No, Yes};
-use runique::app::{BuildErrorKind, RuniqueApp, RuniqueAppBuilder};
+use runique::app::{BuildFailure, RuniqueApp, RuniqueAppBuilder};
 use runique::config::RuniqueConfig;
 use sea_orm::Database;
 use serial_test::serial;
@@ -29,8 +29,8 @@ async fn builder(dev: bool) -> Base {
 async fn refused<P>(b: RuniqueAppBuilder<P>) -> Vec<String> {
     match b.build().await {
         Ok(_) => Vec::new(),
-        Err(e) => match e.kind {
-            BuildErrorKind::CheckFailed(report) => {
+        Err(e) => match e.failure {
+            BuildFailure::CheckFailed(report) => {
                 report.errors.into_iter().map(|e| e.component).collect()
             }
             other => panic!("unexpected build error: {other:?}"),

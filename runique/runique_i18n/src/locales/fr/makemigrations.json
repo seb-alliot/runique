@@ -13,6 +13,7 @@
     "applied_unknown": "Ces migrations sont inscrites dans la base mais absentes de lib.rs :\n  {}\nCette base appartient à un autre projet, ou des fichiers de migration ont été supprimés. Rien n'a été écrit.",
     "snapshot_unreadable": "Le snapshot {} est illisible ou n'est pas un snapshot. Rien n'a été écrit.",
     "snapshot_misnamed": "Le snapshot {} décrit la table `{}` : son nom de fichier doit être celui de la table. Rien n'a été écrit.",
+    "enum_snapshot_misnamed": "Le snapshot {} décrit l'enum `{}` : son nom de fichier doit être celui de l'enum. Rien n'a été écrit.",
     "duplicate_table": "Deux tables portent le nom `{}`. La table d'un champ liste s'appelle `<table du modèle>_<champ>` : renommez le champ ou l'autre table.",
     "parallel_changes": "Deux migrations partent du même point pour la même table :\n  {}\nElles ont été écrites en parallèle : Runique ne peut pas savoir laquelle la table doit suivre. Rien n'a été écrit.",
     "rename_with_new_key": "La table `{}` est renommée dans ce lancement et reçoit en même temps une nouvelle clé vers `{}`, créée ou renommée dans ce même lancement. Faites-le en deux fois : le renommage d'abord, `runique migration up`, puis la clé.",

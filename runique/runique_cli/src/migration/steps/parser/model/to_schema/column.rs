@@ -12,7 +12,7 @@ pub(crate) fn decl_to_column(decl: &FormFieldDecl, enums: &[EnumDef]) -> ParsedC
     let ty = field.column_type();
     let max_length = match &ty {
         FieldType::Varchar(n) | FieldType::VarBinary(n) => Some(*n),
-        FieldType::Binary(n) => field.kind.byte_limit(*n),
+        FieldType::Binary(n) => field.field_type.byte_limit(*n),
         _ => None,
     };
     let decimal_len = match &ty {

@@ -7,7 +7,6 @@ pub(crate) fn build_extend_plan(
     planned: &[(ParsedSchema, Changes)],
     migrations_path: &str,
     timestamp: &str,
-    settled: &[String],
 ) {
     if planned.is_empty() {
         return;
@@ -17,10 +16,7 @@ pub(crate) fn build_extend_plan(
         let module_name = seaorm_extend_module_name(timestamp, &ext_schema.table_name);
         let seaorm_path =
             seaorm_extend_file_path(migrations_path, timestamp, &ext_schema.table_name);
-        plan.files.push((
-            seaorm_path,
-            waiting_migrate(generate_alter_file(changes), &module_name, settled),
-        ));
+        plan.files.push((seaorm_path, generate_alter_file(changes)));
         plan.lib_modules.push(module_name);
     }
 }

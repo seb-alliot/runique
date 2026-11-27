@@ -8,7 +8,7 @@ pub(crate) fn column(all_changes: &[Changes]) -> Vec<Destructive> {
             c.dropped_columns.iter().map(move |col| {
                 found(
                     c,
-                    DestructiveKind::DropColumn {
+                    DestructiveItem::DropColumn {
                         column: col.name.clone(),
                     },
                 )

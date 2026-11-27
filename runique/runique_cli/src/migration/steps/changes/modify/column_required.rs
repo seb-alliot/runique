@@ -11,7 +11,7 @@ pub(crate) fn column_required(all_changes: &[Changes]) -> Vec<Destructive> {
                 .map(move |(_, new)| {
                     found(
                         c,
-                        DestructiveKind::MakeRequired {
+                        DestructiveItem::MakeRequired {
                             column: new.name.clone(),
                         },
                     )

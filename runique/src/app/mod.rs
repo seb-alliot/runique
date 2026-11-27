@@ -6,7 +6,7 @@ pub mod staging;
 pub mod templates;
 
 pub use builder::RuniqueAppBuilder;
-pub use error_build::{BuildError, BuildErrorKind, CheckError, CheckReport};
+pub use error_build::{BuildError, BuildFailure, CheckError, CheckReport};
 pub use runique_app::RuniqueApp;
 #[cfg(feature = "admin")]
 pub use staging::AdminStaging;

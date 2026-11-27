@@ -89,7 +89,7 @@ fn non_destructive_change_yields_no_messages() {
 #[test]
 fn a_dropped_table_is_listed_with_the_other_destructive_elements() {
     use crate::migration::TableChange;
-    use crate::migration::steps::changes::{Destructive, DestructiveKind, destructive};
+    use crate::migration::steps::changes::{Destructive, DestructiveItem, destructive};
 
     let dropped_column = change(
         false,
@@ -117,11 +117,11 @@ fn a_dropped_table_is_listed_with_the_other_destructive_elements() {
         [
             Destructive {
                 table: "menus".into(),
-                kind: DestructiveKind::DropTable,
+                item: DestructiveItem::DropTable,
             },
             Destructive {
                 table: "t".into(),
-                kind: DestructiveKind::DropColumn {
+                item: DestructiveItem::DropColumn {
                     column: "bio".into()
                 },
             },

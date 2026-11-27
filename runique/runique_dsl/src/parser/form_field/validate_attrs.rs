@@ -1,6 +1,6 @@
 //! Cross-checks a `FormFieldDecl`'s parsed attributes against its kind
 //! (e.g. `max_length` only makes sense on textual types).
-use crate::ast::{FormFieldAttr, FormFieldKind};
+use crate::ast::{FormFieldAttr, FormFieldType};
 use syn::{Ident, Result};
 
 use super::attr_name::attr_name_str;
@@ -8,11 +8,11 @@ use super::attr_name::attr_name_str;
 pub(super) fn validate_form_field_attrs(
     name: &Ident,
     kind_ident: &Ident,
-    kind: &FormFieldKind,
+    kind: &FormFieldType,
     attrs: &[FormFieldAttr],
 ) -> Result<()> {
     use FormFieldAttr::*;
-    use FormFieldKind::*;
+    use FormFieldType::*;
 
     let kind_name = kind_ident.to_string();
 
@@ -25,10 +25,10 @@ pub(super) fn validate_form_field_attrs(
             (Label(_), _) => true,
             (
                 EnumRef(_),
-                FormFieldKind::Choice
-                | FormFieldKind::Radio
-                | FormFieldKind::Checkbox
-                | FormFieldKind::Multichoice,
+                FormFieldType::Choice
+                | FormFieldType::Radio
+                | FormFieldType::Checkbox
+                | FormFieldType::Multichoice,
             ) => true,
             (EnumRef(_), _) => false,
 

@@ -2,7 +2,7 @@
 
 use axum::http::StatusCode;
 use runique::errors::error::{ErrorContext, ErrorType, RuniqueError};
-use runique::middleware::RequestInfoHelper;
+use runique::middleware::RequestSnapshot;
 
 // ═══════════════════════════════════════════════════════════════
 // RuniqueError — Display
@@ -604,18 +604,18 @@ fn test_runique_error_build_display() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ErrorContext::with_request_helper
+// ErrorContext::with_request_snapshot
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
 fn test_with_request_helper() {
-    let helper = RequestInfoHelper {
+    let helper = RequestSnapshot {
         method: "POST".to_string(),
         path: "/api/test".to_string(),
         query: Some("foo=bar".to_string()),
         headers: Default::default(),
     };
-    let ctx = ErrorContext::generic(StatusCode::BAD_REQUEST, "err").with_request_helper(&helper);
+    let ctx = ErrorContext::generic(StatusCode::BAD_REQUEST, "err").with_request_snapshot(&helper);
     let info = ctx.request_info.unwrap();
     assert_eq!(info.method, "POST");
     assert_eq!(info.path, "/api/test");
@@ -624,14 +624,14 @@ fn test_with_request_helper() {
 
 #[test]
 fn test_with_request_helper_no_query() {
-    let helper = RequestInfoHelper {
+    let helper = RequestSnapshot {
         method: "GET".to_string(),
         path: "/page".to_string(),
         query: None,
         headers: Default::default(),
     };
     let ctx =
-        ErrorContext::generic(StatusCode::NOT_FOUND, "not found").with_request_helper(&helper);
+        ErrorContext::generic(StatusCode::NOT_FOUND, "not found").with_request_snapshot(&helper);
     assert!(ctx.request_info.unwrap().query.is_none());
 }
 

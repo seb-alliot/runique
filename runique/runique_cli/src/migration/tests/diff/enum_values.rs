@@ -1,4 +1,10 @@
+use crate::db::DatabaseEngine;
 use crate::migration::tests::*;
+
+/// The enum of a model, as `makemigrations` finds it.
+fn status(src: &str) -> ParsedEnum {
+    enums_of_schemas(&[parse_model(src)]).remove(0)
+}
 
 // ── Enum value addition ──
 
@@ -46,11 +52,10 @@ model! {
 
 #[test]
 fn enum_value_addition_is_detected() {
-    let changes = diff_schemas(&parse_model(ENUM_V1), &parse_model(ENUM_V2));
-    assert!(
-        !changes.enum_value_adds.is_empty(),
-        "adding an enum variant should be detected: {changes:?}"
-    );
+    let changes = diff_enum(Some(&status(ENUM_V1)), &status(ENUM_V2));
+    assert_eq!(changes.added_values, ["Archived"]);
+    // The table itself has nothing to migrate: the value is the enum's.
+    assert!(diff_schemas(&parse_model(ENUM_V1), &parse_model(ENUM_V2)).is_empty());
 }
 
 const ENUM_RENAMED: &str = r#"
@@ -71,76 +76,82 @@ model! {
 #[test]
 fn enum_rename_is_a_single_operation() {
     // A positional value change is ONE rename — it must not leak into add/drop.
-    let changes = diff_schemas(&parse_model(ENUM_V1), &parse_model(ENUM_RENAMED));
+    let changes = diff_enum(Some(&status(ENUM_V1)), &status(ENUM_RENAMED));
     assert_eq!(
-        changes.enum_renames.len(),
-        1,
-        "exactly one rename: {changes:?}"
-    );
-    let (col, enum_name, old, new) = &changes.enum_renames[0];
-    assert_eq!(
-        (col.as_str(), enum_name.as_str(), old.as_str(), new.as_str()),
-        ("status", "Status", "Published", "Release")
+        changes.renamed_values,
+        [("Published".to_string(), "Release".to_string())]
     );
     assert!(
-        changes.enum_value_adds.is_empty(),
+        changes.added_values.is_empty(),
         "rename must not appear as an add"
     );
     assert!(
-        changes.enum_value_drops.is_empty(),
+        changes.dropped_values.is_empty(),
         "rename must not appear as a drop"
     );
-}
-
-#[test]
-fn enum_rename_branches_on_runtime_backend() {
-    // Which branch runs is decided by `manager.get_database_backend()` at
-    // migration-run time, not at generation time: a single generated file must
-    // carry BOTH branches.
-    let changes = diff_schemas(&parse_model(ENUM_V1), &parse_model(ENUM_RENAMED));
-    let sql = generate_alter_file(&changes);
-    assert!(
-        sql.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
-        "must check the real backend at runtime:\n{sql}"
-    );
-    // Postgres branch: `sea_query::extension::postgres::Type::alter()` builder
-    // (escapes values automatically), not a hand-written `ALTER TYPE` string.
-    assert!(
-        sql.contains(".name(Alias::new(\"status\"))")
-            && sql.contains(".rename_value(Alias::new(\"Published\"), Alias::new(\"Release\"))"),
-        "Postgres branch must use the Type::alter().rename_value() builder, with the \
-         type name lowercased to match the unquoted CREATE TYPE's case-folded identity:\n{sql}"
-    );
-    // non-Postgres branch: `Query::update()` builder, same reasoning.
-    assert!(
-        sql.contains(".table(Alias::new(\"post\"))")
-            && sql.contains(".value(Alias::new(\"status\"), \"Release\")")
-            && sql.contains(".eq(\"Published\")"),
-        "non-Postgres branch must use the Query::update() builder:\n{sql}"
+    assert_eq!(
+        changes.places,
+        [EnumPlace {
+            table: "post".into(),
+            column: "status".into()
+        }]
     );
 }
 
 #[test]
-fn enum_create_type_is_postgres_only() {
-    // `CREATE TYPE … AS ENUM` is Postgres-only syntax: it's always emitted,
-    // wrapped in a runtime backend check, so the same generated file works no
-    // matter which engine actually runs it later.
+fn enum_rename_is_handed_to_the_runtime_with_its_places() {
+    // The file names the operation; which engine runs it, and so whether the
+    // type or the rows are written, is read when the migration runs.
+    let changes = diff_enum(Some(&status(ENUM_V1)), &status(ENUM_RENAMED));
+    for engine in [
+        DatabaseEngine::PostgreSQL,
+        DatabaseEngine::MySQL,
+        DatabaseEngine::SQLite,
+    ] {
+        let sql = generate_enum_file(&changes, &engine);
+        assert!(
+            sql.contains(
+                r#"runique_cli::migration::runtime::rename_enum_value(manager, "status", "Published", "Release", &[("post", "status")]).await?;"#
+            ),
+            "{sql}"
+        );
+        assert!(!sql.contains("get_database_backend()"), "{sql}");
+    }
+    // The table's own file holds nothing about it.
+    assert!(diff_schemas(&parse_model(ENUM_V1), &parse_model(ENUM_RENAMED)).is_empty());
+}
+
+#[test]
+fn enum_create_type_is_in_the_file_of_the_enum_on_postgres_only() {
+    // The type is the enum's to create, once, before the tables: the file
+    // that creates a table holds neither its creation nor its drop.
     let schema = parse_model(ENUM_V2);
-    let sql = generate_create_file(&schema);
+    let table = generate_create_file(&schema);
     assert!(
-        sql.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
-        "must check the real backend at runtime:\n{sql}"
+        !table.contains("create_enum_type") && !table.contains("Type::create()"),
+        "{table}"
+    );
+    assert!(!table.contains("drop_enum_type"), "{table}");
+
+    let created = diff_enum(None, &status(ENUM_V2));
+    let on_postgres = generate_enum_file(&created, &DatabaseEngine::PostgreSQL);
+    assert!(
+        on_postgres.contains(
+            r#"runique_cli::migration::runtime::create_enum_type(manager, "status", &["Draft", "Published", "Archived"]).await?;"#
+        ),
+        "{on_postgres}"
     );
     assert!(
-        sql.contains("Type::create()") && sql.contains(".as_enum(Alias::new(\"status\"))"),
-        "the enum type must always be created (runtime-guarded):\n{sql}"
-    );
-    assert!(
-        sql.contains(
+        on_postgres.contains(
             r#"runique_cli::migration::runtime::drop_enum_type(manager, "status").await?;"#
         ),
-        "down() must always hand the type over to be dropped once unused:\n{sql}"
+        "down() hands the type over to be dropped once unused:\n{on_postgres}"
     );
+    for engine in [DatabaseEngine::MySQL, DatabaseEngine::SQLite] {
+        let elsewhere = generate_enum_file(&created, &engine);
+        assert!(!elsewhere.contains("create_enum_type"), "{elsewhere}");
+        assert!(!elsewhere.contains("drop_enum_type"), "{elsewhere}");
+    }
 }
 
 #[test]

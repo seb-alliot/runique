@@ -17,7 +17,7 @@ pub(crate) fn cascade_key(all_changes: &[Changes]) -> Vec<Destructive> {
                 .map(move |fk| {
                     found(
                         c,
-                        DestructiveKind::AddCascadeKey {
+                        DestructiveItem::AddCascadeKey {
                             column: fk.from_column.clone(),
                             to_table: fk.to_table.clone(),
                         },

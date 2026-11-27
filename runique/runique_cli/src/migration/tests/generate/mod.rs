@@ -12,5 +12,6 @@ mod create_primary_key;
 mod create_timestamps;
 mod date_time_columns;
 mod enum_column_default;
+mod enum_file;
 mod enum_value_drop;
 mod integer_enum;

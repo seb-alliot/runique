@@ -2,6 +2,7 @@
 pub(crate) mod postgres;
 pub(crate) mod server;
 pub(crate) mod sqlite;
+pub(crate) mod text;
 
 use runique_i18n::tf;
 use sea_orm::{ConnectionTrait, DbBackend, DbErr};

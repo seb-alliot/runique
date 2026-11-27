@@ -2,8 +2,12 @@
 //! Couvre : generate_create_file, generate_alter_file,
 //!          generate_snapshot_file
 
+use runique_cli::db::DatabaseEngine;
 use runique_cli::migration::types::{Changes, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema};
-use runique_cli::migration::{generate_alter_file, generate_create_file, generate_snapshot_file};
+use runique_cli::migration::{
+    EnumChange, EnumChanges, EnumPlace, generate_alter_file, generate_create_file,
+    generate_enum_file, generate_snapshot_file,
+};
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -76,9 +80,6 @@ fn simple_changes(table: &str) -> Changes {
         table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
     }
 }
 
@@ -202,9 +203,6 @@ fn test_alter_file_sans_changements() {
         table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
     assert!(content.contains("pub struct Migration"));
@@ -230,112 +228,85 @@ fn test_alter_file_avec_ajout_fk() {
         table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
     assert!(content.contains("author_id") || content.contains("users"));
 }
 
 // ═══════════════════════════════════════════════════════════════
-// generate_alter_file — enum_renames → UPDATE SQL
+// generate_enum_file — une valeur renommée, une fois pour l'enum
 // ═══════════════════════════════════════════════════════════════
 
+/// Un enum `status` employé par la colonne `status` de `articles`.
+fn status_enum() -> EnumChanges {
+    EnumChanges {
+        name: "status".to_string(),
+        places: vec![EnumPlace {
+            table: "articles".to_string(),
+            column: "status".to_string(),
+        }],
+        ..EnumChanges::default()
+    }
+}
+
+const ENGINES: [DatabaseEngine; 3] = [
+    DatabaseEngine::PostgreSQL,
+    DatabaseEngine::MySQL,
+    DatabaseEngine::SQLite,
+];
+
 #[test]
-fn test_alter_file_enum_rename_genere_update_up() {
-    let changes = Changes {
-        table_name: "articles".to_string(),
-        added_columns: vec![],
-        dropped_columns: vec![],
-        modified_columns: vec![],
-        added_fks: vec![],
-        dropped_fks: vec![],
-        added_indexes: vec![],
-        dropped_indexes: vec![],
-        table: runique_cli::migration::TableChange::Altered,
-        renames: Default::default(),
-        renamed_columns: vec![],
-        enum_renames: vec![(
-            "status".to_string(),
-            "Status".to_string(),
-            "Ajoute".to_string(),
-            "Ajouté".to_string(),
-        )],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
+fn test_enum_file_rename_genere_un_appel_up() {
+    let changes = EnumChanges {
+        renamed_values: vec![("Ajoute".to_string(), "Ajouté".to_string())],
+        ..status_enum()
     };
-    let content = generate_alter_file(&changes);
-    assert!(
-        content.contains("Ajoute") && content.contains("Ajouté"),
-        "UP doit contenir les deux valeurs"
-    );
-    assert!(
-        content.contains("Query::update()"),
-        "UP doit générer une mise à jour via le builder Query::update() (branche non-Postgres)"
-    );
+    for engine in &ENGINES {
+        let content = generate_enum_file(&changes, engine);
+        let up = content.split("async fn down").next().unwrap_or("");
+        assert!(
+            up.contains(
+                r#"runtime::rename_enum_value(manager, "status", "Ajoute", "Ajouté", &[("articles", "status")]).await?;"#
+            ),
+            "UP renomme la valeur par le runtime, une fois pour l'enum : {content}"
+        );
+    }
 }
 
 #[test]
-fn test_alter_file_enum_rename_genere_update_down() {
-    let changes = Changes {
-        table_name: "articles".to_string(),
-        added_columns: vec![],
-        dropped_columns: vec![],
-        modified_columns: vec![],
-        added_fks: vec![],
-        dropped_fks: vec![],
-        added_indexes: vec![],
-        dropped_indexes: vec![],
-        table: runique_cli::migration::TableChange::Altered,
-        renames: Default::default(),
-        renamed_columns: vec![],
-        enum_renames: vec![(
-            "status".to_string(),
-            "Status".to_string(),
-            "Ajoute".to_string(),
-            "Ajouté".to_string(),
-        )],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
+fn test_enum_file_rename_genere_l_appel_inverse_down() {
+    let changes = EnumChanges {
+        renamed_values: vec![("Ajoute".to_string(), "Ajouté".to_string())],
+        ..status_enum()
     };
-    let content = generate_alter_file(&changes);
-    // DOWN doit inverser : SET 'Ajoute' WHERE 'Ajouté'
-    let down_section = content.split("async fn down").nth(1).unwrap_or("");
-    assert!(
-        down_section.contains("Ajoute") || down_section.contains("Ajouté"),
-        "DOWN doit aussi contenir un UPDATE inversé"
-    );
+    for engine in &ENGINES {
+        let content = generate_enum_file(&changes, engine);
+        let down_section = content.split("async fn down").nth(1).unwrap_or("");
+        assert!(
+            down_section.contains(
+                r#"runtime::rename_enum_value(manager, "status", "Ajouté", "Ajoute", &[("articles", "status")]).await?;"#
+            ),
+            "DOWN reprend l'ancien nom : {content}"
+        );
+    }
 }
 
 #[test]
-fn test_alter_file_enum_rename_contient_nom_table() {
-    let changes = Changes {
-        table_name: "articles".to_string(),
-        added_columns: vec![],
-        dropped_columns: vec![],
-        modified_columns: vec![],
-        added_fks: vec![],
-        dropped_fks: vec![],
-        added_indexes: vec![],
-        dropped_indexes: vec![],
-        table: runique_cli::migration::TableChange::Altered,
-        renames: Default::default(),
-        renamed_columns: vec![],
-        enum_renames: vec![(
-            "status".to_string(),
-            "Status".to_string(),
-            "old".to_string(),
-            "new".to_string(),
-        )],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
+fn test_enum_file_rename_nomme_chaque_endroit() {
+    let mut changes = EnumChanges {
+        renamed_values: vec![("old".to_string(), "new".to_string())],
+        ..status_enum()
     };
-    let content = generate_alter_file(&changes);
+    changes.places.push(EnumPlace {
+        table: "articles_tags".to_string(),
+        column: "value".to_string(),
+    });
+    let content = generate_enum_file(&changes, &DatabaseEngine::MySQL);
     assert!(
-        content.contains("articles"),
-        "Le nom de la table doit apparaître dans l'UPDATE"
+        content.contains(r#"&[("articles", "status"), ("articles_tags", "value")]"#),
+        "Chaque colonne de l'enum est nommée, dans un seul appel : {content}"
     );
+    assert_eq!(content.matches("rename_enum_value").count(), 2, "{content}");
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -343,7 +314,7 @@ fn test_alter_file_enum_rename_contient_nom_table() {
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
-fn test_create_file_postgres_enum_stmts() {
+fn test_create_file_ne_cree_pas_le_type_enum() {
     let schema = ParsedSchema {
         table_name: "articles".to_string(),
         primary_key: Some(col("id", "Integer")),
@@ -358,12 +329,33 @@ fn test_create_file_postgres_enum_stmts() {
     };
     let content = generate_create_file(&schema);
     assert!(
-        content.contains("Type::create()"),
-        "Postgres doit créer un type enum"
+        !content.contains("Type::create()") && !content.contains("create_enum_type"),
+        "Le type est créé par le fichier de l'enum, pas par celui de la table : {content}"
     );
+    // La colonne nomme toujours son type et ses valeurs.
     assert!(
         content.contains("Alias::new(\"Draft\")") && content.contains("Alias::new(\"Published\")")
     );
+}
+
+#[test]
+fn test_enum_file_postgres_cree_le_type_avec_ses_valeurs() {
+    let changes = EnumChanges {
+        change: EnumChange::Created,
+        values: vec!["Draft".to_string(), "Published".to_string()],
+        ..status_enum()
+    };
+    let content = generate_enum_file(&changes, &DatabaseEngine::PostgreSQL);
+    assert!(
+        content.contains(
+            r#"runtime::create_enum_type(manager, "status", &["Draft", "Published"]).await?;"#
+        ),
+        "{content}"
+    );
+    for engine in [DatabaseEngine::MySQL, DatabaseEngine::SQLite] {
+        let content = generate_enum_file(&changes, &engine);
+        assert!(!content.contains("create_enum_type"), "{content}");
+    }
 }
 
 #[test]
@@ -392,7 +384,7 @@ fn test_create_file_escapes_enum_values_as_rust_literals_everywhere() {
 }
 
 #[test]
-fn test_create_file_postgres_enum_drops() {
+fn test_enum_file_postgres_down_supprime_le_type() {
     let schema = ParsedSchema {
         table_name: "articles".to_string(),
         primary_key: Some(col("id", "Integer")),
@@ -405,28 +397,42 @@ fn test_create_file_postgres_enum_drops() {
         foreign_keys: vec![],
         indexes: vec![],
     };
-    let content = generate_create_file(&schema);
+    // Le fichier de la table ne supprime plus le type : c'est celui de
+    // l'enum qui le défait, après les tables.
+    assert!(!generate_create_file(&schema).contains("drop_enum_type"));
+
+    let changes = EnumChanges {
+        change: EnumChange::Created,
+        values: vec!["Draft".to_string()],
+        ..status_enum()
+    };
+    let content = generate_enum_file(&changes, &DatabaseEngine::PostgreSQL);
+    let down = content.split("async fn down").nth(1).unwrap_or("");
     assert!(
-        content.contains("runtime::drop_enum_type(manager, "),
-        "Postgres down doit supprimer le type"
+        down.contains(r#"runtime::drop_enum_type(manager, "status").await?;"#),
+        "Postgres down doit supprimer le type : {content}"
     );
 }
 
 #[test]
-fn test_alter_file_escapes_added_enum_values_as_rust_literals() {
+fn test_enum_file_escapes_added_enum_values_as_rust_literals() {
     let value = "draft\"); compile_error!(\"injected\"); //";
-    let mut changes = simple_changes("articles");
-    changes.enum_value_adds = vec![(
-        "status".to_string(),
-        "Status".to_string(),
-        value.to_string(),
-    )];
+    let changes = EnumChanges {
+        added_values: vec![value.to_string()],
+        renamed_values: vec![(value.to_string(), "safe".to_string())],
+        ..status_enum()
+    };
 
-    let content = generate_alter_file(&changes);
-    let escaped_literal = format!("Alias::new({value:?})");
+    let content = generate_enum_file(&changes, &DatabaseEngine::PostgreSQL);
+    let added = format!(r#"add_enum_value(manager, "status", {value:?}).await?;"#);
+    let renamed = format!(r#"rename_enum_value(manager, "status", {value:?}, "safe","#);
     assert!(
-        content.contains(&escaped_literal),
-        "added enum values must be escaped before generating Rust code"
+        content.contains(&added) && content.contains(&renamed),
+        "enum values must be escaped before generating Rust code: {content}"
+    );
+    assert!(
+        !content.contains("compile_error!(\"injected\")"),
+        "{content}"
     );
 }
 
@@ -578,9 +584,6 @@ fn test_alter_file_type_change_generates_warning() {
         table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
     assert!(
@@ -616,9 +619,6 @@ fn test_alter_file_nullable_to_not_null_modify_column() {
         table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
     assert!(
@@ -628,63 +628,41 @@ fn test_alter_file_nullable_to_not_null_modify_column() {
 }
 
 #[test]
-fn test_alter_file_enum_value_adds() {
-    let changes = Changes {
-        table_name: "articles".to_string(),
-        added_columns: vec![],
-        dropped_columns: vec![],
-        modified_columns: vec![],
-        added_fks: vec![],
-        dropped_fks: vec![],
-        added_indexes: vec![],
-        dropped_indexes: vec![],
-        table: runique_cli::migration::TableChange::Altered,
-        renames: Default::default(),
-        renamed_columns: vec![],
-        enum_renames: vec![],
-        enum_value_adds: vec![(
-            "status".to_string(),
-            "article_status".to_string(),
-            "Archived".to_string(),
-        )],
-        enum_value_drops: vec![],
+fn test_enum_file_value_adds() {
+    let changes = EnumChanges {
+        name: "article_status".to_string(),
+        added_values: vec!["Archived".to_string()],
+        ..status_enum()
     };
-    let content = generate_alter_file(&changes);
+    let content = generate_enum_file(&changes, &DatabaseEngine::PostgreSQL);
     assert!(
-        content.contains(".add_value(") && content.contains(".if_not_exists()"),
-        "enum_value_adds doit générer un ALTER TYPE ADD VALUE via le builder Type::alter()"
+        content
+            .contains(r#"runtime::add_enum_value(manager, "article_status", "Archived").await?;"#),
+        "une valeur ajoutée est donnée au type par le runtime : {content}"
     );
-    assert!(content.contains("Archived"));
+    // Sous MySQL et SQLite la colonne est du texte : rien à lancer.
+    for engine in [DatabaseEngine::MySQL, DatabaseEngine::SQLite] {
+        let content = generate_enum_file(&changes, &engine);
+        assert!(!content.contains("add_enum_value"), "{content}");
+    }
 }
 
 #[test]
-fn test_alter_file_enum_value_drops_warning() {
-    let changes = Changes {
-        table_name: "articles".to_string(),
-        added_columns: vec![],
-        dropped_columns: vec![],
-        modified_columns: vec![],
-        added_fks: vec![],
-        dropped_fks: vec![],
-        added_indexes: vec![],
-        dropped_indexes: vec![],
-        table: runique_cli::migration::TableChange::Altered,
-        renames: Default::default(),
-        renamed_columns: vec![],
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![(
-            "status".to_string(),
-            "article_status".to_string(),
-            "OldVal".to_string(),
-        )],
+fn test_enum_file_value_drops_warning() {
+    let changes = EnumChanges {
+        name: "article_status".to_string(),
+        dropped_values: vec!["OldVal".to_string()],
+        ..status_enum()
     };
-    let content = generate_alter_file(&changes);
-    assert!(
-        content.contains("WARNING"),
-        "enum_value_drops doit générer un WARNING dans up"
-    );
-    assert!(content.contains("OldVal"));
+    for engine in &ENGINES {
+        let content = generate_enum_file(&changes, engine);
+        let up = content.split("async fn down").next().unwrap_or("");
+        assert!(
+            up.contains("WARNING"),
+            "une valeur retirée doit générer un WARNING dans up"
+        );
+        assert!(up.contains("OldVal"));
+    }
 }
 
 #[test]
@@ -705,9 +683,6 @@ fn test_alter_file_drop_index_in_up() {
         table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
     assert!(
@@ -735,9 +710,6 @@ fn test_alter_file_add_index_in_up() {
         table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
     assert!(
@@ -771,9 +743,6 @@ fn test_alter_file_drop_fk_in_up() {
         table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
     assert!(
@@ -787,7 +756,7 @@ fn test_alter_file_drop_fk_in_up() {
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
-fn test_alter_file_postgres_enum_add_column_generates_create_type() {
+fn test_alter_file_enum_add_column_leaves_the_type_to_the_enum_file() {
     let enum_col = ParsedColumn {
         name: "status".to_string(),
         col_type: runique_cli::migration::ColumnType::Enum,
@@ -808,29 +777,26 @@ fn test_alter_file_postgres_enum_add_column_generates_create_type() {
         table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
     let up = content.split("async fn down").next().unwrap_or("");
     assert!(
-        up.contains(".as_enum(Alias::new(\"article_status\"))"),
-        "UP Postgres doit créer le type enum avant ADD COLUMN"
+        !up.contains("create_enum_type") && !up.contains("Type::create()"),
+        "le type est créé par le fichier de l'enum, plus tôt dans le lancement : {content}"
     );
     assert!(
         up.contains("Alias::new(\"draft\")") && up.contains("Alias::new(\"published\")"),
-        "UP doit contenir les valeurs de l'enum"
+        "la colonne ajoutée nomme les valeurs de son enum"
     );
     let down = content.split("async fn down").nth(1).unwrap_or("");
     assert!(
-        down.contains("runtime::drop_enum_type(manager, \"article_status\").await?;"),
-        "DOWN doit supprimer le type enum après DROP COLUMN"
+        !down.contains("drop_enum_type"),
+        "le type est défait par le fichier de l'enum : {content}"
     );
 }
 
 #[test]
-fn test_alter_file_enum_add_column_create_type_is_runtime_guarded() {
+fn test_alter_file_enum_add_column_type_is_chosen_at_run_time() {
     let enum_col = ParsedColumn {
         name: "status".to_string(),
         col_type: runique_cli::migration::ColumnType::Enum,
@@ -851,16 +817,13 @@ fn test_alter_file_enum_add_column_create_type_is_runtime_guarded() {
         table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
     assert!(
         content.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
-        "CREATE TYPE doit être gardé par un check runtime, pas absent : {content}"
+        "le type de la colonne est choisi au lancement : {content}"
     );
-    assert!(content.contains("Type::create()"));
+    assert!(!content.contains("Type::create()"));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -868,7 +831,7 @@ fn test_alter_file_enum_add_column_create_type_is_runtime_guarded() {
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
-fn test_alter_file_string_to_enum_postgres_generates_create_type_and_cast() {
+fn test_alter_file_string_to_enum_postgres_casts_to_the_enum() {
     let old_col = ParsedColumn {
         name: "block_type".to_string(),
         col_type: runique_cli::migration::ColumnType::String,
@@ -895,9 +858,6 @@ fn test_alter_file_string_to_enum_postgres_generates_create_type_and_cast() {
         table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
 
@@ -908,8 +868,8 @@ fn test_alter_file_string_to_enum_postgres_generates_create_type_and_cast() {
 
     let up = content.split("async fn down").next().unwrap_or("");
     assert!(
-        up.contains(".as_enum(Alias::new(\"courblocktype\"))"),
-        "UP doit créer le type avant de l'utiliser"
+        !up.contains("create_enum_type") && !up.contains(".as_enum("),
+        "le type est créé par le fichier de l'enum, plus tôt dans le lancement"
     );
     assert!(up.contains("Alias::new(\"text\")") && up.contains("Alias::new(\"code\")"));
     assert!(
@@ -933,7 +893,7 @@ fn test_alter_file_string_to_enum_postgres_generates_create_type_and_cast() {
 }
 
 #[test]
-fn test_alter_file_string_to_enum_create_type_is_runtime_guarded() {
+fn test_alter_file_string_to_enum_column_type_is_runtime_guarded() {
     let old_col = ParsedColumn {
         name: "block_type".to_string(),
         col_type: runique_cli::migration::ColumnType::String,
@@ -960,9 +920,6 @@ fn test_alter_file_string_to_enum_create_type_is_runtime_guarded() {
         table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
     // Un seul fichier généré sert les 3 moteurs désormais — le CREATE TYPE est
@@ -975,7 +932,7 @@ fn test_alter_file_string_to_enum_create_type_is_runtime_guarded() {
         content.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
         "doit checker le backend réel à l'exécution : {content}"
     );
-    assert!(content.contains("Type::create()"));
+    assert!(!content.contains("Type::create()"));
     assert!(!content.contains("Manual migration required"));
     assert!(content.contains("ColumnType::Enum"));
 }

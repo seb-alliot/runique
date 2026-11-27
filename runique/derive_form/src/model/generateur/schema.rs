@@ -23,7 +23,7 @@ pub fn generate_column(field: &FieldDef, enums: &[EnumDef]) -> TokenStream2 {
     let name = field.name.to_string();
     let ty = generate_field_type(&field.column_type(), enums);
     let options: Vec<TokenStream2> = field.options.iter().map(generate_option).collect();
-    let kind = kind_tokens(field.kind);
+    let field_type = field_type_tokens(field.field_type);
     // The form needs the choices on every engine; only Postgres also gets
     // them in the SQL type (`enum_type` above).
     let choices = match &field.column_type() {
@@ -40,20 +40,20 @@ pub fn generate_column(field: &FieldDef, enums: &[EnumDef]) -> TokenStream2 {
     };
 
     quote! {
-        .column(::runique::schema::ColumnDef::new(#name) #ty #kind #choices #(#options)*)
+        .column(::runique::schema::ColumnDef::new(#name) #ty #field_type #choices #(#options)*)
     }
 }
 
-/// `.kind(FormFieldKind::…)`: the DSL type travels with the column, so the
+/// `.field_type(FormFieldType::…)`: the DSL type travels with the column, so the
 /// form rebuilt from the schema gets that type's field.
-pub(crate) fn kind_tokens(kind: FormFieldKind) -> TokenStream2 {
-    let variant = quote::format_ident!("{}", format!("{kind:?}"));
-    quote! { .kind(::runique::runique_dsl::ast::FormFieldKind::#variant) }
+pub(crate) fn field_type_tokens(field_type: FormFieldType) -> TokenStream2 {
+    let variant = quote::format_ident!("{}", format!("{field_type:?}"));
+    quote! { .field_type(::runique::runique_dsl::ast::FormFieldType::#variant) }
 }
 
 /// The column's type, from the same mapping as the entity's `column_type`
 /// and the migration: storage SeaORM and the three engines understand; what
-/// the field means (`char`, `ip`…) travels in `.kind(..)` for validation.
+/// the field means (`char`, `ip`…) travels in `.field_type(..)` for validation.
 fn generate_field_type(ty: &FieldType, enums: &[EnumDef]) -> TokenStream2 {
     if let Some(column_type) = ty.sea_orm_column_type() {
         let column_type: TokenStream2 = column_type
@@ -106,13 +106,13 @@ fn generate_option(opt: &FieldOption) -> TokenStream2 {
         FieldOption::DecimalLen { .. } => quote! {},
         FieldOption::Default(lit) => quote! { .default(sea_query::Value::from(#lit)) },
         FieldOption::Label(label) => quote! { .label(#label) },
-        FieldOption::File { kind, .. } => {
-            let kind_tok = match kind {
-                FileKind::Image => quote! { ::runique::schema::FileKind::Image },
-                FileKind::Audio => quote! { ::runique::schema::FileKind::Audio },
-                FileKind::Video => quote! { ::runique::schema::FileKind::Video },
-                FileKind::Document => quote! { ::runique::schema::FileKind::Document },
-                FileKind::Any => quote! { ::runique::schema::FileKind::Any },
+        FieldOption::File { upload_type, .. } => {
+            let kind_tok = match upload_type {
+                UploadType::Image => quote! { ::runique::schema::UploadType::Image },
+                UploadType::Audio => quote! { ::runique::schema::UploadType::Audio },
+                UploadType::Video => quote! { ::runique::schema::UploadType::Video },
+                UploadType::Document => quote! { ::runique::schema::UploadType::Document },
+                UploadType::Any => quote! { ::runique::schema::UploadType::Any },
             };
             quote! { .file(#kind_tok) }
         }

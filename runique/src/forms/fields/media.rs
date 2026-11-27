@@ -438,7 +438,7 @@ async fn remove_replaced(previous: &str) {
 /// What a [`MediaField`] takes. Each kind checks the file's content — its
 /// signature — not only its extension: a file renamed `.mp4` is refused.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
-pub enum MediaKind {
+pub enum MediaType {
     Image,
     Audio,
     Video,
@@ -452,7 +452,7 @@ pub enum MediaKind {
 #[derive(Clone, Debug)]
 pub struct MediaField {
     pub base: FieldConfig,
-    pub kind: MediaKind,
+    pub media_type: MediaType,
     pub upload: UploadMedia,
     pub max_width: Option<u32>,
     pub max_height: Option<u32>,
@@ -461,15 +461,15 @@ pub struct MediaField {
 field_base!(MediaField, label);
 
 impl MediaField {
-    fn create(name: &str, kind: MediaKind) -> Self {
+    fn create(name: &str, kind: MediaType) -> Self {
         let extensions = match kind {
-            MediaKind::Image => AllowedExtensions::images(),
-            MediaKind::Audio => AllowedExtensions::audio(),
-            MediaKind::Video => AllowedExtensions::video(),
+            MediaType::Image => AllowedExtensions::images(),
+            MediaType::Audio => AllowedExtensions::audio(),
+            MediaType::Video => AllowedExtensions::video(),
         };
         Self {
             base: FieldConfig::new(name, "file", "base_file.html"),
-            kind,
+            media_type: kind,
             upload: UploadMedia::new(extensions),
             max_width: None,
             max_height: None,
@@ -479,17 +479,17 @@ impl MediaField {
     /// Image: jpg, jpeg, png, gif, webp, avif. Checks the signature, and the
     /// dimensions with [`max_dimensions`](Self::max_dimensions). SVG refused.
     pub fn image(name: &str) -> Self {
-        Self::create(name, MediaKind::Image)
+        Self::create(name, MediaType::Image)
     }
 
     /// Audio: mp3, ogg, oga, wav, m4a, flac, aac. Checks the signature.
     pub fn audio(name: &str) -> Self {
-        Self::create(name, MediaKind::Audio)
+        Self::create(name, MediaType::Audio)
     }
 
     /// Video: mp4, webm, mov, ogv. Checks the signature.
     pub fn video(name: &str) -> Self {
-        Self::create(name, MediaKind::Video)
+        Self::create(name, MediaType::Video)
     }
 
     /// Destination directory, relative to `MEDIA_ROOT` (`"podcasts"` →
@@ -614,7 +614,7 @@ impl MediaField {
 /// (`Video`) container. MP3 (ID3 tag or MPEG frame, which also covers ADTS
 /// AAC), Ogg, WAV, FLAC, and ISO BMFF (`ftyp`: M4A, MP4, MOV) for audio;
 /// ISO BMFF, WebM/Matroska (EBML) and Ogg for video.
-pub(crate) async fn has_av_signature(path: &str, kind: MediaKind) -> bool {
+pub(crate) async fn has_av_signature(path: &str, kind: MediaType) -> bool {
     use tokio::io::AsyncReadExt;
     let Ok(mut f) = tokio::fs::File::open(path).await else {
         return false;
@@ -627,7 +627,7 @@ pub(crate) async fn has_av_signature(path: &str, kind: MediaKind) -> bool {
     let iso_bmff = n >= 8 && &buf[4..8] == b"ftyp";
     let ogg = &buf[..4] == b"OggS";
     match kind {
-        MediaKind::Audio => {
+        MediaType::Audio => {
             &buf[..3] == b"ID3"
                 || (buf[0] == 0xFF && buf[1] & 0xE0 == 0xE0)
                 || ogg
@@ -635,8 +635,8 @@ pub(crate) async fn has_av_signature(path: &str, kind: MediaKind) -> bool {
                 || &buf[..4] == b"fLaC"
                 || iso_bmff
         }
-        MediaKind::Video => iso_bmff || buf[..4] == [0x1A, 0x45, 0xDF, 0xA3] || ogg,
-        MediaKind::Image => false,
+        MediaType::Video => iso_bmff || buf[..4] == [0x1A, 0x45, 0xDF, 0xA3] || ogg,
+        MediaType::Image => false,
     }
 }
 
@@ -699,11 +699,11 @@ impl FormField for MediaField {
         };
 
         for filename in &files {
-            let refused = match self.kind {
-                MediaKind::Image => self.check_image(filename).await.err(),
-                MediaKind::Audio => (!has_av_signature(filename, MediaKind::Audio).await)
+            let refused = match self.media_type {
+                MediaType::Image => self.check_image(filename).await.err(),
+                MediaType::Audio => (!has_av_signature(filename, MediaType::Audio).await)
                     .then(|| t(runique_i18n::keys::forms::error::FILE_INVALID_AUDIO).into_owned()),
-                MediaKind::Video => (!has_av_signature(filename, MediaKind::Video).await)
+                MediaType::Video => (!has_av_signature(filename, MediaType::Video).await)
                     .then(|| t(runique_i18n::keys::forms::error::FILE_INVALID_VIDEO).into_owned()),
             };
             if let Some(msg) = refused {
@@ -750,7 +750,7 @@ impl FormField for MediaField {
         context.insert("allowed_extensions", &self.upload.allowed_extensions);
         context.insert("multiple", &(self.upload.max_files.unwrap_or(1) > 1));
         context.insert("is_file", &true);
-        context.insert("is_image", &(self.kind == MediaKind::Image));
+        context.insert("is_image", &(self.media_type == MediaType::Image));
         if let Some(size) = self.upload.upload_config.max_size {
             context.insert("max_size", &size);
             context.insert("max_size_mb", &(size as f64 / (1024.0 * 1024.0)));
@@ -829,14 +829,14 @@ mod tests {
         ] {
             let path = media.staged(name, bytes);
             assert!(
-                has_av_signature(&path, MediaKind::Audio).await,
+                has_av_signature(&path, MediaType::Audio).await,
                 "audio {name}"
             );
         }
         for (name, bytes) in [("a.mp4", MP4), ("b.webm", WEBM), ("c.ogv", OGG)] {
             let path = media.staged(name, bytes);
             assert!(
-                has_av_signature(&path, MediaKind::Video).await,
+                has_av_signature(&path, MediaType::Video).await,
                 "video {name}"
             );
         }
@@ -849,7 +849,7 @@ mod tests {
         for (name, bytes) in [("a.mp3", TEXT), ("b.mp3", PNG), ("c.mp3", WEBM)] {
             let path = media.staged(name, bytes);
             assert!(
-                !has_av_signature(&path, MediaKind::Audio).await,
+                !has_av_signature(&path, MediaType::Audio).await,
                 "audio {name}"
             );
         }
@@ -861,16 +861,16 @@ mod tests {
         ] {
             let path = media.staged(name, bytes);
             assert!(
-                !has_av_signature(&path, MediaKind::Video).await,
+                !has_av_signature(&path, MediaType::Video).await,
                 "video {name}"
             );
         }
         let short = media.staged("short.mp3", b"ID");
         assert!(
-            !has_av_signature(&short, MediaKind::Audio).await,
+            !has_av_signature(&short, MediaType::Audio).await,
             "too short"
         );
-        assert!(!has_av_signature("/nonexistent/x.mp3", MediaKind::Audio).await);
+        assert!(!has_av_signature("/nonexistent/x.mp3", MediaType::Audio).await);
     }
 
     #[tokio::test]
@@ -1107,7 +1107,7 @@ mod tests {
         for (name, bytes, accepted) in cases {
             let path = media.staged(name, bytes);
             assert_eq!(
-                has_av_signature(&path, MediaKind::Audio).await,
+                has_av_signature(&path, MediaType::Audio).await,
                 accepted,
                 "{name}"
             );

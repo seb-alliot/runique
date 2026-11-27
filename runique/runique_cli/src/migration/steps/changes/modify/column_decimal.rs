@@ -16,7 +16,7 @@ pub(crate) fn column_decimal(all_changes: &[Changes]) -> Vec<Destructive> {
                 .map(move |(old, new)| {
                     found(
                         c,
-                        DestructiveKind::NarrowDecimal {
+                        DestructiveItem::NarrowDecimal {
                             column: new.name.clone(),
                             from: old.decimal_len,
                             to: new.decimal_len,

@@ -11,10 +11,10 @@ mod launch;
 mod rename;
 
 pub use check::key_changes_supported;
-pub use create::add_foreign_key;
+pub use create::{add_enum_value, add_foreign_key, create_enum_type};
 pub use delete::{drop_enum_type, drop_foreign_key};
 pub use launch::RuniqueMigrator;
-pub use rename::rename_foreign_key;
+pub use rename::{rename_enum_type, rename_enum_value, rename_foreign_key};
 
 #[cfg(all(test, feature = "sqlite"))]
 mod tests {
@@ -84,5 +84,147 @@ mod tests {
         drop_enum_type(&SchemaManager::new(&db), "regime")
             .await
             .unwrap();
+    }
+
+    // Neither is creating one or giving it a value: the table of the enum
+    // column is left exactly as it was.
+    #[tokio::test]
+    async fn creating_an_enum_and_adding_a_value_are_nothing_on_sqlite() {
+        let db = sqlite().await;
+        let manager = SchemaManager::new(&db);
+        create_enum_type(&manager, "regime", &["Vegan", "Omnivore"])
+            .await
+            .unwrap();
+        add_enum_value(&manager, "regime", "Halal").await.unwrap();
+        assert!(manager.has_table("menus").await.unwrap());
+        assert!(!manager.has_table("regime").await.unwrap());
+    }
+
+    // No object carries the name of an enum off PostgreSQL: renaming one
+    // asks nothing of the engine.
+    #[tokio::test]
+    async fn renaming_an_enum_is_nothing_on_sqlite() {
+        let db = sqlite().await;
+        let manager = SchemaManager::new(&db);
+        rename_enum_type(&manager, "regime", "diet").await.unwrap();
+        assert!(manager.has_table("menus").await.unwrap());
+    }
+
+    /// Two tables with an enum column, text on SQLite, and their rows.
+    async fn enum_places(db: &sea_orm::DatabaseConnection) {
+        for (table, column, rows) in [
+            ("rq_books", "genre", vec!["Roman", "Policier", "Roman"]),
+            ("rq_moods", "value", vec!["Roman", "Essai"]),
+        ] {
+            db.execute(
+                &Table::create()
+                    .table(Alias::new(table))
+                    .col(ColumnDef::new(Alias::new("id")).integer().primary_key())
+                    .col(ColumnDef::new(Alias::new(column)).string())
+                    .to_owned(),
+            )
+            .await
+            .unwrap();
+            for (id, value) in rows.into_iter().enumerate() {
+                db.execute(
+                    &sea_query::Query::insert()
+                        .into_table(Alias::new(table))
+                        .columns([Alias::new("id"), Alias::new(column)])
+                        .values_panic([(id as i32).into(), value.into()])
+                        .to_owned(),
+                )
+                .await
+                .unwrap();
+            }
+        }
+    }
+
+    /// The values of `column` in `table`, by row.
+    async fn stored(db: &sea_orm::DatabaseConnection, table: &str, column: &str) -> Vec<String> {
+        db.query_all(
+            &sea_query::Query::select()
+                .column(Alias::new(column))
+                .from(Alias::new(table))
+                .order_by(Alias::new("id"), sea_query::Order::Asc)
+                .to_owned(),
+        )
+        .await
+        .unwrap()
+        .iter()
+        .map(|row| row.try_get_by_index::<String>(0).unwrap())
+        .collect()
+    }
+
+    // Text columns: the rows of every place that hold the value get the new
+    // one, the others stay; the same call the other way round puts it back.
+    #[tokio::test]
+    async fn renaming_a_value_updates_the_rows_of_every_place_on_sqlite() {
+        let db = sqlite().await;
+        enum_places(&db).await;
+        let manager = SchemaManager::new(&db);
+        let places = [("rq_books", "genre"), ("rq_moods", "value")];
+
+        rename_enum_value(&manager, "genre", "Roman", "Novel", &places)
+            .await
+            .unwrap();
+        assert_eq!(
+            stored(&db, "rq_books", "genre").await,
+            ["Novel", "Policier", "Novel"]
+        );
+        assert_eq!(stored(&db, "rq_moods", "value").await, ["Novel", "Essai"]);
+
+        rename_enum_value(&manager, "genre", "Novel", "Roman", &places)
+            .await
+            .unwrap();
+        assert_eq!(
+            stored(&db, "rq_books", "genre").await,
+            ["Roman", "Policier", "Roman"]
+        );
+        assert_eq!(stored(&db, "rq_moods", "value").await, ["Roman", "Essai"]);
+    }
+
+    // Only the places given are written to: a column of the same name
+    // elsewhere keeps its rows.
+    #[tokio::test]
+    async fn a_place_that_is_not_given_keeps_its_rows() {
+        let db = sqlite().await;
+        enum_places(&db).await;
+        let manager = SchemaManager::new(&db);
+
+        rename_enum_value(
+            &manager,
+            "genre",
+            "Roman",
+            "Novel",
+            &[("rq_books", "genre")],
+        )
+        .await
+        .unwrap();
+        assert_eq!(stored(&db, "rq_moods", "value").await, ["Roman", "Essai"]);
+
+        // No place at all: nothing to write, and no error.
+        rename_enum_value(&manager, "genre", "Essai", "Essay", &[])
+            .await
+            .unwrap();
+        assert_eq!(stored(&db, "rq_moods", "value").await, ["Roman", "Essai"]);
+    }
+
+    // A place that doesn't exist stops the migration: the error is the
+    // engine's, not a silence.
+    #[tokio::test]
+    async fn a_place_that_does_not_exist_is_an_error() {
+        let db = sqlite().await;
+        let manager = SchemaManager::new(&db);
+        assert!(
+            rename_enum_value(
+                &manager,
+                "genre",
+                "Roman",
+                "Novel",
+                &[("rq_missing", "genre")]
+            )
+            .await
+            .is_err()
+        );
     }
 }

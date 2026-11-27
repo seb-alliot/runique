@@ -1,4 +1,5 @@
-use super::*;
+//! A table dropped.
+use crate::migration::*;
 
 /// Every table of the framework starts with this.
 const FRAMEWORK_TABLE_PREFIX: &str = "eihwaz_";
@@ -7,7 +8,7 @@ const FRAMEWORK_TABLE_PREFIX: &str = "eihwaz_";
 /// of `snapshots/` itself) that no scanned model produces any more, by name.
 /// A table of the framework is never dropped, nor one of `kept`: the paused
 /// tables, and the former name of a table this run renames.
-pub(crate) fn dropped_tables(
+pub fn dropped_tables(
     snapshots: Vec<ParsedSchema>,
     schemas: &[ParsedSchema],
     kept: &[String],

@@ -10,12 +10,12 @@ use std::fmt;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Destructive {
     pub table: String,
-    pub kind: DestructiveKind,
+    pub item: DestructiveItem,
 }
 
 /// What is done to the table of a [`Destructive`].
 #[derive(Debug, Clone, PartialEq)]
-pub enum DestructiveKind {
+pub enum DestructiveItem {
     /// The table itself is dropped: every row of it is lost.
     DropTable,
     DropColumn {
@@ -62,27 +62,27 @@ pub enum DestructiveKind {
 impl fmt::Display for Destructive {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let table = &self.table;
-        match &self.kind {
-            DestructiveKind::DropTable => write!(f, "  {table}: DROP TABLE (data loss)"),
-            DestructiveKind::DropColumn { column } => {
+        match &self.item {
+            DestructiveItem::DropTable => write!(f, "  {table}: DROP TABLE (data loss)"),
+            DestructiveItem::DropColumn { column } => {
                 write!(f, "  {table}.{column}: DROP COLUMN (data loss)")
             }
-            DestructiveKind::ChangeType { column, from, to } => {
+            DestructiveItem::ChangeType { column, from, to } => {
                 write!(f, "  {table}.{column}: type {from} -> {to}")
             }
-            DestructiveKind::LeaveEnum { column, to } => write!(
+            DestructiveItem::LeaveEnum { column, to } => write!(
                 f,
                 "  {table}.{column}: enum -> {to} (manual migration required)"
             ),
-            DestructiveKind::EnterEnum { column, from } => write!(
+            DestructiveItem::EnterEnum { column, from } => write!(
                 f,
                 "  {table}.{column}: {from} -> enum (manual migration required)"
             ),
-            DestructiveKind::MakeRequired { column } => write!(
+            DestructiveItem::MakeRequired { column } => write!(
                 f,
                 "  {table}.{column}: nullable -> not_null (requires a default or backfill)"
             ),
-            DestructiveKind::NarrowLength { column, from, to } => {
+            DestructiveItem::NarrowLength { column, from, to } => {
                 let len =
                     |l: &Option<u32>| l.map_or_else(|| "default".to_string(), |n| n.to_string());
                 write!(
@@ -92,7 +92,7 @@ impl fmt::Display for Destructive {
                     len(to)
                 )
             }
-            DestructiveKind::NarrowDecimal { column, from, to } => {
+            DestructiveItem::NarrowDecimal { column, from, to } => {
                 let len = |l: &Option<(u32, u32)>| {
                     l.map_or_else(|| "default".to_string(), |(p, s)| format!("({p}, {s})"))
                 };
@@ -103,11 +103,11 @@ impl fmt::Display for Destructive {
                     len(to)
                 )
             }
-            DestructiveKind::DropKey { column, to_table } => write!(
+            DestructiveItem::DropKey { column, to_table } => write!(
                 f,
                 "  {table}.{column}: DROP FOREIGN KEY -> {to_table} (orphan records possible)"
             ),
-            DestructiveKind::AddCascadeKey { column, to_table } => write!(
+            DestructiveItem::AddCascadeKey { column, to_table } => write!(
                 f,
                 "  {table}.{column}: ADD FOREIGN KEY -> {to_table} ON DELETE CASCADE (existing rows may be deleted)"
             ),
@@ -133,10 +133,10 @@ pub fn destructive(all_changes: &[Changes]) -> Vec<Destructive> {
 }
 
 /// A destructive element of the table `change` is about.
-pub(crate) fn found(change: &Changes, kind: DestructiveKind) -> Destructive {
+pub(crate) fn found(change: &Changes, item: DestructiveItem) -> Destructive {
     Destructive {
         table: change.table_name.clone(),
-        kind,
+        item,
     }
 }
 
@@ -155,7 +155,7 @@ pub fn dropped_table_messages(tables: &[String]) -> Vec<String> {
         .map(|table| {
             Destructive {
                 table: table.clone(),
-                kind: DestructiveKind::DropTable,
+                item: DestructiveItem::DropTable,
             }
             .to_string()
         })

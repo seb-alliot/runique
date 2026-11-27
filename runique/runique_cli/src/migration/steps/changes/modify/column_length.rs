@@ -15,7 +15,7 @@ pub(crate) fn column_length(all_changes: &[Changes]) -> Vec<Destructive> {
                 .map(move |(old, new)| {
                     found(
                         c,
-                        DestructiveKind::NarrowLength {
+                        DestructiveItem::NarrowLength {
                             column: new.name.clone(),
                             from: old.max_length,
                             to: new.max_length,

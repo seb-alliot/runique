@@ -99,11 +99,11 @@ impl DbEngine {
 }
 
 /// Refuses the types the compiled engine can't read back (see
-/// `FormFieldKind::unsupported_on`): better a compile error than a runtime one
+/// `FormFieldType::unsupported_on`): better a compile error than a runtime one
 /// on the first read. Only the Cargo feature counts here, not `.env`, and
 /// nothing is refused under `all-databases`, where no single engine is targeted.
 pub fn check_engine_support(model: &crate::model::ast::ModelInput) -> syn::Result<()> {
-    use crate::model::ast::FormFieldKind;
+    use crate::model::ast::FormFieldType;
     use runique_dsl::types::Engine;
 
     if cfg!(feature = "all-databases") {
@@ -117,14 +117,14 @@ pub fn check_engine_support(model: &crate::model::ast::ModelInput) -> syn::Resul
         return Ok(());
     };
     for field in &model.fields {
-        if !field.kind.unsupported_on().contains(&engine) {
+        if !field.field_type.unsupported_on().contains(&engine) {
             continue;
         }
-        let instead = match field.kind {
-            FormFieldKind::I8 => "`i16`",
+        let instead = match field.field_type {
+            FormFieldType::I8 => "`i16`",
             _ => "`bigint` (i64)",
         };
-        let kind = format!("{:?}", field.kind).to_lowercase();
+        let kind = format!("{:?}", field.field_type).to_lowercase();
         return Err(syn::Error::new(
             field.name.span(),
             format!(

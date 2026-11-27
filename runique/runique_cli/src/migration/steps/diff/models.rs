@@ -1,10 +1,15 @@
-use super::*;
+//! Every model against its snapshot.
+use crate::migration::steps::parser::files::snapshot::previous_snapshot;
+use crate::migration::*;
+use anyhow::Result;
+use runique_i18n::tf;
+use std::path::Path;
 
 /// Computes the diff for every scanned model (no writing). A table of
 /// `renames` (former name, name) is compared to the snapshot of its former
 /// name; what the renames explain is taken out of every diff and kept in
 /// `Changes::renames`.
-pub(crate) fn compute_main_changes(
+pub fn compute_main_changes(
     schemas: &[ParsedSchema],
     renames: &[(String, String)],
     migrations_path: &str,

@@ -69,8 +69,6 @@ fn a_dropped_column_closes_up_and_its_return_opens_down() {
             columns: vec!["fresh".into()],
             unique: false,
         }],
-        enum_renames: vec![("status".into(), "Status".into(), "old".into(), "new".into())],
-        enum_value_adds: vec![("status".into(), "Status".into(), "more".into())],
         ..empty_changes()
     };
     let sql = generate_alter_file(&changes);
@@ -83,8 +81,6 @@ fn a_dropped_column_closes_up_and_its_return_opens_down() {
         "add_column",
         "add_foreign_key",
         "create_index",
-        "rename_value",
-        "add_value",
     ] {
         let position = up
             .rfind(earlier)
@@ -103,7 +99,6 @@ fn a_dropped_column_closes_up_and_its_return_opens_down() {
         "drop_foreign_key",
         "drop_column",
         "modify_column",
-        "rename_value",
         "rename_column",
     ] {
         let position = down

@@ -129,7 +129,7 @@ runique test blog un_article_cree_est_trouve_par_son_id   # un seul test
 
 Ces contrôles ne vérifient **pas** que les migrations sont appliquées : une application lancée sans `runique migration up` démarre, puis échoue à la première requête qui touche une table absente (voir [Troubleshooting](/docs/fr/installation/troubleshooting)).
 
-`build()` renvoie alors une `BuildError` — `BuildErrorKind::CheckFailed(CheckReport)` pour les contrôles ci-dessus, CORS à part — affichée dans le terminal avec une suggestion pour chaque problème.
+`build()` renvoie alors une `BuildError` — `BuildFailure::CheckFailed(CheckReport)` pour les contrôles ci-dessus, CORS à part — affichée dans le terminal avec une suggestion pour chaque problème.
 
 ---
 

@@ -513,6 +513,7 @@ pub const ALL: &[&str] = &[
     self::makemigrations::error::DUPLICATE_TABLE,
     self::makemigrations::error::ENGINE_NOT_IN_FEATURES,
     self::makemigrations::error::ENUM_DECLARED_TWICE,
+    self::makemigrations::error::ENUM_SNAPSHOT_MISNAMED,
     self::makemigrations::error::FOLDER_NAMED_RS,
     self::makemigrations::error::LONG_IDENTIFIER_DETECTED,
     self::makemigrations::error::LONG_IDENTIFIER_RENAME_REQUIRED,

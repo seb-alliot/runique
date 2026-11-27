@@ -1,6 +1,6 @@
 //! `Model Meta` for a model's entity: what the admin needs to know about it.
 
-use crate::model::ast::{FormFieldKind, ModelInput};
+use crate::model::ast::{FormFieldType, ModelInput};
 use crate::model::utils::ident_pascal;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
@@ -31,7 +31,7 @@ pub fn generate_model_meta(model: &ModelInput) -> TokenStream2 {
     let secrets: Vec<_> = model
         .fields
         .iter()
-        .filter(|f| f.kind == FormFieldKind::Password)
+        .filter(|f| f.field_type == FormFieldType::Password)
         .map(|f| ident_pascal(&f.name))
         .collect();
     let secret = (!secrets.is_empty()).then(|| {

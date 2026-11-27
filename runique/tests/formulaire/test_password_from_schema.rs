@@ -28,8 +28,8 @@ fn secret_form() -> Forms {
         .find(|c| c.name == "secret")
         .expect("secret column");
     assert_eq!(
-        column.kind,
-        Some(runique::runique_dsl::ast::FormFieldKind::Password),
+        column.field_type,
+        Some(runique::runique_dsl::ast::FormFieldType::Password),
         "schema() must carry the DSL type"
     );
 

@@ -424,9 +424,6 @@ fn empty_changes(table: &str) -> Changes {
         table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
     }
 }
 

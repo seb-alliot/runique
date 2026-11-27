@@ -1,14 +1,14 @@
-//! `context!` macro — ergonomic constructor for `ContextHelper` (Tera context).
+//! `context!` macro — ergonomic constructor for `ContextBuilder` (Tera context).
 
 #[macro_export]
 macro_rules! context {
 
     () => {
-        $crate::macros::helper::ContextHelper::new()
+        $crate::macros::helper::ContextBuilder::new()
     };
 
     { $($key:expr, $value:expr);* $(;)? } => {{
-        let mut ctx = $crate::macros::helper::ContextHelper::new();
+        let mut ctx = $crate::macros::helper::ContextBuilder::new();
         $(
             ctx = ctx.add($key, $value);
         )*
@@ -16,7 +16,7 @@ macro_rules! context {
     }};
 
     ($($key:expr => $value:expr),* $(,)?) => {{
-        let mut ctx = $crate::macros::helper::ContextHelper::new();
+        let mut ctx = $crate::macros::helper::ContextBuilder::new();
         $(
             ctx = ctx.add($key, $value);
         )*

@@ -1,10 +1,10 @@
-use crate::model::ast::{EnumDef, FormFieldAttr, FormFieldDecl, FormFieldKind};
+use crate::model::ast::{EnumDef, FormFieldAttr, FormFieldDecl, FormFieldType};
 use crate::model::generateur::{
     field_from_form, field_from_partial, generate_column, generate_enum_defs,
     generate_form_field_decl,
 };
 use crate::model::utils::generate_model_field;
-use crate::registry::{FormWidget, PhantomColumn, PkKind, phantom_columns};
+use crate::registry::{FormWidget, PhantomColumn, PkColumn, phantom_columns};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use runique_dsl::ast::FieldDef;
@@ -16,8 +16,8 @@ use runique_dsl::form_field_to_field_def;
 /// Resolves the `EnumDef` a choice/radio field refers to via its `[enum(Name)]` attr.
 fn field_enum_def<'a>(ff: &FormFieldDecl, enums: &'a [EnumDef]) -> Option<&'a EnumDef> {
     if !matches!(
-        ff.kind,
-        FormFieldKind::Choice | FormFieldKind::Radio | FormFieldKind::Checkbox
+        ff.field_type,
+        FormFieldType::Choice | FormFieldType::Radio | FormFieldType::Checkbox
     ) {
         return None;
     }
@@ -172,14 +172,14 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
                 // The id is the `Pk` alias, and SeaORM's derive macro infers
                 // `auto_increment` from the literal type name — it can't see
                 // through an alias, so it silently defaults to `false`.
-                PkKind::Auto => {
+                PkColumn::Auto => {
                     let auto_increment = !cfg!(feature = "pk-uuid");
                     quote! {
                         #[sea_orm(primary_key, auto_increment = #auto_increment)]
                         pub #name: #ty,
                     }
                 }
-                PkKind::NotPk => quote! {
+                PkColumn::NotPk => quote! {
                     pub #name: #ty,
                 },
             }
@@ -396,7 +396,7 @@ pub(crate) fn generate_schema_fn(dsl: &ExtendDsl) -> TokenStream2 {
     let table = &dsl.table;
     let pk_name = crate::registry::phantom_columns(table)
         .iter()
-        .find(|c| matches!(c.pk, crate::registry::PkKind::Auto))
+        .find(|c| matches!(c.pk, crate::registry::PkColumn::Auto))
         .map_or("id", |c| c.name);
 
     let col_defs: Vec<TokenStream2> = dsl

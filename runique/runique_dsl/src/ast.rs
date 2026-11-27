@@ -69,23 +69,23 @@ pub struct ModelInput {
 
 // ── form_fields: block — semantic types ──────────────────────
 
-/// Declares `FormFieldKind` and its `ALL` list from one list of variants:
+/// Declares `FormFieldType` and its `ALL` list from one list of variants:
 /// a kind added here is in `ALL` too, it can't be left out of either.
-macro_rules! form_field_kinds {
+macro_rules! form_field_types {
     ($($(#[$doc:meta])* $variant:ident,)*) => {
         #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-        pub enum FormFieldKind {
+        pub enum FormFieldType {
             $($(#[$doc])* $variant,)*
         }
 
-        impl FormFieldKind {
+        impl FormFieldType {
             /// Every kind, in declaration order.
-            pub const ALL: &[FormFieldKind] = &[$(FormFieldKind::$variant,)*];
+            pub const ALL: &[FormFieldType] = &[$(FormFieldType::$variant,)*];
         }
     };
 }
 
-form_field_kinds! {
+form_field_types! {
     Text,
     Email,
     Password,
@@ -176,7 +176,7 @@ pub enum FormFieldAttr {
 
 pub struct FormFieldDecl {
     pub name: syn::Ident,
-    pub kind: FormFieldKind,
+    pub field_type: FormFieldType,
     pub attrs: Vec<FormFieldAttr>,
 }
 
@@ -195,7 +195,7 @@ pub enum PkType {
 pub struct FieldDef {
     pub name: syn::Ident,
     /// The DSL type the field was declared with — see [`crate::types`].
-    pub kind: FormFieldKind,
+    pub field_type: FormFieldType,
     /// The enum a `choice` / `radio` / `checkbox` field draws from (`[enum(X)]`).
     pub enum_ref: Option<syn::Ident>,
     pub options: Vec<FieldOption>,
@@ -255,14 +255,14 @@ pub enum FieldOption {
     Readonly,
     Label(String),
     File {
-        kind: FileKind,
+        upload_type: UploadType,
         upload_to: Option<String>,
     },
     MaxSize(u64),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum FileKind {
+pub enum UploadType {
     Image,
     Audio,
     Video,

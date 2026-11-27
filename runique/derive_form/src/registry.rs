@@ -21,7 +21,7 @@ impl PhantomType {
     }
 }
 
-pub enum PkKind {
+pub enum PkColumn {
     Auto,
     NotPk,
 }
@@ -48,7 +48,7 @@ pub struct PhantomColumn {
     pub name: &'static str,
     pub ty: PhantomType,
     pub nullable: bool,
-    pub pk: PkKind,
+    pub pk: PkColumn,
     pub widget: FormWidget,
 }
 
@@ -58,7 +58,7 @@ macro_rules! col {
             name: $name,
             ty: $ty,
             nullable: false,
-            pk: PkKind::Auto,
+            pk: PkColumn::Auto,
             widget: FormWidget::Skip,
         }
     };
@@ -67,7 +67,7 @@ macro_rules! col {
             name: $name,
             ty: $ty,
             nullable: true,
-            pk: PkKind::NotPk,
+            pk: PkColumn::NotPk,
             widget: $widget,
         }
     };
@@ -76,7 +76,7 @@ macro_rules! col {
             name: $name,
             ty: $ty,
             nullable: false,
-            pk: PkKind::NotPk,
+            pk: PkColumn::NotPk,
             widget: $widget,
         }
     };

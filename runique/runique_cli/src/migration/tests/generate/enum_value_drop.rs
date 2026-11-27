@@ -1,28 +1,32 @@
+use crate::db::DatabaseEngine;
 use crate::migration::tests::*;
 
 // ── Enum value DROP: WARNING (up) + re-add (down), Postgres only ──
 
 #[test]
 fn enum_value_drop_warns_up_and_readds_down_on_postgres() {
-    let changes = Changes {
-        enum_value_drops: vec![("status".into(), "Status".into(), "Legacy".into())],
-        ..empty_changes()
+    let changes = EnumChanges {
+        name: "status".into(),
+        dropped_values: vec!["Legacy".into()],
+        ..EnumChanges::default()
     };
-    let sql = generate_alter_file(&changes);
+    let sql = generate_enum_file(&changes, &DatabaseEngine::PostgreSQL);
     let (up, down) = up_down(&sql);
     assert!(
         up.contains("WARNING: value \"Legacy\" removed"),
         "up warning:\n{up}"
     );
     assert!(
-        down.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
-        "down must check the real backend at runtime:\n{down}"
+        down.contains(
+            r#"runique_cli::migration::runtime::add_enum_value(manager, "status", "Legacy").await?;"#
+        ),
+        "down must give the type its value again, through the runtime:\n{down}"
     );
-    assert!(
-        down.contains(".name(Alias::new(\"status\"))")
-            && down.contains(".add_value(Alias::new(\"Legacy\"))")
-            && down.contains(".if_not_exists()"),
-        "down must re-add the value on Postgres via the Type::alter() builder, with the \
-         type name lowercased to match the unquoted CREATE TYPE's case-folded identity:\n{down}"
-    );
+    // Where the column is text there is no list to give the value to.
+    for engine in [DatabaseEngine::MySQL, DatabaseEngine::SQLite] {
+        let sql = generate_enum_file(&changes, &engine);
+        let (up, down) = up_down(&sql);
+        assert!(up.contains("WARNING: value \"Legacy\" removed"), "{up}");
+        assert!(!down.contains("add_enum_value"), "{down}");
+    }
 }

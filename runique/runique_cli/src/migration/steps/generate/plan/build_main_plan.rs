@@ -8,7 +8,6 @@ pub(crate) fn build_main_plan(
     schemas: &[ParsedSchema],
     migrations_path: &str,
     timestamp: &str,
-    settled: &[String],
 ) {
     let cycle_keys = cycle_keys(all_changes, schemas);
     let no_cycle = CycleKeys::default();
@@ -25,14 +24,8 @@ pub(crate) fn build_main_plan(
             let keys = cycle_keys
                 .get(change.table_name.as_str())
                 .unwrap_or(&no_cycle);
-            plan.files.push((
-                seaorm_path,
-                waiting_migrate(
-                    generate_create_file_in_cycle(schema, keys),
-                    &module_name,
-                    settled,
-                ),
-            ));
+            plan.files
+                .push((seaorm_path, generate_create_file_in_cycle(schema, keys)));
             plan.lib_modules.push(module_name);
         } else {
             let module_name = seaorm_alter_module_name(timestamp, &change.table_name);
@@ -46,11 +39,7 @@ pub(crate) fn build_main_plan(
                 .map_or_else(String::new, |old| format!("{RENAMED_TABLE}{old}\n"));
             plan.files.push((
                 seaorm_path,
-                waiting_migrate(
-                    format!("{renamed}{}", generate_alter_file(change)),
-                    &module_name,
-                    settled,
-                ),
+                format!("{renamed}{}", generate_alter_file(change)),
             ));
             plan.lib_modules.push(module_name);
         }

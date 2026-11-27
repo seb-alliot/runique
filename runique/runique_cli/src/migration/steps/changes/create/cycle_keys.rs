@@ -1,9 +1,10 @@
-use super::*;
+//! The keys of a cycle between tables created together.
+use crate::migration::*;
 
 /// For each new table, the foreign keys of an FK cycle: keys to a new table
 /// created later in this batch (`forward`), and keys pointing to it from a
 /// table created earlier (`closing`). `all_changes` is in creation order.
-pub(crate) fn cycle_keys<'a>(
+pub fn cycle_keys<'a>(
     all_changes: &[Changes],
     schemas: &'a [ParsedSchema],
 ) -> std::collections::HashMap<&'a str, CycleKeys<'a>> {

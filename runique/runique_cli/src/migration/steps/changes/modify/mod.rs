@@ -10,7 +10,7 @@ mod primary_key;
 mod unmigrated_type_changes;
 
 // What the destructive cases of this folder need: they take it by `use super::*`.
-use super::destructive::{Destructive, DestructiveKind, found};
+use super::destructive::{Destructive, DestructiveItem, found};
 use crate::migration::types::Changes;
 
 pub(crate) use column_decimal::column_decimal;

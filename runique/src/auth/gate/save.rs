@@ -3,7 +3,7 @@
 //! columns the rights allow, written in one transaction with its history row.
 #[cfg(feature = "admin")]
 use super::PkOf;
-use super::change::{FieldErrors, Secrets, WriteKind, changes};
+use super::change::{FieldErrors, RowWrite, Secrets, changes};
 use super::check::{GateCtx, authorize_create, authorize_row};
 use super::operation::{Delete, Update};
 use super::refusal::{Refusal, RefusalReason};
@@ -138,15 +138,15 @@ async fn keeps_responsable<E: ModelMeta, C: ConnectionTrait>(
 fn list_changes<E: ModelMeta>(
     form: &Forms,
     rights: &ColumnRights,
-    kind: WriteKind,
+    kind: RowWrite,
 ) -> std::collections::HashMap<String, String> {
     E::LISTS
         .iter()
         .filter_map(|name| {
             let field = form.fields.get(*name)?;
             let allowed = match kind {
-                WriteKind::Create => rights.can_create(name),
-                WriteKind::Update => rights.can_update(name),
+                RowWrite::Create => rights.can_create(name),
+                RowWrite::Update => rights.can_update(name),
             };
             (allowed && !field.is_locked())
                 .then(|| ((*name).to_string(), field.value().to_string()))
@@ -224,7 +224,7 @@ where
     match (action, target) {
         (SaveAction::Save, None) => {
             let proof = authorize_create::<E>(&gate).map_err(refused)?;
-            let mut model = changes::<E>(form, &rights.columns, WriteKind::Create, Secrets::Skip)
+            let mut model = changes::<E>(form, &rights.columns, RowWrite::Create, Secrets::Skip)
                 .map_err(|e| on_fields(form, e))?;
             // Whoever creates the row owns it, whatever the form sent.
             if let Some(owner) = E::OWNER {
@@ -240,7 +240,7 @@ where
                 model.try_set(password, Value::from(hash))?;
             }
             missing_required::<E>(&model).map_err(|e| on_fields(form, e))?;
-            let lists = list_changes::<E>(form, &rights.columns, WriteKind::Create);
+            let lists = list_changes::<E>(form, &rights.columns, RowWrite::Create);
             write_with_uploads(form, async {
                 let txn = db.begin().await?;
                 let row = write::insert::<E, E::ActiveModel, _>(proof, model, &txn)
@@ -256,7 +256,7 @@ where
             let proof = authorize_row::<Update, E>(&gate, id.clone())
                 .await
                 .map_err(refused)?;
-            let mut model = changes::<E>(form, &rights.columns, WriteKind::Update, Secrets::Skip)
+            let mut model = changes::<E>(form, &rights.columns, RowWrite::Update, Secrets::Skip)
                 .map_err(|e| on_fields(form, e))?;
             // Through `_own` alone, the owner column is what grants the
             // right: writing it would hand the row over, or take another's.
@@ -265,7 +265,7 @@ where
             {
                 model.not_set(owner);
             }
-            let lists = list_changes::<E>(form, &rights.columns, WriteKind::Update);
+            let lists = list_changes::<E>(form, &rights.columns, RowWrite::Update);
             if !model.is_changed() && lists.is_empty() {
                 return Ok(());
             }

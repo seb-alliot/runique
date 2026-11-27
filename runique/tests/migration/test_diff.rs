@@ -2,9 +2,12 @@
 //! Couvre : diff_schemas, db_columns, Changes::is_empty, update_migration_lib
 
 use runique_cli::migration::db_columns;
-use runique_cli::migration::steps::diff::diff_schemas;
-use runique_cli::migration::types::{ParsedColumn, ParsedSchema};
+use runique_cli::migration::steps::diff::{diff_enum, diff_enums, diff_schemas};
+use runique_cli::migration::types::{
+    EnumChange, EnumPlace, ParsedColumn, ParsedEnum, ParsedSchema,
+};
 use runique_cli::migration::update_migration_lib;
+use runique_cli::migration::{enums_of_schemas, previous_enums};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -187,7 +190,12 @@ fn test_diff_multiple_changes() {
     assert!(!changes.is_empty());
 }
 
-// ── enum_renames dans diff_schemas ───────────────────────────────────────────
+// ── Les valeurs d'un enum : comparées par enum, plus par table ───────────────
+
+/// L'enum de `schema`, tel que `makemigrations` le trouve.
+fn enum_of(schema: &ParsedSchema) -> ParsedEnum {
+    enums_of_schemas(std::slice::from_ref(schema)).remove(0)
+}
 
 fn col_enum(name: &str, enum_name: &str, values: &[&str]) -> ParsedColumn {
     ParsedColumn {
@@ -202,11 +210,8 @@ fn test_diff_enum_values_identiques_pas_de_rename() {
     let vals = &["Draft", "Published"];
     let prev = schema("articles", "id", vec![col_enum("status", "Status", vals)]);
     let curr = schema("articles", "id", vec![col_enum("status", "Status", vals)]);
-    let changes = diff_schemas(&prev, &curr);
-    assert!(
-        changes.enum_renames.is_empty(),
-        "Valeurs identiques → pas de rename"
-    );
+    let changes = diff_enum(Some(&enum_of(&prev)), &enum_of(&curr));
+    assert!(changes.is_empty(), "Valeurs identiques → rien à migrer");
 }
 
 #[test]
@@ -221,13 +226,21 @@ fn test_diff_enum_values_changees_genere_rename() {
         "id",
         vec![col_enum("status", "Status", &["Ajouté", "Fix"])],
     );
-    let changes = diff_schemas(&prev, &curr);
-    assert_eq!(changes.enum_renames.len(), 1, "Un rename attendu");
-    let (col, enum_name, old_val, new_val) = &changes.enum_renames[0];
-    assert_eq!(col, "status");
-    assert_eq!(enum_name, "Status");
-    assert_eq!(old_val, "Ajoute");
-    assert_eq!(new_val, "Ajouté");
+    let changes = diff_enum(Some(&enum_of(&prev)), &enum_of(&curr));
+    assert_eq!(changes.name, "status");
+    assert_eq!(
+        changes.renamed_values,
+        [("Ajoute".to_string(), "Ajouté".to_string())]
+    );
+    assert_eq!(
+        changes.places,
+        [EnumPlace {
+            table: "articles".to_string(),
+            column: "status".to_string()
+        }]
+    );
+    // La table, elle, n'a rien à migrer : la valeur appartient à l'enum.
+    assert!(diff_schemas(&prev, &curr).is_empty());
 }
 
 #[test]
@@ -242,8 +255,8 @@ fn test_diff_enum_plusieurs_valeurs_changees() {
         "id",
         vec![col_enum("status", "Status", &["V1", "V2", "v3"])],
     );
-    let changes = diff_schemas(&prev, &curr);
-    assert_eq!(changes.enum_renames.len(), 2);
+    let changes = diff_enum(Some(&enum_of(&prev)), &enum_of(&curr));
+    assert_eq!(changes.renamed_values.len(), 2);
 }
 
 #[test]
@@ -258,7 +271,7 @@ fn test_diff_enum_renames_in_changes_not_empty() {
         "id",
         vec![col_enum("status", "Status", &["new"])],
     );
-    let changes = diff_schemas(&prev, &curr);
+    let changes = diff_enum(Some(&enum_of(&prev)), &enum_of(&curr));
     assert!(
         !changes.is_empty(),
         "Des renames → changes.is_empty() == false"
@@ -280,13 +293,16 @@ fn test_diff_string_devenu_enum_pas_de_value_add() {
         vec![col_enum("block_type", "CourBlockType", &["text", "code"])],
     );
     let changes = diff_schemas(&prev, &curr);
+    // L'enum n'existait pas : il est créé, avec ses valeurs, jamais
+    // « modifié » par des ajouts.
+    let before = previous_enums(std::slice::from_ref(&prev), &[]);
+    assert!(before.is_empty(), "aucun enum avant : {before:?}");
+    let enums = diff_enums(&before, &enums_of_schemas(std::slice::from_ref(&curr)));
+    assert_eq!(enums.len(), 1);
+    assert_eq!(enums[0].change, EnumChange::Created);
     assert!(
-        changes.enum_value_adds.is_empty(),
-        "string→enum ne doit pas générer d'ajout de valeur d'enum"
-    );
-    assert!(
-        changes.enum_renames.is_empty(),
-        "string→enum ne doit pas générer de rename d'enum"
+        enums[0].added_values.is_empty() && enums[0].renamed_values.is_empty(),
+        "string→enum ne doit générer ni ajout ni rename de valeur : {enums:?}"
     );
     assert_eq!(
         changes.modified_columns.len(),

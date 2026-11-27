@@ -1,8 +1,12 @@
-use super::*;
+//! Every `extend!{}` block against its snapshot.
+use crate::migration::steps::parser::files::snapshot::{extended_tables, previous_snapshot};
+use crate::migration::*;
+use anyhow::Result;
+use std::path::Path;
 
 /// Scans + merges `extend!{}` blocks and computes their diffs (no writing).
 /// Returns the owned schema + change pair for each table that actually changed.
-pub(crate) fn plan_extend_changes(
+pub fn plan_extend_changes(
     entities_path: &str,
     migrations_path: &str,
 ) -> Result<Vec<(ParsedSchema, Changes)>> {

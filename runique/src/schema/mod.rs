@@ -222,7 +222,7 @@ impl ModelSchema {
             let Some(field) = form.fields.get_mut(&col.name) else {
                 continue;
             };
-            let Some(kind) = col.kind else { continue };
+            let Some(kind) = col.field_type else { continue };
             match kind.widget() {
                 Widget::Password if field.field_type() != "password" || !field.is_password() => {
                     panic!(

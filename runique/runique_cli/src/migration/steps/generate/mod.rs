@@ -3,10 +3,13 @@
 //! instructions (`instruction`): an action (`create`, `delete`, `modify`,
 //! `rename`) on an object, each case written by its own function.
 mod alter;
+mod builder;
 mod columns;
 mod constraints;
 mod create;
 mod delete;
+mod enum_file;
+mod enum_snapshot;
 pub(crate) mod init_migrate;
 mod instruction;
 pub(crate) mod lib_file;
@@ -15,10 +18,13 @@ pub(crate) mod plan;
 mod rename;
 
 pub use columns::col_type_method;
+pub use enum_file::generate_enum_file;
+pub use enum_snapshot::generate_enum_snapshot_file;
 pub use lib_file::{ensure_admin_migration_positioned, update_migration_lib};
 
 use crate::migration::types::{Changes, ParsedColumn, ParsedFk, ParsedSchema};
-use alter::{body_has_code, build_alter_bodies};
+use alter::{alter_plan, body_has_code};
+use builder::BuilderPlan;
 use constraints::fk_constraint_name;
 use constraints::key_changes_guard;
 use instruction::{Create, Delete, File, Instruction, chain};
@@ -60,58 +66,50 @@ pub fn generate_drop_file(schema: &ParsedSchema, keys: &CycleKeys<'_>) -> String
 }
 
 /// The two bodies around a table: what creates it, and what takes it away.
+/// `drop_if_exists`: the file is the one that drops the table.
 fn create_bodies(
     schema: &ParsedSchema,
     keys: &CycleKeys<'_>,
     drop_if_exists: bool,
 ) -> (String, String) {
     let table = schema.table_name.as_str();
-    let enums = enum_types(&schema.columns);
+    // A table that is created finds its enums there: each has its own
+    // migration, earlier in the run. A table that is dropped takes with it
+    // the enums nothing uses any more, and its way back brings them again.
+    let enums = if drop_if_exists {
+        enum_types(&schema.columns)
+    } else {
+        Vec::new()
+    };
 
-    let mut up: Vec<Instruction> = Vec::new();
+    let mut creating = BuilderPlan::for_every_engine();
     for (name, values) in &enums {
-        up.push(Instruction::Create(Create::EnumType { name, values }));
+        creating.create_enum_type(name, values);
     }
-    up.push(Instruction::Create(Create::Table {
-        schema,
-        forward: &keys.forward,
-        file: File::Migration,
-    }));
+    creating.create_table(schema, &keys.forward, File::Migration);
     for index in &schema.indexes {
-        up.push(Instruction::Create(Create::Index {
-            table,
-            named_for: table,
-            index,
-            file: File::Migration,
-        }));
+        creating.create_index(table, table, index, File::Migration);
     }
     if !keys.closing.is_empty() {
-        up.push(Instruction::Create(Create::CycleKeys {
-            keys: &keys.closing,
-        }));
+        creating.create_cycle_keys(&keys.closing);
     }
 
-    let mut down: Vec<Instruction> = Vec::new();
-    if !keys.closing.is_empty() {
-        down.push(Instruction::Delete(Delete::CycleKeys {
-            keys: &keys.closing,
-        }));
-    }
     // No explicit drop_index here: DROP TABLE already removes every index defined on it,
     // and dropping one by name first fails on MySQL when it's still backing an
     // active FK constraint (error 1553) — the FK's own drop only happens implicitly with
     // the table, never explicitly before this point in a CREATE-table migration's down().
-    down.push(Instruction::Delete(Delete::Table {
-        name: table,
-        if_exists: drop_if_exists,
-    }));
+    let mut dropping = BuilderPlan::for_every_engine();
+    if !keys.closing.is_empty() {
+        dropping.delete_cycle_keys(&keys.closing);
+    }
+    dropping.delete_table(table, drop_if_exists);
     for (name, values) in &enums {
-        down.push(Instruction::Delete(Delete::EnumType { name, values }));
+        dropping.delete_enum_type(name, values);
     }
 
     (
-        format!("{}        Ok(())\n", chain(&up)),
-        format!("{}        Ok(())\n", chain(&down)),
+        format!("{}        Ok(())\n", creating.up()),
+        format!("{}        Ok(())\n", dropping.up()),
     )
 }
 
@@ -256,35 +254,31 @@ pub fn generate_snapshot_file(schema: &ParsedSchema) -> String {
 /// (renames, add/drop columns, FKs, indexes, enum transitions, etc.), each op emitted
 /// in dependency-safe order in both `up` and `down`.
 pub fn generate_alter_file(change: &Changes) -> String {
-    let (up_body, down_body) = build_alter_bodies(change);
-
+    let mut plan = alter_plan(change);
     // Before anything else: an engine that can't change the keys of an
     // existing table stops here, the table untouched.
-    let guard = if change.added_fks.is_empty() && change.dropped_fks.is_empty() {
-        String::new()
-    } else {
-        key_changes_guard(&change.table_name)
-    };
-    let full_up = format!("{}{}", guard, up_body);
-    let full_down = format!("{}{}", guard, down_body);
+    if !(change.added_fks.is_empty() && change.dropped_fks.is_empty()) {
+        plan.guard(key_changes_guard(&change.table_name));
+    }
+    plan.build()
+}
 
-    let up_param = if body_has_code(&full_up) {
-        "manager"
-    } else {
-        "_manager"
+/// A migration file around two bodies that may hold nothing to run: a body
+/// without a statement names its `manager` `_manager`, which it doesn't use.
+fn file_around(up: &str, down: &str) -> String {
+    let param = |body: &str| {
+        if body_has_code(body) {
+            "manager"
+        } else {
+            "_manager"
+        }
     };
-    let down_param = if body_has_code(&full_down) {
-        "manager"
-    } else {
-        "_manager"
-    };
-
     format!(
         "use sea_orm_migration::prelude::*;\n\n#[derive(DeriveMigrationName)]\npub struct Migration;\n\n#[async_trait::async_trait]\nimpl MigrationTrait for Migration {{\n    async fn up(&self, {up_param}: &SchemaManager) -> Result<(), DbErr> {{\n{up}\n        Ok(())\n    }}\n\n    async fn down(&self, {down_param}: &SchemaManager) -> Result<(), DbErr> {{\n{down}\n        Ok(())\n    }}\n}}\n",
-        up_param = up_param,
-        down_param = down_param,
-        up = full_up.trim_end(),
-        down = full_down.trim_end()
+        up_param = param(up),
+        down_param = param(down),
+        up = up.trim_end(),
+        down = down.trim_end()
     )
 }
 

@@ -158,7 +158,7 @@ fn parse_fields_block(input: ParseStream, pk_name: &str) -> Result<FieldsBlock> 
                 format!("Field '{}' is declared more than once", ff.name),
             ));
         }
-        if ff.kind.is_list() {
+        if ff.field_type.is_list() {
             if RESERVED_LIST_NAMES.contains(&ff.name.to_string().as_str()) {
                 return Err(syn::Error::new(
                     ff.name.span(),

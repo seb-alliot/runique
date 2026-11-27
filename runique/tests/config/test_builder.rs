@@ -1,7 +1,7 @@
 //! Tests — app/builder.rs + app/error_build.rs + app/staging/*.rs
 //!
 //! Couvre :
-//! - BuildError / BuildErrorKind / CheckError / CheckReport
+//! - BuildError / BuildFailure / CheckError / CheckReport
 //! - StaticStaging
 //! - CoreStaging (sans et avec DB)
 //! - MiddlewareStaging builder methods
@@ -17,7 +17,7 @@ use runique::app::staging::AdminStaging;
 use runique::app::staging::{
     CoreStaging, MiddlewareStaging, PermissionsPolicyConfig, StaticStaging,
 };
-use runique::app::{BuildError, BuildErrorKind, CheckError, CheckReport, RuniqueAppBuilder};
+use runique::app::{BuildError, BuildFailure, CheckError, CheckReport, RuniqueAppBuilder};
 use runique::config::app::RuniqueConfig;
 use runique::middleware::MiddlewareConfig;
 use serial_test::serial;
@@ -118,7 +118,7 @@ fn test_check_report_debug() {
 #[test]
 fn test_build_error_validation() {
     let err = BuildError::validation("Config invalide");
-    assert!(matches!(err.kind, BuildErrorKind::ValidationFailed(_)));
+    assert!(matches!(err.failure, BuildFailure::ValidationFailed(_)));
     assert!(err.context.is_none());
 }
 
@@ -133,7 +133,7 @@ fn test_build_error_validation_display() {
 #[test]
 fn test_build_error_template() {
     let err = BuildError::template("Template introuvable");
-    assert!(matches!(err.kind, BuildErrorKind::TemplateLoadFailed(_)));
+    assert!(matches!(err.failure, BuildFailure::TemplateLoadFailed(_)));
 }
 
 #[test]
@@ -147,7 +147,7 @@ fn test_build_error_template_display() {
 #[test]
 fn test_build_error_database_missing() {
     let err = BuildError::database_missing();
-    assert!(matches!(err.kind, BuildErrorKind::DatabaseMissing));
+    assert!(matches!(err.failure, BuildFailure::DatabaseMissing));
 }
 
 #[test]
@@ -162,7 +162,7 @@ fn test_build_error_check() {
     let mut report = CheckReport::new();
     report.add(CheckError::new("DB", "Absente"));
     let err = BuildError::check(report);
-    assert!(matches!(err.kind, BuildErrorKind::CheckFailed(_)));
+    assert!(matches!(err.failure, BuildFailure::CheckFailed(_)));
 }
 
 #[test]
@@ -196,8 +196,8 @@ fn test_build_error_from_tera_error() {
     let tera_err = tera::Error::message("Template manquant");
     let build_err: BuildError = tera_err.into();
     assert!(matches!(
-        build_err.kind,
-        BuildErrorKind::TemplateLoadFailed(_)
+        build_err.failure,
+        BuildFailure::TemplateLoadFailed(_)
     ));
 }
 
@@ -257,7 +257,7 @@ fn test_core_staging_validate_sans_db_retourne_err() {
     let result = core.validate();
     assert!(result.is_err());
     if let Err(build_err) = result {
-        if let BuildErrorKind::CheckFailed(report) = &build_err.kind {
+        if let BuildFailure::CheckFailed(report) = &build_err.failure {
             assert!(report.has_errors());
             assert!(
                 report
@@ -266,7 +266,7 @@ fn test_core_staging_validate_sans_db_retourne_err() {
                     .any(|e| e.component.contains("Database"))
             );
         } else {
-            panic!("Attendu CheckFailed, obtenu {:?}", build_err.kind);
+            panic!("Attendu CheckFailed, obtenu {:?}", build_err.failure);
         }
     }
 }
@@ -483,7 +483,7 @@ fn test_cors_wildcard_with_credentials_fails_validation() {
     let err = ms
         .validate()
         .expect_err("wildcard + credentials doit échouer");
-    assert!(matches!(err.kind, BuildErrorKind::ValidationFailed(_)));
+    assert!(matches!(err.failure, BuildFailure::ValidationFailed(_)));
 }
 
 #[test]
@@ -658,12 +658,12 @@ async fn test_build_sans_db_retourne_check_failed() {
         Err(e) => e,
     };
     assert!(
-        matches!(err.kind, BuildErrorKind::CheckFailed(_)),
+        matches!(err.failure, BuildFailure::CheckFailed(_)),
         "Attendu CheckFailed, obtenu {:?}",
-        err.kind
+        err.failure
     );
 
-    if let BuildErrorKind::CheckFailed(report) = &err.kind {
+    if let BuildFailure::CheckFailed(report) = &err.failure {
         assert!(
             report
                 .errors
@@ -698,7 +698,7 @@ async fn test_build_avec_database_retourne_ok_ou_template_err() {
         }
         Err(ref e) => {
             assert!(
-                !matches!(e.kind, BuildErrorKind::CheckFailed(_)),
+                !matches!(e.failure, BuildFailure::CheckFailed(_)),
                 "Ne doit pas échouer sur CheckFailed avec une DB valide"
             );
             // TemplateLoadFailed ou autre erreur d'environnement = acceptable
@@ -751,7 +751,7 @@ async fn test_build_avec_statics_couvre_attach_static_files() {
         Ok(_) => {} // succès
         Err(ref e) => {
             assert!(
-                !matches!(e.kind, BuildErrorKind::CheckFailed(_)),
+                !matches!(e.failure, BuildFailure::CheckFailed(_)),
                 "Ne doit pas échouer sur CheckFailed avec DB valide"
             );
         }
@@ -780,7 +780,7 @@ async fn test_build_profil_production_couvre_csp_host_validation() {
         Ok(_) => {}
         Err(ref e) => {
             assert!(
-                !matches!(e.kind, BuildErrorKind::CheckFailed(_)),
+                !matches!(e.failure, BuildFailure::CheckFailed(_)),
                 "Ne doit pas echouer sur CheckFailed avec DB valide"
             );
         }

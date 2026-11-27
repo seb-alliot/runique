@@ -1,7 +1,7 @@
 //! `ValidationForm<F>`: proof by type that a form has passed validation. A form
 //! of an entity is written from it (`save`, `delete`); any other action stays
 //! in the caller's business logic.
-use crate::auth::gate::change::{Secrets, WriteKind, changes, replaced_files};
+use crate::auth::gate::change::{RowWrite, Secrets, changes, replaced_files};
 use crate::auth::gate::refusal::{Refusal, RefusalReason};
 use crate::auth::gate::save::save_as;
 use crate::auth::gate::write::linked_delete_error;
@@ -124,8 +124,8 @@ where
         let result = async {
             let key = url_key::<F::Entity>(forms).map_err(|()| not_found())?;
             let kind = match key {
-                Some(_) => WriteKind::Update,
-                None => WriteKind::Create,
+                Some(_) => RowWrite::Update,
+                None => RowWrite::Create,
             };
             let mut model = changes::<F::Entity>(forms, &ColumnRights::All, kind, Secrets::Write)
                 .map_err(|e| on_fields(forms, e))?;

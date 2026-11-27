@@ -1,6 +1,6 @@
 // Regression test: `Pk` on a `belongs_to` column under `pk-uuid`.
 //
-// `Pk` resolves to `FormFieldKind::Uuid` under this feature. The FK
+// `Pk` resolves to `FormFieldType::Uuid` under this feature. The FK
 // declaration (then `fk()`) used to only accept `Int | Bigint`, rejecting
 // this at compile time — found 2026-09-02; demo-app runs under `postgres`
 // only, so it never exercised `pk-uuid`.

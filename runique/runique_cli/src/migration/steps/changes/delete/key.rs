@@ -8,7 +8,7 @@ pub(crate) fn key(all_changes: &[Changes]) -> Vec<Destructive> {
             c.dropped_fks.iter().map(move |fk| {
                 found(
                     c,
-                    DestructiveKind::DropKey {
+                    DestructiveItem::DropKey {
                         column: fk.from_column.clone(),
                         to_table: fk.to_table.clone(),
                     },

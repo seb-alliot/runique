@@ -12,6 +12,8 @@ migration/
     ├── lib.rs        la liste des migrations, tenue à jour par makemigrations
     ├── m<date>_*.rs  les migrations générées
     └── snapshots/    l'état du schéma déjà migré, modèle par modèle
+        ├── runique/  ce que les blocs extend!{} ont ajouté aux tables du framework
+        └── enums/    les valeurs de chaque enum, un fichier par enum
 ```
 
 **Vous n'avez pas à le créer** : `runique new` l'écrit avec le projet, et `runique makemigrations` le crée s'il manque (projet non créé par `runique new`), avec le moteur de `DB_ENGINE`. Il n'y a rien à écrire à la main dans `lib.rs`.
@@ -166,6 +168,22 @@ extend! {
 ```
 
 `makemigrations` génère les `ALTER TABLE ADD COLUMN` correspondants. Le snapshot de l'extension est stocké dans `migration/src/snapshots/runique/<table>.rs`.
+
+### Les enums
+
+Un enum déclaré dans un modèle ou un bloc `extend!{}` a ses propres migrations, à part de celles des tables, quel que soit le nombre de champs qui l'emploient :
+
+| Ce qui change | Fichier généré | PostgreSQL | MySQL, SQLite |
+|---|---|---|---|
+| un enum nouveau | `m<date>_create_<enum>_enum.rs`, avant les tables | le type est créé | rien à lancer : la colonne est du texte |
+| un enum renommé | `m<date>_rename_<enum>_enum.rs`, avant les tables | le type est renommé sur place | rien à lancer |
+| une valeur ajoutée | `m<date>_alter_<enum>_enum.rs`, après les tables | la valeur est ajoutée au type | rien à lancer |
+| une valeur renommée | le même fichier | renommée dans le type, une fois | les lignes de chaque colonne sont mises à jour |
+| une valeur retirée | le même fichier | un avertissement, rien n'est migré | le même avertissement |
+
+Un enum est reconnu comme renommé quand ses colonnes emploient un enum que la base n'a pas et que celui qu'elles employaient n'est plus déclaré : renommez-le dans le modèle, rien d'autre à écrire.
+
+Le fichier est écrit pour le moteur du projet. Quand ce moteur n'a rien à lancer, le fichier existe quand même et le dit : c'est son application par `runique migration up` qui enregistre les valeurs de l'enum dans `migration/src/snapshots/enums/<enum>.rs`.
 
 **Tables extensibles :** `eihwaz_users` et `eihwaz_groupes`, et elles seules. Étendre une autre table est une erreur de **compilation**.
 

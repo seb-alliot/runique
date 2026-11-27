@@ -145,7 +145,7 @@ mod cache_policy_tests {
 }
 
 #[derive(Deserialize)]
-struct AdminLoginData {
+struct AdminLogin {
     username: String,
     password: String,
     #[serde(default)]
@@ -455,7 +455,7 @@ async fn admin_login_post(
     if req.engine.session_store_saturated() {
         return axum::http::StatusCode::SERVICE_UNAVAILABLE.into_response();
     }
-    let data = AdminLoginData {
+    let data = AdminLogin {
         username: req.prisme.data.get("username").cloned().unwrap_or_default(),
         password: req.prisme.data.get("password").cloned().unwrap_or_default(),
         csrf_token: req

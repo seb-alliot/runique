@@ -65,7 +65,7 @@ fn redact_sensitive_path(path: &str) -> String {
 }
 
 /// Transport for request info used in contextual debug
-pub struct RequestInfoHelper {
+pub struct RequestSnapshot {
     pub method: String,
     pub path: String,
     pub query: Option<String>,
@@ -89,7 +89,7 @@ pub async fn error_handler_middleware(
 ) -> Response {
     // --- Collect request info ---
     let csrf_token: Option<String> = request.extensions().get::<CsrfToken>().map(|t| t.0.clone());
-    let request_helper = RequestInfoHelper {
+    let request_snapshot = RequestSnapshot {
         method: request.method().to_string(),
         path: redact_sensitive_path(request.uri().path()),
         query: None,
@@ -159,7 +159,7 @@ pub async fn error_handler_middleware(
             return page;
         }
 
-        let error_ctx = build_error_context(&response, &request_helper, &tera);
+        let error_ctx = build_error_context(&response, &request_snapshot, &tera);
 
         // --- Render according to debug or production mode ---
         if config.debug {
@@ -190,7 +190,7 @@ pub async fn error_handler_middleware(
 /// Builds the `ErrorContext` from the response
 fn build_error_context(
     response: &Response,
-    request_helper: &RequestInfoHelper,
+    request_snapshot: &RequestSnapshot,
     tera: &Tera,
 ) -> ErrorContext {
     let error_context_from_app = response.extensions().get::<Arc<ErrorContext>>().cloned();
@@ -203,8 +203,8 @@ fn build_error_context(
         if let Some(level) = errors_http_level() {
             crate::runique_log!(
                 level,
-                method = %request_helper.method,
-                path = %request_helper.path,
+                method = %request_snapshot.method,
+                path = %request_snapshot.path,
                 error_type = ?ctx.error_type,
                 "Error with full context"
             );
@@ -212,17 +212,17 @@ fn build_error_context(
 
         let mut ctx = (*ctx).clone();
         if ctx.request_info.is_none() {
-            ctx = ctx.with_request_helper(request_helper);
+            ctx = ctx.with_request_snapshot(request_snapshot);
         }
         return ctx;
     }
 
     if let Some(err) = error_runique {
-        log_runique_error(&err, request_helper);
+        log_runique_error(&err, request_snapshot);
         return ErrorContext::from_runique_error(
             &err,
-            Some(&request_helper.path),
-            Some(request_helper),
+            Some(&request_snapshot.path),
+            Some(request_snapshot),
             None,
             Some(tera),
         );
@@ -230,18 +230,18 @@ fn build_error_context(
 
     // No explicit error, create a basic context
     if response.status() == StatusCode::NOT_FOUND {
-        ErrorContext::not_found(&request_helper.path).with_request_helper(request_helper)
+        ErrorContext::not_found(&request_snapshot.path).with_request_snapshot(request_snapshot)
     } else {
         ErrorContext::generic(
             response.status(),
             &t(runique_i18n::keys::app::error::INTERNAL_OCCURRED),
         )
-        .with_request_helper(request_helper)
+        .with_request_snapshot(request_snapshot)
     }
 }
 
 /// Logs Runique error according to its severity
-fn log_runique_error(err: &RuniqueError, request_helper: &RequestInfoHelper) {
+fn log_runique_error(err: &RuniqueError, request_snapshot: &RequestSnapshot) {
     match err {
         RuniqueError::Internal
         | RuniqueError::Database(_)
@@ -250,8 +250,8 @@ fn log_runique_error(err: &RuniqueError, request_helper: &RequestInfoHelper) {
         | RuniqueError::Custom { .. }
         | RuniqueError::Build(_) => {
             error!(
-                method = %request_helper.method,
-                path = %request_helper.path,
+                method = %request_snapshot.method,
+                path = %request_snapshot.path,
                 error = %err,
                 "Critical error occurred"
             );
@@ -260,8 +260,8 @@ fn log_runique_error(err: &RuniqueError, request_helper: &RequestInfoHelper) {
             if let Some(level) = errors_http_level() {
                 crate::runique_log!(
                     level,
-                    method = %request_helper.method,
-                    path = %request_helper.path,
+                    method = %request_snapshot.method,
+                    path = %request_snapshot.path,
                     error = %err,
                     "Handled error"
                 );

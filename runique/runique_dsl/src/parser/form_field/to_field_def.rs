@@ -3,7 +3,7 @@
 use crate::ast::{FieldDef, FieldOption, FormFieldAttr, FormFieldDecl};
 
 pub fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
-    use crate::ast::{FileKind, FormFieldAttr::*, FormFieldKind::*};
+    use crate::ast::{FormFieldAttr::*, FormFieldType::*, UploadType};
 
     let is_required = ff.attrs.iter().any(|a| matches!(a, Required));
     let is_nullable = ff.attrs.iter().any(|a| matches!(a, Nullable));
@@ -53,15 +53,15 @@ pub fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
         options.push(FieldOption::Default(lit));
     }
     if let Some(path) = upload_to {
-        let file_kind = match &ff.kind {
-            Image => FileKind::Image,
-            Audio => FileKind::Audio,
-            Video => FileKind::Video,
-            Document => FileKind::Document,
-            _ => FileKind::Any,
+        let upload_type = match &ff.field_type {
+            Image => UploadType::Image,
+            Audio => UploadType::Audio,
+            Video => UploadType::Video,
+            Document => UploadType::Document,
+            _ => UploadType::Any,
         };
         options.push(FieldOption::File {
-            kind: file_kind,
+            upload_type,
             upload_to: Some(path),
         });
     }
@@ -141,7 +141,7 @@ pub fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
 
     FieldDef {
         name: ff.name.clone(),
-        kind: ff.kind,
+        field_type: ff.field_type,
         enum_ref,
         options,
     }
@@ -150,7 +150,7 @@ pub fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
 #[cfg(test)]
 mod tests {
     use super::form_field_to_field_def;
-    use crate::ast::{FieldType, FormFieldDecl, FormFieldKind};
+    use crate::ast::{FieldType, FormFieldDecl, FormFieldType};
 
     fn field(src: &str) -> crate::ast::FieldDef {
         form_field_to_field_def(&syn::parse_str::<FormFieldDecl>(src).expect("parses"))
@@ -160,9 +160,9 @@ mod tests {
     #[test]
     fn password_keeps_its_own_type_whatever_the_name() {
         let secret = field("secret: password");
-        assert_eq!(secret.kind, FormFieldKind::Password);
+        assert_eq!(secret.field_type, FormFieldType::Password);
         assert!(matches!(secret.column_type(), FieldType::String));
-        assert_eq!(field("password_hint: text").kind, FormFieldKind::Text);
+        assert_eq!(field("password_hint: text").field_type, FormFieldType::Text);
     }
 
     #[test]
@@ -214,18 +214,21 @@ mod tests {
 
     #[test]
     fn upload_kind_follows_the_declared_type() {
-        use crate::ast::{FieldOption, FileKind};
+        use crate::ast::{FieldOption, UploadType};
         let kind = |src: &str| {
             field(src).options.iter().find_map(|o| match o {
-                FieldOption::File { kind, .. } => Some(*kind),
+                FieldOption::File { upload_type, .. } => Some(*upload_type),
                 _ => None,
             })
         };
-        assert_eq!(kind(r#"a: image [upload_to: "x/"]"#), Some(FileKind::Image));
+        assert_eq!(
+            kind(r#"a: image [upload_to: "x/"]"#),
+            Some(UploadType::Image)
+        );
         assert_eq!(
             kind(r#"a: document [upload_to: "x/"]"#),
-            Some(FileKind::Document)
+            Some(UploadType::Document)
         );
-        assert_eq!(kind(r#"a: file [upload_to: "x/"]"#), Some(FileKind::Any));
+        assert_eq!(kind(r#"a: file [upload_to: "x/"]"#), Some(UploadType::Any));
     }
 }

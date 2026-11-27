@@ -13,6 +13,7 @@
     "applied_unknown": "Queste migrazioni sono registrate nel database ma assenti da lib.rs:\n  {}\nQuesto database appartiene a un altro progetto, oppure dei file di migrazione sono stati eliminati. Non è stato scritto nulla.",
     "snapshot_unreadable": "Lo snapshot {} è illeggibile o non è uno snapshot. Non è stato scritto nulla.",
     "snapshot_misnamed": "Lo snapshot {} descrive la tabella `{}`: il nome del file deve essere quello della tabella. Non è stato scritto nulla.",
+    "enum_snapshot_misnamed": "Lo snapshot {} descrive l'enum `{}`: il nome del file deve essere quello dell'enum. Non è stato scritto nulla.",
     "duplicate_table": "Due tabelle si chiamano `{}`. La tabella di un campo lista si chiama `<tabella del modello>_<campo>`: rinomina il campo o l'altra tabella.",
     "parallel_changes": "Due migrazioni partono dallo stesso punto per la stessa tabella:\n  {}\nSono state scritte in parallelo: Runique non può sapere quale la tabella debba seguire. Non è stato scritto nulla.",
     "rename_with_new_key": "La tabella `{}` viene rinominata in questa esecuzione e riceve allo stesso tempo una nuova chiave verso `{}`, creata o rinominata nella stessa esecuzione. Procedete in due passaggi: prima la rinomina, `runique migration up`, poi la chiave.",

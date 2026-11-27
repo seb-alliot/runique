@@ -51,6 +51,69 @@ pub struct ParsedColumn {
     pub decimal_len: Option<(u32, u32)>,
 }
 
+/// An enum the database knows by its values, declared once in a model or an
+/// `extend!{}` block and used by one or several columns. An enum stored as
+/// an integer is not one of them: the database only sees a number.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ParsedEnum {
+    /// The name the database gives it: the declared one in lowercase, which
+    /// is the name of its type under PostgreSQL.
+    pub name: String,
+    /// The values as they are stored, in the order they are declared in.
+    pub values: Vec<String>,
+    /// Where it is used. Read from the models: a snapshot doesn't hold them.
+    pub places: Vec<EnumPlace>,
+}
+
+/// A column an enum is used by.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnumPlace {
+    pub table: String,
+    pub column: String,
+}
+
+/// What a run does to an enum as a whole: it creates it, gives it another
+/// name, or leaves it in place and changes its values.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum EnumChange {
+    Created,
+    /// The enum the database has under [`EnumChanges::renamed_from`] takes
+    /// the name the models give it now. Its values are another change.
+    Renamed,
+    #[default]
+    Altered,
+}
+
+/// What brings an enum from its snapshot to what the models declare: the
+/// output of the diff for an enum, as [`Changes`] is for a table.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct EnumChanges {
+    pub name: String,
+    /// What happens to the enum itself.
+    pub change: EnumChange,
+    /// The name the database has it under, when the run renames it.
+    pub renamed_from: Option<String>,
+    /// Its values as the models declare them.
+    pub values: Vec<String>,
+    /// (old value, new value).
+    pub renamed_values: Vec<(String, String)>,
+    pub added_values: Vec<String>,
+    pub dropped_values: Vec<String>,
+    /// Every column that uses the enum, as the models name them.
+    pub places: Vec<EnumPlace>,
+}
+
+impl EnumChanges {
+    /// True when there is nothing to migrate: an enum that exists already
+    /// and whose values are the ones of its snapshot.
+    pub fn is_empty(&self) -> bool {
+        self.change == EnumChange::Altered
+            && self.renamed_values.is_empty()
+            && self.added_values.is_empty()
+            && self.dropped_values.is_empty()
+    }
+}
+
 /// A parsed foreign key constraint.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ParsedFk {
@@ -133,12 +196,6 @@ pub struct Changes {
     pub dropped_indexes: Vec<ParsedIndex>,
     /// What happens to the table itself.
     pub table: TableChange,
-    /// String enum value renames: (column_name, enum_name, old_value, new_value).
-    pub enum_renames: Vec<(String, String, String, String)>,
-    /// Added enum values: (column_name, value).
-    pub enum_value_adds: Vec<(String, String, String)>,
-    /// Dropped enum values: (column_name, value).
-    pub enum_value_drops: Vec<(String, String, String)>,
 }
 
 impl Changes {
@@ -155,8 +212,5 @@ impl Changes {
             && self.dropped_fks.is_empty()
             && self.added_indexes.is_empty()
             && self.dropped_indexes.is_empty()
-            && self.enum_renames.is_empty()
-            && self.enum_value_adds.is_empty()
-            && self.enum_value_drops.is_empty()
     }
 }

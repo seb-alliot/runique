@@ -11,7 +11,7 @@ use sea_orm::{
 
 /// Creating the row or updating it: the rights and the floor differ.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum WriteKind {
+pub(crate) enum RowWrite {
     Create,
     Update,
 }
@@ -35,7 +35,7 @@ pub(crate) type FieldErrors = Vec<(String, String)>;
 pub(crate) fn changes<E: ModelMeta>(
     form: &Forms,
     rights: &ColumnRights,
-    kind: WriteKind,
+    kind: RowWrite,
     secrets: Secrets,
 ) -> Result<E::ActiveModel, FieldErrors> {
     let mut model = <E::ActiveModel as ActiveModelTrait>::default();
@@ -43,13 +43,13 @@ pub(crate) fn changes<E: ModelMeta>(
     for column in E::Column::iter() {
         let name = column.as_str();
         if (secrets == Secrets::Skip && E::SECRET.iter().any(|c| c.as_str() == name))
-            || (kind == WriteKind::Update && is_primary_key::<E>(name))
+            || (kind == RowWrite::Update && is_primary_key::<E>(name))
         {
             continue;
         }
         let allowed = match kind {
-            WriteKind::Create => rights.can_create(name),
-            WriteKind::Update => rights.can_update(name),
+            RowWrite::Create => rights.can_create(name),
+            RowWrite::Update => rights.can_update(name),
         };
         let def = column.def();
         let read = match form.fields.get(name) {
@@ -257,7 +257,7 @@ mod tests {
     fn built(
         form: &Forms,
         rights: &ColumnRights,
-        kind: WriteKind,
+        kind: RowWrite,
     ) -> <E as EntityTrait>::ActiveModel {
         changes::<E>(form, rights, kind, Secrets::Skip).unwrap()
     }
@@ -334,7 +334,7 @@ mod tests {
     #[test]
     fn a_ticked_column_is_set_to_the_value_of_its_field() {
         let form = with(full_form(), &[("title", "Hello"), ("score", "42")]);
-        let model = built(&form, &ColumnRights::All, WriteKind::Create);
+        let model = built(&form, &ColumnRights::All, RowWrite::Create);
         assert_eq!(set(&model, C::Title), text("Hello"));
         assert_eq!(set(&model, C::Score), Some(Value::Int(Some(42))));
     }
@@ -349,7 +349,7 @@ mod tests {
             changes::<E>(
                 &untyped,
                 &ColumnRights::All,
-                WriteKind::Update,
+                RowWrite::Update,
                 Secrets::Skip
             )
             .map(|_| ())
@@ -363,7 +363,7 @@ mod tests {
         let typed = with(typed, values);
         assert_eq!(
             set(
-                &built(&typed, &ColumnRights::All, WriteKind::Update),
+                &built(&typed, &ColumnRights::All, RowWrite::Update),
                 C::Score
             ),
             Some(Value::Int(Some(0)))
@@ -373,7 +373,7 @@ mod tests {
     #[test]
     fn a_date_is_read_as_a_date() {
         let form = with(full_form(), &[("born", "2001-02-03")]);
-        let model = built(&form, &ColumnRights::All, WriteKind::Update);
+        let model = built(&form, &ColumnRights::All, RowWrite::Update);
         assert_eq!(
             set(&model, C::Born),
             Some(Value::from(NaiveDate::from_ymd_opt(2001, 2, 3).unwrap()))
@@ -383,7 +383,7 @@ mod tests {
     #[test]
     fn a_secret_column_is_never_set_even_with_every_right_and_a_value() {
         let form = with(full_form(), &[("secret", "hunter2"), ("title", "t")]);
-        for kind in [WriteKind::Create, WriteKind::Update] {
+        for kind in [RowWrite::Create, RowWrite::Update] {
             let model = built(&form, &ColumnRights::All, kind);
             assert_eq!(set(&model, C::Secret), None);
             assert_eq!(set(&model, C::Title), text("t"));
@@ -394,7 +394,7 @@ mod tests {
     fn a_secret_column_is_not_set_when_ticked_either() {
         let rights = only(&[("secret", true, true), ("title", true, true)]);
         let form = with(full_form(), &[("secret", "hunter2"), ("title", "t")]);
-        let model = built(&form, &rights, WriteKind::Create);
+        let model = built(&form, &rights, RowWrite::Create);
         assert_eq!(set(&model, C::Secret), None);
         assert_eq!(set(&model, C::Title), text("t"));
     }
@@ -404,7 +404,7 @@ mod tests {
     #[test]
     fn the_site_writes_a_secret_field_its_form_declares() {
         let form = with(full_form(), &[("secret", "hunter2"), ("title", "t")]);
-        for kind in [WriteKind::Create, WriteKind::Update] {
+        for kind in [RowWrite::Create, RowWrite::Update] {
             let model = changes::<E>(&form, &ColumnRights::All, kind, Secrets::Write).unwrap();
             assert_eq!(set(&model, C::Secret), text("hunter2"), "{kind:?}");
             assert_eq!(set(&model, C::Title), text("t"));
@@ -421,7 +421,7 @@ mod tests {
         type_fields(&mut form);
         let form = with(form, &[("id", "7"), ("title", "t")]);
         let model =
-            changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Write).unwrap();
+            changes::<E>(&form, &ColumnRights::All, RowWrite::Update, Secrets::Write).unwrap();
         assert_eq!(set(&model, C::Id), None);
         assert_eq!(set(&model, C::Secret), None);
         assert_eq!(set(&model, C::Title), text("t"));
@@ -430,14 +430,14 @@ mod tests {
     #[test]
     fn the_key_is_set_on_create_when_the_field_and_the_right_are_there() {
         let form = with(full_form(), &[("id", "7")]);
-        let model = built(&form, &ColumnRights::All, WriteKind::Create);
+        let model = built(&form, &ColumnRights::All, RowWrite::Create);
         assert_eq!(set(&model, C::Id), Some(Value::Int(Some(7))));
     }
 
     #[test]
     fn the_key_is_ignored_on_update_even_with_every_right_and_a_value() {
         let form = with(full_form(), &[("id", "7"), ("title", "t")]);
-        let model = built(&form, &ColumnRights::All, WriteKind::Update);
+        let model = built(&form, &ColumnRights::All, RowWrite::Update);
         assert_eq!(set(&model, C::Id), None);
         assert_eq!(set(&model, C::Title), text("t"));
     }
@@ -446,10 +446,10 @@ mod tests {
     fn the_key_on_create_follows_the_create_right() {
         let form = with(full_form(), &[("id", "7")]);
         let denied = only(&[("id", false, true)]);
-        assert_eq!(set(&built(&form, &denied, WriteKind::Create), C::Id), None);
+        assert_eq!(set(&built(&form, &denied, RowWrite::Create), C::Id), None);
         let granted = only(&[("id", true, false)]);
         assert_eq!(
-            set(&built(&form, &granted, WriteKind::Create), C::Id),
+            set(&built(&form, &granted, RowWrite::Create), C::Id),
             Some(Value::Int(Some(7)))
         );
     }
@@ -457,7 +457,7 @@ mod tests {
     #[test]
     fn an_empty_key_on_create_is_left_to_the_database() {
         let form = full_form();
-        let model = built(&form, &ColumnRights::All, WriteKind::Create);
+        let model = built(&form, &ColumnRights::All, RowWrite::Create);
         assert_eq!(set(&model, C::Id), None);
     }
 
@@ -466,11 +466,11 @@ mod tests {
         let rights = only(&[("title", true, false)]);
         let form = with(full_form(), &[("title", "t")]);
         assert_eq!(
-            set(&built(&form, &rights, WriteKind::Create), C::Title),
+            set(&built(&form, &rights, RowWrite::Create), C::Title),
             text("t")
         );
         assert_eq!(
-            set(&built(&form, &rights, WriteKind::Update), C::Title),
+            set(&built(&form, &rights, RowWrite::Update), C::Title),
             None
         );
     }
@@ -480,11 +480,11 @@ mod tests {
         let rights = only(&[("title", false, true)]);
         let form = with(full_form(), &[("title", "t")]);
         assert_eq!(
-            set(&built(&form, &rights, WriteKind::Create), C::Title),
+            set(&built(&form, &rights, RowWrite::Create), C::Title),
             None
         );
         assert_eq!(
-            set(&built(&form, &rights, WriteKind::Update), C::Title),
+            set(&built(&form, &rights, RowWrite::Update), C::Title),
             text("t")
         );
     }
@@ -496,7 +496,7 @@ mod tests {
             full_form(),
             &[("title", "t"), ("nick", "n"), ("score", "5")],
         );
-        let model = built(&form, &rights, WriteKind::Update);
+        let model = built(&form, &rights, RowWrite::Update);
         assert_eq!(set(&model, C::Title), text("t"));
         assert_eq!(set(&model, C::Nick), None);
         assert_eq!(set(&model, C::Score), None);
@@ -506,7 +506,7 @@ mod tests {
     fn no_ticked_column_sets_nothing() {
         let rights = ColumnRights::Only(Vec::new());
         let form = with(full_form(), &[("title", "t")]);
-        let model = built(&form, &rights, WriteKind::Create);
+        let model = built(&form, &rights, RowWrite::Create);
         assert_eq!(set(&model, C::Title), None);
     }
 
@@ -515,7 +515,7 @@ mod tests {
         let mut form = Forms::new("");
         form.field(&TextField::text("title"));
         let form = with(form, &[("title", "t")]);
-        let model = built(&form, &ColumnRights::All, WriteKind::Create);
+        let model = built(&form, &ColumnRights::All, RowWrite::Create);
         assert_eq!(set(&model, C::Title), text("t"));
         assert_eq!(set(&model, C::Nick), None);
         assert_eq!(set(&model, C::Score), None);
@@ -525,7 +525,7 @@ mod tests {
     fn a_readonly_field_is_not_set_even_with_a_value() {
         let mut form = with(full_form(), &[("title", "forged"), ("nick", "n")]);
         form.field_readonly("title", true);
-        let model = built(&form, &ColumnRights::All, WriteKind::Update);
+        let model = built(&form, &ColumnRights::All, RowWrite::Update);
         assert_eq!(set(&model, C::Title), None);
         assert_eq!(set(&model, C::Nick), text("n"));
     }
@@ -534,7 +534,7 @@ mod tests {
     fn a_disabled_field_is_not_set_even_with_a_value() {
         let mut form = with(full_form(), &[("title", "forged"), ("nick", "n")]);
         form.field_disabled("title", true);
-        let model = built(&form, &ColumnRights::All, WriteKind::Create);
+        let model = built(&form, &ColumnRights::All, RowWrite::Create);
         assert_eq!(set(&model, C::Title), None);
         assert_eq!(set(&model, C::Nick), text("n"));
     }
@@ -546,35 +546,35 @@ mod tests {
         form.field_readonly("title", false);
         form.field_disabled("title", true);
         form.field_disabled("title", false);
-        let model = built(&form, &ColumnRights::All, WriteKind::Update);
+        let model = built(&form, &ColumnRights::All, RowWrite::Update);
         assert_eq!(set(&model, C::Title), text("t"));
     }
 
     #[test]
     fn an_emptied_nullable_text_column_is_set_to_a_typed_null() {
         let form = full_form();
-        let model = built(&form, &ColumnRights::All, WriteKind::Update);
+        let model = built(&form, &ColumnRights::All, RowWrite::Update);
         assert_eq!(set(&model, C::Nick), Some(Value::String(None)));
     }
 
     #[test]
     fn an_emptied_nullable_integer_column_is_set_to_an_integer_null() {
         let form = full_form();
-        let model = built(&form, &ColumnRights::All, WriteKind::Update);
+        let model = built(&form, &ColumnRights::All, RowWrite::Update);
         assert_eq!(set(&model, C::Score), Some(Value::Int(None)));
     }
 
     #[test]
     fn an_emptied_nullable_date_column_is_set_to_a_date_null() {
         let form = full_form();
-        let model = built(&form, &ColumnRights::All, WriteKind::Create);
+        let model = built(&form, &ColumnRights::All, RowWrite::Create);
         assert_eq!(set(&model, C::Born), Some(Value::from(None::<NaiveDate>)));
     }
 
     #[test]
     fn an_emptied_non_nullable_column_stays_not_set() {
         let form = full_form();
-        for kind in [WriteKind::Create, WriteKind::Update] {
+        for kind in [RowWrite::Create, RowWrite::Update] {
             let model = built(&form, &ColumnRights::All, kind);
             assert_eq!(set(&model, C::Title), None);
         }
@@ -583,21 +583,21 @@ mod tests {
     #[test]
     fn an_empty_password_keeps_the_column_instead_of_clearing_it() {
         let form = full_form();
-        let model = built(&form, &ColumnRights::All, WriteKind::Update);
+        let model = built(&form, &ColumnRights::All, RowWrite::Update);
         assert_eq!(set(&model, C::Pass), None);
     }
 
     #[test]
     fn a_password_not_hashed_yet_is_never_written_in_clear() {
         let form = with(full_form(), &[("pass", "hunter2")]);
-        let model = built(&form, &ColumnRights::All, WriteKind::Update);
+        let model = built(&form, &ColumnRights::All, RowWrite::Update);
         assert_eq!(set(&model, C::Pass), None);
     }
 
     #[test]
     fn a_hashed_password_is_written() {
         let form = with(full_form(), &[("pass", "$argon2id$v=19$m=1,t=1,p=1$c$h")]);
-        let model = built(&form, &ColumnRights::All, WriteKind::Update);
+        let model = built(&form, &ColumnRights::All, RowWrite::Update);
         assert_eq!(set(&model, C::Pass), text("$argon2id$v=19$m=1,t=1,p=1$c$h"));
     }
 
@@ -606,7 +606,7 @@ mod tests {
     #[test]
     fn an_empty_file_keeps_the_column_instead_of_clearing_it() {
         let form = full_form();
-        let model = built(&form, &ColumnRights::All, WriteKind::Update);
+        let model = built(&form, &ColumnRights::All, RowWrite::Update);
         assert_eq!(set(&model, C::Avatar), None);
     }
 
@@ -614,7 +614,7 @@ mod tests {
     fn a_nullable_column_whose_null_cannot_be_typed_is_an_error() {
         let form = with_addr(full_form());
         let errors =
-            changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Skip).unwrap_err();
+            changes::<E>(&form, &ColumnRights::All, RowWrite::Update, Secrets::Skip).unwrap_err();
         assert_eq!(errors, vec![("addr".to_string(), unconvertible())]);
     }
 
@@ -642,7 +642,7 @@ mod tests {
             ("score", "42"),
             ("born", "2020-01-02"),
         ]);
-        for kind in [WriteKind::Create, WriteKind::Update] {
+        for kind in [RowWrite::Create, RowWrite::Update] {
             for secrets in [Secrets::Skip, Secrets::Write] {
                 let model = changes::<E>(&form, &ColumnRights::All, kind, secrets).unwrap();
                 assert_eq!(set(&model, C::Title), text("t"));
@@ -660,7 +660,7 @@ mod tests {
     #[test]
     fn a_name_of_the_code_that_is_no_column_is_ignored() {
         let form = title_only(&[("title", "t"), ("ghost", "x"), ("Nick", "x")]);
-        let model = built(&form, &ColumnRights::All, WriteKind::Create);
+        let model = built(&form, &ColumnRights::All, RowWrite::Create);
         assert_eq!(set(&model, C::Title), text("t"));
         assert_eq!(set(&model, C::Nick), None, "names match exactly");
     }
@@ -669,7 +669,7 @@ mod tests {
     fn an_unreadable_value_of_the_code_is_an_error_naming_its_column() {
         let form = title_only(&[("score", "abc"), ("born", "2020-13-01")]);
         let errors =
-            changes::<E>(&form, &ColumnRights::All, WriteKind::Create, Secrets::Write).unwrap_err();
+            changes::<E>(&form, &ColumnRights::All, RowWrite::Create, Secrets::Write).unwrap_err();
         assert_eq!(
             errors,
             vec![
@@ -678,23 +678,21 @@ mod tests {
             ]
         );
         let form = title_only(&[("score", "2147483648")]);
-        assert!(
-            changes::<E>(&form, &ColumnRights::All, WriteKind::Create, Secrets::Write).is_err()
-        );
+        assert!(changes::<E>(&form, &ColumnRights::All, RowWrite::Create, Secrets::Write).is_err());
         let form = title_only(&[("score", "2147483647")]);
-        assert!(changes::<E>(&form, &ColumnRights::All, WriteKind::Create, Secrets::Write).is_ok());
+        assert!(changes::<E>(&form, &ColumnRights::All, RowWrite::Create, Secrets::Write).is_ok());
     }
 
     #[test]
     fn an_empty_value_of_the_code_is_null_or_leaves_a_required_column() {
         let form = title_only(&[("nick", ""), ("secret", "")]);
         let model =
-            changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Write).unwrap();
+            changes::<E>(&form, &ColumnRights::All, RowWrite::Update, Secrets::Write).unwrap();
         assert_eq!(set(&model, C::Nick), Some(Value::String(None)));
         assert_eq!(set(&model, C::Secret), None, "not nullable: left as it is");
         let form = title_only(&[("addr", "")]);
         let errors =
-            changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Write).unwrap_err();
+            changes::<E>(&form, &ColumnRights::All, RowWrite::Update, Secrets::Write).unwrap_err();
         assert_eq!(errors, vec![("addr".to_string(), unconvertible())]);
     }
 
@@ -702,13 +700,13 @@ mod tests {
     fn a_value_of_the_code_follows_the_floor_like_a_field() {
         let form = title_only(&[("id", "7"), ("secret", "s")]);
         let update =
-            changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Write).unwrap();
+            changes::<E>(&form, &ColumnRights::All, RowWrite::Update, Secrets::Write).unwrap();
         assert_eq!(set(&update, C::Id), None, "never the key of an updated row");
         assert_eq!(set(&update, C::Secret), text("s"));
         let create =
-            changes::<E>(&form, &ColumnRights::All, WriteKind::Create, Secrets::Write).unwrap();
+            changes::<E>(&form, &ColumnRights::All, RowWrite::Create, Secrets::Write).unwrap();
         assert_eq!(set(&create, C::Id), Some(Value::from(7)));
-        for kind in [WriteKind::Create, WriteKind::Update] {
+        for kind in [RowWrite::Create, RowWrite::Update] {
             let model = built(&form, &ColumnRights::All, kind);
             assert_eq!(
                 set(&model, C::Secret),
@@ -722,10 +720,10 @@ mod tests {
     fn a_value_of_the_code_needs_the_right_on_its_column() {
         let form = title_only(&[("title", "t"), ("nick", "n"), ("score", "1")]);
         let rights = only(&[("title", true, true), ("nick", true, false)]);
-        let create = built(&form, &rights, WriteKind::Create);
+        let create = built(&form, &rights, RowWrite::Create);
         assert_eq!(set(&create, C::Nick), text("n"));
         assert_eq!(set(&create, C::Score), None);
-        let update = built(&form, &rights, WriteKind::Update);
+        let update = built(&form, &rights, RowWrite::Update);
         assert_eq!(set(&update, C::Nick), None);
         assert_eq!(set(&update, C::Title), text("t"));
     }
@@ -734,10 +732,10 @@ mod tests {
     fn a_refused_value_of_the_code_is_no_error() {
         let form = title_only(&[("score", "abc"), ("id", "abc")]);
         let rights = only(&[("title", true, true)]);
-        assert!(changes::<E>(&form, &rights, WriteKind::Create, Secrets::Write).is_ok());
-        assert!(changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Skip).is_err());
+        assert!(changes::<E>(&form, &rights, RowWrite::Create, Secrets::Write).is_ok());
+        assert!(changes::<E>(&form, &ColumnRights::All, RowWrite::Update, Secrets::Skip).is_err());
         let form = title_only(&[("id", "abc"), ("secret", "")]);
-        assert!(changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Skip).is_ok());
+        assert!(changes::<E>(&form, &ColumnRights::All, RowWrite::Update, Secrets::Skip).is_ok());
     }
 
     #[test]
@@ -749,7 +747,7 @@ mod tests {
             .collect();
         form.fill(&sent, axum::http::Method::POST);
         assert!(form.code_values.is_empty());
-        let model = built(&form, &ColumnRights::All, WriteKind::Create);
+        let model = built(&form, &ColumnRights::All, RowWrite::Create);
         assert_eq!(set(&model, C::Title), text("t"));
         assert_eq!(set(&model, C::Nick), None);
         assert_eq!(set(&model, C::Id), None);
@@ -763,10 +761,7 @@ mod tests {
         form.clear_values();
         assert!(form.code_values.is_empty());
         assert_eq!(
-            set(
-                &built(&form, &ColumnRights::All, WriteKind::Create),
-                C::Nick
-            ),
+            set(&built(&form, &ColumnRights::All, RowWrite::Create), C::Nick),
             None
         );
     }
@@ -775,17 +770,17 @@ mod tests {
     fn an_unreadable_value_is_an_error_naming_its_field() {
         let form = with(full_form(), &[("score", "abc")]);
         let errors =
-            changes::<E>(&form, &ColumnRights::All, WriteKind::Create, Secrets::Skip).unwrap_err();
+            changes::<E>(&form, &ColumnRights::All, RowWrite::Create, Secrets::Skip).unwrap_err();
         assert_eq!(errors, vec![("score".to_string(), unconvertible())]);
     }
 
     #[test]
     fn an_integer_one_above_the_column_width_is_an_error() {
         let form = with(full_form(), &[("score", "2147483647")]);
-        assert!(changes::<E>(&form, &ColumnRights::All, WriteKind::Create, Secrets::Skip).is_ok());
+        assert!(changes::<E>(&form, &ColumnRights::All, RowWrite::Create, Secrets::Skip).is_ok());
         let form = with(full_form(), &[("score", "2147483648")]);
         let errors =
-            changes::<E>(&form, &ColumnRights::All, WriteKind::Create, Secrets::Skip).unwrap_err();
+            changes::<E>(&form, &ColumnRights::All, RowWrite::Create, Secrets::Skip).unwrap_err();
         assert_eq!(errors, vec![("score".to_string(), unconvertible())]);
     }
 
@@ -796,7 +791,7 @@ mod tests {
         form.field(&TextField::text("score"));
         let form = with(form, &[("score", "5")]);
         let errors =
-            changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Skip).unwrap_err();
+            changes::<E>(&form, &ColumnRights::All, RowWrite::Update, Secrets::Skip).unwrap_err();
         assert_eq!(errors, vec![("score".to_string(), unconvertible())]);
     }
 
@@ -807,7 +802,7 @@ mod tests {
             &[("score", "abc"), ("born", "not a date")],
         ));
         let errors =
-            changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Skip).unwrap_err();
+            changes::<E>(&form, &ColumnRights::All, RowWrite::Update, Secrets::Skip).unwrap_err();
         assert_eq!(
             errors,
             vec![
@@ -822,7 +817,7 @@ mod tests {
     fn an_error_on_a_column_not_ticked_is_not_reported() {
         let rights = only(&[("title", true, true)]);
         let form = with(full_form(), &[("score", "abc"), ("title", "t")]);
-        let model = built(&form, &rights, WriteKind::Create);
+        let model = built(&form, &rights, RowWrite::Create);
         assert_eq!(set(&model, C::Title), text("t"));
     }
 
@@ -830,27 +825,27 @@ mod tests {
     fn an_error_on_a_locked_field_is_not_reported() {
         let mut form = with(full_form(), &[("score", "abc")]);
         form.field_readonly("score", true);
-        assert!(changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Skip).is_ok());
+        assert!(changes::<E>(&form, &ColumnRights::All, RowWrite::Update, Secrets::Skip).is_ok());
     }
 
     #[test]
     fn an_error_on_a_secret_or_a_key_on_update_is_not_reported() {
         let form = with(full_form(), &[("id", "abc"), ("secret", "x")]);
-        assert!(changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Skip).is_ok());
+        assert!(changes::<E>(&form, &ColumnRights::All, RowWrite::Update, Secrets::Skip).is_ok());
         let errors =
-            changes::<E>(&form, &ColumnRights::All, WriteKind::Create, Secrets::Skip).unwrap_err();
+            changes::<E>(&form, &ColumnRights::All, RowWrite::Create, Secrets::Skip).unwrap_err();
         assert_eq!(errors, vec![("id".to_string(), unconvertible())]);
     }
 
     #[test]
     fn a_valid_form_gives_the_model() {
         let form = with(full_form(), &[("title", "t")]);
-        assert!(changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Skip).is_ok());
+        assert!(changes::<E>(&form, &ColumnRights::All, RowWrite::Update, Secrets::Skip).is_ok());
     }
 
     #[test]
     fn the_write_kind_is_compared_by_value() {
-        assert_eq!(WriteKind::Create, WriteKind::Create);
-        assert_ne!(WriteKind::Create, WriteKind::Update);
+        assert_eq!(RowWrite::Create, RowWrite::Create);
+        assert_ne!(RowWrite::Create, RowWrite::Update);
     }
 }

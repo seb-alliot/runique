@@ -6,7 +6,7 @@ mod table;
 mod table_order;
 
 // What the destructive cases of this folder need: they take it by `use super::*`.
-use super::destructive::{Destructive, DestructiveKind, found};
+use super::destructive::{Destructive, DestructiveItem, found};
 use crate::migration::types::Changes;
 
 pub(crate) use column::column;

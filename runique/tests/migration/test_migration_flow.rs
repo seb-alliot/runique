@@ -468,9 +468,6 @@ fn test_flow_generate_alter_ajout_colonne() {
         table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
 
@@ -494,9 +491,6 @@ fn test_flow_generate_alter_suppression_colonne() {
         table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
 
@@ -521,9 +515,6 @@ fn test_flow_generate_alter_up_et_down_sont_inverses() {
         table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
 
@@ -553,9 +544,6 @@ fn test_flow_generate_alter_type_change_commente() {
         table: runique_cli::migration::TableChange::Altered,
         renames: Default::default(),
         renamed_columns: vec![],
-        enum_renames: vec![],
-        enum_value_adds: vec![],
-        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
 

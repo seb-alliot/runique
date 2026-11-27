@@ -4,6 +4,7 @@ mod extended_tables;
 mod parse_create_file;
 mod previous_snapshot;
 mod read_all;
+mod read_extend;
 mod records_lengths;
 mod snapshot_upgrades;
 
@@ -19,5 +20,6 @@ pub(crate) use extended_tables::extended_tables;
 pub use parse_create_file::parse_create_file;
 pub(crate) use previous_snapshot::previous_snapshot;
 pub(crate) use read_all::read_all;
-use records_lengths::records_lengths;
+pub(crate) use read_extend::read_extend;
+pub(crate) use records_lengths::records_lengths;
 pub(crate) use snapshot_upgrades::snapshot_upgrades;

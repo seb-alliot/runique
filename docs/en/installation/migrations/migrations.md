@@ -12,6 +12,8 @@ migration/
     ├── lib.rs        the list of migrations, kept up to date by makemigrations
     ├── m<date>_*.rs  the generated migrations
     └── snapshots/    the schema already migrated, model by model
+        ├── runique/  what the extend!{} blocks added to the framework's tables
+        └── enums/    the values of each enum, one file per enum
 ```
 
 **You don't create it**: `runique new` writes it with the project, and `runique makemigrations` creates it when it's missing (a project not created by `runique new`), with the engine of `DB_ENGINE`. There is nothing to write by hand in `lib.rs`.
@@ -166,6 +168,22 @@ extend! {
 ```
 
 `makemigrations` writes the matching `ALTER TABLE ADD COLUMN`. The extension's snapshot is stored in `migration/src/snapshots/runique/<table>.rs`.
+
+### Enums
+
+An enum declared in a model or an `extend!{}` block has its own migrations, apart from those of the tables, whatever the number of fields that use it:
+
+| What changes | Generated file | PostgreSQL | MySQL, SQLite |
+|---|---|---|---|
+| a new enum | `m<date>_create_<enum>_enum.rs`, before the tables | the type is created | nothing to run: the column is text |
+| a renamed enum | `m<date>_rename_<enum>_enum.rs`, before the tables | the type is renamed in place | nothing to run |
+| an added value | `m<date>_alter_<enum>_enum.rs`, after the tables | the value is added to the type | nothing to run |
+| a renamed value | the same file | renamed in the type, once | the rows of each column are updated |
+| a value taken out | the same file | a warning, nothing is migrated | the same warning |
+
+An enum is recognised as renamed when its columns use an enum the database doesn't have and the one they used is no longer declared: rename it in the model, nothing else to write.
+
+The file is written for the project's engine. When that engine has nothing to run, the file still exists and says so: applying it with `runique migration up` is what records the values of the enum in `migration/src/snapshots/enums/<enum>.rs`.
 
 **Extensible tables:** `eihwaz_users` and `eihwaz_groupes`, and only those. Extending any other table is a **compile** error.
 

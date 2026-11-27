@@ -1,7 +1,7 @@
 //! Tests — macros/context/helper.rs
-//! Couvre : ContextHelper::new, add, update, Deref, DerefMut
+//! Couvre : ContextBuilder::new, add, update, Deref, DerefMut
 
-use runique::macros::context::helper::ContextHelper;
+use runique::macros::context::helper::ContextBuilder;
 use serde_json::json;
 
 // ═══════════════════════════════════════════════════════════════
@@ -10,15 +10,15 @@ use serde_json::json;
 
 #[test]
 fn test_context_helper_new_est_vide() {
-    let ctx = ContextHelper::new();
+    let ctx = ContextBuilder::new();
     // Un contexte vide doit pouvoir être créé sans paniquer
     let _ = ctx;
 }
 
 #[test]
 fn test_context_helper_default_identique_a_new() {
-    let a = ContextHelper::new();
-    let b = ContextHelper::default();
+    let a = ContextBuilder::new();
+    let b = ContextBuilder::default();
     // Les deux doivent produire des contextes fonctionnels
     let _ = (a, b);
 }
@@ -29,24 +29,24 @@ fn test_context_helper_default_identique_a_new() {
 
 #[test]
 fn test_add_string() {
-    let ctx = ContextHelper::new().add("username", "alice");
+    let ctx = ContextBuilder::new().add("username", "alice");
     // Le contexte doit contenir la clé après sérialisation
     let _ = ctx;
 }
 
 #[test]
 fn test_add_number() {
-    let _ctx = ContextHelper::new().add("count", 42u32);
+    let _ctx = ContextBuilder::new().add("count", 42u32);
 }
 
 #[test]
 fn test_add_bool() {
-    let _ctx = ContextHelper::new().add("is_admin", true);
+    let _ctx = ContextBuilder::new().add("is_admin", true);
 }
 
 #[test]
 fn test_add_chaining() {
-    let _ctx = ContextHelper::new()
+    let _ctx = ContextBuilder::new()
         .add("a", "valeur_a")
         .add("b", 123i32)
         .add("c", false);
@@ -59,26 +59,26 @@ fn test_add_chaining() {
 #[test]
 fn test_update_avec_objet_json() {
     let data = json!({ "key1": "value1", "key2": 42 });
-    let _ctx = ContextHelper::new().update(data);
+    let _ctx = ContextBuilder::new().update(data);
 }
 
 #[test]
 fn test_update_ignore_non_objet() {
     // Une valeur JSON non-objet (array, string, etc.) ne doit pas paniquer
     let data = json!([1, 2, 3]);
-    let _ctx = ContextHelper::new().update(data);
+    let _ctx = ContextBuilder::new().update(data);
 }
 
 #[test]
 fn test_update_objet_vide() {
     let data = json!({});
-    let _ctx = ContextHelper::new().update(data);
+    let _ctx = ContextBuilder::new().update(data);
 }
 
 #[test]
 fn test_update_apres_add() {
     let data = json!({ "extra": "info" });
-    let _ctx = ContextHelper::new().add("existing", "value").update(data);
+    let _ctx = ContextBuilder::new().add("existing", "value").update(data);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -87,8 +87,8 @@ fn test_update_apres_add() {
 
 #[test]
 fn test_deref_permet_acces_aux_methodes_tera_context() {
-    // add() consomme self et retourne un nouveau ContextHelper
-    let mut ctx = ContextHelper::new().add("key", "value");
+    // add() consomme self et retourne un nouveau ContextBuilder
+    let mut ctx = ContextBuilder::new().add("key", "value");
     // insert directement via DerefMut sur Context
     ctx.insert("autre", &"autre_val");
 }
@@ -97,7 +97,7 @@ fn test_deref_permet_acces_aux_methodes_tera_context() {
 // helper but never read it back, so `add`/`update` returning an empty context passed.
 #[test]
 fn test_add_and_update_land_in_the_context() {
-    let mut helper = ContextHelper::new()
+    let mut helper = ContextBuilder::new()
         .add("username", "alice")
         .update(json!({ "count": 3, "admin": true }));
     assert_eq!(

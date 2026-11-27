@@ -56,20 +56,32 @@ fn extend_resolves_enum_column() {
 }
 
 #[test]
-fn extend_enum_column_emits_create_type_on_postgres() {
+fn extend_enum_is_created_by_its_own_migration_on_postgres() {
     let schema = &parse_extend_blocks_from_source(EXTEND_ENUM_SRC).unwrap()[0];
     let change = Changes {
         table_name: schema.table_name.clone(),
         added_columns: schema.columns.clone(),
         ..Default::default()
     };
+    // The file that adds the column finds the enum there.
     let sql = generate_alter_file(&change);
     assert!(
-        sql.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
-        "must check the real backend at runtime:\n{sql}"
+        !sql.contains("create_enum_type") && !sql.contains("Type::create()"),
+        "{sql}"
+    );
+
+    // The enum of an `extend!{}` block is found like the one of a model, and
+    // has its own file.
+    let found = enums_of_schemas(std::slice::from_ref(schema));
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].name, "role");
+    let created = generate_enum_file(
+        &diff_enum(None, &found[0]),
+        &crate::db::DatabaseEngine::PostgreSQL,
     );
     assert!(
-        sql.contains("Type::create()"),
-        "extend enum must create its type, runtime-guarded to Postgres:\n{sql}"
+        created
+            .contains(r#"runique_cli::migration::runtime::create_enum_type(manager, "role", &["#),
+        "{created}"
     );
 }

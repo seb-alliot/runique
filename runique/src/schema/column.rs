@@ -5,16 +5,10 @@
 //! The [`ColumnDef::to_form_field`] method automatically generates the appropriate form field.
 use sea_query::{ColumnType, IntoIden};
 
-/// Upload kind for a file column — drives the form widget and the allowed
-/// extension whitelist when the schema rebuilds a `FileField`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FileKind {
-    Image,
-    Audio,
-    Video,
-    Document,
-    Any,
-}
+/// What a file column takes — drives the form widget and the allowed
+/// extension whitelist when the schema rebuilds a `FileField`. The DSL's own
+/// type: a model declares it, the schema carries it as it was read.
+pub use runique_dsl::ast::UploadType;
 
 /// Complete table column definition.
 #[derive(Debug, Clone)]
@@ -44,11 +38,11 @@ pub struct ColumnDef {
     pub min_float: Option<f64>,
     /// File upload metadata — pure form concern.
     pub is_file: bool,
-    pub file_kind: Option<FileKind>,
+    pub upload_type: Option<UploadType>,
     pub max_size: Option<u64>, // bytes
     /// The DSL type the column was declared with, when it comes from `model!{}`
     /// or `extend!{}`. Decides the form field.
-    pub kind: Option<runique_dsl::ast::FormFieldKind>,
+    pub field_type: Option<runique_dsl::ast::FormFieldType>,
     /// Form label declared in the DSL (`[label: "…"]`).
     pub label: Option<String>,
 }
@@ -78,9 +72,9 @@ impl ColumnDef {
             max_float: None,
             min_float: None,
             is_file: false,
-            file_kind: None,
+            upload_type: None,
             max_size: None,
-            kind: None,
+            field_type: None,
             label: None,
         }
     }
@@ -376,19 +370,19 @@ impl ColumnDef {
         self
     }
 
-    /// Marks the column as a file upload of the given kind. Drives the
+    /// Marks the column as a file upload of the given type. Drives the
     /// `FileField` widget and allowed extensions when rebuilt from the schema.
-    pub fn file(mut self, kind: FileKind) -> Self {
+    pub fn file(mut self, upload_type: UploadType) -> Self {
         self.is_file = true;
-        self.file_kind = Some(kind);
+        self.upload_type = Some(upload_type);
         self
     }
 
     /// Records the DSL type the column was declared with: the form built from
     /// the schema then gets that type's field (`runique_dsl::types`), whatever
     /// the column's name.
-    pub fn kind(mut self, kind: runique_dsl::ast::FormFieldKind) -> Self {
-        self.kind = Some(kind);
+    pub fn field_type(mut self, field_type: runique_dsl::ast::FormFieldType) -> Self {
+        self.field_type = Some(field_type);
         self
     }
 
@@ -494,7 +488,7 @@ impl ColumnDef {
         let label = self.label.clone().unwrap_or_else(|| self.format_label());
         // A checkbox always answers: NOT NULL alone doesn't make it required,
         // only a declared `required` does ("must be checked").
-        let is_box = self.kind == Some(runique_dsl::ast::FormFieldKind::Bool)
+        let is_box = self.field_type == Some(runique_dsl::ast::FormFieldType::Bool)
             || matches!(self.col_type, ColumnType::Boolean);
         let required = if is_box {
             self.required_declared
@@ -507,28 +501,28 @@ impl ColumnDef {
         // TextField. `max_size` sets the model ceiling, which later bounds any
         // form-level override via `set_max_size_bounded`.
         // Declared in the DSL: its type decides, never the column's name.
-        let mut field: GenericField = if let Some(kind) = self.kind {
-            self.widget_field(kind.widget())
+        let mut field: GenericField = if let Some(field_type) = self.field_type {
+            self.widget_field(field_type.widget())
         } else if self.is_file {
             let size = self.max_size.map(FileSize::bytes);
-            match self.file_kind {
-                Some(FileKind::Image) => {
+            match self.upload_type {
+                Some(UploadType::Image) => {
                     let mf = MediaField::image(name);
                     size.map_or(mf.clone(), |s| mf.max_size(s)).into()
                 }
-                Some(FileKind::Audio) => {
+                Some(UploadType::Audio) => {
                     let mf = MediaField::audio(name);
                     size.map_or(mf.clone(), |s| mf.max_size(s)).into()
                 }
-                Some(FileKind::Video) => {
+                Some(UploadType::Video) => {
                     let mf = MediaField::video(name);
                     size.map_or(mf.clone(), |s| mf.max_size(s)).into()
                 }
-                Some(FileKind::Document) => {
+                Some(UploadType::Document) => {
                     let ff = FileField::document(name);
                     size.map_or(ff.clone(), |s| ff.max_size(s)).into()
                 }
-                Some(FileKind::Any) | None => {
+                Some(UploadType::Any) | None => {
                     let ff = FileField::any(name);
                     size.map_or(ff.clone(), |s| ff.max_size(s)).into()
                 }
@@ -754,23 +748,23 @@ impl ColumnDef {
             Widget::File(kind) => {
                 let size = self.max_size.map(FileSize::bytes);
                 match kind {
-                    runique_dsl::ast::FileKind::Image => {
+                    runique_dsl::ast::UploadType::Image => {
                         let mf = MediaField::image(name);
                         size.map_or(mf.clone(), |s| mf.max_size(s)).into()
                     }
-                    runique_dsl::ast::FileKind::Audio => {
+                    runique_dsl::ast::UploadType::Audio => {
                         let mf = MediaField::audio(name);
                         size.map_or(mf.clone(), |s| mf.max_size(s)).into()
                     }
-                    runique_dsl::ast::FileKind::Video => {
+                    runique_dsl::ast::UploadType::Video => {
                         let mf = MediaField::video(name);
                         size.map_or(mf.clone(), |s| mf.max_size(s)).into()
                     }
-                    runique_dsl::ast::FileKind::Document => {
+                    runique_dsl::ast::UploadType::Document => {
                         let ff = FileField::document(name);
                         size.map_or(ff.clone(), |s| ff.max_size(s)).into()
                     }
-                    runique_dsl::ast::FileKind::Any => {
+                    runique_dsl::ast::UploadType::Any => {
                         let ff = FileField::any(name);
                         size.map_or(ff.clone(), |s| ff.max_size(s)).into()
                     }
@@ -778,7 +772,7 @@ impl ColumnDef {
             }
             Widget::Binary => {
                 let mut bf = crate::forms::fields::BinaryField::new(name);
-                if let Some(limit) = self.kind.and_then(|k| k.byte_limit(self.max_length)) {
+                if let Some(limit) = self.field_type.and_then(|k| k.byte_limit(self.max_length)) {
                     bf = bf.max_size(limit.into());
                 }
                 bf.into()

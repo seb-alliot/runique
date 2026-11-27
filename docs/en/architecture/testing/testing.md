@@ -129,7 +129,7 @@ runique test blog created_article_is_found_by_id   # a single test
 
 These checks do **not** verify that the migrations are applied: an app started without `runique migration up` boots, then fails on the first request touching a missing table (see [Troubleshooting](/docs/en/installation/troubleshooting)).
 
-`build()` then returns a `BuildError` — `BuildErrorKind::CheckFailed(CheckReport)` for the checks above, CORS aside — displayed in the terminal with a suggestion for each problem.
+`build()` then returns a `BuildError` — `BuildFailure::CheckFailed(CheckReport)` for the checks above, CORS aside — displayed in the terminal with a suggestion for each problem.
 
 ---
 

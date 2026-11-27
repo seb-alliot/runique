@@ -1,22 +1,25 @@
-//! Probe: a value renamed in an enum that two columns use.
+//! A value renamed in an enum that two columns use.
 //!
 //! Under PostgreSQL an enum is one type, shared by every column that uses
 //! it: two list fields of a model on the same enum are two tables on one
-//! type. The rename of a value is computed column by column, so each table's
-//! migration carries it. These tests confirm both halves of what follows:
-//! the generator writes the rename once per table, and PostgreSQL refuses it
-//! the second time, the former value being gone.
+//! type. The enum is compared once, as the object it is, and its rename is
+//! written once, in its own migration, with every place: the tables have
+//! nothing to migrate.
 //!
-//! They describe what happens today, not what should: once the generator
-//! writes the rename once per type, the first test changes side.
+//! The last test is why: asked a second time, as it was when each table's
+//! migration carried the rename, PostgreSQL refuses it, the former value
+//! being gone.
 //!
 //! Postgres needs `docker compose -f docker-compose.yml up -d` and its URL in
 //! `.env.test`; without it, that test returns early.
 
 use crate::helpers::db_postgres;
 use runique::sea_orm::ConnectionTrait;
+use runique_cli::db::DatabaseEngine;
 use runique_cli::migration::scan_entities;
-use runique_cli::migration::{diff_schemas, generate_alter_file};
+use runique_cli::migration::{
+    diff_enums, diff_schemas, enums_of_schemas, generate_enum_file, previous_enums,
+};
 use sea_query::Alias;
 use sea_query::extension::postgres::Type;
 use serial_test::serial;
@@ -35,29 +38,53 @@ fn scanned(suffix: &str, source: &str) -> Vec<runique_cli::migration::ParsedSche
     scan_entities(dir.to_str().unwrap()).unwrap()
 }
 
-const RENAME: &str = r#".rename_value(Alias::new("Roman"), Alias::new("Novel"))"#;
-
-// `Roman` becomes `Novel`: both list tables get a migration, and each one
-// renames the value in the type they share.
+// `Roman` becomes `Novel`: neither list table has a migration of its own,
+// and the enum has one, which renames the value once and names both places.
 #[test]
-fn the_rename_is_written_once_per_table_using_the_enum() {
+fn the_rename_is_written_once_for_the_enum_with_every_place() {
     let before = scanned("before", &model("Roman"));
     let after = scanned("after", &model("Novel"));
 
-    let mut renaming: Vec<String> = Vec::new();
     for current in &after {
         let previous = before
             .iter()
             .find(|s| s.table_name == current.table_name)
             .expect("the same tables before and after");
-        let changes = diff_schemas(previous, current);
-        if !changes.is_empty() && generate_alter_file(&changes).contains(RENAME) {
-            renaming.push(current.table_name.clone());
+        assert!(
+            diff_schemas(previous, current).is_empty(),
+            "{} has nothing to migrate",
+            current.table_name
+        );
+    }
+
+    let changes = diff_enums(&previous_enums(&before, &[]), &enums_of_schemas(&after));
+    assert_eq!(changes.len(), 1, "{changes:?}");
+    assert_eq!(changes[0].name, "genre");
+    assert_eq!(
+        changes[0].renamed_values,
+        [("Roman".to_string(), "Novel".to_string())]
+    );
+
+    for engine in [
+        DatabaseEngine::PostgreSQL,
+        DatabaseEngine::MySQL,
+        DatabaseEngine::SQLite,
+    ] {
+        let file = generate_enum_file(&changes[0], &engine);
+        let up = file.split("async fn down").next().unwrap();
+        // Once on the way up, whatever the number of tables.
+        assert_eq!(up.matches("rename_enum_value").count(), 1, "{file}");
+        assert!(
+            up.contains(r#"rename_enum_value(manager, "genre", "Roman", "Novel", &["#),
+            "{file}"
+        );
+        for place in [
+            r#"("sh_books_genres", "value")"#,
+            r#"("sh_books_moods", "value")"#,
+        ] {
+            assert!(up.contains(place), "{place} in {file}");
         }
     }
-    renaming.sort();
-
-    assert_eq!(renaming, ["sh_books_genres", "sh_books_moods"]);
 }
 
 const TYPE: &str = "rq_shared_genre";

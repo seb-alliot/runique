@@ -1,5 +1,5 @@
 //! Centralized framework errors: `RuniqueError`, `ErrorContext`, and HTML/JSON error rendering.
-use crate::middleware::RequestInfoHelper;
+use crate::middleware::RequestSnapshot;
 use crate::utils::aliases::StrMap;
 use crate::utils::env::is_debug;
 use axum::{
@@ -332,10 +332,10 @@ impl ErrorContext {
             },
         }
     }
-    /// Attaches request info from a `RequestInfoHelper` snapshot, for use when the
+    /// Attaches request info from a `RequestSnapshot` snapshot, for use when the
     /// original `Request` is no longer available (e.g. from within middleware).
     #[must_use]
-    pub fn with_request_helper(mut self, helper: &RequestInfoHelper) -> Self {
+    pub fn with_request_snapshot(mut self, helper: &RequestSnapshot) -> Self {
         self.request_info = Some(RequestInfo {
             method: helper.method.clone(),
             path: helper.path.clone(),
@@ -466,7 +466,7 @@ impl ErrorContext {
     pub fn from_runique_error(
         err: &RuniqueError,
         path: Option<&str>,
-        request_helper: Option<&RequestInfoHelper>,
+        request_snapshot: Option<&RequestSnapshot>,
         template_name: Option<&str>,
         tera: Option<&tera::Tera>,
     ) -> Self {
@@ -505,8 +505,8 @@ impl ErrorContext {
             }
         };
 
-        if let Some(helper) = request_helper {
-            ctx = ctx.with_request_helper(helper);
+        if let Some(helper) = request_snapshot {
+            ctx = ctx.with_request_snapshot(helper);
         }
 
         ctx.build_stack_trace(err);

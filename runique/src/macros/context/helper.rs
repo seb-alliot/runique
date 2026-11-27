@@ -1,23 +1,23 @@
-//! `ContextHelper` — ergonomic wrapper around `tera::Context` with a chainable API.
+//! `ContextBuilder` — ergonomic wrapper around `tera::Context` with a chainable API.
 use serde::Serialize;
 use serde_json::Value;
 use tera::Context;
 
 /// Chainable wrapper around `tera::Context`, backing the `context!{}` macro.
-/// Lets a template context be built as `ContextHelper::new().add(...).add(...)`
+/// Lets a template context be built as `ContextBuilder::new().add(...).add(...)`
 /// instead of mutating a `Context` in place; derefs to `Context` for anything
 /// not covered by `.add()`/`.update()`.
-pub struct ContextHelper {
+pub struct ContextBuilder {
     inner: Context,
 }
 
-impl Default for ContextHelper {
+impl Default for ContextBuilder {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl ContextHelper {
+impl ContextBuilder {
     /// Creates an empty context.
     pub fn new() -> Self {
         Self {
@@ -45,13 +45,13 @@ impl ContextHelper {
     }
 }
 
-impl From<ContextHelper> for Context {
-    fn from(helper: ContextHelper) -> Self {
+impl From<ContextBuilder> for Context {
+    fn from(helper: ContextBuilder) -> Self {
         helper.inner
     }
 }
 
-impl std::ops::Deref for ContextHelper {
+impl std::ops::Deref for ContextBuilder {
     type Target = Context;
 
     fn deref(&self) -> &Self::Target {
@@ -59,7 +59,7 @@ impl std::ops::Deref for ContextHelper {
     }
 }
 
-impl std::ops::DerefMut for ContextHelper {
+impl std::ops::DerefMut for ContextBuilder {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }

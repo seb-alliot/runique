@@ -16,9 +16,9 @@ fn parse_everything(src: &str) {
     if let Ok(model) = syn::parse_str::<ModelInput>(src) {
         for field in &model.fields {
             let _ = field.column_type();
-            let _ = field.kind.widget();
-            let _ = field.kind.unsupported_on();
-            let _ = field.kind.byte_limit(None);
+            let _ = field.field_type.widget();
+            let _ = field.field_type.unsupported_on();
+            let _ = field.field_type.byte_limit(None);
         }
     }
     let _ = syn::parse_str::<FormFieldDecl>(src);

@@ -6,7 +6,7 @@ use runique::{
     config::app::RuniqueConfig,
     context::template::AppError,
     errors::error::ErrorContext,
-    middleware::errors::error::{RequestInfoHelper, error_handler_middleware},
+    middleware::errors::error::{RequestSnapshot, error_handler_middleware},
 };
 use std::{collections::HashMap, sync::Arc};
 
@@ -66,7 +66,7 @@ async fn bad_query() -> Box<AppError> {
 fn test_request_info_helper_struct() {
     let mut headers = HashMap::new();
     headers.insert("x-test-header".to_string(), "valeur".to_string());
-    let helper = RequestInfoHelper {
+    let helper = RequestSnapshot {
         method: "GET".to_string(),
         path: "/".to_string(),
         query: Some("a=1".to_string()),
@@ -80,7 +80,7 @@ fn test_request_info_helper_struct() {
 
 #[test]
 fn test_request_info_helper_sans_query() {
-    let helper = RequestInfoHelper {
+    let helper = RequestSnapshot {
         method: "POST".to_string(),
         path: "/submit".to_string(),
         query: None,

@@ -63,9 +63,6 @@ mod types_migration {
             table: runique_cli::migration::TableChange::Altered,
             renames: Default::default(),
             renamed_columns: vec![],
-            enum_renames: vec![],
-            enum_value_adds: vec![],
-            enum_value_drops: vec![],
         };
         assert!(changes.added_columns.is_empty());
     }

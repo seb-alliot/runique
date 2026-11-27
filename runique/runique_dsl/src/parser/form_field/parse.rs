@@ -1,6 +1,6 @@
 //! `{ name: type [attr1, attr2, ...], ... }` field declaration parsing —
 //! the anonymous-block v2 grammar.
-use crate::ast::{FormFieldAttr, FormFieldDecl, FormFieldKind, PkType};
+use crate::ast::{FormFieldAttr, FormFieldDecl, FormFieldType, PkType};
 use syn::{
     Ident, LitFloat, LitInt, LitStr, Result, Token,
     parse::{Parse, ParseStream},
@@ -19,58 +19,58 @@ impl Parse for FormFieldDecl {
 
         let kind_ident: Ident = input.parse()?;
         let kind = match kind_ident.to_string().as_str() {
-            "text" => FormFieldKind::Text,
-            "email" => FormFieldKind::Email,
-            "password" => FormFieldKind::Password,
-            "richtext" => FormFieldKind::Richtext,
-            "textarea" => FormFieldKind::Textarea,
-            "url" => FormFieldKind::Url,
-            "int" => FormFieldKind::Int,
-            "float" => FormFieldKind::Float,
-            "decimal" => FormFieldKind::Decimal,
-            "percent" => FormFieldKind::Percent,
-            "bool" => FormFieldKind::Bool,
-            "date" => FormFieldKind::Date,
-            "time" => FormFieldKind::Time,
-            "datetime" => FormFieldKind::Datetime,
-            "image" => FormFieldKind::Image,
-            "audio" => FormFieldKind::Audio,
-            "video" => FormFieldKind::Video,
-            "document" => FormFieldKind::Document,
-            "file" => FormFieldKind::File,
-            "color" => FormFieldKind::Color,
-            "slug" => FormFieldKind::Slug,
-            "uuid" => FormFieldKind::Uuid,
-            "json" => FormFieldKind::Json,
-            "ip" => FormFieldKind::Ip,
-            "choice" => FormFieldKind::Choice,
-            "radio" => FormFieldKind::Radio,
-            "checkbox" => FormFieldKind::Checkbox,
-            "multichoice" => FormFieldKind::Multichoice,
-            "bigint" => FormFieldKind::Bigint,
-            "phone" => FormFieldKind::Phone,
-            "char" => FormFieldKind::Char,
-            "i8" => FormFieldKind::I8,
-            "i16" => FormFieldKind::I16,
-            "u32" => FormFieldKind::U32,
-            "u64" => FormFieldKind::U64,
-            "f32" => FormFieldKind::F32,
-            "timestamp" => FormFieldKind::Timestamp,
-            "timestamp_tz" => FormFieldKind::TimestampTz,
-            "json_binary" => FormFieldKind::JsonBinary,
-            "binary" => FormFieldKind::Binary,
-            "var_binary" => FormFieldKind::VarBinary,
-            "blob" => FormFieldKind::Blob,
-            "cidr" => FormFieldKind::Cidr,
-            "mac_address" => FormFieldKind::MacAddress,
-            "interval" => FormFieldKind::Interval,
+            "text" => FormFieldType::Text,
+            "email" => FormFieldType::Email,
+            "password" => FormFieldType::Password,
+            "richtext" => FormFieldType::Richtext,
+            "textarea" => FormFieldType::Textarea,
+            "url" => FormFieldType::Url,
+            "int" => FormFieldType::Int,
+            "float" => FormFieldType::Float,
+            "decimal" => FormFieldType::Decimal,
+            "percent" => FormFieldType::Percent,
+            "bool" => FormFieldType::Bool,
+            "date" => FormFieldType::Date,
+            "time" => FormFieldType::Time,
+            "datetime" => FormFieldType::Datetime,
+            "image" => FormFieldType::Image,
+            "audio" => FormFieldType::Audio,
+            "video" => FormFieldType::Video,
+            "document" => FormFieldType::Document,
+            "file" => FormFieldType::File,
+            "color" => FormFieldType::Color,
+            "slug" => FormFieldType::Slug,
+            "uuid" => FormFieldType::Uuid,
+            "json" => FormFieldType::Json,
+            "ip" => FormFieldType::Ip,
+            "choice" => FormFieldType::Choice,
+            "radio" => FormFieldType::Radio,
+            "checkbox" => FormFieldType::Checkbox,
+            "multichoice" => FormFieldType::Multichoice,
+            "bigint" => FormFieldType::Bigint,
+            "phone" => FormFieldType::Phone,
+            "char" => FormFieldType::Char,
+            "i8" => FormFieldType::I8,
+            "i16" => FormFieldType::I16,
+            "u32" => FormFieldType::U32,
+            "u64" => FormFieldType::U64,
+            "f32" => FormFieldType::F32,
+            "timestamp" => FormFieldType::Timestamp,
+            "timestamp_tz" => FormFieldType::TimestampTz,
+            "json_binary" => FormFieldType::JsonBinary,
+            "binary" => FormFieldType::Binary,
+            "var_binary" => FormFieldType::VarBinary,
+            "blob" => FormFieldType::Blob,
+            "cidr" => FormFieldType::Cidr,
+            "mac_address" => FormFieldType::MacAddress,
+            "interval" => FormFieldType::Interval,
             // Defers to the global `Pk` alias — resolved immediately to the concrete
             // kind so no downstream consumer needs to know "Pk" was ever written; same
             // principle as the `pk: id => Pk` keyword for the primary key itself.
             "Pk" => match crate::parser::pk::pk_alias() {
-                PkType::Uuid => FormFieldKind::Uuid,
-                PkType::I64 => FormFieldKind::Bigint,
-                PkType::I32 => FormFieldKind::Int,
+                PkType::Uuid => FormFieldType::Uuid,
+                PkType::I64 => FormFieldType::Bigint,
+                PkType::I32 => FormFieldType::Int,
             },
             other => {
                 let suggestion = suggest_form_field_type(other);
@@ -231,7 +231,11 @@ impl Parse for FormFieldDecl {
         }
 
         let _ = input.parse::<Token![,]>();
-        Ok(FormFieldDecl { name, kind, attrs })
+        Ok(FormFieldDecl {
+            name,
+            field_type: kind,
+            attrs,
+        })
     }
 }
 
@@ -267,8 +271,8 @@ fn validate_list(name: &Ident, kind_ident: &Ident, attrs: &[FormFieldAttr]) -> R
 
 /// Types whose form field always submits something storable in a NOT NULL
 /// column: an empty text, no file, no bytes, an unchecked box (`false`).
-fn has_empty_value(kind: &FormFieldKind) -> bool {
-    use FormFieldKind::*;
+fn has_empty_value(kind: &FormFieldType) -> bool {
+    use FormFieldType::*;
     matches!(
         kind,
         Text | Email
@@ -298,7 +302,7 @@ fn has_empty_value(kind: &FormFieldKind) -> bool {
 fn validate_nullability(
     name: &Ident,
     kind_ident: &Ident,
-    kind: &FormFieldKind,
+    kind: &FormFieldType,
     attrs: &[FormFieldAttr],
 ) -> Result<()> {
     let has = |wanted: fn(&FormFieldAttr) -> bool| attrs.iter().any(wanted);

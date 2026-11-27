@@ -9,7 +9,6 @@ pub(crate) fn build_drop_plan(
     dropped: &[ParsedSchema],
     migrations_path: &str,
     timestamp: &str,
-    settled: &[String],
 ) {
     // Reversed creation order; the keys of a cycle are worked out on the
     // creation order, which is the order the `down`s run in.
@@ -27,7 +26,7 @@ pub(crate) fn build_drop_plan(
         let module_name = seaorm_drop_module_name(timestamp, &schema.table_name);
         plan.files.push((
             seaorm_drop_file_path(migrations_path, timestamp, &schema.table_name),
-            waiting_migrate(generate_drop_file(schema, keys), &module_name, settled),
+            generate_drop_file(schema, keys),
         ));
         plan.lib_modules.push(module_name);
     }

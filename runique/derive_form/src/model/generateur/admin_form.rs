@@ -96,17 +96,17 @@ pub(crate) fn generate_form_field_decl(ff: &FormFieldDecl, enums: &[EnumDef]) ->
         quote! {}
     };
 
-    let field_expr: TokenStream2 = match &ff.kind {
+    let field_expr: TokenStream2 = match &ff.field_type {
         // ── Text fields ──────────────────────────────────────────────
-        FormFieldKind::Text => {
+        FormFieldType::Text => {
             let extras = text_attrs_tokens(&ff.attrs, false);
             quote! { ::runique::forms::fields::TextField::text(#name_str).label(#label) #extras #required_suffix }
         }
-        FormFieldKind::Email => {
+        FormFieldType::Email => {
             let extras = text_attrs_tokens(&ff.attrs, false);
             quote! { ::runique::forms::fields::TextField::email(#name_str).label(#label) #extras #required_suffix }
         }
-        FormFieldKind::Password => {
+        FormFieldType::Password => {
             let no_hash = if ff.attrs.iter().any(|a| matches!(a, FormFieldAttr::NoHash)) {
                 quote! { .no_hash() }
             } else {
@@ -115,37 +115,37 @@ pub(crate) fn generate_form_field_decl(ff: &FormFieldDecl, enums: &[EnumDef]) ->
             let extras = text_attrs_tokens(&ff.attrs, false);
             quote! { ::runique::forms::fields::TextField::password(#name_str).label(#label) #no_hash #extras #required_suffix }
         }
-        FormFieldKind::Richtext => {
+        FormFieldType::Richtext => {
             let extras = text_attrs_tokens(&ff.attrs, true);
             quote! { ::runique::forms::fields::TextField::richtext(#name_str).label(#label) #extras #required_suffix }
         }
-        FormFieldKind::Textarea => {
+        FormFieldType::Textarea => {
             let extras = text_attrs_tokens(&ff.attrs, true);
             quote! { ::runique::forms::fields::TextField::textarea(#name_str).label(#label) #extras #required_suffix }
         }
-        FormFieldKind::Url => {
+        FormFieldType::Url => {
             let extras = text_attrs_tokens(&ff.attrs, false);
             quote! { ::runique::forms::fields::TextField::url(#name_str).label(#label) #extras #required_suffix }
         }
 
         // ── Numeric fields ─────────────────────────────────────────
-        FormFieldKind::Int
-        | FormFieldKind::Bigint
-        | FormFieldKind::I8
-        | FormFieldKind::I16
-        | FormFieldKind::U32
-        | FormFieldKind::U64 => {
-            let runique_dsl::types::Widget::Integer { min, max } = ff.kind.widget() else {
+        FormFieldType::Int
+        | FormFieldType::Bigint
+        | FormFieldType::I8
+        | FormFieldType::I16
+        | FormFieldType::U32
+        | FormFieldType::U64 => {
+            let runique_dsl::types::Widget::Integer { min, max } = ff.field_type.widget() else {
                 unreachable!("integer kinds map to Widget::Integer");
             };
             let extras = numeric_attrs_tokens(&ff.attrs);
             quote! { ::runique::forms::fields::NumericField::integer_in(#name_str, #min, #max).label(#label) #extras #required_suffix }
         }
-        FormFieldKind::Float | FormFieldKind::F32 => {
+        FormFieldType::Float | FormFieldType::F32 => {
             let extras = numeric_attrs_tokens(&ff.attrs);
             quote! { ::runique::forms::fields::NumericField::float(#name_str).label(#label) #extras #required_suffix }
         }
-        FormFieldKind::Decimal => {
+        FormFieldType::Decimal => {
             let extras = numeric_attrs_tokens(&ff.attrs);
             // runique_dsl refuses a decimal missing either one.
             let max_digits = ff.attrs.iter().find_map(|a| match a {
@@ -161,12 +161,12 @@ pub(crate) fn generate_form_field_decl(ff: &FormFieldDecl, enums: &[EnumDef]) ->
                 .map(|(p, s)| quote! { .decimal_len(#p, #s) });
             quote! { ::runique::forms::fields::NumericField::decimal(#name_str).label(#label) #len #extras #required_suffix }
         }
-        FormFieldKind::Percent => {
+        FormFieldType::Percent => {
             quote! { ::runique::forms::fields::NumericField::percent(#name_str).label(#label) #required_suffix }
         }
 
         // ── Bool ──────────────────────────────────────────────────────
-        FormFieldKind::Bool => {
+        FormFieldType::Bool => {
             let default_suffix = ff
                 .attrs
                 .iter()
@@ -186,47 +186,47 @@ pub(crate) fn generate_form_field_decl(ff: &FormFieldDecl, enums: &[EnumDef]) ->
         }
 
         // ── Date/Time ────────────────────────────────────────────────
-        FormFieldKind::Date => {
+        FormFieldType::Date => {
             quote! { ::runique::forms::fields::DateField::new(#name_str).label(#label) #required_suffix }
         }
-        FormFieldKind::Time => {
+        FormFieldType::Time => {
             quote! { ::runique::forms::fields::TimeField::new(#name_str).label(#label) #required_suffix }
         }
-        FormFieldKind::Datetime | FormFieldKind::Timestamp | FormFieldKind::TimestampTz => {
+        FormFieldType::Datetime | FormFieldType::Timestamp | FormFieldType::TimestampTz => {
             quote! { ::runique::forms::fields::DateTimeField::new(#name_str).label(#label) #required_suffix }
         }
-        FormFieldKind::Char => {
+        FormFieldType::Char => {
             let extras = text_attrs_tokens(&ff.attrs, false);
             quote! { ::runique::forms::fields::TextField::text(#name_str).label(#label) #extras #required_suffix }
         }
 
         // ── Files ──────────────────────────────────────────────────
-        FormFieldKind::Image => {
+        FormFieldType::Image => {
             let file_extras = file_attrs_tokens(&ff.attrs);
             quote! { ::runique::forms::fields::MediaField::image(#name_str).label(#label) #file_extras #required_suffix }
         }
-        FormFieldKind::Audio => {
+        FormFieldType::Audio => {
             let file_extras = file_attrs_tokens(&ff.attrs);
             quote! { ::runique::forms::fields::MediaField::audio(#name_str).label(#label) #file_extras #required_suffix }
         }
-        FormFieldKind::Video => {
+        FormFieldType::Video => {
             let file_extras = file_attrs_tokens(&ff.attrs);
             quote! { ::runique::forms::fields::MediaField::video(#name_str).label(#label) #file_extras #required_suffix }
         }
-        FormFieldKind::Document => {
+        FormFieldType::Document => {
             let file_extras = file_attrs_tokens(&ff.attrs);
             quote! { ::runique::forms::fields::FileField::document(#name_str).label(#label) #file_extras #required_suffix }
         }
-        FormFieldKind::File => {
+        FormFieldType::File => {
             let file_extras = file_attrs_tokens(&ff.attrs);
             quote! { ::runique::forms::fields::FileField::any(#name_str).label(#label) #file_extras #required_suffix }
         }
 
         // ── Choice / Radio / Checkbox — resolution via EnumRef attr or fields: ─────
-        FormFieldKind::Choice
-        | FormFieldKind::Radio
-        | FormFieldKind::Checkbox
-        | FormFieldKind::Multichoice => {
+        FormFieldType::Choice
+        | FormFieldType::Radio
+        | FormFieldType::Checkbox
+        | FormFieldType::Multichoice => {
             // Priority: Explicit EnumRef in attrs, otherwise lookup via fields:
             let enum_ident = ff.attrs.iter().find_map(|a| {
                 if let FormFieldAttr::EnumRef(id) = a {
@@ -250,11 +250,11 @@ pub(crate) fn generate_form_field_decl(ff: &FormFieldDecl, enums: &[EnumDef]) ->
                 })
                 .unwrap_or_default();
 
-            if matches!(ff.kind, FormFieldKind::Radio) {
+            if matches!(ff.field_type, FormFieldType::Radio) {
                 quote! { ::runique::forms::fields::RadioField::new(#name_str).label(#label) #(#choices)* #required_suffix }
-            } else if matches!(ff.kind, FormFieldKind::Checkbox) {
+            } else if matches!(ff.field_type, FormFieldType::Checkbox) {
                 quote! { ::runique::forms::fields::CheckboxField::new(#name_str).label(#label) #(#choices)* #required_suffix }
-            } else if matches!(ff.kind, FormFieldKind::Multichoice) {
+            } else if matches!(ff.field_type, FormFieldType::Multichoice) {
                 quote! { ::runique::forms::fields::ChoiceField::new(#name_str).label(#label).multiple() #(#choices)* #required_suffix }
             } else {
                 quote! { ::runique::forms::fields::ChoiceField::new(#name_str).label(#label) #(#choices)* #required_suffix }
@@ -262,33 +262,33 @@ pub(crate) fn generate_form_field_decl(ff: &FormFieldDecl, enums: &[EnumDef]) ->
         }
 
         // ── Special fields ───────────────────────────────────────────
-        FormFieldKind::Color => {
+        FormFieldType::Color => {
             quote! { ::runique::forms::fields::ColorField::new(#name_str).label(#label) #required_suffix }
         }
-        FormFieldKind::Slug => {
+        FormFieldType::Slug => {
             quote! { ::runique::forms::fields::SlugField::new(#name_str).label(#label) #required_suffix }
         }
-        FormFieldKind::Uuid => {
+        FormFieldType::Uuid => {
             quote! { ::runique::forms::fields::UUIDField::new(#name_str).label(#label) #required_suffix }
         }
-        FormFieldKind::Json | FormFieldKind::JsonBinary => {
+        FormFieldType::Json | FormFieldType::JsonBinary => {
             let rows_suffix = rows_token(&ff.attrs);
             quote! { ::runique::forms::fields::JSONField::new(#name_str).label(#label) #rows_suffix #required_suffix }
         }
-        FormFieldKind::Ip => {
+        FormFieldType::Ip => {
             quote! { ::runique::forms::fields::IPAddressField::new(#name_str).label(#label) #required_suffix }
         }
         // No dedicated widget for raw bytes / network / duration types — a plain text
         // input (no format validation opinion) keeps the form usable rather than
         // refusing to generate one, or worse, applying the wrong validator (e.g. a MAC
         // address would fail IPAddressField's IPv4/IPv6 checks).
-        FormFieldKind::Binary | FormFieldKind::VarBinary | FormFieldKind::Blob => {
+        FormFieldType::Binary | FormFieldType::VarBinary | FormFieldType::Blob => {
             let max_length = ff.attrs.iter().find_map(|a| match a {
                 FormFieldAttr::MaxLength(n) => Some(*n),
                 _ => None,
             });
             let limit = ff
-                .kind
+                .field_type
                 .byte_limit(max_length)
                 .map(|n| {
                     let n = u64::from(n);
@@ -297,12 +297,12 @@ pub(crate) fn generate_form_field_decl(ff: &FormFieldDecl, enums: &[EnumDef]) ->
                 .unwrap_or_default();
             quote! { ::runique::forms::fields::BinaryField::new(#name_str).label(#label) #limit #required_suffix }
         }
-        FormFieldKind::Cidr | FormFieldKind::MacAddress | FormFieldKind::Interval => {
+        FormFieldType::Cidr | FormFieldType::MacAddress | FormFieldType::Interval => {
             let extras = text_attrs_tokens(&ff.attrs, false);
             quote! { ::runique::forms::fields::TextField::text(#name_str).label(#label) #extras #required_suffix }
         }
 
-        FormFieldKind::Phone => {
+        FormFieldType::Phone => {
             let extras = text_attrs_tokens(&ff.attrs, false);
             quote! { ::runique::forms::fields::TextField::phone(#name_str).label(#label) #extras #required_suffix }
         }

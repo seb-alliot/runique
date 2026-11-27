@@ -170,19 +170,19 @@ fn field_value(field: &FieldDef) -> Option<TokenStream2> {
     // Nothing submitted for these leaves the stored value as it is: a password
     // (no new one typed), a file or bytes (no new upload).
     let keep_when_absent = matches!(
-        field.kind,
-        FormFieldKind::Password
-            | FormFieldKind::Image
-            | FormFieldKind::Audio
-            | FormFieldKind::Video
-            | FormFieldKind::Document
-            | FormFieldKind::File
+        field.field_type,
+        FormFieldType::Password
+            | FormFieldType::Image
+            | FormFieldType::Audio
+            | FormFieldType::Video
+            | FormFieldType::Document
+            | FormFieldType::File
     ) || matches!(
         ty,
         FieldType::Binary(_) | FieldType::VarBinary(_) | FieldType::Blob
     );
 
-    let value = if field.kind == FormFieldKind::Password {
+    let value = if field.field_type == FormFieldType::Password {
         quote! { ::runique::forms::form_data::password(&v, #name)? }
     } else {
         quote! { v }

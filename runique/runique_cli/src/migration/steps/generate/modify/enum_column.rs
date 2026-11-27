@@ -1,6 +1,6 @@
 //! A column entering or leaving an enum.
 use crate::migration::steps::generate::columns::{col_type_method, enum_column_type};
-use crate::migration::steps::generate::{create, delete};
+use crate::migration::steps::generate::delete;
 use crate::migration::types::ParsedColumn;
 
 /// A column entering or leaving enum-ness, both directions (`up`: old -> new,
@@ -21,14 +21,8 @@ pub(crate) fn enum_column(table: &str, from: &ParsedColumn, to: &ParsedColumn) -
     let from_is_enum = !from.enum_string_values.is_empty();
     let to_is_enum = !to.enum_string_values.is_empty();
 
-    // The enum TYPE must exist before any column can be cast into it — Postgres only
-    // (MySQL's enum is inline on the column, SQLite has no native enum type at all),
-    // checked at migration-run time rather than baked in at generation time (same
-    // reasoning as in `create/enum_type.rs`).
-    if to_is_enum && !from_is_enum {
-        let enum_name = to.enum_name.as_deref().unwrap_or(&to.name);
-        out.push_str(&create::enum_type(enum_name, &to.enum_string_values));
-    }
+    // The enum a column enters exists by then: created by its own migration,
+    // earlier in the run, when it is new.
 
     let col_def = if to_is_enum {
         format!(

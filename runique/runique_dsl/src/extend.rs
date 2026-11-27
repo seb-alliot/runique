@@ -62,7 +62,7 @@ impl Parse for ExtendDsl {
         let mut fields = Vec::new();
         while !fields_content.is_empty() {
             let field = FormFieldDecl::parse(&fields_content)?;
-            if field.kind.is_list() {
+            if field.field_type.is_list() {
                 return Err(syn::Error::new(
                     field.name.span(),
                     "extend!{}: list fields (`checkbox`, `multichoice`) aren't supported on framework tables",
