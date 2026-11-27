@@ -44,7 +44,7 @@ fn make_renderer_with_error_template() -> runique::forms::renderer::FormRenderer
     );
     tera.add_raw_template(
         "form_errors.html",
-        &runique::app::templates::preprocess(include_str!(
+        &runique::context::tera::loader::preprocess(include_str!(
             "../../templates/field_html/form_errors.html"
         )),
     )
@@ -436,7 +436,7 @@ fn test_render_js_vrai_template_interne_ordre_et_nonce() {
     let templates: Vec<(&str, String)> = SIMPLE_TEMPLATES
         .iter()
         .chain(ERROR_CORPS.iter())
-        .map(|(name, content)| (*name, runique::app::templates::preprocess(content)))
+        .map(|(name, content)| (*name, runique::context::tera::loader::preprocess(content)))
         .collect();
     tera.add_raw_templates(templates)
         .expect("le vrai js_files.html (+ dépendances internes) doit charger");
@@ -557,7 +557,7 @@ fn a_richtext_value_comes_back_in_its_textarea_exactly() {
     );
     tera.add_raw_template(
         "base_string.html",
-        &runique::app::templates::preprocess(include_str!(
+        &runique::context::tera::loader::preprocess(include_str!(
             "../../templates/field_html/base_string.html"
         )),
     )

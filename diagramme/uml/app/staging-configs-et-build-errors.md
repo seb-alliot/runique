@@ -4,7 +4,7 @@ Complément de [builder-staging.md](builder-staging.md).
 
 ## Validation au boot — `BuildError` / `CheckReport`
 
-[`app/error_build.rs`](../../../runique/src/app/error_build.rs)
+[`errors/build.rs`](../../../runique/src/errors/build.rs)
 
 ```mermaid
 classDiagram

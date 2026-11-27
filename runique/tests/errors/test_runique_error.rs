@@ -531,7 +531,7 @@ fn test_error_context_database_constructor() {
 
 #[test]
 fn test_log_all_variants_no_panic() {
-    use runique::app::error_build::BuildError;
+    use runique::errors::build::BuildError;
     RuniqueError::Internal.log();
     RuniqueError::Forbidden.log();
     RuniqueError::NotFound.log();
@@ -589,7 +589,7 @@ fn test_into_response_validation_400() {
 
 #[test]
 fn test_from_build_error() {
-    use runique::app::error_build::BuildError;
+    use runique::errors::build::BuildError;
     let build_err = BuildError::validation("config manquante");
     let err = RuniqueError::from(build_err);
     assert!(matches!(err, RuniqueError::Build(_)));
@@ -598,7 +598,7 @@ fn test_from_build_error() {
 
 #[test]
 fn test_runique_error_build_display() {
-    use runique::app::error_build::BuildError;
+    use runique::errors::build::BuildError;
     let err = RuniqueError::Build(BuildError::database_missing());
     assert!(!err.to_string().is_empty());
 }

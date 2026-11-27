@@ -103,7 +103,7 @@ Ce piège a causé un bug pendant la construction de Runique : le CSRF se retrou
 Plutôt que de dépendre de l'ordre d'écriture, Runique attribue à chaque middleware un **numéro de slot fixe**. Au moment du build, les couches sont triées par slot et appliquées dans le bon ordre, quel que soit l'ordre dans lequel le développeur les configure.
 
 ```rust
-// runique/src/app/staging/middleware_staging/applicator.rs (extrait)
+// runique/src/app/staging/applicator.rs (extrait)
 const SLOT_EXTENSIONS: u16 = 0;        // Engine/Tera/Config injection (outermost)
 const SLOT_TRUSTED_PROXIES: u16 = 2;   // Real client IP extraction — before everything
 const SLOT_COMPRESSION: u16 = 5;

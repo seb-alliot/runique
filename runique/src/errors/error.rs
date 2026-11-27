@@ -17,7 +17,7 @@ use crate::utils::translation::{t, tf};
 // ═══════════════════════════════════════════════════════════════
 // BUILD ERRORS (app builder redesign)
 // ═══════════════════════════════════════════════════════════════
-use crate::app::error_build::BuildError;
+use crate::errors::build::BuildError;
 
 static INTERNAL_TEMPLATES: OnceLock<Vec<&'static str>> = OnceLock::new();
 fn get_internal_templates() -> &'static [&'static str] {

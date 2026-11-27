@@ -1,5 +1,5 @@
 //! Core application staging: DB connection and URL registry.
-use crate::app::error_build::{BuildError, CheckError, CheckReport};
+use crate::errors::build::{BuildError, CheckError, CheckReport};
 use crate::utils::aliases::{ARlockmap, new_registry};
 use std::any::TypeId;
 use std::collections::HashMap;

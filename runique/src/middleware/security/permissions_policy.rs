@@ -15,7 +15,7 @@ pub enum PermissionValue {
 
 /// Permissions-Policy header configuration.
 ///
-/// Built via [`PermissionsPolicyConfig`](crate::app::staging::PermissionsPolicyConfig)
+/// Built via [`PermissionsPolicyConfig`](crate::middleware::PermissionsPolicyConfig)
 /// and stored on the engine.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PermissionsPolicy {

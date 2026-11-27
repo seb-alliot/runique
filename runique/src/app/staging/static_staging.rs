@@ -1,5 +1,5 @@
 //! Static files staging: enables or disables the asset service.
-use crate::{app::error_build::BuildError, config::static_files::resolve_media_root};
+use crate::{config::static_files::resolve_media_root, errors::build::BuildError};
 use std::borrow::Cow;
 //
 // Controls whether static files (CSS, JS, media, Runique
@@ -94,9 +94,9 @@ impl StaticStaging {
         ] {
             if axum::http::HeaderValue::from_str(value).is_err() {
                 return Err(BuildError::check({
-                    let mut report = crate::app::error_build::CheckReport::new();
+                    let mut report = crate::errors::build::CheckReport::new();
                     report.add(
-                        crate::app::error_build::CheckError::new(
+                        crate::errors::build::CheckError::new(
                             label,
                             crate::utils::translation::tf(
                                 runique_i18n::keys::build::error::CACHE_CONTROL_INVALID,
@@ -114,9 +114,9 @@ impl StaticStaging {
         let media_root = resolve_media_root();
         std::fs::create_dir_all(&media_root).map_err(|e| {
             BuildError::check({
-                let mut report = crate::app::error_build::CheckReport::new();
+                let mut report = crate::errors::build::CheckReport::new();
                 report.add(
-                    crate::app::error_build::CheckError::new(
+                    crate::errors::build::CheckError::new(
                         "MediaRoot",
                         crate::utils::translation::tf(
                             runique_i18n::keys::build::error::MEDIA_ROOT_UNUSABLE,

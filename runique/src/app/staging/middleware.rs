@@ -1,15 +1,11 @@
 //! Middleware staging: configuration API for the middleware stack.
-mod applicator;
 
-use super::compression_config::CompressionConfig;
-use super::cors_config::CorsConfig;
-use super::csp_config::CspConfig;
-use super::host_config::HostConfig;
-use super::permissions_policy_config::PermissionsPolicyConfig;
-use super::trusted_proxies_config::TrustedProxiesConfig;
-use crate::app::error_build::BuildError;
+use crate::errors::build::BuildError;
 use crate::config::RuniqueConfig;
-use crate::middleware::{MiddlewareConfig, PermissionsPolicy, SecurityPolicy};
+use crate::middleware::{
+    CompressionConfig, CorsConfig, CspConfig, HostConfig, MiddlewareConfig, PermissionsPolicy,
+    PermissionsPolicyConfig, SecurityPolicy, TrustedProxiesConfig,
+};
 use axum::Router;
 use tower_sessions::cookie::time::Duration;
 use tower_sessions::{Expiry, SessionManagerLayer, SessionStore};

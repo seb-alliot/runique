@@ -1,4 +1,4 @@
-//! Tests — app/builder.rs + app/error_build.rs + app/staging/*.rs
+//! Tests — app/builder.rs + errors/build.rs + app/staging/*.rs
 //!
 //! Couvre :
 //! - BuildError / BuildFailure / CheckError / CheckReport
@@ -14,12 +14,12 @@ use axum::{Router, routing::get};
 use runique::admin::AdminConfig;
 #[cfg(feature = "admin")]
 use runique::app::staging::AdminStaging;
-use runique::app::staging::{
-    CoreStaging, MiddlewareStaging, PermissionsPolicyConfig, StaticStaging,
+use runique::app::{
+    staging::{CoreStaging, MiddlewareStaging, StaticStaging},
+    {BuildError, BuildFailure, CheckError, CheckReport, RuniqueAppBuilder},
 };
-use runique::app::{BuildError, BuildFailure, CheckError, CheckReport, RuniqueAppBuilder};
 use runique::config::app::RuniqueConfig;
-use runique::middleware::MiddlewareConfig;
+use runique::middleware::{MiddlewareConfig, PermissionsPolicyConfig};
 use serial_test::serial;
 use tower_sessions::cookie::time::Duration;
 

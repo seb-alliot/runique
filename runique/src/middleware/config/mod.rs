@@ -1,4 +1,21 @@
 //! Centralized configuration of Runique middlewares — session, CSP, CSRF, debug errors, rate limit.
+//!
+//! The settings a developer writes in `.middleware(|m| ...)` are here too, one
+//! file per middleware: the application's builder (`app::staging`) takes them
+//! from this folder.
+pub mod compression_config;
+pub mod cors_config;
+pub mod csp_config;
+pub mod host_config;
+pub mod permissions_policy_config;
+pub mod trusted_proxies_config;
+
+pub use compression_config::CompressionConfig;
+pub use cors_config::CorsConfig;
+pub use csp_config::CspConfig;
+pub use host_config::HostConfig;
+pub use permissions_policy_config::PermissionsPolicyConfig;
+pub use trusted_proxies_config::TrustedProxiesConfig;
 
 /// Centralized configuration of all Runique middlewares
 ///

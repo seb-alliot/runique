@@ -2,8 +2,7 @@ use axum::{Router, routing::MethodRouter};
 
 #[cfg(feature = "admin")]
 use crate::{
-    admin::router::AdminView, app::staging::admin_staging::DeclaredAdminRoute,
-    auth::meta::ModelMeta,
+    admin::router::AdminView, app::staging::admin::DeclaredAdminRoute, auth::meta::ModelMeta,
 };
 
 /// Route declarations produced by [`crate::urlpatterns!`] when it contains

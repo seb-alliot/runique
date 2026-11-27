@@ -1,5 +1,5 @@
 //! Main request context: `AppError`, `RuniqueContext`, and Tera context construction.
-use crate::app::templates::TemplateLoader;
+use crate::context::tera::loader::TemplateLoader;
 use crate::auth::current_user::CurrentUser;
 use crate::errors::error::ErrorContext;
 use crate::flash::Message;

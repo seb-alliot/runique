@@ -3,6 +3,9 @@
 //! Enabled with the `acme` feature. Requires `ACME_ENABLED=true`, `ACME_DOMAIN`, `ACME_EMAIL`.
 #![cfg(feature = "acme")]
 
+mod renewal;
+mod serve;
+
 use instant_acme::{
     Account, AuthorizationStatus, ChallengeType, Identifier, LetsEncrypt, NewAccount, NewOrder,
     OrderStatus, RetryPolicy,

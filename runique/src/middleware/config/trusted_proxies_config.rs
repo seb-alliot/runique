@@ -163,7 +163,7 @@ mod tests {
 
     #[test]
     fn a_zero_prefix_range_trusts_every_address_and_fails_the_build() {
-        use crate::app::staging::middleware_staging::MiddlewareStaging;
+        use crate::app::staging::middleware::MiddlewareStaging;
         for range in ["0.0.0.0/0", "::/0"] {
             let cfg = TrustedProxiesConfig::default().cidr(range);
             assert!(cfg.trusts_every_address(), "{range}");

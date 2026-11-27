@@ -230,7 +230,7 @@ fn internal_tera() -> tera::Tera {
     let templates: Vec<(&str, String)> = SIMPLE_TEMPLATES
         .iter()
         .chain(ERROR_CORPS.iter())
-        .map(|(name, content)| (*name, runique::app::templates::preprocess(content)))
+        .map(|(name, content)| (*name, runique::context::tera::loader::preprocess(content)))
         .collect();
     tera.add_raw_templates(templates)
         .expect("internal templates");

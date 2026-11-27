@@ -2,7 +2,7 @@
 
 [`app/builder/mod.rs`](../../../runique/src/app/builder/mod.rs),
 [`app/runique_app.rs`](../../../runique/src/app/runique_app.rs),
-[`app/staging/middleware_staging/applicator.rs`](../../../runique/src/app/staging/middleware_staging/applicator.rs)
+[`app/staging/applicator.rs`](../../../runique/src/app/staging/applicator.rs)
 
 ## Builder & staging (pattern Builder)
 
@@ -140,7 +140,7 @@ par slot 31 (`csp_middleware`, ajouté dès `.with_csp()`) — le nonce CSP disp
 Voir E3 dans `anomalies.md` pour ce bug encore ouvert.
 
 ### 🟡 AP2 — ErrorHandler (slot 10) gaté par `enable_debug_errors` (confirme E1, rétrogradé)
-[`applicator.rs:348`](../../../runique/src/app/staging/middleware_staging/applicator.rs#L348)
+[`applicator.rs:348`](../../../runique/src/app/staging/applicator.rs#L348)
 Monté car le flag vaut `true` par défaut partout. Risque uniquement si désactivé
 explicitement (nom trompeur). Pas un bug par défaut.
 

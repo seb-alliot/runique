@@ -57,14 +57,17 @@ runique/
 - **`template/`** — page/block overrides (`page.rs`, `block.rs`, `assemble.rs`, `stylesheet.rs`)
 - **`config/`** — `config_admin.rs` (admin configuration struct)
 - **`middleware/`** — admin-specific middleware
-- **`trad/`** — admin-specific i18n
+- **`translation/`** — admin-specific i18n
+
+### `acme/` — TLS certificates (`acme` feature)
+- **`mod.rs`** — `obtain_certificate` (Let's Encrypt, ACME HTTP-01), `ChallengeStore`
+- **`renewal.rs`** — when a certificate is renewed, where it is stored
+- **`serve.rs`** — `RuniqueApp::run_with_acme`: port 80 for the challenge, port 443 for the application
 
 ### `app/` — Application Lifecycle
 - **`builder/`** — `RuniqueApp::builder(config)` / `RuniqueAppBuilder<S>` (`mod.rs`: once-only settings tracked in the type; `build.rs`)
 - **`runique_app.rs`** — `RuniqueApp` struct, `.run()` entry point
-- **`error_build.rs`** — build-time error types
-- **`templates.rs`** — Tera engine initialization & template loader
-- **`staging/`** — builder stages: `core`, `middleware_staging/`, `admin`, `static`, `csp_config`, `host_config`, `cors_config`, `permissions_policy_config`, `trusted_proxies_config`
+- **`staging/`** — builder stages, one file each: `core_staging.rs`, `middleware.rs` (its settings are in `middleware/config/`), `applicator.rs` (the slots, `SLOT_*`), `admin.rs`, `static_staging.rs`
 
 ### `auth/` — Authentication
 - **`session.rs`** — `login`/`auth_login`/`logout`, `CurrentUser`, session keys
@@ -81,7 +84,7 @@ runique/
 
 ### `new_project/` — `runique new`
 - **`mod.rs`** — scaffolds a project: layout, bundled files, `SECRET_KEY`, its `migration` crate
-- **`composant-bin/`** — templates embedded at compile time (`include_str!`/`include_bytes!`): `code/` (main.rs, forms, url.rs, views.rs…), `config/`, `css/`, `image/`, `template/`, `readme/`
+- **`starter/`** — templates embedded at compile time (`include_str!`/`include_bytes!`): `code/` (main.rs, forms, url.rs, views.rs…), `config/`, `css/`, `image/`, `template/`, `readme/`
 
 ### `config/` — Configuration
 - **`app.rs`** — `RuniqueConfig` struct
@@ -95,6 +98,7 @@ runique/
 - **`request/extractor.rs`** — `Request` extractor for handlers
 - **`request/mod.rs`** — request module exports
 - **`tera/form.rs`** — form rendering Tera functions
+- **`tera/loader.rs`** — Tera engine initialization & template loader (`TemplateLoader`, `preprocess`)
 - **`tera/static_tera.rs`** — `static_url` filter
 - **`tera/url.rs`** — `url` reverse routing filter
 
@@ -107,6 +111,7 @@ runique/
 - **`core.rs`** — `RuniqueEngine` (config, `db: ADb`, Tera, `close_user_sessions`, `extension::<T>()`)
 
 ### `errors/` — Error Types
+- **`build.rs`** — build-time error types (`BuildError`, `BuildFailure`, `CheckError`, `CheckReport`)
 - **`error.rs`** — `AppError`, `AppResult`, `IntoResponse` impl, `html_escape` helpers
 
 ### `flash/` — Flash Messages
@@ -129,10 +134,10 @@ runique/
 - **`prisme/`** — body extraction: `aegis` (CSRF check in `extractor::check_csrf`)
 
 ### `macros/` — Macros
-- **`bdd/`** — `impl_objects!`, `search!` / `search_cond!` (+ internal `search_apply_op!`, `search_munch!`), `Objects` query builder (`objects.rs`, `query.rs`), list fields `HasLists` / `ListField` (`list.rs`)
+- **`database/`** — `impl_objects!`, `search!` / `search_cond!` (+ internal `search_apply_op!`, `search_munch!`), `Objects` query builder (`objects.rs`, `query.rs`), list fields `HasLists` / `ListField` (`list.rs`)
 - **`context/`** — `context!` / `context_update!` (`context_simplifier.rs`), flash macros `flash_now!` / `info!` / `success!` / `warning!` / `error!` (`flash.rs`), `impl_from_error!` (`impl_error.rs`)
 - **`forms/`** — `impl_form_access!` (`impl_form.rs`), `define_enum_kind!` (`enum_kind.rs`), `delegate_to_kind!` (`kind.rs`)
-- **`routeur/`** — `view!` macro (`get_post.rs`), `urlpatterns!` (`router.rs`), URL registry/reverse helpers (`register_url.rs`, `router_ext.rs`)
+- **`router/`** — `view!` macro (`get_post.rs`), `urlpatterns!` (`urlpatterns.rs`), URL registry/reverse helpers (`register_url.rs`, `router_ext.rs`)
 - **`template/`** — template context macros
 
 ### `middleware/` — Middleware
@@ -168,13 +173,12 @@ Calls only: each command's logic lives in its own module, the binary goes throug
 - `test_runner.rs` (`runique test`) — still holds its logic, to be moved out
 
 ### `utils/` — Utilities
-- **`acme/`** — automatic TLS via Let's Encrypt (ACME HTTP-01), `acme` feature
 - **`aliases/`** — `ADb`, `AEngine`, `JsonMap`, `StrMap`… type aliases
 - **`config/env.rs`** — `.env` flags (`env_flag`, `debug_from`, `dev_from`), `is_debug()`, `is_dev()`, `css_token()`
 - **`config/pk.rs`** — `Pk` type alias (`i32` by default, `i64` with `big-pk`, `Uuid` with `pk-uuid`)
 - **`config/runique_log/`** — `RuniqueLog` categories
 - **`config/url_params.rs`** — URL query parameter helpers
-- **`constante/`** — session/CSRF/admin key constants, error strings, template names
+- **`constants/`** — session/CSRF/admin key constants, error strings, template names
 - **`crypto/`** — `csrf.rs` (`CsrfToken`, mask/unmask), `csp_nonce.rs`, `session_cipher.rs` (`SessionKey`)
 - **`forms/`** — `parse_html`, `sanitizer`, `parse_boolean`
 - **`init_error/init.rs`** — `init_logging()`
@@ -182,7 +186,7 @@ Calls only: each command's logic lives in its own module, the binary goes throug
 - **`password/`** — Argon2 / Bcrypt / Scrypt hashing, `PasswordConfig`
 - **`reset_token/`** — secure token generation for password resets
 - **`resolve_ogimage/`** — Open Graph image resolution
-- **`trad/`** — i18n (9 languages), `switch_lang`
+- **`translation/`** — i18n (9 languages), `switch_lang`
 
 ---
 
@@ -214,7 +218,7 @@ tests/
 ├── middleware/               # CSRF, CSP, hosts, rate limit, login guard, session, auth
 ├── migration/                # column, diff, foreign key, generators, parser, schema, list fields, belongs_to…
 ├── test_builder/             # runique_test builder
-└── utils/                    # constante, flash message, logging, password, sanitizer
+└── utils/                    # constants, flash message, logging, password, sanitizer
 ```
 
 Run coverage (excluding admin):

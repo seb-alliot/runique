@@ -103,7 +103,7 @@ This pitfall caused a bug while building Runique: CSRF ended up **outside** the 
 Rather than depend on writing order, Runique gives each middleware a **fixed slot number**. At build time, the layers are sorted by slot and applied in the right order, whatever order the developer configures them in.
 
 ```rust
-// runique/src/app/staging/middleware_staging/applicator.rs (extract)
+// runique/src/app/staging/applicator.rs (extract)
 const SLOT_EXTENSIONS: u16 = 0;        // Engine/Tera/Config injection (outermost)
 const SLOT_TRUSTED_PROXIES: u16 = 2;   // Real client IP extraction — before everything
 const SLOT_COMPRESSION: u16 = 5;

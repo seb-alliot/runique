@@ -60,7 +60,7 @@ fn canonicalize_ip(ip: IpAddr) -> IpAddr {
 
 /// Trusted proxy configuration stored on the engine.
 ///
-/// Built via [`TrustedProxiesConfig`](crate::app::staging::TrustedProxiesConfig).
+/// Built via [`TrustedProxiesConfig`](crate::middleware::TrustedProxiesConfig).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TrustedProxies {
     /// Exact trusted IPs.

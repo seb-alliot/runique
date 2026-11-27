@@ -6,7 +6,7 @@ use crate::helpers::{
     server::{build_engine, build_engine_https},
 };
 use axum::{Router, middleware, routing::get};
-use runique::app::staging::CspConfig;
+use runique::middleware::CspConfig;
 use runique::middleware::security::csp::{
     SecurityPolicy, https_redirect_middleware, security_headers_middleware,
 };

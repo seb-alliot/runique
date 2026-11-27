@@ -17,9 +17,9 @@ use axum::{
 };
 use tower_http::{services::ServeDir, set_header::SetResponseHeaderLayer};
 
-use super::super::error_build::BuildError;
+use crate::errors::build::BuildError;
 use super::super::runique_app::RuniqueApp;
-use super::super::templates::TemplateLoader;
+use crate::context::tera::loader::TemplateLoader;
 use super::RuniqueAppBuilder;
 #[cfg(feature = "admin")]
 use crate::admin::build_admin_router;
@@ -502,7 +502,7 @@ impl<P> RuniqueAppBuilder<P> {
             return Ok(());
         }
 
-        use crate::app::error_build::{CheckError, CheckReport};
+        use crate::errors::build::{CheckError, CheckReport};
 
         let mut report = CheckReport::new();
         #[cfg(feature = "acme")]
