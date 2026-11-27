@@ -5,11 +5,11 @@ use super::refusal::{Refusal, RefusalReason};
 use super::save::take_back;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::history::{ActionLog, log_action};
-use crate::auth::permissions::groupes_droits;
-use crate::auth::permissions::rang::Rang;
+use crate::auth::permissions::group_rights;
+use crate::auth::permissions::rank::Rang;
 use crate::auth::user::{self, Column};
 use crate::utils::aliases::ADb;
-use crate::utils::constante::resource_key;
+use crate::utils::constants::resource_key;
 use crate::utils::pk::Pk;
 use sea_orm::sea_query::Expr;
 use sea_orm::{
@@ -115,8 +115,8 @@ pub(crate) async fn set_rank(
     // Leaving the admin rank drops the account's own rights: a later
     // promotion starts from none.
     if !leaving_admin.is_empty() {
-        groupes_droits::Entity::delete_many()
-            .filter(groupes_droits::Column::UserId.is_in(leaving_admin.iter().copied()))
+        group_rights::Entity::delete_many()
+            .filter(group_rights::Column::UserId.is_in(leaving_admin.iter().copied()))
             .exec(&txn)
             .await?;
     }
@@ -150,7 +150,7 @@ mod tests {
     use super::*;
     use crate::auth::gate::test_support::fixtures::{as_rank, groups_db, pk};
     use crate::auth::history;
-    use crate::auth::permissions::groupe;
+    use crate::auth::permissions::group;
     use sea_orm::{ActiveModelTrait, Set};
 
     async fn rank_of(db: &ADb, n: u8) -> Rang {
@@ -164,7 +164,7 @@ mod tests {
     }
 
     async fn responsable(db: &ADb) -> Pk {
-        groupe::Entity::find_by_id(1)
+        group::Entity::find_by_id(1)
             .one(db)
             .await
             .unwrap()
@@ -174,7 +174,7 @@ mod tests {
 
     /// One row of the admin's (33) own grid.
     async fn grid_row(db: &ADb) {
-        groupes_droits::ActiveModel {
+        group_rights::ActiveModel {
             groupe_id: Set(None),
             user_id: Set(Some(pk(33))),
             resource_key: Set("notes".into()),
@@ -194,8 +194,8 @@ mod tests {
     }
 
     async fn grid_rows(db: &ADb) -> u64 {
-        groupes_droits::Entity::find()
-            .filter(groupes_droits::Column::UserId.eq(pk(33)))
+        group_rights::Entity::find()
+            .filter(group_rights::Column::UserId.eq(pk(33)))
             .count(db)
             .await
             .unwrap()

@@ -8,7 +8,7 @@ use crate::admin::router::context::{
     filter_clear_qs, put,
 };
 use crate::admin::router::{chrome, failure, unknown_resource};
-use crate::admin::trad::insert_admin_messages;
+use crate::admin::translation::insert_admin_messages;
 use crate::auth::current_user::CurrentUser;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
@@ -54,7 +54,7 @@ pub(crate) async fn list_view(
             filters = query.filters.len(),
             search = query.search.is_some(),
             "{}",
-            crate::utils::trad::t(runique_i18n::keys::admin::log::LIST)
+            crate::utils::translation::t(runique_i18n::keys::admin::log::LIST)
         );
     }
 
@@ -231,7 +231,7 @@ pub(crate) async fn list_view(
             }
         }
     }
-    if key == crate::utils::constante::resource_key::GROUPES {
+    if key == crate::utils::constants::resource_key::GROUPES {
         let ids: Vec<i32> = entries.iter().filter_map(|e| e.id.parse().ok()).collect();
         match crate::auth::gate::transfer::taken_by(&ids, &req.engine.db).await {
             Ok(names) => {
@@ -250,7 +250,7 @@ pub(crate) async fn list_view(
         }
     }
     let bulk_offered = !page.actions.is_empty() || can_delete;
-    let rights_shortcut = if key == crate::utils::constante::resource_key::GROUPES {
+    let rights_shortcut = if key == crate::utils::constants::resource_key::GROUPES {
         match crate::admin::router::permission::rights::managed_groups(&user, &req.engine.db).await
         {
             Ok(groups) => (!groups.is_empty()).then(|| paths.group_select.clone()),

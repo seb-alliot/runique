@@ -216,7 +216,7 @@ async fn test_debug_body_contient_info_erreur() {
 /// them: filters first, then `SIMPLE_TEMPLATES` + `ERROR_CORPS` in one batch
 /// (`debug.html` includes the `ERROR_CORPS` partials).
 fn internal_tera() -> tera::Tera {
-    use runique::utils::constante::template::{ERROR_CORPS, SIMPLE_TEMPLATES};
+    use runique::utils::constants::template::{ERROR_CORPS, SIMPLE_TEMPLATES};
     let mut tera = tera::Tera::default();
     tera.autoescape_on(vec!["html", "xml"]);
     runique::context::tera::static_tera::register_asset_filters(

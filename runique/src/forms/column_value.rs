@@ -2,7 +2,7 @@
 //! for every field type, the same `admin_from_form` makes from the model.
 use crate::forms::base::FieldConfig;
 use crate::forms::fields::{decode_binary, parse_datetime_local, parse_utc_datetime};
-use crate::utils::trad::t;
+use crate::utils::translation::t;
 use sea_orm::Value;
 use sea_orm::sea_query::ColumnType;
 

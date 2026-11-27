@@ -48,7 +48,7 @@ impl<T, E: std::fmt::Debug> TraceResult<T> for Result<T, E> {
             Err(e) => {
                 if let Some(level) = level {
                     let loc = std::panic::Location::caller();
-                    crate::runique_log!(level, error = ?e, at = %loc, "{}", crate::utils::trad::t(ctx));
+                    crate::runique_log!(level, error = ?e, at = %loc, "{}", crate::utils::translation::t(ctx));
                 }
                 None
             }
@@ -61,7 +61,7 @@ impl<T, E: std::fmt::Debug> TraceResult<T> for Result<T, E> {
             Ok(v) => Some(v),
             Err(e) => {
                 let loc = std::panic::Location::caller();
-                crate::runique_log!(level.unwrap_or(default), error = ?e, at = %loc, "{}", crate::utils::trad::t(ctx));
+                crate::runique_log!(level.unwrap_or(default), error = ?e, at = %loc, "{}", crate::utils::translation::t(ctx));
                 None
             }
         }
@@ -77,7 +77,7 @@ impl<T, E: std::fmt::Debug> TraceResult<T> for Result<T, E> {
             Err(e) => {
                 if let Some(level) = level {
                     let loc = std::panic::Location::caller();
-                    crate::runique_log!(level, error = ?e, at = %loc, "{}", crate::utils::trad::t(ctx));
+                    crate::runique_log!(level, error = ?e, at = %loc, "{}", crate::utils::translation::t(ctx));
                 }
                 T::default()
             }

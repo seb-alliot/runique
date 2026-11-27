@@ -5,12 +5,12 @@ use crate::admin::router::account::reset_password::{AccountLink, send_account_li
 use crate::admin::router::admin_router::AdminState;
 use crate::admin::router::context::{CreateContext, FormTexts, ResourceRef, put};
 use crate::admin::router::{chrome, failure, unknown_resource};
-use crate::admin::trad::insert_admin_messages;
+use crate::admin::translation::insert_admin_messages;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::user::BuiltinUserEntity;
 use crate::context::template::Request;
 use crate::utils::aliases::AppResult;
-use crate::utils::trad::t;
+use crate::utils::translation::t;
 use axum::Extension;
 use axum::extract::Path;
 use axum::response::{IntoResponse, Redirect, Response};

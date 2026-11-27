@@ -3,7 +3,7 @@
 //! developer's `save_as` alike.
 use crate::utils::{
     aliases::StrMap,
-    constante::session_key::session::{CSRF_TOKEN_KEY, FORM_NAME_KEY},
+    constants::session_key::session::{CSRF_TOKEN_KEY, FORM_NAME_KEY},
     pk::Pk,
 };
 use sea_orm::{ActiveValue::Set, entity::prelude::*};
@@ -165,7 +165,7 @@ mod tests {
     use super::diff_fields;
     use crate::utils::{
         aliases::StrMap,
-        constante::session_key::session::{CSRF_TOKEN_KEY, FORM_NAME_KEY},
+        constants::session_key::session::{CSRF_TOKEN_KEY, FORM_NAME_KEY},
     };
     use serde_json::json;
 

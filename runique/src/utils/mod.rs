@@ -2,7 +2,7 @@
 pub mod acme;
 pub mod aliases;
 pub mod config;
-pub mod constante;
+pub mod constants;
 pub mod crypto;
 pub mod forms;
 pub mod init_error;
@@ -12,12 +12,12 @@ pub use runique_atomic::private_file;
 pub mod reset_token;
 pub mod resolve_ogimage;
 
-pub mod trad;
+pub mod translation;
 
 pub use aliases::*;
 pub use config::runique_log;
 pub use config::*;
-pub use constante::*;
+pub use constants::*;
 pub use crypto::*;
 pub use env::{is_debug, is_dev};
 pub use forms::*;

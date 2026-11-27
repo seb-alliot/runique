@@ -3,7 +3,7 @@
 //! A declaration set can include admin views, which are separated from public
 //! routes and mounted inside the admin boundary during `build()`.
 
-pub use crate::macros::routeur::register_url::{
+pub use crate::macros::router::register_url::{
     add_urls, register_name_url, register_pending, reverse, reverse_with_parameters,
 };
 
@@ -79,7 +79,7 @@ macro_rules! urlpatterns {
     };
 
     ($($routes:tt)*) => {{
-        let mut __runique_routes = $crate::macros::routeur::Routes::new();
+        let mut __runique_routes = $crate::macros::router::Routes::new();
         $crate::urlpatterns!(@parse __runique_routes; $($routes)*);
         __runique_routes
     }};

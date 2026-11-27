@@ -149,7 +149,7 @@ pub(crate) mod fixtures {
         CurrentUser {
             id,
             username: "staff".into(),
-            rang: crate::auth::permissions::rang::Rang::Lambda,
+            rang: crate::auth::permissions::rank::Rang::Lambda,
             groupes: vec![Groupe {
                 id: 0,
                 nom: "g".into(),
@@ -174,13 +174,13 @@ pub(crate) mod fixtures {
     /// "g" answered for by `responsable`.
     #[cfg(feature = "admin")]
     pub(crate) async fn groups_db(responsable: Pk) -> ADb {
-        use crate::auth::permissions::{groupe, groupes_droits, users_groupes};
+        use crate::auth::permissions::{group, group_rights, user_groups};
         let db = db().await;
         let schema = Schema::new(sea_orm::DatabaseBackend::Sqlite);
         for table in [
-            schema.create_table_from_entity(groupe::Entity),
-            schema.create_table_from_entity(groupes_droits::Entity),
-            schema.create_table_from_entity(users_groupes::Entity),
+            schema.create_table_from_entity(group::Entity),
+            schema.create_table_from_entity(group_rights::Entity),
+            schema.create_table_from_entity(user_groups::Entity),
         ] {
             db.execute(&table).await.unwrap();
         }
@@ -190,7 +190,7 @@ pub(crate) mod fixtures {
             .exec(&db)
             .await
             .unwrap();
-        groupe::ActiveModel {
+        group::ActiveModel {
             id: Set(1),
             nom: Set("g".into()),
             is_staff: Set(true),
@@ -206,7 +206,7 @@ pub(crate) mod fixtures {
 
     /// Account `pk(n)` as signed in with rank `rang`, no group of its own.
     #[cfg(feature = "admin")]
-    pub(crate) fn as_rank(n: u8, rang: crate::auth::permissions::rang::Rang) -> CurrentUser {
+    pub(crate) fn as_rank(n: u8, rang: crate::auth::permissions::rank::Rang) -> CurrentUser {
         CurrentUser {
             id: pk(n),
             username: format!("u{n}"),

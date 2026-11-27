@@ -138,15 +138,15 @@ SeaORM Select<E>  →  SQL  →  base
 
 | Fichier | Rôle |
 |---|---|
-| `runique/src/macros/bdd/objects.rs` | `Objects<E>` : le point d'entrée |
-| `runique/src/macros/bdd/query.rs` | `RuniqueQueryBuilder<E>` : la requête qu'on construit |
-| `runique/src/macros/bdd/impl_objects.rs` | `impl_objects!` : ajoute `objects` à une entité |
-| `runique/src/macros/bdd/filter.rs` | `search!` et ses opérateurs |
+| `runique/src/macros/database/objects.rs` | `Objects<E>` : le point d'entrée |
+| `runique/src/macros/database/query.rs` | `RuniqueQueryBuilder<E>` : la requête qu'on construit |
+| `runique/src/macros/database/impl_objects.rs` | `impl_objects!` : ajoute `objects` à une entité |
+| `runique/src/macros/database/filter.rs` | `search!` et ses opérateurs |
 
 ## 4. Le gestionnaire : `Objects<E>`
 
 ```rust
-// runique/src/macros/bdd/objects.rs (extrait)
+// runique/src/macros/database/objects.rs (extrait)
 pub struct Objects<E: EntityTrait> {
     _phantom: PhantomData<E>,
 }
@@ -213,14 +213,14 @@ impl<E: EntityTrait> Copy for Objects<E> {}
 ## 5. La macro `impl_objects!`
 
 ```rust
-// runique/src/macros/bdd/impl_objects.rs
+// runique/src/macros/database/impl_objects.rs
 #[macro_export]
 macro_rules! impl_objects {
     ($entity:ty) => {
         impl $entity {
             #[allow(non_upper_case_globals)]
-            pub const objects: $crate::macros::bdd::objects::Objects<Self> =
-                $crate::macros::bdd::objects::Objects::new();
+            pub const objects: $crate::macros::database::objects::Objects<Self> =
+                $crate::macros::database::objects::Objects::new();
         }
     };
 }
@@ -244,7 +244,7 @@ runique::impl_objects!(Entity);
 ### 6.1 La structure
 
 ```rust
-// runique/src/macros/bdd/query.rs (extrait)
+// runique/src/macros/database/query.rs (extrait)
 pub struct RuniqueQueryBuilder<E: EntityTrait> {
     query: Select<E>,                // la requête SeaORM sous-jacente
 }
@@ -372,7 +372,7 @@ let u = users::Entity::objects
 ### `first` ou `one`
 
 ```rust
-// runique/src/macros/bdd/query.rs (extrait)
+// runique/src/macros/database/query.rs (extrait)
 pub async fn one(self, db: &ADb) -> Result<Option<E::Model>, DbErr> {
     let mut results = self.query.paginate(db, 2).fetch_page(0).await?;   // au plus 2 lignes
     match results.len() {

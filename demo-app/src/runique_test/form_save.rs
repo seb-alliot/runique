@@ -4,7 +4,7 @@
 use crate::entities::blog::{
     ActiveModel as BlogActiveModel, Column as BlogColumn, Entity as BlogEntity,
 };
-use crate::formulaire::BlogForm;
+use crate::forms::BlogForm;
 use runique::config::app::RuniqueConfig;
 use runique::context::template::Request;
 use runique::engine::RuniqueEngine;
@@ -15,7 +15,7 @@ use runique::prelude::*;
 use runique::runique_test::{TestFailure, runique_test};
 use runique::tower_sessions::{MemoryStore, Session};
 use runique::utils::aliases::StrMap;
-use runique::utils::constante::session_key::session::FORM_NAME_KEY;
+use runique::utils::constants::session_key::session::FORM_NAME_KEY;
 use runique::utils::crypto::csrf::CsrfToken;
 use sea_orm::{ColumnTrait, DbErr, PaginatorTrait, QueryFilter};
 use std::sync::Arc;

@@ -98,12 +98,12 @@ impl StaticStaging {
                     report.add(
                         crate::app::error_build::CheckError::new(
                             label,
-                            crate::utils::trad::tf(
+                            crate::utils::translation::tf(
                                 runique_i18n::keys::build::error::CACHE_CONTROL_INVALID,
                                 &[&value],
                             ),
                         )
-                        .with_suggestion(crate::utils::trad::t(
+                        .with_suggestion(crate::utils::translation::t(
                             runique_i18n::keys::build::hint::CACHE_CONTROL_INVALID,
                         )),
                     );
@@ -118,12 +118,12 @@ impl StaticStaging {
                 report.add(
                     crate::app::error_build::CheckError::new(
                         "MediaRoot",
-                        crate::utils::trad::tf(
+                        crate::utils::translation::tf(
                             runique_i18n::keys::build::error::MEDIA_ROOT_UNUSABLE,
                             &[media_root.to_string(), e.to_string()],
                         ),
                     )
-                    .with_suggestion(crate::utils::trad::t(
+                    .with_suggestion(crate::utils::translation::t(
                         runique_i18n::keys::build::hint::MEDIA_ROOT_UNUSABLE,
                     )),
                 );

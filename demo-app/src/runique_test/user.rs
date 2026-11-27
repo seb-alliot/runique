@@ -1,5 +1,5 @@
 use crate::backend::auth::find_user_by_username;
-use crate::formulaire::RegisterForm;
+use crate::forms::RegisterForm;
 use runique::prelude::runique_users::ActiveModel as UserActiveModel;
 use runique::prelude::*;
 use runique::runique_test::{TestFailure, runique_test};

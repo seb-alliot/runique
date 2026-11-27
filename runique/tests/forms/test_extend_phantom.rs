@@ -184,15 +184,15 @@ fn an_extended_account_table_keeps_the_accounts_rules() {
     assert_eq!(<groups::Entity as ModelMeta>::KEY, "groupes");
     assert_eq!(
         <users::Entity as ModelMeta>::KEY,
-        runique::utils::constante::resource_key::USERS
+        runique::utils::constants::resource_key::USERS
     );
     assert_eq!(
         <groups::Entity as ModelMeta>::KEY,
-        runique::utils::constante::resource_key::GROUPES
+        runique::utils::constants::resource_key::GROUPES
     );
     assert_eq!(
         <groups::Entity as ModelMeta>::KEY,
-        runique::utils::constante::resource_key::GROUPES
+        runique::utils::constants::resource_key::GROUPES
     );
 
     const { assert!(<groups::Entity as ModelMeta>::IS_FRAMEWORK_TABLE) };

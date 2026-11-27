@@ -209,7 +209,7 @@ tests/
 ├── db/                       # SQLite, Postgres, MySQL config tests
 ├── errors/                   # error rendering
 ├── flash/                    # flash manager
-├── formulaire/               # all form tests (aegis, fields, prisme, validator, renderer…)
+├── forms/               # all form tests (aegis, fields, prisme, validator, renderer…)
 ├── macros/                   # context helper, register URL
 ├── middleware/               # CSRF, CSP, hosts, rate limit, login guard, session, auth
 ├── migration/                # column, diff, foreign key, generators, parser, schema, list fields, belongs_to…
@@ -235,7 +235,7 @@ demo-app/src/
 ├── admin.rs                  # ModelAdmin + AdminSite registration
 ├── demo_toggle.rs            # Feature toggle helpers
 ├── entities/                 # SeaORM models (30+ entities)
-├── formulaire/               # Form structs (RuniqueForm impls)
+├── forms/               # Form structs (RuniqueForm impls)
 ├── backend/                  # Domain handlers (auth, blog, doc, pages…)
 │   └── seeds/                # DB seed functions (demo, doc, cour, ia)
 └── (migration/ at demo-app/migration/)
@@ -255,7 +255,7 @@ docs/
 │   ├── env/
 │   ├── exemple/
 │   ├── flash/
-│   ├── formulaire/
+│   ├── forms/
 │   ├── middleware/
 │   ├── model/
 │   ├── orm/
@@ -278,7 +278,7 @@ docs/
 
 ### Adding a feature to demo-app
 1. Entity: `demo-app/src/entities/`
-2. Form: `demo-app/src/formulaire/`
+2. Form: `demo-app/src/forms/`
 3. Handler: `demo-app/src/backend/`
 4. Route: `demo-app/src/url.rs`
 5. Admin: `demo-app/src/admin.rs`

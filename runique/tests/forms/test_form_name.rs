@@ -16,7 +16,7 @@ use runique::forms::{
 };
 use runique::prelude::ValidationForm;
 use runique::utils::aliases::new_registry;
-use runique::utils::constante::session_key::session::{CSRF_TOKEN_KEY, FORM_NAME_KEY};
+use runique::utils::constants::session_key::session::{CSRF_TOKEN_KEY, FORM_NAME_KEY};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;

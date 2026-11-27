@@ -8,19 +8,19 @@ use crate::admin::builder::site::AdminSite;
 use crate::admin::router::admin_router::AdminState;
 use crate::admin::router::context::{ResourceRef, TransferContext, TransferLine, put};
 use crate::admin::router::{chrome, failure, unknown_resource};
-use crate::admin::trad::insert_admin_messages;
+use crate::admin::translation::insert_admin_messages;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::gate::Refusal;
 use crate::auth::gate::refusal::RefusalReason;
 use crate::auth::gate::transfer::{Transfer, plan, transfer_group};
-use crate::auth::permissions::groupe;
+use crate::auth::permissions::group;
 use crate::context::template::Request;
 use crate::forms::validation_form::ValidationForm;
 use crate::utils::aliases::{AppResult, StrMap};
-use crate::utils::constante::admin_key::admin_form;
-use crate::utils::constante::resource_key;
+use crate::utils::constants::admin_key::admin_form;
+use crate::utils::constants::resource_key;
 use crate::utils::pk::Pk;
-use crate::utils::trad::t;
+use crate::utils::translation::t;
 use axum::Extension;
 use axum::extract::{Path, Query};
 use axum::response::{IntoResponse, Redirect, Response};
@@ -96,7 +96,7 @@ pub(crate) async fn transfer_view(
     let here = paths.transfer_of(model.key(), &id);
 
     if req.method == axum::http::Method::POST {
-        let form = req.form::<ConfirmForm<groupe::Entity>>(admin_form::TRANSFER);
+        let form = req.form::<ConfirmForm<group::Entity>>(admin_form::TRANSFER);
         let field = |name: &str| req.prisme.data.get(name).cloned().unwrap_or_default();
         let (to, shown) = (field(TO), field(SHOWN));
         let outcome = match ValidationForm::try_form(form, &req).await {

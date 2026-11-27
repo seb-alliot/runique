@@ -1,6 +1,6 @@
 //! What each `runique_test` run gives back: its result, the SQL it ran, and
 //! how that gets printed.
-use crate::utils::trad::Lang;
+use crate::utils::translation::Lang;
 use std::borrow::Cow;
 use std::fmt;
 use std::io::IsTerminal;
@@ -237,7 +237,7 @@ mod tests {
     fn messages_are_translated_with_their_arguments() {
         use super::{Issue, TestFailure, msg, msgf};
         let key = runique_i18n::keys::runique_test::error::TRANSACTION_ENDED;
-        let lang = crate::utils::trad::Lang::from_env().unwrap_or_default();
+        let lang = crate::utils::translation::Lang::from_env().unwrap_or_default();
         assert_eq!(msg(key), lang.get(key));
         assert_ne!(msg(key), key);
         assert_eq!(Issue::TransactionEnded.to_string(), msg(key));

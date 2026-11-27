@@ -265,9 +265,11 @@ impl AdminStaging {
             report.add(
                 CheckError::new(
                     "AdminPanel",
-                    crate::utils::trad::t(runique_i18n::keys::build::error::ADMIN_PREFIX_EMPTY),
+                    crate::utils::translation::t(
+                        runique_i18n::keys::build::error::ADMIN_PREFIX_EMPTY,
+                    ),
                 )
-                .with_suggestion(crate::utils::trad::t(
+                .with_suggestion(crate::utils::translation::t(
                     runique_i18n::keys::build::hint::ADMIN_PREFIX_EMPTY,
                 )),
             );
@@ -402,7 +404,7 @@ impl AdminStaging {
                 robots_txt = self.robots_txt,
                 sitemap = ?self.sitemap_url,
                 "{}",
-                crate::utils::trad::t(runique_i18n::keys::admin::log::BOOT_ADMIN)
+                crate::utils::translation::t(runique_i18n::keys::admin::log::BOOT_ADMIN)
             );
             for model in self.site.models() {
                 let summary = model.boot_summary();
@@ -414,7 +416,7 @@ impl AdminStaging {
                     filters = summary.filters,
                     actions = summary.actions,
                     form_fields = summary.form_fields,
-                    "{}", crate::utils::trad::t(runique_i18n::keys::admin::log::BOOT_MODEL)
+                    "{}", crate::utils::translation::t(runique_i18n::keys::admin::log::BOOT_MODEL)
                 );
             }
             for route in &self.declared_routes {
@@ -424,7 +426,7 @@ impl AdminStaging {
                     name = %route.name,
                     model = %route.model_key,
                     overrides = ?route.overrides,
-                    "{}", crate::utils::trad::t(runique_i18n::keys::admin::log::BOOT_ROUTE)
+                    "{}", crate::utils::translation::t(runique_i18n::keys::admin::log::BOOT_ROUTE)
                 );
             }
         }
@@ -434,7 +436,7 @@ impl AdminStaging {
             crate::runique_log!(
                 warn,
                 "{}",
-                crate::utils::trad::t(runique_i18n::keys::admin::log::BOOT_NO_GUARD)
+                crate::utils::translation::t(runique_i18n::keys::admin::log::BOOT_NO_GUARD)
             );
         }
         for model in self.site.project_models() {
@@ -444,7 +446,7 @@ impl AdminStaging {
                     warn,
                     key = model.key(),
                     options = %without_effect.join(", "),
-                    "{}", crate::utils::trad::t(runique_i18n::keys::admin::log::BOOT_OPTIONS_WITHOUT_EFFECT)
+                    "{}", crate::utils::translation::t(runique_i18n::keys::admin::log::BOOT_OPTIONS_WITHOUT_EFFECT)
                 );
             }
         }

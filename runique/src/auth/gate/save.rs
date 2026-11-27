@@ -12,15 +12,15 @@ use super::write;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::history::{ActionLog, log_action, redact_sensitive};
 use crate::auth::meta::ModelMeta;
-use crate::auth::permissions::groupe;
-use crate::auth::permissions::rang::Rang;
+use crate::auth::permissions::group;
+use crate::auth::permissions::rank::Rang;
 use crate::auth::permissions::rights::ColumnRights;
 use crate::auth::user;
 use crate::forms::form::{Forms, SaveComportement, write_replacing_uploads, write_with_uploads};
 use crate::forms::save::{SaveAction, on_fields, url_key};
 use crate::utils::aliases::ADb;
 use crate::utils::pk::Pk;
-use crate::utils::trad::t;
+use crate::utils::translation::t;
 use sea_orm::sea_query::sea_value_to_json_value;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IdenStatic,
@@ -46,9 +46,9 @@ where
 {
     use sea_orm::sea_query::Expr;
     use sea_orm::{QueryOrder, QuerySelect};
-    let groups = groupe::Entity::find()
-        .filter(groupe::Column::ResponsableId.is_in(ids))
-        .order_by_asc(groupe::Column::Id)
+    let groups = group::Entity::find()
+        .filter(group::Column::ResponsableId.is_in(ids))
+        .order_by_asc(group::Column::Id)
         .all(db)
         .await?;
     if groups.is_empty() {
@@ -66,10 +66,10 @@ where
         .await?
         .into_iter()
         .collect();
-    groupe::Entity::update_many()
-        .col_expr(groupe::Column::ResponsableId, Expr::value(actor.id))
-        .col_expr(groupe::Column::ReprisPar, Expr::value(Some(actor.id)))
-        .filter(groupe::Column::Id.is_in(groups.iter().map(|g| g.id)))
+    group::Entity::update_many()
+        .col_expr(group::Column::ResponsableId, Expr::value(actor.id))
+        .col_expr(group::Column::ReprisPar, Expr::value(Some(actor.id)))
+        .filter(group::Column::Id.is_in(groups.iter().map(|g| g.id)))
         .exec(db)
         .await?;
     let batch = uuid::Uuid::new_v4().to_string();
@@ -86,7 +86,7 @@ where
             ActionLog {
                 user_id: actor.id,
                 username: &actor.username,
-                resource_key: crate::utils::constante::resource_key::GROUPES,
+                resource_key: crate::utils::constants::resource_key::GROUPES,
                 object_pk: &group.id.to_string(),
                 object_repr: &group.nom,
                 action: "transfer",
@@ -545,7 +545,7 @@ mod tests {
     use crate::auth::current_user::CurrentUser;
     use crate::auth::gate::test_support::fixtures::{db, note, pk, staff};
     use crate::auth::permissions::ColumnRight;
-    use crate::auth::permissions::rang::Rang;
+    use crate::auth::permissions::rank::Rang;
     #[cfg(not(feature = "pk-uuid"))]
     use crate::forms::fields::NumericField;
     use crate::forms::fields::TextField;
@@ -1920,14 +1920,14 @@ mod tests {
     /// The fixtures, with the delegate (33) answering for one group.
     #[cfg(feature = "admin")]
     async fn with_a_responsable() -> (ADb, CurrentUser) {
-        use crate::auth::permissions::groupe;
+        use crate::auth::permissions::group;
         use sea_orm::{ActiveValue::Set, Schema};
         let db = db().await;
         let schema = Schema::new(sea_orm::DatabaseBackend::Sqlite);
-        db.execute(&schema.create_table_from_entity(groupe::Entity))
+        db.execute(&schema.create_table_from_entity(group::Entity))
             .await
             .unwrap();
-        groupe::ActiveModel {
+        group::ActiveModel {
             id: Set(1),
             nom: Set("g".into()),
             is_staff: Set(true),
@@ -1953,8 +1953,8 @@ mod tests {
     }
 
     #[cfg(feature = "admin")]
-    async fn group_one(db: &ADb) -> crate::auth::permissions::groupe::Model {
-        crate::auth::permissions::groupe::Entity::find_by_id(1)
+    async fn group_one(db: &ADb) -> crate::auth::permissions::group::Model {
+        crate::auth::permissions::group::Entity::find_by_id(1)
             .one(db)
             .await
             .unwrap()
@@ -2034,9 +2034,9 @@ mod tests {
     async fn an_admin_takes_no_group_back() {
         use crate::auth::user::{Column, Entity};
         let (db, _) = with_a_responsable().await;
-        crate::auth::permissions::groupe::Entity::update_many()
+        crate::auth::permissions::group::Entity::update_many()
             .col_expr(
-                crate::auth::permissions::groupe::Column::ResponsableId,
+                crate::auth::permissions::group::Column::ResponsableId,
                 sea_orm::sea_query::Expr::value(pk(31)),
             )
             .exec(&db)

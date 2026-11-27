@@ -145,7 +145,7 @@ pub(crate) async fn history_view(
         "",
         crate::admin::template::Page::History,
     );
-    crate::admin::trad::insert_admin_messages(&mut req.context, "history");
+    crate::admin::translation::insert_admin_messages(&mut req.context, "history");
     put(
         &mut req,
         &HistoryContext {
@@ -199,7 +199,7 @@ pub(crate) async fn history_entry_view(
         "",
         crate::admin::template::Page::HistoryDiff,
     );
-    crate::admin::trad::insert_admin_messages(&mut req.context, "history");
+    crate::admin::translation::insert_admin_messages(&mut req.context, "history");
     put(
         &mut req,
         &HistoryEntryContext {

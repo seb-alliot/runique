@@ -21,7 +21,7 @@ use crate::context::template::Request;
 use crate::forms::field::FormAccess;
 use crate::forms::validation_form::ValidationForm;
 use crate::utils::aliases::ADb;
-use crate::utils::constante::admin_key::admin_form;
+use crate::utils::constants::admin_key::admin_form;
 use sea_orm::{
     sea_query::SelectStatement,
     {DbErr, IdenStatic, Iterable, PrimaryKeyToColumn},
@@ -477,7 +477,7 @@ where
         };
         if ids.is_empty() {
             return Ok(BulkOutcome::Refused(
-                crate::utils::trad::t(runique_i18n::keys::admin::bulk::error::NO_SELECTION)
+                crate::utils::translation::t(runique_i18n::keys::admin::bulk::error::NO_SELECTION)
                     .into_owned(),
             ));
         }
@@ -501,7 +501,7 @@ where
         match bulk_as::<E>(user, &ids, &change, &req.engine.db).await {
             Ok(count) => {
                 if let Some(level) = level {
-                    crate::runique_log!(level, resource = E::KEY, action = %action, rows = count, "{}", crate::utils::trad::t(runique_i18n::keys::admin::log::BULK_DONE));
+                    crate::runique_log!(level, resource = E::KEY, action = %action, rows = count, "{}", crate::utils::translation::t(runique_i18n::keys::admin::log::BULK_DONE));
                 }
                 Ok(match change {
                     BulkChange::Delete => BulkOutcome::Deleted(count),
@@ -510,7 +510,7 @@ where
             }
             Err(sea_orm::DbErr::Custom(message)) => {
                 if let Some(level) = level {
-                    crate::runique_log!(level, resource = E::KEY, action = %action, "{}", crate::utils::trad::t(runique_i18n::keys::admin::log::BULK_REFUSED));
+                    crate::runique_log!(level, resource = E::KEY, action = %action, "{}", crate::utils::translation::t(runique_i18n::keys::admin::log::BULK_REFUSED));
                 }
                 Ok(BulkOutcome::Refused(message))
             }
@@ -625,9 +625,9 @@ fn log_crud(resource: &'static str, outcome: &'static str) {
         crate::runique_log!(
             level,
             resource,
-            outcome = %crate::utils::trad::t(outcome),
+            outcome = %crate::utils::translation::t(outcome),
             "{}",
-            crate::utils::trad::t(runique_i18n::keys::admin::log::WRITE)
+            crate::utils::translation::t(runique_i18n::keys::admin::log::WRITE)
         );
     }
 }

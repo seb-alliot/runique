@@ -352,7 +352,7 @@ mod tests {
 
     /// The account in `rang` with every right on `users`: from its group and
     /// on its account, so each rank finds it where it reads it.
-    fn manager(rang: crate::auth::permissions::rang::Rang) -> CurrentUser {
+    fn manager(rang: crate::auth::permissions::rank::Rang) -> CurrentUser {
         let mut user = staff(
             pk(40),
             "users",
@@ -381,7 +381,7 @@ mod tests {
 
     #[tokio::test]
     async fn an_account_without_rank_writes_no_account_but_reads_them() {
-        use crate::auth::permissions::rang::Rang;
+        use crate::auth::permissions::rank::Rang;
         let db = db().await;
         let staff = manager(Rang::Lambda);
         let ctx = GateCtx {
@@ -416,7 +416,7 @@ mod tests {
     /// `pk(32)`, the admin `pk(33)`.
     #[tokio::test]
     async fn each_rank_writes_only_strictly_lower_accounts() {
-        use crate::auth::permissions::rang::Rang;
+        use crate::auth::permissions::rank::Rang;
         let cases = [
             (Rang::Admin, [false, true, false, false]),
             (Rang::Dirigeant, [false, true, false, true]),
@@ -438,7 +438,7 @@ mod tests {
     /// Never oneself: the account's own row is of its own rank.
     #[tokio::test]
     async fn a_rank_never_writes_its_own_account() {
-        use crate::auth::permissions::rang::Rang;
+        use crate::auth::permissions::rank::Rang;
         let db = db().await;
         let mut admin = manager(Rang::Admin);
         admin.id = pk(33);
@@ -569,7 +569,7 @@ mod tests {
 
     #[tokio::test]
     async fn the_superuser_and_the_dirigeant_read_every_column() {
-        use crate::auth::permissions::rang::Rang;
+        use crate::auth::permissions::rank::Rang;
         let db = db().await;
         for rang in [Rang::Superuser, Rang::Dirigeant] {
             let mut user = staff(pk(10), "nothing", [false; 7]);
@@ -585,7 +585,7 @@ mod tests {
 
     #[tokio::test]
     async fn a_secret_column_never_counts_as_readable() {
-        use crate::auth::permissions::rang::Rang;
+        use crate::auth::permissions::rank::Rang;
         let db = db().await;
         let mut admin = staff(
             pk(40),

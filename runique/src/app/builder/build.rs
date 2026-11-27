@@ -96,7 +96,7 @@ impl<P> RuniqueAppBuilder<P> {
         if !self.config.timezone.is_empty()
             && self.config.timezone.parse::<chrono_tz::Tz>().is_err()
         {
-            return Err(BuildError::validation(crate::utils::trad::tf(
+            return Err(BuildError::validation(crate::utils::translation::tf(
                 runique_i18n::keys::build::error::TIMEZONE_UNKNOWN,
                 &[&self.config.timezone],
             )));
@@ -211,7 +211,7 @@ impl<P> RuniqueAppBuilder<P> {
         if config.debug && !config.dev {
             tracing::warn!(
                 "{}",
-                crate::utils::trad::t(runique_i18n::keys::build::log::DEBUG_IN_PROD)
+                crate::utils::translation::t(runique_i18n::keys::build::log::DEBUG_IN_PROD)
             );
         }
 
@@ -355,7 +355,7 @@ impl<P> RuniqueAppBuilder<P> {
                         crate::runique_log!(
                             level.unwrap_or(tracing::Level::WARN),
                             error = %e,
-                            "{}", crate::utils::trad::t(runique_i18n::keys::build::log::PRUNE_FAILED)
+                            "{}", crate::utils::translation::t(runique_i18n::keys::build::log::PRUNE_FAILED)
                         );
                     }
                 }
@@ -513,9 +513,9 @@ impl<P> RuniqueAppBuilder<P> {
             report.add(
                 CheckError::new(
                     "Security",
-                    crate::utils::trad::t(runique_i18n::keys::build::error::SECRET_KEY_WEAK),
+                    crate::utils::translation::t(runique_i18n::keys::build::error::SECRET_KEY_WEAK),
                 )
-                .with_suggestion(crate::utils::trad::t(
+                .with_suggestion(crate::utils::translation::t(
                     runique_i18n::keys::build::hint::SECRET_KEY_WEAK,
                 )),
             );
@@ -533,9 +533,11 @@ impl<P> RuniqueAppBuilder<P> {
             report.add(
                 CheckError::new(
                     "PublicUrl",
-                    crate::utils::trad::t(runique_i18n::keys::build::error::PUBLIC_URL_MISSING),
+                    crate::utils::translation::t(
+                        runique_i18n::keys::build::error::PUBLIC_URL_MISSING,
+                    ),
                 )
-                .with_suggestion(crate::utils::trad::t(
+                .with_suggestion(crate::utils::translation::t(
                     runique_i18n::keys::build::hint::PUBLIC_URL_MISSING,
                 )),
             );
@@ -549,9 +551,9 @@ impl<P> RuniqueAppBuilder<P> {
             report.add(
                 CheckError::new(
                     "Mailer",
-                    crate::utils::trad::t(runique_i18n::keys::build::error::MAILER_MISSING),
+                    crate::utils::translation::t(runique_i18n::keys::build::error::MAILER_MISSING),
                 )
-                .with_suggestion(crate::utils::trad::t(
+                .with_suggestion(crate::utils::translation::t(
                     runique_i18n::keys::build::hint::MAILER_MISSING,
                 )),
             );
@@ -563,11 +565,11 @@ impl<P> RuniqueAppBuilder<P> {
                 report.add(
                     CheckError::new(
                         "ACME",
-                        crate::utils::trad::t(
+                        crate::utils::translation::t(
                             runique_i18n::keys::build::error::ACME_DOMAIN_MISSING,
                         ),
                     )
-                    .with_suggestion(crate::utils::trad::t(
+                    .with_suggestion(crate::utils::translation::t(
                         runique_i18n::keys::build::hint::ACME_DOMAIN_MISSING,
                     )),
                 );
@@ -576,9 +578,11 @@ impl<P> RuniqueAppBuilder<P> {
                 report.add(
                     CheckError::new(
                         "ACME",
-                        crate::utils::trad::t(runique_i18n::keys::build::error::ACME_EMAIL_MISSING),
+                        crate::utils::translation::t(
+                            runique_i18n::keys::build::error::ACME_EMAIL_MISSING,
+                        ),
                     )
-                    .with_suggestion(crate::utils::trad::t(
+                    .with_suggestion(crate::utils::translation::t(
                         runique_i18n::keys::build::hint::ACME_EMAIL_MISSING,
                     )),
                 );
@@ -706,7 +710,7 @@ impl<P> RuniqueAppBuilder<P> {
 /// read as translations stops the start; what it leaves untranslated or
 /// misspells is only said.
 fn load_project_locales(wanted: Option<&str>) -> Result<(), BuildError> {
-    use crate::utils::trad::{Lang, keys::build, load_project, project_dir, tf};
+    use crate::utils::translation::{Lang, keys::build, load_project, project_dir, tf};
     use runique_i18n::{set_default_lang, set_lang};
 
     let report = load_project(&project_dir())

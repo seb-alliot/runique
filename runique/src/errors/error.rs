@@ -12,8 +12,8 @@ use std::sync::OnceLock;
 use thiserror::Error;
 use tracing::{error, info};
 
-use crate::utils::constante::{ADMIN_TEMPLATES, ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
-use crate::utils::trad::{t, tf};
+use crate::utils::constants::{ADMIN_TEMPLATES, ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
+use crate::utils::translation::{t, tf};
 // ═══════════════════════════════════════════════════════════════
 // BUILD ERRORS (app builder redesign)
 // ═══════════════════════════════════════════════════════════════

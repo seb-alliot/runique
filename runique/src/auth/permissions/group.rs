@@ -22,7 +22,7 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     /// Memberships of this group in the `eihwaz_users_groupes` junction table.
-    #[sea_orm(has_many = "super::users_groupes::Entity")]
+    #[sea_orm(has_many = "super::user_groups::Entity")]
     UsersGroupes,
     /// The account answering for the group; can't be deleted while it does.
     #[sea_orm(
@@ -41,7 +41,7 @@ pub enum Relation {
     ReprisPar,
 }
 
-impl Related<super::users_groupes::Entity> for Entity {
+impl Related<super::user_groups::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::UsersGroupes.def()
     }

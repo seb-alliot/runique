@@ -438,7 +438,7 @@ impl MiddlewareStaging {
                 if let Some(existing) = seen.insert(entry.slot, entry.name) {
                     panic!(
                         "{}",
-                        crate::utils::trad::tf(
+                        crate::utils::translation::tf(
                             runique_i18n::keys::middleware::error::SLOT_COLLISION,
                             &[
                                 existing.to_string(),
@@ -521,7 +521,7 @@ async fn auth_middleware(
                     tracing::Level::WARN,
                     user_id = %id,
                     error = %error,
-                    "{}", crate::utils::trad::t(runique_i18n::keys::auth::log::ACCOUNT_NOT_READ)
+                    "{}", crate::utils::translation::t(runique_i18n::keys::auth::log::ACCOUNT_NOT_READ)
                 );
                 return axum::http::StatusCode::SERVICE_UNAVAILABLE.into_response();
             }
@@ -534,7 +534,7 @@ async fn auth_middleware(
             Some(user) => {
                 let current_user = CurrentUser {
                     id,
-                    rang: crate::auth::permissions::rang::Rang::from(&user),
+                    rang: crate::auth::permissions::rank::Rang::from(&user),
                     username: user.username,
                     groupes: Vec::new(),
                     droits: Vec::new(),

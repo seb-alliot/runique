@@ -5,7 +5,7 @@ use crate::forms::extractor::{csrf_required, is_csrf_exempt};
 use crate::utils::config::TraceResult;
 use crate::utils::{
     aliases::AEngine,
-    constante::{session::CSRF_TOKEN_KEY, session_key::session::SESSION_USER_ID_KEY},
+    constants::{session::CSRF_TOKEN_KEY, session_key::session::SESSION_USER_ID_KEY},
     csrf::{CsrfContext, CsrfToken},
 };
 use axum::{
@@ -221,9 +221,9 @@ pub(crate) fn log_refusal(at: &str, reason: &'static str) {
         crate::runique_log!(
             level,
             at = %at,
-            reason = %crate::utils::trad::t(reason),
+            reason = %crate::utils::translation::t(reason),
             "{}",
-            crate::utils::trad::t(runique_i18n::keys::csrf::log::REFUSED)
+            crate::utils::translation::t(runique_i18n::keys::csrf::log::REFUSED)
         );
     }
 }
@@ -247,7 +247,7 @@ pub async fn rotate_csrf_token(session: &Session) -> Result<(), tower_sessions::
         crate::runique_log!(
             level,
             "{}",
-            crate::utils::trad::t(runique_i18n::keys::csrf::log::TOKEN_DROPPED)
+            crate::utils::translation::t(runique_i18n::keys::csrf::log::TOKEN_DROPPED)
         );
     }
     session.remove_value(CSRF_TOKEN_KEY).await.map(|_| ())
@@ -279,7 +279,7 @@ async fn session_csrf_token(session: &Session, secret: &str) -> Option<CsrfToken
         crate::runique_log!(
             level,
             "{}",
-            crate::utils::trad::t(runique_i18n::keys::csrf::log::TOKEN_NEW)
+            crate::utils::translation::t(runique_i18n::keys::csrf::log::TOKEN_NEW)
         );
     }
     let token = if is_authenticated(session).await {

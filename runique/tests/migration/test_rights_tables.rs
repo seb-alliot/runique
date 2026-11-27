@@ -11,7 +11,7 @@ use runique::migrations_table::{
 };
 use runique::sea_orm::sea_query::{Alias, Expr, Query};
 use runique::sea_orm::{ConnectionTrait, DatabaseConnection, ExprTrait, TransactionTrait};
-use runique::utils::constante::resource_key::FRAMEWORK_KEYS;
+use runique::utils::constants::resource_key::FRAMEWORK_KEYS;
 use sea_orm_migration::{MigrationTrait, SchemaManager};
 use serial_test::serial;
 

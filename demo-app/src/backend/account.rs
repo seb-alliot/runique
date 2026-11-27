@@ -3,7 +3,7 @@
 //! and every session it holds is closed.
 use crate::backend::auth::get_profile_user;
 use crate::backend::lang::{localize_errors, msg};
-use crate::formulaire::DeleteAccountForm;
+use crate::forms::DeleteAccountForm;
 use runique::auth::Rang;
 use runique::prelude::runique_users::{Column as UserColumn, Entity as UserEntity};
 use runique::prelude::*;

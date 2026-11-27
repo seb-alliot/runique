@@ -7,13 +7,13 @@ use super::refusal::{Refusal, RefusalReason};
 use super::rights_grid::{describe, from_rows};
 use crate::auth::current_user::CurrentUser;
 use crate::auth::history::{ActionLog, log_action};
-use crate::auth::permissions::rang::Rang;
-use crate::auth::permissions::{group_rows_within, groupe, groupes_droits, users_groupes};
+use crate::auth::permissions::rank::Rang;
+use crate::auth::permissions::{group, group_rights, group_rows_within, user_groups};
 use crate::auth::user;
 use crate::utils::aliases::ADb;
-use crate::utils::constante::resource_key;
+use crate::utils::constants::resource_key;
 use crate::utils::pk::Pk;
-use crate::utils::trad::t;
+use crate::utils::translation::t;
 use sea_orm::sea_query::{Expr, Query};
 use sea_orm::{
     ActiveValue, ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, QueryFilter,
@@ -44,7 +44,7 @@ fn may_receive() -> Condition {
 
 /// The accounts group `group` may be handed to, by name.
 pub(crate) async fn receivers<C: ConnectionTrait>(
-    group: &groupe::Model,
+    group: &group::Model,
     db: &C,
 ) -> Result<Vec<(Pk, String)>, DbErr> {
     user::Entity::find()
@@ -64,11 +64,11 @@ pub(crate) async fn taken_by<C: ConnectionTrait>(
     ids: &[i32],
     db: &C,
 ) -> Result<std::collections::HashMap<i32, String>, DbErr> {
-    let taken: Vec<(i32, Option<Pk>)> = groupe::Entity::find()
+    let taken: Vec<(i32, Option<Pk>)> = group::Entity::find()
         .select_only()
-        .columns([groupe::Column::Id, groupe::Column::ReprisPar])
-        .filter(groupe::Column::Id.is_in(ids.iter().copied()))
-        .filter(groupe::Column::ReprisPar.is_not_null())
+        .columns([group::Column::Id, group::Column::ReprisPar])
+        .filter(group::Column::Id.is_in(ids.iter().copied()))
+        .filter(group::Column::ReprisPar.is_not_null())
         .into_tuple()
         .all(db)
         .await?;
@@ -104,7 +104,7 @@ pub(crate) struct Line {
 
 /// What handing a group over does, before anything is written.
 pub(crate) struct Plan {
-    pub group: groupe::Model,
+    pub group: group::Model,
     pub from: String,
     pub to: user::Model,
     /// The rights to keep or lose, in the grid's order; empty when the
@@ -112,16 +112,16 @@ pub(crate) struct Plan {
     pub lines: Vec<Line>,
     /// The same lines as the gate compares them: the page sends it back.
     pub losses: String,
-    rows: Vec<groupes_droits::Model>,
+    rows: Vec<group_rights::Model>,
     /// The receiver's own grid, when he is an admin.
-    grid: Option<Vec<groupes_droits::Model>>,
+    grid: Option<Vec<group_rights::Model>>,
 }
 
 /// The rows of `kept` as stored rows, for the history's description.
-fn as_rows(kept: &[groupes_droits::ActiveModel]) -> Vec<groupes_droits::Model> {
+fn as_rows(kept: &[group_rights::ActiveModel]) -> Vec<group_rights::Model> {
     let flag = |v: &ActiveValue<bool>| v.clone().take().unwrap_or(false);
     kept.iter()
-        .map(|a| groupes_droits::Model {
+        .map(|a| group_rights::Model {
             id: 0,
             groupe_id: a.groupe_id.clone().take().flatten(),
             user_id: a.user_id.clone().take().flatten(),
@@ -139,9 +139,9 @@ fn as_rows(kept: &[groupes_droits::ActiveModel]) -> Vec<groupes_droits::Model> {
 }
 
 /// `row` as a new row to insert.
-fn fresh(row: &groupes_droits::Model) -> groupes_droits::ActiveModel {
+fn fresh(row: &group_rights::Model) -> group_rights::ActiveModel {
     use sea_orm::Set;
-    groupes_droits::ActiveModel {
+    group_rights::ActiveModel {
         groupe_id: Set(row.groupe_id),
         user_id: Set(row.user_id),
         resource_key: Set(row.resource_key.clone()),
@@ -158,7 +158,7 @@ fn fresh(row: &groupes_droits::Model) -> groupes_droits::ActiveModel {
 }
 
 /// The flag of `row` a right names.
-fn flag_mut<'a>(row: &'a mut groupes_droits::Model, right: &str) -> Option<&'a mut bool> {
+fn flag_mut<'a>(row: &'a mut group_rights::Model, right: &str) -> Option<&'a mut bool> {
     Some(match right {
         "create" => &mut row.can_create,
         "read" => &mut row.can_read,
@@ -172,7 +172,7 @@ fn flag_mut<'a>(row: &'a mut groupes_droits::Model, right: &str) -> Option<&'a m
 }
 
 /// Each right `rows` grant that `kept` no longer does, in the grid's order.
-fn lines(rows: &[groupes_droits::Model], kept: &[groupes_droits::Model]) -> Vec<Line> {
+fn lines(rows: &[group_rights::Model], kept: &[group_rights::Model]) -> Vec<Line> {
     const TABLE: [&str; 7] = [
         "create",
         "read",
@@ -183,7 +183,7 @@ fn lines(rows: &[groupes_droits::Model], kept: &[groupes_droits::Model]) -> Vec<
         "delete_own",
     ];
     const COLUMN: [&str; 3] = ["read", "create", "update"];
-    let mut sorted: Vec<&groupes_droits::Model> = rows.iter().collect();
+    let mut sorted: Vec<&group_rights::Model> = rows.iter().collect();
     sorted.sort_by(|a, b| (&a.resource_key, &a.colonne).cmp(&(&b.resource_key, &b.colonne)));
     let mut out = Vec::new();
     for row in sorted {
@@ -224,7 +224,7 @@ fn shown_of(lines: &[Line]) -> String {
 }
 
 /// `grid`, the receiver's, with the rights of `keep` added.
-fn widened(grid: &[groupes_droits::Model], to: Pk, keep: &[Line]) -> Vec<groupes_droits::Model> {
+fn widened(grid: &[group_rights::Model], to: Pk, keep: &[Line]) -> Vec<group_rights::Model> {
     let mut grid = grid.to_vec();
     for line in keep {
         let at = match grid
@@ -233,7 +233,7 @@ fn widened(grid: &[groupes_droits::Model], to: Pk, keep: &[Line]) -> Vec<groupes
         {
             Some(at) => at,
             None => {
-                grid.push(groupes_droits::Model {
+                grid.push(group_rights::Model {
                     id: 0,
                     groupe_id: None,
                     user_id: Some(to),
@@ -271,7 +271,7 @@ pub(crate) async fn plan<C: ConnectionTrait>(
     if actor.rang < Rang::Dirigeant {
         return Err(refused(RefusalReason::RankTooLow));
     }
-    let Some(group) = groupe::Entity::find_by_id(groupe_id).one(db).await? else {
+    let Some(group) = group::Entity::find_by_id(groupe_id).one(db).await? else {
         return Err(refused(RefusalReason::NotFound));
     };
     if to == group.responsable_id {
@@ -289,8 +289,8 @@ pub(crate) async fn plan<C: ConnectionTrait>(
         .await?
         .map(|u| u.username)
         .unwrap_or_default();
-    let rows = groupes_droits::Entity::find()
-        .filter(groupes_droits::Column::GroupeId.eq(groupe_id))
+    let rows = group_rights::Entity::find()
+        .filter(group_rights::Column::GroupeId.eq(groupe_id))
         .all(db)
         .await?;
     if Rang::from(&receiver) != Rang::Admin {
@@ -306,10 +306,10 @@ pub(crate) async fn plan<C: ConnectionTrait>(
         });
     }
 
-    let members: Vec<Pk> = users_groupes::Entity::find()
+    let members: Vec<Pk> = user_groups::Entity::find()
         .select_only()
-        .column(users_groupes::Column::UserId)
-        .filter(users_groupes::Column::GroupeId.eq(groupe_id))
+        .column(user_groups::Column::UserId)
+        .filter(user_groups::Column::GroupeId.eq(groupe_id))
         .into_tuple()
         .all(db)
         .await?;
@@ -329,8 +329,8 @@ pub(crate) async fn plan<C: ConnectionTrait>(
             t(runique_i18n::keys::admin::transfer::error::RANKED_MEMBERS).into_owned(),
         ));
     }
-    let grid = groupes_droits::Entity::find()
-        .filter(groupes_droits::Column::UserId.eq(to))
+    let grid = group_rights::Entity::find()
+        .filter(group_rights::Column::UserId.eq(to))
         .all(db)
         .await?;
     let kept = as_rows(&group_rows_within(groupe_id, rows.clone(), &grid));
@@ -390,11 +390,11 @@ pub(crate) async fn transfer_group(
         .from(user::Entity)
         .cond_where(may_receive().add(user::Column::Id.eq(to)))
         .to_owned();
-    let written = groupe::Entity::update_many()
-        .col_expr(groupe::Column::ResponsableId, Expr::value(to))
-        .col_expr(groupe::Column::ReprisPar, Expr::value(Option::<Pk>::None))
-        .filter(groupe::Column::Id.eq(groupe_id))
-        .filter(groupe::Column::ResponsableId.eq(plan.group.responsable_id))
+    let written = group::Entity::update_many()
+        .col_expr(group::Column::ResponsableId, Expr::value(to))
+        .col_expr(group::Column::ReprisPar, Expr::value(Option::<Pk>::None))
+        .filter(group::Column::Id.eq(groupe_id))
+        .filter(group::Column::ResponsableId.eq(plan.group.responsable_id))
         .filter(Expr::exists(qualifies))
         .exec(&txn)
         .await?;
@@ -408,11 +408,11 @@ pub(crate) async fn transfer_group(
     if let Some(grid) = plan.grid {
         let grid_after = widened(&grid, to, &keep);
         if !keep.is_empty() {
-            groupes_droits::Entity::delete_many()
-                .filter(groupes_droits::Column::UserId.eq(to))
+            group_rights::Entity::delete_many()
+                .filter(group_rights::Column::UserId.eq(to))
                 .exec(&txn)
                 .await?;
-            groupes_droits::Entity::insert_many(grid_after.iter().map(fresh))
+            group_rights::Entity::insert_many(grid_after.iter().map(fresh))
                 .exec(&txn)
                 .await?;
             let rights = serde_json::json!({
@@ -439,12 +439,12 @@ pub(crate) async fn transfer_group(
         let kept = group_rows_within(groupe_id, plan.rows.clone(), &grid_after);
         let before = describe(&from_rows(&plan.rows));
         let after = describe(&from_rows(&as_rows(&kept)));
-        groupes_droits::Entity::delete_many()
-            .filter(groupes_droits::Column::GroupeId.eq(groupe_id))
+        group_rights::Entity::delete_many()
+            .filter(group_rights::Column::GroupeId.eq(groupe_id))
             .exec(&txn)
             .await?;
         if !kept.is_empty() {
-            groupes_droits::Entity::insert_many(kept).exec(&txn).await?;
+            group_rights::Entity::insert_many(kept).exec(&txn).await?;
         }
         if after != before {
             summary["droits"] = serde_json::json!({ "old": before, "new": after });
@@ -484,7 +484,7 @@ mod tests {
         colonne: &str,
         f: [bool; 7],
     ) {
-        groupes_droits::ActiveModel {
+        group_rights::ActiveModel {
             groupe_id: Set(group),
             user_id: Set(user),
             resource_key: Set(key.into()),
@@ -525,17 +525,17 @@ mod tests {
         db
     }
 
-    async fn rows_of(db: &ADb, group: Option<i32>, user: Option<Pk>) -> Vec<groupes_droits::Model> {
-        let mut q = groupes_droits::Entity::find();
+    async fn rows_of(db: &ADb, group: Option<i32>, user: Option<Pk>) -> Vec<group_rights::Model> {
+        let mut q = group_rights::Entity::find();
         q = match (group, user) {
-            (Some(g), _) => q.filter(groupes_droits::Column::GroupeId.eq(g)),
-            (_, Some(u)) => q.filter(groupes_droits::Column::UserId.eq(u)),
+            (Some(g), _) => q.filter(group_rights::Column::GroupeId.eq(g)),
+            (_, Some(u)) => q.filter(group_rights::Column::UserId.eq(u)),
             _ => q,
         };
         q.all(db).await.unwrap()
     }
 
-    fn rights(rows: &[groupes_droits::Model], key: &str, colonne: &str) -> Vec<&'static str> {
+    fn rights(rows: &[group_rights::Model], key: &str, colonne: &str) -> Vec<&'static str> {
         let Some(r) = rows
             .iter()
             .find(|r| r.resource_key == key && r.colonne == colonne)
@@ -557,7 +557,7 @@ mod tests {
     }
 
     async fn responsable(db: &ADb) -> Pk {
-        groupe::Entity::find_by_id(1)
+        group::Entity::find_by_id(1)
             .one(db)
             .await
             .unwrap()

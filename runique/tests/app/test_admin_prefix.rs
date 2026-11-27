@@ -382,7 +382,8 @@ async fn the_login_page_links_back_to_the_site() {
     );
     assert!(!page.contains(r#"class="login-back" href="/secret"#));
     let label =
-        runique::utils::trad::t(runique_i18n::keys::admin::login::label::BACK_TO_SITE).into_owned();
+        runique::utils::translation::t(runique_i18n::keys::admin::login::label::BACK_TO_SITE)
+            .into_owned();
     assert!(!label.is_empty() && label != runique_i18n::keys::admin::login::label::BACK_TO_SITE);
     assert!(page.contains(&label), "{page}");
 }

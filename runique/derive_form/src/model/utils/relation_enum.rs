@@ -6,14 +6,14 @@ use runique_dsl::snake_case;
 /// Tables provided by the framework — their SeaORM entities are in `runique`, not in `super::`.
 const FRAMEWORK_TABLES: &[(&str, &str)] = &[
     ("eihwaz_users", "::runique::auth::user"),
-    ("eihwaz_groupes", "::runique::auth::permissions::groupe"),
+    ("eihwaz_groupes", "::runique::auth::permissions::group"),
     (
         "eihwaz_groupes_droits",
-        "::runique::auth::permissions::groupes_droits",
+        "::runique::auth::permissions::group_rights",
     ),
     (
         "eihwaz_users_groupes",
-        "::runique::auth::permissions::users_groupes",
+        "::runique::auth::permissions::user_groups",
     ),
     (
         "eihwaz_sessions",

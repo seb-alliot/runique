@@ -16,7 +16,7 @@ use axum::http::{HeaderValue, Request as HttpRequest, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use runique::app::RuniqueApp;
-use runique::auth::permissions::groupes_droits;
+use runique::auth::permissions::group_rights;
 use runique::auth::{BuiltinUserEntity, LoginGuard, login, user};
 use runique::config::RuniqueConfig;
 use runique::context::template::{AppError, Request};
@@ -132,7 +132,7 @@ async fn seed(dbc: &DatabaseConnection) {
         .expect("account");
     }
     for (colonne, can_delete) in [("", true), ("title", false)] {
-        groupes_droits::ActiveModel {
+        group_rights::ActiveModel {
             groupe_id: Set(None),
             user_id: Set(Some(pk(ADMIN))),
             resource_key: Set("probe_notes".into()),

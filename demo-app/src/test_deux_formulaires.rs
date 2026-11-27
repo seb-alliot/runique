@@ -1,4 +1,4 @@
-use crate::formulaire::{EmailForm, LoginForm};
+use crate::forms::{EmailForm, LoginForm};
 use runique::prelude::*;
 
 #[derive(Serialize)]

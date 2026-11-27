@@ -138,15 +138,15 @@ SeaORM Select<E>  →  SQL  →  database
 
 | File | Role |
 |---|---|
-| `runique/src/macros/bdd/objects.rs` | `Objects<E>`: the entry point |
-| `runique/src/macros/bdd/query.rs` | `RuniqueQueryBuilder<E>`: the query being built |
-| `runique/src/macros/bdd/impl_objects.rs` | `impl_objects!`: adds `objects` to an entity |
-| `runique/src/macros/bdd/filter.rs` | `search!` and its operators |
+| `runique/src/macros/database/objects.rs` | `Objects<E>`: the entry point |
+| `runique/src/macros/database/query.rs` | `RuniqueQueryBuilder<E>`: the query being built |
+| `runique/src/macros/database/impl_objects.rs` | `impl_objects!`: adds `objects` to an entity |
+| `runique/src/macros/database/filter.rs` | `search!` and its operators |
 
 ## 4. The manager: `Objects<E>`
 
 ```rust
-// runique/src/macros/bdd/objects.rs (excerpt)
+// runique/src/macros/database/objects.rs (excerpt)
 pub struct Objects<E: EntityTrait> {
     _phantom: PhantomData<E>,
 }
@@ -213,14 +213,14 @@ To note:
 ## 5. The `impl_objects!` macro
 
 ```rust
-// runique/src/macros/bdd/impl_objects.rs
+// runique/src/macros/database/impl_objects.rs
 #[macro_export]
 macro_rules! impl_objects {
     ($entity:ty) => {
         impl $entity {
             #[allow(non_upper_case_globals)]
-            pub const objects: $crate::macros::bdd::objects::Objects<Self> =
-                $crate::macros::bdd::objects::Objects::new();
+            pub const objects: $crate::macros::database::objects::Objects<Self> =
+                $crate::macros::database::objects::Objects::new();
         }
     };
 }
@@ -244,7 +244,7 @@ runique::impl_objects!(Entity);
 ### 6.1 The structure
 
 ```rust
-// runique/src/macros/bdd/query.rs (excerpt)
+// runique/src/macros/database/query.rs (excerpt)
 pub struct RuniqueQueryBuilder<E: EntityTrait> {
     query: Select<E>,                // the underlying SeaORM query
 }
@@ -372,7 +372,7 @@ let u = users::Entity::objects
 ### `first` or `one`
 
 ```rust
-// runique/src/macros/bdd/query.rs (excerpt)
+// runique/src/macros/database/query.rs (excerpt)
 pub async fn one(self, db: &ADb) -> Result<Option<E::Model>, DbErr> {
     let mut results = self.query.paginate(db, 2).fetch_page(0).await?;   // at most 2 rows
     match results.len() {

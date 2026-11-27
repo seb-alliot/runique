@@ -75,23 +75,23 @@ macro_rules! search_munch {
     // ── list field (`checkbox` / `multichoice`): has / has_any / has_all ──
     // Before the general `Col op val` arm: a list field has no column.
     ($b:expr, $entity:ty; ! $col:ident has $val:expr , $($rest:tt)*) => {
-        $b = $b.exclude(<<$entity as $crate::macros::bdd::list::HasLists>::List>::$col.has($val));
+        $b = $b.exclude(<<$entity as $crate::macros::database::list::HasLists>::List>::$col.has($val));
         $crate::search_munch!($b, $entity; $($rest)*);
     };
     ($b:expr, $entity:ty; ! $col:ident has_any $vals:expr , $($rest:tt)*) => {
-        $b = $b.exclude(<<$entity as $crate::macros::bdd::list::HasLists>::List>::$col.has_any($vals));
+        $b = $b.exclude(<<$entity as $crate::macros::database::list::HasLists>::List>::$col.has_any($vals));
         $crate::search_munch!($b, $entity; $($rest)*);
     };
     ($b:expr, $entity:ty; $col:ident has $val:expr , $($rest:tt)*) => {
-        $b = $b.filter(<<$entity as $crate::macros::bdd::list::HasLists>::List>::$col.has($val));
+        $b = $b.filter(<<$entity as $crate::macros::database::list::HasLists>::List>::$col.has($val));
         $crate::search_munch!($b, $entity; $($rest)*);
     };
     ($b:expr, $entity:ty; $col:ident has_any $vals:expr , $($rest:tt)*) => {
-        $b = $b.filter(<<$entity as $crate::macros::bdd::list::HasLists>::List>::$col.has_any($vals));
+        $b = $b.filter(<<$entity as $crate::macros::database::list::HasLists>::List>::$col.has_any($vals));
         $crate::search_munch!($b, $entity; $($rest)*);
     };
     ($b:expr, $entity:ty; $col:ident has_all $vals:expr , $($rest:tt)*) => {
-        $b = $b.filter(<<$entity as $crate::macros::bdd::list::HasLists>::List>::$col.has_all($vals));
+        $b = $b.filter(<<$entity as $crate::macros::database::list::HasLists>::List>::$col.has_all($vals));
         $crate::search_munch!($b, $entity; $($rest)*);
     };
 
@@ -321,32 +321,32 @@ macro_rules! search {
 
     // ── Fetch all ─────────────────────────────────────────────────────────────
     ($entity:ty) => {{
-        $crate::macros::bdd::objects::Objects::<$entity>::new().all()
+        $crate::macros::database::objects::Objects::<$entity>::new().all()
     }};
 
     // ── list field alone — `has*` is handled by the muncher ─────────────────
     ($entity:ty => ! $col:ident has $val:expr) => {{
-        let mut b = $crate::macros::bdd::objects::Objects::<$entity>::new().all();
+        let mut b = $crate::macros::database::objects::Objects::<$entity>::new().all();
         $crate::search_munch!(b, $entity; ! $col has $val ,);
         b
     }};
     ($entity:ty => ! $col:ident has_any $vals:expr) => {{
-        let mut b = $crate::macros::bdd::objects::Objects::<$entity>::new().all();
+        let mut b = $crate::macros::database::objects::Objects::<$entity>::new().all();
         $crate::search_munch!(b, $entity; ! $col has_any $vals ,);
         b
     }};
     ($entity:ty => $col:ident has $val:expr) => {{
-        let mut b = $crate::macros::bdd::objects::Objects::<$entity>::new().all();
+        let mut b = $crate::macros::database::objects::Objects::<$entity>::new().all();
         $crate::search_munch!(b, $entity; $col has $val ,);
         b
     }};
     ($entity:ty => $col:ident has_any $vals:expr) => {{
-        let mut b = $crate::macros::bdd::objects::Objects::<$entity>::new().all();
+        let mut b = $crate::macros::database::objects::Objects::<$entity>::new().all();
         $crate::search_munch!(b, $entity; $col has_any $vals ,);
         b
     }};
     ($entity:ty => $col:ident has_all $vals:expr) => {{
-        let mut b = $crate::macros::bdd::objects::Objects::<$entity>::new().all();
+        let mut b = $crate::macros::database::objects::Objects::<$entity>::new().all();
         $crate::search_munch!(b, $entity; $col has_all $vals ,);
         b
     }};
@@ -354,14 +354,14 @@ macro_rules! search {
     // ── Col isnull ────────────────────────────────────────────────────────────
     ($entity:ty => $col:ident isnull) => {{
         use sea_orm::{EntityTrait, ColumnTrait};
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
+        $crate::macros::database::objects::Objects::<$entity>::new()
             .filter(<$entity as EntityTrait>::Column::$col.is_null())
     }};
 
     // ── Col not_null ──────────────────────────────────────────────────────────
     ($entity:ty => $col:ident not_null) => {{
         use sea_orm::{EntityTrait, ColumnTrait};
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
+        $crate::macros::database::objects::Objects::<$entity>::new()
             .filter(<$entity as EntityTrait>::Column::$col.is_not_null())
     }};
 
@@ -369,14 +369,14 @@ macro_rules! search {
     ($entity:ty => $col:ident in [$($val:expr),+ $(,)?]) => {{
         use sea_orm::{EntityTrait, ColumnTrait, Condition};
         let conds = vec![$(<$entity as EntityTrait>::Column::$col.eq($val)),+];
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
+        $crate::macros::database::objects::Objects::<$entity>::new()
             .filter(Condition::any(conds))
     }};
 
     // ── Col not_in [v1, v2] — Literal NOT IN ────────────────────────────────
     ($entity:ty => $col:ident not_in [$($val:expr),+ $(,)?]) => {{
         use sea_orm::{EntityTrait, ColumnTrait};
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
+        $crate::macros::database::objects::Objects::<$entity>::new()
             .filter(<$entity as EntityTrait>::Column::$col.is_not_in(vec![$($val),+]))
     }};
 
@@ -384,7 +384,7 @@ macro_rules! search {
     ($entity:ty => $col:ident in ($val:expr)) => {{
         use sea_orm::{EntityTrait, ColumnTrait};
         let __vals: ::std::vec::Vec<_> = (&$val).into_iter().cloned().collect();
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
+        $crate::macros::database::objects::Objects::<$entity>::new()
             .filter(<$entity as EntityTrait>::Column::$col.is_in(__vals))
     }};
 
@@ -392,14 +392,14 @@ macro_rules! search {
     ($entity:ty => $col:ident not_in ($val:expr)) => {{
         use sea_orm::{EntityTrait, ColumnTrait};
         let __vals: ::std::vec::Vec<_> = (&$val).into_iter().cloned().collect();
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
+        $crate::macros::database::objects::Objects::<$entity>::new()
             .filter(<$entity as EntityTrait>::Column::$col.is_not_in(__vals))
     }};
 
     // ── Col range (a, b) — BETWEEN ───────────────────────────────────────────
     ($entity:ty => $col:ident range ($start:expr, $end:expr)) => {{
         use sea_orm::{EntityTrait, ColumnTrait, Condition};
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
+        $crate::macros::database::objects::Objects::<$entity>::new()
             .filter(Condition::all([
                 <$entity as EntityTrait>::Column::$col.gte($start),
                 <$entity as EntityTrait>::Column::$col.lte($end),
@@ -409,7 +409,7 @@ macro_rules! search {
     // ── Col not_range (a, b) — NOT BETWEEN ───────────────────────────────────
     ($entity:ty => $col:ident not_range ($start:expr, $end:expr)) => {{
         use sea_orm::{EntityTrait, ColumnTrait, Condition};
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
+        $crate::macros::database::objects::Objects::<$entity>::new()
             .filter(Condition::any([
                 <$entity as EntityTrait>::Column::$col.lt($start),
                 <$entity as EntityTrait>::Column::$col.gt($end),
@@ -425,20 +425,20 @@ macro_rules! search {
                 $crate::search_apply_op!(<$entity as EntityTrait>::Column::$col, $op, $val)
             );
         )+
-        $crate::macros::bdd::objects::Objects::<$entity>::new().filter(cond)
+        $crate::macros::database::objects::Objects::<$entity>::new().filter(cond)
     }};
 
     // ── ! Col op val — exclusion ──────────────────────────────────────────────
     ($entity:ty => ! $col:ident $op:ident $val:expr) => {{
         use sea_orm::{EntityTrait, ColumnTrait};
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
+        $crate::macros::database::objects::Objects::<$entity>::new()
             .exclude($crate::search_apply_op!(<$entity as EntityTrait>::Column::$col, $op, $val))
     }};
 
     // ── Col op val — single condition ─────────────────────────────────────────
     ($entity:ty => $col:ident $op:ident $val:expr) => {{
         use sea_orm::{EntityTrait, ColumnTrait};
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
+        $crate::macros::database::objects::Objects::<$entity>::new()
             .filter($crate::search_apply_op!(<$entity as EntityTrait>::Column::$col, $op, $val))
     }};
 
@@ -448,7 +448,7 @@ macro_rules! search {
         // Unused when every item is an ordering (`desc Col`).
         #[allow(unused_imports)]
         use sea_orm::{EntityTrait, ColumnTrait};
-        let mut b = $crate::macros::bdd::objects::Objects::<$entity>::new().all();
+        let mut b = $crate::macros::database::objects::Objects::<$entity>::new().all();
         $crate::search_munch!(b, $entity; $($tt)+ ,);
         b
     }};

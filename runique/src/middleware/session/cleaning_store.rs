@@ -79,7 +79,7 @@ fn is_protected(record: &Record) -> bool {
 fn user_of(record: &Record, ctx: &'static str) -> Option<crate::utils::pk::Pk> {
     let value = record
         .data
-        .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)?;
+        .get(crate::utils::constants::session_key::session::SESSION_USER_ID_KEY)?;
     serde_json::from_value::<crate::utils::pk::Pk>(value.clone())
         .trace(crate::utils::runique_log::log_level!(session.store), ctx)
 }
@@ -411,7 +411,7 @@ impl SessionStore for CleaningMemoryStore {
                 .get(&record.id)
                 .and_then(|r| {
                     r.data
-                        .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
+                        .get(crate::utils::constants::session_key::session::SESSION_USER_ID_KEY)
                 })
                 .is_some();
             if let Some(user_id) = user_of(record, "decode session user_id (exclusive login check)")
@@ -502,7 +502,7 @@ impl SessionStore for CleaningMemoryStore {
             if let Some(db) = &self.db_fallback
                 && let Some(user_id) = record
                     .data
-                    .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
+                    .get(crate::utils::constants::session_key::session::SESSION_USER_ID_KEY)
                     .and_then(|value| {
                         serde_json::from_value::<crate::utils::pk::Pk>(value.clone()).trace(
                             crate::utils::runique_log::log_level!(session.store),
@@ -543,7 +543,7 @@ impl SessionStore for CleaningMemoryStore {
                             std::collections::HashMap<String, serde_json::Value>,
                         >(&data_str)
                         && let Some(data_user_id) = data
-                            .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
+                            .get(crate::utils::constants::session_key::session::SESSION_USER_ID_KEY)
                             .and_then(|value| {
                                 serde_json::from_value::<crate::utils::pk::Pk>(value.clone()).trace(
                                     crate::utils::runique_log::log_level!(session.store),

@@ -138,7 +138,7 @@ p ≤ 4`, scrypt `log_n ≤ 17, r ≤ 8, p ≤ 4`, bcrypt `cost ≤ 14`.
 
 ## i18n — `Lang`
 
-[`utils/trad/switch_lang.rs`](../../../runique/src/utils/trad/switch_lang.rs)
+[`utils/translation/switch_lang.rs`](../../../runique/src/utils/translation/switch_lang.rs)
 
 ```mermaid
 classDiagram

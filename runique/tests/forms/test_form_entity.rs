@@ -233,7 +233,7 @@ async fn cleaned_reads_through_the_field_column() {
 
     let body = HashMap::from([
         (
-            runique::utils::constante::session_key::session::FORM_NAME_KEY.to_string(),
+            runique::utils::constants::session_key::session::FORM_NAME_KEY.to_string(),
             "typed".to_string(),
         ),
         ("title".to_string(), "abc".to_string()),

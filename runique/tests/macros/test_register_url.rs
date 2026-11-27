@@ -1,7 +1,7 @@
-//! Tests — macros/routeur/register_url.rs
+//! Tests — macros/router/register_url.rs
 //! Couvre : register_pending, PENDING_URLS drain, reverse, reverse_with_parameters
 
-use runique::macros::routeur::register_url::{
+use runique::macros::router::register_url::{
     UrlError, register_pending, reverse, reverse_with_parameters,
 };
 use runique::{config::app::RuniqueConfig, engine::RuniqueEngine};
@@ -36,7 +36,7 @@ fn test_register_pending_ne_panique_pas() {
 
 #[tokio::test]
 async fn test_reverse_url_enregistre() {
-    use runique::macros::routeur::register_url::register_name_url;
+    use runique::macros::router::register_url::register_name_url;
     let engine = make_engine().await;
     register_name_url(&engine, "home", "/");
     let url = reverse(&engine, "home");
@@ -52,7 +52,7 @@ async fn test_reverse_url_inexistante_retourne_none() {
 
 #[tokio::test]
 async fn test_reverse_plusieurs_urls() {
-    use runique::macros::routeur::register_url::register_name_url;
+    use runique::macros::router::register_url::register_name_url;
     let engine = make_engine().await;
     register_name_url(&engine, "list", "/items/");
     register_name_url(&engine, "detail", "/items/{id}/");
@@ -66,7 +66,7 @@ async fn test_reverse_plusieurs_urls() {
 
 #[tokio::test]
 async fn test_reverse_with_parameters_substitue() {
-    use runique::macros::routeur::register_url::register_name_url;
+    use runique::macros::router::register_url::register_name_url;
     let engine = make_engine().await;
     register_name_url(&engine, "detail", "/items/{id}/");
     let url = reverse_with_parameters(&engine, "detail", &[("id", "42")]);
@@ -75,7 +75,7 @@ async fn test_reverse_with_parameters_substitue() {
 
 #[tokio::test]
 async fn test_reverse_with_parameters_multiple() {
-    use runique::macros::routeur::register_url::register_name_url;
+    use runique::macros::router::register_url::register_name_url;
     let engine = make_engine().await;
     register_name_url(&engine, "user_post", "/users/{user_id}/posts/{post_id}/");
     let url = reverse_with_parameters(&engine, "user_post", &[("user_id", "5"), ("post_id", "99")]);
@@ -91,7 +91,7 @@ async fn test_reverse_with_parameters_url_inexistante() {
 
 #[tokio::test]
 async fn test_reverse_with_parameters_sans_substitution() {
-    use runique::macros::routeur::register_url::register_name_url;
+    use runique::macros::router::register_url::register_name_url;
     let engine = make_engine().await;
     register_name_url(&engine, "static_url", "/about/");
     let url = reverse_with_parameters(&engine, "static_url", &[]);
@@ -101,7 +101,7 @@ async fn test_reverse_with_parameters_sans_substitution() {
 // A value never adds a segment, a query or a fragment.
 #[tokio::test]
 async fn test_reverse_with_parameters_encode_les_valeurs() {
-    use runique::macros::routeur::register_url::register_name_url;
+    use runique::macros::router::register_url::register_name_url;
     let engine = make_engine().await;
     register_name_url(&engine, "detail", "/items/{id}/");
     let url = reverse_with_parameters(&engine, "detail", &[("id", "x/../admin?a=1#f")]);
@@ -110,7 +110,7 @@ async fn test_reverse_with_parameters_encode_les_valeurs() {
 
 #[tokio::test]
 async fn test_reverse_with_parameters_parametre_manquant() {
-    use runique::macros::routeur::register_url::register_name_url;
+    use runique::macros::router::register_url::register_name_url;
     let engine = make_engine().await;
     register_name_url(&engine, "user_post", "/users/{user_id}/posts/{post_id}/");
     let url = reverse_with_parameters(&engine, "user_post", &[("user_id", "5")]);
@@ -125,7 +125,7 @@ async fn test_reverse_with_parameters_parametre_manquant() {
 
 #[tokio::test]
 async fn test_reverse_with_parameters_parametre_inconnu() {
-    use runique::macros::routeur::register_url::register_name_url;
+    use runique::macros::router::register_url::register_name_url;
     let engine = make_engine().await;
     register_name_url(&engine, "detail", "/items/{id}/");
     let url = reverse_with_parameters(&engine, "detail", &[("id", "1"), ("ids", "2")]);

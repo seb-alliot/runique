@@ -4,11 +4,11 @@ use super::refusal::{Refusal, RefusalReason};
 use super::rights_grid::may_set_group;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::history::{ActionLog, log_action};
-use crate::auth::permissions::rang::Rang;
-use crate::auth::permissions::{groupe, users_groupes};
+use crate::auth::permissions::rank::Rang;
+use crate::auth::permissions::{group, user_groups};
 use crate::auth::user;
 use crate::utils::aliases::ADb;
-use crate::utils::constante::resource_key;
+use crate::utils::constants::resource_key;
 use crate::utils::pk::Pk;
 use sea_orm::{
     ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, Set,
@@ -25,13 +25,13 @@ fn refused(reason: RefusalReason) -> DbErr {
 pub(crate) async fn managed_groups<C: ConnectionTrait>(
     actor: &CurrentUser,
     db: &C,
-) -> Result<Vec<groupe::Model>, DbErr> {
-    let query = groupe::Entity::find().order_by_asc(groupe::Column::Nom);
+) -> Result<Vec<group::Model>, DbErr> {
+    let query = group::Entity::find().order_by_asc(group::Column::Nom);
     let groups = if actor.rang >= Rang::Dirigeant {
         query.all(db).await?
     } else {
         query
-            .filter(groupe::Column::ResponsableId.eq(actor.id))
+            .filter(group::Column::ResponsableId.eq(actor.id))
             .all(db)
             .await?
     };
@@ -87,9 +87,9 @@ pub(crate) async fn set_memberships(
         }
     }
 
-    let current: HashSet<i32> = users_groupes::Entity::find()
-        .filter(users_groupes::Column::UserId.eq(target))
-        .filter(users_groupes::Column::GroupeId.is_in(managed_ids.iter().copied()))
+    let current: HashSet<i32> = user_groups::Entity::find()
+        .filter(user_groups::Column::UserId.eq(target))
+        .filter(user_groups::Column::GroupeId.is_in(managed_ids.iter().copied()))
         .all(&txn)
         .await?
         .into_iter()
@@ -97,23 +97,21 @@ pub(crate) async fn set_memberships(
         .collect();
     let leaving: Vec<i32> = current.difference(&wanted).copied().collect();
     if !leaving.is_empty() {
-        users_groupes::Entity::delete_many()
-            .filter(users_groupes::Column::UserId.eq(target))
-            .filter(users_groupes::Column::GroupeId.is_in(leaving))
+        user_groups::Entity::delete_many()
+            .filter(user_groups::Column::UserId.eq(target))
+            .filter(user_groups::Column::GroupeId.is_in(leaving))
             .exec(&txn)
             .await?;
     }
-    let joining: Vec<users_groupes::ActiveModel> = wanted
+    let joining: Vec<user_groups::ActiveModel> = wanted
         .difference(&current)
-        .map(|id| users_groupes::ActiveModel {
+        .map(|id| user_groups::ActiveModel {
             user_id: Set(target),
             groupe_id: Set(*id),
         })
         .collect();
     if !joining.is_empty() {
-        users_groupes::Entity::insert_many(joining)
-            .exec(&txn)
-            .await?;
+        user_groups::Entity::insert_many(joining).exec(&txn).await?;
     }
 
     let names = |ids: &HashSet<i32>| {

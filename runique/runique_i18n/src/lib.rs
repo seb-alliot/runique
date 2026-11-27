@@ -2,7 +2,7 @@
 //! (`set_lang`), `t()` / `tf()`, the messages in 9 languages, and the ones a
 //! project adds in its own `locales/` folder (`load_project`).
 //!
-//! Used through `runique::utils::trad`, which re-exports this crate.
+//! Used through `runique::utils::translation`, which re-exports this crate.
 pub mod keys;
 pub mod project;
 pub mod switch_lang;

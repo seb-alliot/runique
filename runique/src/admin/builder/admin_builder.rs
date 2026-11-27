@@ -10,7 +10,7 @@ use crate::auth::{
 use crate::forms::form::Forms;
 use crate::forms::{FormEntity, RuniqueForm};
 use crate::utils::aliases::ADb;
-use crate::utils::constante::session_key::session::{CSRF_TOKEN_KEY, FORM_NAME_KEY};
+use crate::utils::constants::session_key::session::{CSRF_TOKEN_KEY, FORM_NAME_KEY};
 use sea_orm::{
     ColumnTrait, DbErr, FromQueryResult, IdenStatic, Iterable, PaginatorTrait, PrimaryKeyToColumn,
     QueryFilter, QueryResult, QuerySelect,
@@ -608,7 +608,7 @@ mod tests {
     use crate::auth::gate::check::{authorize_list, authorize_view};
     use crate::auth::gate::test_support::fixtures::note::{Column, Entity};
     use crate::auth::gate::test_support::fixtures::{db, pk, staff};
-    use crate::auth::permissions::rang::Rang;
+    use crate::auth::permissions::rank::Rang;
     use crate::auth::user;
     use sea_orm::{IdenStatic, Order};
 

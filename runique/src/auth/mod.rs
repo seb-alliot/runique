@@ -20,7 +20,7 @@ pub use password::{
     ExtraContextFn, ForgotPasswordForm, PasswordResetConfig, PasswordResetForm,
     PasswordResetStaging, handle_forgot_password, handle_password_reset,
 };
-pub use permissions::rang::Rang;
+pub use permissions::rank::Rang;
 pub use permissions::{Groupe, Permission, pull_groupes_db};
 pub use session::{
     ExclusiveLogin, LoginError, is_authenticated, login, logout, protect_session, unprotect_session,

@@ -8,7 +8,7 @@ use crate::forms::base::{FieldConfig, FormField};
 use crate::forms::fields::file::is_staged_upload;
 use crate::utils::aliases::ATera;
 use crate::utils::config::TraceResult;
-use crate::utils::trad::{t, tf};
+use crate::utils::translation::{t, tf};
 use async_trait::async_trait;
 use base64::{Engine, engine::general_purpose::STANDARD};
 use serde::Serialize;
@@ -255,7 +255,7 @@ mod guarantees {
 /// The whole chain is exercised: `parse_multipart` stages the upload, the
 /// admin form takes it, `finalize` encodes it, the generated conversion
 /// decodes it into the entity's `Vec<u8>`.
-/// Moved from `tests/formulaire/test_binary_field.rs` when `parse_multipart`
+/// Moved from `tests/forms/test_binary_field.rs` when `parse_multipart`
 /// became `pub(crate)`.
 #[cfg(test)]
 mod upload_tests {

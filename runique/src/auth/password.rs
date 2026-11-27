@@ -23,7 +23,7 @@ use crate::forms::{
 use crate::utils::password::PasswordService;
 use crate::utils::{
     aliases::{AppResult, StrMap},
-    trad::{current_lang, t, tf},
+    translation::{current_lang, t, tf},
 };
 use crate::{context_update, impl_form_access};
 
@@ -560,7 +560,7 @@ pub async fn handle_password_reset(
             Ok(hash) => hash,
             Err(error) => {
                 if let Some(level) = crate::utils::runique_log::log_level!(auth.reset) {
-                    crate::runique_log!(level, error = %error, "{}", crate::utils::trad::t(runique_i18n::keys::auth::log::HASH_FAILED));
+                    crate::runique_log!(level, error = %error, "{}", crate::utils::translation::t(runique_i18n::keys::auth::log::HASH_FAILED));
                 }
                 if let Some(field) = form.forms_mut().fields.get_mut("password") {
                     field.set_error(t(runique_i18n::keys::reset::error::INVALID_OR_EXPIRED).to_string());

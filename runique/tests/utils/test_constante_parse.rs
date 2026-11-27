@@ -1,8 +1,8 @@
-//! Tests — utils/constante/parse.rs
+//! Tests — utils/constants/parse.rs
 //! Couvre : CONSTRAINT_REGEX, KEY_REGEX, FAILED_REGEX, FOR_KEY_REGEX,
 //!          RICH_CONTENT_FIELDS, ALLOWED_TAGS, ALLOWED_ATTRS
 
-use runique::utils::constante::parse::{
+use runique::utils::constants::parse::{
     ALLOWED_ATTRS, ALLOWED_TAGS, CONSTRAINT_REGEX, FAILED_REGEX, FOR_KEY_REGEX, KEY_REGEX,
     RICH_CONTENT_FIELDS,
 };

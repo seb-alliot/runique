@@ -19,7 +19,7 @@
 use crate::helpers::pk::pk;
 use crate::helpers::{db, db_mysql, db_postgres};
 use runique::auth::user;
-use runique::macros::bdd::query::RuniqueQueryBuilder;
+use runique::macros::database::query::RuniqueQueryBuilder;
 use runique::sea_orm::{
     ActiveModelTrait, ActiveValue::Set, ConnectionTrait, DatabaseConnection, DbBackend,
     EntityTrait, Schema, TransactionTrait,

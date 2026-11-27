@@ -5,7 +5,7 @@ use crate::admin::router::AdminView;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::meta::ModelMeta;
 use crate::auth::user;
-use crate::utils::trad::t;
+use crate::utils::translation::t;
 use std::collections::HashMap;
 
 /// One model as the navigation shows it.
@@ -55,8 +55,8 @@ fn default_accounts() -> ModelAdmin<user::Entity> {
 
 /// The framework's groups admin: a group's name and flags; its responsable
 /// is set by the gate, never typed.
-fn default_groups() -> ModelAdmin<crate::auth::permissions::groupe::Entity> {
-    use crate::auth::permissions::groupe::Column;
+fn default_groups() -> ModelAdmin<crate::auth::permissions::group::Entity> {
+    use crate::auth::permissions::group::Column;
     ModelAdmin::new()
         .list(|l| {
             l.display([Column::Nom, Column::IsStaff, Column::IsActive])
@@ -346,7 +346,7 @@ mod tests {
     }
 
     fn with_rang(
-        rang: crate::auth::permissions::rang::Rang,
+        rang: crate::auth::permissions::rank::Rang,
     ) -> crate::auth::current_user::CurrentUser {
         let mut user = staff(pk(40), "nothing", [false; 7]);
         user.rang = rang;
@@ -362,7 +362,7 @@ mod tests {
         let accounts = site.model("users").unwrap();
         assert_eq!(accounts.rights(&user), CrudAction::default());
 
-        user.rang = crate::auth::permissions::rang::Rang::Admin;
+        user.rang = crate::auth::permissions::rank::Rang::Admin;
         user.droits = user.groupes[0].permissions.clone();
         assert!(accounts.rights(&user).has(Crud::Read));
 
@@ -402,7 +402,7 @@ mod tests {
         );
         let nobody = staff(pk(10), "other", [true, true, false, true, true, true, true]);
         assert!(nav_keys(&site, &nobody, &[]).is_empty());
-        let su = with_rang(crate::auth::permissions::rang::Rang::Superuser);
+        let su = with_rang(crate::auth::permissions::rank::Rang::Superuser);
         assert_eq!(
             nav_keys(&site, &su, &[]),
             ["groupes", "notes", "users"],
@@ -413,7 +413,7 @@ mod tests {
     #[test]
     fn a_declared_order_comes_before_the_titles() {
         let site = AdminSite::default().register(ModelAdmin::<Entity>::new());
-        let su = with_rang(crate::auth::permissions::rang::Rang::Superuser);
+        let su = with_rang(crate::auth::permissions::rank::Rang::Superuser);
         assert_eq!(
             nav_keys(&site, &su, &["users".to_string()]),
             ["users", "groupes", "notes"]
@@ -429,12 +429,12 @@ mod tests {
         let db = db().await;
         // The groups the framework serves are counted with the rest.
         let schema = Schema::new(sea_orm::DatabaseBackend::Sqlite);
-        db.execute(&schema.create_table_from_entity(crate::auth::permissions::groupe::Entity))
+        db.execute(&schema.create_table_from_entity(crate::auth::permissions::group::Entity))
             .await
             .unwrap();
         let site = AdminSite::default().register(ModelAdmin::<Entity>::new());
 
-        let su = with_rang(crate::auth::permissions::rang::Rang::Superuser);
+        let su = with_rang(crate::auth::permissions::rank::Rang::Superuser);
         let counts = site.counts(&db, &su).await.unwrap();
         assert_eq!(counts.get("notes"), Some(&3));
         assert_eq!(counts.get("users"), Some(&4));
@@ -459,7 +459,7 @@ mod tests {
     #[test]
     fn a_declared_title_names_the_model_in_the_navigation() {
         let site = AdminSite::default().register(ModelAdmin::<Entity>::new().title("Mes notes"));
-        let su = with_rang(crate::auth::permissions::rang::Rang::Superuser);
+        let su = with_rang(crate::auth::permissions::rank::Rang::Superuser);
         let titles: Vec<String> = site
             .navigation(&su, &[])
             .into_iter()

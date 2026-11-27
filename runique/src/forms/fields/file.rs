@@ -747,7 +747,7 @@ mod finalize_tests {
         };
         assert_eq!(
             error,
-            crate::utils::trad::t(runique_i18n::keys::forms::error::UPLOAD_FAILED)
+            crate::utils::translation::t(runique_i18n::keys::forms::error::UPLOAD_FAILED)
         );
         assert!(!error.contains(media.to_str().unwrap()), "{error}");
 
@@ -1606,7 +1606,7 @@ mod guarantees {
         // wrong that merely ends with the same digit (2199023255552.0).
         assert_eq!(
             err,
-            crate::utils::trad::tf(
+            crate::utils::translation::tf(
                 runique_i18n::keys::forms::error::MAX_SIZE_ABOVE_MODEL,
                 &["3.0", "2.0"]
             )

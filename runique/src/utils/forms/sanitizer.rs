@@ -1,6 +1,6 @@
 //! HTML sanitization via ammonia — pre-configured builder for rich-text, whitelist of tags/attributes.
 /// Pre-configured ammonia builder — initialized once, reused for each request.
-use crate::utils::constante::parse::{ALLOWED_ATTRS, ALLOWED_TAGS, RICH_CONTENT_FIELDS};
+use crate::utils::constants::parse::{ALLOWED_ATTRS, ALLOWED_TAGS, RICH_CONTENT_FIELDS};
 use ammonia::Builder;
 use std::{collections::HashSet, sync::LazyLock};
 

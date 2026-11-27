@@ -1,12 +1,12 @@
 //! What the list and the detail of accounts show about each one: its rank and
 //! its groups, read-only. Whoever may read the accounts sees them; changing
 //! either goes through the gate.
-use crate::auth::permissions::rang::Rang;
-use crate::auth::permissions::{groupe, users_groupes};
+use crate::auth::permissions::rank::Rang;
+use crate::auth::permissions::{group, user_groups};
 use crate::auth::user;
 use crate::utils::aliases::ADb;
 use crate::utils::pk::Pk;
-use crate::utils::trad::t;
+use crate::utils::translation::t;
 use sea_orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -54,9 +54,9 @@ pub(crate) async fn account_summaries(
         .all(db)
         .await?;
     let mut groups: HashMap<Pk, Vec<String>> = HashMap::new();
-    let memberships = users_groupes::Entity::find()
-        .filter(users_groupes::Column::UserId.is_in(ids.iter().copied()))
-        .find_also_related(groupe::Entity)
+    let memberships = user_groups::Entity::find()
+        .filter(user_groups::Column::UserId.is_in(ids.iter().copied()))
+        .find_also_related(group::Entity)
         .all(db)
         .await?;
     for (membership, group) in memberships {

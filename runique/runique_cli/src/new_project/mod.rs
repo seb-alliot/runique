@@ -175,73 +175,70 @@ fn validate_project_name(name: &str) -> Result<()> {
 fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<()> {
     // Files -> destination mapping
     let files: &[(&[u8], &str)] = &[
+        (include_bytes!("starter/code/views.rs"), "src/views.rs"),
         (
-            include_bytes!("composant-bin/code/views.rs"),
-            "src/views.rs",
-        ),
-        (
-            include_bytes!("composant-bin/code/signup_form.rs"),
+            include_bytes!("starter/code/signup_form.rs"),
             "src/forms/signup.rs",
         ),
         (
-            include_bytes!("composant-bin/code/login_form.rs"),
+            include_bytes!("starter/code/login_form.rs"),
             "src/forms/login.rs",
         ),
         (
-            include_bytes!("composant-bin/code/forms_mod.rs"),
+            include_bytes!("starter/code/forms_mod.rs"),
             "src/forms/mod.rs",
         ),
-        (include_bytes!("composant-bin/code/url.rs"), "src/url.rs"),
-        (include_bytes!("composant-bin/code/main.rs"), "src/main.rs"),
+        (include_bytes!("starter/code/url.rs"), "src/url.rs"),
+        (include_bytes!("starter/code/main.rs"), "src/main.rs"),
         (
-            include_bytes!("composant-bin/template/base.html"),
+            include_bytes!("starter/template/base.html"),
             "templates/base.html",
         ),
         (
-            include_bytes!("composant-bin/template/index.html"),
+            include_bytes!("starter/template/index.html"),
             "templates/index.html",
         ),
         (
-            include_bytes!("composant-bin/template/about.html"),
+            include_bytes!("starter/template/about.html"),
             "templates/about.html",
         ),
         (
-            include_bytes!("composant-bin/template/signup.html"),
+            include_bytes!("starter/template/signup.html"),
             "templates/signup.html",
         ),
         (
-            include_bytes!("composant-bin/template/login.html"),
+            include_bytes!("starter/template/login.html"),
             "templates/login.html",
         ),
         (
-            include_bytes!("composant-bin/css/main.css"),
+            include_bytes!("starter/css/main.css"),
             "static/css/main.css",
         ),
         (
-            include_bytes!("composant-bin/css/about.css"),
+            include_bytes!("starter/css/about.css"),
             "static/css/about.css",
         ),
         (
-            include_bytes!("composant-bin/css/variables.css"),
+            include_bytes!("starter/css/variables.css"),
             "static/css/variables.css",
         ),
         (
-            include_bytes!("composant-bin/css/forms/forms.css"),
+            include_bytes!("starter/css/forms/forms.css"),
             "static/css/forms/forms.css",
         ),
         (
-            include_bytes!("composant-bin/css/forms/forms-label.css"),
+            include_bytes!("starter/css/forms/forms-label.css"),
             "static/css/forms/forms-label.css",
         ),
         (
-            include_bytes!("composant-bin/image/runique.avif"),
+            include_bytes!("starter/image/runique.avif"),
             "media/runique.avif",
         ),
         (
-            include_bytes!("composant-bin/image/favicon.ico"),
+            include_bytes!("starter/image/favicon.ico"),
             "media/favicon/favicon.ico",
         ),
-        (include_bytes!("composant-bin/config/ignore"), ".gitignore"),
+        (include_bytes!("starter/config/ignore"), ".gitignore"),
     ];
 
     let mut batch = AtomicBuilder::create().journal(project_dir);
@@ -259,12 +256,9 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
     )?;
     // Cargo.toml, READMEs and .env with substitutions
     for (template, path) in [
-        (include_str!("composant-bin/config/apiconfig"), "Cargo.toml"),
-        (include_str!("composant-bin/readme/README.md"), "README.md"),
-        (
-            include_str!("composant-bin/readme/README.fr.md"),
-            "README.fr.md",
-        ),
+        (include_str!("starter/config/apiconfig"), "Cargo.toml"),
+        (include_str!("starter/readme/README.md"), "README.md"),
+        (include_str!("starter/readme/README.fr.md"), "README.fr.md"),
     ] {
         let content = template
             .replace("{{PROJECT_NAME}}", name)
@@ -287,7 +281,7 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
 
     let secret_key: String = generate_secret_key();
     let env_file =
-        include_str!("composant-bin/config/secret").replace("your_secret_key_here", &secret_key);
+        include_str!("starter/config/secret").replace("your_secret_key_here", &secret_key);
     batch
         .add(
             project_dir.join(".env"),

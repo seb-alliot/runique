@@ -11,7 +11,7 @@ use argon2::{
 use bcrypt::{DEFAULT_COST, hash as bcrypt_hash, verify as bcrypt_verify};
 use scrypt::Scrypt;
 
-use crate::utils::trad::{t, tf};
+use crate::utils::translation::{t, tf};
 use dyn_clone::DynClone;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;

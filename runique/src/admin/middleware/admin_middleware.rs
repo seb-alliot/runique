@@ -15,14 +15,14 @@ use crate::auth::user_trait::RuniqueUser;
 use crate::auth::{
     current_user::CurrentUser,
     permissions::load_rights,
-    permissions::rang::Rang,
+    permissions::rank::Rang,
     session::{get_user_id, logout},
 };
 use crate::context::RequestExtensions;
 use crate::utils::aliases::AEngine;
 use crate::utils::config::TraceResult;
 use crate::utils::pk::Pk;
-use crate::utils::trad::t;
+use crate::utils::translation::t;
 
 /// Middleware: admin access required (a rank, or a staff group)
 ///
@@ -186,7 +186,7 @@ fn account_not_read(user_id: Pk, error: &sea_orm::DbErr) -> Response {
         tracing::Level::WARN,
         user_id = %user_id,
         error = %error,
-        "{}", crate::utils::trad::t(runique_i18n::keys::auth::log::ADMIN_ACCOUNT_NOT_READ)
+        "{}", crate::utils::translation::t(runique_i18n::keys::auth::log::ADMIN_ACCOUNT_NOT_READ)
     );
     axum::http::StatusCode::SERVICE_UNAVAILABLE.into_response()
 }
@@ -327,7 +327,7 @@ mod admin_access_constraint_tests {
     use crate::auth::{
         current_user::CurrentUser,
         gate::{AdminConstraint, test_support::fixtures::pk},
-        permissions::{Groupe, rang::Rang},
+        permissions::{Groupe, rank::Rang},
     };
     use axum::{
         Extension, Router,
@@ -540,7 +540,7 @@ mod declared_route_constraint_tests {
     use crate::config::RuniqueConfig;
     use crate::engine::RuniqueEngine;
     use crate::utils::{
-        aliases::AEngine, constante::session_key::session::SESSION_USER_ID_KEY, pk::Pk,
+        aliases::AEngine, constants::session_key::session::SESSION_USER_ID_KEY, pk::Pk,
     };
     use axum::{
         Extension, Router,

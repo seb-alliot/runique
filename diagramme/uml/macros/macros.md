@@ -4,7 +4,7 @@ Module surtout déclaratif (`macro_rules!`) + quelques types support générique
 
 ## bdd — ORM ergonomique (`Objects` / `search!`)
 
-[`macros/bdd/`](../../../runique/src/macros/bdd/)
+[`macros/database/`](../../../runique/src/macros/database/)
 
 ```mermaid
 classDiagram
@@ -32,18 +32,18 @@ classDiagram
 Macros associées :
 - `impl_objects!` — génère `Model::objects` (point d'entrée `Objects<E>`).
 - `search!{}` / `search_cond!` / `search_munch!` / `search_apply_op!` — DSL de filtres
-  composables → `Condition` SeaORM (op `eq/like/gt/in/...`). Voir [filter.rs](../../../runique/src/macros/bdd/filter.rs).
+  composables → `Condition` SeaORM (op `eq/like/gt/in/...`). Voir [filter.rs](../../../runique/src/macros/database/filter.rs).
   `contains` / `icontains` / `startswith` / `endswith` prennent la valeur **littéralement**
   (`%` et `_` échappés, `like_term` / `ci_like_term` de [sql_dialect.rs](../../../runique/src/db/sql_dialect.rs)) ;
   `iexact` est une égalité sans casse (`eq_ci`), plus un `LIKE` ; seuls `like` / `ilike`
   gardent la valeur comme motif. La recherche de la liste admin (`search_condition`) échappe de même (`escape_like`).
 - Champs liste (3.0.0, 2026-10-06) : `search!(E => Genres has v / has_any [..] / has_all [..])`
   passe par `<<E as HasLists>::List>::Genres` (généré par `model!{}`), un `ListField` typé qui
-  produit une sous-requête portable ([list.rs](../../../runique/src/macros/bdd/list.rs)).
+  produit une sous-requête portable ([list.rs](../../../runique/src/macros/database/list.rs)).
 
 ## routeur — routing déclaratif
 
-[`macros/routeur/`](../../../runique/src/macros/routeur/)
+[`macros/router/`](../../../runique/src/macros/router/)
 
 ```mermaid
 flowchart LR
@@ -55,7 +55,7 @@ flowchart LR
 
 - `urlpatterns!{}` — déclare les routes (`"/x" => view`, `[get:…, post:…]`), peuple le
   registre d'URL nommées (reverse `{% url %}`).
-- `view!` ([get_post.rs](../../../runique/src/macros/routeur/get_post.rs)) — sépare handlers GET/POST.
+- `view!` ([get_post.rs](../../../runique/src/macros/router/get_post.rs)) — sépare handlers GET/POST.
 - `register_url` / `router_ext` — extension du Router + enregistrement reverse.
 
 ## context / forms / template — macros

@@ -9,7 +9,7 @@ Une seule grammaire de champs pour `model!{}` — bloc anonyme `{ name: Semantic
 `fields:` — ne pas confondre les deux lors d'un audit.
 
 Flux `model!{}` :
-`tokens → runique_dsl (impl Parse for ModelInput : FormFieldDecl → form_field_to_field_def() → FieldDef, listes à part) → derive_form/generateur/ → TokenStream Rust`.
+`tokens → runique_dsl (impl Parse for ModelInput : FormFieldDecl → form_field_to_field_def() → FieldDef, listes à part) → derive_form/generator/ → TokenStream Rust`.
 
 Flux `extend!{}` : `runique_dsl::extend::ExtendDsl` → `derive_form/extend_schema.rs`
 (entité complète base + ajouts).
@@ -109,7 +109,7 @@ déclaré (NOT NULL par défaut). `lists` ne passent pas par là : pas de colonn
 flowchart LR
     SRC[DSL model! bloc anonyme] --> DSL[runique_dsl : ModelInput]
     DSL -->|syn::Error spanné| CE[compile_error! inline]
-    DSL --> GEN[derive_form/generateur]
+    DSL --> GEN[derive_form/generator]
     GEN --> ENT[Entity SeaORM + Relation écrit à la main]
     GEN --> BEH[ActiveModelBehavior auto_now]
     GEN --> ENU[enums texte/entiers + form_value]

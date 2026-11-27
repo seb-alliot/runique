@@ -404,7 +404,9 @@ async fn accounts_without_admin_access_go_home_with_a_notice_and_stay_signed_in(
         let notices = text(&client, format!("{base}/flashes")).await;
         assert_eq!(
             notices,
-            runique::utils::trad::t(runique_i18n::keys::admin::access::error::ACTION_NOT_ALLOWED),
+            runique::utils::translation::t(
+                runique_i18n::keys::admin::access::error::ACTION_NOT_ALLOWED
+            ),
             "{why}"
         );
         assert_eq!(
@@ -2250,7 +2252,7 @@ async fn probe_rank(Path(n): Path<u32>, req: Request) -> String {
     let user = BuiltinUserEntity::find_by_id(&req.engine.db, pk(n))
         .await
         .expect("account");
-    format!("{:?}", runique::auth::permissions::rang::Rang::from(&user))
+    format!("{:?}", runique::auth::permissions::rank::Rang::from(&user))
 }
 
 fn rank_routes() -> Routes {
@@ -3521,7 +3523,7 @@ async fn a_group_handed_to_an_admin_is_reduced_to_his_rights() {
         "a sideways transfer keeps nothing at first"
     );
     // Each line names its table, then the right: the table's, or a column's.
-    use runique::utils::trad::t;
+    use runique::utils::translation::t;
     assert!(
         page.contains(&format!(
             "— {}<",
@@ -3618,7 +3620,7 @@ async fn a_transfer_is_refused_outside_its_rules() {
     confirm_transfer(&su, &base, 2, ADMIN, Some(""), &[]).await;
     let flashes = text(&su, format!("{base}/flashes")).await;
     assert!(
-        flashes.contains(&*runique::utils::trad::t(
+        flashes.contains(&*runique::utils::translation::t(
             runique_i18n::keys::admin::transfer::error::RANKED_MEMBERS
         )),
         "{flashes}"

@@ -2,7 +2,7 @@ use runique::prelude::*;
 mod admin;
 mod backend;
 mod entities;
-mod formulaire;
+mod forms;
 mod url;
 mod views;
 // TEMPORAIRE — page de test à deux formulaires, à supprimer après vérification.

@@ -1,5 +1,5 @@
 use crate::model::ast::{EnumDef, FormFieldAttr, FormFieldDecl, FormFieldType};
-use crate::model::generateur::{
+use crate::model::generator::{
     field_from_form, field_from_partial, generate_column, generate_enum_defs,
     generate_form_field_decl,
 };
@@ -265,7 +265,7 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
         .collect();
 
     // extend!{} refuses list fields: the admin calls these, they do nothing.
-    let admin_lists = crate::model::generateur::generate_admin_lists(&[]);
+    let admin_lists = crate::model::generator::generate_admin_lists(&[]);
     let model_meta = generate_model_meta(table);
 
     quote! {

@@ -21,8 +21,10 @@ impl FormAccess for LoginAdmin {
         form.field(
             &TextField::text("username")
                 .label(
-                    crate::utils::trad::t(runique_i18n::keys::admin::common::label::USERNAME)
-                        .as_ref(),
+                    crate::utils::translation::t(
+                        runique_i18n::keys::admin::common::label::USERNAME,
+                    )
+                    .as_ref(),
                 )
                 .required(),
         );
@@ -30,8 +32,10 @@ impl FormAccess for LoginAdmin {
         form.field(
             &TextField::password("password")
                 .label(
-                    crate::utils::trad::t(runique_i18n::keys::admin::common::label::PASSWORD)
-                        .as_ref(),
+                    crate::utils::translation::t(
+                        runique_i18n::keys::admin::common::label::PASSWORD,
+                    )
+                    .as_ref(),
                 )
                 .required(),
         );
@@ -80,7 +84,7 @@ pub struct GroupeModelForm {
 
 impl crate::forms::model_form::ModelForm for GroupeModelForm {
     fn schema() -> crate::schema::ModelSchema {
-        crate::auth::permissions::groupe::schema()
+        crate::auth::permissions::group::schema()
     }
     fn fields() -> Option<&'static [&'static str]> {
         Some(&["nom", "is_staff", "is_active"])
@@ -94,5 +98,5 @@ impl FormAccess for GroupeModelForm {
 impl RuniqueForm for GroupeModelForm {}
 
 impl crate::forms::FormEntity for GroupeModelForm {
-    type Entity = crate::auth::permissions::groupe::Entity;
+    type Entity = crate::auth::permissions::group::Entity;
 }

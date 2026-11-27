@@ -55,7 +55,8 @@ pub(crate) fn linked_delete_error(err: sea_orm::DbErr) -> sea_orm::DbErr {
     if is_foreign_key_violation(&err) {
         tracing::warn!(error = %err, "delete blocked by a foreign key");
         sea_orm::DbErr::Custom(
-            crate::utils::trad::t(runique_i18n::keys::forms::error::DELETE_LINKED).into_owned(),
+            crate::utils::translation::t(runique_i18n::keys::forms::error::DELETE_LINKED)
+                .into_owned(),
         )
     } else {
         err
@@ -328,7 +329,7 @@ mod tests {
             [false, true, false, true, false, false, false],
         );
 
-        manager.rang = crate::auth::permissions::rang::Rang::Admin;
+        manager.rang = crate::auth::permissions::rank::Rang::Admin;
         manager.droits = manager.groupes[0].permissions.clone();
 
         let ctx = GateCtx {
@@ -392,7 +393,7 @@ mod tests {
             "users",
             [true, true, false, true, false, false, false],
         );
-        manager.rang = crate::auth::permissions::rang::Rang::Superuser;
+        manager.rang = crate::auth::permissions::rank::Rang::Superuser;
         manager.droits = manager.groupes[0].permissions.clone();
         manager
     }

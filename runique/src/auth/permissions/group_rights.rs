@@ -30,9 +30,9 @@ pub struct Model {
 pub enum Relation {
     /// The group holding the row; deleting the group cascades to its rows.
     #[sea_orm(
-        belongs_to = "super::groupe::Entity",
+        belongs_to = "super::group::Entity",
         from = "Column::GroupeId",
-        to = "super::groupe::Column::Id",
+        to = "super::group::Column::Id",
         on_delete = "Cascade"
     )]
     Groupe,
@@ -46,7 +46,7 @@ pub enum Relation {
     User,
 }
 
-impl Related<super::groupe::Entity> for Entity {
+impl Related<super::group::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Groupe.def()
     }

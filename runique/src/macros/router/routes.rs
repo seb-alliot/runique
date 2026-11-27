@@ -71,7 +71,7 @@ impl Routes {
         handler: MethodRouter,
     ) {
         let path = path.as_ref();
-        crate::macros::routeur::register_url::register_pending(name, path);
+        crate::macros::router::register_url::register_pending(name, path);
         self.add_route(path, handler);
     }
 

@@ -12,7 +12,7 @@ use std::time::Duration;
 
 use super::builder::DatabaseConfigBuilder;
 use super::engine::{DatabaseEngine, verify_database_driver};
-use crate::utils::trad::{t, tf};
+use crate::utils::translation::{t, tf};
 
 /// Advanced database configuration.
 ///

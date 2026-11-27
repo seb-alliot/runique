@@ -154,7 +154,7 @@ pub mod prelude {
     use crate::chrono;
     pub use crate::config::{security::SecurityConfig, server::ServerConfig};
     pub use crate::utils::env::{is_debug, is_dev};
-    pub use crate::utils::trad::{Lang, current_lang};
+    pub use crate::utils::translation::{Lang, current_lang};
     pub use dotenvy;
 
     // ========================================================================
@@ -209,7 +209,7 @@ pub mod prelude {
     // pub use crate::migration::user_runique;
     #[cfg(feature = "orm")]
     pub use crate::db::{DatabaseConfig, DatabaseConfigBuilder, DatabaseEngine};
-    pub use crate::macros::bdd::list::{HasLists, ListField};
+    pub use crate::macros::database::list::{HasLists, ListField};
     #[cfg(feature = "orm")]
     pub use sea_orm::{
         self, ActiveModelBehavior, ActiveModelTrait, ColumnTrait, ConnectOptions, Database,
@@ -289,7 +289,7 @@ pub mod prelude {
         Authorized, Create, Crud, CrudAction, Delete, GateCtx, List, Refusal, Update, View,
         authorize_create, authorize_row, write,
     };
-    pub use crate::auth::permissions::groupe;
+    pub use crate::auth::permissions::group;
     pub use crate::db::sql_dialect::{ilike, text_cast_type, text_eq, text_eq_ci};
     pub use crate::migrations_table;
     pub use futures_util::future::BoxFuture;

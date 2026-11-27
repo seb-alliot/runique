@@ -158,8 +158,10 @@ async fn audio_and_video_are_media_fields_checked_by_their_kind() {
         assert_eq!(
             video.error().cloned(),
             Some(
-                runique::utils::trad::t(runique_i18n::keys::forms::error::FILE_INVALID_VIDEO)
-                    .into_owned()
+                runique::utils::translation::t(
+                    runique_i18n::keys::forms::error::FILE_INVALID_VIDEO
+                )
+                .into_owned()
             )
         );
     }

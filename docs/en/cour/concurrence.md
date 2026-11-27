@@ -607,7 +607,7 @@ fn login_failure(ip: &str) {
 The route extensions and the admin builder start the cleanup themselves when they create a limiter:
 
 ```rust
-// runique/src/macros/routeur/router_ext.rs (excerpt)
+// runique/src/macros/router/router_ext.rs (excerpt)
 let limiter = Arc::new(limiter);
 limiter.spawn_cleanup(limiter.cleanup_interval());
 ```

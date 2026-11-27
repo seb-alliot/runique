@@ -5,7 +5,7 @@ use tokio::signal;
 
 use crate::config::RuniqueConfig;
 use crate::utils::aliases::AEngine;
-use crate::utils::trad::{t, tf};
+use crate::utils::translation::{t, tf};
 
 use super::builder::RuniqueAppBuilder;
 
@@ -49,7 +49,7 @@ fn connected_db_message(backend: sea_orm::DbBackend) -> String {
 async fn shutdown_signal() {
     let ctrl_c = async {
         if let Err(error) = signal::ctrl_c().await {
-            tracing::warn!(%error, "{}", crate::utils::trad::t(runique_i18n::keys::server::log::CTRL_C_NOT_INSTALLED));
+            tracing::warn!(%error, "{}", crate::utils::translation::t(runique_i18n::keys::server::log::CTRL_C_NOT_INSTALLED));
             std::future::pending::<()>().await;
         }
     };
@@ -60,7 +60,7 @@ async fn shutdown_signal() {
                 stream.recv().await;
             }
             Err(error) => {
-                tracing::warn!(%error, "{}", crate::utils::trad::t(runique_i18n::keys::server::log::SIGTERM_NOT_INSTALLED));
+                tracing::warn!(%error, "{}", crate::utils::translation::t(runique_i18n::keys::server::log::SIGTERM_NOT_INSTALLED));
                 std::future::pending::<()>().await;
             }
         }

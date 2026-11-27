@@ -52,7 +52,7 @@ fn test_with_current_user() {
     let user = CurrentUser {
         id: pk(1),
         username: "alice".to_string(),
-        rang: runique::auth::permissions::rang::Rang::Lambda,
+        rang: runique::auth::permissions::rank::Rang::Lambda,
         groupes: vec![],
         droits: Vec::new(),
     };
@@ -91,7 +91,7 @@ fn test_inject_request_current_user() {
     let user = CurrentUser {
         id: pk(42),
         username: "bob".to_string(),
-        rang: runique::auth::permissions::rang::Rang::Lambda,
+        rang: runique::auth::permissions::rank::Rang::Lambda,
         groupes: vec![],
         droits: Vec::new(),
     };

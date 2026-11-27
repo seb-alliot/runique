@@ -28,9 +28,9 @@ pub enum Relation {
     User,
     /// The group this membership grants; deleting the group cascades here too.
     #[sea_orm(
-        belongs_to = "super::groupe::Entity",
+        belongs_to = "super::group::Entity",
         from = "Column::GroupeId",
-        to = "super::groupe::Column::Id",
+        to = "super::group::Column::Id",
         on_delete = "Cascade"
     )]
     Groupe,
@@ -42,7 +42,7 @@ impl Related<crate::auth::user::Entity> for Entity {
     }
 }
 
-impl Related<super::groupe::Entity> for Entity {
+impl Related<super::group::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Groupe.def()
     }

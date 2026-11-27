@@ -117,7 +117,7 @@ pub fn mailer_init(config: MailerConfig) {
         crate::runique_log!(
             level,
             "{}",
-            crate::utils::trad::t(runique_i18n::keys::mailer::log::INIT_TWICE)
+            crate::utils::translation::t(runique_i18n::keys::mailer::log::INIT_TWICE)
         );
     }
 }

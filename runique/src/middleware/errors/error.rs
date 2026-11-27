@@ -7,7 +7,7 @@ use crate::{
     config::RuniqueConfig,
     errors::error::{ErrorContext, ErrorType, RuniqueError, app_package},
     utils::csrf::CsrfToken,
-    utils::trad::t,
+    utils::translation::t,
 };
 use axum::{
     extract::Extension,
@@ -434,7 +434,7 @@ fn inject_global_vars(context: &mut Context, config: &RuniqueConfig, csrf_token:
     }
     context.insert("debug", &config.debug);
     context.insert("dev", &config.dev);
-    context.insert("lang", &crate::utils::trad::current_lang().code());
+    context.insert("lang", &crate::utils::translation::current_lang().code());
 }
 
 // --- FALLBACKS ---
@@ -445,7 +445,7 @@ fn fallback_status_html(status: StatusCode, text: &str) -> Response {
     let code = status.as_u16();
     let html = format!(
         "<!DOCTYPE html><html lang=\"{lang}\"><head><meta charset=\"UTF-8\"><title>{code}</title></head><body><h1>{code}</h1><p>{text}</p><a href=\"/\">{back}</a></body></html>",
-        lang = crate::utils::trad::current_lang().code(),
+        lang = crate::utils::translation::current_lang().code(),
         text = html_escape(text),
         back = html_escape(&t(runique_i18n::keys::http::label::BACK_HOME)),
     );
@@ -453,7 +453,7 @@ fn fallback_status_html(status: StatusCode, text: &str) -> Response {
 }
 
 fn critical_error_html(error: &str) -> Response {
-    let lang = crate::utils::trad::current_lang().code();
+    let lang = crate::utils::translation::current_lang().code();
     let html = format!(
         r#"<!DOCTYPE html>
 <html lang="{lang}">
@@ -632,7 +632,7 @@ mod tests {
 #[cfg(test)]
 mod status_messages_tests {
     use super::status_messages;
-    use crate::utils::trad::t;
+    use crate::utils::translation::t;
 
     // Each status Runique has a page for has its title and its text, both
     // of that status, and both exist.

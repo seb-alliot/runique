@@ -58,7 +58,7 @@ use crate::errors::error::{ErrorContext, ErrorType};
 /// tokio::runtime::Runtime::new().unwrap().block_on(sqlite_query_example());
 /// ```
 use crate::utils::aliases::ADb;
-use crate::utils::trad::t;
+use crate::utils::translation::t;
 use axum::http::StatusCode;
 use sea_orm::{
     ColumnTrait, Condition, DbErr, EntityTrait, ExprTrait, JoinType, QueryFilter, QueryOrder,

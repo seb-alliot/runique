@@ -3,7 +3,7 @@
 //! replace and preload it, and a [`ListField`] in `List` so `search!` and
 //! `filter()` can test what it contains.
 //!
-//! [`ListField`]: https://docs.rs/runique/latest/runique/macros/bdd/list/struct.ListField.html
+//! [`ListField`]: https://docs.rs/runique/latest/runique/macros/database/list/struct.ListField.html
 use crate::model::ast::*;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};

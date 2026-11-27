@@ -1,6 +1,6 @@
 //! Runique's built-in user entity (table `eihwaz_users`).
 use crate::auth::permissions::pull_groupes_db;
-use crate::auth::permissions::rang::Rang;
+use crate::auth::permissions::rank::Rang;
 pub use crate::auth::user_trait::RuniqueUser;
 use crate::utils::aliases::ADb;
 use crate::utils::config::TraceResult;
@@ -46,14 +46,14 @@ impl_objects!(Entity);
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     /// Group memberships (`eihwaz_users_groupes`) for this user.
-    #[sea_orm(has_many = "crate::auth::permissions::users_groupes::Entity")]
+    #[sea_orm(has_many = "crate::auth::permissions::user_groups::Entity")]
     UsersGroupes,
     /// Authenticated sessions (`eihwaz_sessions`) owned by this user.
     #[sea_orm(has_many = "crate::middleware::session::session_db::Entity")]
     Sessions,
 }
 
-impl Related<crate::auth::permissions::users_groupes::Entity> for Entity {
+impl Related<crate::auth::permissions::user_groups::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::UsersGroupes.def()
     }

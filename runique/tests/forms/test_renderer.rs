@@ -414,7 +414,7 @@ fn test_render_js_inclut_le_nonce_csp() {
 #[test]
 fn test_render_js_vrai_template_interne_ordre_et_nonce() {
     use indexmap::IndexMap;
-    use runique::utils::constante::template::{ERROR_CORPS, SIMPLE_TEMPLATES};
+    use runique::utils::constants::template::{ERROR_CORPS, SIMPLE_TEMPLATES};
 
     let mut tera = Tera::default();
     // Filtres d'abord : Tera 2 valide les filtres/fonctions au moment où les

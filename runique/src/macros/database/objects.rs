@@ -61,7 +61,7 @@ use super::query::RuniqueQueryBuilder;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::{ErrorContext, ErrorType};
 use crate::utils::aliases::{ADb, AppResult};
-use crate::utils::trad::t;
+use crate::utils::translation::t;
 use axum::http::StatusCode;
 use sea_orm::{ColumnTrait, Condition, DbErr, EntityTrait};
 use std::marker::PhantomData;

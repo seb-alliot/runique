@@ -7,7 +7,7 @@ use crate::admin::router::{failure, unknown_resource};
 use crate::auth::current_user::CurrentUser;
 use crate::context::template::Request;
 use crate::utils::aliases::AppResult;
-use crate::utils::trad::t;
+use crate::utils::translation::t;
 use axum::Extension;
 use axum::extract::Path;
 use axum::response::{IntoResponse, Redirect, Response};

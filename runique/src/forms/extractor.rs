@@ -2,9 +2,9 @@
 use crate::forms::prisme::{BodyRefusal, aegis};
 use crate::utils::aliases::{ARuniqueConfig, StrMap, StrVecMap};
 use crate::utils::parse_html::StagingDir;
-use crate::utils::trad::t;
+use crate::utils::translation::t;
 use crate::utils::{
-    constante::session_key::session::CSRF_TOKEN_KEY, crypto::csrf::unmask_csrf_token,
+    constants::session_key::session::CSRF_TOKEN_KEY, crypto::csrf::unmask_csrf_token,
 };
 
 use axum::{

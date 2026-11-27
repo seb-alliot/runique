@@ -12,7 +12,7 @@ use crate::config::static_files::resolve_media_root;
 use crate::forms::base::{FieldConfig, FormField};
 use crate::utils::aliases::ATera;
 use crate::utils::config::TraceResult;
-use crate::utils::trad::{t, tf};
+use crate::utils::translation::{t, tf};
 
 /// What the visitor reads when an upload can't be written: the detail (a
 /// server path, an OS error) goes to the log only.
@@ -89,7 +89,7 @@ impl UploadMedia {
         {
             let req_mb = bytes as f64 / (1024.0 * 1024.0);
             let lim_mb = limit as f64 / (1024.0 * 1024.0);
-            return Err(crate::utils::trad::tf(
+            return Err(crate::utils::translation::tf(
                 runique_i18n::keys::forms::error::MAX_SIZE_ABOVE_MODEL,
                 &[format!("{req_mb:.1}"), format!("{lim_mb:.1}")],
             ));

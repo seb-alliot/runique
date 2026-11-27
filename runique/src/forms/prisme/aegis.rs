@@ -3,7 +3,7 @@ use super::BodyRefusal;
 use crate::utils::{
     aliases::{ARuniqueConfig, StrMap, StrVecMap},
     parse_html::parse_multipart_guarded,
-    trad::{t, tf},
+    translation::{t, tf},
 };
 use axum::{
     body::Body,

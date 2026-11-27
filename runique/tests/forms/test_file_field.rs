@@ -366,7 +366,7 @@ fn test_override_exceeds_limit_err() {
     // calculée qui finit par le même chiffre (6597069766656.0).
     assert_eq!(
         msg,
-        runique::utils::trad::tf(
+        runique::utils::translation::tf(
             runique_i18n::keys::forms::error::MAX_SIZE_ABOVE_MODEL,
             &["6.0", "5.0"]
         )

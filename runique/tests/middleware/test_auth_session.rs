@@ -7,7 +7,7 @@ fn test_current_user_superuser() {
     let user = CurrentUser {
         id: pk(3),
         username: "root".to_string(),
-        rang: runique::auth::permissions::rang::Rang::Superuser,
+        rang: runique::auth::permissions::rank::Rang::Superuser,
         groupes: vec![],
         droits: Vec::new(),
     };

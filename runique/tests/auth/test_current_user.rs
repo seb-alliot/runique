@@ -3,7 +3,7 @@
 
 use crate::helpers::pk::pk;
 use runique::auth::current_user::CurrentUser;
-use runique::auth::permissions::rang::Rang;
+use runique::auth::permissions::rank::Rang;
 use runique::auth::permissions::{Groupe, Permission};
 
 fn perm(resource: &str, create: bool, read: bool, update: bool, delete: bool) -> Permission {
@@ -133,7 +133,7 @@ fn test_rights_on_merges_the_groups() {
     let u = CurrentUser {
         id: pk(1),
         username: "".into(),
-        rang: runique::auth::permissions::rang::Rang::Lambda,
+        rang: runique::auth::permissions::rank::Rang::Lambda,
         groupes: vec![
             Groupe {
                 id: 1,

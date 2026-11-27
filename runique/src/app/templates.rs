@@ -2,7 +2,7 @@
 use crate::config::RuniqueConfig;
 use crate::context::tera::static_tera;
 use crate::utils::aliases::{ARlockmap, StrMap};
-use crate::utils::constante::*;
+use crate::utils::constants::*;
 use regex::Captures;
 use std::path::Path;
 use tera::Tera;

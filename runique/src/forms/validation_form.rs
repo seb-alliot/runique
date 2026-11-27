@@ -396,7 +396,7 @@ mod tests {
     #[cfg(feature = "admin")]
     fn boss() -> crate::auth::current_user::CurrentUser {
         use crate::auth::gate::test_support::fixtures::as_rank;
-        as_rank(32, crate::auth::permissions::rang::Rang::Dirigeant)
+        as_rank(32, crate::auth::permissions::rank::Rang::Dirigeant)
     }
 
     /// An admin who may create and update shelves, on the fields `ticked`
@@ -419,7 +419,7 @@ mod tests {
                 can_update: *update,
             })
             .collect();
-        let mut user = as_rank(33, crate::auth::permissions::rang::Rang::Admin);
+        let mut user = as_rank(33, crate::auth::permissions::rank::Rang::Admin);
         user.droits = vec![right];
         user
     }

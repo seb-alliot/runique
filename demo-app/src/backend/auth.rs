@@ -1,5 +1,5 @@
 use crate::backend::lang::msg;
-use crate::formulaire::{LoginForm, RegisterForm};
+use crate::forms::{LoginForm, RegisterForm};
 use runique::prelude::runique_users::Entity as UserEntity;
 use runique::prelude::*;
 

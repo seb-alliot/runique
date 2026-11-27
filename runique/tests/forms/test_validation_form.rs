@@ -19,7 +19,7 @@ const NAME: &str = "f";
 /// `data` plus the form's name, as sent back by a form `try_form` named `NAME`.
 fn named(mut data: HashMap<String, String>) -> HashMap<String, String> {
     data.insert(
-        runique::utils::constante::session_key::session::FORM_NAME_KEY.to_string(),
+        runique::utils::constants::session_key::session::FORM_NAME_KEY.to_string(),
         NAME.to_string(),
     );
     data
@@ -259,7 +259,7 @@ async fn honeypot_filled_on_get_does_not_force_invalid() {
 // revient dans la requête est validé, les autres repartent sans erreur
 // ═══════════════════════════════════════════════════════════════
 
-use runique::utils::constante::session_key::session::FORM_NAME_KEY;
+use runique::utils::constants::session_key::session::FORM_NAME_KEY;
 
 fn named_data(name: Option<&str>, q: Option<&str>) -> HashMap<String, String> {
     let mut data = HashMap::new();

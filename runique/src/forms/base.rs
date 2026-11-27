@@ -1,7 +1,7 @@
 //! `FormField` trait and `FieldConfig` structure: common base for all form fields.
 use crate::forms::options::*;
 use crate::utils::aliases::*;
-use crate::utils::trad::{t, tf};
+use crate::utils::translation::{t, tf};
 use async_trait::async_trait;
 use dyn_clone::DynClone;
 use serde::{Deserialize, Serialize};

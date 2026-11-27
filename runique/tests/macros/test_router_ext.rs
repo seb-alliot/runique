@@ -1,4 +1,4 @@
-//! Tests — macros/routeur/router_ext
+//! Tests — macros/router/router_ext
 //! Couvre : RouterExt::rate_limit, rate_limit_many, login_required (smoke tests)
 
 use axum::{Router, routing::get};

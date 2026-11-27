@@ -10,7 +10,7 @@ use crate::forms::{
 use crate::impl_from_error;
 use crate::middleware::security::anti_bot::HoneypotFieldName;
 use crate::utils::aliases::{ADb, AEngine, AppResult, StrMap};
-use crate::utils::trad::{t, tf};
+use crate::utils::translation::{t, tf};
 use crate::utils::url_params::UrlParams;
 use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
 use axum::{
@@ -181,7 +181,7 @@ where
         let mut context = Context::new();
         context.insert("debug", &engine.config.debug);
         context.insert("dev", &engine.config.dev);
-        context.insert("lang", crate::utils::trad::current_lang().code());
+        context.insert("lang", crate::utils::translation::current_lang().code());
         context.insert(
             "csrf_token",
             &csrf_token
@@ -279,7 +279,7 @@ impl Request {
         // The backend cannot be reloaded here because it is shared between requests
         context.insert("debug", &engine.config.debug);
         context.insert("dev", &engine.config.dev);
-        context.insert("lang", crate::utils::trad::current_lang().code());
+        context.insert("lang", crate::utils::translation::current_lang().code());
         context.insert("timezone", &engine.config.timezone);
         context.insert("static_runique", &engine.config.static_files);
         context.insert(
@@ -516,7 +516,7 @@ impl Request {
                     level,
                     form = name,
                     "{}",
-                    crate::utils::trad::t(runique_i18n::keys::forms::log::ANTI_BOT_FILLED)
+                    crate::utils::translation::t(runique_i18n::keys::forms::log::ANTI_BOT_FILLED)
                 );
             }
             forms.force_invalid = true;
@@ -536,7 +536,7 @@ impl Request {
             let sent = self
                 .prisme
                 .data
-                .contains_key(crate::utils::constante::session_key::session::CSRF_TOKEN_KEY)
+                .contains_key(crate::utils::constants::session_key::session::CSRF_TOKEN_KEY)
                 || self.headers.contains_key("x-csrf-token");
             crate::middleware::security::csrf::log_refusal(
                 name,
@@ -562,7 +562,7 @@ mod admin_constraint_tests {
     use super::Request;
     use crate::auth::current_user::CurrentUser;
     use crate::auth::gate::{AdminConstraint, test_support::fixtures::pk};
-    use crate::auth::permissions::rang::Rang;
+    use crate::auth::permissions::rank::Rang;
     use crate::config::RuniqueConfig;
     use crate::engine::RuniqueEngine;
     use crate::forms::{

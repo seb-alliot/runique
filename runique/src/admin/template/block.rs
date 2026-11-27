@@ -133,7 +133,7 @@ impl GlobalBlock {
 /// Runique's template for block `name`, from the one table of them.
 fn runique_of(name: &str) -> &'static str {
     // Every variant's name is in the table: `every_block_names_a_template_runique_ships`.
-    crate::utils::constante::template::admin_block(name).unwrap_or_default()
+    crate::utils::constants::template::admin_block(name).unwrap_or_default()
 }
 
 /// Where a block's stylesheet comes from: the tag that loads it differs,
@@ -300,7 +300,7 @@ mod tests {
 
     #[test]
     fn every_block_names_a_template_runique_ships() {
-        let shipped: Vec<&str> = crate::utils::constante::template::ADMIN_TEMPLATES
+        let shipped: Vec<&str> = crate::utils::constants::template::ADMIN_TEMPLATES
             .iter()
             .map(|(name, _)| *name)
             .collect();
@@ -314,7 +314,7 @@ mod tests {
         let named = Block::ALL.len() + GlobalBlock::ALL.len();
         assert_eq!(
             named,
-            crate::utils::constante::template::ADMIN_BLOCKS.len(),
+            crate::utils::constants::template::ADMIN_BLOCKS.len(),
             "one name each"
         );
     }

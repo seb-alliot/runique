@@ -59,7 +59,7 @@ pub(crate) fn files(
     engine: Engine,
     runique_version: &str,
 ) -> Vec<(PathBuf, Vec<u8>)> {
-    let cargo = include_str!("composant-bin/migration_cargo")
+    let cargo = include_str!("starter/migration_cargo")
         .replace("{{RUNIQUE_VERSION}}", runique_version)
         .replace("{{CLI_VERSION}}", env!("CARGO_PKG_VERSION"))
         .replace("{{DB_FEATURE}}", engine.feature())
@@ -69,7 +69,7 @@ pub(crate) fn files(
         (migration_dir.join("Cargo.toml"), cargo.into_bytes()),
         (
             migration_dir.join("src/main.rs"),
-            include_bytes!("composant-bin/migration_main.rs").to_vec(),
+            include_bytes!("starter/migration_main.rs").to_vec(),
         ),
         (
             migration_dir.join("src/lib.rs"),

@@ -1,7 +1,7 @@
 //! Special fields: `ColorField`, `UUIDField`, `IPAddressField`, `JSONField`, `SlugField`.
 use crate::forms::base::{FieldConfig, FormField};
 use crate::utils::aliases::ATera;
-use crate::utils::trad::{t, tf};
+use crate::utils::translation::{t, tf};
 use async_trait::async_trait;
 use serde::Serialize;
 use serde_json::json;

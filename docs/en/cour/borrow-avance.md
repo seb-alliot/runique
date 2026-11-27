@@ -539,7 +539,7 @@ impl Form {
 ### 10.1 Translations: `Cow<'static, str>`
 
 ```rust
-// runique/src/utils/trad/switch_lang.rs
+// runique/src/utils/translation/switch_lang.rs
 pub fn t(key: &str) -> Cow<'static, str> { /* ... */ }
 pub fn tf<T: Display>(key: &str, args: &[T]) -> String { /* ... */ }
 ```

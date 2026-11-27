@@ -11,8 +11,8 @@ use crate::middleware::errors::error::html_escape;
 use crate::utils::config::TraceResult;
 use crate::utils::{
     aliases::{FieldsMap, JsonMap, StrMap},
-    constante::session_key::session::{CSRF_TOKEN_KEY, FORM_NAME_KEY},
-    trad::{t, tf},
+    constants::session_key::session::{CSRF_TOKEN_KEY, FORM_NAME_KEY},
+    translation::{t, tf},
 };
 use axum::http::Method;
 use indexmap::IndexMap;
@@ -459,7 +459,7 @@ impl Forms {
                         crate::runique_log!(
                             level,
                             field = %field.name(),
-                            "{}", crate::utils::trad::t(runique_i18n::keys::csrf::log::SET_VALUE)
+                            "{}", crate::utils::translation::t(runique_i18n::keys::csrf::log::SET_VALUE)
                         );
                     } else {
                         crate::runique_log!(level, field = %field.name(), value = %value, "set_value");
@@ -849,7 +849,7 @@ impl Forms {
 
     #[cfg(any(feature = "sqlite", feature = "postgres", feature = "mysql"))]
     fn extract_field_name(err_msg: &str) -> Option<String> {
-        use crate::utils::constante::{CONSTRAINT_REGEX, FAILED_REGEX, FOR_KEY_REGEX, KEY_REGEX};
+        use crate::utils::constants::{CONSTRAINT_REGEX, FAILED_REGEX, FOR_KEY_REGEX, KEY_REGEX};
 
         if let Some(cap) = CONSTRAINT_REGEX.captures(err_msg).ok()? {
             let constraint = cap.get(1)?.as_str();
@@ -918,7 +918,7 @@ mod save_comportement_tests {
 mod database_error_tests {
     use super::Forms;
     use crate::forms::fields::TextField;
-    use crate::utils::trad::t;
+    use crate::utils::translation::t;
     use sea_orm::DbErr;
 
     fn form_with(name: &str) -> Forms {
@@ -953,7 +953,7 @@ mod database_error_tests {
 mod driver_error_tests {
     use super::Forms;
     use crate::forms::fields::TextField;
-    use crate::utils::trad::{t, tf};
+    use crate::utils::translation::{t, tf};
     use sea_orm::sqlx::error::{DatabaseError, ErrorKind};
     use sea_orm::{DbErr, RuntimeErr};
     use std::sync::Arc;

@@ -4,7 +4,7 @@ use crate::auth::meta::ModelMeta;
 use crate::auth::permissions::rights::ColumnRights;
 use crate::forms::column_value::{column_value, null_value};
 use crate::forms::form::Forms;
-use crate::utils::trad::t;
+use crate::utils::translation::t;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, IdenStatic, Iterable, PrimaryKeyToColumn,
 };

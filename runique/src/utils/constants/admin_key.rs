@@ -19,7 +19,7 @@ pub mod resource_key {
 
 /// The messages of the built-in admin templates, grouped by section: the
 /// template variable, then the key of the message.
-/// [`insert_admin_messages`](crate::admin::trad::insert_admin_messages) filters
+/// [`insert_admin_messages`](crate::admin::translation::insert_admin_messages) filters
 /// this list by the `admin.<section>.` prefix of the key and injects each match
 /// into the Tera context under its variable.
 ///

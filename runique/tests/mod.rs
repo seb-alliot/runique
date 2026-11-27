@@ -38,7 +38,7 @@ pub mod context;
 pub mod db;
 pub mod errors;
 pub mod flash;
-pub mod formulaire;
+pub mod forms;
 pub mod helpers;
 pub mod macros;
 pub mod middleware;

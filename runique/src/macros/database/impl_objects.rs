@@ -11,8 +11,8 @@ macro_rules! impl_objects {
     ($entity:ty) => {
         impl $entity {
             #[allow(non_upper_case_globals)]
-            pub const objects: $crate::macros::bdd::objects::Objects<Self> =
-                $crate::macros::bdd::objects::Objects::new();
+            pub const objects: $crate::macros::database::objects::Objects<Self> =
+                $crate::macros::database::objects::Objects::new();
         }
     };
 }

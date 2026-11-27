@@ -24,13 +24,13 @@ use crate::middleware::security::rate_limit_middleware;
 use crate::urlpatterns;
 use crate::utils::{
     aliases::{AppResult, StrMap},
-    trad::{current_lang, t, tf},
+    translation::{current_lang, t, tf},
 };
 use crate::{
     admin::{
         config::AdminConfig,
         middleware::{admin_access, declared_route_access},
-        trad::{inject_admin_prefix, insert_admin_messages},
+        translation::{inject_admin_prefix, insert_admin_messages},
     },
     flash_now,
 };
@@ -461,7 +461,7 @@ async fn admin_login_post(
         csrf_token: req
             .prisme
             .data
-            .get(crate::utils::constante::session_key::session::CSRF_TOKEN_KEY)
+            .get(crate::utils::constants::session_key::session::CSRF_TOKEN_KEY)
             .cloned()
             .unwrap_or_default(),
     };

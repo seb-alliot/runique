@@ -114,9 +114,9 @@ impl CoreStaging {
             report.add(
                 CheckError::new(
                     "Database",
-                    crate::utils::trad::t(runique_i18n::keys::build::error::DB_REQUIRED),
+                    crate::utils::translation::t(runique_i18n::keys::build::error::DB_REQUIRED),
                 )
-                .with_suggestion(crate::utils::trad::t(
+                .with_suggestion(crate::utils::translation::t(
                     runique_i18n::keys::build::hint::DB_REQUIRED,
                 )),
             );

@@ -1,7 +1,7 @@
 //! Form validation: `ValidationError` and `FormValidator` with error accumulation.
 use crate::utils::{
     aliases::{FieldsMap, StrMap},
-    trad::t,
+    translation::t,
 };
 use std::fmt;
 

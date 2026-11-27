@@ -4,7 +4,7 @@ use crate::admin::router::AdminView;
 use crate::admin::router::admin_router::AdminState;
 use crate::admin::router::context::{DetailContext, ResourceRef, RowLinks, put};
 use crate::admin::router::{chrome, failure, unknown_resource};
-use crate::admin::trad::insert_admin_messages;
+use crate::admin::translation::insert_admin_messages;
 use crate::auth::current_user::CurrentUser;
 use crate::context::template::Request;
 use crate::utils::aliases::AppResult;
@@ -54,7 +54,7 @@ pub(crate) async fn detail_view(
         && let Some(account) =
             crate::auth::user::BuiltinUserEntity::find_by_id(&req.engine.db, pk).await
     {
-        let rang = crate::auth::permissions::rang::Rang::from(&account);
+        let rang = crate::auth::permissions::rank::Rang::from(&account);
         account_summary =
             match crate::admin::router::account::summary::account_summaries(&req.engine.db, &[pk])
                 .await
@@ -71,7 +71,7 @@ pub(crate) async fn detail_view(
             };
         // The groups the viewer manages, ticked when the account belongs.
         if crate::auth::gate::membership::may_set_memberships(&user, &account) {
-            use crate::auth::permissions::users_groupes;
+            use crate::auth::permissions::user_groups;
             use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
             let db = &req.engine.db;
             let groups = match crate::auth::gate::membership::managed_groups(&user, db).await {
@@ -85,8 +85,8 @@ pub(crate) async fn detail_view(
                     .await;
                 }
             };
-            let member_of: Vec<i32> = match users_groupes::Entity::find()
-                .filter(users_groupes::Column::UserId.eq(account.id))
+            let member_of: Vec<i32> = match user_groups::Entity::find()
+                .filter(user_groups::Column::UserId.eq(account.id))
                 .all(db)
                 .await
             {
@@ -124,10 +124,10 @@ pub(crate) async fn detail_view(
     // dirigeant, and who took it back if it waits for a responsable.
     let mut transfer_receivers = Vec::new();
     let mut taken_by = None;
-    if key == crate::utils::constante::resource_key::GROUPES
+    if key == crate::utils::constants::resource_key::GROUPES
         && let Ok(group_id) = id.parse::<i32>()
         && let Ok(Some(group)) =
-            <crate::auth::permissions::groupe::Entity as sea_orm::EntityTrait>::find_by_id(group_id)
+            <crate::auth::permissions::group::Entity as sea_orm::EntityTrait>::find_by_id(group_id)
                 .one(&req.engine.db)
                 .await
     {
@@ -138,7 +138,7 @@ pub(crate) async fn detail_view(
         let db = &req.engine.db;
         let found = async {
             let taken = transfer::taken_by(&[group_id], db).await?;
-            let receivers = if user.rang >= crate::auth::permissions::rang::Rang::Dirigeant {
+            let receivers = if user.rang >= crate::auth::permissions::rank::Rang::Dirigeant {
                 transfer::receivers(&group, db).await?
             } else {
                 Vec::new()

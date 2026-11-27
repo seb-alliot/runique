@@ -4,7 +4,7 @@ pub mod config;
 pub mod middleware;
 pub mod router;
 pub mod template;
-pub mod trad;
+pub mod translation;
 
 pub use crate::auth::gate::operation::CrudOperation;
 pub use crate::auth::meta::ModelMeta;
@@ -13,4 +13,4 @@ pub use config::AdminConfig;
 pub use router::admin_router::AdminState;
 pub(crate) use router::build_admin_router;
 pub use router::{AdminView, admin_page_context};
-pub use trad::{inject_admin_prefix, insert_admin_messages};
+pub use translation::{inject_admin_prefix, insert_admin_messages};

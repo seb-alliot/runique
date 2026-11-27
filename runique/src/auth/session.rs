@@ -3,7 +3,7 @@ use crate::auth::user_trait::RuniqueUser;
 use crate::middleware::security::csrf::rotate_csrf_token;
 use crate::middleware::session::session_db::RuniqueSessionStore;
 use crate::utils::config::TraceResult;
-use crate::utils::constante::session_key::session::{
+use crate::utils::constants::session_key::session::{
     SESSION_ACTIVE_KEY, SESSION_USER_ID_KEY, SESSION_VERSION_KEY,
 };
 use crate::utils::pk::Pk;
@@ -398,10 +398,10 @@ pub enum LoginError {
 impl std::fmt::Display for LoginError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::CannotSignIn => f.write_str(&crate::utils::trad::t(
+            Self::CannotSignIn => f.write_str(&crate::utils::translation::t(
                 runique_i18n::keys::auth::error::LOGIN_CANNOT_SIGN_IN,
             )),
-            Self::Session(e) => f.write_str(&crate::utils::trad::tf(
+            Self::Session(e) => f.write_str(&crate::utils::translation::tf(
                 runique_i18n::keys::auth::error::LOGIN_SESSION_FAILED,
                 &[e],
             )),

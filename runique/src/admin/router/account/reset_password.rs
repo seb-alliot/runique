@@ -10,7 +10,7 @@ use crate::auth::user::BuiltinUserEntity;
 use crate::context::template::Request;
 use crate::utils::aliases::AppResult;
 use crate::utils::pk::Pk;
-use crate::utils::trad::{t, tf};
+use crate::utils::translation::{t, tf};
 use axum::Extension;
 use axum::extract::Path;
 use axum::response::{IntoResponse, Redirect, Response};
@@ -51,7 +51,7 @@ impl AccountLink {
         // The language the mail is written in, for its `<html lang>`.
         let lang = (
             "lang",
-            crate::utils::trad::current_lang().code().to_string(),
+            crate::utils::translation::current_lang().code().to_string(),
         );
         match self {
             Self::Reset => vec![

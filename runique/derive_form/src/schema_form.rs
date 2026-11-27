@@ -134,8 +134,8 @@ pub(crate) fn model_schema(attr: TokenStream, item: TokenStream) -> TokenStream 
             type Entity = #schema_path::Entity;
         }
         impl #name {
-            pub const objects: ::runique::macros::bdd::objects::Objects<#schema_path::Entity> =
-                ::runique::macros::bdd::objects::Objects::new();
+            pub const objects: ::runique::macros::database::objects::Objects<#schema_path::Entity> =
+                ::runique::macros::database::objects::Objects::new();
         }
     };
 

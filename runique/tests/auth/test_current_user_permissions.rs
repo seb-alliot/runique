@@ -34,7 +34,7 @@ fn test_multi_groupes_or_permissions() {
     let user = CurrentUser {
         id: pk(10_008),
         username: "alice".into(),
-        rang: runique::auth::permissions::rang::Rang::Lambda,
+        rang: runique::auth::permissions::rank::Rang::Lambda,
         groupes: vec![
             Groupe {
                 id: 1,
@@ -87,7 +87,7 @@ fn test_can_access_resource_necessite_can_read() {
     let user = CurrentUser {
         id: pk(10_009),
         username: "bob".into(),
-        rang: runique::auth::permissions::rang::Rang::Lambda,
+        rang: runique::auth::permissions::rank::Rang::Lambda,
         groupes: vec![make_groupe("articles", false)], // can_read = false
         droits: Vec::new(),
     };
@@ -101,7 +101,7 @@ fn test_can_access_resource_avec_can_read() {
     let user = CurrentUser {
         id: pk(10_010),
         username: "carol".into(),
-        rang: runique::auth::permissions::rang::Rang::Lambda,
+        rang: runique::auth::permissions::rank::Rang::Lambda,
         groupes: vec![make_groupe("articles", true)], // can_read = true
         droits: Vec::new(),
     };

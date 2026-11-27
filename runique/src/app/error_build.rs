@@ -1,5 +1,5 @@
 //! Application construction phase errors (build-time).
-use crate::utils::trad::{t, tf};
+use crate::utils::translation::{t, tf};
 use std::fmt;
 
 /// Main build phase error

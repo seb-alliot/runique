@@ -261,7 +261,9 @@ impl RuniqueLog {
         if self.external && !self.outputs.is_empty() {
             tracing::warn!(
                 "{}",
-                crate::utils::trad::t(runique_i18n::keys::build::error::EXTERNAL_OUTPUTS_IGNORED)
+                crate::utils::translation::t(
+                    runique_i18n::keys::build::error::EXTERNAL_OUTPUTS_IGNORED
+                )
             );
         }
         if self.external {
@@ -308,7 +310,7 @@ impl RuniqueLog {
         if already_installed {
             tracing::warn!(
                 "{}",
-                crate::utils::trad::t(
+                crate::utils::translation::t(
                     runique_i18n::keys::build::error::SUBSCRIBER_ALREADY_INSTALLED
                 )
             );

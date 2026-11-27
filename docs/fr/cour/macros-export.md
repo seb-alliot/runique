@@ -375,7 +375,7 @@ Un test d'intégration (`tests/macros.rs`) utilise la macro exactement comme une
 ### 10.1 `urlpatterns!` : `$crate`, méthodes cachées
 
 ```rust
-// runique/src/macros/routeur/router.rs
+// runique/src/macros/router/urlpatterns.rs
 #[macro_export]
 macro_rules! urlpatterns {
     // ...
@@ -385,7 +385,7 @@ macro_rules! urlpatterns {
     };
 }
 
-// runique/src/macros/routeur/routes.rs
+// runique/src/macros/router/routes.rs
 impl Routes {
     /// Used by `urlpatterns!`; construct route sets through the macro.
     #[doc(hidden)]
@@ -402,7 +402,7 @@ La macro est exportée à la racine (`runique::urlpatterns!`), s'appelle elle-m�
 ### 10.2 Une macro d'aide cachée
 
 ```rust
-// runique/src/macros/bdd/filter.rs
+// runique/src/macros/database/filter.rs
 #[macro_export]
 #[doc(hidden)]
 macro_rules! search_apply_op { /* eq, icontains, gte... */ }

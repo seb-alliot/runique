@@ -1,10 +1,10 @@
 //! Admin permissions: groups and rights loaded from the database.
-pub mod groupe;
-pub mod groupes_droits;
-pub mod rang;
+pub mod group;
+pub mod group_rights;
+pub mod rank;
 pub mod rights;
-pub mod users_groupes;
-use crate::auth::{permissions::rang::Rang, user};
+pub mod user_groups;
+use crate::auth::{permissions::rank::Rang, user};
 use sea_orm::{
     ColumnTrait, Condition, ConnectionTrait, EntityTrait, JoinType, QueryFilter, QuerySelect,
     RelationTrait,
@@ -114,7 +114,7 @@ impl Permission {
 /// (`colonne = ''`) gives the table rights, each column row joins that
 /// table's `colonnes`. Column rows without a table row give nothing: the
 /// table rights stay false, and a column is only read under its table right.
-fn assemble(rows: impl IntoIterator<Item = groupes_droits::Model>) -> Vec<Permission> {
+fn assemble(rows: impl IntoIterator<Item = group_rights::Model>) -> Vec<Permission> {
     let mut perms: Vec<Permission> = Vec::new();
     for m in rows {
         let i = match perms.iter().position(|p| p.resource_key == m.resource_key) {
@@ -152,12 +152,12 @@ fn assemble(rows: impl IntoIterator<Item = groupes_droits::Model>) -> Vec<Permis
 #[cfg(feature = "admin")]
 pub(crate) fn group_rows_within(
     groupe_id: i32,
-    rows: Vec<groupes_droits::Model>,
-    holder: &[groupes_droits::Model],
-) -> Vec<groupes_droits::ActiveModel> {
+    rows: Vec<group_rights::Model>,
+    holder: &[group_rights::Model],
+) -> Vec<group_rights::ActiveModel> {
     use sea_orm::Set;
     let holder = assemble(holder.iter().cloned());
-    let row = |key: &str, colonne: &str| groupes_droits::ActiveModel {
+    let row = |key: &str, colonne: &str| group_rights::ActiveModel {
         groupe_id: Set(Some(groupe_id)),
         user_id: Set(None),
         resource_key: Set(key.to_string()),
@@ -239,9 +239,9 @@ pub async fn prune_orphan_droits<C: ConnectionTrait>(
     if valid_keys.is_empty() {
         return Ok(0);
     }
-    let res = groupes_droits::Entity::delete_many()
+    let res = group_rights::Entity::delete_many()
         .filter(
-            groupes_droits::Column::ResourceKey.is_not_in(valid_keys.iter().map(|k| k.to_string())),
+            group_rights::Column::ResourceKey.is_not_in(valid_keys.iter().map(|k| k.to_string())),
         )
         .exec(db)
         .await?;
@@ -263,19 +263,19 @@ pub async fn pull_groupes_db<C: ConnectionTrait>(
         tracing::error!(user_id = %user_id, error = %e, "{what} failed — no rights granted for this request");
     };
     let rows: Vec<(i32, String, bool, crate::utils::pk::Pk, bool, bool, bool)> =
-        match groupe::Entity::find()
+        match group::Entity::find()
             .select_only()
-            .column(groupe::Column::Id)
-            .column(groupe::Column::Nom)
-            .column(groupe::Column::IsStaff)
-            .column(groupe::Column::ResponsableId)
+            .column(group::Column::Id)
+            .column(group::Column::Nom)
+            .column(group::Column::IsStaff)
+            .column(group::Column::ResponsableId)
             .column(user::Column::IsSuperuser)
             .column(user::Column::IsDirigeant)
             .column(user::Column::IsAdmin)
-            .join(JoinType::InnerJoin, groupe::Relation::UsersGroupes.def())
-            .join(JoinType::InnerJoin, groupe::Relation::Responsable.def())
-            .filter(users_groupes::Column::UserId.eq(user_id))
-            .filter(groupe::Column::IsActive.eq(true))
+            .join(JoinType::InnerJoin, group::Relation::UsersGroupes.def())
+            .join(JoinType::InnerJoin, group::Relation::Responsable.def())
+            .filter(user_groups::Column::UserId.eq(user_id))
+            .filter(group::Column::IsActive.eq(true))
             .filter(user::Column::IsActive.eq(true))
             .filter(
                 Condition::any()
@@ -301,11 +301,11 @@ pub async fn pull_groupes_db<C: ConnectionTrait>(
         .iter()
         .filter(|r| Rang::of(r.4, r.5, r.6) == Rang::Admin)
         .map(|r| r.3);
-    let droits = match groupes_droits::Entity::find()
+    let droits = match group_rights::Entity::find()
         .filter(
             Condition::any()
-                .add(groupes_droits::Column::GroupeId.is_in(rows.iter().map(|r| r.0)))
-                .add(groupes_droits::Column::UserId.is_in(admins)),
+                .add(group_rights::Column::GroupeId.is_in(rows.iter().map(|r| r.0)))
+                .add(group_rights::Column::UserId.is_in(admins)),
         )
         .all(db)
         .await
@@ -355,7 +355,7 @@ pub async fn load_rights<C: ConnectionTrait>(
     user: &mut crate::auth::current_user::CurrentUser,
 ) {
     user.groupes = pull_groupes_db(db, user.id).await;
-    user.droits = if user.rang == crate::auth::permissions::rang::Rang::Admin {
+    user.droits = if user.rang == crate::auth::permissions::rank::Rang::Admin {
         pull_droits_compte(db, user.id).await
     } else {
         Vec::new()
@@ -369,8 +369,8 @@ pub async fn pull_droits_compte<C: ConnectionTrait>(
     db: &C,
     user_id: crate::utils::pk::Pk,
 ) -> Vec<Permission> {
-    match groupes_droits::Entity::find()
-        .filter(groupes_droits::Column::UserId.eq(user_id))
+    match group_rights::Entity::find()
+        .filter(group_rights::Column::UserId.eq(user_id))
         .all(db)
         .await
     {

@@ -4,7 +4,7 @@ use crate::auth::gate::PkOf;
 use crate::auth::gate::change::FieldErrors;
 use crate::auth::meta::ModelMeta;
 use crate::forms::form::Forms;
-use crate::utils::trad::t;
+use crate::utils::translation::t;
 use sea_orm::{DbErr, IdenStatic, Iterable, PrimaryKeyToColumn};
 use std::str::FromStr;
 

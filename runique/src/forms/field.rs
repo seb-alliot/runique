@@ -5,7 +5,7 @@ pub use crate::forms::{
 };
 use crate::utils::{
     aliases::{ATera, StrMap},
-    trad::t,
+    translation::t,
 };
 
 use async_trait::async_trait;
@@ -262,7 +262,7 @@ async fn submission_accepted<T: RuniqueForm>(form: &mut T) -> bool {
         }
         Err(error) => {
             if let Some(level) = crate::utils::runique_log::log_level!(forms.validate) {
-                crate::runique_log!(level, error = ?error, "{}", crate::utils::trad::t(runique_i18n::keys::forms::log::VALIDATION_FAILED));
+                crate::runique_log!(level, error = ?error, "{}", crate::utils::translation::t(runique_i18n::keys::forms::log::VALIDATION_FAILED));
             }
             return false;
         }

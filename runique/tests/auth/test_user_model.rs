@@ -4,7 +4,7 @@
 use crate::helpers::db;
 use crate::helpers::pk::pk;
 use runique::auth::{
-    BuiltinUserEntity, permissions::rang::Rang, user::Model, user_trait::RuniqueUser,
+    BuiltinUserEntity, permissions::rank::Rang, user::Model, user_trait::RuniqueUser,
 };
 
 // ─── Helper ──────────────────────────────────────────────────────────────────

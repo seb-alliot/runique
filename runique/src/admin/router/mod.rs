@@ -24,13 +24,13 @@ pub enum AdminView {
 
 use crate::admin::builder::registered::AdminError;
 use crate::admin::builder::site::AdminSite;
-use crate::admin::trad::{inject_admin_prefix, insert_admin_messages};
+use crate::admin::translation::{inject_admin_prefix, insert_admin_messages};
 use crate::auth::current_user::CurrentUser;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::urlpatterns;
 use crate::utils::aliases::AppResult;
-use crate::utils::constante::admin_key::admin_route;
+use crate::utils::constants::admin_key::admin_route;
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::{Extension, Router, routing::get};
 use context::NavLinks;
@@ -112,7 +112,7 @@ fn chrome(
     req.context.insert("nav", &nav);
     req.context.insert("site_title", &admin.config.site_title);
     req.context
-        .insert("lang", crate::utils::trad::current_lang().code());
+        .insert("lang", crate::utils::translation::current_lang().code());
 }
 
 /// What a page declared `admin` in `urlpatterns!` needs to extend

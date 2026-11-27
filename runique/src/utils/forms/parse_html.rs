@@ -3,8 +3,8 @@ use crate::{
     errors::error::ErrorContext,
     forms::prisme::BodyRefusal,
     utils::aliases::StrVecMap,
-    utils::constante::session_key::session::CSRF_TOKEN_KEY,
-    utils::trad::{t, tf},
+    utils::constants::session_key::session::CSRF_TOKEN_KEY,
+    utils::translation::{t, tf},
 };
 use axum::{extract::Multipart, http::StatusCode};
 use futures_util::StreamExt;
@@ -1211,7 +1211,7 @@ mod direct_parse_tests {
 
 /// The upload chain from `parse_multipart` on: fill → validate → publish, and
 /// what a file field accepts as its value. Moved from
-/// `tests/formulaire/test_file_field_path_guard.rs` when `parse_multipart`
+/// `tests/forms/test_file_field_path_guard.rs` when `parse_multipart`
 /// became `pub(crate)`.
 #[cfg(test)]
 mod upload_chain_tests {

@@ -11,7 +11,7 @@ use crate::backend::{
     forms::{extract_helpers_data, get_field_groups, handle_upload_image},
     inject_globals, split_markdown_sections,
 };
-use crate::formulaire::{
+use crate::forms::{
     BlogForm, ContributionForm, DeleteAccountForm, ImageForm, LoginForm, RegisterForm,
     SearchDemoForm,
 };

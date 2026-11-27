@@ -4,11 +4,11 @@
 use super::refusal::{Refusal, RefusalReason};
 use crate::auth::current_user::CurrentUser;
 use crate::auth::history::{ActionLog, log_action};
-use crate::auth::permissions::rang::Rang;
-use crate::auth::permissions::{group_rows_within, groupe, groupes_droits};
+use crate::auth::permissions::rank::Rang;
+use crate::auth::permissions::{group, group_rights, group_rows_within};
 use crate::auth::user;
 use crate::utils::aliases::ADb;
-use crate::utils::constante::resource_key;
+use crate::utils::constants::resource_key;
 use crate::utils::pk::Pk;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect, Set,
@@ -82,7 +82,7 @@ impl ColumnGrant {
 }
 
 /// The grid as it is stored: a table's row, then its columns' rows.
-pub(in crate::auth::gate) fn from_rows(rows: &[groupes_droits::Model]) -> Vec<TableGrant> {
+pub(in crate::auth::gate) fn from_rows(rows: &[group_rights::Model]) -> Vec<TableGrant> {
     let mut tables: std::collections::BTreeMap<&str, TableGrant> = Default::default();
     for row in rows {
         let table = tables
@@ -190,17 +190,17 @@ pub(crate) async fn set_admin_rights(
         return Err(refused(RefusalReason::NoRight));
     }
 
-    let before = groupes_droits::Entity::find()
-        .filter(groupes_droits::Column::UserId.eq(target))
+    let before = group_rights::Entity::find()
+        .filter(group_rights::Column::UserId.eq(target))
         .all(&txn)
         .await?;
-    groupes_droits::Entity::delete_many()
-        .filter(groupes_droits::Column::UserId.eq(target))
+    group_rights::Entity::delete_many()
+        .filter(group_rights::Column::UserId.eq(target))
         .exec(&txn)
         .await?;
     for grant in grants.iter().filter(|g| g.table.any()) {
         let t = grant.table;
-        groupes_droits::ActiveModel {
+        group_rights::ActiveModel {
             groupe_id: Set(None),
             user_id: Set(Some(target)),
             resource_key: Set(grant.resource_key.clone()),
@@ -221,7 +221,7 @@ pub(crate) async fn set_admin_rights(
             .iter()
             .filter(|c| c.read || c.create || c.update)
         {
-            groupes_droits::ActiveModel {
+            group_rights::ActiveModel {
                 groupe_id: Set(None),
                 user_id: Set(Some(target)),
                 resource_key: Set(grant.resource_key.clone()),
@@ -243,24 +243,24 @@ pub(crate) async fn set_admin_rights(
     // A right taken from the admin is taken from the groups he answers for,
     // in the same transaction. Stored, not only read through his grid: a
     // right given back to him later wakes no dormant row of theirs.
-    let groups: Vec<i32> = groupe::Entity::find()
+    let groups: Vec<i32> = group::Entity::find()
         .select_only()
-        .column(groupe::Column::Id)
-        .filter(groupe::Column::ResponsableId.eq(target))
+        .column(group::Column::Id)
+        .filter(group::Column::ResponsableId.eq(target))
         .into_tuple()
         .all(&txn)
         .await?;
     if !groups.is_empty() {
-        let grid = groupes_droits::Entity::find()
-            .filter(groupes_droits::Column::UserId.eq(target))
+        let grid = group_rights::Entity::find()
+            .filter(group_rights::Column::UserId.eq(target))
             .all(&txn)
             .await?;
-        let rows = groupes_droits::Entity::find()
-            .filter(groupes_droits::Column::GroupeId.is_in(groups.iter().copied()))
+        let rows = group_rights::Entity::find()
+            .filter(group_rights::Column::GroupeId.is_in(groups.iter().copied()))
             .all(&txn)
             .await?;
-        groupes_droits::Entity::delete_many()
-            .filter(groupes_droits::Column::GroupeId.is_in(groups.iter().copied()))
+        group_rights::Entity::delete_many()
+            .filter(group_rights::Column::GroupeId.is_in(groups.iter().copied()))
             .exec(&txn)
             .await?;
         for id in groups {
@@ -271,7 +271,7 @@ pub(crate) async fn set_admin_rights(
                 .collect();
             let kept = group_rows_within(id, own, &grid);
             if !kept.is_empty() {
-                groupes_droits::Entity::insert_many(kept).exec(&txn).await?;
+                group_rights::Entity::insert_many(kept).exec(&txn).await?;
             }
         }
     }
@@ -299,7 +299,7 @@ pub(crate) async fn set_admin_rights(
 /// May `actor` set group `group`'s rights: the superuser and a dirigeant on
 /// any group; an admin on a group he answers for, when his grid lets him
 /// update the groups.
-pub(crate) fn may_set_group(actor: &CurrentUser, group: &groupe::Model) -> Result<(), DbErr> {
+pub(crate) fn may_set_group(actor: &CurrentUser, group: &group::Model) -> Result<(), DbErr> {
     if actor.rang >= Rang::Dirigeant {
         return Ok(());
     }
@@ -359,7 +359,7 @@ pub(crate) async fn set_group_rights(
     db: &ADb,
 ) -> Result<(), DbErr> {
     let txn = db.begin().await?;
-    let Some(group) = groupe::Entity::find_by_id(group_id).one(&txn).await? else {
+    let Some(group) = group::Entity::find_by_id(group_id).one(&txn).await? else {
         return Err(refused(RefusalReason::NotFound));
     };
     may_set_group(actor, &group)?;
@@ -371,17 +371,17 @@ pub(crate) async fn set_group_rights(
         return Err(refused(RefusalReason::NoRight));
     }
 
-    let before = groupes_droits::Entity::find()
-        .filter(groupes_droits::Column::GroupeId.eq(group_id))
+    let before = group_rights::Entity::find()
+        .filter(group_rights::Column::GroupeId.eq(group_id))
         .all(&txn)
         .await?;
-    groupes_droits::Entity::delete_many()
-        .filter(groupes_droits::Column::GroupeId.eq(group_id))
+    group_rights::Entity::delete_many()
+        .filter(group_rights::Column::GroupeId.eq(group_id))
         .exec(&txn)
         .await?;
     let rows = grant_rows(grants, Some(group_id), None);
     if !rows.is_empty() {
-        groupes_droits::Entity::insert_many(rows).exec(&txn).await?;
+        group_rights::Entity::insert_many(rows).exec(&txn).await?;
     }
 
     let summary = serde_json::json!({
@@ -410,11 +410,11 @@ fn grant_rows(
     grants: &[TableGrant],
     groupe_id: Option<i32>,
     user_id: Option<Pk>,
-) -> Vec<groupes_droits::ActiveModel> {
+) -> Vec<group_rights::ActiveModel> {
     let mut rows = Vec::new();
     for grant in grants.iter().filter(|g| g.table.any()) {
         let t = grant.table;
-        rows.push(groupes_droits::ActiveModel {
+        rows.push(group_rights::ActiveModel {
             groupe_id: Set(groupe_id),
             user_id: Set(user_id),
             resource_key: Set(grant.resource_key.clone()),
@@ -433,7 +433,7 @@ fn grant_rows(
             .iter()
             .filter(|c| c.read || c.create || c.update)
         {
-            rows.push(groupes_droits::ActiveModel {
+            rows.push(group_rights::ActiveModel {
                 groupe_id: Set(groupe_id),
                 user_id: Set(user_id),
                 resource_key: Set(grant.resource_key.clone()),
@@ -462,8 +462,8 @@ mod tests {
         read: bool,
         create: bool,
         update: bool,
-    ) -> groupes_droits::Model {
-        groupes_droits::Model {
+    ) -> group_rights::Model {
+        group_rights::Model {
             id: 0,
             groupe_id: None,
             user_id: None,
@@ -562,8 +562,8 @@ mod tests {
             .await
             .unwrap();
 
-        let rows = groupes_droits::Entity::find()
-            .filter(groupes_droits::Column::UserId.eq(pk(33)))
+        let rows = group_rights::Entity::find()
+            .filter(group_rights::Column::UserId.eq(pk(33)))
             .all(&db)
             .await
             .unwrap();
@@ -584,8 +584,8 @@ mod tests {
         let db = db().await;
         let schema = Schema::new(sea_orm::DatabaseBackend::Sqlite);
         for table in [
-            schema.create_table_from_entity(groupe::Entity),
-            schema.create_table_from_entity(groupes_droits::Entity),
+            schema.create_table_from_entity(group::Entity),
+            schema.create_table_from_entity(group_rights::Entity),
         ] {
             db.execute(&table).await.unwrap();
         }
@@ -602,8 +602,8 @@ mod tests {
     /// The rows of group `id`, as the grid reads them.
     #[cfg(feature = "sqlite")]
     async fn group_grid(db: &ADb, id: i32) -> String {
-        let rows = groupes_droits::Entity::find()
-            .filter(groupes_droits::Column::GroupeId.eq(id))
+        let rows = group_rights::Entity::find()
+            .filter(group_rights::Column::GroupeId.eq(id))
             .all(db)
             .await
             .unwrap();
@@ -619,7 +619,7 @@ mod tests {
         use crate::auth::gate::test_support::fixtures::pk;
         let (db, actor) = grid_db().await;
         for (id, responsable) in [(1, pk(33)), (2, pk(32))] {
-            groupe::ActiveModel {
+            group::ActiveModel {
                 id: Set(id),
                 nom: Set(format!("g{id}")),
                 is_staff: Set(false),
@@ -631,7 +631,7 @@ mod tests {
             .await
             .unwrap();
             for (key, colonne) in [("notes", ""), ("notes", "a"), ("blog", "")] {
-                groupes_droits::ActiveModel {
+                group_rights::ActiveModel {
                     groupe_id: Set(Some(id)),
                     user_id: Set(None),
                     resource_key: Set(key.into()),

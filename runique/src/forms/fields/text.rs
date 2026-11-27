@@ -7,7 +7,7 @@ use crate::forms::{
 use crate::utils::{
     aliases::ATera,
     password::{PasswordConfig, PasswordService},
-    trad::{t, tf},
+    translation::{t, tf},
 };
 use async_trait::async_trait;
 use serde::Serialize;

@@ -7,7 +7,7 @@ use crate::entities::contribution::{
     Entity as ContributionEntity,
 };
 use runique::auth::current_user::CurrentUser;
-use runique::auth::permissions::rang::Rang;
+use runique::auth::permissions::rank::Rang;
 use runique::auth::permissions::{ColumnRight, Groupe, Permission};
 use runique::prelude::runique_users::{ActiveModel as UserActiveModel, Entity as UserEntity};
 use runique::prelude::*;

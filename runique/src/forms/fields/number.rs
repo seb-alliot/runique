@@ -1,7 +1,7 @@
 //! Numeric fields: `NumericField` (integer, decimal) with min/max validation and precision.
 use crate::forms::base::*;
 use crate::utils::aliases::ATera;
-use crate::utils::trad::{t, tf};
+use crate::utils::translation::{t, tf};
 use async_trait::async_trait;
 use serde::Serialize;
 use serde_json::json;
