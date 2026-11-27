@@ -295,12 +295,12 @@ jobs:
       - name: Install the runique command
         run: cargo install --path runique/runique_cli --force
 
-      # The migrations kept in the repository are written for `int` keys:
-      # another key type has them written again from the models. So does
-      # SQLite: one of them changes a foreign key on an existing table, which
-      # SQLite can't do; written again, they are only creations.
+      # The migrations kept in the repository are written for PostgreSQL and
+      # `int` keys, demo-app's own setup: any other engine or key type has
+      # them written again from the models, by the command connected to that
+      # job's database, as a project on that engine would get them.
       - name: Write the migrations again from the models
-        if: matrix.key != 'int' || matrix.engine == 'sqlite'
+        if: matrix.key != 'int' || matrix.engine != 'postgres'
         working-directory: demo-app
         run: |
           find migration/src -maxdepth 1 -name 'm[0-9]*.rs' -delete

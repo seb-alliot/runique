@@ -141,7 +141,15 @@ mod tests {
         let on_disk = project.entries();
 
         let get = |key: &str| (key == "DATABASE_URL").then(|| url.clone());
-        let error = makemigrations_with(get, entities.to_str().unwrap(), &path, false)
+        // A project compiled for SQLite, as cargo describes it.
+        let metadata = || {
+            Ok(serde_json::json!({
+                "packages": [{ "name": "runique", "id": "runique 4.1.0" }],
+                "resolve": { "nodes": [{ "id": "runique 4.1.0", "features": ["sqlite"] }] },
+            })
+            .to_string())
+        };
+        let error = makemigrations_with(get, metadata, entities.to_str().unwrap(), &path, false)
             .await
             .unwrap_err();
 

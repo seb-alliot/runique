@@ -243,7 +243,7 @@ fn without_any_model_the_framework_migrations_are_wired_in() {
     )
     .unwrap();
 
-    run(e, m, false).unwrap();
+    run(e, m, false, DatabaseEngine::SQLite).unwrap();
     let lib = fs::read_to_string(migrations.join("lib.rs")).unwrap();
     let placeholder_file = migrations.join("m20220101_000001_create_table.rs").exists();
     let _ = (
@@ -689,7 +689,15 @@ fn a_run_that_cannot_read_lib_writes_no_file() {
     let path = migrations_src(&dir, None);
     fs::create_dir(lib_path(&path)).unwrap();
 
-    assert!(run(entities.to_str().unwrap(), &path, false).is_err());
+    assert!(
+        run(
+            entities.to_str().unwrap(),
+            &path,
+            false,
+            DatabaseEngine::SQLite
+        )
+        .is_err()
+    );
 
     let files: Vec<String> = dir
         .entries()
@@ -724,7 +732,13 @@ fn a_run_cut_short_is_taken_back_before_the_next_one() {
         &[],
     );
 
-    run(entities.to_str().unwrap(), &path, false).unwrap();
+    run(
+        entities.to_str().unwrap(),
+        &path,
+        false,
+        DatabaseEngine::SQLite,
+    )
+    .unwrap();
 
     assert_eq!(fs::read_to_string(lib_path(&path)).unwrap(), before);
     assert!(!Path::new(&format!("{path}/m1_create_shop_table.rs")).exists());
@@ -781,7 +795,7 @@ fn a_migration_written_by_hand_before_the_repair_is_left_alone() {
     let (entities, path, before) = cut_run(&dir);
     fs::write(format!("{path}/m0_by_hand.rs"), "// the developer's").unwrap();
 
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
 
     assert_eq!(fs::read_to_string(lib_path(&path)).unwrap(), before);
     assert_eq!(
@@ -802,7 +816,7 @@ fn a_lib_edited_by_hand_after_the_cut_stops_the_command() {
     fs::write(lib_path(&path), "// edited by hand").unwrap();
     let on_disk = dir.entries();
 
-    let error = run(&entities, &path, false).unwrap_err();
+    let error = run(&entities, &path, false, DatabaseEngine::SQLite).unwrap_err();
 
     assert!(format!("{error:#}").contains("lib.rs"), "{error:#}");
     assert_eq!(
@@ -825,12 +839,12 @@ fn a_file_added_between_two_repairs_is_left_alone() {
     let dir = TempDir::new();
     let (entities, path, before) = cut_run(&dir);
     fs::write(lib_path(&path), "// edited by hand").unwrap();
-    assert!(run(&entities, &path, false).is_err());
+    assert!(run(&entities, &path, false, DatabaseEngine::SQLite).is_err());
     assert!(Path::new(&format!("{path}/.runique-journal")).exists());
 
     fs::remove_file(lib_path(&path)).unwrap();
     fs::write(format!("{path}/m0_by_hand.rs"), "// the developer's").unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
 
     assert_eq!(fs::read_to_string(lib_path(&path)).unwrap(), before);
     assert_eq!(
@@ -864,13 +878,76 @@ fn a_file_added_in_a_folder_the_run_created_stops_the_command() {
     );
     let on_disk = dir.entries();
 
-    let error = run(entities.to_str().unwrap(), &path, false).unwrap_err();
+    let error = run(
+        entities.to_str().unwrap(),
+        &path,
+        false,
+        DatabaseEngine::SQLite,
+    )
+    .unwrap_err();
 
     assert!(format!("{error:#}").contains("notes.md"), "{error:#}");
     assert_eq!(dir.entries(), on_disk);
 }
 
+// ── The steps of a run ───────────────────────────────────────────────────────
+
+// The plan comes out in the order of the run, each file beside its module.
+#[test]
+fn the_steps_of_a_run_come_out_in_their_order() {
+    let step = |name: &str| Plan {
+        files: vec![(format!("{name}.rs"), name.to_string())],
+        lib_modules: vec![name.to_string()],
+        ..Plan::default()
+    };
+    let steps = Run {
+        deleted: step("deleted"),
+        enums_modified: step("enums_modified"),
+        tables: step("tables"),
+        enums_created: step("enums_created"),
+    };
+
+    let plan = steps.in_order();
+
+    let order = ["enums_created", "tables", "enums_modified", "deleted"];
+    assert_eq!(plan.lib_modules, order);
+    let files: Vec<&str> = plan
+        .files
+        .iter()
+        .map(|(_, content)| content.as_str())
+        .collect();
+    assert_eq!(files, order);
+    assert!(plan.dropped_modules.is_empty());
+}
+
+// A step given several files keeps them as they were given.
+#[test]
+fn the_files_of_a_step_keep_the_order_they_were_given_in() {
+    let mut steps = Run::default();
+    for name in ["shop", "book", "author"] {
+        steps
+            .tables
+            .files
+            .push((format!("{name}.rs"), String::new()));
+        steps.tables.lib_modules.push(name.to_string());
+    }
+
+    assert_eq!(steps.in_order().lib_modules, ["shop", "book", "author"]);
+}
+
 // ── `makemigrations`: the database first ─────────────────────────────────────
+
+/// Cargo's description of a project whose `runique` has `features`, as the
+/// command would get it from `cargo metadata`.
+fn project_with(features: &'static [&'static str]) -> impl FnOnce() -> Result<String> {
+    move || {
+        Ok(serde_json::json!({
+            "packages": [{ "name": "runique", "id": "runique 4.1.0" }],
+            "resolve": { "nodes": [{ "id": "runique 4.1.0", "features": features }] },
+        })
+        .to_string())
+    }
+}
 
 #[cfg(feature = "sqlite")]
 #[tokio::test]
@@ -880,6 +957,7 @@ async fn with_a_reachable_database_the_command_runs() {
 
     let result = makemigrations_with(
         get,
+        project_with(&["orm", "sqlite"]),
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
@@ -908,6 +986,7 @@ async fn with_an_unreachable_database_nothing_is_written() {
 
     let error = makemigrations_with(
         get,
+        project_with(&["orm", "postgres"]),
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
@@ -924,6 +1003,66 @@ async fn with_an_unreachable_database_nothing_is_written() {
     assert_eq!(written, 0, "{message}");
     assert!(!message.contains("s3cr3t-Pw"), "{message}");
     assert!(!message.contains("0ther-Pw"), "{message}");
+}
+
+/// `.env` asks for SQLite, the project is compiled for PostgreSQL: the command
+/// stops before it connects, and writes nothing.
+#[tokio::test]
+async fn an_engine_the_project_is_not_compiled_for_stops_the_command() {
+    let (entities, migrations) = (temp("ent_engine_ko"), temp("mig_engine_ko"));
+    let get = |key: &str| (key == "DATABASE_URL").then(|| "sqlite::memory:".to_string());
+
+    let error = makemigrations_with(
+        get,
+        project_with(&["orm", "postgres"]),
+        entities.to_str().unwrap(),
+        migrations.to_str().unwrap(),
+        false,
+    )
+    .await
+    .unwrap_err()
+    .to_string();
+    let written = fs::read_dir(&migrations).unwrap().count();
+    let _ = (
+        fs::remove_dir_all(&entities),
+        fs::remove_dir_all(&migrations),
+    );
+
+    assert_eq!(
+        error,
+        tf(
+            runique_i18n::keys::makemigrations::error::ENGINE_NOT_IN_FEATURES,
+            &["SQLite", "postgres", "SQLite", "sqlite"]
+        )
+    );
+    assert_eq!(written, 0);
+}
+
+/// Cargo can't describe the project: the command stops there, with cargo's
+/// reason, and writes nothing.
+#[tokio::test]
+async fn without_cargo_s_answer_the_command_stops() {
+    let (entities, migrations) = (temp("ent_cargo_ko"), temp("mig_cargo_ko"));
+    let get = |key: &str| (key == "DATABASE_URL").then(|| "sqlite::memory:".to_string());
+
+    let error = makemigrations_with(
+        get,
+        || anyhow::bail!("no Cargo.toml here"),
+        entities.to_str().unwrap(),
+        migrations.to_str().unwrap(),
+        false,
+    )
+    .await
+    .unwrap_err()
+    .to_string();
+    let written = fs::read_dir(&migrations).unwrap().count();
+    let _ = (
+        fs::remove_dir_all(&entities),
+        fs::remove_dir_all(&migrations),
+    );
+
+    assert_eq!(error, "no Cargo.toml here");
+    assert_eq!(written, 0);
 }
 
 // ── `snapshots/`: every snapshot is read before anything is computed ─────────
@@ -1027,7 +1166,15 @@ fn the_command_stops_on_a_bad_snapshot_and_writes_nothing() {
     fs::create_dir_all(&entities).unwrap();
     let on_disk = dir.entries();
 
-    assert!(run(entities.to_str().unwrap(), &path, false).is_err());
+    assert!(
+        run(
+            entities.to_str().unwrap(),
+            &path,
+            false,
+            DatabaseEngine::SQLite
+        )
+        .is_err()
+    );
     assert_eq!(dir.entries(), on_disk);
 }
 
@@ -1094,7 +1241,7 @@ fn a_run_writes_no_snapshot() {
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/user.rs"), USERS).unwrap();
 
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
 
     let files = generated(&path);
     assert_eq!(files.len(), 1, "{files:?}");
@@ -1113,10 +1260,10 @@ fn a_run_again_without_a_change_rewrites_nothing() {
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/user.rs"), USERS).unwrap();
     fs::write(format!("{entities}/post.rs"), POSTS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     let before = everything(&dir);
 
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
 
     assert_eq!(everything(&dir), before);
     assert_eq!(generated(&path).len(), 2);
@@ -1129,10 +1276,10 @@ fn a_change_before_applying_replaces_the_waiting_creation() {
     let dir = TempDir::new();
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/user.rs"), USERS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
 
     fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
 
     let files = generated(&path);
     assert_eq!(files.len(), 1, "{files:?}");
@@ -1150,11 +1297,11 @@ fn a_waiting_migration_of_a_model_that_left_is_removed() {
     let dir = TempDir::new();
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/user.rs"), USERS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
 
     fs::remove_file(format!("{entities}/user.rs")).unwrap();
     fs::write(format!("{entities}/post.rs"), POSTS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
 
     let files = generated(&path);
     assert_eq!(files.len(), 1, "{files:?}");
@@ -1172,17 +1319,17 @@ fn a_change_taken_back_removes_the_waiting_migration() {
     let dir = TempDir::new();
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/user.rs"), USERS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
     let lib_applied = fs::read_to_string(lib_path(&path)).unwrap();
     let create = generated(&path);
 
     fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     assert_eq!(generated(&path).len(), 2);
 
     fs::write(format!("{entities}/user.rs"), USERS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
 
     // Only the applied creation is left, untouched.
     assert_eq!(generated(&path), create);
@@ -1196,14 +1343,14 @@ fn an_applied_migration_is_never_replaced() {
     let dir = TempDir::new();
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/user.rs"), USERS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
     let create = generated(&path).remove(0);
 
     fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     fs::write(format!("{entities}/user.rs"), USERS_NO_EMAIL).unwrap();
-    run(&entities, &path, true).unwrap();
+    run(&entities, &path, true, DatabaseEngine::SQLite).unwrap();
 
     let files = generated(&path);
     assert_eq!(files.len(), 2, "{files:?}");
@@ -1227,14 +1374,14 @@ fn a_refused_run_leaves_the_waiting_migration_as_it_was() {
     let dir = TempDir::new();
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/user.rs"), USERS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
     fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     let before = everything(&dir);
 
     fs::write(format!("{entities}/user.rs"), USERS_NO_EMAIL).unwrap();
-    assert!(run(&entities, &path, false).is_err());
+    assert!(run(&entities, &path, false, DatabaseEngine::SQLite).is_err());
 
     fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
     assert_eq!(everything(&dir), before);
@@ -1246,11 +1393,11 @@ fn a_waiting_migration_edited_by_hand_is_overwritten() {
     let dir = TempDir::new();
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/user.rs"), USERS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     let (name, content) = generated(&path).remove(0);
 
     fs::write(format!("{path}/{name}"), format!("{content}// by hand\n")).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
 
     let files = generated(&path);
     assert_eq!(files.len(), 1, "{files:?}");
@@ -1531,14 +1678,14 @@ fn the_command_chains_the_migrations_of_a_table() {
     let dir = TempDir::new();
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/user.rs"), USERS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     let create = generated(&path).remove(0);
     assert_eq!(started_from(&create.1), Some("none"));
     applied(&entities, &path);
 
     fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
-    run(&entities, &path, false).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     let files = generated(&path);
     let alter = files
         .iter()
@@ -1568,7 +1715,7 @@ fn the_command_refuses_parallel_migrations_and_writes_nothing() {
     let dir = TempDir::new();
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/user.rs"), USERS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
     let create = generated(&path)
         .remove(0)
@@ -1590,7 +1737,9 @@ fn the_command_refuses_parallel_migrations_and_writes_nothing() {
     fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
     let before = everything(&dir);
 
-    let error = run(&entities, &path, false).unwrap_err().to_string();
+    let error = run(&entities, &path, false, DatabaseEngine::SQLite)
+        .unwrap_err()
+        .to_string();
 
     assert!(
         error.contains(
@@ -1792,14 +1941,14 @@ fn a_table_to_drop_is_refused_without_force() {
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/user.rs"), USERS).unwrap();
     fs::write(format!("{entities}/post.rs"), POSTS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
 
     fs::remove_file(format!("{entities}/post.rs")).unwrap();
     fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
     let before = everything(&dir);
 
-    assert!(run(&entities, &path, false).is_err());
+    assert!(run(&entities, &path, false, DatabaseEngine::SQLite).is_err());
     assert_eq!(everything(&dir), before);
 }
 
@@ -1811,11 +1960,11 @@ fn a_forced_drop_keeps_the_snapshot_until_it_is_applied() {
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/user.rs"), USERS).unwrap();
     fs::write(format!("{entities}/post.rs"), POSTS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
     fs::remove_file(format!("{entities}/post.rs")).unwrap();
 
-    run(&entities, &path, true).unwrap();
+    run(&entities, &path, true, DatabaseEngine::SQLite).unwrap();
     let files = generated(&path);
     let drop = files
         .iter()
@@ -1826,7 +1975,7 @@ fn a_forced_drop_keeps_the_snapshot_until_it_is_applied() {
 
     // Case 13: the same drop is computed again, not a file moves.
     let waiting = everything(&dir);
-    run(&entities, &path, true).unwrap();
+    run(&entities, &path, true, DatabaseEngine::SQLite).unwrap();
     assert_eq!(everything(&dir), waiting);
 
     applied(&entities, &path);
@@ -1836,7 +1985,7 @@ fn a_forced_drop_keeps_the_snapshot_until_it_is_applied() {
 
     // Applied and gone: nothing more to do, with or without `--force`.
     let settled = everything(&dir);
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     assert_eq!(everything(&dir), settled);
 }
 
@@ -1847,12 +1996,12 @@ fn a_dropped_table_comes_back_with_its_columns_in_order() {
     let dir = TempDir::new();
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
     let created = generated(&path).remove(0).1;
     fs::remove_file(format!("{entities}/user.rs")).unwrap();
 
-    run(&entities, &path, true).unwrap();
+    run(&entities, &path, true, DatabaseEngine::SQLite).unwrap();
 
     let drop = generated(&path)
         .into_iter()
@@ -1878,16 +2027,16 @@ fn a_waiting_drop_goes_when_the_model_comes_back() {
     let dir = TempDir::new();
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/post.rs"), POSTS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
     let settled = everything(&dir);
 
     fs::remove_file(format!("{entities}/post.rs")).unwrap();
-    run(&entities, &path, true).unwrap();
+    run(&entities, &path, true, DatabaseEngine::SQLite).unwrap();
     assert_eq!(generated(&path).len(), 2);
 
     fs::write(format!("{entities}/post.rs"), POSTS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     assert_eq!(everything(&dir), settled);
 }
 
@@ -1898,12 +2047,12 @@ fn the_last_table_of_a_project_is_dropped_like_any_other() {
     let dir = TempDir::new();
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/post.rs"), POSTS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
     fs::remove_file(format!("{entities}/post.rs")).unwrap();
 
-    assert!(run(&entities, &path, false).is_err());
-    run(&entities, &path, true).unwrap();
+    assert!(run(&entities, &path, false, DatabaseEngine::SQLite).is_err());
+    run(&entities, &path, true, DatabaseEngine::SQLite).unwrap();
     fs::remove_dir(&entities).unwrap();
     crate::migration::steps::apply::migrate::record_applied(&entities, &path).unwrap();
 
@@ -1918,12 +2067,12 @@ fn the_key_of_a_table_that_stays_is_removed_before_the_drop() {
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/categorie.rs"), CATEGORIES).unwrap();
     fs::write(format!("{entities}/menu.rs"), MENUS_IN_CATEGORY).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
 
     fs::remove_file(format!("{entities}/categorie.rs")).unwrap();
     fs::write(format!("{entities}/menu.rs"), MENUS_ALONE).unwrap();
-    run(&entities, &path, true).unwrap();
+    run(&entities, &path, true, DatabaseEngine::SQLite).unwrap();
 
     let order = run_order(&path);
     let waiting: Vec<&str> = order
@@ -1953,13 +2102,15 @@ fn a_model_still_pointing_to_a_removed_one_stops_the_command() {
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/categorie.rs"), CATEGORIES).unwrap();
     fs::write(format!("{entities}/menu.rs"), MENUS_IN_CATEGORY).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
     fs::remove_file(format!("{entities}/categorie.rs")).unwrap();
     let before = everything(&dir);
 
     for force in [false, true] {
-        let error = run(&entities, &path, force).unwrap_err().to_string();
+        let error = run(&entities, &path, force, DatabaseEngine::SQLite)
+            .unwrap_err()
+            .to_string();
         assert!(error.contains("categorie"), "{error}");
         assert_eq!(everything(&dir), before);
     }
@@ -2115,7 +2266,7 @@ fn two_models_for_one_table_are_refused_even_when_one_is_paused() {
 
         let err = scan_models(&entities).err().expect("two `users`");
         assert!(format!("{err:#}").contains("`users`"), "{err:#}");
-        assert!(run(&entities, &path, true).is_err());
+        assert!(run(&entities, &path, true, DatabaseEngine::SQLite).is_err());
         assert!(generated(&path).is_empty());
     }
 }
@@ -2128,13 +2279,13 @@ fn nothing_is_generated_for_a_paused_model() {
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/user.rs"), USERS_PAUSED).unwrap();
 
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     assert!(generated(&path).is_empty());
-    run(&entities, &path, true).unwrap();
+    run(&entities, &path, true, DatabaseEngine::SQLite).unwrap();
     assert!(generated(&path).is_empty());
 
     fs::write(format!("{entities}/post.rs"), POSTS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     let files = generated(&path);
     assert_eq!(files.len(), 1, "{files:?}");
     assert!(files[0].0.ends_with("_create_posts_table.rs"), "{files:?}");
@@ -2147,7 +2298,7 @@ fn a_migrated_table_put_on_pause_is_neither_dropped_nor_altered() {
     let dir = TempDir::new();
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/user.rs"), USERS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
     // Everything but the models, which the test rewrites itself.
     let migration_side = || -> Vec<(String, String)> {
@@ -2160,11 +2311,11 @@ fn a_migrated_table_put_on_pause_is_neither_dropped_nor_altered() {
     assert!(before.iter().any(|(file, _)| file.contains("snapshots")));
 
     fs::write(format!("{entities}/user.rs"), USERS_PAUSED).unwrap();
-    run(&entities, &path, true).unwrap();
+    run(&entities, &path, true, DatabaseEngine::SQLite).unwrap();
     assert_eq!(migration_side(), before);
 
     fs::write(format!("{entities}/user.rs"), USERS_BIO_PAUSED).unwrap();
-    run(&entities, &path, true).unwrap();
+    run(&entities, &path, true, DatabaseEngine::SQLite).unwrap();
     assert_eq!(migration_side(), before);
 }
 
@@ -2175,14 +2326,14 @@ fn a_table_taken_off_pause_is_migrated_from_its_snapshot() {
     let dir = TempDir::new();
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/user.rs"), USERS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
     fs::write(format!("{entities}/user.rs"), USERS_BIO_PAUSED).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     assert_eq!(generated(&path).len(), 1);
 
     fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
 
     let files = generated(&path);
     assert_eq!(files.len(), 2, "{files:?}");
@@ -2200,11 +2351,11 @@ fn a_waiting_migration_of_a_table_put_on_pause_is_removed() {
     let dir = TempDir::new();
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/user.rs"), USERS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     assert_eq!(generated(&path).len(), 1);
 
     fs::write(format!("{entities}/user.rs"), USERS_PAUSED).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
 
     assert!(generated(&path).is_empty());
     let lib = fs::read_to_string(lib_path(&path)).unwrap();
@@ -2232,7 +2383,7 @@ fn shop_project(dir: &TempDir) -> (String, String) {
     fs::write(format!("{entities}/owner.rs"), OWNER).unwrap();
     fs::write(format!("{entities}/shop.rs"), SHOP).unwrap();
     fs::write(format!("{entities}/product.rs"), PRODUCT).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
     (entities, path)
 }
@@ -2259,7 +2410,7 @@ fn a_renamed_table_is_one_alteration_and_loses_nothing() {
     let before = generated(&path).len();
 
     fs::write(format!("{entities}/shop.rs"), BAKERY).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
 
     let files = generated(&path);
     // `bakery` itself, and `product`, whose key points to it.
@@ -2295,7 +2446,7 @@ fn the_indexes_and_keys_of_a_renamed_table_take_its_name() {
     let (entities, path) = shop_project(&dir);
 
     fs::write(format!("{entities}/shop.rs"), BAKERY).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
 
     let alter = generated_file(&path, "_alter_bakery_table.rs");
     let (up, down) = up_and_down(&alter);
@@ -2358,7 +2509,7 @@ fn the_key_of_a_table_pointing_to_a_renamed_one_follows() {
     let (entities, path) = shop_project(&dir);
 
     fs::write(format!("{entities}/shop.rs"), BAKERY).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
 
     let product = generated_file(&path, "_alter_product_table.rs");
     assert_eq!(renamed_table(&product), None);
@@ -2402,11 +2553,11 @@ fn an_applied_rename_moves_the_snapshot_and_is_not_generated_again() {
     let dir = TempDir::new();
     let (entities, path) = shop_project(&dir);
     fs::write(format!("{entities}/shop.rs"), BAKERY).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
 
     // Run again before applying: the same rename, nothing rewritten.
     let waiting = everything(&dir);
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     assert_eq!(everything(&dir), waiting);
     assert!(Path::new(&snapshot_file_path(&path, "shop")).exists());
 
@@ -2418,7 +2569,7 @@ fn an_applied_rename_moves_the_snapshot_and_is_not_generated_again() {
     assert!(!product.contains(r#"Alias::new("shop")"#), "{product}");
 
     let settled = everything(&dir);
-    run(&entities, &path, true).unwrap();
+    run(&entities, &path, true, DatabaseEngine::SQLite).unwrap();
     assert_eq!(everything(&dir), settled);
 }
 
@@ -2432,7 +2583,7 @@ fn a_table_name_changed_without_saying_so_is_a_drop_and_a_creation() {
 
     fs::write(format!("{entities}/shop.rs"), BAKERY_UNDECLARED).unwrap();
     // The list (`shop: DROP TABLE`) goes to the console.
-    assert!(run(&entities, &path, false).is_err());
+    assert!(run(&entities, &path, false, DatabaseEngine::SQLite).is_err());
 
     let after: Vec<_> = everything(&dir)
         .into_iter()
@@ -2460,7 +2611,7 @@ fn a_rename_and_a_change_share_the_file_of_the_table() {
         ),
     )
     .unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
 
     let alter = generated_file(&path, "_alter_bakery_table.rs");
     let (up, _) = up_and_down(&alter);
@@ -2481,10 +2632,10 @@ const BOOK_GENRES: &str = r#"model! { Book, table: "books", pk: id => i32, enums
 fn renamed_list(dir: &TempDir, model: &str) -> String {
     let (entities, path) = project(dir);
     fs::write(format!("{entities}/book.rs"), BOOK_GENRES).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
     fs::write(format!("{entities}/book.rs"), model).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     path
 }
 
@@ -2556,7 +2707,7 @@ fn a_list_field_renamed_without_saying_so_is_a_drop() {
     let dir = TempDir::new();
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/book.rs"), BOOK_GENRES).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
 
     fs::write(
@@ -2567,11 +2718,11 @@ fn a_list_field_renamed_without_saying_so_is_a_drop() {
     let before = generated(&path);
 
     // The list (`books_genres: DROP TABLE`) goes to the console.
-    assert!(run(&entities, &path, false).is_err());
+    assert!(run(&entities, &path, false, DatabaseEngine::SQLite).is_err());
     assert_eq!(generated(&path), before);
 
     // Forced: the former table is dropped, the new one created.
-    run(&entities, &path, true).unwrap();
+    run(&entities, &path, true, DatabaseEngine::SQLite).unwrap();
     let files = generated(&path);
     assert!(
         files
@@ -3083,7 +3234,7 @@ fn a_changed_key_is_reported_under_the_name_of_the_model() {
 fn users_with_another_key(dir: &TempDir, change: (&str, &str)) -> (String, String) {
     let (entities, path) = project(dir);
     fs::write(format!("{entities}/user.rs"), USERS).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
     let model = USERS.replace(change.0, change.1);
     assert_ne!(model, USERS);
@@ -3100,7 +3251,9 @@ fn a_key_that_changed_type_is_refused_with_or_without_force() {
     let before = everything(&dir);
 
     for force in [false, true] {
-        let error = run(&entities, &path, force).unwrap_err().to_string();
+        let error = run(&entities, &path, force, DatabaseEngine::SQLite)
+            .unwrap_err()
+            .to_string();
         assert!(
             error.contains("  users: id (Integer) -> id (Uuid)"),
             "{error}"
@@ -3115,7 +3268,9 @@ fn a_key_that_changed_name_is_refused() {
     let (entities, path) = users_with_another_key(&dir, ("id => i32", "uid => i32"));
     let before = everything(&dir);
 
-    let error = run(&entities, &path, true).unwrap_err().to_string();
+    let error = run(&entities, &path, true, DatabaseEngine::SQLite)
+        .unwrap_err()
+        .to_string();
     assert!(
         error.contains("  users: id (Integer) -> uid (Integer)"),
         "{error}"
@@ -3129,10 +3284,10 @@ fn a_key_that_changed_name_is_refused() {
 fn the_former_key_put_back_lets_the_command_run() {
     let dir = TempDir::new();
     let (entities, path) = users_with_another_key(&dir, ("id => i32", "id => i64"));
-    assert!(run(&entities, &path, false).is_err());
+    assert!(run(&entities, &path, false, DatabaseEngine::SQLite).is_err());
 
     fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     assert_eq!(generated(&path).len(), 2);
 }
 
@@ -3145,7 +3300,7 @@ fn every_table_with_a_changed_key_is_named_at_once() {
     fs::write(format!("{entities}/user.rs"), USERS).unwrap();
     fs::write(format!("{entities}/post.rs"), POSTS).unwrap();
     fs::write(format!("{entities}/owner.rs"), OWNER).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
     fs::write(
         format!("{entities}/user.rs"),
@@ -3159,7 +3314,9 @@ fn every_table_with_a_changed_key_is_named_at_once() {
     .unwrap();
     let before = everything(&dir);
 
-    let error = run(&entities, &path, true).unwrap_err().to_string();
+    let error = run(&entities, &path, true, DatabaseEngine::SQLite)
+        .unwrap_err()
+        .to_string();
 
     assert!(
         error.contains("  users: id (Integer) -> id (BigInteger)"),
@@ -3180,12 +3337,14 @@ fn a_changed_key_is_refused_before_the_destructive_changes_are_listed() {
     let dir = TempDir::new();
     let (entities, path) = project(&dir);
     fs::write(format!("{entities}/user.rs"), USERS_BIO).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
     let model = USERS_NO_EMAIL.replace("id => i32", "id => i64");
     fs::write(format!("{entities}/user.rs"), model).unwrap();
 
-    let error = run(&entities, &path, false).unwrap_err().to_string();
+    let error = run(&entities, &path, false, DatabaseEngine::SQLite)
+        .unwrap_err()
+        .to_string();
 
     assert!(
         error.contains("  users: id (Integer) -> id (BigInteger)"),
@@ -3207,7 +3366,9 @@ fn a_renamed_table_keeps_the_key_of_its_former_snapshot() {
     .unwrap();
     let before = everything(&dir);
 
-    let error = run(&entities, &path, false).unwrap_err().to_string();
+    let error = run(&entities, &path, false, DatabaseEngine::SQLite)
+        .unwrap_err()
+        .to_string();
 
     assert!(
         error.contains("  bakery: id (Integer) -> id (BigInteger)"),
@@ -3227,20 +3388,26 @@ fn a_project_changing_its_key_feature_is_refused() {
     let (entities, path) = project(&dir);
     let model = USERS.replace("id => i32", "id => Pk");
     fs::write(format!("{entities}/user.rs"), model).unwrap();
-    with_project_pk(PkType::I32, || run(&entities, &path, false)).unwrap();
+    with_project_pk(PkType::I32, || {
+        run(&entities, &path, false, DatabaseEngine::SQLite)
+    })
+    .unwrap();
     // The snapshot is written from the model: read with the same feature.
     with_project_pk(PkType::I32, || applied(&entities, &path));
     let settled = everything(&dir);
 
     // The same feature: nothing changed.
-    with_project_pk(PkType::I32, || run(&entities, &path, false)).unwrap();
+    with_project_pk(PkType::I32, || {
+        run(&entities, &path, false, DatabaseEngine::SQLite)
+    })
+    .unwrap();
     assert_eq!(everything(&dir), settled);
 
     for (ty, line) in [
         (PkType::I64, "  users: id (Integer) -> id (BigInteger)"),
         (PkType::Uuid, "  users: id (Integer) -> id (Uuid)"),
     ] {
-        let error = with_project_pk(ty, || run(&entities, &path, true))
+        let error = with_project_pk(ty, || run(&entities, &path, true, DatabaseEngine::SQLite))
             .unwrap_err()
             .to_string();
         assert!(error.contains(line), "{error}");
@@ -3272,7 +3439,7 @@ fn extended_project(dir: &TempDir, blocks: &[(&str, &str)]) -> (String, String) 
         )
         .unwrap();
     }
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     assert!(generated(&path).is_empty(), "nothing to migrate");
     (entities, path)
 }
@@ -3327,7 +3494,9 @@ fn a_folder_named_like_a_model_file_stops_the_command() {
     let before = everything(&dir);
 
     for force in [false, true] {
-        let error = run(&entities, &path, force).unwrap_err().to_string();
+        let error = run(&entities, &path, force, DatabaseEngine::SQLite)
+            .unwrap_err()
+            .to_string();
         assert!(error.contains("archive.rs"), "{error}");
         assert_eq!(everything(&dir), before, "force: {force}");
     }
@@ -3338,7 +3507,7 @@ fn a_folder_named_like_a_model_file_stops_the_command() {
         format!("{entities}/archive"),
     )
     .unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     assert_eq!(generated(&path).len(), 1);
 }
 
@@ -3415,7 +3584,7 @@ fn a_removed_block_drops_its_columns_and_is_refused_without_force() {
             vec!["bio".to_string(), "website".to_string()]
         )]
     );
-    assert!(run(&entities, &path, false).is_err());
+    assert!(run(&entities, &path, false, DatabaseEngine::SQLite).is_err());
     assert_eq!(everything(&dir), before);
 }
 
@@ -3429,7 +3598,7 @@ fn a_forced_block_removal_takes_its_snapshot_away_once_applied() {
     assert!(Path::new(&snapshot).exists());
     fs::remove_file(format!("{entities}/profile.rs")).unwrap();
 
-    run(&entities, &path, true).unwrap();
+    run(&entities, &path, true, DatabaseEngine::SQLite).unwrap();
 
     let files = generated(&path);
     assert_eq!(files.len(), 1, "{files:?}");
@@ -3441,7 +3610,7 @@ fn a_forced_block_removal_takes_its_snapshot_away_once_applied() {
 
     // Run again before applying: the same removal, not a file moves.
     let waiting = everything(&dir);
-    run(&entities, &path, true).unwrap();
+    run(&entities, &path, true, DatabaseEngine::SQLite).unwrap();
     assert_eq!(everything(&dir), waiting);
 
     applied(&entities, &path);
@@ -3450,7 +3619,7 @@ fn a_forced_block_removal_takes_its_snapshot_away_once_applied() {
 
     let settled = everything(&dir);
     for force in [false, true] {
-        run(&entities, &path, force).unwrap();
+        run(&entities, &path, force, DatabaseEngine::SQLite).unwrap();
         assert_eq!(everything(&dir), settled, "force: {force}");
     }
 }
@@ -3470,13 +3639,13 @@ fn a_block_left_without_a_field_is_treated_as_removed() {
             vec!["bio".to_string(), "website".to_string()]
         )]
     );
-    assert!(run(&entities, &path, false).is_err());
-    run(&entities, &path, true).unwrap();
+    assert!(run(&entities, &path, false, DatabaseEngine::SQLite).is_err());
+    run(&entities, &path, true, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
 
     assert!(!Path::new(&extend_snapshot_file_path(&path, "eihwaz_users")).exists());
     let settled = everything(&dir);
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     assert_eq!(everything(&dir), settled);
 }
 
@@ -3492,7 +3661,7 @@ fn a_block_that_keeps_a_field_keeps_its_snapshot() {
         dropped_by_extensions(&entities, &path),
         [("eihwaz_users".to_string(), vec!["website".to_string()])]
     );
-    run(&entities, &path, true).unwrap();
+    run(&entities, &path, true, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
 
     let snapshot = fs::read_to_string(extend_snapshot_file_path(&path, "eihwaz_users")).unwrap();
@@ -3519,7 +3688,7 @@ fn only_the_removed_block_loses_its_columns() {
             vec!["bio".to_string(), "website".to_string()]
         )]
     );
-    run(&entities, &path, true).unwrap();
+    run(&entities, &path, true, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &path);
 
     assert!(!Path::new(&extend_snapshot_file_path(&path, "eihwaz_users")).exists());
@@ -3538,7 +3707,7 @@ fn a_block_put_back_before_applying_cancels_its_removal() {
     let (entities, path) = extended_project(&dir, &[("profile.rs", PROFILE)]);
     let settled = everything(&dir);
     fs::remove_file(format!("{entities}/profile.rs")).unwrap();
-    run(&entities, &path, true).unwrap();
+    run(&entities, &path, true, DatabaseEngine::SQLite).unwrap();
     assert_eq!(generated(&path).len(), 1);
     assert!(
         fs::read_to_string(lib_path(&path))
@@ -3547,7 +3716,7 @@ fn a_block_put_back_before_applying_cancels_its_removal() {
     );
 
     fs::write(format!("{entities}/profile.rs"), PROFILE).unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
 
     assert!(generated(&path).is_empty());
     assert!(
@@ -3696,7 +3865,9 @@ fn the_command_writes_nothing_when_an_enum_is_declared_twice() {
     let before = everything(&dir);
 
     for force in [false, true] {
-        let error = run(&entities, &path, force).unwrap_err().to_string();
+        let error = run(&entities, &path, force, DatabaseEngine::SQLite)
+            .unwrap_err()
+            .to_string();
         assert!(error.contains("  Statut: commandes, factures"), "{error}");
         assert_eq!(everything(&dir), before, "force: {force}");
     }
@@ -3707,6 +3878,6 @@ fn the_command_writes_nothing_when_an_enum_is_declared_twice() {
         INVOICES.replace("Statut", "StatutFacture"),
     )
     .unwrap();
-    run(&entities, &path, false).unwrap();
+    run(&entities, &path, false, DatabaseEngine::SQLite).unwrap();
     assert_eq!(generated(&path).len(), 3);
 }

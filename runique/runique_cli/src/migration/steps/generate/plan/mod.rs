@@ -56,3 +56,37 @@ pub(crate) struct Plan {
     /// module taken out of `lib.rs`
     pub(crate) dropped_modules: Vec<String>,
 }
+
+/// The migrations of a run, by the moment they run: each field is a step,
+/// and the fields are in the order of the run. What a step holds keeps the
+/// order it was given in.
+#[derive(Default)]
+pub(crate) struct Run {
+    /// Enum types that don't exist yet: before the tables that use them.
+    pub(crate) enums_created: Plan,
+    /// Tables created or changed, models then `extend!{}` blocks.
+    pub(crate) tables: Plan,
+    /// Values renamed or added in an enum: once every table has its new
+    /// names.
+    pub(crate) enums_modified: Plan,
+    /// Tables dropped: what destroys closes the run, once the keys of the
+    /// tables that stay were removed by their own migrations.
+    pub(crate) deleted: Plan,
+}
+
+impl Run {
+    /// The plan of the whole run, its steps one after the other.
+    pub(crate) fn in_order(self) -> Plan {
+        let mut plan = Plan::default();
+        for step in [
+            self.enums_created,
+            self.tables,
+            self.enums_modified,
+            self.deleted,
+        ] {
+            plan.files.extend(step.files);
+            plan.lib_modules.extend(step.lib_modules);
+        }
+        plan
+    }
+}

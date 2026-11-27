@@ -5,6 +5,7 @@ pub mod error {
     pub const DESTRUCTIVE_DETECTED: &str = "makemigrations.error.destructive_detected";
     pub const DESTRUCTIVE_REQUIRE_FORCE: &str = "makemigrations.error.destructive_require_force";
     pub const DUPLICATE_TABLE: &str = "makemigrations.error.duplicate_table";
+    pub const ENGINE_NOT_IN_FEATURES: &str = "makemigrations.error.engine_not_in_features";
     pub const ENUM_DECLARED_TWICE: &str = "makemigrations.error.enum_declared_twice";
     pub const FOLDER_NAMED_RS: &str = "makemigrations.error.folder_named_rs";
     pub const LONG_IDENTIFIER_DETECTED: &str = "makemigrations.error.long_identifier_detected";

@@ -33,19 +33,7 @@ impl From<DatabaseEngine> for Engine {
 }
 
 impl Engine {
-    /// The project's engine, read from its environment the way the app
-    /// reads it.
-    pub(crate) fn from_env() -> Option<Self> {
-        Self::from_lookup(|key| std::env::var(key).ok())
-    }
-
-    /// The engine the app will connect to, so the crate is built for it:
-    /// [`DatabaseEngine::from_lookup`], the app's own rule.
-    fn from_lookup(get: impl Fn(&str) -> Option<String>) -> Option<Self> {
-        DatabaseEngine::from_lookup(get).map(Self::from)
-    }
-
-    fn feature(self) -> &'static str {
+    pub(crate) fn feature(self) -> &'static str {
         match self {
             Self::Sqlite => "sqlite",
             Self::Postgres => "postgres",
@@ -132,12 +120,12 @@ fn repaired(dir: &Path, outcome: std::io::Result<bool>) -> Result<()> {
     Ok(())
 }
 
-/// For `makemigrations`: writes the crate when the project has none, with the
-/// engine of `DB_ENGINE` (SQLite, said so, when unset). Only for the usual
+/// For `makemigrations`: writes the crate when the project has none, for
+/// `engine`, the one the command is connected to. Only for the usual
 /// `<crate>/src` layout, and only when the crate's folder doesn't exist at
 /// all: an existing one, even without `Cargo.toml`, may hold migrations that
 /// must not be overwritten.
-pub(crate) fn ensure(migrations_path: &str) -> Result<()> {
+pub(crate) fn ensure(migrations_path: &str, engine: Engine) -> Result<()> {
     let path = Path::new(migrations_path);
     let Some(migration_dir) = path
         .file_name()
@@ -153,16 +141,6 @@ pub(crate) fn ensure(migrations_path: &str) -> Result<()> {
     if migration_dir.exists() {
         return Ok(());
     }
-    let engine = Engine::from_env().unwrap_or_else(|| {
-        println!(
-            "{}",
-            tf(
-                runique_i18n::keys::migrate::error::ENGINE_DEFAULTED,
-                &[migration_dir.join("Cargo.toml").display()]
-            )
-        );
-        Engine::Sqlite
-    });
     write(migration_dir, engine, crate::tooling::VERSION)?;
     println!(
         "{}",
@@ -226,13 +204,13 @@ mod tests {
     fn ensure_writes_a_missing_crate_and_never_touches_an_existing_folder() {
         let root = std::env::temp_dir().join(format!("rq_mig_{}", uuid::Uuid::new_v4()));
         let src = root.join("migration/src");
-        ensure(src.to_str().unwrap()).unwrap();
+        ensure(src.to_str().unwrap(), Engine::Sqlite).unwrap();
         assert!(root.join("migration/Cargo.toml").is_file());
 
         let kept = root.join("other/src");
         fs::create_dir_all(&kept).unwrap();
         fs::write(kept.join("lib.rs"), "// the user's").unwrap();
-        ensure(kept.to_str().unwrap()).unwrap();
+        ensure(kept.to_str().unwrap(), Engine::Sqlite).unwrap();
         assert_eq!(
             fs::read_to_string(kept.join("lib.rs")).unwrap(),
             "// the user's"
@@ -240,7 +218,7 @@ mod tests {
         assert!(!root.join("other/Cargo.toml").exists());
 
         let flat = root.join("flat");
-        ensure(flat.to_str().unwrap()).unwrap();
+        ensure(flat.to_str().unwrap(), Engine::Sqlite).unwrap();
         assert!(
             !flat.exists(),
             "no crate guessed outside the <crate>/src layout"
@@ -335,7 +313,7 @@ mod tests {
             &["", "src"],
         );
 
-        ensure(dir.join("src").to_str().unwrap()).unwrap();
+        ensure(dir.join("src").to_str().unwrap(), Engine::Sqlite).unwrap();
 
         let cargo = fs::read_to_string(dir.join("Cargo.toml")).unwrap();
         assert!(cargo.contains("sea-orm-migration"), "{cargo}");
@@ -348,102 +326,6 @@ mod tests {
                 "migration/src/lib.rs",
                 "migration/src/main.rs"
             ]
-        );
-    }
-
-    /// A project's environment, as `key=value` pairs.
-    fn engine_of(vars: &[(&str, &str)]) -> Option<Engine> {
-        Engine::from_lookup(|key| {
-            vars.iter()
-                .find(|(name, _)| *name == key)
-                .map(|(_, value)| value.to_string())
-        })
-    }
-
-    #[test]
-    fn the_engine_is_the_one_the_database_url_names() {
-        for (url, engine) in [
-            ("sqlite://data.db?mode=rwc", Engine::Sqlite),
-            ("postgres://user:pass@localhost/app", Engine::Postgres),
-            ("postgresql://user:pass@localhost/app", Engine::Postgres),
-            ("mysql://user:pass@localhost/app", Engine::Mysql),
-        ] {
-            assert_eq!(engine_of(&[("DATABASE_URL", url)]), Some(engine), "{url}");
-        }
-    }
-
-    // What `runique new` writes is both, in agreement. Switching to Postgres
-    // by its URL alone, the keyword left as it was: the app follows the URL,
-    // and so does the crate, which reads that same URL to run.
-    #[test]
-    fn the_database_url_wins_over_the_engine_keyword() {
-        assert_eq!(
-            engine_of(&[
-                ("DB_ENGINE", "sqlite"),
-                ("DATABASE_URL", "postgres://user:pass@localhost/app"),
-            ]),
-            Some(Engine::Postgres)
-        );
-    }
-
-    #[test]
-    fn without_a_database_url_the_engine_keyword_decides() {
-        for (keyword, engine) in [
-            ("sqlite", Engine::Sqlite),
-            ("postgres", Engine::Postgres),
-            ("postgresql", Engine::Postgres),
-            ("mysql", Engine::Mysql),
-            ("  Postgres ", Engine::Postgres),
-            ("MYSQL", Engine::Mysql),
-        ] {
-            assert_eq!(
-                engine_of(&[("DB_ENGINE", keyword)]),
-                Some(engine),
-                "{keyword}"
-            );
-        }
-    }
-
-    // Nothing set, or something set that names no engine: the caller falls
-    // back on SQLite and says so.
-    #[test]
-    fn no_engine_is_guessed_from_what_names_none() {
-        assert_eq!(engine_of(&[]), None);
-        assert_eq!(engine_of(&[("DB_ENGINE", "oracle")]), None);
-        assert_eq!(engine_of(&[("DB_ENGINE", "mariadb")]), None);
-        assert_eq!(
-            engine_of(&[("DATABASE_URL", "mariadb://localhost/app")]),
-            None
-        );
-        assert_eq!(engine_of(&[("DB_ENGINE", "")]), None);
-        assert_eq!(
-            engine_of(&[("DATABASE_URL", "oracle://localhost/app")]),
-            None
-        );
-    }
-
-    // A URL whose start names no engine is incomplete: the keys take over, as
-    // they do when the app connects.
-    #[test]
-    fn the_keyword_names_the_engine_when_the_url_names_none() {
-        assert_eq!(
-            engine_of(&[
-                ("DATABASE_URL", "oracle://localhost/app"),
-                ("DB_ENGINE", "postgres"),
-            ]),
-            Some(Engine::Postgres)
-        );
-        assert_eq!(
-            engine_of(&[("DATABASE_URL", ""), ("DB_ENGINE", "mysql")]),
-            Some(Engine::Mysql)
-        );
-        // A URL that names one still decides.
-        assert_eq!(
-            engine_of(&[
-                ("DATABASE_URL", "sqlite://data.db"),
-                ("DB_ENGINE", "postgres"),
-            ]),
-            Some(Engine::Sqlite)
         );
     }
 

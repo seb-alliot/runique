@@ -7,6 +7,7 @@
 
 use crate::utils::clean_tpm_test::TestTempDir;
 use crate::utils::env::{del_env, set_env};
+use runique_cli::db::DatabaseEngine;
 use runique_cli::migration::run;
 use runique_cli::migration::steps::apply::migrate::record_applied;
 use std::fs;
@@ -104,6 +105,7 @@ async fn test_run_dossier_entites_vide() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     );
     assert!(result.is_ok(), "run() vide doit Ok: {:?}", result);
     assert!(
@@ -119,7 +121,12 @@ async fn test_run_dossier_entites_vide() {
 #[tokio::test]
 async fn test_run_dossier_inexistant_retourne_err() {
     set_env("RUNIQUE_TEST", "1");
-    let result = run("/chemin/inexistant_abc123/entities", "/tmp/mig_xyz", false);
+    let result = run(
+        "/chemin/inexistant_abc123/entities",
+        "/tmp/mig_xyz",
+        false,
+        DatabaseEngine::SQLite,
+    );
     assert!(result.is_err(), "dossier inexistant doit Err");
     del_env("RUNIQUE_TEST");
 }
@@ -139,6 +146,7 @@ async fn test_run_cree_snapshot() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     )
     .unwrap();
 
@@ -167,6 +175,7 @@ async fn test_run_cree_lib_rs() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     )
     .unwrap();
 
@@ -192,6 +201,7 @@ async fn test_run_cree_fichier_seaorm_create() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     )
     .unwrap();
 
@@ -238,6 +248,7 @@ async fn test_run_idempotent_meme_entite() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     )
     .unwrap();
 
@@ -246,6 +257,7 @@ async fn test_run_idempotent_meme_entite() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     );
     assert!(
         result.is_ok(),
@@ -269,12 +281,14 @@ async fn test_run_lib_rs_pas_duplique_au_second_run() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     )
     .unwrap();
     run(
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     )
     .unwrap();
 
@@ -305,6 +319,7 @@ async fn test_run_alter_ajout_colonne_nullable() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     )
     .unwrap();
 
@@ -315,6 +330,7 @@ async fn test_run_alter_ajout_colonne_nullable() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     );
     assert!(
         result.is_ok(),
@@ -346,6 +362,7 @@ async fn test_run_alter_cree_fichier_alter() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     )
     .unwrap();
 
@@ -355,6 +372,7 @@ async fn test_run_alter_cree_fichier_alter() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     )
     .unwrap();
 
@@ -391,6 +409,7 @@ async fn test_run_alter_snapshot_mis_a_jour() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     )
     .unwrap();
 
@@ -400,6 +419,7 @@ async fn test_run_alter_snapshot_mis_a_jour() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     )
     .unwrap();
 
@@ -428,6 +448,7 @@ async fn test_run_deux_entites() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     );
     assert!(result.is_ok(), "run() 2 entités doit Ok: {:?}", result);
 
@@ -452,6 +473,7 @@ async fn test_run_trois_entites() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     );
     assert!(result.is_ok(), "run() 3 entités doit Ok: {:?}", result);
 
@@ -474,6 +496,7 @@ async fn test_run_plusieurs_entites_plusieurs_runs() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     )
     .unwrap();
 
@@ -485,6 +508,7 @@ async fn test_run_plusieurs_entites_plusieurs_runs() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     )
     .unwrap();
     applied(&entities, &migrations);
@@ -515,6 +539,7 @@ async fn test_run_ignore_fichier_sans_macro() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     );
     assert!(
         result.is_ok(),
@@ -542,6 +567,7 @@ async fn test_run_ignore_mod_rs() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     )
     .unwrap();
 
@@ -586,6 +612,7 @@ async fn test_run_drop_colonne_sans_force_retourne_err() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     )
     .unwrap();
 
@@ -595,6 +622,7 @@ async fn test_run_drop_colonne_sans_force_retourne_err() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     );
     assert!(
         result.is_err(),
@@ -628,6 +656,7 @@ async fn test_run_drop_colonne_avec_force_genere_migration() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     )
     .unwrap();
 
@@ -637,6 +666,7 @@ async fn test_run_drop_colonne_avec_force_genere_migration() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         true,
+        DatabaseEngine::SQLite,
     );
     assert!(
         result.is_ok(),
@@ -710,7 +740,7 @@ async fn test_run_snapshot_ancien_rafraichi_puis_longueur_suivie() {
     let (ent, mig) = (entities.to_str().unwrap(), migrations.to_str().unwrap());
 
     fs::write(entities.join("post.rs"), post_with_title_length(80)).unwrap();
-    run(ent, mig, false).unwrap();
+    run(ent, mig, false, DatabaseEngine::SQLite).unwrap();
     applied(&entities, &migrations);
     let snapshot = migrations.join("snapshots/posts.rs");
     let first = migration_files(&migrations);
@@ -722,7 +752,7 @@ async fn test_run_snapshot_ancien_rafraichi_puis_longueur_suivie() {
         .replace(".string_len(80)", ".string()");
     fs::write(&snapshot, old).unwrap();
 
-    run(ent, mig, false).unwrap();
+    run(ent, mig, false, DatabaseEngine::SQLite).unwrap();
     assert_eq!(migration_files(&migrations), first, "aucune migration");
     let refreshed = fs::read_to_string(&snapshot).unwrap();
     assert!(
@@ -733,7 +763,7 @@ async fn test_run_snapshot_ancien_rafraichi_puis_longueur_suivie() {
 
     // La longueur est désormais suivie : l'agrandir produit une migration.
     fs::write(entities.join("post.rs"), post_with_title_length(120)).unwrap();
-    run(ent, mig, false).unwrap();
+    run(ent, mig, false, DatabaseEngine::SQLite).unwrap();
     assert_eq!(migration_files(&migrations), first + 1);
 
     del_env("RUNIQUE_TEST");
@@ -773,6 +803,7 @@ async fn test_run_cycle_de_fk_place_la_cle_selon_le_moteur() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     )
     .unwrap();
 
@@ -835,6 +866,7 @@ async fn test_run_index_sur_chaque_fk() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
+        DatabaseEngine::SQLite,
     )
     .unwrap();
 

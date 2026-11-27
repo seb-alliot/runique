@@ -1,7 +1,8 @@
 {
   "error": {
-    "project_pk_cargo": "Impossibile leggere le feature del progetto con cargo: {}\nUn modello usa `Pk`, il cui tipo viene dalla feature `big-pk` o `pk-uuid` di runique nel Cargo.toml del progetto. Esegui il comando dalla radice del progetto.",
-    "project_pk_no_runique": "`runique` non è una dipendenza del progetto eseguito qui: impossibile sapere cosa vale `Pk`. Esegui il comando dalla radice del progetto.",
+    "project_pk_cargo": "Impossibile leggere le feature del progetto con cargo: {}\nIl motore del progetto e il tipo di `Pk` vengono dalle feature di runique nel Cargo.toml del progetto (`sqlite`, `postgres`, `mysql`; `big-pk`, `pk-uuid`). Esegui il comando dalla radice del progetto.",
+    "project_pk_no_runique": "`runique` non è una dipendenza del progetto eseguito qui: impossibile sapere qual è il suo motore né cosa vale `Pk`. Esegui il comando dalla radice del progetto.",
+    "engine_not_in_features": "Il database di .env è {}, ma il progetto non è compilato per esso: le feature di motore di runique sono [{}].\n\nSe .env indica il database sbagliato, imposta DB_ENGINE e DATABASE_URL sul motore del progetto.\nPer usare {} al suo posto, dai a runique la feature `{}` nel Cargo.toml del progetto e in migration/Cargo.toml.\n\nNon è stato scritto nulla.",
     "destructive_detected": "Modifiche distruttive rilevate:",
     "destructive_require_force": "Usa --force per applicare queste modifiche distruttive.",
     "long_identifier_detected": "Gli identificatori SQL generati sono troppo lunghi (limite MySQL: 64 caratteri):",

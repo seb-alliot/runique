@@ -1,7 +1,8 @@
 {
   "error": {
-    "project_pk_cargo": "Die Features des Projekts konnten nicht mit cargo gelesen werden: {}\nEin Modell verwendet `Pk`, dessen Typ vom runique-Feature `big-pk` oder `pk-uuid` in der Cargo.toml des Projekts kommt. Führen Sie den Befehl im Projektstamm aus.",
-    "project_pk_no_runique": "`runique` ist keine Abhängigkeit des hier ausgeführten Projekts: Es lässt sich nicht bestimmen, wofür `Pk` steht. Führen Sie den Befehl im Projektstamm aus.",
+    "project_pk_cargo": "Die Features des Projekts konnten nicht mit cargo gelesen werden: {}\nDie Engine des Projekts und der Typ von `Pk` kommen von den runique-Features in der Cargo.toml des Projekts (`sqlite`, `postgres`, `mysql`; `big-pk`, `pk-uuid`). Führen Sie den Befehl im Projektstamm aus.",
+    "project_pk_no_runique": "`runique` ist keine Abhängigkeit des hier ausgeführten Projekts: Es lässt sich weder seine Engine bestimmen noch, wofür `Pk` steht. Führen Sie den Befehl im Projektstamm aus.",
+    "engine_not_in_features": "Die Datenbank der .env ist {}, aber das Projekt ist nicht dafür kompiliert: Die Engine-Features von runique sind [{}].\n\nWenn .env auf die falsche Datenbank zeigt, setzen Sie DB_ENGINE und DATABASE_URL auf die Engine des Projekts.\nUm stattdessen {} zu verwenden, geben Sie runique das Feature `{}` in der Cargo.toml des Projekts und in migration/Cargo.toml.\n\nEs wurde nichts geschrieben.",
     "destructive_detected": "Destruktive Änderungen erkannt:",
     "destructive_require_force": "Verwenden Sie --force, um diese destruktiven Änderungen anzuwenden.",
     "long_identifier_detected": "Generierte SQL-Bezeichner sind zu lang (MySQL-Limit: 64 Zeichen):",

@@ -2,8 +2,11 @@
 //!
 //! `Pk` follows a feature of `runique` (`big-pk`, `pk-uuid`). The command is
 //! built once and serves every project: its own features say nothing of the
-//! project's, so it asks cargo which ones the project turns on.
+//! project's, so it asks cargo which ones the project turns on. The same
+//! answer names the engine the project is compiled for (`project_engine`).
 mod alias_used;
+mod cargo_metadata;
+mod features_of;
 mod from_cargo;
 mod has_word;
 mod host_triple;
@@ -16,10 +19,12 @@ use runique_i18n::{t, tf};
 use std::{fs, path::Path, process::Command};
 
 use alias_used::alias_used;
+pub(crate) use cargo_metadata::cargo_metadata;
+pub(crate) use features_of::features_of;
 pub(crate) use from_cargo::from_cargo;
 use has_word::has_word;
 use host_triple::host_triple;
-use pk_of::pk_of;
+pub(crate) use pk_of::pk_of;
 pub(crate) use with_project_pk::with_project_pk;
 
 #[cfg(test)]
@@ -129,7 +134,50 @@ mod tests {
     fn a_project_that_spells_its_types_out_never_asks_cargo() {
         let dir = TempDir::new();
         fs::write(dir.join("shop.rs"), "pk: id => i32").unwrap();
-        let read = with_project_pk(dir.path().to_str().unwrap(), || Ok(7)).unwrap();
+        let read = with_project_pk(
+            dir.path().to_str().unwrap(),
+            || bail!("cargo was asked"),
+            || Ok(7),
+        )
+        .unwrap();
         assert_eq!(read, 7);
+    }
+
+    // ── What is asked for real: `rustc` and `cargo`, as the tests run under
+    //    them, in this crate's own folder ──
+
+    // `x86_64-unknown-linux-gnu`: an architecture, a vendor, a system.
+    #[test]
+    fn the_host_triple_is_the_one_rustc_names() {
+        let triple = host_triple().expect("rustc names its host");
+        assert!(triple.split('-').count() >= 3, "{triple}");
+        assert!(!triple.contains(char::is_whitespace), "{triple}");
+        // What `rustc` prints, read here without the function.
+        let printed = Command::new("rustc").arg("-vV").output().unwrap();
+        let printed = String::from_utf8_lossy(&printed.stdout).into_owned();
+        assert!(printed.contains(&format!("host: {triple}\n")), "{printed}");
+    }
+
+    // Cargo describes this very project: the answer is the description, with
+    // the packages and the features the two readers look for.
+    #[test]
+    fn cargo_describes_the_project_the_command_runs_in() {
+        let metadata = cargo_metadata().expect("cargo describes this crate");
+        let json: serde_json::Value = serde_json::from_str(&metadata).expect("a JSON answer");
+        let packages = json["packages"].as_array().expect("its packages");
+        assert!(
+            packages
+                .iter()
+                .any(|package| package["name"].as_str() == Some("runique-cli")),
+            "this crate is in its own description"
+        );
+        // `runique` is a member of the same workspace: its features are read
+        // from a real answer, not only from the one the tests above write.
+        let features = features_of(&metadata).expect("the features of runique");
+        assert!(
+            features.iter().any(|feature| feature == "orm"),
+            "{features:?}"
+        );
+        pk_of(&metadata).expect("a key type");
     }
 }

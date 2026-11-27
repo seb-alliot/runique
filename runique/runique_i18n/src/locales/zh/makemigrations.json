@@ -1,7 +1,8 @@
 {
   "error": {
-    "project_pk_cargo": "无法通过 cargo 读取项目的 feature：{}\n有模型使用了 `Pk`，其类型取决于项目 Cargo.toml 中 runique 的 `big-pk` 或 `pk-uuid` feature。请在项目根目录运行该命令。",
-    "project_pk_no_runique": "`runique` 不是此处运行的项目的依赖：无法确定 `Pk` 的类型。请在项目根目录运行该命令。",
+    "project_pk_cargo": "无法通过 cargo 读取项目的 feature：{}\n项目的数据库引擎和 `Pk` 的类型取决于项目 Cargo.toml 中 runique 的 feature（`sqlite`、`postgres`、`mysql`；`big-pk`、`pk-uuid`）。请在项目根目录运行该命令。",
+    "project_pk_no_runique": "`runique` 不是此处运行的项目的依赖：无法确定其数据库引擎，也无法确定 `Pk` 的类型。请在项目根目录运行该命令。",
+    "engine_not_in_features": ".env 中的数据库是 {}，但项目并未为其编译：runique 的引擎 feature 为 [{}]。\n\n如果 .env 指向了错误的数据库，请将 DB_ENGINE 和 DATABASE_URL 设为项目的引擎。\n若要改用 {}，请在项目的 Cargo.toml 和 migration/Cargo.toml 中为 runique 添加 feature `{}`。\n\n未写入任何内容。",
     "destructive_detected": "检测到破坏性更改:",
     "destructive_require_force": "使用 --force 应用这些破坏性更改。",
     "long_identifier_detected": "生成的 SQL 标识符过长（MySQL 限制：64 个字符）：",

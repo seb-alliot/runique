@@ -1,7 +1,8 @@
 {
   "error": {
-    "project_pk_cargo": "cargo でプロジェクトの feature を読み取れませんでした：{}\nモデルが `Pk` を使用しています。その型はプロジェクトの Cargo.toml にある runique の feature `big-pk` または `pk-uuid` で決まります。プロジェクトのルートでコマンドを実行してください。",
-    "project_pk_no_runique": "`runique` はここで実行されたプロジェクトの依存関係ではありません：`Pk` の型を判断できません。プロジェクトのルートでコマンドを実行してください。",
+    "project_pk_cargo": "cargo でプロジェクトの feature を読み取れませんでした：{}\nプロジェクトのエンジンと `Pk` の型は、プロジェクトの Cargo.toml にある runique の feature（`sqlite`、`postgres`、`mysql`、`big-pk`、`pk-uuid`）で決まります。プロジェクトのルートでコマンドを実行してください。",
+    "project_pk_no_runique": "`runique` はここで実行されたプロジェクトの依存関係ではありません：エンジンも `Pk` の型も判断できません。プロジェクトのルートでコマンドを実行してください。",
+    "engine_not_in_features": ".env のデータベースは {} ですが、プロジェクトはそのためにコンパイルされていません：runique のエンジン feature は [{}] です。\n\n.env が誤ったデータベースを指している場合は、DB_ENGINE と DATABASE_URL をプロジェクトのエンジンに合わせてください。\n代わりに {} を使うには、プロジェクトの Cargo.toml と migration/Cargo.toml で runique に feature `{}` を指定してください。\n\n何も書き込まれていません。",
     "destructive_detected": "破壊的な変更が検出されました:",
     "destructive_require_force": "--force を使用してこれらの破壊的な変更を適用してください。",
     "long_identifier_detected": "生成されたSQL識別子が長すぎます（MySQLの上限：64文字）：",

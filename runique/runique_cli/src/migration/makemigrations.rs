@@ -1,7 +1,7 @@
 //! The `makemigrations` command: it connects, then goes through the steps
 //! (`steps`): reads the models and the snapshots, compares them, checks what
 //! changed, and writes the migration files in one batch.
-use crate::db::DatabaseConfig;
+use crate::db::{DatabaseConfig, DatabaseEngine};
 use crate::migration::*;
 use anyhow::Result;
 use chrono::Utc;
@@ -14,12 +14,12 @@ use crate::migration::steps::changes::report::{
 };
 use crate::migration::steps::generate::init_migrate;
 use crate::migration::steps::generate::plan::{
-    Plan, build_drop_plan, build_extend_plan, build_main_plan, check_parallel, commit_plan,
+    Plan, Run, build_drop_plan, build_extend_plan, build_main_plan, check_parallel, commit_plan,
     compute_main_changes, dropped_tables, effective_renames, plan_extend_changes, replace_waiting,
     settled_migrations, waiting_migrations,
 };
-use crate::migration::steps::parser::files::project_pk;
 use crate::migration::steps::parser::files::snapshot::{self, snapshot_upgrades};
+use crate::migration::steps::parser::files::{project_engine, project_pk};
 
 #[cfg(test)]
 #[path = "tests/commands.rs"]
@@ -33,7 +33,15 @@ mod tests;
 /// command never writes one. Run again before anything was applied, it starts
 /// from the same snapshots and its result takes the place of the migrations
 /// still waiting, instead of piling on them.
-pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()> {
+///
+/// `engine` is the one the project's database runs on: the command is
+/// connected to it before it gets here.
+pub fn run(
+    entities_path: &str,
+    migrations_path: &str,
+    force: bool,
+    engine: DatabaseEngine,
+) -> Result<()> {
     let ScannedEntities {
         schemas,
         paused,
@@ -48,7 +56,7 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
             )
         );
     }
-    init_migrate::ensure(migrations_path)?;
+    init_migrate::ensure(migrations_path, engine.into())?;
     // Before anything reads the snapshots: a run the power cut short is taken
     // back, so the changes are computed on migrations that are whole.
     init_migrate::repair_beside(
@@ -145,9 +153,9 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
 
     // ── Build a single unified plan (no writing) ──────────────────────────
     let settled = settled_migrations(migrations_path, &waiting)?;
-    let mut plan = Plan::default();
+    let mut steps = Run::default();
     build_main_plan(
-        &mut plan,
+        &mut steps.tables,
         &main_changes,
         &schemas,
         migrations_path,
@@ -155,15 +163,20 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
         &settled,
     );
     build_extend_plan(
-        &mut plan,
+        &mut steps.tables,
         &extend_planned,
         migrations_path,
         &timestamp,
         &settled,
     );
-    // Last: what destroys closes the run, once the keys of the tables that
-    // stay were removed by their own migrations above.
-    build_drop_plan(&mut plan, &dropped, migrations_path, &timestamp, &settled);
+    build_drop_plan(
+        &mut steps.deleted,
+        &dropped,
+        migrations_path,
+        &timestamp,
+        &settled,
+    );
+    let mut plan = steps.in_order();
     // While the plan holds the migrations and nothing else.
     let rewritten = replace_waiting(&mut plan, &waiting);
     plan.files.extend(upgrades);
@@ -197,11 +210,13 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
 }
 
 /// `makemigrations`: connects first, then plans and writes. An unreachable
-/// database stops the command before anything is read or written.
+/// database stops the command before anything is read or written, and so
+/// does an engine in `.env` that the project is not compiled for.
 pub async fn makemigrations(entities_path: &str, migrations_path: &str, force: bool) -> Result<()> {
     dotenvy::dotenv().ok();
     makemigrations_with(
         |key| std::env::var(key).ok(),
+        project_pk::cargo_metadata,
         entities_path,
         migrations_path,
         force,
@@ -211,6 +226,7 @@ pub async fn makemigrations(entities_path: &str, migrations_path: &str, force: b
 
 pub(crate) async fn makemigrations_with(
     get: impl Fn(&str) -> Option<String>,
+    metadata: impl FnOnce() -> Result<String>,
     entities_path: &str,
     migrations_path: &str,
     force: bool,
@@ -220,6 +236,11 @@ pub(crate) async fn makemigrations_with(
         .build();
     // The command only ever needs one connection.
     config.pool(1, 1);
+    let engine = config.engine.clone();
+    // Cargo is asked once: the engine the project is compiled for now, the
+    // type of `Pk` below.
+    let metadata = metadata()?;
+    project_engine::check(&engine, &project_pk::features_of(&metadata)?)?;
     let db = config.connect().await.map_err(|e| {
         anyhow::anyhow!(tf(
             runique_i18n::keys::makemigrations::error::DATABASE_UNREACHABLE,
@@ -235,5 +256,9 @@ pub(crate) async fn makemigrations_with(
     let applied = applied::read(&db).await?;
     applied::check_known(&applied, migrations_path)?;
     // `Pk` in a model is the project's primary key type, not this build's.
-    project_pk::with_project_pk(entities_path, || run(entities_path, migrations_path, force))
+    project_pk::with_project_pk(
+        entities_path,
+        || project_pk::pk_of(&metadata),
+        || run(entities_path, migrations_path, force, engine),
+    )
 }

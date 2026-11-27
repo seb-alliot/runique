@@ -1,7 +1,8 @@
 {
   "error": {
-    "project_pk_cargo": "Не удалось прочитать feature проекта через cargo: {}\nМодель использует `Pk`, тип которого задаётся feature `big-pk` или `pk-uuid` у runique в Cargo.toml проекта. Запустите команду из корня проекта.",
-    "project_pk_no_runique": "`runique` не является зависимостью проекта, запущенного здесь: невозможно определить, чему равен `Pk`. Запустите команду из корня проекта.",
+    "project_pk_cargo": "Не удалось прочитать feature проекта через cargo: {}\nСУБД проекта и тип `Pk` задаются feature у runique в Cargo.toml проекта (`sqlite`, `postgres`, `mysql`; `big-pk`, `pk-uuid`). Запустите команду из корня проекта.",
+    "project_pk_no_runique": "`runique` не является зависимостью проекта, запущенного здесь: невозможно определить ни его СУБД, ни чему равен `Pk`. Запустите команду из корня проекта.",
+    "engine_not_in_features": "База данных из .env — {}, но проект не скомпилирован для неё: feature СУБД у runique — [{}].\n\nЕсли .env указывает не на ту базу, задайте DB_ENGINE и DATABASE_URL для СУБД проекта.\nЧтобы использовать {}, добавьте runique feature `{}` в Cargo.toml проекта и в migration/Cargo.toml.\n\nНичего не записано.",
     "destructive_detected": "Обнаружены деструктивные изменения:",
     "destructive_require_force": "Используйте --force для применения этих деструктивных изменений.",
     "long_identifier_detected": "Сгенерированные SQL-идентификаторы слишком длинные (лимит MySQL: 64 символа):",

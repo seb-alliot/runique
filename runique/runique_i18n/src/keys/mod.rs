@@ -511,6 +511,7 @@ pub const ALL: &[&str] = &[
     self::makemigrations::error::DESTRUCTIVE_DETECTED,
     self::makemigrations::error::DESTRUCTIVE_REQUIRE_FORCE,
     self::makemigrations::error::DUPLICATE_TABLE,
+    self::makemigrations::error::ENGINE_NOT_IN_FEATURES,
     self::makemigrations::error::ENUM_DECLARED_TWICE,
     self::makemigrations::error::FOLDER_NAMED_RS,
     self::makemigrations::error::LONG_IDENTIFIER_DETECTED,

@@ -25,9 +25,11 @@ use std::path::{Path, PathBuf};
 pub async fn up(entities_path: &str, migrations_path: &str) -> Result<()> {
     run(migrations_path, &["up"]).await?;
     // The snapshots are written from the models: `Pk` as the project has it.
-    crate::migration::steps::parser::files::project_pk::with_project_pk(entities_path, || {
-        record_applied(entities_path, migrations_path)
-    })?;
+    crate::migration::steps::parser::files::project_pk::with_project_pk(
+        entities_path,
+        crate::migration::steps::parser::files::project_pk::from_cargo,
+        || record_applied(entities_path, migrations_path),
+    )?;
     println!("{}", t(runique_i18n::keys::migrate::info::COMPLETE_UP));
     Ok(())
 }
