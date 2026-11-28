@@ -2,9 +2,10 @@
 mod columns;
 mod primary_key;
 
-use crate::migration::steps::generate::constraints::render_fk_create;
-use crate::migration::steps::generate::instruction::File;
-use crate::migration::types::{ParsedFk, ParsedSchema};
+use crate::migration::{
+    steps::generate::{constraints::render_fk_create, instruction::File},
+    types::{ParsedFk, ParsedSchema},
+};
 
 /// `forward`: the table's keys to tables created after it, in an FK cycle.
 /// In a migration the other keys are written inside the CREATE TABLE; a

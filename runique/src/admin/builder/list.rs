@@ -1,13 +1,13 @@
 //! The list page of one model.
-use crate::auth::gate::rights::ReadableColumns;
-use crate::db::sql_dialect::{search_condition, text_cast_type_of};
+use crate::{
+    auth::gate::rights::ReadableColumns,
+    db::sql_dialect::{search_condition, text_cast_type_of},
+};
 use sea_orm::{
+    ActiveModelTrait, ColumnTrait, ColumnType, Condition, DbBackend, EntityTrait, IdenStatic,
+    Iterable, Order, PrimaryKeyToColumn, QueryFilter, QueryOrder, QuerySelect, QueryTrait, Select,
+    Value,
     sea_query::{Alias, Asterisk, Expr, ExprTrait, Func, StringLen, WindowStatement},
-    {
-        ActiveModelTrait, ColumnTrait, ColumnType, Condition, DbBackend, EntityTrait, IdenStatic,
-        Iterable, Order, PrimaryKeyToColumn, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
-        Select, Value,
-    },
 };
 
 /// What the URL asks of a list page, as received. Nothing here is trusted:
@@ -590,10 +590,14 @@ fn decimal_fits(len: Option<(u32, u32)>, d: &sea_orm::prelude::Decimal) -> bool 
 #[cfg(test)]
 mod tests {
     use super::{FILTER_CHOSEN_MAX, ListConfig, ListQuery, decimal_fits};
-    use crate::auth::gate::test_support::fixtures::note::{Column, Entity};
-    use crate::auth::user;
-    use sea_orm::prelude::Decimal;
-    use sea_orm::{Condition, DbBackend, EntityTrait, IdenStatic, Order, QueryFilter, QueryTrait};
+    use crate::auth::{
+        gate::test_support::fixtures::note::{Column, Entity},
+        user,
+    };
+    use sea_orm::{
+        Condition, DbBackend, EntityTrait, IdenStatic, Order, QueryFilter, QueryTrait,
+        prelude::Decimal,
+    };
 
     mod product {
         use sea_orm::entity::prelude::*;

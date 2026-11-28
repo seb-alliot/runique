@@ -28,8 +28,7 @@ fn make_groupe(resource: &str, can_read: bool) -> Groupe {
 
 #[test]
 fn test_multi_groupes_or_permissions() {
-    use runique::auth::current_user::CurrentUser;
-    use runique::auth::permissions::Groupe;
+    use runique::auth::{current_user::CurrentUser, permissions::Groupe};
 
     let user = CurrentUser {
         id: pk(10_008),

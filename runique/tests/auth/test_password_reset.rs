@@ -2,10 +2,12 @@
 //! Couvre : PasswordResetConfig builder, PasswordResetForm fields and password policy,
 //!          ForgotPasswordForm.
 
-use runique::auth::{ForgotPasswordForm, PasswordResetConfig, PasswordResetForm};
-use runique::forms::{
-    form::Forms,
-    traits::runique_form::{FormAccess, RuniqueForm},
+use runique::{
+    auth::{ForgotPasswordForm, PasswordResetConfig, PasswordResetForm},
+    forms::{
+        form::Forms,
+        traits::runique_form::{FormAccess, RuniqueForm},
+    },
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -184,8 +186,7 @@ fn test_config_email_template_ttl_and_hook_are_kept() {
 /// them keeps its own headers.
 #[tokio::test]
 async fn the_reset_routes_are_never_cached_and_only_them() {
-    use axum::body::Body;
-    use axum::http::Request;
+    use axum::{body::Body, http::Request};
     use tower::ServiceExt;
 
     let router =

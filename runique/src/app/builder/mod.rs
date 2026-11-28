@@ -1,5 +1,10 @@
 //! RuniqueAppBuilder — collection phase: stores configuration without executing it.
 mod build;
+mod checks;
+mod routes;
+mod start;
+mod static_files;
+mod templates;
 
 use axum::Router;
 use std::marker::PhantomData;
@@ -8,10 +13,12 @@ use tower_sessions::cookie::time::Duration;
 #[cfg(feature = "admin")]
 use super::staging::AdminStaging;
 use super::staging::{CoreStaging, MiddlewareStaging, StaticStaging};
-use crate::auth::{PasswordResetConfig, PasswordResetStaging};
-use crate::config::RuniqueConfig;
-use crate::log::RuniqueLog;
-use crate::router::Routes;
+use crate::{
+    auth::{PasswordResetConfig, PasswordResetStaging},
+    config::RuniqueConfig,
+    log::RuniqueLog,
+    router::Routes,
+};
 
 #[cfg(feature = "orm")]
 use crate::db::DatabaseConfig;

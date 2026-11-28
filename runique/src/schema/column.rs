@@ -466,19 +466,21 @@ impl ColumnDef {
     /// Converts the column to a GenericField.
     /// Returns `None` if the column is auto-excluded.
     pub fn to_form_field(&self) -> Option<crate::forms::generic::GenericField> {
-        use crate::forms::fields::{
-            FileSize,
-            boolean::BooleanField,
-            choice::ChoiceField,
-            datetime::{DateField, DateTimeField, TimeField},
-            file::FileField,
-            media::MediaField,
-            number::NumericField,
-            special::{ColorField, IPAddressField, JSONField, SlugField, UUIDField},
-            text::TextField,
+        use crate::forms::{
+            fields::{
+                FileSize,
+                boolean::BooleanField,
+                choice::ChoiceField,
+                datetime::{DateField, DateTimeField, TimeField},
+                file::FileField,
+                media::MediaField,
+                number::NumericField,
+                special::{ColorField, IPAddressField, JSONField, SlugField, UUIDField},
+                text::TextField,
+            },
+            generic::GenericField,
+            traits::form_field::FormField,
         };
-        use crate::forms::generic::GenericField;
-        use crate::forms::traits::form_field::FormField;
 
         if self.ignored {
             return None;
@@ -673,17 +675,19 @@ impl ColumnDef {
         &self,
         widget: runique_dsl::types::Widget,
     ) -> crate::forms::generic::GenericField {
-        use crate::forms::config::field_config::NumericConfig;
-        use crate::forms::fields::{
-            FileSize,
-            boolean::BooleanField,
-            choice::{CheckboxField, ChoiceField, RadioField},
-            datetime::{DateField, DateTimeField, TimeField},
-            file::FileField,
-            media::MediaField,
-            number::NumericField,
-            special::{ColorField, IPAddressField, JSONField, SlugField, UUIDField},
-            text::TextField,
+        use crate::forms::{
+            config::field_config::NumericConfig,
+            fields::{
+                FileSize,
+                boolean::BooleanField,
+                choice::{CheckboxField, ChoiceField, RadioField},
+                datetime::{DateField, DateTimeField, TimeField},
+                file::FileField,
+                media::MediaField,
+                number::NumericField,
+                special::{ColorField, IPAddressField, JSONField, SlugField, UUIDField},
+                text::TextField,
+            },
         };
         use runique_dsl::types::Widget;
 

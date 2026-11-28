@@ -1,10 +1,13 @@
 //! The columns a gated write sets, read from a validated form: Runique's
 //! floor first, then the account's rights, then each field's own value.
-use crate::auth::meta::ModelMeta;
-use crate::auth::permissions::rights::ColumnRights;
-use crate::forms::data::column_value::{column_value, null_value};
-use crate::forms::form::Forms;
-use crate::translation::t;
+use crate::{
+    auth::{meta::ModelMeta, permissions::rights::ColumnRights},
+    forms::{
+        data::column_value::{column_value, null_value},
+        form::Forms,
+    },
+    translation::t,
+};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, IdenStatic, Iterable, PrimaryKeyToColumn,
 };
@@ -145,8 +148,10 @@ fn is_primary_key<E: EntityTrait>(name: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::auth::permissions::ColumnRight;
-    use crate::forms::fields::{MediaField, NumericField, TextField};
+    use crate::{
+        auth::permissions::ColumnRight,
+        forms::fields::{MediaField, NumericField, TextField},
+    };
     use chrono::NaiveDate;
     use sea_orm::{ActiveValue, Value};
 
@@ -206,8 +211,7 @@ mod tests {
         }
     }
 
-    use item::Column as C;
-    use item::Entity as E;
+    use item::{Column as C, Entity as E};
 
     /// Every column of the entity as a field, typed like its column.
     fn full_form() -> Forms {

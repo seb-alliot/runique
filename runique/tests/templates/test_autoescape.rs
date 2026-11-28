@@ -8,8 +8,7 @@
 //! différence se voit. Un test qui inspecte uniquement le `Value` retourné par un
 //! filtre ne dit rien sur ce qui part réellement au navigateur.
 
-use runique::templates::register_asset_filters;
-use runique::utils::aliases::new_registry;
+use runique::{templates::register_asset_filters, utils::aliases::new_registry};
 use tera::{Context, Tera};
 
 const XSS: &str = r#"<script>alert(1)</script>"#;

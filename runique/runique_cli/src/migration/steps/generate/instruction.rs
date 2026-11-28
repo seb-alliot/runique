@@ -10,11 +10,10 @@
 //!
 //! A `down` is never written on its own: it is the `up` read backwards, each
 //! instruction replaced by its inverse.
-use super::constraints::fk_constraint_name;
-use super::{create, delete, modify, rename};
-use crate::db::DatabaseEngine;
-use crate::migration::types::{
-    ColumnType, EnumPlace, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema,
+use super::{constraints::fk_constraint_name, create, delete, modify, rename};
+use crate::{
+    db::DatabaseEngine,
+    migration::types::{ColumnType, EnumPlace, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema},
 };
 
 /// Which body of a migration is written.

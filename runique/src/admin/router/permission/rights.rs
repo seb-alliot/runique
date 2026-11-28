@@ -1,34 +1,40 @@
 //! `GET/POST {admin}/users/{id}/rights`: the grid of an admin's own rights,
 //! ticked by a dirigeant or the superuser, table by table, column by column.
-use crate::admin::builder::confirm_form::ConfirmForm;
-use crate::admin::builder::registered::AdminError;
-use crate::admin::builder::site::AdminSite;
-use crate::admin::constants::admin_form;
-use crate::admin::router::context::{
-    GridBox, GridColumn, GridTable, ResourceRef, RightsContext, put,
+use crate::{
+    admin::{
+        builder::{confirm_form::ConfirmForm, registered::AdminError, site::AdminSite},
+        constants::admin_form,
+        router::{
+            chrome,
+            context::{GridBox, GridColumn, GridTable, ResourceRef, RightsContext, put},
+            failure,
+            routes::AdminState,
+            unknown_resource,
+        },
+    },
+    auth::{
+        current_user::CurrentUser,
+        gate::{
+            Refusal,
+            refusal::RefusalReason,
+            rights_grid::{ColumnGrant, TableGrant, TableRights, may_set, set_admin_rights},
+        },
+        permissions::group_rights,
+        user::{self, BuiltinUserEntity},
+    },
+    forms::{traits::runique_form::FormAccess, validation_form::ValidationForm},
+    http::request::Request,
+    schema::pk::Pk,
+    translation::t,
+    utils::aliases::AppResult,
 };
-use crate::admin::router::routes::AdminState;
-use crate::admin::router::{chrome, failure, unknown_resource};
-use crate::auth::current_user::CurrentUser;
-use crate::auth::gate::Refusal;
-use crate::auth::gate::refusal::RefusalReason;
-use crate::auth::gate::rights_grid::{
-    ColumnGrant, TableGrant, TableRights, may_set, set_admin_rights,
+use axum::{
+    Extension,
+    extract::Path,
+    response::{IntoResponse, Redirect, Response},
 };
-use crate::auth::permissions::group_rights;
-use crate::auth::user::{self, BuiltinUserEntity};
-use crate::forms::traits::runique_form::FormAccess;
-use crate::forms::validation_form::ValidationForm;
-use crate::http::request::Request;
-use crate::schema::pk::Pk;
-use crate::translation::t;
-use crate::utils::aliases::AppResult;
-use axum::Extension;
-use axum::extract::Path;
-use axum::response::{IntoResponse, Redirect, Response};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
-use std::collections::HashSet;
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 /// The table rights, as the grid shows and sends them.
 const TABLE_RIGHTS: [&str; 7] = [
@@ -370,8 +376,10 @@ async fn group_rights(
     user: CurrentUser,
     mut req: Request,
 ) -> AppResult<Response> {
-    use crate::auth::gate::rights_grid::{may_set_group, set_group_rights};
-    use crate::auth::permissions::group;
+    use crate::auth::{
+        gate::rights_grid::{may_set_group, set_group_rights},
+        permissions::group,
+    };
     let not_found = || AdminError::Refused(Refusal::new(RefusalReason::NotFound));
     let Ok(group_id) = id.parse::<i32>() else {
         return failure(not_found(), &req, &admin).await;
@@ -489,8 +497,7 @@ pub(crate) async fn group_select_view(
     axum::extract::Query(params): axum::extract::Query<crate::utils::aliases::StrMap>,
     req: Request,
 ) -> AppResult<Response> {
-    use crate::auth::gate::rights_grid::may_set_group;
-    use crate::auth::permissions::group;
+    use crate::auth::{gate::rights_grid::may_set_group, permissions::group};
     let not_found = || AdminError::Refused(Refusal::new(RefusalReason::NotFound));
     // Without a group, the first one the account may set, by name: the
     // list's "rights" shortcut.

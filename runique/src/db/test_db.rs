@@ -14,8 +14,7 @@ use sea_orm::{
     ExecResult, IsolationLevel, QueryResult, Statement, TransactionError, TransactionOptions,
     TransactionTrait,
 };
-use std::future::Future;
-use std::pin::Pin;
+use std::{future::Future, pin::Pin};
 
 /// Either a real [`DatabaseConnection`] or an already-open
 /// [`DatabaseTransaction`]. The test harness uses the latter to wrap a test,

@@ -1,6 +1,5 @@
 //! What the gate HAS authorized.
-use super::PkOf;
-use super::rights::ReadableColumns;
+use super::{PkOf, rights::ReadableColumns};
 use sea_orm::{Condition, EntityTrait};
 use std::marker::PhantomData;
 

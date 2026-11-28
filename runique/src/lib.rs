@@ -66,11 +66,11 @@ pub mod templates;
 /// The engine and the messages live in the `runique_i18n` crate.
 #[doc = include_str!("../doc-tests/i18n/switch_lang.md")]
 pub mod translation {
-    pub use runique_i18n::keys;
-    pub use runique_i18n::project::{
-        LanguageReport, LocaleError, ProjectReport, load_project, project_dir,
+    pub use runique_i18n::{
+        Lang, LangId, current_lang, keys,
+        project::{LanguageReport, LocaleError, ProjectReport, load_project, project_dir},
+        t, tf, with_lang,
     };
-    pub use runique_i18n::{Lang, LangId, current_lang, t, tf, with_lang};
 }
 
 #[cfg(feature = "admin")]
@@ -124,69 +124,78 @@ pub mod prelude {
     // ========================================================================
     // ERRORS
     // ========================================================================
-    pub use crate::errors::ErrorContext;
-    pub use crate::errors::RuniqueError;
-    pub use crate::log::init_logging;
-    pub use crate::log::{
-        AdminTracing, AuthTracing, BuilderTracing, DbTracing, ErrorsTracing, FormTracing,
-        LogOutput, LogRecord, LogRotation, LogSink, MailerTracing, MiddlewareTracing,
-        MigrationTracing, RuniqueLog, SessionTracing, TemplatesTracing,
+    pub use crate::{
+        errors::{ErrorContext, RuniqueError},
+        log::{
+            AdminTracing, AuthTracing, BuilderTracing, DbTracing, ErrorsTracing, FormTracing,
+            LogOutput, LogRecord, LogRotation, LogSink, MailerTracing, MiddlewareTracing,
+            MigrationTracing, RuniqueLog, SessionTracing, TemplatesTracing, init_logging,
+        },
     };
     pub use tracing::{self, Level as LogLevel};
 
     // ========================================================================
     // MAIN MODULES
     // ========================================================================
-    pub use crate::app::{RuniqueApp, RuniqueAppBuilder};
-    pub use crate::config::app::RuniqueConfig;
-    pub use crate::engine::RuniqueEngine;
-    pub use crate::errors::AppError;
-    pub use crate::flash::{FlashMessage, Message, MessageLevel};
-    pub use crate::forms::{
-        FormEntity, Forms, Prisme,
-        fields::{
-            CheckboxField, DateField, DurationField, RadioField, TimeField,
-            boolean::BooleanField,
-            choice::{ChoiceField, ChoiceOption},
-            datetime::DateTimeField,
-            file::{FileField, FileSize},
-            hidden::HiddenField,
-            media::MediaField,
-            number::NumericField,
-            special::{ColorField, IPAddressField, JSONField, SlugField, UUIDField},
-            text::TextField,
+    pub use crate::{
+        app::{RuniqueApp, RuniqueAppBuilder},
+        config::app::RuniqueConfig,
+        engine::RuniqueEngine,
+        errors::AppError,
+        flash::{FlashMessage, Message, MessageLevel},
+        forms::{
+            FormEntity, Forms, Prisme,
+            fields::{
+                CheckboxField, DateField, DurationField, RadioField, TimeField,
+                boolean::BooleanField,
+                choice::{ChoiceField, ChoiceOption},
+                datetime::DateTimeField,
+                file::{FileField, FileSize},
+                hidden::HiddenField,
+                media::MediaField,
+                number::NumericField,
+                special::{ColorField, IPAddressField, JSONField, SlugField, UUIDField},
+                text::TextField,
+            },
+            generic::{GeneratedField, GenericField},
+            traits::{
+                model_form::ModelForm,
+                runique_form::{FormAccess, FormField, RuniqueForm},
+            },
+            validation_form::ValidationForm,
         },
-        generic::{GeneratedField, GenericField},
-        traits::model_form::ModelForm,
-        traits::runique_form::{FormAccess, FormField, RuniqueForm},
-        validation_form::ValidationForm,
+        http::Request,
+        schema::{ModelSchema, Pk},
+        utils::aliases::*,
     };
-    pub use crate::http::Request;
-    pub use crate::schema::ModelSchema;
-    pub use crate::schema::Pk;
-    pub use crate::utils::aliases::*;
     pub use derive_form::{extend, form, model};
 
     // ========================================================================
     // CONFIGURATION
     // ========================================================================
     use crate::chrono;
-    pub use crate::config::env::{is_debug, is_dev};
-    pub use crate::config::{security::SecurityConfig, server::ServerConfig};
-    pub use crate::translation::{Lang, current_lang};
+    pub use crate::{
+        config::{
+            env::{is_debug, is_dev},
+            security::SecurityConfig,
+            server::ServerConfig,
+        },
+        translation::{Lang, current_lang},
+    };
     pub use dotenvy;
 
     // ========================================================================
     // UTILS
     // ========================================================================
-    pub use crate::router::{
-        RouterExt, Routes, UrlError, register_name_url, register_pending, reverse,
-        reverse_with_parameters,
-    };
-    pub use crate::security::csp_nonce::*;
     pub use crate::{
-        context_update, error, flash_now, impl_form_access, impl_objects, info, search,
-        search_cond, success, urlpatterns, view, warning,
+        context_update, error, flash_now, impl_form_access, impl_objects, info,
+        router::{
+            RouterExt, Routes, UrlError, register_name_url, register_pending, reverse,
+            reverse_with_parameters,
+        },
+        search, search_cond,
+        security::csp_nonce::*,
+        success, urlpatterns, view, warning,
     };
 
     // ========================================================================
@@ -197,16 +206,15 @@ pub mod prelude {
     // ========================================================================
     // MIDDLEWARE
     // ========================================================================
-    pub use crate::auth::user as runique_users;
-    pub use crate::auth::user::BuiltinUserEntity;
-    pub use crate::auth::*;
-    pub use crate::auth::{
-        ForgotPasswordForm, PasswordResetConfig, PasswordResetForm, handle_forgot_password,
-        handle_password_reset,
-    };
-    pub use crate::middleware::{
-        allowed_hosts::*, cache::*, config::*, csp::*, csrf::*, errors::*, permissions_policy::*,
-        rate_limit::RateLimiter, trusted_proxies::*,
+    pub use crate::{
+        auth::{
+            ForgotPasswordForm, PasswordResetConfig, PasswordResetForm, handle_forgot_password,
+            handle_password_reset, user as runique_users, user::BuiltinUserEntity, *,
+        },
+        middleware::{
+            allowed_hosts::*, cache::*, config::*, csp::*, csrf::*, errors::*,
+            permissions_policy::*, rate_limit::RateLimiter, trusted_proxies::*,
+        },
     };
 
     // ========================================================================
@@ -257,17 +265,21 @@ pub mod prelude {
     // ========================================================================
     // STANDARD TYPES
     // ========================================================================
-    pub use std::collections::{HashMap, HashSet};
-    pub use std::sync::Arc;
+    pub use std::{
+        collections::{HashMap, HashSet},
+        sync::Arc,
+    };
 
     // ========================================================================
     // SECURITY - HMAC, Hashing, etc.
     // ========================================================================
-    pub use crate::mailer::{Email, dispatch_email, mailer_configured};
-    pub use crate::security::password::{
-        AutoConfig, Manual, PasswordConfig, hash, password_init, verify,
+    pub use crate::{
+        mailer::{Email, dispatch_email, mailer_configured},
+        security::{
+            password::{AutoConfig, Manual, PasswordConfig, hash, password_init, verify},
+            reset_token,
+        },
     };
-    pub use crate::security::reset_token;
     pub use hmac::{Hmac, Mac};
     pub use sha2::Sha256;
 
@@ -307,8 +319,10 @@ pub mod prelude {
         Authorized, Create, Crud, CrudAction, Delete, GateCtx, List, Refusal, Update, View,
         authorize_create, authorize_row, write,
     };
-    pub use crate::auth::permissions::group;
-    pub use crate::db::sql_dialect::{ilike, text_cast_type, text_eq, text_eq_ci};
-    pub use crate::migrations_table;
+    pub use crate::{
+        auth::permissions::group,
+        db::sql_dialect::{ilike, text_cast_type, text_eq, text_eq_ci},
+        migrations_table,
+    };
     pub use futures_util::future::BoxFuture;
 }

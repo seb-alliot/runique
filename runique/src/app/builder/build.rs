@@ -1,108 +1,48 @@
-//! Build pipeline: validation → core construction → middleware → statics.
-//!
-//! Construction order:
-//!   1. Validation (each staging + cross-dependencies)
-//!   2. DB connection (if DatabaseConfig provided)
-//!   3. Core (Templates → Engine → URLs)
-//!   4. Admin panel (merged before middleware stack)
-//!   5. Password reset routes
-//!   6. Middleware staging (slots sort + apply)
-//!   7. Static files
+//! `build`: the order in which the application is put together. Each step is
+//! a function of its own, in this file or beside it (`start`, `checks`,
+//! `templates`, `routes`, `static_files`).
 
 use std::sync::Arc;
 
-use axum::{
-    Router,
-    http::{HeaderName, HeaderValue},
-};
-use tower_http::{services::ServeDir, set_header::SetResponseHeaderLayer};
+use axum::Router;
 
-use super::super::runique_app::RuniqueApp;
-use super::RuniqueAppBuilder;
-#[cfg(feature = "admin")]
-use crate::admin::build_admin_router;
-use crate::config::RuniqueConfig;
-use crate::engine::{RuniqueEngine, SecurityPolicies};
-use crate::errors::build::BuildError;
-use crate::log::log_init;
-use crate::middleware::HostPolicy;
-use crate::router::{add_urls, register_name_url};
-use crate::templates::loader::TemplateLoader;
-use crate::utils::aliases::{ADb, new};
+use super::{
+    super::runique_app::RuniqueApp,
+    RuniqueAppBuilder, routes,
+    start::{check_timezone, load_project_locales, start_logging},
+    templates,
+};
+use crate::{
+    app::staging::MiddlewareStaging,
+    config::RuniqueConfig,
+    engine::{RuniqueEngine, SecurityPolicies},
+    errors::build::BuildError,
+    middleware::{HostPolicy, MiddlewareConfig},
+    router::add_urls,
+    utils::aliases::{ADb, AEngine, new},
+};
 
 #[cfg(feature = "orm")]
 use crate::middleware::session::session_db::RuniqueSessionStore;
-
-/// Largest request body: the upload limit, plus 1 MB for the form's text fields.
-fn body_limit(max_upload_mb: u64) -> usize {
-    let bytes = max_upload_mb.saturating_add(1).saturating_mul(1024 * 1024);
-    usize::try_from(bytes).unwrap_or(usize::MAX)
-}
-
-/// Runique's welcome page, served at `/` in debug when the app declares no `/`.
-async fn default_index(
-    mut request: crate::http::request::Request,
-) -> crate::utils::aliases::AppResult<axum::response::Response> {
-    request.render("base_index.html")
-}
-
-/// Policy of every media response: no script, no plugin, whatever the file
-/// claims to be (an uploaded `.html` or `.xhtml` is otherwise a page of the site).
-const MEDIA_CSP: &str = "script-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
-
-/// 404 for any path segment starting with a dot, decoded first (`%2E` is a
-/// dot to `ServeDir`): uploads wait in `.staging-*` folders under the media
-/// root until their form is checked, and must not be reachable meanwhile.
-async fn hide_dot_segments(
-    req: axum::extract::Request,
-    next: axum::middleware::Next,
-) -> axum::response::Response {
-    use axum::response::IntoResponse;
-    let hidden = req.uri().path().split('/').any(|segment| {
-        urlencoding::decode(segment).map_or(true, |decoded| decoded.starts_with('.'))
-    });
-    if hidden {
-        return axum::http::StatusCode::NOT_FOUND.into_response();
-    }
-    next.run(req).await
-}
 
 impl<P> RuniqueAppBuilder<P> {
     /// Validates and builds the application.
     ///
     /// # Construction Pipeline
-    /// 1. **Validation** of all components (Core, Middleware, Statics)
-    /// 2. **Construction** of the Core (Templates → Engine → URLs)
-    /// 3. **Automatic reorganization** of middlewares by slots
-    /// 4. **Application** of static files (if enabled)
+    /// 1. **Traces**, the project's translations, the time zone
+    /// 2. **Validation** of all components (Core, Middleware, Statics, Admin)
+    /// 3. **Database** connection
+    /// 4. **Templates**, then the **engine** (config, Tera, security policies)
+    /// 5. **Routes** Runique adds: welcome page, password reset, admin
+    /// 6. **Middlewares**, sorted by slot, with the session stores created before the engine
+    /// 7. **Static files**, the body size limit, the admin's `no-store`
     pub async fn build(mut self) -> Result<RuniqueApp, BuildError> {
-        // Step 0: tracing (before everything else)
-        // log_init early so get_log() works in TemplateLoader::init() and middleware staging.
-        // The channels `.env` asks for (DEBUG, RUNIQUE_ENV), under those set by hand.
-        self.config.log = self
-            .config
-            .log
-            .clone()
-            .with_env_levels(self.config.dev, self.config.debug);
-        log_init(self.config.log.clone());
-        let log_guards = self.config.log.init_subscriber();
-
+        let log_guards = start_logging(&mut self.config);
         // The project's own translations, before anything is said in its
         // language: the checks below answer in it.
         load_project_locales(self.config.lang.as_deref())?;
+        check_timezone(&self.config.timezone)?;
 
-        // A zone nobody knows would leave every date as stored, without a word.
-        // An empty one is no zone asked for: the site stays in UTC.
-        if !self.config.timezone.is_empty()
-            && self.config.timezone.parse::<chrono_tz::Tz>().is_err()
-        {
-            return Err(BuildError::validation(crate::translation::tf(
-                runique_i18n::keys::build::error::TIMEZONE_UNKNOWN,
-                &[&self.config.timezone],
-            )));
-        }
-
-        // Step 1: validation
         self.validate()?;
         if !self.all_ready() {
             return Err(BuildError::validation(
@@ -110,377 +50,93 @@ impl<P> RuniqueAppBuilder<P> {
             ));
         }
 
-        // Step 2: DB connection (if DatabaseConfig provided)
         //   - `with_database(db)`        → already connected, taken as is
         //   - `with_database_config(cfg)` → `connect()` during build
         #[cfg(feature = "orm")]
         let db = self.core.connect().await?;
 
         #[cfg(feature = "admin")]
-        let admin_cache_policy = self.admin.enabled.then(|| {
-            crate::admin::router::routes::AdminCachePolicy::new(
-                self.admin.public_prefix(),
-                self.admin
-                    .declared_routes
-                    .iter()
-                    .map(|route| route.path.clone())
-                    .collect(),
-            )
-        });
+        let admin_cache_policy = routes::admin_cache_policy(&self.admin);
+        #[cfg(feature = "admin")]
+        let admin_enabled = self.admin.enabled;
+        #[cfg(not(feature = "admin"))]
+        let admin_enabled = false;
 
-        // Step 3: destructuring
-        let extensions = self.core.extensions;
         let mut config = self.config;
-        // In development, links and assets must lead back to this machine, never
-        // to the production site a hard-coded `.with_public_url()` names.
-        if config.dev {
-            config.server.public_url = Some(format!("http://127.0.0.1:{}", config.server.port));
-        }
+        links_to_this_machine(&mut config);
         let url_registry = self.core.url_registry;
         let mut middleware = self.middleware;
-        let statics_enabled = self.statics.enabled;
-        let static_cache = self.statics.static_cache;
-        let media_cache = self.statics.media_cache;
-        let router = self.router;
 
-        // Step 4: core construction — strict order: Templates → Config → Engine → URLs
-
-        // The admin's replaced blocks, written into its pages before Tera
-        // loads them; a page replaced both ways refused first.
         #[cfg(feature = "admin")]
-        if self.admin.enabled {
-            use crate::admin::template::{Page, assemble};
-            let models = self.admin.site.model_templates();
-            let replaced = self
-                .admin
-                .declared_routes
-                .iter()
-                .filter(|route| route.overrides == crate::admin::AdminView::Detail)
-                .map(|route| (route.model_key.clone(), Page::Detail));
-            assemble::check_replaced_views(&models, replaced).map_err(BuildError::template)?;
-            config.block_dispatch = assemble::dispatch(&self.admin.config.templates, &models)
-                .map_err(BuildError::template)?;
-        }
-
+        templates::write_admin_blocks(&self.admin, &mut config)?;
         #[cfg_attr(not(feature = "admin"), allow(unused_variables))]
-        let (tera, integrity) = TemplateLoader::init_with_integrity(&config, url_registry.clone())
-            .map_err(|e| BuildError::template(e.to_string()))?;
-        // A replaced admin page is only looked up when rendered: a missing one
-        // refuses the boot instead of failing on its first request.
+        let (tera, integrity) = templates::load_templates(&config, &url_registry)?;
         #[cfg(feature = "admin")]
-        if self.admin.enabled {
-            let loaded: std::collections::HashSet<&str> = tera.get_template_names().collect();
-            crate::admin::template::assemble::missing_pages(
-                &self.admin.config.templates,
-                &self.admin.site.model_templates(),
-                |path| loaded.contains(path),
-            )
-            .map_err(BuildError::template)?;
-        }
-        // Every variable a replaced admin page or block reads must be one its
-        // page provides: a typo is refused here, whatever the environment,
-        // instead of failing on render.
-        #[cfg(feature = "admin")]
-        if self.admin.enabled {
-            let pristine = TemplateLoader::load_without_replacements(&config, url_registry.clone())
-                .map_err(|e| BuildError::template(e.to_string()))?;
-            crate::admin::template::assemble::unknown_variables(
-                &pristine,
-                &tera,
-                &self.admin.config.templates,
-                &self.admin.site.model_templates(),
-            )
-            .map_err(BuildError::template)?;
-        }
-        let tera = new(tera);
+        templates::check_admin_pages(&self.admin, &config, &url_registry, &tera)?;
 
         let config = new(config);
         crate::security::password::password_init(config.password.clone());
+        warn_hsts_preload(&config);
+        warn_debug_in_prod(&config);
 
-        // HSTS `preload` requires `includeSubDomains` + `max-age ≥ 1 an` to be
-        // accepted on the browser preload list — warn once at boot if the combo
-        // is invalid (the header would otherwise be silently ignored for preload).
-        if config.security.hsts_preload_misconfigured() {
-            tracing::warn!(
-                max_age = config.security.hsts_max_age,
-                include_subdomains = config.security.hsts_include_subdomains,
-                "HSTS_PRELOAD set but combo invalid (needs includeSubDomains + max-age ≥ 31536000) — ignored by browsers for preload"
-            );
-        }
-
-        if config.debug && !config.dev {
-            tracing::warn!(
-                "{}",
-                crate::translation::t(runique_i18n::keys::build::log::DEBUG_IN_PROD)
-            );
-        }
+        #[cfg(feature = "orm")]
+        let db = ADb::from_connection(db);
+        // One database store, shared by the engine and the memory store's
+        // fallback: it holds only the connection and the derived key.
+        #[cfg(feature = "orm")]
+        let database_sessions = Some(Arc::new(RuniqueSessionStore::new(
+            db.clone(),
+            &config.server.secret_key,
+        )));
+        #[cfg(not(feature = "orm"))]
+        let database_sessions = None;
+        let sessions = middleware.session_stores(database_sessions);
 
         let engine = new(RuniqueEngine {
             config: config.clone(),
-            tera,
+            tera: new(tera),
             #[cfg(feature = "orm")]
-            db: ADb::from_connection(db),
-            features: {
-                let mut f = middleware.features.clone();
-                f.exclusive_login = middleware.exclusive_login;
-                f
-            },
+            db,
+            features: middleware_features(&middleware),
             url_registry,
-            security: SecurityPolicies {
-                csp: {
-                    let mut policy = middleware.security_policy.take().unwrap_or_default();
-                    // `strict()` turns it on, and a local server only speaks HTTP.
-                    if config.dev {
-                        policy.upgrade_insecure_requests = false;
-                    }
-                    // Only the admin adds to the policy.
-                    #[cfg(feature = "admin")]
-                    if self.admin.enabled {
-                        policy.merge_htmx_hashes();
-                    }
-                    new(policy)
-                },
-                hosts: new(HostPolicy::new(
-                    middleware.allowed_hosts.clone(),
-                    middleware.features.enable_host_validation,
-                )),
-                csrf_exempt_paths: Arc::new(middleware.csrf_exempt_paths.clone()),
-                permissions_policy: Arc::new(
-                    middleware.permissions_policy.take().unwrap_or_default(),
-                ),
-                trusted_proxies: Arc::new(match middleware.trusted_proxies_config.take() {
-                    // Explicit config always wins; otherwise the default is edge-aware
-                    // (private ranges behind a proxy, but `none()` when Runique is the
-                    // ACME TLS edge — closes SEC2). See `TrustedProxies::default_for_edge`.
-                    Some(c) => c.build(),
-                    None => {
-                        crate::middleware::security::trusted_proxies::TrustedProxies::default_for_edge(
-                            config.security.acme_enabled,
-                        )
-                    }
-                }),
-            },
-            session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-            session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-            extensions,
+            security: security_policies(&mut middleware, &config, admin_enabled),
+            sessions,
+            extensions: self.core.extensions,
         });
-
         add_urls(&engine);
 
-        // Step 4b: admin + password reset — merged BEFORE the middleware stack.
-        // `.layer()` in Axum only covers routes present at call time;
-        // merging after means admin routes run without Session/CSRF/Extensions.
-        let router = router.unwrap_or_default();
-
-        // In production, an undeclared `/` stays a 404: a welcome page on a
-        // live site would look unfinished and name the framework.
-        let forgot_on_root = self
-            .password_reset
-            .as_ref()
-            .is_some_and(|pr| pr.config.forgot_route == "/");
-        let router = if config.dev && self.root_free && !forgot_on_root {
-            router.route("/", axum::routing::get(default_index))
-        } else {
-            router
-        };
-
-        // The admin's emailed reset links point to the reset page this app
-        // serves. Its "view site" link stays `/` unless set: on the host the
-        // browser is on, so the session cookie follows.
-        // An enabled admin never needs `with_password_reset` to open the
-        // accounts it creates: without it, the reset page alone is served,
-        // with Runique's template and default limits. The "forgot password"
-        // form is the site's to open, by declaring it.
+        let router = self.router.unwrap_or_default();
+        let router = routes::welcome_page(
+            router,
+            config.dev,
+            self.root_free,
+            self.password_reset.as_ref(),
+        );
         #[cfg(feature = "admin")]
-        let admin_reset = (self.admin.enabled && self.password_reset.is_none())
-            .then(crate::auth::password::PasswordResetConfig::default);
+        let admin_reset = routes::admin_reset_page(&mut self.admin, self.password_reset.as_ref());
         #[cfg(not(feature = "admin"))]
-        let admin_reset: Option<crate::auth::password::PasswordResetConfig> = None;
-
+        let admin_reset = None;
+        let router =
+            routes::router_reset_password(router, &engine, self.password_reset, admin_reset);
         #[cfg(feature = "admin")]
-        if let Some(pr) = &self.password_reset {
-            self.admin.config.reset_link = Some((&pr.config).into());
-        } else if let Some(config) = &admin_reset {
-            self.admin.config.reset_link = Some(config.into());
-        }
+        let router = routes::router_admin(router, &engine, self.admin, &integrity).await?;
+        routes::log_url_registry(&engine);
 
-        let router = if let Some(pr) = self.password_reset {
-            let forgot_path = pr.config.forgot_route.clone();
-            let reset_path = format!("{}/{{token}}", pr.config.reset_route.trim_end_matches('/'));
-            let pr_router = crate::auth::password::build_router(Arc::new(pr.config));
-            register_name_url(&engine, "forgot_password", &forgot_path);
-            register_name_url(&engine, "reset_password", &reset_path);
-            router.merge(pr_router)
-        } else if let Some(config) = admin_reset {
-            let reset_path = format!("{}/{{token}}", config.reset_route.trim_end_matches('/'));
-            let reset_router = crate::auth::password::build_reset_router(Arc::new(config));
-            register_name_url(&engine, "reset_password", &reset_path);
-            router.merge(reset_router)
+        let router = middleware.apply_middleware(router, engine.clone())?;
+
+        let router = if self.statics.enabled {
+            Self::attach_static_files(
+                router,
+                &engine.config,
+                self.statics.static_cache,
+                self.statics.media_cache,
+            )
         } else {
             router
         };
-
+        let router = limit_body(router, &engine);
         #[cfg(feature = "admin")]
-        let router = if self.admin.enabled {
-            // Public base URL (mount prefix + admin path) — what `{% url %}`
-            // must resolve to, not the path the router is built from.
-            let admin_prefix = self.admin.public_prefix();
-            let robots_txt = self.admin.robots_txt;
-            let sitemap_url = self.admin.sitemap_url.clone();
-            let declared_route_urls: Vec<(String, String)> = self
-                .admin
-                .declared_routes
-                .iter()
-                .map(|route| (route.name.clone(), route.path.clone()))
-                .collect();
-            self.admin.log_boot(config.dev);
-
-            // Close the `resource_key` referential-integrity gap: drop rights that
-            // point at a resource no longer registered (see `prune_orphan_droits`).
-            // The registered models are fixed at build time: boot is the only window.
-            // Only once the project registered its models: the accounts alone
-            // would make every other right look orphaned.
-            let valid_keys = self.admin.site.keys();
-            if self.admin.site.has_project_models() {
-                let level = crate::log::log_level!(builder.registry);
-                match crate::auth::permissions::prune_orphan_droits(&engine.db, &valid_keys).await {
-                    Ok(n) if n > 0 => {
-                        if let Some(level) = level {
-                            crate::runique_log!(
-                                level,
-                                pruned = n,
-                                "orphan group rights pruned at boot"
-                            );
-                        }
-                    }
-                    Ok(_) => {}
-                    Err(e) => {
-                        // Never silent: stale grants would stay without a word.
-                        crate::runique_log!(
-                            level.unwrap_or(tracing::Level::WARN),
-                            error = %e,
-                            "{}", crate::translation::t(runique_i18n::keys::build::log::PRUNE_FAILED)
-                        );
-                    }
-                }
-            }
-
-            let sheets = {
-                let statics = &config.static_files;
-                let (site, runique) = (&integrity.site, &integrity.runique);
-                let version = crate::config::env::css_token();
-                crate::admin::template::PageSheets::build(
-                    &self.admin.config.templates,
-                    &self.admin.site.model_templates(),
-                    &crate::admin::template::stylesheet::Statics {
-                        site_url: &statics.static_url,
-                        site,
-                        runique_url: &statics.static_runique_url,
-                        runique,
-                        version: &version,
-                    },
-                )
-                .map_err(BuildError::template)?
-            };
-            let sheets = if config.dev {
-                sheets.without_integrity()
-            } else {
-                sheets
-            };
-            let admin_router = build_admin_router(self.admin, sheets);
-            add_urls(&engine);
-            register_name_url(&engine, "admin", &admin_prefix);
-            for (name, path) in declared_route_urls {
-                let already_registered = engine
-                    .url_registry
-                    .read()
-                    .unwrap_or_else(|e| e.into_inner())
-                    .contains_key(&name);
-                if already_registered {
-                    return Err(BuildError::validation(format!(
-                        "admin route name `{name}` conflicts with an already registered URL"
-                    )));
-                }
-                register_name_url(&engine, name, path);
-            }
-            let mut r = router.merge(admin_router);
-            if robots_txt {
-                r = r.route(
-                    "/robots.txt",
-                    axum::routing::get(move || {
-                        let sitemap_line = sitemap_url
-                            .map(|u| format!("Sitemap: {}\n", u))
-                            .unwrap_or_default();
-                        // No `Disallow` for the admin prefix on purpose: this file
-                        // is public, so naming the path would publish the very
-                        // prefix a dev may have chosen to stay discreet — and it
-                        // would only ask crawlers not to fetch it, not to leave it
-                        // out of the index. De-indexing is handled where it cannot
-                        // leak, by the `X-Robots-Tag` header on the admin router.
-                        let body = format!(
-                            "User-agent: *\n\n{}Content-Signal: ai-train=yes, search=yes, ai-input=yes\n",
-                            sitemap_line
-                        );
-                        async move { body }
-                    }),
-                );
-            }
-            r
-        } else {
-            router
-        };
-
-        if let Some(level) = crate::log::log_level!(builder.routes) {
-            let count = engine
-                .url_registry
-                .read()
-                .map(|guard| guard.len())
-                .unwrap_or(0);
-            crate::runique_log!(level, routes = count, "url registry");
-        }
-
-        // Step 5: middleware staging — automatic slot sort and apply
-        let _exclusive_login = middleware.exclusive_login;
-        let (router, session_store) = middleware.apply_to_router(router, engine.clone());
-        if let Some(store) = session_store
-            && let Ok(mut guard) = engine.session_store.write()
-        {
-            *guard = Some(store);
-        }
-
-        #[cfg(feature = "orm")]
-        {
-            let db_store =
-                RuniqueSessionStore::new(engine.db.clone(), &engine.config.server.secret_key);
-            if let Ok(mut guard) = engine.session_db_store.write() {
-                *guard = Some(Arc::new(db_store));
-            }
-        }
-
-        // Step 6: static files (conditional)
-        let router = if statics_enabled {
-            Self::attach_static_files(router, &engine.config, static_cache, media_cache)
-        } else {
-            router
-        };
-
-        // Step 7: body size. A multipart body streams to disk, each file held
-        // to `max_upload_mb` by `parse_multipart`, the whole request to
-        // `max_body_mb`. Bodies read into memory (urlencoded, JSON) are held
-        // to `FORM_BODY_LIMIT` by Aegis.
-        let router = router.layer(axum::extract::DefaultBodyLimit::max(body_limit(
-            engine.config.static_files.max_body_mb,
-        )));
-
-        #[cfg(feature = "admin")]
-        let router = if let Some(policy) = admin_cache_policy {
-            router.layer(axum::middleware::from_fn_with_state(
-                policy,
-                crate::admin::router::routes::admin_no_store,
-            ))
-        } else {
-            router
-        };
+        let router = routes::no_store_on_admin(router, admin_cache_policy);
 
         Ok(RuniqueApp {
             engine,
@@ -488,290 +144,91 @@ impl<P> RuniqueAppBuilder<P> {
             _log_guards: log_guards,
         })
     }
+}
 
-    // ─── Internal validation ──────────────────────────────────────────────────
-
-    fn validate(&self) -> Result<(), BuildError> {
-        self.core.validate()?;
-        self.middleware.validate()?;
-        self.statics.validate()?;
-        #[cfg(feature = "admin")]
-        self.admin.validate()?;
-        self.cross_validate()
-    }
-
-    fn cross_validate(&self) -> Result<(), BuildError> {
-        if self.config.dev {
-            return Ok(());
-        }
-
-        use crate::errors::build::{CheckError, CheckReport};
-
-        let mut report = CheckReport::new();
-        #[cfg(feature = "acme")]
-        let sec = &self.config.security;
-        let srv = &self.config.server;
-
-        if crate::config::server::secret_key_is_weak(&srv.secret_key) {
-            report.add(
-                CheckError::new(
-                    "Security",
-                    crate::translation::t(runique_i18n::keys::build::error::SECRET_KEY_WEAK),
-                )
-                .with_suggestion(crate::translation::t(
-                    runique_i18n::keys::build::hint::SECRET_KEY_WEAK,
-                )),
-            );
-        }
-
-        // Without a public URL, a reset link would be built from the request's
-        // `Host` header: someone asking a reset for a victim's address with
-        // `Host: evil.com` would get the victim's token mailed in a link to
-        // their own site.
-        #[cfg(feature = "admin")]
-        let admin_enabled = self.admin.enabled;
-        #[cfg(not(feature = "admin"))]
-        let admin_enabled = false;
-        if (self.password_reset.is_some() || admin_enabled) && srv.public_url.is_none() {
-            report.add(
-                CheckError::new(
-                    "PublicUrl",
-                    crate::translation::t(runique_i18n::keys::build::error::PUBLIC_URL_MISSING),
-                )
-                .with_suggestion(crate::translation::t(
-                    runique_i18n::keys::build::hint::PUBLIC_URL_MISSING,
-                )),
-            );
-        }
-
-        // No mailer, no reset email: the page could never send its link.
-        // The mailer lives in the `.env` alone. Asked of the environment
-        // itself, not of the process-wide mailer another app may have set.
-        let mailer_ready = crate::mailer::MailerConfig::from_env().is_some();
-        if self.password_reset.is_some() && !mailer_ready {
-            report.add(
-                CheckError::new(
-                    "Mailer",
-                    crate::translation::t(runique_i18n::keys::build::error::MAILER_MISSING),
-                )
-                .with_suggestion(crate::translation::t(
-                    runique_i18n::keys::build::hint::MAILER_MISSING,
-                )),
-            );
-        }
-
-        #[cfg(feature = "acme")]
-        if sec.acme_enabled {
-            if sec.acme_domain.is_none() {
-                report.add(
-                    CheckError::new(
-                        "ACME",
-                        crate::translation::t(
-                            runique_i18n::keys::build::error::ACME_DOMAIN_MISSING,
-                        ),
-                    )
-                    .with_suggestion(crate::translation::t(
-                        runique_i18n::keys::build::hint::ACME_DOMAIN_MISSING,
-                    )),
-                );
-            }
-            if sec.acme_email.is_none() {
-                report.add(
-                    CheckError::new(
-                        "ACME",
-                        crate::translation::t(runique_i18n::keys::build::error::ACME_EMAIL_MISSING),
-                    )
-                    .with_suggestion(crate::translation::t(
-                        runique_i18n::keys::build::hint::ACME_EMAIL_MISSING,
-                    )),
-                );
-            }
-        }
-
-        if report.has_errors() {
-            return Err(BuildError::check(report));
-        }
-
-        Ok(())
-    }
-
-    #[cfg(feature = "admin")]
-    fn admin_is_ready(&self) -> bool {
-        self.admin.is_ready()
-    }
-
-    #[cfg(not(feature = "admin"))]
-    fn admin_is_ready(&self) -> bool {
-        true
-    }
-
-    fn all_ready(&self) -> bool {
-        self.core.is_ready()
-            && self.middleware.is_ready()
-            && self.statics.is_ready()
-            && self.admin_is_ready()
-    }
-
-    // ─── Static files attachment ──────────────────────────────────────────────
-
-    pub(super) fn attach_static_files(
-        mut router: Router,
-        config: &RuniqueConfig,
-        static_cache: std::borrow::Cow<'static, str>,
-        media_cache: std::borrow::Cow<'static, str>,
-    ) -> Router {
-        // HSTS is host-scoped: once any page emits it (via the CSP middleware,
-        // gated + configured by `SecurityConfig::hsts_header_value`), the browser
-        // applies it to the whole host, static assets included. So static file
-        // responses only carry the per-asset headers here — no HSTS to keep
-        // config as the single source of truth (never a hardcoded preload).
-        let security_headers = || {
-            tower::ServiceBuilder::new()
-                .layer(SetResponseHeaderLayer::if_not_present(
-                    HeaderName::from_static("x-content-type-options"),
-                    HeaderValue::from_static("nosniff"),
-                ))
-                .layer(SetResponseHeaderLayer::if_not_present(
-                    HeaderName::from_static("x-frame-options"),
-                    HeaderValue::from_static("DENY"),
-                ))
-                .layer(SetResponseHeaderLayer::if_not_present(
-                    HeaderName::from_static("referrer-policy"),
-                    HeaderValue::from_static("strict-origin-when-cross-origin"),
-                ))
-        };
-
-        // In development the `?v=` token stays the same while a file is edited:
-        // the browser must ask again instead of keeping its `immutable` copy.
-        let static_cache = if config.dev {
-            "no-cache"
-        } else {
-            static_cache.as_ref()
-        };
-        // Value already validated in `StaticStaging::validate()` (build Step 1),
-        // run before this function — the header is well-formed by construction.
-        let static_headers = security_headers().layer(SetResponseHeaderLayer::if_not_present(
-            HeaderName::from_static("cache-control"),
-            HeaderValue::from_str(static_cache).expect("validated in StaticStaging::validate()"),
-        ));
-
-        // Media are files users uploaded: served from the app's own origin, an
-        // uploaded page must never run a script there. The middleware stack
-        // (and its CSP) doesn't cover these routes, so the policy is set here.
-        let media_headers = security_headers()
-            .layer(SetResponseHeaderLayer::overriding(
-                HeaderName::from_static("content-security-policy"),
-                HeaderValue::from_static(MEDIA_CSP),
-            ))
-            .layer(SetResponseHeaderLayer::if_not_present(
-                HeaderName::from_static("cache-control"),
-                HeaderValue::from_str(&media_cache)
-                    .expect("validated in StaticStaging::validate()"),
-            ))
-            .layer(axum::middleware::from_fn(hide_dot_segments));
-
-        router = router
-            .nest_service(
-                &config.static_files.static_url,
-                static_headers
-                    .clone()
-                    .service(ServeDir::new(&config.static_files.staticfiles_dirs)),
-            )
-            .nest_service(
-                &config.static_files.media_url,
-                media_headers.service(ServeDir::new(&config.static_files.media_root)),
-            );
-
-        if !config.static_files.static_runique_url.is_empty() {
-            router = router.nest_service(
-                &config.static_files.static_runique_url,
-                static_headers.service(ServeDir::new(&config.static_files.static_runique_path)),
-            );
-        }
-
-        if let Some(level) = crate::log::log_level!(builder.statics) {
-            crate::runique_log!(
-                level,
-                static_url = %config.static_files.static_url,
-                static_dir = %config.static_files.staticfiles_dirs,
-                media_url = %config.static_files.media_url,
-                media_dir = %config.static_files.media_root,
-                "static files attached"
-            );
-        }
-
-        router
+/// In development, links and assets must lead back to this machine, never
+/// to the production site a hard-coded `.with_public_url()` names.
+fn links_to_this_machine(config: &mut RuniqueConfig) {
+    if config.dev {
+        config.server.public_url = Some(format!("http://127.0.0.1:{}", config.server.port));
     }
 }
 
-/// Reads the project's `locales/` folder (`LOCALES_DIR`), then takes the
-/// language of the `.env` unless the code chose one. A folder that can't be
-/// read as translations stops the start; what it leaves untranslated or
-/// misspells is only said.
-fn load_project_locales(wanted: Option<&str>) -> Result<(), BuildError> {
-    use crate::translation::{Lang, keys::build, load_project, project_dir, tf};
-    use runique_i18n::{set_default_lang, set_lang};
+/// HSTS `preload` requires `includeSubDomains` + `max-age ≥ 1 an` to be
+/// accepted on the browser preload list — warn once at boot if the combo
+/// is invalid (the header would otherwise be silently ignored for preload).
+fn warn_hsts_preload(config: &RuniqueConfig) {
+    if config.security.hsts_preload_misconfigured() {
+        tracing::warn!(
+            max_age = config.security.hsts_max_age,
+            include_subdomains = config.security.hsts_include_subdomains,
+            "HSTS_PRELOAD set but combo invalid (needs includeSubDomains + max-age ≥ 31536000) — ignored by browsers for preload"
+        );
+    }
+}
 
-    let report = load_project(&project_dir())
-        .map_err(|e| BuildError::validation(tf(build::error::LOCALES_INVALID, &[e])))?;
-    // After the folder: `LANG=nl` names a language only once it is loaded.
-    // The file's own `LANG`, never the machine's: a server's locale isn't
-    // the language of the site it serves.
-    match wanted {
-        Some(code) => {
-            let Some(lang) = Lang::find(code) else {
-                let loaded: Vec<&str> = Lang::available().iter().map(Lang::code).collect();
-                return Err(BuildError::validation(tf(
-                    build::error::LANG_UNKNOWN,
-                    &[code.to_string(), loaded.join(", ")],
-                )));
-            };
-            set_lang(lang);
-        }
-        None => {
-            if let Some(lang) = Lang::from_dotenv() {
-                set_default_lang(lang);
-            }
-        }
+fn warn_debug_in_prod(config: &RuniqueConfig) {
+    if config.debug && !config.dev {
+        tracing::warn!(
+            "{}",
+            crate::translation::t(runique_i18n::keys::build::log::DEBUG_IN_PROD)
+        );
     }
-    for language in &report.languages {
-        if !language.missing.is_empty() {
-            let total: usize = language.missing.iter().map(|(_, count)| count).sum();
-            let subjects: Vec<String> = language
-                .missing
-                .iter()
-                .map(|(subject, count)| format!("{subject}: {count}"))
-                .collect();
-            tracing::warn!(
-                "{}",
-                tf(
-                    build::log::LOCALES_MISSING,
-                    &[
-                        language.code.clone(),
-                        total.to_string(),
-                        subjects.join(", ")
-                    ]
-                )
-            );
-        }
-        if !language.unknown.is_empty() {
-            tracing::warn!(
-                "{}",
-                tf(
-                    build::log::LOCALES_UNKNOWN,
-                    &[language.code.clone(), language.unknown.join(", ")]
-                )
-            );
-        }
-        if !language.mismatched.is_empty() {
-            tracing::warn!(
-                "{}",
-                tf(
-                    build::log::LOCALES_PLACEHOLDERS,
-                    &[language.code.clone(), language.mismatched.join(", ")]
-                )
-            );
-        }
+}
+
+/// The middleware toggles the engine keeps, with the exclusive login the
+/// admin reads at sign-in.
+fn middleware_features(middleware: &MiddlewareStaging) -> MiddlewareConfig {
+    let mut features = middleware.features.clone();
+    features.exclusive_login = middleware.exclusive_login;
+    features
+}
+
+fn security_policies(
+    middleware: &mut MiddlewareStaging,
+    config: &RuniqueConfig,
+    admin_enabled: bool,
+) -> SecurityPolicies {
+    let mut csp = middleware.security_policy.take().unwrap_or_default();
+    // `strict()` turns it on, and a local server only speaks HTTP.
+    if config.dev {
+        csp.upgrade_insecure_requests = false;
     }
-    Ok(())
+    // Only the admin adds to the policy.
+    if admin_enabled {
+        csp.merge_htmx_hashes();
+    }
+    SecurityPolicies {
+        csp: new(csp),
+        hosts: new(HostPolicy::new(
+            middleware.allowed_hosts.clone(),
+            middleware.features.enable_host_validation,
+        )),
+        csrf_exempt_paths: Arc::new(middleware.csrf_exempt_paths.clone()),
+        permissions_policy: Arc::new(middleware.permissions_policy.take().unwrap_or_default()),
+        trusted_proxies: Arc::new(match middleware.trusted_proxies_config.take() {
+            // Explicit config always wins; otherwise the default is edge-aware
+            // (private ranges behind a proxy, but `none()` when Runique is the
+            // ACME TLS edge — closes SEC2). See `TrustedProxies::default_for_edge`.
+            Some(c) => c.build(),
+            None => crate::middleware::security::trusted_proxies::TrustedProxies::default_for_edge(
+                config.security.acme_enabled,
+            ),
+        }),
+    }
+}
+
+/// Largest request body: the upload limit, plus 1 MB for the form's text fields.
+fn body_limit(max_upload_mb: u64) -> usize {
+    let bytes = max_upload_mb.saturating_add(1).saturating_mul(1024 * 1024);
+    usize::try_from(bytes).unwrap_or(usize::MAX)
+}
+
+/// A multipart body streams to disk, each file held to `max_upload_mb` by
+/// `parse_multipart`, the whole request to `max_body_mb`. Bodies read into
+/// memory (urlencoded, JSON) are held to `FORM_BODY_LIMIT` by Aegis.
+fn limit_body(router: Router, engine: &AEngine) -> Router {
+    router.layer(axum::extract::DefaultBodyLimit::max(body_limit(
+        engine.config.static_files.max_body_mb,
+    )))
 }

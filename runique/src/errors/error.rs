@@ -1,7 +1,9 @@
 //! `RuniqueError`: what went wrong inside the framework, by kind, with the
 //! level it is logged at and the response it becomes.
-use super::build::BuildError;
-use super::context::{ErrorContext, ErrorType};
+use super::{
+    build::BuildError,
+    context::{ErrorContext, ErrorType},
+};
 use crate::translation::{t, tf};
 use axum::{
     http::StatusCode,

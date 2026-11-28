@@ -390,8 +390,10 @@ fn test_scan_entities_belongs_to_table_framework() {
 // collect_destructive_messages
 // ═══════════════════════════════════════════════════════════════
 
-use runique_cli::migration::collect_destructive_messages;
-use runique_cli::migration::types::{Changes, ParsedColumn, ParsedFk};
+use runique_cli::migration::{
+    collect_destructive_messages,
+    types::{Changes, ParsedColumn, ParsedFk},
+};
 
 fn col(name: &str, col_type: &str, nullable: bool) -> ParsedColumn {
     ParsedColumn {
@@ -639,8 +641,7 @@ fn extend_file_path_termine_par_rs() {
 // merge_extend_schemas
 // ═══════════════════════════════════════════════════════════════
 
-use runique_cli::migration::merge_extend_schemas;
-use runique_cli::migration::types::ParsedSchema;
+use runique_cli::migration::{merge_extend_schemas, types::ParsedSchema};
 
 fn extend_schema(table: &str, col_names: &[&str]) -> ParsedSchema {
     ParsedSchema {

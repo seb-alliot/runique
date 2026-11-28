@@ -12,8 +12,10 @@
 //! ```
 
 use std::sync::Arc;
-use tera::value::{Key, Map};
-use tera::{Kwargs, Value};
+use tera::{
+    Kwargs, Value,
+    value::{Key, Map},
+};
 
 /// Builds a `Kwargs` from `(name, value)` pairs.
 pub fn kwargs<const N: usize>(pairs: [(&'static str, Value); N]) -> Kwargs {

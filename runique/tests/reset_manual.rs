@@ -6,9 +6,13 @@ mod helpers;
 #[path = "reset_modes/support.rs"]
 mod support;
 
-use runique::db::ADb;
-use runique::security::password::{Manual, PasswordConfig, PasswordService, password_get};
-use runique::security::reset_token;
+use runique::{
+    db::ADb,
+    security::{
+        password::{Manual, PasswordConfig, PasswordService, password_get},
+        reset_token,
+    },
+};
 use std::time::Duration;
 
 #[tokio::test]

@@ -1,24 +1,35 @@
 //! `GET {admin}/history` and `GET {admin}/history/{id}`: the writes the admin
 //! traced, for the models the account fully reads, each diff cut to the
 //! columns it reads.
-use super::AdminPaths;
-use super::context::{
-    HistoryChange, HistoryContext, HistoryEntryContext, HistoryLinks, HistoryResource, HistoryRow,
-    put,
+use super::{
+    AdminPaths, chrome,
+    context::{
+        HistoryChange, HistoryContext, HistoryEntryContext, HistoryLinks, HistoryResource,
+        HistoryRow, put,
+    },
+    failure,
 };
-use super::{chrome, failure};
-use crate::admin::builder::registered::{AdminError, HistoryScope};
-use crate::admin::builder::site::AdminSite;
-use crate::admin::router::routes::AdminState;
-use crate::auth::current_user::CurrentUser;
-use crate::auth::gate::Refusal;
-use crate::auth::gate::refusal::RefusalReason;
-use crate::auth::history;
-use crate::http::request::Request;
-use crate::utils::aliases::{AppResult, StrMap};
-use axum::Extension;
-use axum::extract::{Path, Query};
-use axum::response::Response;
+use crate::{
+    admin::{
+        builder::{
+            registered::{AdminError, HistoryScope},
+            site::AdminSite,
+        },
+        router::routes::AdminState,
+    },
+    auth::{
+        current_user::CurrentUser,
+        gate::{Refusal, refusal::RefusalReason},
+        history,
+    },
+    http::request::Request,
+    utils::aliases::{AppResult, StrMap},
+};
+use axum::{
+    Extension,
+    extract::{Path, Query},
+    response::Response,
+};
 use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
 use std::sync::Arc;
 
@@ -215,10 +226,10 @@ pub(crate) async fn history_entry_view(
 #[cfg(test)]
 mod tests {
     use super::row;
-    use crate::admin::builder::registered::HistoryScope;
-    use crate::admin::router::AdminPaths;
-    use crate::auth::gate::rights::ReadableColumns;
-    use crate::auth::history;
+    use crate::{
+        admin::{builder::registered::HistoryScope, router::AdminPaths},
+        auth::{gate::rights::ReadableColumns, history},
+    };
 
     fn entry(object_repr: &str) -> history::Model {
         history::Model {

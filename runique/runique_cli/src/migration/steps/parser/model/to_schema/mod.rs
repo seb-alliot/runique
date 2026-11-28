@@ -8,11 +8,13 @@ mod list_table;
 mod table;
 
 use quote::ToTokens;
-use runique_dsl::ast::{
-    EnumBackingType, EnumDef, FieldOption, FieldType, FkAction, FormFieldAttr, FormFieldDecl,
-    ModelInput, RelationDef,
+use runique_dsl::{
+    ast::{
+        EnumBackingType, EnumDef, FieldOption, FieldType, FkAction, FormFieldAttr, FormFieldDecl,
+        ModelInput, RelationDef,
+    },
+    form_field_to_field_def,
 };
-use runique_dsl::form_field_to_field_def;
 
 use crate::migration::types::{ColumnType, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema};
 use runique_dsl::snake_case;

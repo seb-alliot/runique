@@ -9,10 +9,12 @@ use crate::entities::{
     blog, chapitre, code_example, contribution, demo_category, demo_page, demo_section, doc_block,
     doc_page, doc_section, page_doc_link, runique_release, user_profile,
 };
-use runique::admin::{AdminSite, ModelAdmin};
-use runique::app::staging::AdminStaging;
-use runique::auth::LoginGuard;
-use runique::middleware::rate_limit::RateLimiter;
+use runique::{
+    admin::{AdminSite, ModelAdmin},
+    app::staging::AdminStaging,
+    auth::LoginGuard,
+    middleware::rate_limit::RateLimiter,
+};
 use sea_orm::Order;
 
 /// The whole admin, handed to `with_admin` by `main`: the boot test below

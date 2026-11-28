@@ -3,8 +3,10 @@
 use super::renewal::{cert_needs_renewal, obtain_and_store, renew_if_due};
 #[cfg(feature = "orm")]
 use crate::app::runique_app::connected_db_message;
-use crate::app::runique_app::{RuniqueApp, shutdown_signal};
-use crate::translation::{t, tf};
+use crate::{
+    app::runique_app::{RuniqueApp, shutdown_signal},
+    translation::{t, tf},
+};
 use axum::Router;
 
 impl RuniqueApp {

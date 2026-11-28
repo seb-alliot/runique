@@ -8,5 +8,4 @@ pub mod project;
 pub mod switch_lang;
 
 pub use project::{LanguageReport, LocaleError, ProjectReport, load_project, project_dir};
-pub use switch_lang::{Lang, LangId, current_lang, set_default_lang, set_lang, with_lang};
-pub use switch_lang::{t, tf};
+pub use switch_lang::{Lang, LangId, current_lang, set_default_lang, set_lang, t, tf, with_lang};

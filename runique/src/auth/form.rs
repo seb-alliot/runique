@@ -1,10 +1,12 @@
 //! `LoginAdmin` — admin login form with username/password fields.
-use crate::forms::{
-    Forms,
-    fields::text::TextField,
-    traits::runique_form::{FormAccess, RuniqueForm},
+use crate::{
+    forms::{
+        Forms,
+        fields::text::TextField,
+        traits::runique_form::{FormAccess, RuniqueForm},
+    },
+    impl_form_access,
 };
-use crate::impl_form_access;
 
 /// Admin login form provided by Runique.
 ///

@@ -3,25 +3,26 @@
 //! prefix to a stranger nor close a site session), the `Detail` override, and
 //! the forms the macro accepts.
 
-use crate::helpers::db;
-use crate::helpers::framework_tables::{
-    GROUPES_DDL, GROUPES_DROITS_DDL, HISTORY_DDL, RESET_TOKENS_DDL, SESSIONS_DDL, USERS_DDL,
-    USERS_GROUPES_DDL,
+use crate::helpers::{
+    db,
+    framework_tables::{
+        GROUPES_DDL, GROUPES_DROITS_DDL, HISTORY_DDL, RESET_TOKENS_DDL, SESSIONS_DDL, USERS_DDL,
+        USERS_GROUPES_DDL,
+    },
+    pk::{pk, pk_sql_literal},
 };
-use crate::helpers::pk::{pk, pk_sql_literal};
-use axum::Extension;
-use axum::extract::Path;
-use axum::routing::get;
-use runique::admin::template::Page;
-use runique::admin::{AdminSite, AdminState, admin_page_context};
-use runique::app::RuniqueApp;
-use runique::auth::{BuiltinUserEntity, login};
-use runique::config::RuniqueConfig;
-use runique::flash::Message;
-use runique::http::request::Request;
-use runique::prelude::{FormAccess, RuniqueForm, ValidationForm, form};
-use runique::router::Routes;
-use runique::sea_orm::{EntityTrait, QueryOrder};
+use axum::{Extension, extract::Path, routing::get};
+use runique::{
+    admin::{AdminSite, AdminState, admin_page_context, template::Page},
+    app::RuniqueApp,
+    auth::{BuiltinUserEntity, login},
+    config::RuniqueConfig,
+    flash::Message,
+    http::request::Request,
+    prelude::{FormAccess, RuniqueForm, ValidationForm, form},
+    router::Routes,
+    sea_orm::{EntityTrait, QueryOrder},
+};
 use serial_test::serial;
 use std::sync::Arc;
 

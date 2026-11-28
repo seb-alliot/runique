@@ -2,8 +2,10 @@
 //! `makemigrations` of a project that has none. Runique writes it itself rather
 //! than `sea-orm-cli migrate init`, whose template pins neither the SeaORM
 //! version runique is built with nor any database driver, and lacks runique.
-use crate::atomic::{AtomicBuilder, SourceItems};
-use crate::db::engine::DatabaseEngine;
+use crate::{
+    atomic::{AtomicBuilder, SourceItems},
+    db::engine::DatabaseEngine,
+};
 use anyhow::{Context, Result};
 use runique_i18n::{t, tf};
 use std::path::{Path, PathBuf};

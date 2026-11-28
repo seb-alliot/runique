@@ -1,6 +1,8 @@
 //! A column dropped.
-use crate::migration::steps::diff::Columns;
-use crate::migration::types::{ParsedColumn, ParsedSchema};
+use crate::migration::{
+    steps::diff::Columns,
+    types::{ParsedColumn, ParsedSchema},
+};
 
 /// The columns of the snapshot the model has no more, the renamed ones
 /// aside, in the order of the snapshot.

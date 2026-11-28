@@ -549,7 +549,10 @@ async fn test_engine_reports_its_store_saturation() {
     );
 
     let store = std::sync::Arc::new(CleaningMemoryStore::default().with_watermarks(1, 1));
-    *engine.session_store.write().unwrap() = Some(store.clone());
+    let engine = crate::helpers::server::build_engine_with(|e| {
+        e.sessions.memory = Some(store.clone());
+    })
+    .await;
     assert!(
         !engine.session_store_saturated(),
         "empty store: not saturated"

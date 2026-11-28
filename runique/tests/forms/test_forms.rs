@@ -5,8 +5,10 @@ mod tests {
         forms::{
             fields::{boolean::BooleanField, number::NumericField, text::TextField},
             form::Forms,
-            traits::form_field::FormField,
-            traits::runique_form::{FormAccess, RuniqueForm},
+            traits::{
+                form_field::FormField,
+                runique_form::{FormAccess, RuniqueForm},
+            },
         },
         utils::aliases::StrMap,
     };

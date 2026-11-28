@@ -7,8 +7,10 @@
 //! (keywords, types, attributes, punctuation, huge numbers), which reach much
 //! deeper into the grammar than random characters do.
 use proptest::prelude::*;
-use runique_dsl::ast::{EnumDef, FormFieldDecl, MetaDef, ModelInput};
-use runique_dsl::extend::ExtendDsl;
+use runique_dsl::{
+    ast::{EnumDef, FormFieldDecl, MetaDef, ModelInput},
+    extend::ExtendDsl,
+};
 
 /// Runs every parser on `src`; only a panic fails the property.
 fn parse_everything(src: &str) {

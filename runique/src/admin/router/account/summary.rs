@@ -1,12 +1,15 @@
 //! What the list and the detail of accounts show about each one: its rank and
 //! its groups, read-only. Whoever may read the accounts sees them; changing
 //! either goes through the gate.
-use crate::auth::permissions::rank::Rang;
-use crate::auth::permissions::{group, user_groups};
-use crate::auth::user;
-use crate::schema::pk::Pk;
-use crate::translation::t;
-use crate::utils::aliases::ADb;
+use crate::{
+    auth::{
+        permissions::{group, rank::Rang, user_groups},
+        user,
+    },
+    schema::pk::Pk,
+    translation::t,
+    utils::aliases::ADb,
+};
 use sea_orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter};
 use serde::Serialize;
 use std::collections::HashMap;

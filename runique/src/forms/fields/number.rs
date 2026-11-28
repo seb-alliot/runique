@@ -1,8 +1,9 @@
 //! Numeric fields: `NumericField` (integer, decimal) with min/max validation and precision.
-use crate::forms::config::field_config::*;
-use crate::forms::traits::form_field::*;
-use crate::translation::{t, tf};
-use crate::utils::aliases::ATera;
+use crate::{
+    forms::{config::field_config::*, traits::form_field::*},
+    translation::{t, tf},
+    utils::aliases::ATera,
+};
 use async_trait::async_trait;
 use serde::Serialize;
 

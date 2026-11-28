@@ -3,10 +3,11 @@
 //! disk, out of the test's transaction: each test removes the ones it made.
 use super::form_save::named_request;
 use crate::entities::user_profile;
-use runique::config::static_files::resolve_media_root;
-use runique::prelude::runique_users::ActiveModel as UserActiveModel;
-use runique::prelude::*;
-use runique::runique_test::{TestFailure, runique_test};
+use runique::{
+    config::static_files::resolve_media_root,
+    prelude::{runique_users::ActiveModel as UserActiveModel, *},
+    runique_test::{TestFailure, runique_test},
+};
 use sea_orm::DbErr;
 use std::path::{Path, PathBuf};
 

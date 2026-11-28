@@ -1,6 +1,7 @@
-use crate::migration::steps::generate::NOT_SQLITE;
-use crate::migration::steps::generate::constraints::render_fk_create;
-use crate::migration::types::ParsedFk;
+use crate::migration::{
+    steps::generate::{NOT_SQLITE, constraints::render_fk_create},
+    types::ParsedFk,
+};
 
 /// The keys that close an FK cycle, as (their table, key): added once the
 /// table they point to exists, except under SQLite, which took them inline.

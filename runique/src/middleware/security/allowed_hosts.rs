@@ -1,6 +1,5 @@
 //! `Host` header validation middleware: rejects requests to unauthorized hosts.
-use crate::translation::t;
-use crate::utils::aliases::AEngine;
+use crate::{translation::t, utils::aliases::AEngine};
 use axum::{
     body::Body,
     extract::State,

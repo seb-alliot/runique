@@ -12,11 +12,13 @@
 //!
 //! A migration planned for an engine holds what that engine has something
 //! to run for and nothing else (`Instruction::runs_on`).
-use super::file_around;
-use super::instruction::{Create, Delete, Direction, File, Instruction, Modify, Rename, body};
-use crate::db::DatabaseEngine;
-use crate::migration::types::{
-    ColumnType, EnumPlace, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema,
+use super::{
+    file_around,
+    instruction::{Create, Delete, Direction, File, Instruction, Modify, Rename, body},
+};
+use crate::{
+    db::DatabaseEngine,
+    migration::types::{ColumnType, EnumPlace, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema},
 };
 
 pub(super) struct BuilderPlan<'a> {
@@ -304,8 +306,7 @@ impl<'a> BuilderPlan<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::instruction::write;
-    use super::*;
+    use super::{super::instruction::write, *};
     use crate::migration::types::FkAction;
 
     const PG: DatabaseEngine = DatabaseEngine::PostgreSQL;

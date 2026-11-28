@@ -1,12 +1,20 @@
 //! An account deleted by its owner (GDPR right to erasure): the current
 //! password confirms it, its contributions go with it (`ON DELETE CASCADE`),
 //! and every session it holds is closed.
-use crate::backend::auth::get_profile_user;
-use crate::backend::lang::{localize_errors, msg};
-use crate::forms::DeleteAccountForm;
-use runique::auth::Rang;
-use runique::prelude::runique_users::{Column as UserColumn, Entity as UserEntity};
-use runique::prelude::*;
+use crate::{
+    backend::{
+        auth::get_profile_user,
+        lang::{localize_errors, msg},
+    },
+    forms::DeleteAccountForm,
+};
+use runique::{
+    auth::Rang,
+    prelude::{
+        runique_users::{Column as UserColumn, Entity as UserEntity},
+        *,
+    },
+};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
 /// The profile page, with the deletion form as given: its errors show under

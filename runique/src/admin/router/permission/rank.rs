@@ -1,26 +1,32 @@
 //! `POST {admin}/{resource}/rank`: gives accounts a rank, through the gate's
 //! own operation. A rank is never a form field.
-use crate::admin::builder::bulk_form::{BULK_ACTION, BULK_IDS, BulkForm};
-use crate::admin::builder::registered::AdminError;
-use crate::admin::builder::site::AdminSite;
-use crate::admin::constants::admin_form;
-use crate::admin::router::routes::AdminState;
-use crate::admin::router::{failure, unknown_resource};
-use crate::auth::current_user::CurrentUser;
-use crate::auth::gate::Refusal;
-use crate::auth::gate::rank::set_rank;
-use crate::auth::gate::refusal::RefusalReason;
-use crate::auth::permissions::rank::Rang;
-use crate::auth::user;
-use crate::forms::traits::runique_form::FormAccess;
-use crate::forms::validation_form::ValidationForm;
-use crate::http::request::Request;
-use crate::schema::pk::Pk;
-use crate::translation::{t, tf};
-use crate::utils::aliases::AppResult;
-use axum::Extension;
-use axum::extract::Path;
-use axum::response::{IntoResponse, Redirect, Response};
+use crate::{
+    admin::{
+        builder::{
+            bulk_form::{BULK_ACTION, BULK_IDS, BulkForm},
+            registered::AdminError,
+            site::AdminSite,
+        },
+        constants::admin_form,
+        router::{failure, routes::AdminState, unknown_resource},
+    },
+    auth::{
+        current_user::CurrentUser,
+        gate::{Refusal, rank::set_rank, refusal::RefusalReason},
+        permissions::rank::Rang,
+        user,
+    },
+    forms::{traits::runique_form::FormAccess, validation_form::ValidationForm},
+    http::request::Request,
+    schema::pk::Pk,
+    translation::{t, tf},
+    utils::aliases::AppResult,
+};
+use axum::{
+    Extension,
+    extract::Path,
+    response::{IntoResponse, Redirect, Response},
+};
 use std::sync::Arc;
 
 /// The rank a form value names; the superuser's is never given.

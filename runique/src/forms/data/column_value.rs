@@ -1,10 +1,13 @@
 //! A field's cleaned text, read into the value its column stores. One reading
 //! for every field type, the same `admin_from_form` makes from the model.
-use crate::forms::config::field_config::FieldConfig;
-use crate::forms::fields::{decode_binary, parse_datetime_local, parse_utc_datetime};
-use crate::translation::t;
-use sea_orm::Value;
-use sea_orm::sea_query::ColumnType;
+use crate::{
+    forms::{
+        config::field_config::FieldConfig,
+        fields::{decode_binary, parse_datetime_local, parse_utc_datetime},
+    },
+    translation::t,
+};
+use sea_orm::{Value, sea_query::ColumnType};
 
 /// A field's value read as its column, or as `default` — what the field type
 /// stores when no column was given to it. `Ok(None)` when empty.

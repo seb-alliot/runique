@@ -1,8 +1,10 @@
 //! CLI for creating an admin superuser with a choice of hashing algorithm.
-use crate::auth::user::{Column, Entity};
-use crate::utils::{
-    aliases::ADb,
-    password::{BaseHash, Manual},
+use crate::{
+    auth::user::{Column, Entity},
+    utils::{
+        aliases::ADb,
+        password::{BaseHash, Manual},
+    },
 };
 use anyhow::Result;
 use dialoguer::{Input, Password, Select, theme::ColorfulTheme};
@@ -269,8 +271,10 @@ fn hash_password(password: &str, algo: &AlgoChoice) -> Result<String, String> {
 }
 
 fn hash_via_provider(password: &str, provider_path: &str) -> Result<String, String> {
-    use std::path::Path;
-    use std::process::{Command, Stdio};
+    use std::{
+        path::Path,
+        process::{Command, Stdio},
+    };
 
     // Verify that the path is an existing and executable file — no shell injection
     let path = Path::new(provider_path);
@@ -287,8 +291,7 @@ fn hash_via_provider(password: &str, provider_path: &str) -> Result<String, Stri
         ));
     }
 
-    use std::sync::mpsc;
-    use std::thread;
+    use std::{sync::mpsc, thread};
     const PROVIDER_TIMEOUT_SECS: u64 = 10;
 
     let mut child = Command::new(path)
@@ -720,8 +723,7 @@ mod password_rule_tests {
 #[cfg(all(test, feature = "sqlite"))]
 mod superuser_tests {
     use super::*;
-    use runique::auth::migrations_table::EihwazUsersMigration;
-    use runique::auth::user::BuiltinUserEntity;
+    use runique::auth::{migrations_table::EihwazUsersMigration, user::BuiltinUserEntity};
     use sea_orm::{ConnectionTrait, EntityTrait, PaginatorTrait};
     use sea_orm_migration::{MigrationTrait, SchemaManager};
 

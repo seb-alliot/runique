@@ -1,6 +1,5 @@
 //! Every model against its snapshot.
-use crate::migration::steps::parser::files::snapshot::previous_snapshot;
-use crate::migration::*;
+use crate::migration::{steps::parser::files::snapshot::previous_snapshot, *};
 use anyhow::Result;
 use runique_i18n::tf;
 use std::path::Path;

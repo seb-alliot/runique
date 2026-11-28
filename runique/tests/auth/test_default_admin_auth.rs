@@ -1,9 +1,11 @@
 //! Tests — auth/user.rs : authenticate_admin()
 
-use crate::helpers::db;
-use crate::helpers::framework_tables::{GROUPES_DDL, GROUPES_DROITS_DDL, USERS_GROUPES_DDL};
 #[cfg(feature = "pk-uuid")]
 use crate::helpers::pk::pk_sql_literal;
+use crate::helpers::{
+    db,
+    framework_tables::{GROUPES_DDL, GROUPES_DROITS_DDL, USERS_GROUPES_DDL},
+};
 use runique::auth::authenticate_admin;
 
 // ─── DDL ──────────────────────────────────────────────────────────────────────

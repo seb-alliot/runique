@@ -2,11 +2,11 @@
 //! rows, label and upload settings, the schema's column types and meta, and
 //! the enums it declares.
 use crate::utils::env::{restore_media_root, set_env};
-use runique::forms::Forms;
-use runique::forms::traits::runique_form::FormAccess;
-use runique::schema::OrderDir;
-use runique::sea_orm::ActiveEnum;
-use runique::sea_orm::sea_query::ColumnType;
+use runique::{
+    forms::{Forms, traits::runique_form::FormAccess},
+    schema::OrderDir,
+    sea_orm::{ActiveEnum, sea_query::ColumnType},
+};
 use serial_test::serial;
 
 mod attrs {

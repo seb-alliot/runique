@@ -1,7 +1,10 @@
 //! `extend!{}`: adds fields to a framework table. Reuses the `model!{}` field
 //! and enum grammar.
 use crate::ast::{EnumDef, FormFieldDecl};
-use syn::{Ident, LitStr, Token, braced, parse::Parse, parse::ParseStream};
+use syn::{
+    Ident, LitStr, Token, braced,
+    parse::{Parse, ParseStream},
+};
 
 /// The framework tables `extend!{}` accepts.
 const EXTENDABLE: [&str; 2] = ["eihwaz_users", "eihwaz_groupes"];

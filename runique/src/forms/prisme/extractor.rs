@@ -1,10 +1,10 @@
 //! Prisme: non-generic CSRF + body extractor integrated into the Request pipeline.
-use crate::forms::prisme::multipart::StagingDir;
-use crate::forms::prisme::{BodyRefusal, aegis};
-use crate::security::constants::CSRF_TOKEN_KEY;
-use crate::security::csrf::unmask_csrf_token;
-use crate::translation::t;
-use crate::utils::aliases::{AEngine, StrMap, StrVecMap};
+use crate::{
+    forms::prisme::{BodyRefusal, aegis, multipart::StagingDir},
+    security::{constants::CSRF_TOKEN_KEY, csrf::unmask_csrf_token},
+    translation::t,
+    utils::aliases::{AEngine, StrMap, StrVecMap},
+};
 
 use axum::{
     body::Body,

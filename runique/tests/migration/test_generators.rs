@@ -2,11 +2,13 @@
 //! Couvre : generate_create_file, generate_alter_file,
 //!          generate_snapshot_file
 
-use runique_cli::db::DatabaseEngine;
-use runique_cli::migration::types::{Changes, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema};
-use runique_cli::migration::{
-    EnumChange, EnumChanges, EnumPlace, generate_alter_file, generate_create_file,
-    generate_enum_file, generate_snapshot_file,
+use runique_cli::{
+    db::DatabaseEngine,
+    migration::{
+        EnumChange, EnumChanges, EnumPlace, generate_alter_file, generate_create_file,
+        generate_enum_file, generate_snapshot_file,
+        types::{Changes, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema},
+    },
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

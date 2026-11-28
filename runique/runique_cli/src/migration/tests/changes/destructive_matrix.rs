@@ -88,8 +88,10 @@ fn non_destructive_change_yields_no_messages() {
 // same function, and listed first: a table created or altered is not one.
 #[test]
 fn a_dropped_table_is_listed_with_the_other_destructive_elements() {
-    use crate::migration::TableChange;
-    use crate::migration::steps::changes::{Destructive, DestructiveItem, destructive};
+    use crate::migration::{
+        TableChange,
+        steps::changes::{Destructive, DestructiveItem, destructive},
+    };
 
     let dropped_column = change(
         false,

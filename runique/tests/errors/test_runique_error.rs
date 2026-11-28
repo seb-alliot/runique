@@ -1,8 +1,7 @@
 // Tests pour RuniqueError, ErrorContext et ErrorType
 
 use axum::http::StatusCode;
-use runique::errors::RequestSnapshot;
-use runique::errors::{ErrorContext, ErrorType, RuniqueError};
+use runique::errors::{ErrorContext, ErrorType, RequestSnapshot, RuniqueError};
 
 // ═══════════════════════════════════════════════════════════════
 // RuniqueError — Display

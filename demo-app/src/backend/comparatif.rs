@@ -3,8 +3,10 @@
 //! (`/comparatif/runique-vs-django`…), what a search for "runique vs django"
 //! lands on. The comparisons are read from the documentation and what's coming
 //! from the roadmap files, so each has a single source.
-use crate::backend::{inject_globals, lang::visitor_lang, split_markdown_sections};
-use crate::entities::{doc_block, doc_page, doc_section};
+use crate::{
+    backend::{inject_globals, lang::visitor_lang, split_markdown_sections},
+    entities::{doc_block, doc_page, doc_section},
+};
 use runique::prelude::*;
 
 /// The comparisons that have a page of their own: slug in the URL, the other

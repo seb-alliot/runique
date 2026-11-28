@@ -1,8 +1,10 @@
 //! `FormField`: what every form field implements (validation, rendering, the
 //! value its column stores), on top of its `FieldConfig`.
-use crate::forms::config::{BoolChoice, FieldBounds, FieldConfig};
-use crate::translation::{t, tf};
-use crate::utils::aliases::ATera;
+use crate::{
+    forms::config::{BoolChoice, FieldBounds, FieldConfig},
+    translation::{t, tf},
+    utils::aliases::ATera,
+};
 use async_trait::async_trait;
 use dyn_clone::DynClone;
 use serde_json::{Value, json};
@@ -334,8 +336,10 @@ pub trait FormField: FieldAccess + DynClone + std::fmt::Debug + Send + Sync {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::forms::fields::{MediaField, TextField};
-    use crate::forms::generic::GenericField;
+    use crate::forms::{
+        fields::{MediaField, TextField},
+        generic::GenericField,
+    };
 
     #[test]
     fn a_field_neither_readonly_nor_disabled_is_not_locked() {

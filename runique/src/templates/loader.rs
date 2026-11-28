@@ -1,8 +1,10 @@
 //! Loading and initialization of the Tera template engine (internal + user).
 use super::constants::*;
-use crate::config::RuniqueConfig;
-use crate::templates::static_tera;
-use crate::utils::aliases::{ARlockmap, StrMap};
+use crate::{
+    config::RuniqueConfig,
+    templates::static_tera,
+    utils::aliases::{ARlockmap, StrMap},
+};
 use regex::Captures;
 use std::path::Path;
 use tera::Tera;

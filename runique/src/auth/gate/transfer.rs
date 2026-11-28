@@ -3,21 +3,26 @@
 //! write's own `WHERE`. Handed to an admin, the group keeps only what his
 //! grid covers, stored: the rights its members lose are shown first, and the
 //! write goes through only for the losses the dirigeant saw.
-use super::refusal::{Refusal, RefusalReason};
-use super::rights_grid::{describe, from_rows};
-use crate::auth::constants::resource_key;
-use crate::auth::current_user::CurrentUser;
-use crate::auth::history::{ActionLog, log_action};
-use crate::auth::permissions::rank::Rang;
-use crate::auth::permissions::{group, group_rights, group_rows_within, user_groups};
-use crate::auth::user;
-use crate::schema::pk::Pk;
-use crate::translation::t;
-use crate::utils::aliases::ADb;
-use sea_orm::sea_query::{Expr, Query};
+use super::{
+    refusal::{Refusal, RefusalReason},
+    rights_grid::{describe, from_rows},
+};
+use crate::{
+    auth::{
+        constants::resource_key,
+        current_user::CurrentUser,
+        history::{ActionLog, log_action},
+        permissions::{group, group_rights, group_rows_within, rank::Rang, user_groups},
+        user,
+    },
+    schema::pk::Pk,
+    translation::t,
+    utils::aliases::ADb,
+};
 use sea_orm::{
     ActiveValue, ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, QueryFilter,
     QueryOrder, QuerySelect, TransactionTrait,
+    sea_query::{Expr, Query},
 };
 
 fn refused(reason: RefusalReason) -> DbErr {

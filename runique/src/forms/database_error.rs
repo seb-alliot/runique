@@ -1,9 +1,8 @@
 //! What a database error becomes on a form: a sentence of ours on the field
 //! or on the form, the engine's text staying in the log.
-use crate::forms::form::Forms;
-use crate::translation::t;
 #[cfg(any(feature = "sqlite", feature = "postgres", feature = "mysql"))]
 use crate::translation::tf;
+use crate::{forms::form::Forms, translation::t};
 
 /// What a driver error means for the form. The sentence is ours; the
 /// engine's text stays in the log. Only built when an engine is compiled:
@@ -166,8 +165,7 @@ impl Forms {
 #[cfg(test)]
 mod database_error_tests {
     use super::Forms;
-    use crate::forms::fields::TextField;
-    use crate::translation::t;
+    use crate::{forms::fields::TextField, translation::t};
     use sea_orm::DbErr;
 
     fn form_with(name: &str) -> Forms {
@@ -201,10 +199,14 @@ mod database_error_tests {
 #[cfg(all(test, any(feature = "sqlite", feature = "postgres", feature = "mysql")))]
 mod driver_error_tests {
     use super::Forms;
-    use crate::forms::fields::TextField;
-    use crate::translation::{t, tf};
-    use sea_orm::sqlx::error::{DatabaseError, ErrorKind};
-    use sea_orm::{DbErr, RuntimeErr};
+    use crate::{
+        forms::fields::TextField,
+        translation::{t, tf},
+    };
+    use sea_orm::{
+        DbErr, RuntimeErr,
+        sqlx::error::{DatabaseError, ErrorKind},
+    };
     use std::sync::Arc;
 
     #[derive(Debug)]

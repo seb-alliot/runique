@@ -1,13 +1,12 @@
 //! Tests — Migration Diff + update_migration_lib
 //! Couvre : diff_schemas, db_columns, Changes::is_empty, update_migration_lib
 
-use runique_cli::migration::db_columns;
-use runique_cli::migration::steps::diff::{diff_enum, diff_enums, diff_schemas};
-use runique_cli::migration::types::{
-    EnumChange, EnumPlace, ParsedColumn, ParsedEnum, ParsedSchema,
+use runique_cli::migration::{
+    db_columns, enums_of_schemas, previous_enums,
+    steps::diff::{diff_enum, diff_enums, diff_schemas},
+    types::{EnumChange, EnumPlace, ParsedColumn, ParsedEnum, ParsedSchema},
+    update_migration_lib,
 };
-use runique_cli::migration::update_migration_lib;
-use runique_cli::migration::{enums_of_schemas, previous_enums};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

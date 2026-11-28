@@ -1,6 +1,5 @@
 //! A column added.
-use crate::migration::steps::diff::Columns;
-use crate::migration::types::ParsedColumn;
+use crate::migration::{steps::diff::Columns, types::ParsedColumn};
 
 /// The columns of the model the snapshot doesn't have, the renamed ones
 /// aside.

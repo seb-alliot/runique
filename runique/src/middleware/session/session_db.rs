@@ -1,6 +1,5 @@
 //! Persistent session store in the database (table `eihwaz_sessions`).
-use crate::security::session_cipher::SessionKey;
-use crate::utils::aliases::ADb;
+use crate::{security::session_cipher::SessionKey, utils::aliases::ADb};
 use sea_orm::{ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter, entity::prelude::*};
 use sea_query::OnConflict;
 use sha2::{Digest, Sha256};

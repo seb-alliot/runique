@@ -1,6 +1,5 @@
 use crate::backend::lang::visitor_lang;
-use runique::axum::http::HeaderMap;
-use runique::prelude::*;
+use runique::{axum::http::HeaderMap, prelude::*};
 use serde::Serialize;
 
 /// The account deletion confirmation: the current password, read as typed

@@ -1,7 +1,9 @@
 // Tests — ChoiceField, RadioField, CheckboxField
 
-use runique::forms::fields::choice::{CheckboxField, ChoiceField, ChoiceOption, RadioField};
-use runique::forms::traits::form_field::FormField;
+use runique::forms::{
+    fields::choice::{CheckboxField, ChoiceField, ChoiceOption, RadioField},
+    traits::form_field::FormField,
+};
 use std::sync::Arc;
 use tera::Tera;
 

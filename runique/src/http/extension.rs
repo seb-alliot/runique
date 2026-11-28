@@ -1,10 +1,11 @@
 //! Axum request extensions: injects the engine (which carries Tera and the config), CSRF, CSP nonce, and current user.
 use crate::auth::current_user::CurrentUser;
-use axum::body::Body;
-use axum::http::Request;
+use axum::{body::Body, http::Request};
 
-use crate::security::{csp_nonce::CspNonce, csrf::CsrfToken};
-use crate::utils::aliases::{AEngine, OAEngine, OCspNonce, OCsrfToken, OCurrentUser};
+use crate::{
+    security::{csp_nonce::CspNonce, csrf::CsrfToken},
+    utils::aliases::{AEngine, OAEngine, OCspNonce, OCsrfToken, OCurrentUser},
+};
 
 /// Structure containing all data to be injected into extensions.
 pub struct RequestExtensions {

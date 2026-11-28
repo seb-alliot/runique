@@ -2,8 +2,7 @@
 //! serves it and every link of a page is filled from it, so a link can't
 //! point anywhere the router doesn't answer. Pages get their links built
 //! (see `context.rs`), never a route name or a prefix to assemble.
-use crate::admin::builder::site::AdminSite;
-use crate::admin::router::AdminView;
+use crate::admin::{builder::site::AdminSite, router::AdminView};
 
 /// The pattern of every admin route, under the admin's public base.
 #[derive(Clone, Debug)]

@@ -1,12 +1,15 @@
 //! CSRF Middleware: generates and stores the token in session, validates mutating requests.
-use crate::auth::constants::SESSION_USER_ID_KEY;
-use crate::auth::session::is_authenticated;
-use crate::forms::prisme::extractor::{csrf_required, is_csrf_exempt};
-use crate::http::RequestExtensions;
-use crate::log::TraceResult;
-use crate::security::constants::CSRF_TOKEN_KEY;
-use crate::security::csrf::{CsrfContext, CsrfToken};
-use crate::utils::aliases::AEngine;
+use crate::{
+    auth::{constants::SESSION_USER_ID_KEY, session::is_authenticated},
+    forms::prisme::extractor::{csrf_required, is_csrf_exempt},
+    http::RequestExtensions,
+    log::TraceResult,
+    security::{
+        constants::CSRF_TOKEN_KEY,
+        csrf::{CsrfContext, CsrfToken},
+    },
+    utils::aliases::AEngine,
+};
 use axum::{
     body::Body,
     extract::State,

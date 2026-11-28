@@ -1,19 +1,26 @@
 //! `POST {admin}/{resource}/{id}/reset-password`: sends an account's owner a
 //! link to choose a new password. The staff never sees it, nor any password.
-use crate::admin::builder::site::AdminSite;
-use crate::admin::router::routes::AdminState;
-use crate::admin::router::{failure, unknown_resource};
-use crate::auth::current_user::CurrentUser;
-use crate::auth::history::{ActionLog, log_action};
-use crate::auth::password::{ResetMail, send_reset_link};
-use crate::auth::user::BuiltinUserEntity;
-use crate::http::request::Request;
-use crate::schema::pk::Pk;
-use crate::translation::{t, tf};
-use crate::utils::aliases::AppResult;
-use axum::Extension;
-use axum::extract::Path;
-use axum::response::{IntoResponse, Redirect, Response};
+use crate::{
+    admin::{
+        builder::site::AdminSite,
+        router::{failure, routes::AdminState, unknown_resource},
+    },
+    auth::{
+        current_user::CurrentUser,
+        history::{ActionLog, log_action},
+        password::{ResetMail, send_reset_link},
+        user::BuiltinUserEntity,
+    },
+    http::request::Request,
+    schema::pk::Pk,
+    translation::{t, tf},
+    utils::aliases::AppResult,
+};
+use axum::{
+    Extension,
+    extract::Path,
+    response::{IntoResponse, Redirect, Response},
+};
 use std::sync::Arc;
 
 /// Which email carries the link.

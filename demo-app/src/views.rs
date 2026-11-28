@@ -1,19 +1,22 @@
-use crate::backend::lang::{msg, visitor_lang};
-use crate::backend::{
-    account::{handle_delete_account, render_profile},
-    auth::{handle_activate, handle_inscription, handle_login},
-    blog::{get_article, handle_blog_save, list_articles},
-    comparatif::{comparatif_detail_page, comparatif_intro_page, limites_page},
-    contribution::{handle_contribution_submit, list_contributions},
-    cours::{ExerciceInput, cours_detail, cours_exercice, cours_index, cours_root},
-    demo_code_page,
-    doc::{doc_index, doc_page, doc_section_index},
-    forms::{extract_helpers_data, get_field_groups, handle_upload_image},
-    inject_globals, split_markdown_sections,
-};
-use crate::forms::{
-    BlogForm, ContributionForm, DeleteAccountForm, ImageForm, LoginForm, RegisterForm,
-    SearchDemoForm,
+use crate::{
+    backend::{
+        account::{handle_delete_account, render_profile},
+        auth::{handle_activate, handle_inscription, handle_login},
+        blog::{get_article, handle_blog_save, list_articles},
+        comparatif::{comparatif_detail_page, comparatif_intro_page, limites_page},
+        contribution::{handle_contribution_submit, list_contributions},
+        cours::{ExerciceInput, cours_detail, cours_exercice, cours_index, cours_root},
+        demo_code_page,
+        doc::{doc_index, doc_page, doc_section_index},
+        forms::{extract_helpers_data, get_field_groups, handle_upload_image},
+        inject_globals,
+        lang::{msg, visitor_lang},
+        split_markdown_sections,
+    },
+    forms::{
+        BlogForm, ContributionForm, DeleteAccountForm, ImageForm, LoginForm, RegisterForm,
+        SearchDemoForm,
+    },
 };
 use runique::prelude::*;
 

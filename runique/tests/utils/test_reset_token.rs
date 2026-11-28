@@ -1,8 +1,7 @@
 //! Tests — security/reset_token
 //! Couvre : generate, consume et peek (DB-backed).
 
-use crate::helpers::db;
-use crate::helpers::pk::pk;
+use crate::helpers::{db, pk::pk};
 use runique::security::reset_token::{consume, generate, peek, resolve};
 use std::time::Duration;
 

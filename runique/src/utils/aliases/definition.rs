@@ -1,18 +1,23 @@
 //! Definition of all type aliases: `ATera`, `ADb`, `StrMap`, `FieldsMap`, `AppResult`…
-use crate::auth::current_user::CurrentUser;
-use crate::config::app::RuniqueConfig;
-use crate::engine::RuniqueEngine;
-use crate::errors::AppError;
-use crate::middleware::TrustedProxies;
-use crate::prelude::{HostPolicy, PermissionsPolicy, SecurityPolicy};
-use crate::security::{csp_nonce::CspNonce, csrf::CsrfToken};
-use std::{collections::HashMap, result::Result, sync::Arc, sync::RwLock};
+use crate::{
+    auth::current_user::CurrentUser,
+    config::app::RuniqueConfig,
+    engine::RuniqueEngine,
+    errors::AppError,
+    middleware::TrustedProxies,
+    prelude::{HostPolicy, PermissionsPolicy, SecurityPolicy},
+    security::{csp_nonce::CspNonce, csrf::CsrfToken},
+};
+use std::{
+    collections::HashMap,
+    result::Result,
+    sync::{Arc, RwLock},
+};
 use tera::Tera;
 use tower_sessions::SessionManagerLayer;
 
 // Import for new aliases
-use crate::flash::FlashMessage;
-use crate::forms::traits::form_field::FormField;
+use crate::{flash::FlashMessage, forms::traits::form_field::FormField};
 use indexmap::IndexMap;
 
 // ============================================================================

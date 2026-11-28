@@ -1,8 +1,9 @@
 //! Boolean field `BooleanField`: HTML checkbox with unchecked case management.
-use crate::forms::config::field_config::*;
-use crate::forms::traits::form_field::*;
-use crate::translation::t;
-use crate::utils::aliases::ATera;
+use crate::{
+    forms::{config::field_config::*, traits::form_field::*},
+    translation::t,
+    utils::aliases::ATera,
+};
 use async_trait::async_trait;
 use serde::Serialize;
 

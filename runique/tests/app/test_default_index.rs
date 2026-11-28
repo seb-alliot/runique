@@ -1,13 +1,12 @@
 //! Runique's welcome page at `/`: served in dev only, and only when the app
 //! surely leaves `/` free.
-use axum::Router;
-use axum::body::{Body, to_bytes};
-use axum::http::{Request, StatusCode};
-use axum::routing::get;
-use runique::app::RuniqueApp;
-use runique::config::RuniqueConfig;
-use runique::router::Routes;
-use runique::urlpatterns;
+use axum::{
+    Router,
+    body::{Body, to_bytes},
+    http::{Request, StatusCode},
+    routing::get,
+};
+use runique::{app::RuniqueApp, config::RuniqueConfig, router::Routes, urlpatterns};
 use sea_orm::Database;
 use serial_test::serial;
 use tower::ServiceExt;

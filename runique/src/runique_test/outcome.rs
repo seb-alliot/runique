@@ -1,10 +1,10 @@
 //! What each `runique_test` run gives back: its result, the SQL it ran, and
 //! how that gets printed.
 use crate::translation::Lang;
-use std::borrow::Cow;
-use std::fmt;
-use std::io::IsTerminal;
 use std::{
+    borrow::Cow,
+    fmt,
+    io::IsTerminal,
     sync::{Arc, LazyLock, Mutex},
     time::Duration,
 };

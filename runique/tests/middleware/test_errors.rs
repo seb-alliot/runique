@@ -4,8 +4,7 @@ use axum::{Extension, Router, http::StatusCode, middleware, routing::get};
 use http_body_util::BodyExt;
 use runique::{
     config::app::RuniqueConfig,
-    errors::AppError,
-    errors::{ErrorContext, RequestSnapshot},
+    errors::{AppError, ErrorContext, RequestSnapshot},
     middleware::errors::error::error_handler_middleware,
 };
 use std::{collections::HashMap, sync::Arc};

@@ -1,6 +1,5 @@
 //! Two migrations written in parallel for the same thing.
-use crate::migration::steps::generate::lib_file::lib_modules;
-use crate::migration::*;
+use crate::migration::{steps::generate::lib_file::lib_modules, *};
 use anyhow::Result;
 use runique_i18n::tf;
 use std::fs;

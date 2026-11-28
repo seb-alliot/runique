@@ -151,10 +151,11 @@ async fn test_unprotect_session_removes_key() {
 // ── ExclusiveLogin ────────────────────────────────────────────────────────────
 
 mod exclusive_login {
-    use crate::helpers::framework_tables::SESSIONS_DDL;
-    use crate::helpers::{db, pk::pk, user::test_user};
-    use runique::auth::session::{ExclusiveLogin, LoginError, is_authenticated, login};
-    use runique::middleware::session::session_db::RuniqueSessionStore;
+    use crate::helpers::{db, framework_tables::SESSIONS_DDL, pk::pk, user::test_user};
+    use runique::{
+        auth::session::{ExclusiveLogin, LoginError, is_authenticated, login},
+        middleware::session::session_db::RuniqueSessionStore,
+    };
     use std::sync::Arc;
     use tower_sessions::{MemoryStore, Session};
 

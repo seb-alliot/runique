@@ -6,11 +6,13 @@ use crate::helpers::{
     server::{build_engine, build_engine_https},
 };
 use axum::{Router, middleware, routing::get};
-use runique::middleware::CspConfig;
-use runique::middleware::security::csp::{
-    SecurityPolicy, https_redirect_middleware, security_headers_middleware,
+use runique::{
+    middleware::{
+        CspConfig,
+        security::csp::{SecurityPolicy, https_redirect_middleware, security_headers_middleware},
+    },
+    utils::aliases::AEngine,
 };
-use runique::utils::aliases::AEngine;
 
 #[test]
 fn test_security_policy_default() {
@@ -330,8 +332,7 @@ async fn https_redirect_get(
     engine: AEngine,
     forwarded_proto: Option<&str>,
 ) -> axum::response::Response {
-    use axum::body::Body;
-    use axum::http::Request;
+    use axum::{body::Body, http::Request};
     use tower::ServiceExt;
     let mut req = Request::builder()
         .uri("/path?x=1")

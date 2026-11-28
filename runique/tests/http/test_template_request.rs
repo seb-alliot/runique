@@ -287,10 +287,9 @@ async fn public_url_never_uses_the_host() {
 
 // ── get_or_404 : l'erreur du handler, rendue avec `?` ───────────────────────
 
-use runique::auth::user::Entity as UserEntity;
-use runique::errors::ErrorContext;
-use runique::schema::Pk;
-use runique::sea_orm::ConnectionTrait;
+use runique::{
+    auth::user::Entity as UserEntity, errors::ErrorContext, schema::Pk, sea_orm::ConnectionTrait,
+};
 
 /// By the primary key. `?table` creates the accounts table first: without
 /// it the lookup itself fails.

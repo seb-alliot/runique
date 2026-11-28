@@ -1,14 +1,16 @@
 //! `ErrorContext`: what an error page is rendered from — status, type, message,
 //! and in debug the template, the request and the chain of causes.
-use super::debug_page::read_template_source;
-use super::error::{RuniqueError, tera_error_line};
-use super::request_snapshot::RequestSnapshot;
-use crate::config::env::is_debug;
-use crate::templates::constants::{
-    ADMIN_TEMPLATES, ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES,
+use super::{
+    debug_page::read_template_source,
+    error::{RuniqueError, tera_error_line},
+    request_snapshot::RequestSnapshot,
 };
-use crate::translation::{t, tf};
-use crate::utils::aliases::StrMap;
+use crate::{
+    config::env::is_debug,
+    templates::constants::{ADMIN_TEMPLATES, ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES},
+    translation::{t, tf},
+    utils::aliases::StrMap,
+};
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},

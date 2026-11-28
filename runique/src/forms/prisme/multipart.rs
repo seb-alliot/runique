@@ -8,12 +8,11 @@ use crate::{
 };
 use axum::{extract::Multipart, http::StatusCode};
 use futures_util::StreamExt;
-use std::collections::HashSet;
-use std::fs::File;
-use std::sync::{LazyLock, Mutex};
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
+    fs::File,
     path::{Path, PathBuf},
+    sync::{LazyLock, Mutex},
 };
 use tokio::io::AsyncWriteExt;
 use tracing::warn;
@@ -698,9 +697,7 @@ mod sanitize_tests {
 #[cfg(test)]
 mod staging_tests {
     use super::*;
-    use axum::body::Body;
-    use axum::extract::FromRequest;
-    use axum::http::Request;
+    use axum::{body::Body, extract::FromRequest, http::Request};
 
     fn multipart_req(boundary: &str, field: &str, filename: &str, content: &str) -> Request<Body> {
         let body = format!(
@@ -1216,8 +1213,7 @@ mod direct_parse_tests {
 #[cfg(test)]
 mod upload_chain_tests {
     use super::parse_multipart;
-    use crate::forms::Forms;
-    use crate::forms::fields::FileField;
+    use crate::forms::{Forms, fields::FileField};
     use axum::{
         Router,
         body::Body,

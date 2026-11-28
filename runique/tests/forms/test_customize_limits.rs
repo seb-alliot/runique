@@ -2,9 +2,11 @@
 //! column declares: an integer keeps its type's range, a declared
 //! `min_length`/`max_length`/`min`/`max` can be tightened but loosening one
 //! panics, and a replacement that breaks what the column needs is refused.
-use runique::forms::Forms;
-use runique::forms::fields::{NumericField, TextField};
-use runique::forms::traits::runique_form::{FormAccess, RuniqueForm};
+use runique::forms::{
+    Forms,
+    fields::{NumericField, TextField},
+    traits::runique_form::{FormAccess, RuniqueForm},
+};
 
 mod stock {
     use runique::prelude::*;

@@ -6,6 +6,7 @@
 pub mod compression_config;
 pub mod cors_config;
 pub mod csp_config;
+pub mod extensions;
 pub mod host_config;
 pub mod permissions_policy_config;
 pub mod trusted_proxies_config;

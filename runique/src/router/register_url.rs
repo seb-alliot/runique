@@ -1,7 +1,6 @@
 //! Global registry of URL names — `register_pending`, `reverse()`, `reverse_with_parameters()`.
 use crate::utils::aliases::{AEngine, ARlockmap, PendingUrls};
-use std::sync::LazyLock;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
 // --- 1. Temporary storage for the macro ---
 pub static PENDING_URLS: LazyLock<Mutex<PendingUrls>> = LazyLock::new(|| Mutex::new(Vec::new()));

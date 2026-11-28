@@ -1,7 +1,8 @@
 use super::primary_key::primary_key;
-use crate::migration::steps::generate::columns::render_column_def;
-use crate::migration::steps::generate::constraints::fk_constraint_name;
-use crate::migration::types::ParsedSchema;
+use crate::migration::{
+    steps::generate::{columns::render_column_def, constraints::fk_constraint_name},
+    types::ParsedSchema,
+};
 
 /// The columns of a CREATE TABLE, primary key included.
 pub(super) fn columns(schema: &ParsedSchema, inline_fks: bool) -> String {

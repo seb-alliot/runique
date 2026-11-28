@@ -3,9 +3,11 @@
 //! it loads it: the preprocessor writes the developer's path in, behind a test
 //! on the page's model, Runique's template as the fallback. Tera then checks
 //! every include, a missing template refusing the boot.
-use super::block::{Block, GlobalBlock};
-use super::page::{AdminTemplate, ModelTemplates};
-use super::stylesheet::Page;
+use super::{
+    block::{Block, GlobalBlock},
+    page::{AdminTemplate, ModelTemplates},
+    stylesheet::Page,
+};
 use crate::templates::loader::BlockDispatch;
 
 /// `text` as a Tera string literal's content, refused when it could close

@@ -3,9 +3,10 @@
 //! field it didn't know (`i16`, `f32`, `timestamp`, `timestamp_tz`…), so an
 //! `extend!{}` using one of them didn't compile; its integers had no bounds.
 use crate::helpers::pk::pk;
-use runique::forms::Forms;
-use runique::forms::traits::runique_form::FormAccess;
-use runique::utils::aliases::StrMap;
+use runique::{
+    forms::{Forms, traits::runique_form::FormAccess},
+    utils::aliases::StrMap,
+};
 
 mod groups {
     use runique::prelude::*;

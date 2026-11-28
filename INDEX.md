@@ -65,7 +65,7 @@ runique/
 - **`serve.rs`** — `RuniqueApp::run_with_acme`: port 80 for the challenge, port 443 for the application
 
 ### `app/` — Application Lifecycle
-- **`builder/`** — `RuniqueApp::builder(config)` / `RuniqueAppBuilder<S>` (`mod.rs`: once-only settings tracked in the type; `build.rs`)
+- **`builder/`** — `RuniqueApp::builder(config)` / `RuniqueAppBuilder<S>` (`mod.rs`: once-only settings tracked in the type; `build.rs`: the order of the steps, each in a file beside it — `start.rs`, `checks.rs`, `templates.rs`, `routes.rs`, `static_files.rs`)
 - **`runique_app.rs`** — `RuniqueApp` struct, `.run()` entry point
 - **`staging/`** — builder stages, one file each: `core.rs`, `middleware.rs` (its settings are in `middleware/config/`), `applicator.rs` (the slots, `SLOT_*`), `admin.rs`, `statics.rs`
 
@@ -111,6 +111,8 @@ runique/
 
 ### `engine/` — Core Engine
 - **`core.rs`** — `RuniqueEngine` (config, `db: ADb`, Tera, `close_user_sessions`, `extension::<T>()`)
+- **`security.rs`** — `SecurityPolicies` (`engine.security`: CSP, allowed hosts, CSRF-exempt paths, Permissions-Policy, trusted proxies)
+- **`sessions.rs`** — `SessionStores` (`engine.sessions`: the memory store and the database store)
 
 ### `errors/` — Error Types
 - **`build.rs`** — build-time error types (`BuildError`, `BuildFailure`, `CheckError`, `CheckReport`)
@@ -156,6 +158,7 @@ runique/
 - **`config.rs`** — middleware configuration builder (slot ordering)
 - **`dev/cache.rs`** — dev-mode cache control headers
 - **`errors/error.rs`** — error handling middleware (500, 404, custom pages)
+- **`extensions.rs`** — `extensions_middleware` (slot 0): puts the engine in the request's extensions
 - **`security/allowed_hosts.rs`** — `HostPolicy` middleware (slot 15)
 - **`security/anti_bot.rs`** — honeypot / anti-bot heuristics
 - **`security/csp.rs`** — CSP header injection (slot 30), HTTPS redirect behind a proxy (slot 17)
@@ -166,6 +169,8 @@ runique/
 - **`security/trusted_proxies.rs`** — trusted proxy / client-IP resolution (CIDR, private nets)
 - **`session/cleaning_store.rs`** — `CleaningMemoryStore` (128MB/256MB watermarks)
 - **`session/session_db.rs`** — DB-backed session store, content encrypted
+- **`session/auth.rs`** — `auth_middleware` (slot 57): reads the signed-in account again on every request, `CurrentUser` or the session closed
+- **`session/ttl_upgrade.rs`** — `session_ttl_upgrade` (slot 55): the authenticated session lifetime
 
 ### `migration/` — Migration Tooling
 Folders follow the steps `makemigrations` goes through.
@@ -202,7 +207,7 @@ Calls only: each command's logic lives in its own module, the binary goes throug
 - **`versions.rs`** — the crate's version and SeaORM's, read by the `runique` command
 - **`atomic.rs`** — re-export of `runique_atomic`
 
-Every constant is in the `constants.rs` of its part: `admin/`, `auth/`, `errors/`, `flash/`, `forms/`, `middleware/`, `security/`, `templates/`.
+Every constant is in the `constants.rs` of its part: `admin/`, `auth/`, `errors/`, `flash/`, `forms/`, `security/`, `templates/`. The anti-bot's session key (`HP_FIELD_KEY`) is in `middleware/security/anti_bot.rs`, its only user.
 
 ### `utils/` — Utilities
 - **`aliases/`** — `ADb`, `AEngine`, `JsonMap`, `StrMap`… type aliases

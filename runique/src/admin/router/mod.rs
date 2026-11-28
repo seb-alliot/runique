@@ -22,18 +22,23 @@ pub enum AdminView {
     Standalone,
 }
 
-use crate::admin::builder::registered::AdminError;
-use crate::admin::builder::site::AdminSite;
-use crate::admin::constants::admin_route;
-use crate::admin::translation::{inject_admin_prefix, insert_admin_messages};
-use crate::auth::current_user::CurrentUser;
-use crate::errors::AppError;
-use crate::errors::ErrorContext;
-use crate::http::Request;
-use crate::urlpatterns;
-use crate::utils::aliases::AppResult;
-use axum::response::{IntoResponse, Redirect, Response};
-use axum::{Extension, Router, routing::get};
+use crate::{
+    admin::{
+        builder::{registered::AdminError, site::AdminSite},
+        constants::admin_route,
+        translation::{inject_admin_prefix, insert_admin_messages},
+    },
+    auth::current_user::CurrentUser,
+    errors::{AppError, ErrorContext},
+    http::Request,
+    urlpatterns,
+    utils::aliases::AppResult,
+};
+use axum::{
+    Extension, Router,
+    response::{IntoResponse, Redirect, Response},
+    routing::get,
+};
 use context::NavLinks;
 use std::sync::Arc;
 
@@ -143,8 +148,10 @@ fn unknown_resource(resource: &str) -> AppResult<Response> {
 mod tests {
     use super::refonte_router;
     use crate::admin::builder::site::AdminSite;
-    use axum::body::Body;
-    use axum::http::{Request, StatusCode};
+    use axum::{
+        body::Body,
+        http::{Request, StatusCode},
+    };
     use tower::ServiceExt;
 
     async fn status_of(path: &str) -> StatusCode {

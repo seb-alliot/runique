@@ -1,7 +1,6 @@
 // Tests — NumericField (integer, float, decimal, percent, range)
 
-use runique::forms::fields::number::NumericField;
-use runique::forms::traits::form_field::FormField;
+use runique::forms::{fields::number::NumericField, traits::form_field::FormField};
 
 // ═══════════════════════════════════════════════════════════════
 // Integer

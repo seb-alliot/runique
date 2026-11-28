@@ -125,8 +125,10 @@ fn a_list_table_name_already_taken_is_an_error() {
 
 use crate::helpers::db;
 use book::{Code, Genre, Level};
-use runique::db::ADb;
-use runique::sea_orm::{ActiveModelTrait, ActiveValue::Set, EntityTrait, ModelTrait};
+use runique::{
+    db::ADb,
+    sea_orm::{ActiveModelTrait, ActiveValue::Set, EntityTrait, ModelTrait},
+};
 
 // The owner's key follows `Pk`. A list table keeps its own integer key; only
 // `owner_id` matches the owner. Under `pk-uuid` that key is a blob and the
@@ -456,8 +458,10 @@ async fn fetch_with_says_it_needs_postgres() {
 
 // ── Formulaires et admin ─────────────────────────────────────────────────────
 
-use runique::forms::Forms;
-use runique::forms::traits::runique_form::{FormAccess, RuniqueForm};
+use runique::forms::{
+    Forms,
+    traits::runique_form::{FormAccess, RuniqueForm},
+};
 use std::collections::HashMap;
 
 fn admin_form() -> book::Form {

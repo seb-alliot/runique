@@ -1,8 +1,7 @@
 //! `TIME_ZONE` in the `.env`: the time zone of the site. A name that is no zone
 //! stops the start instead of leaving every date as stored without a word.
 use axum::Router;
-use runique::app::RuniqueApp;
-use runique::config::RuniqueConfig;
+use runique::{app::RuniqueApp, config::RuniqueConfig};
 use sea_orm::Database;
 use serial_test::serial;
 

@@ -1,7 +1,8 @@
-use crate::backend::FieldGroup;
-use crate::backend::lang::msg;
-use crate::entities::{code_example, demo_page, form_field, page_doc_link};
-use crate::forms::ImageForm;
+use crate::{
+    backend::{FieldGroup, lang::msg},
+    entities::{code_example, demo_page, form_field, page_doc_link},
+    forms::ImageForm,
+};
 use runique::prelude::*;
 
 pub async fn fetch_upload_data(db: &ADb) -> (Vec<code_example::Model>, Vec<page_doc_link::Model>) {

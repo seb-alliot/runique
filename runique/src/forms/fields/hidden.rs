@@ -1,9 +1,11 @@
 //! Hidden field `HiddenField` for non-displayed data (tokens, internal IDs).
-use crate::forms::config::field_config::FieldConfig;
-use crate::forms::constants::FORM_NAME_KEY;
-use crate::forms::traits::form_field::FormField;
-use crate::translation::t;
-use crate::utils::aliases::ATera;
+use crate::{
+    forms::{
+        config::field_config::FieldConfig, constants::FORM_NAME_KEY, traits::form_field::FormField,
+    },
+    translation::t,
+    utils::aliases::ATera,
+};
 use async_trait::async_trait;
 use serde::Serialize;
 use subtle::ConstantTimeEq;

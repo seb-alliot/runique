@@ -6,9 +6,10 @@
 //! path it got as its upload: deleted on a failed validation, moved into
 //! MEDIA_ROOT on success.
 use axum::http::Method;
-use runique::forms::Forms;
-use runique::forms::fields::MediaField;
-use runique::utils::aliases::StrMap;
+use runique::{
+    forms::{Forms, fields::MediaField},
+    utils::aliases::StrMap,
+};
 
 fn victim(name: &str) -> std::path::PathBuf {
     let dir = std::env::temp_dir().join(format!("rq_victim_{}", uuid::Uuid::new_v4()));

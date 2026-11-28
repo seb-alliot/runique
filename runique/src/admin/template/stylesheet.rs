@@ -2,8 +2,10 @@
 //! developer doesn't replace stays Runique's: a block's sheet replaced takes
 //! that block's place; a page replaced with its own sheet loads it alone,
 //! after the variables its included blocks still read.
-use super::block::{Block, GlobalBlock, Stylesheet};
-use super::page::{AdminTemplate, ModelTemplates};
+use super::{
+    block::{Block, GlobalBlock, Stylesheet},
+    page::{AdminTemplate, ModelTemplates},
+};
 use crate::utils::aliases::StrMap;
 use serde::Serialize;
 use std::collections::HashMap;

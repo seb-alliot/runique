@@ -8,9 +8,13 @@ mod read_extend;
 mod records_lengths;
 mod snapshot_upgrades;
 
-use crate::migration::steps::parser::files::rust_files::rust_files;
-use crate::migration::steps::parser::files::scan::{merge_extend_schemas, scan_extend_blocks};
-use crate::migration::*;
+use crate::migration::{
+    steps::parser::files::{
+        rust_files::rust_files,
+        scan::{merge_extend_schemas, scan_extend_blocks},
+    },
+    *,
+};
 use anyhow::{Context, Result};
 use runique_i18n::tf;
 use std::{fs, path::Path};

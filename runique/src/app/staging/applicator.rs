@@ -1,4 +1,4 @@
-//! Router construction: collects middleware entries, sorts by slot, applies to the router.
+//! `apply_middleware`: lists the middleware entries, checks and sorts them by slot, applies them to the router.
 //!
 //! ═══════════════════════════════════════════════════════════════
 //! Key Runique innovation:
@@ -36,179 +36,114 @@
 //! header is rejected before paying for session load, auth lookup and CSRF
 //! checks. Moving it any lower than ErrorHandler would remove that panic net.
 
-use crate::http::RequestExtensions;
-use crate::middleware::session::CleaningMemoryStore;
-use crate::middleware::{
-    allowed_hosts_middleware, anti_bot_middleware, csrf_middleware, dev_no_cache_middleware,
-    error_handler_middleware, https_redirect_middleware, lang_middleware, open_redirect_middleware,
-    security_headers_middleware, trusted_proxies_middleware,
+use crate::{
+    engine::SessionStores,
+    errors::build::BuildError,
+    middleware::{
+        allowed_hosts_middleware, anti_bot_middleware,
+        config::extensions::extensions_middleware,
+        csrf_middleware, dev_no_cache_middleware, error_handler_middleware,
+        https_redirect_middleware, lang_middleware, open_redirect_middleware,
+        security_headers_middleware,
+        session::{
+            CleaningMemoryStore, auth_middleware, session_db::RuniqueSessionStore,
+            session_ttl_upgrade,
+        },
+        trusted_proxies_middleware,
+    },
+    utils::aliases::AEngine,
 };
-use crate::utils::aliases::AEngine;
 use axum::{self, Router, middleware};
 use std::sync::Arc;
-use tower_http::compression::CompressionLayer;
-use tower_http::compression::predicate::{NotForContentType, Predicate, SizeAbove};
-use tower_sessions::cookie::time::Duration;
-use tower_sessions::{Expiry, SessionManagerLayer};
+use tower_sessions::{Expiry, SessionManagerLayer, cookie::time::Duration};
 
 use super::MiddlewareStaging;
 
 // ─── Built-in slots — Guaranteed execution order on the request ───────────────
 
 const SLOT_EXTENSIONS: u16 = 0; // Engine injection (outermost)
-const SLOT_TRUSTED_PROXIES: u16 = 2; // Real client IP extraction — before everything
-const SLOT_COMPRESSION: u16 = 5; // Compression (external, before any other middleware)
-const SLOT_CORS: u16 = 8; // Outside ErrorHandler — OPTIONS preflight never reaches CSRF
-const SLOT_LANG: u16 = 9; // Outside ErrorHandler: an error page is in the visitor's language too
-const SLOT_ERROR_HANDLER: u16 = 10; // Catches errors of the WHOLE stack
-const SLOT_CUSTOM_BASE: u16 = 20; // Dev's custom middlewares start here
-const SLOT_OPEN_REDIRECT: u16 = 25; // After custom, before CSP — wraps response inspection
-const SLOT_SECURITY_HEADERS: u16 = 30;
-const SLOT_CACHE: u16 = 40;
-const SLOT_SESSION: u16 = 50; // Before CSRF (CSRF depends on it)
-const SLOT_SESSION_UPGRADE: u16 = 55; // After Session (reads/writes in session)
-const SLOT_AUTH: u16 = 57; // After Session — reads the signed-in account from the DB
-const SLOT_CSRF: u16 = 60; // After Session (reads/writes in session)
-const SLOT_ANTI_BOT: u16 = 65; // After CSRF — injects honeypot field name extension
-const SLOT_HOST_VALIDATION: u16 = 15; // After ErrorHandler (still caught on panic), before Session/Auth/CSRF cost
-const SLOT_HTTPS_REDIRECT: u16 = 17; // After HostValidation: the redirect is built from a checked Host
+const SLOT_TRUSTED_PROXIES: u16 = 10; // Real client IP extraction — before everything
+const SLOT_COMPRESSION: u16 = 20; // Compression (external, before any other middleware)
+const SLOT_CORS: u16 = 30; // Outside ErrorHandler — OPTIONS preflight never reaches CSRF
+const SLOT_LANG: u16 = 40; // Outside ErrorHandler: an error page is in the visitor's language too
+const SLOT_ERROR_HANDLER: u16 = 50; // Catches errors of the WHOLE stack
+const SLOT_HOST_VALIDATION: u16 = 55; // After ErrorHandler (still caught on panic), before Session/Auth/CSRF cost
+const SLOT_HTTPS_REDIRECT: u16 = 57; // After HostValidation: the redirect is built from a checked Host
+const SLOT_CUSTOM_BASE: u16 = 60; // Dev's custom middlewares start here
+const SLOT_OPEN_REDIRECT: u16 = 70; // After custom, before CSP — wraps response inspection
+const SLOT_SECURITY_HEADERS: u16 = 80;
+const SLOT_CACHE: u16 = 90;
+const SLOT_SESSION: u16 = 100; // Before CSRF (CSRF depends on it)
+const SLOT_SESSION_UPGRADE: u16 = 105; // After Session (reads/writes in session)
+const SLOT_AUTH: u16 = 107; // After Session — reads the signed-in account from the DB
+const SLOT_CSRF: u16 = 110; // After Session (reads/writes in session)
+const SLOT_ANTI_BOT: u16 = 115; // After CSRF — injects honeypot field name extension
 
 // ─── MiddlewareEntry ──────────────────────────────────────────────────────────
 
 struct MiddlewareEntry {
     /// Low (0) = external, first executed. High (100+) = internal, close to the handler.
     slot: u16,
-    #[allow(dead_code)]
     name: &'static str,
     apply: Box<dyn FnOnce(Router) -> Router + Send>,
 }
 
-// ─── apply_to_router ─────────────────────────────────────────────────────────
+/// An entry whose middleware takes the engine as its state.
+macro_rules! with_engine {
+    ($slot:expr, $name:literal, $engine:expr, $handler:expr) => {{
+        let engine = $engine.clone();
+        MiddlewareEntry {
+            slot: $slot,
+            name: $name,
+            apply: Box::new(move |r: Router| {
+                r.layer(middleware::from_fn_with_state(engine, $handler))
+            }),
+        }
+    }};
+}
+
+// ─── apply_middleware ────────────────────────────────────────────────────────
 
 impl MiddlewareStaging {
     /// Builds the full middleware stack and applies it to the router.
     ///
-    /// 1. Collects all entries (built-in + custom), each with a fixed slot
-    /// 2. Sorts DESCENDING by slot (highest = most internal, applied first via `.layer()`)
-    /// 3. Applies in order — result on request: Extensions → ErrorHandler → Host
-    ///    → Custom → CSP → Cache → Session → CSRF → Handler
-    pub(crate) fn apply_to_router(
-        self,
+    /// Every middleware is listed below with its fixed slot, in the order a
+    /// request goes through them. The stack is then checked (no two on the
+    /// same slot), sorted DESCENDING by slot (highest = most internal, applied
+    /// first via `.layer()`), and applied.
+    pub(crate) fn apply_middleware(
+        mut self,
         router: Router,
         engine: AEngine,
-    ) -> (Router, Option<Arc<CleaningMemoryStore>>) {
-        let dev = engine.config.dev;
-        let mut entries: Vec<MiddlewareEntry> = Vec::new();
-
-        // Slot 0: the engine, which carries Tera and the config — outermost
-        {
-            let eng = engine.clone();
-            entries.push(MiddlewareEntry {
-                slot: SLOT_EXTENSIONS,
-                name: "Extensions",
-                apply: Box::new(move |r| {
-                    r.layer(axum::middleware::from_fn(
-                        move |mut req: axum::http::Request<axum::body::Body>,
-                              next: axum::middleware::Next| {
-                            let extensions = RequestExtensions::new().with_engine(eng.clone());
-                            extensions.inject_request(&mut req);
-                            async move { next.run(req).await }
-                        },
-                    ))
-                }),
-            });
-        }
-
-        // Slot 2: Trusted proxies — extract real client IP from X-Forwarded-For
-        {
-            let eng = engine.clone();
-            entries.push(MiddlewareEntry {
-                slot: SLOT_TRUSTED_PROXIES,
-                name: "TrustedProxies",
-                apply: Box::new(move |r| {
-                    r.layer(middleware::from_fn_with_state(
-                        eng,
-                        trusted_proxies_middleware,
-                    ))
-                }),
-            });
-        }
-
-        // Slot 5: Compression — before any other middleware
-        let compression = self.compression_config;
-        if compression.enabled {
-            // tower-http's default predicate, with the configured size in place of its own.
-            let predicate = SizeAbove::new(compression.min_size)
-                .and(NotForContentType::GRPC)
-                .and(NotForContentType::IMAGES)
-                .and(NotForContentType::SSE);
+    ) -> Result<Router, BuildError> {
+        let mut entries = vec![
+            with_engine!(SLOT_EXTENSIONS, "Extensions", engine, extensions_middleware),
+            // Real client IP from X-Forwarded-For, before everything that reads it
+            with_engine!(
+                SLOT_TRUSTED_PROXIES,
+                "TrustedProxies",
+                engine,
+                trusted_proxies_middleware
+            ),
+        ];
+        // Compression, before any other middleware
+        if let Some(layer) = self.compression_config.layer() {
             entries.push(MiddlewareEntry {
                 slot: SLOT_COMPRESSION,
                 name: "Compression",
-                apply: Box::new(move |r| {
-                    r.layer(
-                        CompressionLayer::new()
-                            .quality(compression.level)
-                            .compress_when(predicate),
-                    )
-                }),
+                apply: Box::new(move |r| r.layer(layer)),
             });
         }
-
-        // Slot 8: CORS — outside ErrorHandler so OPTIONS preflight never reaches CSRF/Session
-        if let Some(cors) = self.cors_config {
-            use axum::http::HeaderValue;
-            use std::time::Duration as StdDuration;
-            use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
-
-            let max_age = StdDuration::from_secs(if cors.max_age_secs > 0 {
-                cors.max_age_secs
-            } else {
-                3600
-            });
-
-            let layer = if cors.is_wildcard() {
-                CorsLayer::new()
-                    .allow_origin(tower_http::cors::Any)
-                    .allow_methods(tower_http::cors::Any)
-                    .allow_headers(tower_http::cors::Any)
-                    .max_age(max_age)
-            } else {
-                let origins: Vec<HeaderValue> = cors
-                    .origins
-                    .iter()
-                    .filter_map(|o| HeaderValue::from_str(o).ok())
-                    .collect();
-                // With credentials, the CORS rules forbid the `*` wildcard (tower-http
-                // refuses it at startup): the preflight's own method and headers are
-                // echoed back instead, still for the listed origins only.
-                let (methods, headers) = if cors.allow_credentials {
-                    (
-                        AllowMethods::mirror_request(),
-                        AllowHeaders::mirror_request(),
-                    )
-                } else {
-                    (
-                        AllowMethods::from(tower_http::cors::Any),
-                        AllowHeaders::from(tower_http::cors::Any),
-                    )
-                };
-                CorsLayer::new()
-                    .allow_origin(AllowOrigin::list(origins))
-                    .allow_methods(methods)
-                    .allow_headers(headers)
-                    .allow_credentials(cors.allow_credentials)
-                    .max_age(max_age)
-            };
-
+        // Outside ErrorHandler so an OPTIONS preflight never reaches CSRF/Session
+        if let Some(cors) = self.cors_config.take() {
+            let layer = cors.layer();
             entries.push(MiddlewareEntry {
                 slot: SLOT_CORS,
                 name: "CORS",
                 apply: Box::new(move |r| r.layer(layer)),
             });
         }
-
-        // Slot 9: the visitor's language, for everything inside — error pages included
+        // The visitor's language, for everything inside — error pages included
         if self.lang {
             entries.push(MiddlewareEntry {
                 slot: SLOT_LANG,
@@ -216,191 +151,7 @@ impl MiddlewareStaging {
                 apply: Box::new(|r| r.layer(middleware::from_fn(lang_middleware))),
             });
         }
-
-        // Slot 65: Anti-bot — injects honeypot field name extension
-        if self.anti_bot {
-            let eng = engine.clone();
-            entries.push(MiddlewareEntry {
-                slot: SLOT_ANTI_BOT,
-                name: "AntiBot",
-                apply: Box::new(move |r| {
-                    r.layer(middleware::from_fn_with_state(eng, anti_bot_middleware))
-                }),
-            });
-        }
-
-        // Slot 15: Host validation — after ErrorHandler (panic still caught),
-        // before Session/Auth/CSRF so a spoofed Host is rejected before that cost
-        if self.features.enable_host_validation {
-            let eng = engine.clone();
-            entries.push(MiddlewareEntry {
-                slot: SLOT_HOST_VALIDATION,
-                name: "HostValidation",
-                apply: Box::new(move |r| {
-                    r.layer(middleware::from_fn_with_state(
-                        eng,
-                        allowed_hosts_middleware,
-                    ))
-                }),
-            });
-        }
-
-        // Slot 17: HTTPS redirect behind a TLS-terminating proxy. Not with ACME:
-        // Runique serves TLS itself there, no request carries `X-Forwarded-Proto`,
-        // and its port-80 listener already redirects.
-        let acme_active = cfg!(feature = "acme") && engine.config.security.acme_enabled;
-        if engine.config.security.enforce_https && !acme_active {
-            let eng = engine.clone();
-            entries.push(MiddlewareEntry {
-                slot: SLOT_HTTPS_REDIRECT,
-                name: "HttpsRedirect",
-                apply: Box::new(move |r| {
-                    r.layer(middleware::from_fn_with_state(
-                        eng,
-                        https_redirect_middleware,
-                    ))
-                }),
-            });
-        }
-
-        // Slot 50: Session — before CSRF (CSRF depends on it)
-        let memory_store: Option<Arc<CleaningMemoryStore>> = {
-            let applicator = self.session_applicator;
-            let anon_duration = self.anonymous_session_duration;
-            let low_wm = self.session_low_watermark;
-            let high_wm = self.session_high_watermark;
-            let cleanup_secs = self.session_cleanup_interval_secs;
-            let exclusive_login = self.exclusive_login;
-
-            let store_arc = if applicator.is_none() {
-                let mut builder = CleaningMemoryStore::default()
-                    .with_watermarks(low_wm, high_wm)
-                    .with_exclusive_login(exclusive_login);
-
-                #[cfg(feature = "orm")]
-                {
-                    use crate::middleware::session::RuniqueSessionStore;
-                    let db_store = Arc::new(RuniqueSessionStore::new(
-                        engine.db.clone(),
-                        &engine.config.server.secret_key,
-                    ));
-                    builder = builder.with_db_fallback(db_store);
-                }
-
-                let store = Arc::new(builder);
-                store.spawn_cleanup(tokio::time::Duration::from_secs(cleanup_secs));
-                Some(store)
-            } else {
-                None
-            };
-
-            let store_for_layer = store_arc.clone();
-            entries.push(MiddlewareEntry {
-                slot: SLOT_SESSION,
-                name: "Session",
-                apply: Box::new(move |r: Router| match applicator {
-                    Some(apply_fn) => apply_fn(r, dev, anon_duration),
-                    None => {
-                        let store = store_for_layer.expect("store created above");
-                        let layer = SessionManagerLayer::new((*store).clone())
-                            .with_secure(!dev)
-                            .with_http_only(true)
-                            .with_same_site(tower_sessions::cookie::SameSite::Strict)
-                            .with_expiry(Expiry::OnInactivity(anon_duration));
-                        r.layer(layer)
-                    }
-                }),
-            });
-
-            store_arc
-        };
-
-        // Slot 60: CSRF — ALWAYS enabled, after Session
-        {
-            let eng = engine.clone();
-            entries.push(MiddlewareEntry {
-                slot: SLOT_CSRF,
-                name: "CSRF",
-                apply: Box::new(move |r| {
-                    r.layer(middleware::from_fn_with_state(eng, csrf_middleware))
-                }),
-            });
-        }
-
-        // Slot 40: Cache control
-        if !self.features.enable_cache {
-            let eng = engine.clone();
-            entries.push(MiddlewareEntry {
-                slot: SLOT_CACHE,
-                name: "NoCache",
-                apply: Box::new(move |r| {
-                    r.layer(middleware::from_fn_with_state(eng, dev_no_cache_middleware))
-                }),
-            });
-        }
-
-        // Slot 25: Open redirect protection — ALWAYS active
-        {
-            let eng = engine.clone();
-            entries.push(MiddlewareEntry {
-                slot: SLOT_OPEN_REDIRECT,
-                name: "OpenRedirect",
-                apply: Box::new(move |r| {
-                    r.layer(middleware::from_fn_with_state(
-                        eng,
-                        open_redirect_middleware,
-                    ))
-                }),
-            });
-        }
-
-        // Slot 30: Security headers (CSP + nonce + HSTS/X-Frame-Options/etc.) — ALWAYS active.
-        // `csp_middleware` (formerly slot 31, gated on `enable_csp`) used to also run here,
-        // setting the same Content-Security-Policy header without a nonce — since it was
-        // applied after this one, its `insert()` silently overwrote the nonce-bearing header
-        // from this middleware on every response where `.with_csp()` was used (the normal,
-        // documented usage). Removed 2026-09-21: this middleware already covers everything
-        // csp_middleware did, correctly. See `diagramme/anomalies.md` entry E3.
-        {
-            let eng = engine.clone();
-            entries.push(MiddlewareEntry {
-                slot: SLOT_SECURITY_HEADERS,
-                name: "SecurityHeaders",
-                apply: Box::new(move |r| {
-                    r.layer(middleware::from_fn_with_state(
-                        eng,
-                        security_headers_middleware,
-                    ))
-                }),
-            });
-        }
-
-        // Slot 55: Upgrade session TTL if authenticated
-        {
-            let duration = self.session_duration;
-            // Single source of truth: login reads the same value (builder) as this middleware,
-            // through the OnceLock set here → cookie/DB/refresh can no longer drift apart (AM3).
-            crate::auth::session::set_auth_session_ttl_secs(duration.whole_seconds());
-            entries.push(MiddlewareEntry {
-                slot: SLOT_SESSION_UPGRADE,
-                name: "SessionTtlUpgrade",
-                apply: Box::new(move |r| {
-                    r.layer(axum::middleware::from_fn_with_state(
-                        duration,
-                        session_ttl_upgrade,
-                    ))
-                }),
-            });
-        }
-
-        // Slot 57: Auth — reads the signed-in account from the DB, injects CurrentUser
-        entries.push(MiddlewareEntry {
-            slot: SLOT_AUTH,
-            name: "Auth",
-            apply: Box::new(|r| r.layer(axum::middleware::from_fn(auth_middleware))),
-        });
-
-        // Slot 10: Error handler — wraps the WHOLE stack, catches all errors
+        // Wraps the WHOLE stack, catches all errors
         if self.features.enable_debug_errors {
             entries.push(MiddlewareEntry {
                 slot: SLOT_ERROR_HANDLER,
@@ -408,149 +159,193 @@ impl MiddlewareStaging {
                 apply: Box::new(|r| r.layer(middleware::from_fn(error_handler_middleware))),
             });
         }
-
-        // Custom middlewares: automatically placed between ErrorHandler and CSP (slots 20+)
-        for (i, custom_mw) in self.custom_middlewares.into_iter().enumerate() {
+        // After ErrorHandler (panic still caught), before Session/Auth/CSRF so a
+        // spoofed Host is rejected before that cost
+        if self.features.enable_host_validation {
+            entries.push(with_engine!(
+                SLOT_HOST_VALIDATION,
+                "HostValidation",
+                engine,
+                allowed_hosts_middleware
+            ));
+        }
+        // HTTPS redirect behind a TLS-terminating proxy. Not with ACME:
+        // Runique serves TLS itself there, no request carries `X-Forwarded-Proto`,
+        // and its port-80 listener already redirects.
+        let acme_active = cfg!(feature = "acme") && engine.config.security.acme_enabled;
+        if engine.config.security.enforce_https && !acme_active {
+            entries.push(with_engine!(
+                SLOT_HTTPS_REDIRECT,
+                "HttpsRedirect",
+                engine,
+                https_redirect_middleware
+            ));
+        }
+        // The developer's middlewares, between ErrorHandler and CSP (slots 20+)
+        let custom = std::mem::take(&mut self.custom_middlewares);
+        for (i, apply) in custom.into_iter().enumerate() {
             entries.push(MiddlewareEntry {
                 slot: SLOT_CUSTOM_BASE.saturating_add(i as u16),
                 name: "Custom",
-                apply: custom_mw,
+                apply,
             });
         }
-
-        // Fail loud on slot collisions instead of applying two middlewares in an
-        // undefined relative order (the exact class of silent bug this slot
-        // system exists to prevent — see the CSRF/Session story at the top of
-        // this file). Most likely trigger: enough custom middlewares registered
-        // that `SLOT_CUSTOM_BASE + i` walks into a fixed slot (e.g. 6+ custom
-        // middlewares reaches 25 = SLOT_OPEN_REDIRECT).
-        {
-            let mut seen: std::collections::HashMap<u16, &'static str> =
-                std::collections::HashMap::new();
-            for entry in &entries {
-                if let Some(existing) = seen.insert(entry.slot, entry.name) {
-                    panic!(
-                        "{}",
-                        crate::translation::tf(
-                            runique_i18n::keys::middleware::error::SLOT_COLLISION,
-                            &[
-                                existing.to_string(),
-                                entry.name.to_string(),
-                                entry.slot.to_string()
-                            ]
-                        )
-                    );
-                }
-            }
+        // ALWAYS active
+        entries.push(with_engine!(
+            SLOT_OPEN_REDIRECT,
+            "OpenRedirect",
+            engine,
+            open_redirect_middleware
+        ));
+        // CSP + nonce + HSTS/X-Frame-Options/etc. — ALWAYS active.
+        // `csp_middleware` (formerly slot 31, gated on `enable_csp`) used to also run here,
+        // setting the same Content-Security-Policy header without a nonce — since it was
+        // applied after this one, its `insert()` silently overwrote the nonce-bearing header
+        // from this middleware on every response where `.with_csp()` was used (the normal,
+        // documented usage). Removed 2026-09-21: this middleware already covers everything
+        // csp_middleware did, correctly. See `diagramme/anomalies.md` entry E3.
+        entries.push(with_engine!(
+            SLOT_SECURITY_HEADERS,
+            "SecurityHeaders",
+            engine,
+            security_headers_middleware
+        ));
+        if !self.features.enable_cache {
+            entries.push(with_engine!(
+                SLOT_CACHE,
+                "NoCache",
+                engine,
+                dev_no_cache_middleware
+            ));
+        }
+        entries.push(self.session_entry(&engine));
+        entries.push(session_upgrade_entry(self.session_duration));
+        // Reads the signed-in account from the DB, injects CurrentUser
+        entries.push(MiddlewareEntry {
+            slot: SLOT_AUTH,
+            name: "Auth",
+            apply: Box::new(|r| r.layer(axum::middleware::from_fn(auth_middleware))),
+        });
+        // ALWAYS enabled, after Session
+        entries.push(with_engine!(SLOT_CSRF, "CSRF", engine, csrf_middleware));
+        // After CSRF — injects the honeypot field name extension
+        if self.anti_bot {
+            entries.push(with_engine!(
+                SLOT_ANTI_BOT,
+                "AntiBot",
+                engine,
+                anti_bot_middleware
+            ));
         }
 
+        check_slots(&entries)?;
         // Descending sort: highest slot → first `.layer()` → most internal.
         // In Axum, last `.layer()` = outermost = first executed on the request.
         entries.sort_by_key(|b| std::cmp::Reverse(b.slot));
+        log_stack(&entries);
 
-        if let Some(level) = crate::log::log_level!(builder.middleware) {
-            crate::runique_log!(level, count = entries.len(), "middleware stack");
-            for entry in &entries {
-                crate::runique_log!(level, slot = entry.slot, name = %entry.name, "middleware slot");
+        Ok(entries
+            .into_iter()
+            .fold(router, |router, entry| (entry.apply)(router)))
+    }
+
+    /// The session stores, created once before the engine: the database
+    /// store given, and the memory store that backs its authenticated
+    /// sessions up in it — none when the developer plugged in their own.
+    pub(crate) fn session_stores(
+        &self,
+        database: Option<Arc<RuniqueSessionStore>>,
+    ) -> SessionStores {
+        let memory = self.session_applicator.is_none().then(|| {
+            #[cfg_attr(not(feature = "orm"), allow(unused_mut))]
+            let mut builder = CleaningMemoryStore::default()
+                .with_watermarks(self.session_low_watermark, self.session_high_watermark)
+                .with_exclusive_login(self.exclusive_login);
+            #[cfg(feature = "orm")]
+            if let Some(database) = &database {
+                builder = builder.with_db_fallback(database.clone());
             }
-        }
+            let store = Arc::new(builder);
+            store.spawn_cleanup(tokio::time::Duration::from_secs(
+                self.session_cleanup_interval_secs,
+            ));
+            store
+        });
+        SessionStores { memory, database }
+    }
 
-        let mut router = router;
+    /// The session layer, before CSRF (CSRF depends on it): the developer's
+    /// store, or the engine's memory store.
+    fn session_entry(&mut self, engine: &AEngine) -> MiddlewareEntry {
+        let dev = engine.config.dev;
+        let applicator = self.session_applicator.take();
+        let anon_duration = self.anonymous_session_duration;
+        let store_for_layer = engine.sessions.memory.clone();
+        MiddlewareEntry {
+            slot: SLOT_SESSION,
+            name: "Session",
+            apply: Box::new(move |r: Router| match applicator {
+                Some(apply_fn) => apply_fn(r, dev, anon_duration),
+                None => {
+                    let store = store_for_layer
+                        .expect("created by `session_stores` when no store is plugged in");
+                    let layer = SessionManagerLayer::new((*store).clone())
+                        .with_secure(!dev)
+                        .with_http_only(true)
+                        .with_same_site(tower_sessions::cookie::SameSite::Strict)
+                        .with_expiry(Expiry::OnInactivity(anon_duration));
+                    r.layer(layer)
+                }
+            }),
+        }
+    }
+}
+
+/// Upgrades the session's lifetime once the user is signed in.
+fn session_upgrade_entry(duration: Duration) -> MiddlewareEntry {
+    // Single source of truth: login reads the same value (builder) as this middleware,
+    // through the OnceLock set here → cookie/DB/refresh can no longer drift apart (AM3).
+    crate::auth::session::set_auth_session_ttl_secs(duration.whole_seconds());
+    MiddlewareEntry {
+        slot: SLOT_SESSION_UPGRADE,
+        name: "SessionTtlUpgrade",
+        apply: Box::new(move |r| {
+            r.layer(axum::middleware::from_fn_with_state(
+                duration,
+                session_ttl_upgrade,
+            ))
+        }),
+    }
+}
+
+/// Refuses two middlewares on one slot instead of applying them in an
+/// undefined relative order (the exact class of silent bug this slot system
+/// exists to prevent — see the CSRF/Session story at the top of this file).
+/// Most likely trigger: enough custom middlewares registered that
+/// `SLOT_CUSTOM_BASE + i` walks into a fixed slot (e.g. 6+ custom
+/// middlewares reaches 25 = SLOT_OPEN_REDIRECT).
+fn check_slots(entries: &[MiddlewareEntry]) -> Result<(), BuildError> {
+    let mut seen: std::collections::HashMap<u16, &'static str> = std::collections::HashMap::new();
+    for entry in entries {
+        if let Some(existing) = seen.insert(entry.slot, entry.name) {
+            return Err(BuildError::validation(crate::translation::tf(
+                runique_i18n::keys::middleware::error::SLOT_COLLISION,
+                &[
+                    existing.to_string(),
+                    entry.name.to_string(),
+                    entry.slot.to_string(),
+                ],
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn log_stack(entries: &[MiddlewareEntry]) {
+    if let Some(level) = crate::log::log_level!(builder.middleware) {
+        crate::runique_log!(level, count = entries.len(), "middleware stack");
         for entry in entries {
-            router = (entry.apply)(router);
-        }
-
-        (router, memory_store)
-    }
-}
-
-// ─── Private middleware handlers ──────────────────────────────────────────────
-
-/// Upgrades session TTL to the authenticated duration when the user is logged in.
-async fn session_ttl_upgrade(
-    axum::extract::State(duration): axum::extract::State<Duration>,
-    req: axum::http::Request<axum::body::Body>,
-    next: axum::middleware::Next,
-) -> axum::response::Response {
-    if let Some(session) = req.extensions().get::<tower_sessions::Session>()
-        && crate::auth::session::is_authenticated(session).await
-    {
-        session.set_expiry(Some(Expiry::OnInactivity(duration)));
-    }
-    next.run(req).await
-}
-
-/// Injects the signed-in user as the database knows them now.
-///
-/// The session only holds who signed in: the account is read on every request
-/// of a signed-in user (one lookup by primary key), so deactivating it, or
-/// increasing its `session_version`, applies to the next request — its session
-/// is closed and `req.user` is `None`.
-/// Groups and rights are not loaded here (`Request::load_user_rights`).
-async fn auth_middleware(
-    mut req: axum::http::Request<axum::body::Body>,
-    next: axum::middleware::Next,
-) -> axum::response::Response {
-    use crate::auth::current_user::CurrentUser;
-    use crate::auth::session::{get_user_id, logout, session_is_current};
-    use crate::auth::user::BuiltinUserEntity;
-    use crate::log::TraceResult;
-    use axum::response::IntoResponse;
-
-    let session = req.extensions().get::<tower_sessions::Session>().cloned();
-    let engine = req
-        .extensions()
-        .get::<crate::utils::aliases::AEngine>()
-        .cloned();
-    if let (Some(session), Some(engine)) = (session, engine)
-        && let Some(id) = get_user_id(&session).await
-    {
-        let account = match BuiltinUserEntity::lookup_by_id(&engine.db, id).await {
-            Ok(account) => account.filter(crate::auth::user_trait::RuniqueUser::can_sign_in),
-            // The database didn't answer: that says nothing about the account.
-            // Its session is left as it is, and the request waits for better.
-            Err(error) => {
-                crate::runique_log!(
-                    tracing::Level::WARN,
-                    user_id = %id,
-                    error = %error,
-                    "{}", crate::translation::t(runique_i18n::keys::auth::log::ACCOUNT_NOT_READ)
-                );
-                return axum::http::StatusCode::SERVICE_UNAVAILABLE.into_response();
-            }
-        };
-        let account = match account {
-            Some(user) if session_is_current(&session, &user).await => Some(user),
-            _ => None,
-        };
-        match account {
-            Some(user) => {
-                let current_user = CurrentUser {
-                    id,
-                    rang: crate::auth::permissions::rank::Rang::from(&user),
-                    username: user.username,
-                    groupes: Vec::new(),
-                    droits: Vec::new(),
-                };
-                RequestExtensions::new()
-                    .with_current_user(current_user)
-                    .inject_request(&mut req);
-            }
-            None => {
-                let db_store = engine
-                    .session_db_store
-                    .read()
-                    .ok()
-                    .and_then(|g| g.as_ref().cloned());
-                // Logged, not fatal: the account is read again on every request and
-                // refused here each time, so a row that survives grants nothing.
-                logout(&session, db_store.as_deref()).await.trace_or(
-                    crate::log::log_level!(session.store),
-                    tracing::Level::WARN,
-                    "close the session of a deleted or inactive account, or an outdated one",
-                );
-            }
+            crate::runique_log!(level, slot = entry.slot, name = %entry.name, "middleware slot");
         }
     }
-    next.run(req).await
 }

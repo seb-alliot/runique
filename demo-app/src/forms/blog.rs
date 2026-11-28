@@ -1,7 +1,5 @@
-use crate::backend::lang::visitor_lang;
-use crate::entities::blog;
-use runique::axum::http::HeaderMap;
-use runique::prelude::*;
+use crate::{backend::lang::visitor_lang, entities::blog};
+use runique::{axum::http::HeaderMap, prelude::*};
 
 #[form(schema = blog, fields = [title, email, summary, website, content])]
 pub struct BlogForm;

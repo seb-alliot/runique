@@ -1,19 +1,24 @@
 //! A change of rank: never a form field, only this operation. The superuser
 //! names dirigeants, a dirigeant names admins; nobody touches their own rank
 //! or one equal to theirs, and the admin keeps a dirigeant above them.
-use super::refusal::{Refusal, RefusalReason};
-use super::save::take_back;
-use crate::auth::constants::resource_key;
-use crate::auth::current_user::CurrentUser;
-use crate::auth::history::{ActionLog, log_action};
-use crate::auth::permissions::group_rights;
-use crate::auth::permissions::rank::Rang;
-use crate::auth::user::{self, Column};
-use crate::schema::pk::Pk;
-use crate::utils::aliases::ADb;
-use sea_orm::sea_query::Expr;
+use super::{
+    refusal::{Refusal, RefusalReason},
+    save::take_back,
+};
+use crate::{
+    auth::{
+        constants::resource_key,
+        current_user::CurrentUser,
+        history::{ActionLog, log_action},
+        permissions::{group_rights, rank::Rang},
+        user::{self, Column},
+    },
+    schema::pk::Pk,
+    utils::aliases::ADb,
+};
 use sea_orm::{
-    ColumnTrait, ConnectionTrait, DbErr, EntityTrait, PaginatorTrait, QueryFilter, TransactionTrait,
+    ColumnTrait, ConnectionTrait, DbErr, EntityTrait, PaginatorTrait, QueryFilter,
+    TransactionTrait, sea_query::Expr,
 };
 
 fn refused(reason: RefusalReason) -> DbErr {
@@ -148,9 +153,11 @@ pub(crate) async fn set_rank(
 #[cfg(all(test, feature = "sqlite"))]
 mod tests {
     use super::*;
-    use crate::auth::gate::test_support::fixtures::{as_rank, groups_db, pk};
-    use crate::auth::history;
-    use crate::auth::permissions::group;
+    use crate::auth::{
+        gate::test_support::fixtures::{as_rank, groups_db, pk},
+        history,
+        permissions::group,
+    };
     use sea_orm::{ActiveModelTrait, Set};
 
     async fn rank_of(db: &ADb, n: u8) -> Rang {

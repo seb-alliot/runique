@@ -15,9 +15,7 @@ use sha2::{Digest, Sha256};
 use std::time::Duration;
 use uuid::Uuid;
 
-use crate::log::TraceResult;
-use crate::schema::pk::Pk;
-use crate::utils::aliases::ADb;
+use crate::{log::TraceResult, schema::pk::Pk, utils::aliases::ADb};
 
 mod entity;
 

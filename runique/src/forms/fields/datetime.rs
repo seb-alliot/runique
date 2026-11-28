@@ -1,9 +1,12 @@
 //! Date/time fields: `DateField`, `TimeField`, `DateTimeField` with min/max validation.
-use crate::forms::config::Limit;
-use crate::forms::config::field_config::FieldConfig;
-use crate::forms::traits::form_field::FormField;
-use crate::translation::{t, tf};
-use crate::utils::aliases::ATera;
+use crate::{
+    forms::{
+        config::{Limit, field_config::FieldConfig},
+        traits::form_field::FormField,
+    },
+    translation::{t, tf},
+    utils::aliases::ATera,
+};
 use async_trait::async_trait;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Timelike};
 use serde::Serialize;

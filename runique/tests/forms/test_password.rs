@@ -1,7 +1,9 @@
-use runique::prelude::*;
-use runique::security::password::{
-    AutoConfig, BaseHash, External, Manual, PasswordConfig, PasswordService, password_get,
-    password_init,
+use runique::{
+    prelude::*,
+    security::password::{
+        AutoConfig, BaseHash, External, Manual, PasswordConfig, PasswordService, password_get,
+        password_init,
+    },
 };
 use std::sync::Arc;
 

@@ -6,9 +6,7 @@
 //! hand for its own tables. Kept thin: display belongs to the builder.
 use crate::auth::constants::resource_key;
 use sea_orm::{ConnectionTrait, DbErr, EntityTrait, PrimaryKeyTrait, TransactionTrait};
-use std::collections::HashMap;
-use std::future::Future;
-use std::str::FromStr;
+use std::{collections::HashMap, future::Future, str::FromStr};
 
 /// `FromStr` on the key: a row's id arrives as URL text, each model parses it
 /// with its own key type (`i32`, `Uuid`…). A composite key can't, so such a

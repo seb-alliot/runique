@@ -5,8 +5,10 @@
 //!
 //! No database: the migration's column is what the CLI parses, built the way
 //! its generated file builds it.
-use runique::runique_dsl::ast::FormFieldType;
-use runique::sea_orm::sea_query::{ColumnType, StringLen};
+use runique::{
+    runique_dsl::ast::FormFieldType,
+    sea_orm::sea_query::{ColumnType, StringLen},
+};
 use runique_cli::migration::parse_schema_from_source;
 
 /// One DSL type: a `model!{}` with a single field `v`, the same declaration

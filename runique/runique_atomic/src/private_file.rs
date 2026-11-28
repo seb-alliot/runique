@@ -1,7 +1,6 @@
 //! Files holding a secret (`.env`, a TLS private key): readable by their owner only.
 
-use std::io::Write;
-use std::path::Path;
+use std::{io::Write, path::Path};
 
 /// Writes `content` to `path`, readable and writable by its owner only on Unix
 /// (`0600`), whether the file is new or already there.

@@ -31,8 +31,7 @@ mod book {
     }
 }
 
-use runique::sea_orm::RelationTrait;
-use runique::sea_orm::sea_query::ForeignKeyAction;
+use runique::sea_orm::{RelationTrait, sea_query::ForeignKeyAction};
 
 #[test]
 fn relation_targets_the_primary_key_with_its_actions() {

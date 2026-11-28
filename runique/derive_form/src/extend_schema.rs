@@ -1,15 +1,18 @@
-use crate::model::ast::{EnumDef, FormFieldAttr, FormFieldDecl, FormFieldType};
-use crate::model::generator::{
-    field_from_form, field_from_partial, generate_column, generate_enum_defs,
-    generate_form_field_decl,
+use crate::{
+    model::{
+        ast::{EnumDef, FormFieldAttr, FormFieldDecl, FormFieldType},
+        generator::{
+            field_from_form, field_from_partial, generate_column, generate_enum_defs,
+            generate_form_field_decl,
+        },
+        utils::generate_model_field,
+    },
+    registry::{FormWidget, PhantomColumn, PkColumn, phantom_columns},
 };
-use crate::model::utils::generate_model_field;
-use crate::registry::{FormWidget, PhantomColumn, PkColumn, phantom_columns};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
-use runique_dsl::ast::FieldDef;
 pub(crate) use runique_dsl::extend::ExtendDsl;
-use runique_dsl::form_field_to_field_def;
+use runique_dsl::{ast::FieldDef, form_field_to_field_def};
 
 // ── Code generation ──────────────────────────────────────────────────────────
 

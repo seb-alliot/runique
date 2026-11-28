@@ -1,19 +1,27 @@
 //! `save` and `delete` of a validated form: through the gate on a route
 //! declared `admin`, through SeaORM elsewhere.
 use super::ValidationForm;
-use crate::auth::gate::change::{RowWrite, Secrets, changes, replaced_files};
-use crate::auth::gate::refusal::{Refusal, RefusalReason};
-use crate::auth::gate::save::save_as;
-use crate::auth::gate::write::linked_delete_error;
-use crate::auth::permissions::rights::ColumnRights;
-use crate::db::DbWrite;
-use crate::forms::FormEntity;
-use crate::forms::data::save::{SaveAction, not_found, on_fields, url_key};
-use crate::forms::form::{SaveMode, write_replacing_uploads, write_with_uploads};
-use crate::forms::traits::runique_form::RuniqueForm;
-use sea_orm::sea_query::IntoValueTuple;
+use crate::{
+    auth::{
+        gate::{
+            change::{RowWrite, Secrets, changes, replaced_files},
+            refusal::{Refusal, RefusalReason},
+            save::save_as,
+            write::linked_delete_error,
+        },
+        permissions::rights::ColumnRights,
+    },
+    db::DbWrite,
+    forms::{
+        FormEntity,
+        data::save::{SaveAction, not_found, on_fields, url_key},
+        form::{SaveMode, write_replacing_uploads, write_with_uploads},
+        traits::runique_form::RuniqueForm,
+    },
+};
 use sea_orm::{
     ActiveModelTrait, DbErr, EntityTrait, IntoActiveModel, Iterable, PrimaryKeyToColumn,
+    sea_query::IntoValueTuple,
 };
 
 /// Writing a validated form of an entity. The row comes from the URL:

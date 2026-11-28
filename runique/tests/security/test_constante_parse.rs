@@ -2,8 +2,10 @@
 //! Couvre : CONSTRAINT_REGEX, KEY_REGEX, FAILED_REGEX, FOR_KEY_REGEX,
 //!          RICH_CONTENT_FIELDS, ALLOWED_TAGS, ALLOWED_ATTRS
 
-use runique::forms::constants::{CONSTRAINT_REGEX, FAILED_REGEX, FOR_KEY_REGEX, KEY_REGEX};
-use runique::security::constants::{ALLOWED_ATTRS, ALLOWED_TAGS, RICH_CONTENT_FIELDS};
+use runique::{
+    forms::constants::{CONSTRAINT_REGEX, FAILED_REGEX, FOR_KEY_REGEX, KEY_REGEX},
+    security::constants::{ALLOWED_ATTRS, ALLOWED_TAGS, RICH_CONTENT_FIELDS},
+};
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTRAINT_REGEX

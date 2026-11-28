@@ -4,10 +4,14 @@
 //! checked here in raw SQL, without the ORM, on every engine available
 //! (SQLite always, Postgres and MySQL when their container is).
 
-use crate::helpers::pk::{pk_sql_literal, pk_sql_literal_pg};
-use crate::helpers::{db, db_mysql, db_postgres};
-use runique::migrations_table::{ACTIVE_NEEDS_ACTIVATION, EihwazUsersMigration, ONE_RANK_AT_MOST};
-use runique::sea_orm::{ConnectionTrait, DatabaseConnection};
+use crate::helpers::{
+    db, db_mysql, db_postgres,
+    pk::{pk_sql_literal, pk_sql_literal_pg},
+};
+use runique::{
+    migrations_table::{ACTIVE_NEEDS_ACTIVATION, EihwazUsersMigration, ONE_RANK_AT_MOST},
+    sea_orm::{ConnectionTrait, DatabaseConnection},
+};
 use sea_orm_migration::{MigrationTrait, SchemaManager};
 use serial_test::serial;
 
@@ -163,8 +167,10 @@ async fn mysql_refuses_an_active_account_never_activated() {
 #[tokio::test]
 #[serial]
 async fn an_account_inserted_without_an_id_gets_one() {
-    use runique::auth::user::ActiveModel;
-    use runique::sea_orm::{ActiveModelTrait, ActiveValue::Set};
+    use runique::{
+        auth::user::ActiveModel,
+        sea_orm::{ActiveModelTrait, ActiveValue::Set},
+    };
 
     let conn = db::fresh_db().await;
     EihwazUsersMigration

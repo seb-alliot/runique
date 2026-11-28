@@ -2,28 +2,40 @@
 //! responsable. The GET shows what the transfer does (the rights the members
 //! lose), writing nothing; the POST makes it, for those losses only.
 use super::rights::{column_right_label, right_text, table_right_label};
-use crate::admin::builder::confirm_form::ConfirmForm;
-use crate::admin::builder::registered::AdminError;
-use crate::admin::builder::site::AdminSite;
-use crate::admin::constants::admin_form;
-use crate::admin::router::context::{ResourceRef, TransferContext, TransferLine, put};
-use crate::admin::router::routes::AdminState;
-use crate::admin::router::{chrome, failure, unknown_resource};
-use crate::admin::translation::insert_admin_messages;
-use crate::auth::constants::resource_key;
-use crate::auth::current_user::CurrentUser;
-use crate::auth::gate::Refusal;
-use crate::auth::gate::refusal::RefusalReason;
-use crate::auth::gate::transfer::{Transfer, plan, transfer_group};
-use crate::auth::permissions::group;
-use crate::forms::validation_form::ValidationForm;
-use crate::http::request::Request;
-use crate::schema::pk::Pk;
-use crate::translation::t;
-use crate::utils::aliases::{AppResult, StrMap};
-use axum::Extension;
-use axum::extract::{Path, Query};
-use axum::response::{IntoResponse, Redirect, Response};
+use crate::{
+    admin::{
+        builder::{confirm_form::ConfirmForm, registered::AdminError, site::AdminSite},
+        constants::admin_form,
+        router::{
+            chrome,
+            context::{ResourceRef, TransferContext, TransferLine, put},
+            failure,
+            routes::AdminState,
+            unknown_resource,
+        },
+        translation::insert_admin_messages,
+    },
+    auth::{
+        constants::resource_key,
+        current_user::CurrentUser,
+        gate::{
+            Refusal,
+            refusal::RefusalReason,
+            transfer::{Transfer, plan, transfer_group},
+        },
+        permissions::group,
+    },
+    forms::validation_form::ValidationForm,
+    http::request::Request,
+    schema::pk::Pk,
+    translation::t,
+    utils::aliases::{AppResult, StrMap},
+};
+use axum::{
+    Extension,
+    extract::{Path, Query},
+    response::{IntoResponse, Redirect, Response},
+};
 use std::sync::Arc;
 
 /// The hidden field carrying the losses the confirmation page showed.

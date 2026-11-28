@@ -9,8 +9,7 @@ pub mod syn_extract;
 
 pub use enums::*;
 pub use extend::*;
-pub use files::scan::*;
-pub use files::snapshot::parse_create_file;
+pub use files::{scan::*, snapshot::parse_create_file};
 pub use model::*;
 pub use seaorm::*;
 pub use syn_extract::*;

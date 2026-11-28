@@ -10,19 +10,20 @@ use axum::{
 };
 use tower_sessions::Session;
 
-use crate::admin::router::routes::AdminState;
-use crate::auth::user_trait::RuniqueUser;
-use crate::auth::{
-    current_user::CurrentUser,
-    permissions::load_rights,
-    permissions::rank::Rang,
-    session::{get_user_id, logout},
+use crate::{
+    admin::router::routes::AdminState,
+    auth::{
+        current_user::CurrentUser,
+        permissions::{load_rights, rank::Rang},
+        session::{get_user_id, logout},
+        user_trait::RuniqueUser,
+    },
+    http::RequestExtensions,
+    log::TraceResult,
+    schema::pk::Pk,
+    translation::t,
+    utils::aliases::AEngine,
 };
-use crate::http::RequestExtensions;
-use crate::log::TraceResult;
-use crate::schema::pk::Pk;
-use crate::translation::t;
-use crate::utils::aliases::AEngine;
 
 /// Middleware: admin access required (a rank, or a staff group)
 ///
@@ -131,11 +132,7 @@ pub(crate) async fn load_admin_user(
             if let Some(level) = crate::log::log_level!(admin.auth) {
                 crate::runique_log!(level, user_id = %user_id, "admin account gone or inactive — session closed");
             }
-            let db_store = engine
-                .session_db_store
-                .read()
-                .ok()
-                .and_then(|g| g.as_ref().cloned());
+            let db_store = engine.sessions.database.clone();
             // Logged, not fatal: the account is read again on every request and
             // refused here each time, so a row that survives grants nothing.
             logout(&session, db_store.as_deref()).await.trace_or(
@@ -323,11 +320,13 @@ mod came_from_admin_tests {
 #[cfg(all(test, feature = "sqlite"))]
 mod admin_access_constraint_tests {
     use super::admin_access;
-    use crate::admin::router::routes::AdminState;
-    use crate::auth::{
-        current_user::CurrentUser,
-        gate::{AdminConstraint, test_support::fixtures::pk},
-        permissions::{Groupe, rank::Rang},
+    use crate::{
+        admin::router::routes::AdminState,
+        auth::{
+            current_user::CurrentUser,
+            gate::{AdminConstraint, test_support::fixtures::pk},
+            permissions::{Groupe, rank::Rang},
+        },
     };
     use axum::{
         Extension, Router,
@@ -531,17 +530,19 @@ mod admin_access_constraint_tests {
 #[cfg(all(test, feature = "sqlite"))]
 mod declared_route_constraint_tests {
     use super::declared_route_access;
-    use crate::admin::router::routes::AdminState;
-    use crate::auth::constants::SESSION_USER_ID_KEY;
-    use crate::auth::{
-        current_user::CurrentUser,
-        gate::{AdminConstraint, test_support::fixtures::pk},
-        user,
+    use crate::{
+        admin::router::routes::AdminState,
+        auth::{
+            constants::SESSION_USER_ID_KEY,
+            current_user::CurrentUser,
+            gate::{AdminConstraint, test_support::fixtures::pk},
+            user,
+        },
+        config::RuniqueConfig,
+        engine::RuniqueEngine,
+        schema::Pk,
+        utils::aliases::AEngine,
     };
-    use crate::config::RuniqueConfig;
-    use crate::engine::RuniqueEngine;
-    use crate::schema::Pk;
-    use crate::utils::aliases::AEngine;
     use axum::{
         Extension, Router,
         body::Body,

@@ -1,6 +1,7 @@
-use crate::backend::lang::msg;
-use crate::entities::contribution::Entity as ContributionEntity;
-use crate::forms::ContributionForm;
+use crate::{
+    backend::lang::msg, entities::contribution::Entity as ContributionEntity,
+    forms::ContributionForm,
+};
 use runique::prelude::*;
 use serde::Serialize;
 

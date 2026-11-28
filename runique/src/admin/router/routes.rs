@@ -13,24 +13,24 @@ use axum::{
 use serde::Deserialize;
 use tower_http::set_header::SetResponseHeaderLayer;
 
-use crate::admin::builder::site::AdminSite;
-use crate::app::staging::AdminStaging;
-use crate::auth::{
-    guard::LoginGuard,
-    session::{login, logout},
-};
-use crate::http::request::Request;
-use crate::middleware::security::rate_limit_middleware;
-use crate::translation::{current_lang, t, tf};
-use crate::urlpatterns;
-use crate::utils::aliases::{AppResult, StrMap};
 use crate::{
     admin::{
+        builder::site::AdminSite,
         config::AdminConfig,
         middleware::{admin_access, declared_route_access},
         translation::{inject_admin_prefix, insert_admin_messages},
     },
+    app::staging::AdminStaging,
+    auth::{
+        guard::LoginGuard,
+        session::{login, logout},
+    },
     flash_now,
+    http::request::Request,
+    middleware::security::rate_limit_middleware,
+    translation::{current_lang, t, tf},
+    urlpatterns,
+    utils::aliases::{AppResult, StrMap},
 };
 
 /// Shared admin state carried in an Axum `Extension`: the resolved config
@@ -355,8 +355,10 @@ fn my_groups(
     user: &crate::auth::current_user::CurrentUser,
     site: &AdminSite,
 ) -> Vec<crate::admin::router::context::MyGroup> {
-    use crate::admin::router::context::{MyGroup, MyGroupRight};
-    use crate::admin::router::permission::rights::{right_text, table_right_label};
+    use crate::admin::router::{
+        context::{MyGroup, MyGroupRight},
+        permission::rights::{right_text, table_right_label},
+    };
     let label = |right: &str| right_text(table_right_label(right), right);
     user.groupes
         .iter()
@@ -531,12 +533,7 @@ async fn admin_login_post(
             guard.record_success(&key);
         }
 
-        let db_store = req
-            .engine
-            .session_db_store
-            .read()
-            .ok()
-            .and_then(|g| g.as_ref().cloned());
+        let db_store = req.engine.sessions.database.clone();
         let exclusive = req.engine.features.exclusive_login;
         if login(&req.session, &user, db_store.as_deref(), exclusive)
             .await
@@ -631,12 +628,7 @@ async fn admin_logout(
         return Ok(Redirect::to(&admin.paths.dashboard).into_response());
     }
     let session = &req.session;
-    let db_store = req
-        .engine
-        .session_db_store
-        .read()
-        .ok()
-        .and_then(|g| g.as_ref().cloned());
+    let db_store = req.engine.sessions.database.clone();
     // A failed revocation is an error page, not a "logged out" notice: the
     // session is still alive and the user must know to try again.
     logout(session, db_store.as_deref()).await?;

@@ -15,13 +15,14 @@
 
 use crate::helpers::db_postgres;
 use runique::sea_orm::ConnectionTrait;
-use runique_cli::db::DatabaseEngine;
-use runique_cli::migration::scan_entities;
-use runique_cli::migration::{
-    diff_enums, diff_schemas, enums_of_schemas, generate_enum_file, previous_enums,
+use runique_cli::{
+    db::DatabaseEngine,
+    migration::{
+        diff_enums, diff_schemas, enums_of_schemas, generate_enum_file, previous_enums,
+        scan_entities,
+    },
 };
-use sea_query::Alias;
-use sea_query::extension::postgres::Type;
+use sea_query::{Alias, extension::postgres::Type};
 use serial_test::serial;
 use std::fs;
 

@@ -1,6 +1,5 @@
 //! A column added to an existing table.
-use crate::migration::steps::generate::columns::render_column_def;
-use crate::migration::types::ParsedColumn;
+use crate::migration::{steps::generate::columns::render_column_def, types::ParsedColumn};
 
 pub(crate) fn column(table: &str, column: &ParsedColumn) -> String {
     format!(

@@ -1,23 +1,41 @@
 //! `GET {admin}/{resource}/list`: one page of a model's list.
-use crate::admin::builder::list::ListQuery;
-use crate::admin::builder::registered::readable;
-use crate::admin::builder::site::AdminSite;
-use crate::admin::router::context::{
-    Display, FilterOption, ListContext, ListEntry, Pager, ResourceLinks, ResourceRef, RowLinks,
-    filter_clear_qs, put,
+use crate::{
+    admin::{
+        builder::{
+            list::ListQuery,
+            registered::{AdminError, readable},
+            site::AdminSite,
+        },
+        router::{
+            account::summary::account_summaries,
+            chrome,
+            context::{
+                Display, FilterOption, ListContext, ListEntry, Pager, ResourceLinks, ResourceRef,
+                RowLinks, filter_clear_qs, put,
+            },
+            failure,
+            permission::rights::managed_groups,
+            routes::AdminState,
+            unknown_resource,
+        },
+        template::Page,
+        translation::insert_admin_messages,
+    },
+    auth::{constants::resource_key::GROUPES, current_user::CurrentUser, gate::transfer::taken_by},
+    errors::{AppError, ErrorContext},
+    http::Request,
+    schema::pk::Pk,
+    translation::t,
+    utils::aliases::{AppResult, StrMap},
 };
-use crate::admin::router::routes::AdminState;
-use crate::admin::router::{chrome, failure, unknown_resource};
-use crate::admin::translation::insert_admin_messages;
-use crate::auth::current_user::CurrentUser;
-use crate::errors::AppError;
-use crate::errors::ErrorContext;
-use crate::http::Request;
-use crate::utils::aliases::{AppResult, StrMap};
-use axum::Extension;
-use axum::extract::{Path, Query};
-use axum::response::Response;
-use std::sync::Arc;
+use axum::{
+    Extension,
+    extract::{Path, Query},
+    http::StatusCode,
+    response::Response,
+};
+use serde_json::Value;
+use std::{collections::HashMap, sync::Arc};
 
 pub(crate) async fn list_view(
     Path(resource): Path<String>,
@@ -55,7 +73,7 @@ pub(crate) async fn list_view(
             filters = query.filters.len(),
             search = query.search.is_some(),
             "{}",
-            crate::translation::t(runique_i18n::keys::admin::log::LIST)
+            t(runique_i18n::keys::admin::log::LIST)
         );
     }
 
@@ -71,8 +89,7 @@ pub(crate) async fn list_view(
             )
         })
         .collect();
-    let mut active_filters: std::collections::HashMap<String, Vec<String>> =
-        std::collections::HashMap::new();
+    let mut active_filters: HashMap<String, Vec<String>> = HashMap::new();
     for (col, value) in &query.filters {
         active_filters
             .entry(col.clone())
@@ -130,7 +147,7 @@ pub(crate) async fn list_view(
         page.page < page_count,
         page.page_size,
     );
-    let filter_pagers: std::collections::HashMap<&'static str, Pager> = page
+    let filter_pagers: HashMap<&'static str, Pager> = page
         .filters
         .iter()
         .map(|f| {
@@ -157,7 +174,7 @@ pub(crate) async fn list_view(
         .filters
         .first()
         .map(|f| Pager::new(&unpaged, "fpage_", "fsize", 1, None, false, f.size));
-    let filter_values: std::collections::HashMap<&'static str, Vec<FilterOption>> = page
+    let filter_values: HashMap<&'static str, Vec<FilterOption>> = page
         .filters
         .iter()
         .map(|f| {
@@ -173,7 +190,7 @@ pub(crate) async fn list_view(
             (f.column, options)
         })
         .collect();
-    let filter_clear: std::collections::HashMap<&'static str, String> = page
+    let filter_clear: HashMap<&'static str, String> = page
         .filters
         .iter()
         .filter(|f| query.filters.iter().any(|(c, _)| c == f.column))
@@ -189,12 +206,12 @@ pub(crate) async fn list_view(
     let mut entries = Vec::with_capacity(page.rows.len());
     for values in page.rows {
         let Some(id) = values.get(pk).and_then(|value| match value {
-            serde_json::Value::String(id) => Some(id.clone()),
-            serde_json::Value::Number(id) => Some(id.to_string()),
+            Value::String(id) => Some(id.clone()),
+            Value::Number(id) => Some(id.to_string()),
             _ => None,
         }) else {
             return Err(Box::new(AppError::new(ErrorContext::generic(
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                StatusCode::INTERNAL_SERVER_ERROR,
                 "admin list row is missing a serializable primary key",
             ))));
         };
@@ -213,69 +230,44 @@ pub(crate) async fn list_view(
         });
     }
     if model.is_account_table() {
-        let ids: Vec<crate::schema::pk::Pk> =
-            entries.iter().filter_map(|e| e.id.parse().ok()).collect();
-        match crate::admin::router::account::summary::account_summaries(&req.engine.db, &ids).await
-        {
+        let ids: Vec<Pk> = entries.iter().filter_map(|e| e.id.parse().ok()).collect();
+        match account_summaries(&req.engine.db, &ids).await {
             Ok(mut summaries) => {
                 for entry in &mut entries {
                     entry.account = entry.id.parse().ok().and_then(|id| summaries.remove(&id));
                 }
             }
             Err(e) => {
-                return failure(
-                    crate::admin::builder::registered::AdminError::Db(e),
-                    &req,
-                    &admin,
-                )
-                .await;
+                return failure(AdminError::Db(e), &req, &admin).await;
             }
         }
     }
-    if key == crate::auth::constants::resource_key::GROUPES {
+    if key == GROUPES {
         let ids: Vec<i32> = entries.iter().filter_map(|e| e.id.parse().ok()).collect();
-        match crate::auth::gate::transfer::taken_by(&ids, &req.engine.db).await {
+        match taken_by(&ids, &req.engine.db).await {
             Ok(names) => {
                 for entry in &mut entries {
                     entry.taken_by = entry.id.parse().ok().and_then(|id| names.get(&id).cloned());
                 }
             }
             Err(e) => {
-                return failure(
-                    crate::admin::builder::registered::AdminError::Db(e),
-                    &req,
-                    &admin,
-                )
-                .await;
+                return failure(AdminError::Db(e), &req, &admin).await;
             }
         }
     }
     let bulk_offered = !page.actions.is_empty() || can_delete;
-    let rights_shortcut = if key == crate::auth::constants::resource_key::GROUPES {
-        match crate::admin::router::permission::rights::managed_groups(&user, &req.engine.db).await
-        {
+    let rights_shortcut = if key == GROUPES {
+        match managed_groups(&user, &req.engine.db).await {
             Ok(groups) => (!groups.is_empty()).then(|| paths.group_select.clone()),
             Err(e) => {
-                return failure(
-                    crate::admin::builder::registered::AdminError::Db(e),
-                    &req,
-                    &admin,
-                )
-                .await;
+                return failure(AdminError::Db(e), &req, &admin).await;
             }
         }
     } else {
         None
     };
 
-    chrome(
-        &mut req,
-        &admin,
-        &site,
-        &user,
-        key,
-        crate::admin::template::Page::List,
-    );
+    chrome(&mut req, &admin, &site, &user, key, Page::List);
     insert_admin_messages(&mut req.context, "list");
     put(
         &mut req,
@@ -339,7 +331,7 @@ pub(crate) async fn list_view(
         admin
             .config
             .templates
-            .page_for(crate::admin::template::Page::List, Some(model.templates()))
+            .page_for(Page::List, Some(model.templates()))
     };
     req.render(template)
 }

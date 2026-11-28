@@ -1,14 +1,15 @@
 //! Middleware staging: configuration API for the middleware stack.
 
-use crate::config::RuniqueConfig;
-use crate::errors::build::BuildError;
-use crate::middleware::{
-    CompressionConfig, CorsConfig, CspConfig, HostConfig, MiddlewareConfig, PermissionsPolicy,
-    PermissionsPolicyConfig, SecurityPolicy, TrustedProxiesConfig,
+use crate::{
+    config::RuniqueConfig,
+    errors::build::BuildError,
+    middleware::{
+        CompressionConfig, CorsConfig, CspConfig, HostConfig, MiddlewareConfig, PermissionsPolicy,
+        PermissionsPolicyConfig, SecurityPolicy, TrustedProxiesConfig,
+    },
 };
 use axum::Router;
-use tower_sessions::cookie::time::Duration;
-use tower_sessions::{Expiry, SessionManagerLayer, SessionStore};
+use tower_sessions::{Expiry, SessionManagerLayer, SessionStore, cookie::time::Duration};
 
 // ─── Internal type aliases ────────────────────────────────────────────────────
 
@@ -130,7 +131,7 @@ impl MiddlewareStaging {
             enable_host_validation: false,
             enable_debug_errors: true, // always mounted — config.debug manages the content
             enable_cache: defaults.enable_cache,
-            exclusive_login: false, // propagated via `apply_to_router` from `self.exclusive_login`
+            exclusive_login: false, // propagated via `apply_middleware` from `self.exclusive_login`
         };
 
         Self {

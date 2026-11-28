@@ -115,8 +115,7 @@ async fn test_middleware_blocks_over_limit() {
 
 #[tokio::test]
 async fn test_middleware_extract_ip_x_forwarded_for() {
-    use axum::body::Body;
-    use axum::http::Request;
+    use axum::{body::Body, http::Request};
     use tower::ServiceExt;
 
     let app = rate_app(100, 60);
@@ -131,8 +130,7 @@ async fn test_middleware_extract_ip_x_forwarded_for() {
 
 #[tokio::test]
 async fn test_middleware_extract_ip_x_real_ip() {
-    use axum::body::Body;
-    use axum::http::Request;
+    use axum::{body::Body, http::Request};
     use tower::ServiceExt;
 
     let app = rate_app(100, 60);

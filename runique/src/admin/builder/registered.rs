@@ -6,26 +6,24 @@ use super::{
     list::ListQuery,
     model_admin::{ListPage, ModelAdmin, OfferedAction, prefill},
 };
-use crate::admin::constants::admin_form;
-use crate::auth::current_user::CurrentUser;
-use crate::auth::{
-    gate::{
-        Delete, GateCtx, Guarded, PkOf, Refusal, ResetPassword, Update,
-        check::{authorize_create, authorize_list, authorize_row, authorize_view},
-        refusal::RefusalReason,
-        rights::{CrudAction, ReadableColumns},
-        save::{BulkChange, bulk_as},
+use crate::{
+    admin::constants::admin_form,
+    auth::{
+        current_user::CurrentUser,
+        gate::{
+            Delete, GateCtx, Guarded, PkOf, Refusal, ResetPassword, Update,
+            check::{authorize_create, authorize_list, authorize_row, authorize_view},
+            refusal::RefusalReason,
+            rights::{CrudAction, ReadableColumns},
+            save::{BulkChange, bulk_as},
+        },
+        meta::ModelMeta,
     },
-    meta::ModelMeta,
+    forms::{traits::runique_form::FormAccess, validation_form::ValidationForm},
+    http::request::Request,
+    utils::aliases::ADb,
 };
-use crate::forms::traits::runique_form::FormAccess;
-use crate::forms::validation_form::ValidationForm;
-use crate::http::request::Request;
-use crate::utils::aliases::ADb;
-use sea_orm::{
-    sea_query::SelectStatement,
-    {DbErr, IdenStatic, Iterable, PrimaryKeyToColumn},
-};
+use sea_orm::{DbErr, IdenStatic, Iterable, PrimaryKeyToColumn, sea_query::SelectStatement};
 
 /// Column aliases of `count_query`.
 pub(crate) const COUNT_RESOURCE: &str = "resource";
@@ -280,8 +278,10 @@ where
 
     fn count_query(&self, db: &ADb, user: &CurrentUser) -> Option<SelectStatement> {
         use crate::auth::gate::Guarded;
-        use sea_orm::sea_query::{Asterisk, Expr, Func, SimpleExpr};
-        use sea_orm::{QueryFilter, QuerySelect, QueryTrait};
+        use sea_orm::{
+            QueryFilter, QuerySelect, QueryTrait,
+            sea_query::{Asterisk, Expr, Func, SimpleExpr},
+        };
         let proof = authorize_list::<E>(&GateCtx { db, user }).ok()?;
         Some(
             E::find()

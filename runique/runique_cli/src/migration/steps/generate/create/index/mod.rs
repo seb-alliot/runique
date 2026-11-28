@@ -1,8 +1,10 @@
 //! An index created.
 mod statement;
 
-use crate::migration::steps::generate::constraints::{fk_index_column, unless_mysql_fk};
-use crate::migration::types::ParsedIndex;
+use crate::migration::{
+    steps::generate::constraints::{fk_index_column, unless_mysql_fk},
+    types::ParsedIndex,
+};
 
 /// `guard_for`: the table name the index was named for, the one it has, had
 /// or will have. A foreign key's own index of that table is wrapped in the

@@ -1,9 +1,9 @@
 //! Admin panel configuration: prefix, title, hot reload, and templates.
 use std::sync::Arc;
 
-use crate::admin::template::AdminTemplate;
-use crate::auth::guard::LoginGuard;
-use crate::middleware::security::RateLimiter;
+use crate::{
+    admin::template::AdminTemplate, auth::guard::LoginGuard, middleware::security::RateLimiter,
+};
 
 /// Configuration for the admin panel: route prefix, branding, hot reload,
 /// template overrides, and per-panel security settings

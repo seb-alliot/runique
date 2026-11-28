@@ -5,19 +5,22 @@
 #[path = "helpers/mod.rs"]
 mod helpers;
 
-use axum::extract::Path;
-use axum::routing::get;
-use helpers::db;
-use helpers::framework_tables::{
-    GROUPES_DDL, GROUPES_DROITS_DDL, HISTORY_DDL, RESET_TOKENS_DDL, SESSIONS_DDL, USERS_DDL,
-    USERS_GROUPES_DDL,
+use axum::{extract::Path, routing::get};
+use helpers::{
+    db,
+    framework_tables::{
+        GROUPES_DDL, GROUPES_DROITS_DDL, HISTORY_DDL, RESET_TOKENS_DDL, SESSIONS_DDL, USERS_DDL,
+        USERS_GROUPES_DDL,
+    },
+    pk::{pk, pk_sql_literal},
 };
-use helpers::pk::{pk, pk_sql_literal};
-use runique::app::RuniqueApp;
-use runique::auth::{BuiltinUserEntity, login};
-use runique::config::RuniqueConfig;
-use runique::flash::Message;
-use runique::http::request::Request;
+use runique::{
+    app::RuniqueApp,
+    auth::{BuiltinUserEntity, login},
+    config::RuniqueConfig,
+    flash::Message,
+    http::request::Request,
+};
 
 const SUPERUSER: u32 = 1;
 

@@ -1,8 +1,7 @@
 //! PostgreSQL: enum types are objects of their own, shared between columns.
 use sea_orm::{ConnectionTrait, DbErr};
 use sea_orm_migration::SchemaManager;
-use sea_query::extension::postgres::Type;
-use sea_query::{Alias, Expr, ExprTrait, Func, Query};
+use sea_query::{Alias, Expr, ExprTrait, Func, Query, extension::postgres::Type};
 
 /// Drops the enum type `name` unless a column still uses it. Never a cascade:
 /// a type shared by several tables stays until its last column is gone. The

@@ -9,9 +9,11 @@ use super::helpers::{ITEMS, Scratch, count, create_items, insert};
 use crate::helpers::db_mysql;
 #[cfg(feature = "postgres")]
 use crate::helpers::db_postgres;
-use runique::db::ADb;
-use runique::runique_test::runique_test;
-use runique::sea_orm::{ConnectionTrait, DatabaseConnection};
+use runique::{
+    db::ADb,
+    runique_test::runique_test,
+    sea_orm::{ConnectionTrait, DatabaseConnection},
+};
 use serial_test::serial;
 
 /// An env file pointing to this copy's own database for the engine `url_key`

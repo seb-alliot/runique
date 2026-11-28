@@ -157,8 +157,7 @@ async fn test_csrf_ajax_post_json_avec_token_valide() {
 async fn test_csrf_ajax_post_json_sans_token_retourne_403() {
     let app = fresh_app().await;
 
-    use axum::body::Body;
-    use axum::http::Request;
+    use axum::{body::Body, http::Request};
     use tower::ServiceExt;
 
     let req = Request::builder()
@@ -177,8 +176,7 @@ async fn test_csrf_ajax_post_json_sans_token_retourne_403() {
 async fn test_csrf_ajax_post_json_token_invalide_retourne_403() {
     let app = fresh_app().await;
 
-    use axum::body::Body;
-    use axum::http::Request;
+    use axum::{body::Body, http::Request};
     use tower::ServiceExt;
 
     let req = Request::builder()
@@ -227,8 +225,7 @@ async fn test_csrf_ajax_delete_avec_token_valide() {
 async fn test_csrf_ajax_x_requested_with_seul_retourne_403() {
     let app = fresh_app().await;
 
-    use axum::body::Body;
-    use axum::http::Request;
+    use axum::{body::Body, http::Request};
     use tower::ServiceExt;
 
     let req = Request::builder()

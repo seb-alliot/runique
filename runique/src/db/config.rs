@@ -7,11 +7,12 @@
 use dotenvy::dotenv;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr, RuntimeErr};
 use serde::{Deserialize, Serialize};
-use std::env;
-use std::time::Duration;
+use std::{env, time::Duration};
 
-use super::builder::DatabaseConfigBuilder;
-use super::engine::{DatabaseEngine, verify_database_driver};
+use super::{
+    builder::DatabaseConfigBuilder,
+    engine::{DatabaseEngine, verify_database_driver},
+};
 use crate::translation::{t, tf};
 
 /// Advanced database configuration.

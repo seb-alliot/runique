@@ -1,9 +1,9 @@
 //! Core application staging: DB connection and URL registry.
-use crate::errors::build::{BuildError, CheckError, CheckReport};
-use crate::utils::aliases::{ARlockmap, new_registry};
-use std::any::TypeId;
-use std::collections::HashMap;
-use std::sync::Arc;
+use crate::{
+    errors::build::{BuildError, CheckError, CheckReport},
+    utils::aliases::{ARlockmap, new_registry},
+};
+use std::{any::TypeId, collections::HashMap, sync::Arc};
 
 #[cfg(feature = "orm")]
 use crate::db::DatabaseConfig;

@@ -21,16 +21,18 @@
 
 use crate::helpers::{db, db_mysql, db_postgres};
 use runique::sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, TransactionTrait};
-use runique_cli::db::DatabaseEngine;
-use runique_cli::migration::runtime::{
-    RuniqueMigrator, add_enum_value, create_enum_type, drop_enum_type, rename_enum_type,
-    rename_enum_value,
+use runique_cli::{
+    db::DatabaseEngine,
+    migration::{
+        EnumChange, EnumChanges, EnumPlace, generate_enum_file,
+        runtime::{
+            RuniqueMigrator, add_enum_value, create_enum_type, drop_enum_type, rename_enum_type,
+            rename_enum_value,
+        },
+    },
 };
-use runique_cli::migration::{EnumChange, EnumChanges, EnumPlace, generate_enum_file};
-use sea_orm_migration::MigratorTraitSelf;
-use sea_orm_migration::prelude::*;
-use sea_query::ExprTrait;
-use sea_query::extension::postgres::Type;
+use sea_orm_migration::{MigratorTraitSelf, prelude::*};
+use sea_query::{ExprTrait, extension::postgres::Type};
 use serial_test::serial;
 
 const GENRE: &str = "rq_em_genre";

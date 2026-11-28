@@ -1,7 +1,9 @@
 //! HTML rendering of form fields via Tera with fallback to internal templates.
-use crate::forms::traits::form_field::FormField;
-use crate::translation::tf;
-use crate::utils::aliases::{ATera, FieldsMap};
+use crate::{
+    forms::traits::form_field::FormField,
+    translation::tf,
+    utils::aliases::{ATera, FieldsMap},
+};
 use tracing::warn;
 
 /// Renders a form's fields to HTML via Tera: global errors first, then each

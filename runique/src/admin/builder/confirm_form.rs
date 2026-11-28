@@ -1,10 +1,14 @@
 //! The form a confirmation sends (delete a row, reset a password): no
 //! field, only its CSRF token and its name. Runique's own: the model's form
 //! can't serve, its required fields would fail a bare confirm button.
-use crate::auth::meta::ModelMeta;
-use crate::forms::FormEntity;
-use crate::forms::form::Forms;
-use crate::forms::traits::runique_form::{FormAccess, RuniqueForm};
+use crate::{
+    auth::meta::ModelMeta,
+    forms::{
+        FormEntity,
+        form::Forms,
+        traits::runique_form::{FormAccess, RuniqueForm},
+    },
+};
 use std::marker::PhantomData;
 
 pub(crate) struct ConfirmForm<E> {

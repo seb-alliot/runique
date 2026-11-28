@@ -1,5 +1,4 @@
-use std::fs;
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
 /// Temp dir auto-deleted on drop (even on panic).
 pub struct TestTempDir(pub PathBuf);

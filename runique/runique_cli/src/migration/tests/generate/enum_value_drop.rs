@@ -1,5 +1,4 @@
-use crate::db::DatabaseEngine;
-use crate::migration::tests::*;
+use crate::{db::DatabaseEngine, migration::tests::*};
 
 // ── Enum value DROP: WARNING (up) + re-add (down), Postgres only ──
 

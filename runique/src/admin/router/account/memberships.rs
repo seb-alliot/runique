@@ -1,24 +1,27 @@
 //! `POST {admin}/{resource}/{id}/groups`: the groups an account belongs to,
 //! among those the viewer manages, then back to the account's page.
-use crate::admin::builder::confirm_form::ConfirmForm;
-use crate::admin::builder::registered::AdminError;
-use crate::admin::builder::site::AdminSite;
-use crate::admin::constants::admin_form;
-use crate::admin::router::routes::AdminState;
-use crate::admin::router::{failure, unknown_resource};
-use crate::auth::current_user::CurrentUser;
-use crate::auth::gate::Refusal;
-use crate::auth::gate::membership::set_memberships;
-use crate::auth::gate::refusal::RefusalReason;
-use crate::auth::user;
-use crate::forms::validation_form::ValidationForm;
-use crate::http::request::Request;
-use crate::schema::pk::Pk;
-use crate::translation::t;
-use crate::utils::aliases::AppResult;
-use axum::Extension;
-use axum::extract::Path;
-use axum::response::{IntoResponse, Redirect, Response};
+use crate::{
+    admin::{
+        builder::{confirm_form::ConfirmForm, registered::AdminError, site::AdminSite},
+        constants::admin_form,
+        router::{failure, routes::AdminState, unknown_resource},
+    },
+    auth::{
+        current_user::CurrentUser,
+        gate::{Refusal, membership::set_memberships, refusal::RefusalReason},
+        user,
+    },
+    forms::validation_form::ValidationForm,
+    http::request::Request,
+    schema::pk::Pk,
+    translation::t,
+    utils::aliases::AppResult,
+};
+use axum::{
+    Extension,
+    extract::Path,
+    response::{IntoResponse, Redirect, Response},
+};
 use std::sync::Arc;
 
 /// The box of group `id` in the account's page.

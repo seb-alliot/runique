@@ -1,10 +1,12 @@
 //! Generic field `GenericField`: unified enum to dispatch to any field type.
-use crate::forms::{
-    fields::*,
-    traits::form_field::{FieldAccess, FormField},
+use crate::{
+    define_enum_field, delegate_to_field,
+    forms::{
+        fields::*,
+        traits::form_field::{FieldAccess, FormField},
+    },
+    utils::aliases::ATera,
 };
-use crate::utils::aliases::ATera;
-use crate::{define_enum_field, delegate_to_field};
 use async_trait::async_trait;
 use serde::Serialize;
 use serde_json::Value;

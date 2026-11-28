@@ -2,8 +2,7 @@
 //! Couvre : to_form_field (types manquants), format_label, postgres types,
 //!          binary/char/var_binary
 
-use runique::forms::traits::form_field::FormField;
-use runique::schema::ColumnDef;
+use runique::{forms::traits::form_field::FormField, schema::ColumnDef};
 use sea_query::ColumnType;
 // ═══════════════════════════════════════════════════════════════
 // Types Postgres

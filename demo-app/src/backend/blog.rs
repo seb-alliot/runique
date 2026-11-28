@@ -1,6 +1,4 @@
-use crate::backend::lang::msg;
-use crate::entities::blog::Entity as BlogEntity;
-use crate::forms::BlogForm;
+use crate::{backend::lang::msg, entities::blog::Entity as BlogEntity, forms::BlogForm};
 use runique::prelude::*;
 
 pub async fn list_articles(db: &ADb, search: Option<&str>) -> Vec<crate::entities::blog::Model> {

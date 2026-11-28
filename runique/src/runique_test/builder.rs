@@ -1,14 +1,18 @@
 //! `runique_test`: runs one piece of business logic against a real database,
 //! inside a transaction that always gets rolled back, and prints the SQL it ran.
-use super::outcome::{FormatResult, Issue, QueryTrace, Reason, TestFailure, TraceSink, msg, msgf};
-use super::transaction::TestTransaction;
+use super::{
+    outcome::{FormatResult, Issue, QueryTrace, Reason, TestFailure, TraceSink, msg, msgf},
+    transaction::TestTransaction,
+};
 use crate::utils::aliases::StrMap;
 use futures_util::FutureExt;
-use std::any::Any;
-use std::panic::AssertUnwindSafe;
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::{
+    any::Any,
+    panic::AssertUnwindSafe,
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 /// One test at a time across the whole test process: cargo runs tests on
 /// several threads, and a SQLite pool only has one connection.

@@ -58,11 +58,12 @@
 /// tokio::runtime::Runtime::new().unwrap().block_on(sqlite_objects_example());
 /// ```
 use super::query::RuniqueQueryBuilder;
-use crate::errors::AppError;
-use crate::errors::{ErrorContext, ErrorType};
-use crate::http::Request;
-use crate::translation::t;
-use crate::utils::aliases::{ADb, AppResult};
+use crate::{
+    errors::{AppError, ErrorContext, ErrorType},
+    http::Request,
+    translation::t,
+    utils::aliases::{ADb, AppResult},
+};
 use axum::http::StatusCode;
 use sea_orm::{ColumnTrait, Condition, DbErr, EntityTrait};
 use std::marker::PhantomData;
@@ -209,9 +210,7 @@ impl<E: EntityTrait> Clone for Objects<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sea_orm::ActiveModelTrait;
-    use sea_orm::Set;
-    use sea_orm::entity::prelude::*;
+    use sea_orm::{ActiveModelTrait, Set, entity::prelude::*};
 
     // Test model definition
     #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]

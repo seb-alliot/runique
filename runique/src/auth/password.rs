@@ -11,19 +11,20 @@ use std::{sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 
-use crate::auth::session::logout;
-use crate::auth::user::BuiltinUserEntity;
-use crate::auth::user_trait::RuniqueUser;
-use crate::forms::{
-    Forms,
-    fields::{hidden::HiddenField, text::TextField},
-    traits::runique_form::{FormAccess, RuniqueForm},
+use crate::{
+    auth::{session::logout, user::BuiltinUserEntity, user_trait::RuniqueUser},
+    context_update,
+    forms::{
+        Forms,
+        fields::{hidden::HiddenField, text::TextField},
+        traits::runique_form::{FormAccess, RuniqueForm},
+    },
+    http::request::Request,
+    impl_form_access,
+    security::password::PasswordService,
+    translation::{current_lang, t, tf},
+    utils::aliases::{AppResult, StrMap},
 };
-use crate::http::request::Request;
-use crate::security::password::PasswordService;
-use crate::translation::{current_lang, t, tf};
-use crate::utils::aliases::{AppResult, StrMap};
-use crate::{context_update, impl_form_access};
 
 // ─── ForgotPasswordForm ───────────────────────────────────────────────────────
 
@@ -575,12 +576,7 @@ pub async fn handle_password_reset(
 
     // Read before the transaction, which must revoke this browser's session too.
     let cookie_id = request.session.id().map(|id| id.to_string());
-    let revokes_rows = request
-        .engine
-        .session_db_store
-        .read()
-        .ok()
-        .is_some_and(|g| g.is_some());
+    let revokes_rows = request.engine.sessions.database.is_some();
 
     use sea_orm::TransactionTrait;
     let txn = match db.begin().await {
@@ -737,8 +733,7 @@ fn reset_route(
     limiter: Arc<crate::middleware::security::rate_limit::RateLimiter>,
 ) -> Router {
     use crate::middleware::security::rate_limit::rate_limit_middleware;
-    use axum::middleware;
-    use axum::routing::any;
+    use axum::{middleware, routing::any};
 
     let reset_path = format!("{}/{{token}}", config.reset_route.trim_end_matches('/'));
     Router::new()
@@ -753,8 +748,7 @@ fn reset_route(
 /// The merged forgot + reset router, with rate limiting applied to both routes.
 pub fn build_router(config: Arc<PasswordResetConfig>) -> Router {
     use crate::middleware::security::rate_limit::rate_limit_middleware;
-    use axum::middleware;
-    use axum::routing::any;
+    use axum::{middleware, routing::any};
 
     let limiter = limiter_of(&config);
     let forgot_state = ForgotState {

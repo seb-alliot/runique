@@ -10,13 +10,14 @@
 #[cfg(feature = "pk-uuid")]
 use crate::helpers::pk::pk;
 use crate::helpers::{db_mysql, db_postgres};
-use runique::auth::migrations_table::create_eihwaz_reset_tokens_table;
-use runique::auth::user;
-use runique::sea_orm::{
-    ActiveModelTrait, ActiveValue::Set, ConnectionTrait, DatabaseConnection, DbBackend, Schema,
-    Statement,
+use runique::{
+    auth::{migrations_table::create_eihwaz_reset_tokens_table, user},
+    sea_orm::{
+        ActiveModelTrait, ActiveValue::Set, ConnectionTrait, DatabaseConnection, DbBackend, Schema,
+        Statement,
+    },
+    security::reset_token::{generate, peek},
 };
-use runique::security::reset_token::{generate, peek};
 use serial_test::serial;
 use std::time::Duration;
 

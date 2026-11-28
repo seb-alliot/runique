@@ -1,11 +1,11 @@
 //! Admin panel staging: configuration, routes, and the registered models.
 
-use crate::admin::builder::site::AdminSite;
-use crate::admin::router::AdminView;
-use crate::admin::{AdminConfig, template::AdminTemplate};
-use crate::auth::guard::LoginGuard;
-use crate::errors::build::{BuildError, CheckError, CheckReport};
-use crate::middleware::security::RateLimiter;
+use crate::{
+    admin::{AdminConfig, builder::site::AdminSite, router::AdminView, template::AdminTemplate},
+    auth::guard::LoginGuard,
+    errors::build::{BuildError, CheckError, CheckReport},
+    middleware::security::RateLimiter,
+};
 
 /// An admin route declaration retained from `urlpatterns!` until build.
 pub(crate) struct DeclaredAdminRoute {

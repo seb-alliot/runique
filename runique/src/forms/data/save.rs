@@ -1,10 +1,13 @@
 //! What `save` / `delete` and the gate's `save_as` share: the row read from
 //! the URL, and where a refused write's reasons go.
-use crate::auth::gate::PkOf;
-use crate::auth::gate::change::FieldErrors;
-use crate::auth::meta::ModelMeta;
-use crate::forms::form::Forms;
-use crate::translation::t;
+use crate::{
+    auth::{
+        gate::{PkOf, change::FieldErrors},
+        meta::ModelMeta,
+    },
+    forms::form::Forms,
+    translation::t,
+};
 use sea_orm::{DbErr, IdenStatic, Iterable, PrimaryKeyToColumn};
 use std::str::FromStr;
 

@@ -1,7 +1,6 @@
 //! Enum types declared in `enums:` — the Rust enums, and the label
 //! resolver the admin display layer uses.
-use crate::model::ast::*;
-use crate::model::utils::*;
+use crate::model::{ast::*, utils::*};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 

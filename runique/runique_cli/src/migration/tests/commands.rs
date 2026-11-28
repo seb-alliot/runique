@@ -1,12 +1,14 @@
 //! Written from cargo-mutants survivors (2026-10-08): the private steps of
 //! `run` — snapshot upgrades, lib.rs editing, ordering, guards.
 use super::*;
-use crate::migration::steps::generate::lib_file::*;
-use crate::migration::steps::generate::plan::*;
-use crate::migration::steps::parser::files::snapshot::*;
-use crate::migration::types::{ParsedColumn, ParsedFk};
-use std::fs;
-use std::path::Path;
+use crate::migration::{
+    steps::{
+        generate::{lib_file::*, plan::*},
+        parser::files::snapshot::*,
+    },
+    types::{ParsedColumn, ParsedFk},
+};
+use std::{fs, path::Path};
 
 /// Only a plain type change is listed: a change to or from an enum is
 /// migrated, and a column whose other attributes changed isn't concerned.
@@ -3441,8 +3443,7 @@ fn a_renamed_table_keeps_the_key_of_its_former_snapshot() {
 // key written `Pk` changes type, and the command says so instead of running.
 #[test]
 fn a_project_changing_its_key_feature_is_refused() {
-    use runique_dsl::ast::PkType;
-    use runique_dsl::with_project_pk;
+    use runique_dsl::{ast::PkType, with_project_pk};
 
     let dir = TempDir::new();
     let (entities, path) = project(&dir);

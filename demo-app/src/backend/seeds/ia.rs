@@ -1,7 +1,6 @@
 use crate::entities::{chapitre, contrainte_ia, cour, cour_block, cour_ia};
 use runique::prelude::*;
-use std::fs;
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
 fn find_ia_dir() -> Option<PathBuf> {
     let candidates = [

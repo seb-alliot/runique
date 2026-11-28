@@ -1,7 +1,9 @@
 //! `expect_db_error`: checks that the database refuses something, without the
 //! refusal counting as an error the test swallowed.
-use super::builder::{mark_expected_from, trace_len};
-use super::outcome::msg;
+use super::{
+    builder::{mark_expected_from, trace_len},
+    outcome::msg,
+};
 use crate::db::ADb;
 use sea_orm::{DatabaseTransaction, DbErr, TransactionTrait};
 

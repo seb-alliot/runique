@@ -1,11 +1,13 @@
 //! Runique's built-in user entity (table `eihwaz_users`).
-use crate::auth::permissions::pull_groupes_db;
-use crate::auth::permissions::rank::Rang;
 pub use crate::auth::user_trait::RuniqueUser;
-use crate::log::TraceResult;
-use crate::schema::pk::Pk;
-use crate::utils::aliases::ADb;
-use crate::{impl_objects, search};
+use crate::{
+    auth::permissions::{pull_groupes_db, rank::Rang},
+    impl_objects,
+    log::TraceResult,
+    schema::pk::Pk,
+    search,
+    utils::aliases::ADb,
+};
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, EntityTrait, entity::prelude::*};
 
 // ─── SeaORM Model ───────────────────────────────────────────────────────────

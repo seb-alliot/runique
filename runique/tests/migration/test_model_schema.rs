@@ -1,9 +1,11 @@
 // Tests pour ModelSchema et SchemaDiff
 
-use runique::forms::Forms;
-use runique::schema::{
-    ModelSchema, SchemaDiff, column::ColumnDef, foreign_key::ForeignKeyDef, hooks::HooksDef,
-    index::IndexDef, primary_key::PrimaryKeyDef,
+use runique::{
+    forms::Forms,
+    schema::{
+        ModelSchema, SchemaDiff, column::ColumnDef, foreign_key::ForeignKeyDef, hooks::HooksDef,
+        index::IndexDef, primary_key::PrimaryKeyDef,
+    },
 };
 
 // ═══════════════════════════════════════════════════════════════

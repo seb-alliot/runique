@@ -1,12 +1,14 @@
 //! Champs texte : `TextField`, `EmailField`, `UrlField`, `TextAreaField`, `PasswordField`.
 pub use crate::forms::generic::GenericField;
-use crate::forms::{
-    config::{FieldConfig, Limit, TextConfig},
-    traits::form_field::FormField,
+use crate::{
+    forms::{
+        config::{FieldConfig, Limit, TextConfig},
+        traits::form_field::FormField,
+    },
+    security::password::{PasswordConfig, PasswordService},
+    translation::{t, tf},
+    utils::aliases::ATera,
 };
-use crate::security::password::{PasswordConfig, PasswordService};
-use crate::translation::{t, tf};
-use crate::utils::aliases::ATera;
 use async_trait::async_trait;
 use serde::Serialize;
 use validator::ValidateEmail;

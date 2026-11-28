@@ -1,5 +1,4 @@
-use crate::db::DatabaseEngine;
-use crate::migration::tests::*;
+use crate::{db::DatabaseEngine, migration::tests::*};
 
 /// The enum of a model, as `makemigrations` finds it.
 fn status(src: &str) -> ParsedEnum {

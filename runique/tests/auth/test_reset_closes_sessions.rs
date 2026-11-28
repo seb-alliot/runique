@@ -4,18 +4,21 @@
 //! revocation the database refuses changes nothing. A logout or a sign-in
 //! that can't revoke the previous session says so instead of pretending.
 
-use crate::helpers::db;
-use crate::helpers::framework_tables::{RESET_TOKENS_DDL, SESSIONS_DDL, USERS_DDL};
-use crate::helpers::pk::{pk, pk_sql_literal};
+use crate::helpers::{
+    db,
+    framework_tables::{RESET_TOKENS_DDL, SESSIONS_DDL, USERS_DDL},
+    pk::{pk, pk_sql_literal},
+};
 use axum::{Router, extract::Path, routing::get};
-use runique::app::RuniqueApp;
-use runique::auth::{BuiltinUserEntity, authenticate_user, login, logout};
-use runique::config::RuniqueConfig;
-use runique::db::ADb;
-use runique::http::request::Request;
-use runique::sea_orm::{ConnectionTrait, DatabaseConnection};
-use runique::security::password::PasswordConfig;
-use runique::security::reset_token;
+use runique::{
+    app::RuniqueApp,
+    auth::{BuiltinUserEntity, authenticate_user, login, logout},
+    config::RuniqueConfig,
+    db::ADb,
+    http::request::Request,
+    sea_orm::{ConnectionTrait, DatabaseConnection},
+    security::{password::PasswordConfig, reset_token},
+};
 use serial_test::serial;
 use std::time::Duration;
 

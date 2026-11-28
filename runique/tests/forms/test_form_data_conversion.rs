@@ -1,9 +1,7 @@
 //! `admin_from_form` / `admin_partial_update`: form data into the entity.
 //! A value that can't be read is an error the admin shows on the form — it
 //! used to be replaced by a default (`0`, empty, unchanged) without a word.
-use runique::forms::FormDataError;
-use runique::sea_orm::ActiveValue;
-use runique::utils::aliases::StrMap;
+use runique::{forms::FormDataError, sea_orm::ActiveValue, utils::aliases::StrMap};
 
 mod items {
     use runique::prelude::*;
@@ -173,8 +171,7 @@ fn test_form_data_errors_name_their_field() {
 #[cfg(feature = "admin")]
 #[test]
 fn a_password_field_is_secret_for_the_admin() {
-    use runique::auth::meta::ModelMeta;
-    use runique::sea_orm::IdenStatic;
+    use runique::{auth::meta::ModelMeta, sea_orm::IdenStatic};
     let names: Vec<&str> = <items::Entity as ModelMeta>::SECRET
         .iter()
         .map(|c| c.as_str())

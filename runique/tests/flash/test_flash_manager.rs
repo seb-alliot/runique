@@ -3,7 +3,10 @@
 // Stratégie : serveur persistant (OnceLock) avec session MemoryStore.
 // Chaque test crée son propre client reqwest (cookie jar isolé → session distincte).
 
-use axum::{Json, Router, routing::get, routing::post};
+use axum::{
+    Json, Router,
+    routing::{get, post},
+};
 use runique::flash::{FlashMessage, extractor::Message};
 use std::{net::SocketAddr, sync::OnceLock};
 use tower_sessions::{MemoryStore, SessionManagerLayer};

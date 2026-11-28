@@ -1,8 +1,9 @@
 use super::*;
-use crate::auth::gate::test_support::fixtures::{NoteForm, db, note, pk, staff};
-use crate::db::ADb;
-use crate::forms::form::Forms;
-use crate::forms::traits::runique_form::FormAccess;
+use crate::{
+    auth::gate::test_support::fixtures::{NoteForm, db, note, pk, staff},
+    db::ADb,
+    forms::{form::Forms, traits::runique_form::FormAccess},
+};
 use sea_orm::{EntityTrait, TransactionTrait};
 
 /// A note's form on a route declared `admin`, for an account with every
@@ -150,8 +151,10 @@ fn boss() -> crate::auth::current_user::CurrentUser {
 /// alone (name, create, update).
 #[cfg(feature = "admin")]
 fn delegate(ticked: &[(&str, bool, bool)]) -> crate::auth::current_user::CurrentUser {
-    use crate::auth::gate::test_support::fixtures::as_rank;
-    use crate::auth::permissions::{ColumnRight, Permission};
+    use crate::auth::{
+        gate::test_support::fixtures::as_rank,
+        permissions::{ColumnRight, Permission},
+    };
 
     let mut right = Permission::zeroed("gate_shelves".to_string());
     right.can_create = true;

@@ -2,10 +2,16 @@
 //! Couvre : AllowedExtensions, FileUploadConfig, IntoUploadPath, FileField builders, FileField::validate()
 
 use crate::helpers::temp::TempDir;
-use runique::config::StaticConfig;
-use runique::forms::fields::MediaField;
-use runique::forms::fields::file::{AllowedExtensions, FileField, FileSize, FileUploadConfig};
-use runique::forms::traits::form_field::FormField;
+use runique::{
+    config::StaticConfig,
+    forms::{
+        fields::{
+            MediaField,
+            file::{AllowedExtensions, FileField, FileSize, FileUploadConfig},
+        },
+        traits::form_field::FormField,
+    },
+};
 
 // ═══════════════════════════════════════════════════════════════
 // AllowedExtensions

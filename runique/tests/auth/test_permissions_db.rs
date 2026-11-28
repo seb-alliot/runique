@@ -8,8 +8,10 @@
 //! - `refresh_cache_for_user` met le cache à jour
 //! - Après `clear_cache`, `get_permissions` retourne None
 
-use crate::helpers::db_postgres;
-use crate::helpers::pk::{pk, pk_sql_literal_pg};
+use crate::helpers::{
+    db_postgres,
+    pk::{pk, pk_sql_literal_pg},
+};
 use serial_test::serial;
 
 // `#[serial]` : ces tests partagent la même base Postgres Docker que
@@ -30,12 +32,13 @@ use serial_test::serial;
 // la vraie cause. Ce fichier crée maintenant sa propre `eihwaz_users` et
 // n'avale plus les erreurs de CREATE.
 async fn setup_rbac_tables(db: &runique::sea_orm::DatabaseConnection) {
-    use runique::migrations_table::{
-        create_eihwaz_groupes_droits_table, create_eihwaz_groupes_table,
-        create_eihwaz_users_groupes_table, create_eihwaz_users_table,
+    use runique::{
+        migrations_table::{
+            create_eihwaz_groupes_droits_table, create_eihwaz_groupes_table,
+            create_eihwaz_users_groupes_table, create_eihwaz_users_table,
+        },
+        sea_orm::{ConnectionTrait, sea_query::PostgresQueryBuilder},
     };
-    use runique::sea_orm::ConnectionTrait;
-    use runique::sea_orm::sea_query::PostgresQueryBuilder;
 
     db.execute_unprepared(&create_eihwaz_users_table().to_string(PostgresQueryBuilder))
         .await
@@ -79,9 +82,10 @@ async fn seed_user(
     id: runique::schema::Pk,
     dirigeant: bool,
 ) {
-    use runique::auth::user;
-    use runique::sea_orm::ActiveModelTrait;
-    use runique::sea_orm::ActiveValue::Set;
+    use runique::{
+        auth::user,
+        sea_orm::{ActiveModelTrait, ActiveValue::Set},
+    };
 
     let am = user::ActiveModel {
         id: Set(id),

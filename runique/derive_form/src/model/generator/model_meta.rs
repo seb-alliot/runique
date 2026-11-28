@@ -1,7 +1,9 @@
 //! `Model Meta` for a model's entity: what the admin needs to know about it.
 
-use crate::model::ast::{FormFieldType, ModelInput};
-use crate::model::utils::ident_pascal;
+use crate::model::{
+    ast::{FormFieldType, ModelInput},
+    utils::ident_pascal,
+};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 

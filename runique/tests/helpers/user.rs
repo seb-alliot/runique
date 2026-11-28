@@ -1,8 +1,7 @@
 //! Minimal `RuniqueUser` implementor for tests exercising `login()`/session
 //! helpers without needing a real DB-backed user model.
 
-use runique::auth::user::RuniqueUser;
-use runique::schema::Pk;
+use runique::{auth::user::RuniqueUser, schema::Pk};
 
 pub struct TestUser {
     id: Pk,

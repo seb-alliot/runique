@@ -1,8 +1,7 @@
 //! Tests — middleware/auth/user.rs
 //! Couvre : RuniqueUser trait, BuiltinUserEntity (DB), schema()
 
-use crate::helpers::db;
-use crate::helpers::pk::pk;
+use crate::helpers::{db, pk::pk};
 use runique::auth::{
     BuiltinUserEntity, permissions::rank::Rang, user::Model, user_trait::RuniqueUser,
 };

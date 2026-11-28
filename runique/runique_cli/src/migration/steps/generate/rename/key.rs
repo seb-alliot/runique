@@ -1,6 +1,5 @@
 //! A foreign key renamed, through Runique (`migration::runtime`).
-use crate::migration::steps::generate::constraints::fk_constraint_name;
-use crate::migration::types::ParsedFk;
+use crate::migration::{steps::generate::constraints::fk_constraint_name, types::ParsedFk};
 
 /// The key `fk` of `table` takes the name of `named_for`'s tables in place of
 /// `old_name`. It points to `target`, the name its target has at that moment.

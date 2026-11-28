@@ -5,8 +5,10 @@
 use crate::helpers::tera::{kwargs, no_kwargs};
 use runique::templates::url::LinkFunction;
 use serde_json::json;
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 use tera::{Context, Function, State, TeraResult, Value};
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

@@ -1,4 +1,14 @@
-use tower_http::CompressionLevel;
+use tower_http::{
+    CompressionLevel,
+    compression::{
+        CompressionLayer,
+        predicate::{And, NotForContentType, Predicate, SizeAbove},
+    },
+};
+
+/// tower-http's default predicate, with the configured size in place of its own.
+type CompressWhen =
+    And<And<And<SizeAbove, NotForContentType>, NotForContentType>, NotForContentType>;
 
 /// Response compression passed via closure to `.with_compression(|c| { ... })`.
 ///
@@ -56,5 +66,22 @@ impl CompressionConfig {
     pub fn level(mut self, level: CompressionLevel) -> Self {
         self.level = level;
         self
+    }
+
+    /// The tower-http layer this configuration describes; `None` when
+    /// compression is turned off.
+    pub(crate) fn layer(&self) -> Option<CompressionLayer<CompressWhen>> {
+        if !self.enabled {
+            return None;
+        }
+        let predicate = SizeAbove::new(self.min_size)
+            .and(NotForContentType::GRPC)
+            .and(NotForContentType::IMAGES)
+            .and(NotForContentType::SSE);
+        Some(
+            CompressionLayer::new()
+                .quality(self.level)
+                .compress_when(predicate),
+        )
     }
 }

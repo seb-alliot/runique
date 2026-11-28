@@ -237,8 +237,7 @@ fn test_render_feuille_erreurs_chargee_si_erreur_globale() {
 #[test]
 fn test_render_feuille_erreurs_chargee_si_erreur_de_champ() {
     use indexmap::IndexMap;
-    use runique::forms::fields::TextField;
-    use runique::forms::traits::form_field::FormField;
+    use runique::forms::{fields::TextField, traits::form_field::FormField};
     let renderer = make_renderer_with_error_template();
     let mut field = TextField::text("title");
     field.set_error("invalide".to_string());

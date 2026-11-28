@@ -4,16 +4,20 @@
 //! otherwise deactivate an account without anyone having sent `false`.
 //! Below the field (a column, the generated write) a boolean reads six
 //! spellings and nothing else.
-use runique::forms::FormDataError;
-use runique::forms::data::column_value::column_value;
-use runique::forms::fields::BooleanField;
-use runique::forms::form::Forms;
-use runique::forms::traits::form_field::FormField;
-use runique::forms::traits::runique_form::{FormAccess, RuniqueForm};
-use runique::sea_orm::ActiveValue;
-use runique::sea_orm::Value;
-use runique::sea_orm::sea_query::ColumnType;
-use runique::utils::aliases::StrMap;
+use runique::{
+    forms::{
+        FormDataError,
+        data::column_value::column_value,
+        fields::BooleanField,
+        form::Forms,
+        traits::{
+            form_field::FormField,
+            runique_form::{FormAccess, RuniqueForm},
+        },
+    },
+    sea_orm::{ActiveValue, Value, sea_query::ColumnType},
+    utils::aliases::StrMap,
+};
 
 mod flags {
     use runique::prelude::*;
@@ -165,8 +169,7 @@ fn the_generated_write_refuses_a_forged_boolean() {
 
 #[test]
 fn a_not_null_bool_column_gives_an_optional_box() {
-    use runique::runique_dsl::ast::FormFieldType;
-    use runique::schema::ColumnDef;
+    use runique::{runique_dsl::ast::FormFieldType, schema::ColumnDef};
     let field = ColumnDef::new("actif")
         .boolean()
         .field_type(FormFieldType::Bool)
@@ -177,8 +180,7 @@ fn a_not_null_bool_column_gives_an_optional_box() {
 
 #[test]
 fn a_declared_required_bool_gives_a_box_to_check() {
-    use runique::runique_dsl::ast::FormFieldType;
-    use runique::schema::ColumnDef;
+    use runique::{runique_dsl::ast::FormFieldType, schema::ColumnDef};
     let field = ColumnDef::new("cgu")
         .boolean()
         .required()
@@ -190,8 +192,7 @@ fn a_declared_required_bool_gives_a_box_to_check() {
 
 #[test]
 fn a_not_null_text_column_stays_required() {
-    use runique::runique_dsl::ast::FormFieldType;
-    use runique::schema::ColumnDef;
+    use runique::{runique_dsl::ast::FormFieldType, schema::ColumnDef};
     let field = ColumnDef::new("titre")
         .field_type(FormFieldType::Text)
         .to_form_field()

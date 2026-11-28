@@ -1,6 +1,8 @@
 //! A foreign key dropped.
-use crate::migration::steps::diff::key_identity;
-use crate::migration::types::{ParsedFk, ParsedSchema};
+use crate::migration::{
+    steps::diff::key_identity,
+    types::{ParsedFk, ParsedSchema},
+};
 use std::collections::HashSet;
 
 pub(crate) fn key(previous: &ParsedSchema, current: &ParsedSchema) -> Vec<ParsedFk> {

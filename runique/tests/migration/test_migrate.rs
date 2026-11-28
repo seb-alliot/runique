@@ -1,7 +1,6 @@
 //! Tests — cli/migrate.rs : `up()` délègue à `sea-orm-cli migrate up`.
 
-use crate::helpers::db_mysql;
-use crate::helpers::db_postgres as db_pg;
+use crate::helpers::{db_mysql, db_postgres as db_pg};
 use runique_cli::migration::steps::apply::migrate::up;
 use serial_test::serial;
 

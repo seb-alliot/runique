@@ -2,10 +2,10 @@
 //! a test and rolls it back afterwards. Runique ships the `ADb` (SeaORM)
 //! implementation; any other engine (MongoDB…) can implement it for its own client.
 use super::outcome::{QueryTrace, TraceSink, msg};
-use crate::db::config::mask_password;
-use crate::db::sql_dialect::text_cast_type;
-use crate::db::{ADb, DatabaseConfig, RuniqueDb};
-use crate::utils::aliases::StrMap;
+use crate::{
+    db::{ADb, DatabaseConfig, RuniqueDb, config::mask_password, sql_dialect::text_cast_type},
+    utils::aliases::StrMap,
+};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, DbErr, TransactionTrait};
 use sea_query::{Alias, Expr, ExprTrait, Func, Query};
 use std::time::{Duration, Instant};

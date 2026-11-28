@@ -1,8 +1,9 @@
 //! Global registration of Tera filters/functions — `register_asset_filters` and `| markdown` filter.
-use crate::middleware::CsrfTokenFunction;
-use crate::templates::form::FormFilter;
-use crate::templates::url::LinkFunction;
-use crate::utils::aliases::{ARlockmap, StrMap};
+use crate::{
+    middleware::CsrfTokenFunction,
+    templates::{form::FormFilter, url::LinkFunction},
+    utils::aliases::{ARlockmap, StrMap},
+};
 use chrono::{DateTime, NaiveDateTime, NaiveTime};
 use pulldown_cmark::{Options, Parser, html};
 use tera::{Filter, Kwargs, State, Tera, TeraResult, Value, escape_html};

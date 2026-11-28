@@ -15,8 +15,10 @@ use runique_cli::migration::runtime::{
     add_enum_value, create_enum_type, drop_enum_type, rename_enum_type, rename_enum_value,
 };
 use sea_orm_migration::SchemaManager;
-use sea_query::extension::postgres::Type;
-use sea_query::{Alias, ColumnDef, ColumnType, Expr, ExprTrait, IntoIden, Order, Query, Table};
+use sea_query::{
+    Alias, ColumnDef, ColumnType, Expr, ExprTrait, IntoIden, Order, Query, Table,
+    extension::postgres::Type,
+};
 use serial_test::serial;
 
 const TYPE: &str = "rq_rt_genre";

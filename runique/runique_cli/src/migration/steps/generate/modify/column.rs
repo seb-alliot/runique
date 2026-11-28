@@ -1,6 +1,5 @@
 //! A column redefined: its length, its precision, whether it is required or unique.
-use crate::migration::steps::generate::columns::col_type_method;
-use crate::migration::types::ParsedColumn;
+use crate::migration::{steps::generate::columns::col_type_method, types::ParsedColumn};
 
 pub(crate) fn column(table: &str, column: &ParsedColumn) -> String {
     let col = &column.name;

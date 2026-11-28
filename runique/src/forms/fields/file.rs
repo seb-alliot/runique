@@ -1,10 +1,9 @@
 //! File Field: `FileField` with type, size, and upload path validation.
 use super::media::{Upload, UploadCheck};
-use crate::config::static_files::resolve_media_root;
-use crate::utils::aliases::ATera;
 use crate::{
-    config::StaticConfig,
+    config::{StaticConfig, static_files::resolve_media_root},
     forms::{config::FieldConfig, traits::form_field::FormField},
+    utils::aliases::ATera,
 };
 
 /// Accepts an upload path in several forms:
@@ -37,8 +36,10 @@ impl IntoUploadPath for &StaticConfig {
 use async_trait::async_trait;
 use image::{ImageFormat, ImageReader};
 use serde::Serialize;
-use std::path::{Component, Path, PathBuf};
-use std::sync::Arc;
+use std::{
+    path::{Component, Path, PathBuf},
+    sync::Arc,
+};
 use tokio::io::AsyncReadExt;
 
 /// Deletes uploaded files from disk (cleanup on validation failure)
@@ -643,8 +644,7 @@ impl FormField for FileField {
 #[cfg(test)]
 mod finalize_tests {
     use super::*;
-    use crate::forms::fields::MediaField;
-    use crate::forms::traits::form_field::FormField;
+    use crate::forms::{fields::MediaField, traits::form_field::FormField};
     use std::fs;
 
     fn unique_dir(tag: &str) -> std::path::PathBuf {
@@ -1264,11 +1264,17 @@ mod finalize_tests {
 #[cfg(test)]
 mod guarantees {
     use super::*;
-    use crate::forms::fields::MediaField;
-    use crate::forms::traits::form_field::FormField;
-    use crate::forms::traits::runique_form::{FormAccess, RuniqueForm};
-    use std::fs;
-    use std::path::{Path, PathBuf};
+    use crate::forms::{
+        fields::MediaField,
+        traits::{
+            form_field::FormField,
+            runique_form::{FormAccess, RuniqueForm},
+        },
+    };
+    use std::{
+        fs,
+        path::{Path, PathBuf},
+    };
 
     fn temp_dir(tag: &str) -> PathBuf {
         let p = std::env::temp_dir().join(format!("rq_fg_{tag}_{}", uuid::Uuid::new_v4()));

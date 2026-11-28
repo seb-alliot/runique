@@ -2,8 +2,7 @@
 //! `#[form(schema = …)]`, `model!{}`, `extend!{}` and the framework's own
 //! account form, and `objects` / `search!(@Form => …)` working from it.
 use crate::helpers::db;
-use runique::db::ADb;
-use runique::forms::FormEntity;
+use runique::{db::ADb, forms::FormEntity};
 use std::any::TypeId;
 
 mod blog {
@@ -182,9 +181,9 @@ async fn search_on_a_schema_form_returns_the_matching_row_only() {
 #[tokio::test]
 async fn a_schema_form_types_each_field_like_its_column() {
     use crate::helpers::{handler_req::build_handler_req, server::build_engine};
-    use runique::forms::traits::runique_form::FormAccess;
-    use runique::prelude::ValidationForm;
-    use runique::sea_orm::ColumnTrait;
+    use runique::{
+        forms::traits::runique_form::FormAccess, prelude::ValidationForm, sea_orm::ColumnTrait,
+    };
 
     let request = build_handler_req(
         build_engine().await,

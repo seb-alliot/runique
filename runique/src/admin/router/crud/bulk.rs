@@ -1,16 +1,20 @@
 //! `POST {admin}/{resource}/bulk`: a grouped action on the list's checked
 //! rows, then back to the same list page.
-use crate::admin::builder::registered::BulkOutcome;
-use crate::admin::builder::site::AdminSite;
-use crate::admin::router::routes::AdminState;
-use crate::admin::router::{failure, unknown_resource};
-use crate::auth::current_user::CurrentUser;
-use crate::http::request::Request;
-use crate::translation::t;
-use crate::utils::aliases::AppResult;
-use axum::Extension;
-use axum::extract::Path;
-use axum::response::{IntoResponse, Redirect, Response};
+use crate::{
+    admin::{
+        builder::{registered::BulkOutcome, site::AdminSite},
+        router::{failure, routes::AdminState, unknown_resource},
+    },
+    auth::current_user::CurrentUser,
+    http::request::Request,
+    translation::t,
+    utils::aliases::AppResult,
+};
+use axum::{
+    Extension,
+    extract::Path,
+    response::{IntoResponse, Redirect, Response},
+};
 use std::sync::Arc;
 
 /// The list's query sent back by the bar, kept only when it is a plain query

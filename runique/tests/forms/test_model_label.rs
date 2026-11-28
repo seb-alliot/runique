@@ -1,7 +1,6 @@
 //! `meta: { label: champ }` of `model!{}`: the column a row is known by in the
 //! history (`ModelMeta::LABEL`), none when the model does not say.
-use runique::auth::meta::ModelMeta;
-use runique::sea_orm::IdenStatic;
+use runique::{auth::meta::ModelMeta, sea_orm::IdenStatic};
 
 mod labelled {
     use runique::prelude::*;

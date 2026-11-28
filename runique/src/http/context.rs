@@ -1,9 +1,9 @@
 //! `FromRequestParts` implementation for `Request` — aggregates engine, session, CSRF, and flash into a single extractor.
-use crate::flash::Message;
-use crate::http::Request;
-use crate::security::csrf::CsrfToken;
-use crate::utils::aliases::AEngine;
-use axum::{extract::FromRequestParts, http::StatusCode, http::request::Parts};
+use crate::{flash::Message, http::Request, security::csrf::CsrfToken, utils::aliases::AEngine};
+use axum::{
+    extract::FromRequestParts,
+    http::{StatusCode, request::Parts},
+};
 use tower_sessions::Session;
 
 /// Main context for a Runique handler

@@ -4,9 +4,10 @@ mod scan_entities;
 mod scan_extend_blocks;
 mod scan_models;
 
-use crate::migration::steps::parser::files::enums_of::enums_of;
-use crate::migration::steps::parser::files::rust_files::rust_files;
-use crate::migration::*;
+use crate::migration::{
+    steps::parser::files::{enums_of::enums_of, rust_files::rust_files},
+    *,
+};
 use anyhow::{Context, Result};
 use runique_i18n::tf;
 use std::{fs, path::Path};

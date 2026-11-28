@@ -2,13 +2,17 @@
 //! activation email) and for an active one, nothing for a blocked one, and the
 //! same answer on the page whatever the address.
 
-use crate::helpers::db;
-use crate::helpers::framework_tables::{RESET_TOKENS_DDL, USERS_DDL};
-use crate::helpers::pk::pk_sql_literal;
+use crate::helpers::{
+    db,
+    framework_tables::{RESET_TOKENS_DDL, USERS_DDL},
+    pk::pk_sql_literal,
+};
 use axum::{Router, routing::get};
-use runique::app::RuniqueApp;
-use runique::config::RuniqueConfig;
-use runique::sea_orm::{ConnectionTrait, DatabaseConnection};
+use runique::{
+    app::RuniqueApp,
+    config::RuniqueConfig,
+    sea_orm::{ConnectionTrait, DatabaseConnection},
+};
 use serial_test::serial;
 
 async fn spawn() -> (String, DatabaseConnection) {

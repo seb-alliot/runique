@@ -1,10 +1,14 @@
 //! The form a grouped action sends: the selected rows' keys and the action,
 //! with its CSRF token and its name. Runique's own, for the list's bar.
-use crate::auth::meta::ModelMeta;
-use crate::forms::FormEntity;
-use crate::forms::fields::HiddenField;
-use crate::forms::form::Forms;
-use crate::forms::traits::runique_form::{FormAccess, RuniqueForm};
+use crate::{
+    auth::meta::ModelMeta,
+    forms::{
+        FormEntity,
+        fields::HiddenField,
+        form::Forms,
+        traits::runique_form::{FormAccess, RuniqueForm},
+    },
+};
 use std::marker::PhantomData;
 
 /// The selected rows' keys, comma-separated.

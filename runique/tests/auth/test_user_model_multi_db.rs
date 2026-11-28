@@ -28,10 +28,12 @@
 //! réécrire à la main le mapping par moteur.
 
 use crate::helpers::{db, db_mysql, db_postgres, pk::pk};
-use runique::auth::{BuiltinUserEntity, user};
-use runique::sea_orm::{
-    ActiveModelTrait, ActiveValue::Set, ConnectionTrait, DatabaseConnection, DbBackend, Schema,
-    TransactionTrait,
+use runique::{
+    auth::{BuiltinUserEntity, user},
+    sea_orm::{
+        ActiveModelTrait, ActiveValue::Set, ConnectionTrait, DatabaseConnection, DbBackend, Schema,
+        TransactionTrait,
+    },
 };
 use serial_test::serial;
 

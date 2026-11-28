@@ -3,28 +3,34 @@
 //! columns the rights allow, written in one transaction with its history row.
 #[cfg(feature = "admin")]
 use super::PkOf;
-use super::change::{FieldErrors, RowWrite, Secrets, changes};
-use super::check::{GateCtx, authorize_create, authorize_row};
-use super::operation::{Delete, Update};
-use super::refusal::{Refusal, RefusalReason};
-use super::rights::Crud;
-use super::write;
-use crate::auth::current_user::CurrentUser;
-use crate::auth::history::{ActionLog, log_action, redact_sensitive};
-use crate::auth::meta::ModelMeta;
-use crate::auth::permissions::group;
-use crate::auth::permissions::rank::Rang;
-use crate::auth::permissions::rights::ColumnRights;
-use crate::auth::user;
-use crate::forms::data::save::{SaveAction, on_fields, url_key};
-use crate::forms::form::{Forms, SaveMode, write_replacing_uploads, write_with_uploads};
-use crate::schema::pk::Pk;
-use crate::translation::t;
-use crate::utils::aliases::ADb;
-use sea_orm::sea_query::sea_value_to_json_value;
+use super::{
+    change::{FieldErrors, RowWrite, Secrets, changes},
+    check::{GateCtx, authorize_create, authorize_row},
+    operation::{Delete, Update},
+    refusal::{Refusal, RefusalReason},
+    rights::Crud,
+    write,
+};
+use crate::{
+    auth::{
+        current_user::CurrentUser,
+        history::{ActionLog, log_action, redact_sensitive},
+        meta::ModelMeta,
+        permissions::{group, rank::Rang, rights::ColumnRights},
+        user,
+    },
+    forms::{
+        data::save::{SaveAction, on_fields, url_key},
+        form::{Forms, SaveMode, write_replacing_uploads, write_with_uploads},
+    },
+    schema::pk::Pk,
+    translation::t,
+    utils::aliases::ADb,
+};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IdenStatic,
     Iterable, ModelTrait, PrimaryKeyToColumn, QueryFilter, TransactionTrait, Value,
+    sea_query::sea_value_to_json_value,
 };
 
 fn refused(refusal: Refusal) -> DbErr {
@@ -44,8 +50,7 @@ where
     C: ConnectionTrait,
     V: Into<Value>,
 {
-    use sea_orm::sea_query::Expr;
-    use sea_orm::{QueryOrder, QuerySelect};
+    use sea_orm::{QueryOrder, QuerySelect, sea_query::Expr};
     let groups = group::Entity::find()
         .filter(group::Column::ResponsableId.is_in(ids))
         .order_by_asc(group::Column::Id)
@@ -542,16 +547,19 @@ async fn trace<E: ModelMeta, C: ConnectionTrait>(
 #[cfg(all(test, feature = "sqlite"))]
 mod tests {
     use super::*;
-    use crate::auth::current_user::CurrentUser;
-    use crate::auth::gate::test_support::fixtures::{db, note, pk, staff};
-    use crate::auth::permissions::ColumnRight;
-    use crate::auth::permissions::rank::Rang;
     #[cfg(not(feature = "pk-uuid"))]
     use crate::forms::fields::NumericField;
-    use crate::forms::fields::TextField;
     #[cfg(feature = "pk-uuid")]
     use crate::forms::fields::UUIDField;
-    use crate::schema::pk::Pk;
+    use crate::{
+        auth::{
+            current_user::CurrentUser,
+            gate::test_support::fixtures::{db, note, pk, staff},
+            permissions::{ColumnRight, rank::Rang},
+        },
+        forms::fields::TextField,
+        schema::pk::Pk,
+    };
     use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryOrder, Schema, Set};
 
     /// `save_tickets`: a NOT NULL `title` without default, a NOT NULL `level`
@@ -560,8 +568,7 @@ mod tests {
     /// `stamp` on an update, like an `auto_now_update` column.
     mod ticket {
         use crate::schema::pk::Pk;
-        use sea_orm::entity::prelude::*;
-        use sea_orm::{ConnectionTrait, DbErr};
+        use sea_orm::{ConnectionTrait, DbErr, entity::prelude::*};
 
         #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
         #[sea_orm(table_name = "save_tickets")]

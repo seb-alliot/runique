@@ -7,12 +7,13 @@ use crate::forms::{
     validator::{FormValidator, ValidationError},
 };
 
-use crate::forms::constants::FORM_NAME_KEY;
-use crate::log::TraceResult;
-use crate::security::constants::CSRF_TOKEN_KEY;
-use crate::security::escape::html_escape;
-use crate::translation::{t, tf};
-use crate::utils::aliases::{FieldsMap, JsonMap, StrMap};
+use crate::{
+    forms::constants::FORM_NAME_KEY,
+    log::TraceResult,
+    security::{constants::CSRF_TOKEN_KEY, escape::html_escape},
+    translation::{t, tf},
+    utils::aliases::{FieldsMap, JsonMap, StrMap},
+};
 use axum::http::Method;
 use indexmap::IndexMap;
 use serde::{

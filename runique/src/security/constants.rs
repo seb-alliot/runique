@@ -1,7 +1,9 @@
 //! The constants of the security primitives, and what the HTML sanitizer lets
 //! through: the fields allowed rich content, the tags and the attributes kept.
-use std::collections::{HashMap, HashSet};
-use std::sync::LazyLock;
+use std::{
+    collections::{HashMap, HashSet},
+    sync::LazyLock,
+};
 
 /// Session key storing the CSRF token for the session; also the name of the
 /// hidden form field / header carrying it back on submit.

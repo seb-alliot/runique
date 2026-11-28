@@ -25,8 +25,7 @@ pub use lib_file::{ensure_admin_migration_positioned, update_migration_lib};
 use crate::migration::types::{Changes, ParsedColumn, ParsedFk, ParsedSchema};
 use alter::{alter_plan, body_has_code};
 use builder::BuilderPlan;
-use constraints::fk_constraint_name;
-use constraints::key_changes_guard;
+use constraints::{fk_constraint_name, key_changes_guard};
 use instruction::{Create, Delete, File, Instruction, chain};
 
 /// Generates the migration file for a CREATE TABLE.

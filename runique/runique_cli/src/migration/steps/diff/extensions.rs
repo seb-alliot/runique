@@ -1,6 +1,8 @@
 //! Every `extend!{}` block against its snapshot.
-use crate::migration::steps::parser::files::snapshot::{extended_tables, previous_snapshot};
-use crate::migration::*;
+use crate::migration::{
+    steps::parser::files::snapshot::{extended_tables, previous_snapshot},
+    *,
+};
 use anyhow::Result;
 use std::path::Path;
 

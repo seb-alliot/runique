@@ -1,6 +1,5 @@
 use crate::backend::lang::visitor_lang;
-use runique::axum::http::HeaderMap;
-use runique::prelude::*;
+use runique::{axum::http::HeaderMap, prelude::*};
 
 // inscription
 #[form(schema = runique_users, fields = [username, email, password])]

@@ -7,13 +7,14 @@ use super::file::{
     cleanup_files, ensure_safe_upload_dir, is_staged_upload, is_valid_image_content,
     parse_file_list, read_image_dimensions,
 };
-use crate::atomic::{AtomicBuilder, SourceItems};
-use crate::config::static_files::resolve_media_root;
-use crate::forms::config::field_config::FieldConfig;
-use crate::forms::traits::form_field::FormField;
-use crate::log::TraceResult;
-use crate::translation::{t, tf};
-use crate::utils::aliases::ATera;
+use crate::{
+    atomic::{AtomicBuilder, SourceItems},
+    config::static_files::resolve_media_root,
+    forms::{config::field_config::FieldConfig, traits::form_field::FormField},
+    log::TraceResult,
+    translation::{t, tf},
+    utils::aliases::ATera,
+};
 
 /// What the visitor reads when an upload can't be written: the detail (a
 /// server path, an OS error) goes to the log only.

@@ -3,25 +3,32 @@
 //! `sea-orm-cli` installed: the SeaORM version that applies the migrations is
 //! then the one `migration/Cargo.toml` pins, the same as runique's. Its
 //! `down()` keeps `seaql_migrations` in sync with the schema.
-use crate::atomic::{AtomicBuilder, SourceItems};
-use crate::db::DatabaseConfig;
-use crate::migration::master::BuilderMaster;
-use crate::migration::steps::apply::applied_renames::cleared_files;
-use crate::migration::steps::generate::lib_file::lib_modules;
-use crate::migration::steps::parser::files::scan::{
-    merge_extend_schemas, scan_entities, scan_extend_blocks,
-};
-use crate::migration::steps::parser::files::snapshot::{self, extend_snapshot_content};
-use crate::migration::{
-    ParsedEnum, ParsedSchema, WAIT_MIGRATION, dropped_table, enum_snapshot_file_path, enum_target,
-    enums_of_schemas, extend_snapshot_file_path, generate_enum_snapshot_file,
-    generate_snapshot_file, has_marker, migration_target, read_enum_snapshots, renamed_table,
-    snapshot_file_path, without_marker,
+use crate::{
+    atomic::{AtomicBuilder, SourceItems},
+    db::DatabaseConfig,
+    migration::{
+        ParsedEnum, ParsedSchema, WAIT_MIGRATION, dropped_table, enum_snapshot_file_path,
+        enum_target, enums_of_schemas, extend_snapshot_file_path, generate_enum_snapshot_file,
+        generate_snapshot_file, has_marker,
+        master::BuilderMaster,
+        migration_target, read_enum_snapshots, renamed_table, snapshot_file_path,
+        steps::{
+            apply::applied_renames::cleared_files,
+            generate::lib_file::lib_modules,
+            parser::files::{
+                scan::{merge_extend_schemas, scan_entities, scan_extend_blocks},
+                snapshot::{self, extend_snapshot_content},
+            },
+        },
+        without_marker,
+    },
 };
 use anyhow::{Context, Result};
 use runique_i18n::{t, tf};
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 /// Applies every pending migration, then records what was applied
 /// (see [`record_applied`]).

@@ -2,9 +2,11 @@
 //! from inside fails the test, an expected refusal doesn't, and a test with
 //! no database named never runs at all.
 use super::helpers::{Scratch, count, insert};
-use runique::db::ADb;
-use runique::runique_test::{expect_db_error, runique_test};
-use runique::sea_orm::ConnectionTrait;
+use runique::{
+    db::ADb,
+    runique_test::{expect_db_error, runique_test},
+    sea_orm::ConnectionTrait,
+};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 #[tokio::test]

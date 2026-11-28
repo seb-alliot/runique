@@ -3,9 +3,11 @@ use axum::Router;
 use std::net::SocketAddr;
 use tokio::signal;
 
-use crate::config::RuniqueConfig;
-use crate::translation::{t, tf};
-use crate::utils::aliases::AEngine;
+use crate::{
+    config::RuniqueConfig,
+    translation::{t, tf},
+    utils::aliases::AEngine,
+};
 
 use super::builder::RuniqueAppBuilder;
 

@@ -6,17 +6,17 @@
 //! en utilisant uniquement des fonctions synchrones et des répertoires temporaires.
 
 use runique_cli::migration::{
-    db_columns,
+    db_columns, generate_alter_file, generate_create_file,
     paths::*,
+    scan_entities, seaorm_alter_file_path, seaorm_alter_module_name,
     steps::diff::diff_schemas,
     types::{Changes, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema},
+    update_migration_lib,
 };
-use runique_cli::migration::{generate_alter_file, generate_create_file};
-use runique_cli::migration::{
-    scan_entities, seaorm_alter_file_path, seaorm_alter_module_name, update_migration_lib,
+use std::{
+    fs,
+    path::{Path, PathBuf},
 };
-use std::fs;
-use std::path::{Path, PathBuf};
 
 // ── Helpers partagés ─────────────────────────────────────────────────────────
 

@@ -3,31 +3,35 @@
 //! its sessions and its admin. Each protection is checked on both sides: the
 //! request it refuses and the one it accepts, limit included.
 
-use crate::helpers::db;
-use crate::helpers::framework_tables::{
-    GROUPES_DDL, GROUPES_DROITS_DDL, HISTORY_DDL, RESET_TOKENS_DDL, SESSIONS_DDL, USERS_DDL,
-    USERS_GROUPES_DDL,
+use crate::helpers::{
+    db,
+    framework_tables::{
+        GROUPES_DDL, GROUPES_DROITS_DDL, HISTORY_DDL, RESET_TOKENS_DDL, SESSIONS_DDL, USERS_DDL,
+        USERS_GROUPES_DDL,
+    },
+    pk::pk,
 };
-use crate::helpers::pk::pk;
-use axum::Router;
-use axum::body::Body;
-use axum::extract::{Path, Query};
-use axum::http::{HeaderValue, Request as HttpRequest, StatusCode, header};
-use axum::response::{IntoResponse, Response};
-use axum::routing::{get, post};
-use runique::app::RuniqueApp;
-use runique::auth::permissions::group_rights;
-use runique::auth::{BuiltinUserEntity, LoginGuard, login, user};
-use runique::config::RuniqueConfig;
-use runique::errors::AppError;
-use runique::errors::ErrorContext;
-use runique::http::Request;
-use runique::middleware::RateLimiter;
-use runique::prelude::{FormAccess, RuniqueForm, ValidationForm, form};
-use runique::sea_orm::{
-    ActiveModelTrait, ConnectionTrait, DatabaseConnection, EntityTrait, QueryOrder, Schema, Set,
+use axum::{
+    Router,
+    body::Body,
+    extract::{Path, Query},
+    http::{HeaderValue, Request as HttpRequest, StatusCode, header},
+    response::{IntoResponse, Response},
+    routing::{get, post},
 };
-use runique::utils::aliases::AppResult;
+use runique::{
+    app::RuniqueApp,
+    auth::{BuiltinUserEntity, LoginGuard, login, permissions::group_rights, user},
+    config::RuniqueConfig,
+    errors::{AppError, ErrorContext},
+    http::Request,
+    middleware::RateLimiter,
+    prelude::{FormAccess, RuniqueForm, ValidationForm, form},
+    sea_orm::{
+        ActiveModelTrait, ConnectionTrait, DatabaseConnection, EntityTrait, QueryOrder, Schema, Set,
+    },
+    utils::aliases::AppResult,
+};
 use serial_test::serial;
 use tower::ServiceExt;
 

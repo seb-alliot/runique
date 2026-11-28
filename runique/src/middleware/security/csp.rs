@@ -1,7 +1,5 @@
 //! Content Security Policy Middleware: generates CSP headers with nonce per request.
-use crate::http::RequestExtensions;
-use crate::security::csp_nonce::CspNonce;
-use crate::utils::aliases::AEngine;
+use crate::{http::RequestExtensions, security::csp_nonce::CspNonce, utils::aliases::AEngine};
 
 /// Hashes of inline styles injected by htmx (embedded version: 2.0.4).
 ///

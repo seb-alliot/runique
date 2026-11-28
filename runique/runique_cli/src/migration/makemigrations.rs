@@ -2,23 +2,26 @@
 //! and connects, then hands the run to the orchestrator (`orchestrator`), which goes through the steps (`steps`):
 //! reads the models and the snapshots, compares them, checks what changed,
 //! and writes the migration files in one batch.
-use crate::db::DatabaseEngine;
-use crate::migration::*;
+use crate::{db::DatabaseEngine, migration::*};
 use anyhow::Result;
 use chrono::Utc;
 use runique_i18n::{t, tf};
 use std::fs;
 
-use crate::migration::steps::changes::report::{
-    check_destructive, check_identifier_lengths, warn_unmigrated_type_changes,
+use crate::migration::steps::{
+    changes::report::{check_destructive, check_identifier_lengths, warn_unmigrated_type_changes},
+    generate::{
+        init_migrate,
+        plan::{
+            Plan, Stage, Stages, build_drop_plan, build_enum_plan, build_extend_plan,
+            build_main_plan, commit_plan, replace_waiting, settled_migrations, waiting_migrations,
+        },
+    },
+    parser::files::{
+        scan::{merge_extend_schemas, scan_extend_blocks},
+        snapshot::{self, snapshot_upgrades},
+    },
 };
-use crate::migration::steps::generate::init_migrate;
-use crate::migration::steps::generate::plan::{
-    Plan, Stage, Stages, build_drop_plan, build_enum_plan, build_extend_plan, build_main_plan,
-    commit_plan, replace_waiting, settled_migrations, waiting_migrations,
-};
-use crate::migration::steps::parser::files::scan::{merge_extend_schemas, scan_extend_blocks};
-use crate::migration::steps::parser::files::snapshot::{self, snapshot_upgrades};
 
 mod orchestrator;
 use crate::migration::master::BuilderMaster;

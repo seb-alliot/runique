@@ -1,18 +1,19 @@
 //! `Request`: what a handler receives, and what it renders its template with.
-use crate::auth::current_user::CurrentUser;
-use crate::errors::AppError;
-use crate::errors::ErrorContext;
-use crate::flash::Message;
-use crate::forms::{
-    prisme::extractor::{Prisme, csrf_required, prisme_pipeline},
-    traits::runique_form::RuniqueForm,
+use crate::{
+    auth::current_user::CurrentUser,
+    errors::{AppError, ErrorContext},
+    flash::Message,
+    forms::{
+        prisme::extractor::{Prisme, csrf_required, prisme_pipeline},
+        traits::runique_form::RuniqueForm,
+    },
+    http::url_params::UrlParams,
+    middleware::security::anti_bot::HoneypotFieldName,
+    security::{csp_nonce::CspNonce, csrf::CsrfToken},
+    templates::loader::TemplateLoader,
+    translation::{t, tf},
+    utils::aliases::{ADb, AEngine, AppResult, StrMap},
 };
-use crate::http::url_params::UrlParams;
-use crate::middleware::security::anti_bot::HoneypotFieldName;
-use crate::security::{csp_nonce::CspNonce, csrf::CsrfToken};
-use crate::templates::loader::TemplateLoader;
-use crate::translation::{t, tf};
-use crate::utils::aliases::{ADb, AEngine, AppResult, StrMap};
 use axum::{
     body::Body,
     extract::{FromRequest, FromRequestParts, Path},
@@ -21,8 +22,7 @@ use axum::{
 };
 use sea_orm::DbErr;
 use serde::de::DeserializeOwned;
-use std::str::FromStr;
-use std::sync::LazyLock;
+use std::{str::FromStr, sync::LazyLock};
 
 // Read once, on the first request: it never changes while the server runs,
 // and `std::env::var` takes the process-wide environment lock on every call.
@@ -502,17 +502,21 @@ impl Request {
 #[cfg(all(test, feature = "sqlite"))]
 mod admin_constraint_tests {
     use super::Request;
-    use crate::auth::current_user::CurrentUser;
-    use crate::auth::gate::{AdminConstraint, test_support::fixtures::pk};
-    use crate::auth::permissions::rank::Rang;
-    use crate::config::RuniqueConfig;
-    use crate::engine::RuniqueEngine;
-    use crate::forms::{
-        form::{Forms, SaveMode},
-        traits::runique_form::{FormAccess, RuniqueForm},
+    use crate::{
+        auth::{
+            current_user::CurrentUser,
+            gate::{AdminConstraint, test_support::fixtures::pk},
+            permissions::rank::Rang,
+        },
+        config::RuniqueConfig,
+        engine::RuniqueEngine,
+        forms::{
+            form::{Forms, SaveMode},
+            traits::runique_form::{FormAccess, RuniqueForm},
+        },
+        security::csrf::CsrfToken,
+        utils::aliases::AEngine,
     };
-    use crate::security::csrf::CsrfToken;
-    use crate::utils::aliases::AEngine;
     use axum::{
         body::Body,
         extract::FromRequest,

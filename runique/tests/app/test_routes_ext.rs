@@ -1,11 +1,15 @@
 //! Tests — `Routes`, the set `urlpatterns!` returns: its own methods and the
 //! `RouterExt` ones keep every route they are given.
 
-use axum::http::{Request, StatusCode, header};
-use axum::routing::get;
-use runique::app::RuniqueApp;
-use runique::config::RuniqueConfig;
-use runique::router::{RouterExt, Routes};
+use axum::{
+    http::{Request, StatusCode, header},
+    routing::get,
+};
+use runique::{
+    app::RuniqueApp,
+    config::RuniqueConfig,
+    router::{RouterExt, Routes},
+};
 use sea_orm::Database;
 use serial_test::serial;
 use tower::ServiceExt;

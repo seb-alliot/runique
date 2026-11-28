@@ -1,8 +1,7 @@
 //! `ValidationForm<F>`: proof by type that a form has passed validation. A form
 //! of an entity is written from it (`save`, `delete`); any other action stays
 //! in the caller's business logic.
-use crate::forms::traits::runique_form::RuniqueForm;
-use crate::http::Request;
+use crate::{forms::traits::runique_form::RuniqueForm, http::Request};
 
 mod write;
 

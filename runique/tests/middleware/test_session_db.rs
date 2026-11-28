@@ -1,7 +1,6 @@
 //! Tests — middleware/session/session_db.rs : RuniqueSessionStore
 
-use crate::helpers::db;
-use crate::helpers::pk::pk;
+use crate::helpers::{db, pk::pk};
 use runique::middleware::session::session_db::RuniqueSessionStore;
 
 #[cfg(feature = "pk-uuid")]

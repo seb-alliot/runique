@@ -33,7 +33,7 @@ classDiagram
         +Vec~CustomMiddleware~ custom_middlewares
         +MiddlewareConfig features
         +new(dev) / from_config(config)
-        +apply_to_router(router) Router
+        +apply_middleware(router, engine) Result~Router~
     }
     class StaticStaging
     class AdminStaging
@@ -108,7 +108,7 @@ sequenceDiagram
 
 ## Pipeline middleware par slots (ordre réel exécuté)
 
-`apply_to_router` trie par slot. Ordre **extérieur → intérieur** (un slot bas = plus externe) :
+`apply_middleware` trie par slot. Ordre **extérieur → intérieur** (un slot bas = plus externe) :
 
 ```mermaid
 flowchart TB
@@ -134,7 +134,7 @@ flowchart TB
 ## Anomalies / flux suspects
 
 ### ✅ AP1 — `RuniqueEngine::attach_middlewares` était du code mort (confirmait E2) — SUPPRIMÉ (2026-09-21)
-Le pipeline réel est `MiddlewareStaging::apply_to_router` (slots ci-dessus). Trouvé en creusant
+Le pipeline réel est `MiddlewareStaging::apply_middleware` (slots ci-dessus, `apply_to_router` jusqu'au 2026-11-28). Trouvé en creusant
 un bug réel du chemin vivant : slot 30 (`security_headers_middleware`, toujours actif) écrasé
 par slot 31 (`csp_middleware`, ajouté dès `.with_csp()`) — le nonce CSP disparaît du header final.
 Voir E3 dans `anomalies.md` pour ce bug encore ouvert.

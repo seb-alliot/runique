@@ -1,7 +1,5 @@
-use crate::backend::lang::visitor_lang;
-use crate::entities::contribution;
-use runique::axum::http::HeaderMap;
-use runique::prelude::*;
+use crate::{backend::lang::visitor_lang, entities::contribution};
+use runique::{axum::http::HeaderMap, prelude::*};
 
 pub fn contribution_type_choices() -> Vec<ChoiceOption> {
     vec![

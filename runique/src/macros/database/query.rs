@@ -1,7 +1,4 @@
 //! `RuniqueQueryBuilder<E>` — Django-style query builder: filter, exclude, order_by, limit, all, get, count…
-use crate::auth::gate::{Authorized, Guarded, List};
-use crate::errors::{ErrorContext, ErrorType};
-use crate::translation::t;
 /// Django-inspired query builder for SeaORM
 ///
 /// This struct wraps SeaORM's `Select<E>` and provides convenient,
@@ -59,6 +56,11 @@ use crate::translation::t;
 /// tokio::runtime::Runtime::new().unwrap().block_on(sqlite_query_example());
 /// ```
 use crate::utils::aliases::ADb;
+use crate::{
+    auth::gate::{Authorized, Guarded, List},
+    errors::{ErrorContext, ErrorType},
+    translation::t,
+};
 use axum::http::StatusCode;
 use sea_orm::{
     ColumnTrait, Condition, DbErr, EntityTrait, ExprTrait, JoinType, QueryFilter, QueryOrder,
@@ -312,9 +314,7 @@ impl<T: EntityTrait> Queryable for T {}
 mod tests {
     use super::*;
     use crate::search;
-    use sea_orm::ActiveModelTrait;
-    use sea_orm::Set;
-    use sea_orm::entity::prelude::*;
+    use sea_orm::{ActiveModelTrait, Set, entity::prelude::*};
 
     // Test model definition
     #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
@@ -394,8 +394,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_querybuilder_applies_admin_gate_scope() -> Result<(), DbErr> {
-        use crate::auth::gate::test_support::fixtures;
-        use crate::auth::gate::{GateCtx, check::authorize_list};
+        use crate::auth::gate::{GateCtx, check::authorize_list, test_support::fixtures};
 
         let db = fixtures::db().await;
         let user = fixtures::staff(

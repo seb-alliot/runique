@@ -4,8 +4,7 @@
 //! `*_pwd`), so `secret: password` became a plain text field — value accepted
 //! from a GET, echoed back to templates, never hashed.
 use axum::http::Method;
-use runique::forms::Forms;
-use runique::utils::aliases::StrMap;
+use runique::{forms::Forms, utils::aliases::StrMap};
 
 mod account {
     use runique::prelude::*;

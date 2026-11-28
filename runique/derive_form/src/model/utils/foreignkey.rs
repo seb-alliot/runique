@@ -1,6 +1,8 @@
-use crate::model::generator::{generate_column, generate_pk};
-use crate::model::utils::relation_enum::{fk_action_tokens, target_entity, target_pk_column};
-use crate::model::{ModelInput, RelationDef};
+use crate::model::{
+    ModelInput, RelationDef,
+    generator::{generate_column, generate_pk},
+    utils::relation_enum::{fk_action_tokens, target_entity, target_pk_column},
+};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 

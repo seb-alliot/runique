@@ -9,8 +9,10 @@
 //! as a type of its own, to create and to give values to; under MySQL and
 //! SQLite the column is text, and only a renamed value has rows to write.
 use super::builder::BuilderPlan;
-use crate::db::DatabaseEngine;
-use crate::migration::types::{EnumChange, EnumChanges};
+use crate::{
+    db::DatabaseEngine,
+    migration::types::{EnumChange, EnumChanges},
+};
 
 /// Generates the migration file of an enum from what changed in it, for
 /// `engine`.

@@ -21,14 +21,17 @@ use axum::{
 };
 use runique::{
     config::app::RuniqueConfig,
-    engine::{RuniqueEngine, SecurityPolicies},
+    engine::{RuniqueEngine, SecurityPolicies, SessionStores},
     middleware::{
         config::MiddlewareConfig,
         security::{allowed_hosts::HostPolicy, csrf::csrf_middleware},
     },
 };
 use sea_orm::Database;
-use std::{net::SocketAddr, sync::Arc, sync::OnceLock};
+use std::{
+    net::SocketAddr,
+    sync::{Arc, OnceLock},
+};
 use tera::Tera;
 use tower_sessions::{MemoryStore, SessionManagerLayer};
 
@@ -123,8 +126,7 @@ async fn build_engine_cfg(enforce_https: bool, dev: bool) -> Arc<RuniqueEngine> 
             hosts: Arc::new(HostPolicy::new(vec![], true)),
             ..SecurityPolicies::default()
         },
-        session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-        session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
+        sessions: SessionStores::default(),
         extensions: std::collections::HashMap::new(),
     })
 }

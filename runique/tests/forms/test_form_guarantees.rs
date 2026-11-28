@@ -6,18 +6,23 @@ use crate::helpers::{
     server::{build_engine, build_engine_with},
 };
 use axum::http::Method;
-use runique::forms::fields::{
-    BooleanField, CheckboxField, ChoiceField, DateField, DateTimeField, DurationField, FileField,
-    FileSize, HoneypotField, RadioField, TextField, TimeField,
+use runique::{
+    forms::{
+        FormRenderer, Forms,
+        fields::{
+            BooleanField, CheckboxField, ChoiceField, DateField, DateTimeField, DurationField,
+            FileField, FileSize, HoneypotField, RadioField, TextField, TimeField,
+        },
+        generic::GenericField,
+        traits::{
+            form_field::{FieldAccess, FormField},
+            runique_form::{FormAccess, RuniqueForm},
+        },
+    },
+    prelude::ValidationForm,
+    utils::aliases::StrMap,
 };
-use runique::forms::generic::GenericField;
-use runique::forms::traits::form_field::{FieldAccess, FormField};
-use runique::forms::traits::runique_form::{FormAccess, RuniqueForm};
-use runique::forms::{FormRenderer, Forms};
-use runique::prelude::ValidationForm;
-use runique::utils::aliases::StrMap;
-use std::collections::HashMap;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 fn tera(templates: &[(&str, &str)]) -> Arc<tera::Tera> {
     let mut tera = tera::Tera::default();

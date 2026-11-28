@@ -7,9 +7,10 @@ use syn::{
     token,
 };
 
-use super::size::parse_size;
-use super::suggest_type::suggest_form_field_type;
-use super::validate_attrs::validate_form_field_attrs;
+use super::{
+    size::parse_size, suggest_type::suggest_form_field_type,
+    validate_attrs::validate_form_field_attrs,
+};
 use crate::parser::sql_identifier::validate_renamed_from;
 
 impl Parse for FormFieldDecl {

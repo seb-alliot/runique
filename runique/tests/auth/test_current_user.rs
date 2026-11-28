@@ -2,9 +2,10 @@
 //! Couvre : rights_on (union des groupes), can_access_resource, can_access_admin
 
 use crate::helpers::pk::pk;
-use runique::auth::current_user::CurrentUser;
-use runique::auth::permissions::rank::Rang;
-use runique::auth::permissions::{Groupe, Permission};
+use runique::auth::{
+    current_user::CurrentUser,
+    permissions::{Groupe, Permission, rank::Rang},
+};
 
 fn perm(resource: &str, create: bool, read: bool, update: bool, delete: bool) -> Permission {
     Permission {

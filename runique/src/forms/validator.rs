@@ -1,6 +1,8 @@
 //! Form validation: `ValidationError` and `FormValidator` with error accumulation.
-use crate::translation::t;
-use crate::utils::aliases::{FieldsMap, StrMap};
+use crate::{
+    translation::t,
+    utils::aliases::{FieldsMap, StrMap},
+};
 use std::fmt;
 
 /// Error returned when form validation fails to complete or produces errors.

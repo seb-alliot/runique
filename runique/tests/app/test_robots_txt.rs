@@ -1,9 +1,7 @@
 // Tests pour la génération automatique de /robots.txt quand l'admin est activé
 
-use axum::Router;
-use axum::routing::get;
-use runique::app::RuniqueApp;
-use runique::config::RuniqueConfig;
+use axum::{Router, routing::get};
+use runique::{app::RuniqueApp, config::RuniqueConfig};
 use sea_orm::Database;
 use serial_test::serial;
 
@@ -57,8 +55,10 @@ async fn build_app_with_admin_no_robots(mount: &str) -> axum::Router {
 #[tokio::test]
 #[serial]
 async fn test_robots_txt_present_quand_admin_active() {
-    use axum::body::to_bytes;
-    use axum::http::{Request, StatusCode};
+    use axum::{
+        body::to_bytes,
+        http::{Request, StatusCode},
+    };
     use tower::ServiceExt;
 
     let app = build_app_with_admin("/admin").await;
@@ -82,8 +82,10 @@ async fn test_robots_txt_present_quand_admin_active() {
 #[tokio::test]
 #[serial]
 async fn test_robots_txt_ne_divulgue_pas_le_prefix() {
-    use axum::body::to_bytes;
-    use axum::http::{Request, StatusCode};
+    use axum::{
+        body::to_bytes,
+        http::{Request, StatusCode},
+    };
     use tower::ServiceExt;
 
     let app = build_app_with_admin("/backoffice").await;

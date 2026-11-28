@@ -1,12 +1,13 @@
 //! Static and media files served by a built app, with their headers — written
 //! from cargo-mutants survivors (2026-10-02): `attach_static_files` and the
 //! cache builders could be dropped without a test failing.
-use axum::Router;
-use axum::body::Body;
-use axum::http::{Request, StatusCode};
-use axum::routing::get;
-use runique::app::RuniqueApp;
-use runique::config::RuniqueConfig;
+use axum::{
+    Router,
+    body::Body,
+    http::{Request, StatusCode},
+    routing::get,
+};
+use runique::{app::RuniqueApp, config::RuniqueConfig};
 use sea_orm::Database;
 use serial_test::serial;
 use tower::ServiceExt;

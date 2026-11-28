@@ -1,11 +1,8 @@
 //! What the middleware builders configure reaches the responses of a real app
 //! in production mode — written from cargo-mutants survivors (2026-10-02):
 //! each builder below could be replaced by its default without a test failing.
-use axum::Router;
-use axum::routing::get;
-use runique::app::RuniqueApp;
-use runique::config::RuniqueConfig;
-use runique::middleware::security::ClientIp;
+use axum::{Router, routing::get};
+use runique::{app::RuniqueApp, config::RuniqueConfig, middleware::security::ClientIp};
 use sea_orm::Database;
 use serial_test::serial;
 use std::net::SocketAddr;

@@ -13,8 +13,7 @@ classDiagram
         +ARlockmap url_registry
         +MiddlewareConfig features
         +SecurityPolicies security
-        +LazyLock~RwLock~Option~Arc~CleaningMemoryStore~~~~ session_store
-        +LazyLock~RwLock~Option~Arc~RuniqueSessionStore~~~~ session_db_store
+        +SessionStores sessions
         +HashMap~TypeId, Arc~Any~~ extensions
         +new(config, tera, db) Self
         +extension~T~() Option~Arc~T~~
@@ -101,7 +100,7 @@ son traitement de réponse **en dernier**. C'est exactement ce qui casse le nonc
 `applicator.rs` (slot 31 ajouté après slot 30 → écrase son header en réponse) — voir l'entrée
 E3 détaillée dans [`../../anomalies.md`](../../anomalies.md), bug encore ouvert.
 
-### 🟡 E4 — `session_store`/`session_db_store` en `LazyLock<RwLock<Option<Arc<…>>>>` — ✅ VÉRIFIÉ clean
+### 🟡 E4 — `session_store`/`session_db_store` en `LazyLock<RwLock<Option<Arc<…>>>>` — ✅ VÉRIFIÉ clean, puis remplacés le 2026-11-28 par `engine.sessions` (`SessionStores`, deux `Option<Arc<…>>` créés avant l'engine, sans verrou)
 **Vérifié (2.1.21).** Aucun `unwrap`/`expect` sur ces stores : écritures gardées `if let Ok(write())`,
 lectures `.read().ok().and_then()`, init `RwLock::new(None)` infaillible, store non-init → `None`
 géré proprement. Pas de panic possible avant init.

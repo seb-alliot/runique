@@ -1,6 +1,5 @@
 //! `schema()`: primary key, columns and their options, unique fields.
-use crate::model::ast::*;
-use crate::model::utils::*;
+use crate::model::{ast::*, utils::*};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 

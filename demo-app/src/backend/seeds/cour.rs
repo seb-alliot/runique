@@ -1,7 +1,9 @@
 use crate::entities::{chapitre, cour, cour_block};
 use runique::prelude::*;
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 struct CourDef {
     slug: &'static str,

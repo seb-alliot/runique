@@ -1,6 +1,8 @@
 //! An index dropped.
-use crate::migration::steps::generate::constraints::{fk_index_column, unless_mysql_fk};
-use crate::migration::types::ParsedIndex;
+use crate::migration::{
+    steps::generate::constraints::{fk_index_column, unless_mysql_fk},
+    types::ParsedIndex,
+};
 
 /// `guard_for`: as for the creation of an index (`create::index`).
 pub(crate) fn index(table: &str, guard_for: Option<&str>, index: &ParsedIndex) -> String {

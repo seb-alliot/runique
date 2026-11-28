@@ -1,22 +1,22 @@
 //! `save` / `delete` on a validated form, outside the admin: the row comes
 //! from the URL, SeaORM writes it in its own transaction, nested in the
 //! test's (a commit that ended the test's transaction fails the run).
-use crate::entities::blog::{
-    ActiveModel as BlogActiveModel, Column as BlogColumn, Entity as BlogEntity,
+use crate::{
+    entities::blog::{ActiveModel as BlogActiveModel, Column as BlogColumn, Entity as BlogEntity},
+    forms::BlogForm,
 };
-use crate::forms::BlogForm;
-use runique::config::app::RuniqueConfig;
-use runique::engine::{RuniqueEngine, SecurityPolicies};
-use runique::forms::Prisme;
-use runique::forms::constants::FORM_NAME_KEY;
-use runique::http::request::Request;
-use runique::middleware::config::MiddlewareConfig;
-use runique::middleware::security::allowed_hosts::HostPolicy;
-use runique::prelude::*;
-use runique::runique_test::{TestFailure, runique_test};
-use runique::security::csrf::CsrfToken;
-use runique::tower_sessions::{MemoryStore, Session};
-use runique::utils::aliases::StrMap;
+use runique::{
+    config::app::RuniqueConfig,
+    engine::{RuniqueEngine, SecurityPolicies, SessionStores},
+    forms::{Prisme, constants::FORM_NAME_KEY},
+    http::request::Request,
+    middleware::{config::MiddlewareConfig, security::allowed_hosts::HostPolicy},
+    prelude::*,
+    runique_test::{TestFailure, runique_test},
+    security::csrf::CsrfToken,
+    tower_sessions::{MemoryStore, Session},
+    utils::aliases::StrMap,
+};
 use sea_orm::{ColumnTrait, DbErr, PaginatorTrait, QueryFilter};
 use std::sync::Arc;
 
@@ -44,8 +44,7 @@ pub(super) fn named_request(
             hosts: Arc::new(HostPolicy::new(vec![], true)),
             ..SecurityPolicies::default()
         },
-        session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-        session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
+        sessions: SessionStores::default(),
         extensions: std::collections::HashMap::new(),
     });
     let session = Session::new(None, Arc::new(MemoryStore::default()), None);

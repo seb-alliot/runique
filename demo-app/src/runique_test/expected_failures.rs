@@ -2,9 +2,10 @@
 //! output, yet the test itself passes, because what's checked is that the
 //! failure was reported and nothing stayed in the database.
 use crate::backend::auth::find_user_by_username;
-use runique::prelude::runique_users::ActiveModel as UserActiveModel;
-use runique::prelude::*;
-use runique::runique_test::{TestFailure, runique_test};
+use runique::{
+    prelude::{runique_users::ActiveModel as UserActiveModel, *},
+    runique_test::{TestFailure, runique_test},
+};
 use sea_orm::{ConnectionTrait, DbErr, Statement};
 
 const ERROR_USER: &str = "runique_test_expected_error";

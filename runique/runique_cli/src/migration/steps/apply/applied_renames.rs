@@ -5,8 +5,7 @@
 //! The file is the developer's: only the directive goes, with the comma that
 //! set it apart, and what is left is checked token for token before it is
 //! written.
-use crate::migration::steps::parser::files::rust_files::rust_files;
-use crate::migration::steps::parser::model::MacroCollector;
+use crate::migration::steps::parser::{files::rust_files::rust_files, model::MacroCollector};
 use anyhow::{Context, Result};
 use proc_macro2::{Delimiter, TokenStream, TokenTree};
 use runique_dsl::{ast::ModelInput, extend::ExtendDsl};

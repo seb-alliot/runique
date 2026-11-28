@@ -14,8 +14,10 @@ use syn::{
     parse::{Parse, ParseStream},
 };
 
-use super::form_field::form_field_to_field_def;
-use super::sql_identifier::{validate_renamed_from, validate_sql_identifier};
+use super::{
+    form_field::form_field_to_field_def,
+    sql_identifier::{validate_renamed_from, validate_sql_identifier},
+};
 
 /// `(fields, form_fields, lists, column_names)` — the SQL-level `FieldDef`s
 /// derived from each declaration, the raw declarations themselves (needed

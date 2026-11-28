@@ -8,8 +8,10 @@
 //! Need `docker compose up -d` and `DATABASE_URL_PG` / `DATABASE_URL_MYSQL`
 //! in `.env.test`; without them each test returns right away.
 use super::helpers::Scratch;
-use runique::db::ADb;
-use runique::runique_test::{TestFailure, runique_test};
+use runique::{
+    db::ADb,
+    runique_test::{TestFailure, runique_test},
+};
 use serial_test::serial;
 use url::Url;
 

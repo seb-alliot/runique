@@ -1,7 +1,6 @@
 //! A column whose definition changed.
 use super::redefined::redefined;
-use crate::migration::steps::diff::Columns;
-use crate::migration::types::ParsedColumn;
+use crate::migration::{steps::diff::Columns, types::ParsedColumn};
 
 /// (as it was, as it is), for every column that is in both schemas and
 /// redefined.

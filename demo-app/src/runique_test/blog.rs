@@ -1,7 +1,11 @@
-use crate::backend::blog::{get_article, list_articles};
-use crate::entities::blog::ActiveModel as BlogActiveModel;
-use runique::prelude::*;
-use runique::runique_test::{TestFailure, runique_test};
+use crate::{
+    backend::blog::{get_article, list_articles},
+    entities::blog::ActiveModel as BlogActiveModel,
+};
+use runique::{
+    prelude::*,
+    runique_test::{TestFailure, runique_test},
+};
 use sea_orm::DbErr;
 
 const TITLE: &str = "runique_test rollback article";

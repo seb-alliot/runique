@@ -2,8 +2,10 @@
 //! cookie: `set_lang` is global to the process, so one visitor would switch it
 //! for everyone.
 use crate::entities::{doc_page, doc_section};
-use runique::axum::http::{HeaderMap, HeaderValue, header};
-use runique::prelude::*;
+use runique::{
+    axum::http::{HeaderMap, HeaderValue, header},
+    prelude::*,
+};
 
 const ONE_YEAR: u32 = 31_536_000;
 

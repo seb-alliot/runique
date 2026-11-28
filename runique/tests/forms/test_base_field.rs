@@ -3,8 +3,7 @@
 //!          clear_error, set_html_attribute, to_json_value, to_json_readonly,
 //!          to_json_disabled, to_json_attributes, to_json_meta, finalize.
 
-use runique::forms::fields::TextField;
-use runique::forms::traits::form_field::FormField;
+use runique::forms::{fields::TextField, traits::form_field::FormField};
 
 // Helper: accède aux getters via le trait (UFCS) pour éviter l'ambiguïté
 // avec les builder methods de TextField (label/placeholder prennent un &str)

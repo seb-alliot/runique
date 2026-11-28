@@ -6,8 +6,10 @@ use crate::helpers::{
     db, framework_tables,
     pk::{pk, pk_sql_literal},
 };
-use runique::auth::permissions::{Groupe, pull_groupes_db};
-use runique::sea_orm::DatabaseConnection;
+use runique::{
+    auth::permissions::{Groupe, pull_groupes_db},
+    sea_orm::DatabaseConnection,
+};
 
 /// Account 1 in group 1, answered for by account 2 whose flags are
 /// `(is_active, is_dirigeant, is_admin)`. The group grants every right on

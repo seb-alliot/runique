@@ -380,8 +380,7 @@ fn auto_now_keeps_the_time_zone_of_a_timestamp_tz() {
     assert_eq!(ty("seen"), "DateTime");
     assert_eq!(ty("logged"), "DateTime");
 
-    use runique::schema::ColumnDef;
-    use runique::sea_orm::sea_query::ColumnType;
+    use runique::{schema::ColumnDef, sea_orm::sea_query::ColumnType};
     let tz = ColumnDef::new("c").timestamp_tz().auto_now();
     assert!(matches!(tz.col_type, ColumnType::TimestampWithTimeZone));
     let tz = ColumnDef::new("c").timestamp_tz().auto_now_update();

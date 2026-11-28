@@ -1,9 +1,10 @@
 //! What a user CAN do on a resource: the rights the admin's gate and the
 //! developer's own views both read.
-use crate::auth::constants::resource_key::FRAMEWORK_KEYS;
-use crate::auth::current_user::CurrentUser;
-use crate::auth::permissions::rank::Rang;
-use crate::auth::permissions::{ColumnRight, Permission};
+use crate::auth::{
+    constants::resource_key::FRAMEWORK_KEYS,
+    current_user::CurrentUser,
+    permissions::{ColumnRight, Permission, rank::Rang},
+};
 use sea_orm::{EntityTrait, IdenStatic, Iterable, PrimaryKeyToColumn};
 
 /// Everything a user may do on one resource, decided once by the rank: the
@@ -207,9 +208,10 @@ impl ReadableColumns {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::auth::current_user::CurrentUser;
-    use crate::auth::permissions::Groupe;
-    use crate::schema::pk::Pk;
+    use crate::{
+        auth::{current_user::CurrentUser, permissions::Groupe},
+        schema::pk::Pk,
+    };
 
     const ALL: [Crud; 7] = [
         Crud::Create,

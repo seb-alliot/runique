@@ -2,9 +2,11 @@
 pub use crate::forms::{
     form::Forms, renderer::FormRenderer, traits::form_field::FormField, validator::ValidationError,
 };
-use crate::http::Request;
-use crate::translation::t;
-use crate::utils::aliases::{ATera, StrMap};
+use crate::{
+    http::Request,
+    translation::t,
+    utils::aliases::{ATera, StrMap},
+};
 
 use async_trait::async_trait;
 use sea_orm::DbErr;

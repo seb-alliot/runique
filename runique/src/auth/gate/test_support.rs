@@ -6,9 +6,7 @@
 /// `pk(33)`. Notes: 1 owned by `pk(10)`, 2 owned by `pk(20)`, 3 without owner.
 #[cfg(feature = "sqlite")]
 pub(crate) mod fixtures {
-    use crate::auth::current_user::CurrentUser;
-    use crate::schema::pk::Pk;
-    use crate::utils::aliases::ADb;
+    use crate::{auth::current_user::CurrentUser, schema::pk::Pk, utils::aliases::ADb};
     use sea_orm::{ActiveModelTrait, ConnectionTrait, Schema, Set};
 
     pub(crate) mod note {

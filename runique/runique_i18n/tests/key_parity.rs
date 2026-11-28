@@ -6,9 +6,11 @@
 //! of a line break.
 
 use serde_json::Value;
-use std::collections::BTreeMap;
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::{
+    collections::BTreeMap,
+    fs,
+    path::{Path, PathBuf},
+};
 
 const LANGS: &[&str] = &["fr", "it", "es", "de", "pt", "ja", "zh", "ru"];
 

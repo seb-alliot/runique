@@ -12,9 +12,7 @@ use sea_orm::{
     AccessMode, ConnectionTrait, DatabaseTransaction, DbBackend, DbErr, ExecResult, IsolationLevel,
     QueryResult, Statement, TransactionError, TransactionOptions, TransactionTrait,
 };
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::Arc;
+use std::{future::Future, pin::Pin, sync::Arc};
 
 #[cfg(not(feature = "test-utils"))]
 type Inner = sea_orm::DatabaseConnection;

@@ -13,8 +13,7 @@ use runique::sea_orm::{
     ConnectionTrait, Database, DatabaseConnection,
     sea_query::{Alias, ColumnDef, Table},
 };
-use runique_cli::migration::col_type_method;
-use runique_cli::migration::parse_schema_from_source;
+use runique_cli::migration::{col_type_method, parse_schema_from_source};
 use serial_test::serial;
 
 /// One DSL type: a `model!{}` with a single required field `v` of that type,

@@ -8,12 +8,16 @@ use crate::helpers::{
     db, framework_tables,
     pk::{pk, pk_sql_literal},
 };
-use runique::auth::constants::SESSION_USER_ID_KEY;
-use runique::auth::session::{LoginError, login};
-use runique::auth::{BuiltinUserEntity, authenticate_user};
-use runique::db::ADb;
-use runique::schema::Pk;
-use runique::security::password::{Manual, PasswordConfig, PasswordService};
+use runique::{
+    auth::{
+        BuiltinUserEntity, authenticate_user,
+        constants::SESSION_USER_ID_KEY,
+        session::{LoginError, login},
+    },
+    db::ADb,
+    schema::Pk,
+    security::password::{Manual, PasswordConfig, PasswordService},
+};
 use std::sync::Arc;
 use tower_sessions::{MemoryStore, Session};
 
@@ -390,10 +394,12 @@ async fn an_active_but_never_activated_account_cannot_sign_in() {
 mod login_required {
     use crate::helpers::pk::pk;
     use axum::{Router, body::Body, http::Request, middleware::Next, routing::get};
-    use runique::auth::constants::SESSION_USER_ID_KEY;
-    use runique::auth::current_user::CurrentUser;
-    use runique::auth::permissions::rank::Rang;
-    use runique::router::router_ext::RouterExt;
+    use runique::{
+        auth::{
+            constants::SESSION_USER_ID_KEY, current_user::CurrentUser, permissions::rank::Rang,
+        },
+        router::router_ext::RouterExt,
+    };
     use tower::ServiceExt;
     use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 

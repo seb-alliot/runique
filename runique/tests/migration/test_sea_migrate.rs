@@ -6,12 +6,10 @@
 //! Docker Postgres et MySQL requis (DATABASE_URL_PG / DATABASE_URL_MYSQL dans .env.test).
 //! SQLite : pas de Docker, fichier temporaire local.
 
-use crate::helpers::db_mysql;
-use crate::helpers::db_postgres as db_pg;
+use crate::helpers::{db_mysql, db_postgres as db_pg};
 use sea_orm::ConnectionTrait;
 use serial_test::serial;
-use std::path::PathBuf;
-use std::process::Command;
+use std::{path::PathBuf, process::Command};
 
 // ─── Tables créées par demo-app/migration ────────────────────────────────────
 

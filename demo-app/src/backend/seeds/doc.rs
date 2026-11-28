@@ -1,7 +1,9 @@
 use crate::entities::{doc_block, doc_page, doc_section};
 use runique::prelude::*;
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 // Supprime les anchors HTML GitHub (<a id="..."></a>) inutiles sur le web
 fn strip_github_anchors(content: &str) -> String {
@@ -499,9 +501,11 @@ mod doc_link_validation {
     //! Pur filesystem : aucune base ni serveur requis.
     //!   cargo test -p demo-app internal_doc_links_resolve
     use super::{collect_section_pages, collect_sections, find_docs_root};
-    use std::collections::{BTreeMap, BTreeSet};
-    use std::fs;
-    use std::path::{Path, PathBuf};
+    use std::{
+        collections::{BTreeMap, BTreeSet},
+        fs,
+        path::{Path, PathBuf},
+    };
 
     // URL servies pour un slug donné, selon le routage réel :
     //   slug `{section}-index` ⇒ /docs/{lang}/{section} (+ /index explicite)

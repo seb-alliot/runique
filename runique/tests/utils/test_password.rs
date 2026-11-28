@@ -328,10 +328,11 @@ fn test_auto_config_default_pas_de_hook() {
 // ── Written from cargo-mutants survivors (2026-10-02) ───────────────────────
 
 mod guarantees {
-    use runique::forms::FormField;
-    use runique::forms::fields::TextField;
-    use runique::security::password::{
-        AutoConfig, BaseHash, PasswordConfig, PasswordHandler, PasswordService, dummy_hash,
+    use runique::{
+        forms::{FormField, fields::TextField},
+        security::password::{
+            AutoConfig, BaseHash, PasswordConfig, PasswordHandler, PasswordService, dummy_hash,
+        },
     };
 
     /// A scrypt hash of "s3cret" with the cheapest parameters (ln=4), made

@@ -1,9 +1,7 @@
 // Tests pour AppError — IntoResponse, From<anyhow::Error>, From<DbErr>, impl_from_error!
 
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
-use runique::errors::AppError;
-use runique::errors::{ErrorContext, ErrorType};
+use axum::{http::StatusCode, response::IntoResponse};
+use runique::errors::{AppError, ErrorContext, ErrorType};
 
 // ── AppError::new ────────────────────────────────────────────────
 

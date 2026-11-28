@@ -1,16 +1,19 @@
 //! The async gate: reads what the decision needs from the database, decides
 //! (`decide`), and hands out the proof with the conditions it checked.
-use super::PkOf;
-use super::decide::{Ownership, rank_allows, rights_allow};
-use super::operation::{AdminOperation, Create, List, View};
-use super::proof::{Authorized, ReadableIds};
-use super::refusal::{Refusal, RefusalReason};
-use super::rights::{Crud, CrudAction, ReadableColumns};
-use super::write::pk_condition;
-use crate::auth::current_user::CurrentUser;
-use crate::auth::meta::ModelMeta;
-use crate::schema::Pk;
-use crate::utils::aliases::ADb;
+use super::{
+    PkOf,
+    decide::{Ownership, rank_allows, rights_allow},
+    operation::{AdminOperation, Create, List, View},
+    proof::{Authorized, ReadableIds},
+    refusal::{Refusal, RefusalReason},
+    rights::{Crud, CrudAction, ReadableColumns},
+    write::pk_condition,
+};
+use crate::{
+    auth::{current_user::CurrentUser, meta::ModelMeta},
+    schema::Pk,
+    utils::aliases::ADb,
+};
 use sea_orm::{
     ColumnTrait, Condition, IdenStatic, Iterable, PrimaryKeyToColumn, QueryFilter, QuerySelect,
 };
@@ -172,10 +175,14 @@ pub async fn readable_ids<T: ModelMeta>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::auth::gate::operation::{Delete, ResetPassword, Update, View};
-    use crate::auth::gate::proof::Guarded;
-    use crate::auth::gate::test_support::fixtures::{db, note, pk, staff};
-    use crate::utils::aliases::ADb;
+    use crate::{
+        auth::gate::{
+            operation::{Delete, ResetPassword, Update, View},
+            proof::Guarded,
+            test_support::fixtures::{db, note, pk, staff},
+        },
+        utils::aliases::ADb,
+    };
     use sea_orm::{EntityTrait, PaginatorTrait};
 
     async fn visible_notes(ctx: &GateCtx<'_>) -> u64 {

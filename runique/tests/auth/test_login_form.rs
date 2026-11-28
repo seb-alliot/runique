@@ -6,11 +6,14 @@
 //! - build_form_for_test, clean_field, clean, is_valid
 
 use axum::http::Method;
-use runique::auth::LoginAdmin;
-use runique::forms::form::Forms;
-use runique::forms::traits::runique_form::{FormAccess, RuniqueForm, build_form_for_test};
-use std::collections::HashMap;
-use std::sync::Arc;
+use runique::{
+    auth::LoginAdmin,
+    forms::{
+        form::Forms,
+        traits::runique_form::{FormAccess, RuniqueForm, build_form_for_test},
+    },
+};
+use std::{collections::HashMap, sync::Arc};
 use tera::Tera;
 
 // ── Helper ────────────────────────────────────────────────────────────────────

@@ -5,10 +5,8 @@
 // Avant, les deux ecrivaient dans `config.prefix` : le dernier appele gagnait,
 // et l'ordre changeait silencieusement le comportement.
 
-use axum::Router;
-use axum::routing::get;
-use runique::app::RuniqueApp;
-use runique::config::RuniqueConfig;
+use axum::{Router, routing::get};
+use runique::{app::RuniqueApp, config::RuniqueConfig};
 use sea_orm::Database;
 use serial_test::serial;
 
@@ -329,8 +327,7 @@ async fn test_url_nommee_admin_est_la_base_publique() {
 
 /// The login page served by an admin built with `view_site_url` (or not).
 async fn login_page(view_site_url: Option<&str>) -> String {
-    use axum::body::to_bytes;
-    use axum::http::Request;
+    use axum::{body::to_bytes, http::Request};
     use tower::ServiceExt;
 
     let db = Database::connect("sqlite::memory:").await.unwrap();

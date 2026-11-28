@@ -3,15 +3,21 @@
 //! column row carrying a table right, and a duplicate, whatever writes it.
 //! Raw SQL, without the ORM, on every engine available.
 
-use crate::helpers::pk::{pk_sql_literal, pk_sql_literal_pg};
-use crate::helpers::{db, db_mysql, db_postgres};
-use runique::auth::constants::resource_key::FRAMEWORK_KEYS;
-use runique::migrations_table::{
-    AdminTableMigration, DROITS_COLUMN_ROW_FLAGS, DROITS_GROUP_NEVER_FRAMEWORK, DROITS_ONE_HOLDER,
-    EihwazUsersMigration,
+use crate::helpers::{
+    db, db_mysql, db_postgres,
+    pk::{pk_sql_literal, pk_sql_literal_pg},
 };
-use runique::sea_orm::sea_query::{Alias, Expr, Query};
-use runique::sea_orm::{ConnectionTrait, DatabaseConnection, ExprTrait, TransactionTrait};
+use runique::{
+    auth::constants::resource_key::FRAMEWORK_KEYS,
+    migrations_table::{
+        AdminTableMigration, DROITS_COLUMN_ROW_FLAGS, DROITS_GROUP_NEVER_FRAMEWORK,
+        DROITS_ONE_HOLDER, EihwazUsersMigration,
+    },
+    sea_orm::{
+        ConnectionTrait, DatabaseConnection, ExprTrait, TransactionTrait,
+        sea_query::{Alias, Expr, Query},
+    },
+};
 use sea_orm_migration::{MigrationTrait, SchemaManager};
 use serial_test::serial;
 

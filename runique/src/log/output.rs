@@ -21,12 +21,12 @@
 //! DB overloads it and is awkward to query). Instead, [`LogSink`] is the escape
 //! hatch: a dev who wants a DB/HTTP/queue sink implements it without ever touching
 //! `tracing` types. Async destinations buffer into their own channel inside `log`.
-use std::path::PathBuf;
-use std::sync::Arc;
-use tracing::field::{Field, Visit};
-use tracing::{Event, Level, Subscriber};
-use tracing_subscriber::Layer;
-use tracing_subscriber::layer::Context;
+use std::{path::PathBuf, sync::Arc};
+use tracing::{
+    Event, Level, Subscriber,
+    field::{Field, Visit},
+};
+use tracing_subscriber::{Layer, layer::Context};
 
 /// How a file output rolls over to a new file over time.
 ///

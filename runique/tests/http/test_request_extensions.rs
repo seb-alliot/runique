@@ -2,10 +2,11 @@
 
 use crate::helpers::pk::pk;
 use axum::{body::Body, http::Request};
-use runique::auth::current_user::CurrentUser;
-use runique::http::RequestExtensions;
-use runique::security::csp_nonce::CspNonce;
-use runique::security::csrf::CsrfToken;
+use runique::{
+    auth::current_user::CurrentUser,
+    http::RequestExtensions,
+    security::{csp_nonce::CspNonce, csrf::CsrfToken},
+};
 
 // ── new / default ────────────────────────────────────────────────
 

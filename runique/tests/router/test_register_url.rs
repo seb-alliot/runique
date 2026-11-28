@@ -1,8 +1,11 @@
 //! Tests — router/register_url.rs
 //! Couvre : register_pending, PENDING_URLS drain, reverse, reverse_with_parameters
 
-use runique::router::register_url::{UrlError, register_pending, reverse, reverse_with_parameters};
-use runique::{config::app::RuniqueConfig, engine::RuniqueEngine};
+use runique::{
+    config::app::RuniqueConfig,
+    engine::RuniqueEngine,
+    router::register_url::{UrlError, register_pending, reverse, reverse_with_parameters},
+};
 use sea_orm::Database;
 use std::sync::Arc;
 use tera::Tera;

@@ -10,11 +10,17 @@ mod makemigrations;
 mod migration;
 mod project;
 
-use crate::db::DatabaseConfig;
-use crate::migration::makemigrations::run;
-use crate::migration::steps::apply::{applied, migrate};
-use crate::migration::steps::generate::init_migrate;
-use crate::migration::steps::parser::files::{project_engine, project_pk};
+use crate::{
+    db::DatabaseConfig,
+    migration::{
+        makemigrations::run,
+        steps::{
+            apply::{applied, migrate},
+            generate::init_migrate,
+            parser::files::{project_engine, project_pk},
+        },
+    },
+};
 use anyhow::Result;
 use runique_i18n::tf;
 

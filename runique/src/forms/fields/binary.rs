@@ -4,12 +4,15 @@
 //! Form values travel as strings up to the conversion into the entity, and
 //! arbitrary bytes aren't valid UTF-8: `finalize` reads the staged upload and
 //! hands its content on as base64, which [`decode_binary`] turns back into bytes.
-use crate::forms::config::field_config::FieldConfig;
-use crate::forms::fields::file::is_staged_upload;
-use crate::forms::traits::form_field::FormField;
-use crate::log::TraceResult;
-use crate::translation::{t, tf};
-use crate::utils::aliases::ATera;
+use crate::{
+    forms::{
+        config::field_config::FieldConfig, fields::file::is_staged_upload,
+        traits::form_field::FormField,
+    },
+    log::TraceResult,
+    translation::{t, tf},
+    utils::aliases::ATera,
+};
 use async_trait::async_trait;
 use base64::{Engine, engine::general_purpose::STANDARD};
 use serde::Serialize;
@@ -254,9 +257,9 @@ mod guarantees {
 /// became `pub(crate)`.
 #[cfg(test)]
 mod upload_tests {
-    use crate::forms::Forms;
-    use crate::forms::prisme::multipart::parse_multipart;
-    use crate::forms::traits::runique_form::FormAccess;
+    use crate::forms::{
+        Forms, prisme::multipart::parse_multipart, traits::runique_form::FormAccess,
+    };
     use axum::{
         Router,
         body::Body,

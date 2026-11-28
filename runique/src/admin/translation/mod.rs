@@ -1,6 +1,5 @@
 //! i18n injection for admin templates — `insert_admin_messages` by section.
-use crate::admin::constants::ADMIN_MESSAGE_KEYS;
-use crate::translation::t;
+use crate::{admin::constants::ADMIN_MESSAGE_KEYS, translation::t};
 use tera::Context;
 
 /// Injects every translated message of the `admin.{section}.*` keys listed

@@ -18,8 +18,7 @@
 use crate::helpers::{db, db_mysql, db_postgres};
 use runique::sea_orm::{DatabaseConnection, TransactionTrait};
 use runique_cli::migration::runtime::RuniqueMigrator;
-use sea_orm_migration::MigratorTraitSelf;
-use sea_orm_migration::prelude::*;
+use sea_orm_migration::{MigratorTraitSelf, prelude::*};
 use serial_test::serial;
 
 const FIRST: &str = "rq_launch_first";

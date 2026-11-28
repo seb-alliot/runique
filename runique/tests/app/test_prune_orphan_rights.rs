@@ -2,12 +2,16 @@
 //! group can't keep a grant on a key that no model answers to any more (a
 //! renamed or removed table), which a later model reusing the key would
 //! inherit.
-use crate::helpers::db::{exec, fresh_db_with_schema};
-use crate::helpers::framework_tables::GROUPES_DROITS_DDL;
+use crate::helpers::{
+    db::{exec, fresh_db_with_schema},
+    framework_tables::GROUPES_DROITS_DDL,
+};
 use axum::{Router, routing::get};
-use runique::app::RuniqueApp;
-use runique::config::RuniqueConfig;
-use runique::sea_orm::{ConnectionTrait, DatabaseConnection, Statement};
+use runique::{
+    app::RuniqueApp,
+    config::RuniqueConfig,
+    sea_orm::{ConnectionTrait, DatabaseConnection, Statement},
+};
 use serial_test::serial;
 
 mod notes {

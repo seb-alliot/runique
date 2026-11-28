@@ -10,9 +10,11 @@
 //! The MySQL user needs the right to create those databases:
 //! `GRANT ALL PRIVILEGES ON \`runique\_test\_%\`.* TO 'runique'@'%';`
 use runique::sea_orm::{ConnectionTrait, Database};
-use std::collections::HashMap;
-use std::hash::{DefaultHasher, Hash, Hasher};
-use std::sync::LazyLock;
+use std::{
+    collections::HashMap,
+    hash::{DefaultHasher, Hash, Hasher},
+    sync::LazyLock,
+};
 
 /// Databases already created by this process: `key` → isolated URL.
 static READY: LazyLock<tokio::sync::Mutex<HashMap<String, String>>> =

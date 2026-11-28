@@ -1,10 +1,11 @@
 //! What `extend!{}` generates for the framework's own columns (the phantom
 //! columns of the extended table) and for an enum it declares.
 use crate::helpers::pk::pk;
-use runique::forms::Forms;
-use runique::forms::traits::runique_form::FormAccess;
-use runique::sea_orm::{ActiveValue, PrimaryKeyTrait};
-use runique::utils::aliases::StrMap;
+use runique::{
+    forms::{Forms, traits::runique_form::FormAccess},
+    sea_orm::{ActiveValue, PrimaryKeyTrait},
+    utils::aliases::StrMap,
+};
 
 mod groups {
     use runique::prelude::*;
@@ -170,8 +171,7 @@ fn the_schema_of_an_extend_holds_its_own_columns() {
 #[cfg(feature = "admin")]
 #[test]
 fn an_extended_account_table_keeps_the_accounts_rules() {
-    use runique::auth::meta::ModelMeta;
-    use runique::sea_orm::IdenStatic;
+    use runique::{auth::meta::ModelMeta, sea_orm::IdenStatic};
     assert_eq!(<users::Entity as ModelMeta>::KEY, "users");
     const { assert!(<users::Entity as ModelMeta>::IS_ACCOUNT_TABLE) };
     const { assert!(<users::Entity as ModelMeta>::IS_FRAMEWORK_TABLE) };
@@ -202,8 +202,7 @@ fn an_extended_account_table_keeps_the_accounts_rules() {
 #[cfg(feature = "admin")]
 #[test]
 fn an_extended_account_table_replaces_the_accounts_admin() {
-    use runique::admin::builder::model_admin::ModelAdmin;
-    use runique::app::staging::AdminStaging;
+    use runique::{admin::builder::model_admin::ModelAdmin, app::staging::AdminStaging};
     let staging = AdminStaging::new()
         .enable()
         .path("/admin")

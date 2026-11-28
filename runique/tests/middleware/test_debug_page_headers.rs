@@ -4,8 +4,7 @@
 //! page, rendered by a real app with the framework's templates.
 
 use axum::{Router, http::StatusCode, routing::get};
-use runique::app::RuniqueApp;
-use runique::config::RuniqueConfig;
+use runique::{app::RuniqueApp, config::RuniqueConfig};
 use sea_orm::Database;
 use serial_test::serial;
 

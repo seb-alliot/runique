@@ -12,8 +12,7 @@ pub use enums::*;
 pub use lists::*;
 pub use schema::*;
 
-use crate::model::ast::*;
-use crate::model::utils::*;
+use crate::model::{ast::*, utils::*};
 use model_meta::generate_model_meta;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;

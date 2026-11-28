@@ -1,17 +1,24 @@
 //! Contributions with data that should go through and data the database must
 //! turn down. Each test prints what it tried and what came back, so the
 //! output reads like a log of the run.
-use crate::backend::contribution::list_contributions;
-use crate::entities::contribution::{
-    ActiveModel as ContributionActiveModel, Column as ContributionColumn, ContributionType,
-    Entity as ContributionEntity,
+use crate::{
+    backend::contribution::list_contributions,
+    entities::contribution::{
+        ActiveModel as ContributionActiveModel, Column as ContributionColumn, ContributionType,
+        Entity as ContributionEntity,
+    },
 };
-use runique::auth::current_user::CurrentUser;
-use runique::auth::permissions::rank::Rang;
-use runique::auth::permissions::{ColumnRight, Groupe, Permission};
-use runique::prelude::runique_users::{ActiveModel as UserActiveModel, Entity as UserEntity};
-use runique::prelude::*;
-use runique::runique_test::{TestFailure, expect_db_error, runique_test};
+use runique::{
+    auth::{
+        current_user::CurrentUser,
+        permissions::{ColumnRight, Groupe, Permission, rank::Rang},
+    },
+    prelude::{
+        runique_users::{ActiveModel as UserActiveModel, Entity as UserEntity},
+        *,
+    },
+    runique_test::{TestFailure, expect_db_error, runique_test},
+};
 use sea_orm::DbErr;
 
 const TITLE: &str = "runique_test contribution";

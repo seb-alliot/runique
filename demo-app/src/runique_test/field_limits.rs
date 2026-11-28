@@ -1,9 +1,7 @@
 //! The bounds of a field (`min`, `max`, `min_length`…) as a project writes
 //! them: the bound itself is accepted, one step past it is refused, with the
 //! message given to the bound or, when none was given, the field's default.
-use runique::chrono::NaiveTime;
-use runique::forms::Limit;
-use runique::prelude::*;
+use runique::{chrono::NaiveTime, forms::Limit, prelude::*};
 
 const CUSTOM: &str = "Refused by the project";
 

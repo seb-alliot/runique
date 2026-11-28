@@ -2,8 +2,7 @@
 //! connects with, and by the features of `runique` in its `Cargo.toml`,
 //! which it is compiled with. The command is built for the three engines and
 //! connects to any of them: it is the one that has to see them disagree.
-use crate::db::DatabaseEngine;
-use crate::migration::steps::generate::init_migrate::Engine;
+use crate::{db::DatabaseEngine, migration::steps::generate::init_migrate::Engine};
 use anyhow::{Result, bail};
 use runique_i18n::tf;
 

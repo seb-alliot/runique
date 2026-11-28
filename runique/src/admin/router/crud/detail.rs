@@ -1,16 +1,21 @@
 //! `GET {admin}/{resource}/{id}/detail`: one row of a model.
-use crate::admin::builder::site::AdminSite;
-use crate::admin::router::AdminView;
-use crate::admin::router::context::{DetailContext, ResourceRef, RowLinks, put};
-use crate::admin::router::routes::AdminState;
-use crate::admin::router::{chrome, failure, unknown_resource};
-use crate::admin::translation::insert_admin_messages;
-use crate::auth::current_user::CurrentUser;
-use crate::http::request::Request;
-use crate::utils::aliases::AppResult;
-use axum::Extension;
-use axum::extract::Path;
-use axum::response::Response;
+use crate::{
+    admin::{
+        builder::site::AdminSite,
+        router::{
+            AdminView, chrome,
+            context::{DetailContext, ResourceRef, RowLinks, put},
+            failure,
+            routes::AdminState,
+            unknown_resource,
+        },
+        translation::insert_admin_messages,
+    },
+    auth::current_user::CurrentUser,
+    http::request::Request,
+    utils::aliases::AppResult,
+};
+use axum::{Extension, extract::Path, response::Response};
 use std::sync::Arc;
 
 /// `order` cut to the columns the row holds: a column the account can't read

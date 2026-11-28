@@ -1,7 +1,8 @@
 //! List fields (`checkbox` / `multichoice` in `model!{}`): filters on the
 //! values chosen, stored in the field's own table (`{table}_{field}`).
-use sea_orm::sea_query::Query;
-use sea_orm::{ColumnTrait, Condition, EntityTrait, Iterable, PrimaryKeyToColumn, Value};
+use sea_orm::{
+    ColumnTrait, Condition, EntityTrait, Iterable, PrimaryKeyToColumn, Value, sea_query::Query,
+};
 use std::marker::PhantomData;
 
 /// Implemented by `model!{}` on each entity: `List` holds one [`ListField`]
@@ -83,9 +84,9 @@ where
     where
         D: sea_orm::ConnectionTrait,
     {
-        use sea_orm::sea_query::Expr;
         use sea_orm::{
             DbBackend, DbErr, EntityName, FromQueryResult, IdenStatic, QuerySelect, QueryTrait,
+            sea_query::Expr,
         };
 
         if db.get_database_backend() != DbBackend::Postgres {

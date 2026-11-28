@@ -1,9 +1,10 @@
 //! The signed-in account as one request sees it: who it is, and what it may
 //! do (`rights_on`). Built by the auth middleware, read by the admin's gate,
 //! Prisme and the developer's views.
-use crate::auth::permissions::rank::Rang;
-use crate::auth::permissions::{Groupe, Permission};
-use crate::schema::pk::Pk;
+use crate::{
+    auth::permissions::{Groupe, Permission, rank::Rang},
+    schema::pk::Pk,
+};
 use serde::{Deserialize, Serialize};
 
 /// Authenticated user injected into request extensions.

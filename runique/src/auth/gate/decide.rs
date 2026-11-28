@@ -1,8 +1,10 @@
 //! The gate's decision on one row, without the database: the async gate
 //! looks up what it needs (owner), then asks here.
-use super::operation::AdminOperation;
-use super::refusal::{Refusal, RefusalReason};
-use super::rights::CrudAction;
+use super::{
+    operation::AdminOperation,
+    refusal::{Refusal, RefusalReason},
+    rights::CrudAction,
+};
 use crate::auth::permissions::rank::Rang;
 use sea_orm::Condition;
 

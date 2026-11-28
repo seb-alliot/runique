@@ -3,9 +3,13 @@
 //! one — through the public reset pages or the admin.
 
 use axum::Router;
-use runique::app::builder::state::{No, Yes};
-use runique::app::{BuildFailure, RuniqueApp, RuniqueAppBuilder};
-use runique::config::RuniqueConfig;
+use runique::{
+    app::{
+        BuildFailure, RuniqueApp, RuniqueAppBuilder,
+        builder::state::{No, Yes},
+    },
+    config::RuniqueConfig,
+};
 use sea_orm::Database;
 use serial_test::serial;
 

@@ -18,13 +18,15 @@
 #[cfg(feature = "pk-uuid")]
 use crate::helpers::pk::pk;
 use crate::helpers::{db, db_mysql, db_postgres};
-use runique::auth::user;
-use runique::macros::database::query::RuniqueQueryBuilder;
-use runique::sea_orm::{
-    ActiveModelTrait, ActiveValue::Set, ConnectionTrait, DatabaseConnection, DbBackend,
-    EntityTrait, Schema, TransactionTrait,
+use runique::{
+    auth::user,
+    macros::database::query::RuniqueQueryBuilder,
+    sea_orm::{
+        ActiveModelTrait, ActiveValue::Set, ConnectionTrait, DatabaseConnection, DbBackend,
+        EntityTrait, Schema, TransactionTrait,
+    },
+    utils::ADb,
 };
-use runique::utils::ADb;
 use serial_test::serial;
 use std::collections::HashSet;
 

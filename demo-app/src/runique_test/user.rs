@@ -1,8 +1,8 @@
-use crate::backend::auth::find_user_by_username;
-use crate::forms::RegisterForm;
-use runique::prelude::runique_users::ActiveModel as UserActiveModel;
-use runique::prelude::*;
-use runique::runique_test::{TestFailure, runique_test};
+use crate::{backend::auth::find_user_by_username, forms::RegisterForm};
+use runique::{
+    prelude::{runique_users::ActiveModel as UserActiveModel, *},
+    runique_test::{TestFailure, runique_test},
+};
 use sea_orm::DbErr;
 
 const USERNAME: &str = "runique_test_rollback";

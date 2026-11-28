@@ -1,11 +1,13 @@
 //! Every registered `ModelAdmin`, whatever its model.
-use super::model_admin::ModelAdmin;
-use super::registered::{HistoryScope, RegisteredModel};
-use crate::admin::router::AdminView;
-use crate::auth::current_user::CurrentUser;
-use crate::auth::meta::ModelMeta;
-use crate::auth::user;
-use crate::translation::t;
+use super::{
+    model_admin::ModelAdmin,
+    registered::{HistoryScope, RegisteredModel},
+};
+use crate::{
+    admin::router::AdminView,
+    auth::{current_user::CurrentUser, meta::ModelMeta, user},
+    translation::t,
+};
 use std::collections::HashMap;
 
 /// One model as the navigation shows it.
@@ -185,8 +187,7 @@ impl AdminSite {
         user: &CurrentUser,
     ) -> Result<std::collections::HashMap<String, i64>, sea_orm::DbErr> {
         use super::registered::{COUNT_RESOURCE, COUNT_TOTAL};
-        use sea_orm::ConnectionTrait;
-        use sea_orm::sea_query::UnionType;
+        use sea_orm::{ConnectionTrait, sea_query::UnionType};
         let mut queries = self.all().filter_map(|m| m.count_query(db, user));
         let Some(mut union) = queries.next() else {
             return Ok(std::collections::HashMap::new());
@@ -257,12 +258,17 @@ impl AdminSite {
 #[cfg(test)]
 mod tests {
     use super::AdminSite;
-    use crate::admin::builder::list::ListQuery;
-    use crate::admin::builder::model_admin::ModelAdmin;
-    use crate::admin::builder::registered::AdminError;
-    use crate::auth::gate::test_support::fixtures::note::{Column, Entity};
-    use crate::auth::gate::test_support::fixtures::{db, pk, staff};
-    use crate::auth::user;
+    use crate::{
+        admin::builder::{list::ListQuery, model_admin::ModelAdmin, registered::AdminError},
+        auth::{
+            gate::test_support::fixtures::{
+                db,
+                note::{Column, Entity},
+                pk, staff,
+            },
+            user,
+        },
+    };
 
     #[test]
     fn distinct_valid_models_pass() {

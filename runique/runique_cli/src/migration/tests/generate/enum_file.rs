@@ -1,5 +1,4 @@
-use crate::db::DatabaseEngine;
-use crate::migration::tests::*;
+use crate::{db::DatabaseEngine, migration::tests::*};
 
 const PG: DatabaseEngine = DatabaseEngine::PostgreSQL;
 /// The engines where an enum column is text.

@@ -10,8 +10,10 @@
 
 use crate::helpers::{db, db_mysql, db_postgres};
 use runique::sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend};
-use sea_query::extension::postgres::Type;
-use sea_query::{Alias, ColumnDef, ColumnType, Expr, ExprTrait, IntoIden, Query, Table};
+use sea_query::{
+    Alias, ColumnDef, ColumnType, Expr, ExprTrait, IntoIden, Query, Table,
+    extension::postgres::Type,
+};
 use serial_test::serial;
 
 const TABLE: &str = "enum_column_probe";

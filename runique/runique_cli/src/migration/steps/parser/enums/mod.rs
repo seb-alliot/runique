@@ -5,12 +5,15 @@ mod previous;
 mod read_snapshots;
 mod snapshot;
 
-use crate::migration::helpers::schemas::db_columns;
-use crate::migration::paths::{enum_snapshot_dir, enum_snapshot_file_path};
-use crate::migration::steps::generate::generate_enum_snapshot_file;
-use crate::migration::steps::parser::files::rust_files::rust_files;
-use crate::migration::steps::parser::syn_extract::extract_alias_new_str;
-use crate::migration::types::{EnumPlace, ParsedEnum, ParsedSchema};
+use crate::migration::{
+    helpers::schemas::db_columns,
+    paths::{enum_snapshot_dir, enum_snapshot_file_path},
+    steps::{
+        generate::generate_enum_snapshot_file,
+        parser::{files::rust_files::rust_files, syn_extract::extract_alias_new_str},
+    },
+    types::{EnumPlace, ParsedEnum, ParsedSchema},
+};
 use anyhow::Result;
 use runique_i18n::tf;
 use std::{fs, path::Path};

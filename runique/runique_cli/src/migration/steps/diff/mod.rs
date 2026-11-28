@@ -16,9 +16,12 @@ pub use extensions::plan_extend_changes;
 pub use models::compute_main_changes;
 pub use rename::effective_renames;
 
-use crate::migration::helpers::schemas::db_columns;
-use crate::migration::types::{
-    Changes, EnumChange, EnumChanges, ParsedColumn, ParsedEnum, ParsedFk, ParsedSchema, TableChange,
+use crate::migration::{
+    helpers::schemas::db_columns,
+    types::{
+        Changes, EnumChange, EnumChanges, ParsedColumn, ParsedEnum, ParsedFk, ParsedSchema,
+        TableChange,
+    },
 };
 use std::collections::HashMap;
 

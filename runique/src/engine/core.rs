@@ -1,14 +1,12 @@
 //! `RuniqueEngine` implementation — construction, middleware attachment, store access.
-use crate::engine::SecurityPolicies;
-use crate::middleware::session::{CleaningMemoryStore, session_db::RuniqueSessionStore};
-use crate::utils::aliases::{ADb, ARlockmap, ARuniqueConfig, ATera, new, new_registry};
-use std::any::TypeId;
-use std::collections::HashMap;
-use std::sync::{Arc, LazyLock, RwLock};
+use crate::{
+    engine::{SecurityPolicies, SessionStores},
+    utils::aliases::{ADb, ARlockmap, ARuniqueConfig, ATera, new, new_registry},
+};
+use std::{any::TypeId, collections::HashMap, sync::Arc};
 use tera::Tera;
 
-use crate::config::RuniqueConfig;
-use crate::middleware::MiddlewareConfig;
+use crate::{config::RuniqueConfig, middleware::MiddlewareConfig};
 
 #[cfg(feature = "orm")]
 use sea_orm::DatabaseConnection;
@@ -30,10 +28,9 @@ pub struct RuniqueEngine {
     pub features: MiddlewareConfig,
     /// CSP, allowed hosts, CSRF-exempt paths, Permissions-Policy, trusted proxies.
     pub security: SecurityPolicies,
-    /// Memory store — anonymous sessions + CSRF.
-    pub session_store: LazyLock<RwLock<Option<Arc<CleaningMemoryStore>>>>,
-    /// DB store — persistent authenticated sessions (table `eihwaz_sessions`).
-    pub session_db_store: LazyLock<RwLock<Option<Arc<RuniqueSessionStore>>>>,
+    /// The memory store (anonymous sessions + CSRF) and the database store
+    /// (authenticated sessions, table `eihwaz_sessions`).
+    pub sessions: SessionStores,
     /// Extension map — custom external connections registered via `with_custom_db()`.
     /// Keyed by `TypeId`, supports multiple types simultaneously.
     pub extensions: HashMap<TypeId, Arc<dyn std::any::Any + Send + Sync>>,
@@ -53,8 +50,7 @@ impl RuniqueEngine {
             url_registry: new_registry(),
             features,
             security: SecurityPolicies::default(),
-            session_store: LazyLock::new(|| RwLock::new(None)),
-            session_db_store: LazyLock::new(|| RwLock::new(None)),
+            sessions: SessionStores::default(),
             extensions: HashMap::new(),
         }
     }
@@ -62,7 +58,7 @@ impl RuniqueEngine {
     /// `true` if the in-memory session store has reached its high watermark — a new
     /// session would be refused. Lets a login handler fail fast and clean (503 +
     /// `Retry-After`) instead of letting tower's commit-time `create` error surface
-    /// as a generic 500. Returns `false` if the store is not yet initialized.
+    /// as a generic 500. Returns `false` when Runique owns no memory store.
     ///
     /// # Examples
     /// ```rust,ignore
@@ -73,11 +69,10 @@ impl RuniqueEngine {
     /// ```
     #[must_use]
     pub fn session_store_saturated(&self) -> bool {
-        self.session_store
-            .read()
-            .ok()
-            .and_then(|g| g.as_ref().map(|s| s.is_saturated()))
-            .unwrap_or(false)
+        self.sessions
+            .memory
+            .as_ref()
+            .is_some_and(|store| store.is_saturated())
     }
 
     /// Closes every session of `user_id`, whatever the device or the store: its
@@ -90,8 +85,7 @@ impl RuniqueEngine {
         user_id: crate::schema::pk::Pk,
     ) -> Result<(), sea_orm::DbErr> {
         crate::auth::BuiltinUserEntity::increase_session_version(&self.db, user_id).await?;
-        let db_store = self.session_db_store.read().ok().and_then(|g| g.clone());
-        if let Some(store) = db_store {
+        if let Some(store) = &self.sessions.database {
             store.invalidate_all(user_id).await?;
         }
         self.forget_user_sessions(user_id).await;
@@ -102,8 +96,7 @@ impl RuniqueEngine {
     /// database decides whether a session lives, so this runs once the rows
     /// are gone, as after a password reset's transaction.
     pub(crate) async fn forget_user_sessions(&self, user_id: crate::schema::pk::Pk) {
-        let memory_store = self.session_store.read().ok().and_then(|g| g.clone());
-        if let Some(store) = memory_store {
+        if let Some(store) = &self.sessions.memory {
             store.invalidate_user_sessions(user_id).await;
         }
     }

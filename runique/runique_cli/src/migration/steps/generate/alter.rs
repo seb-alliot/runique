@@ -1,7 +1,5 @@
 //! The migration of a table that changes: the cases its change asks for.
-use super::builder::BuilderPlan;
-use super::constraints::fk_constraint_name;
-use super::instruction::File;
+use super::{builder::BuilderPlan, constraints::fk_constraint_name, instruction::File};
 use crate::migration::types::Changes;
 
 /// True if `body` has a line that isn't blank or a `//` comment — i.e. it actually calls `manager`.

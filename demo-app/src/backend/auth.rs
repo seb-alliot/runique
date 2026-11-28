@@ -1,7 +1,8 @@
-use crate::backend::lang::msg;
-use crate::forms::{LoginForm, RegisterForm};
-use runique::prelude::runique_users::Entity as UserEntity;
-use runique::prelude::*;
+use crate::{
+    backend::lang::msg,
+    forms::{LoginForm, RegisterForm},
+};
+use runique::prelude::{runique_users::Entity as UserEntity, *};
 
 pub async fn register_user(
     form: &RegisterForm,

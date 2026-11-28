@@ -1,17 +1,26 @@
 //! `GET/POST {admin}/{resource}/{id}/edit`: one row's form, written through the gate.
-use crate::admin::builder::registered::FormOutcome;
-use crate::admin::builder::site::AdminSite;
-use crate::admin::router::context::{EditContext, FormTexts, ResourceRef, put};
-use crate::admin::router::routes::AdminState;
-use crate::admin::router::{chrome, failure, unknown_resource};
-use crate::admin::translation::insert_admin_messages;
-use crate::auth::current_user::CurrentUser;
-use crate::http::request::Request;
-use crate::translation::t;
-use crate::utils::aliases::AppResult;
-use axum::Extension;
-use axum::extract::Path;
-use axum::response::{IntoResponse, Redirect, Response};
+use crate::{
+    admin::{
+        builder::{registered::FormOutcome, site::AdminSite},
+        router::{
+            chrome,
+            context::{EditContext, FormTexts, ResourceRef, put},
+            failure,
+            routes::AdminState,
+            unknown_resource,
+        },
+        translation::insert_admin_messages,
+    },
+    auth::current_user::CurrentUser,
+    http::request::Request,
+    translation::t,
+    utils::aliases::AppResult,
+};
+use axum::{
+    Extension,
+    extract::Path,
+    response::{IntoResponse, Redirect, Response},
+};
 use std::sync::Arc;
 
 pub(crate) async fn edit_view(

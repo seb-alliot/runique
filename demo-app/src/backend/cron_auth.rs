@@ -1,5 +1,7 @@
-use runique::prelude::user::{Column, Entity as UserEntity};
-use runique::prelude::*;
+use runique::prelude::{
+    user::{Column, Entity as UserEntity},
+    *,
+};
 
 /// Accounts whose activation link was never used. A blocked account always has
 /// `activated_at` set (CHECK on eihwaz_users), so it is never touched.

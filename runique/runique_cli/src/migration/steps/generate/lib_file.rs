@@ -1,8 +1,7 @@
 //! The migration crate's `lib.rs`: parsing, canonical rendering, framework migrations first.
 use crate::migration::*;
 use anyhow::Result;
-use std::fs;
-use std::path::Path;
+use std::{fs, path::Path};
 
 /// `module_name` must be in SeaORM format: `m{timestamp}_create_{table}_table`
 pub fn update_migration_lib(migrations_path: &str, module_name: &str) -> Result<()> {

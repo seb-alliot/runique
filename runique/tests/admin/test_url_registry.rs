@@ -6,8 +6,7 @@
 //! d'instancier RuniqueEngine complet.
 
 use crate::helpers::tera::kwargs;
-use runique::templates::url::LinkFunction;
-use runique::utils::aliases::new_registry;
+use runique::{templates::url::LinkFunction, utils::aliases::new_registry};
 use tera::{Context, Function, State, TeraResult, Value};
 
 /// Insère une route dans un registre

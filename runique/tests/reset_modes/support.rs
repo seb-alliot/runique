@@ -1,15 +1,15 @@
 //! An app whose `build()` is the first to set the global password config
 //! (`password_init`, first call wins): each binary using it tests one mode,
 //! alone in its process.
-use crate::helpers::db;
-use crate::helpers::framework_tables::{RESET_TOKENS_DDL, SESSIONS_DDL, USERS_DDL};
-use crate::helpers::pk::{pk, pk_sql_literal};
-use runique::app::RuniqueApp;
-use runique::auth::BuiltinUserEntity;
-use runique::config::RuniqueConfig;
-use runique::db::ADb;
-use runique::sea_orm::DatabaseConnection;
-use runique::security::password::PasswordConfig;
+use crate::helpers::{
+    db,
+    framework_tables::{RESET_TOKENS_DDL, SESSIONS_DDL, USERS_DDL},
+    pk::{pk, pk_sql_literal},
+};
+use runique::{
+    app::RuniqueApp, auth::BuiltinUserEntity, config::RuniqueConfig, db::ADb,
+    sea_orm::DatabaseConnection, security::password::PasswordConfig,
+};
 
 pub const NEW_PASSWORD: &str = "Brand-new passw0rd!";
 

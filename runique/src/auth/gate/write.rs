@@ -3,14 +3,16 @@
 //! An update or a delete replays the proof's conditions in its `WHERE` and
 //! must touch exactly one row: if the row changed between the gate and the
 //! write (new owner, promoted out of reach, deleted), nothing is written.
-use super::PkOf;
-use super::operation::{Create, Delete, Update};
-use super::proof::Authorized;
-use super::refusal::{Refusal, RefusalReason};
-use sea_orm::sea_query::IntoValueTuple;
+use super::{
+    PkOf,
+    operation::{Create, Delete, Update},
+    proof::Authorized,
+    refusal::{Refusal, RefusalReason},
+};
 use sea_orm::{
     ActiveModelBehavior, ActiveModelTrait, ActiveValue, ColumnTrait, Condition, ConnectionTrait,
     EntityTrait, IdenStatic, IntoActiveModel, Iterable, PrimaryKeyToColumn, QueryFilter, Value,
+    sea_query::IntoValueTuple,
 };
 
 fn write_failed(e: sea_orm::DbErr) -> Refusal {
@@ -199,10 +201,16 @@ pub async fn delete<E: EntityTrait, C: ConnectionTrait>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::auth::gate::check::{GateCtx, authorize_create, authorize_row};
-    use crate::auth::gate::test_support::fixtures::{db, note, pk, staff};
-    use crate::auth::user;
-    use crate::utils::aliases::ADb;
+    use crate::{
+        auth::{
+            gate::{
+                check::{GateCtx, authorize_create, authorize_row},
+                test_support::fixtures::{db, note, pk, staff},
+            },
+            user,
+        },
+        utils::aliases::ADb,
+    };
     use sea_orm::Set;
 
     async fn owner_of(db: &ADb, id: i32) -> Option<Option<crate::schema::pk::Pk>> {

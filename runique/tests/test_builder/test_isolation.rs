@@ -1,11 +1,11 @@
 //! Whatever the handler does, nothing it wrote survives, and the next test
 //! isn't held up or fed stale state.
 use super::helpers::{Scratch, count, insert};
-use runique::db::ADb;
-use runique::runique_test::runique_test;
-use runique::sea_orm::DbErr;
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use runique::{db::ADb, runique_test::runique_test, sea_orm::DbErr};
+use std::{
+    sync::{Arc, Mutex},
+    time::{Duration, Instant},
+};
 
 #[tokio::test]
 async fn writes_are_rolled_back() {

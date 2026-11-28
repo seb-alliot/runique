@@ -10,20 +10,21 @@ use crate::helpers::{
     server::{build_engine, build_engine_with},
 };
 use axum::http::Method;
-use runique::forms::constants::FORM_NAME_KEY;
-use runique::forms::{
-    fields::text::TextField,
-    form::Forms,
-    renderer::FormRenderer,
-    traits::runique_form::{FormAccess, RuniqueForm, build_form_for_test},
+use runique::{
+    forms::{
+        constants::FORM_NAME_KEY,
+        fields::text::TextField,
+        form::Forms,
+        renderer::FormRenderer,
+        traits::runique_form::{FormAccess, RuniqueForm, build_form_for_test},
+    },
+    prelude::ValidationForm,
+    security::constants::CSRF_TOKEN_KEY,
+    templates::register_asset_filters,
+    utils::aliases::new_registry,
 };
-use runique::prelude::ValidationForm;
-use runique::security::constants::CSRF_TOKEN_KEY;
-use runique::templates::register_asset_filters;
-use runique::utils::aliases::new_registry;
 use serde_json::Value;
-use std::collections::HashMap;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 use tera::Tera;
 
 struct SearchForm {

@@ -1,15 +1,20 @@
 //! An account's groups: the ones the actor manages it may join or leave.
 //! Never a form field of the account: only this operation writes them.
-use super::refusal::{Refusal, RefusalReason};
-use super::rights_grid::may_set_group;
-use crate::auth::constants::resource_key;
-use crate::auth::current_user::CurrentUser;
-use crate::auth::history::{ActionLog, log_action};
-use crate::auth::permissions::rank::Rang;
-use crate::auth::permissions::{group, user_groups};
-use crate::auth::user;
-use crate::schema::pk::Pk;
-use crate::utils::aliases::ADb;
+use super::{
+    refusal::{Refusal, RefusalReason},
+    rights_grid::may_set_group,
+};
+use crate::{
+    auth::{
+        constants::resource_key,
+        current_user::CurrentUser,
+        history::{ActionLog, log_action},
+        permissions::{group, rank::Rang, user_groups},
+        user,
+    },
+    schema::pk::Pk,
+    utils::aliases::ADb,
+};
 use sea_orm::{
     ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, Set,
     TransactionTrait,

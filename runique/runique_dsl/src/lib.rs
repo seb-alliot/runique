@@ -9,6 +9,5 @@ pub mod transform_name;
 pub mod types;
 
 pub use column_type::ColumnType;
-pub use parser::form_field::form_field_to_field_def;
-pub use parser::pk::with_project_pk;
+pub use parser::{form_field::form_field_to_field_def, pk::with_project_pk};
 pub use transform_name::snake_case;

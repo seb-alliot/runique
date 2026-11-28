@@ -14,12 +14,14 @@ use axum::{Router, routing::get};
 use runique::admin::AdminConfig;
 #[cfg(feature = "admin")]
 use runique::app::staging::AdminStaging;
-use runique::app::{
-    staging::{CoreStaging, MiddlewareStaging, StaticStaging},
-    {BuildError, BuildFailure, CheckError, CheckReport, RuniqueAppBuilder},
+use runique::{
+    app::{
+        BuildError, BuildFailure, CheckError, CheckReport, RuniqueAppBuilder,
+        staging::{CoreStaging, MiddlewareStaging, StaticStaging},
+    },
+    config::app::RuniqueConfig,
+    middleware::{MiddlewareConfig, PermissionsPolicyConfig},
 };
-use runique::config::app::RuniqueConfig;
-use runique::middleware::{MiddlewareConfig, PermissionsPolicyConfig};
 use serial_test::serial;
 use tower_sessions::cookie::time::Duration;
 

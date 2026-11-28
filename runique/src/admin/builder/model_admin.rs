@@ -1,17 +1,18 @@
 //! One model's admin: one block per responsibility, each set through a closure.
-use super::form::FormConfig;
-use super::list::ListConfig;
-use super::list::{ListQuery, TOTAL};
-use crate::auth::permissions::rights::ColumnRights;
-use crate::auth::{
-    gate::{Authorized, Guarded, List, View},
-    meta::ModelMeta,
+use super::{
+    form::FormConfig,
+    list::{ListConfig, ListQuery, TOTAL},
 };
-use crate::forms::constants::FORM_NAME_KEY;
-use crate::forms::form::Forms;
-use crate::forms::{FormEntity, RuniqueForm};
-use crate::security::constants::CSRF_TOKEN_KEY;
-use crate::utils::aliases::ADb;
+use crate::{
+    auth::{
+        gate::{Authorized, Guarded, List, View},
+        meta::ModelMeta,
+        permissions::rights::ColumnRights,
+    },
+    forms::{FormEntity, RuniqueForm, constants::FORM_NAME_KEY, form::Forms},
+    security::constants::CSRF_TOKEN_KEY,
+    utils::aliases::ADb,
+};
 use sea_orm::{
     ColumnTrait, DbErr, FromQueryResult, IdenStatic, Iterable, PaginatorTrait, PrimaryKeyToColumn,
     QueryFilter, QueryResult, QuerySelect,
@@ -603,14 +604,23 @@ pub(crate) fn prefill(form: &mut Forms, row: &serde_json::Value) {
 #[cfg(test)]
 mod tests {
     use super::{ListPage, ModelAdmin};
-    use crate::admin::builder::list::ListQuery;
-    use crate::auth::current_user::CurrentUser;
-    use crate::auth::gate::GateCtx;
-    use crate::auth::gate::check::{authorize_list, authorize_view};
-    use crate::auth::gate::test_support::fixtures::note::{Column, Entity};
-    use crate::auth::gate::test_support::fixtures::{db, pk, staff};
-    use crate::auth::permissions::rank::Rang;
-    use crate::auth::user;
+    use crate::{
+        admin::builder::list::ListQuery,
+        auth::{
+            current_user::CurrentUser,
+            gate::{
+                GateCtx,
+                check::{authorize_list, authorize_view},
+                test_support::fixtures::{
+                    db,
+                    note::{Column, Entity},
+                    pk, staff,
+                },
+            },
+            permissions::rank::Rang,
+            user,
+        },
+    };
     use sea_orm::{IdenStatic, Order};
 
     fn names<C: IdenStatic>(columns: &[C]) -> Vec<&'static str> {
@@ -1535,8 +1545,7 @@ mod tests {
 
     #[test]
     fn a_list_field_shown_without_the_update_right_is_locked() {
-        use crate::auth::permissions::ColumnRight;
-        use crate::auth::permissions::rights::ColumnRights;
+        use crate::auth::permissions::{ColumnRight, rights::ColumnRights};
 
         let only = |can_update: bool| {
             ColumnRights::Only(vec![ColumnRight {

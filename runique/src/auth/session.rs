@@ -1,10 +1,13 @@
 //! The session mechanics: login, logout, the authenticated session's lifetime and protection.
-use crate::auth::constants::{SESSION_ACTIVE_KEY, SESSION_USER_ID_KEY, SESSION_VERSION_KEY};
-use crate::auth::user_trait::RuniqueUser;
-use crate::log::TraceResult;
-use crate::middleware::security::csrf::rotate_csrf_token;
-use crate::middleware::session::session_db::RuniqueSessionStore;
-use crate::schema::pk::Pk;
+use crate::{
+    auth::{
+        constants::{SESSION_ACTIVE_KEY, SESSION_USER_ID_KEY, SESSION_VERSION_KEY},
+        user_trait::RuniqueUser,
+    },
+    log::TraceResult,
+    middleware::{security::csrf::rotate_csrf_token, session::session_db::RuniqueSessionStore},
+    schema::pk::Pk,
+};
 use tower_sessions::Session;
 
 /// Default when the builder never set a duration (24h), so `login` never breaks
@@ -64,8 +67,7 @@ mod ttl_tests {
 #[cfg(test)]
 mod session_version_tests {
     use super::{SESSION_VERSION_KEY, session_is_current};
-    use crate::auth::user_trait::RuniqueUser;
-    use crate::schema::pk::Pk;
+    use crate::{auth::user_trait::RuniqueUser, schema::pk::Pk};
     use std::sync::Arc;
     use tower_sessions::{MemoryStore, Session};
 

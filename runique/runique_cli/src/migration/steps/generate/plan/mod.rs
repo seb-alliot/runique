@@ -13,16 +13,16 @@ mod stages;
 mod waiting_migrate;
 mod waiting_migrations;
 
-use crate::atomic::{AtomicBuilder, SourceItems};
-use crate::db::DatabaseEngine;
-use crate::migration::steps::generate::lib_file::{
-    lib_modules, planned_lib, strip_sea_orm_cli_placeholder_file,
+use crate::{
+    atomic::{AtomicBuilder, SourceItems},
+    db::DatabaseEngine,
+    migration::{
+        steps::generate::lib_file::{lib_modules, planned_lib, strip_sea_orm_cli_placeholder_file},
+        *,
+    },
 };
-use crate::migration::*;
 use anyhow::Result;
-use std::collections::BTreeMap;
-use std::fs;
-use std::path::PathBuf;
+use std::{collections::BTreeMap, fs, path::PathBuf};
 
 use waiting_migrate::waiting_migrate;
 

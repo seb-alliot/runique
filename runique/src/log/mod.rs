@@ -5,8 +5,10 @@
 //! (`forms`, `middleware`, `session`, `auth`, `admin`, `db`, `mailer`, `migration`,
 //! `templates`, `errors`, `builder`). Each leaf is an `Option<Level>` — `None` means
 //! the event is disabled (zero cost).
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::{
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex},
+};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
     EnvFilter, Layer, Registry, fmt, fmt::format::FmtSpan, layer::SubscriberExt,

@@ -1,7 +1,11 @@
 //! A column entering or leaving an enum.
-use crate::migration::steps::generate::columns::{col_type_method, enum_column_type};
-use crate::migration::steps::generate::delete;
-use crate::migration::types::ParsedColumn;
+use crate::migration::{
+    steps::generate::{
+        columns::{col_type_method, enum_column_type},
+        delete,
+    },
+    types::ParsedColumn,
+};
 
 /// A column entering or leaving enum-ness, both directions (`up`: old -> new,
 /// `down`: new -> old) — reusing sea-query's builder (`ColumnDef::using`) rather

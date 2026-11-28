@@ -1,5 +1,7 @@
-use crate::backend::doc_lang::{counterpart_slug, doc_page_path, other_lang};
-use crate::entities::{cour, doc_block, doc_page, doc_section};
+use crate::{
+    backend::doc_lang::{counterpart_slug, doc_page_path, other_lang},
+    entities::{cour, doc_block, doc_page, doc_section},
+};
 use runique::prelude::*;
 
 pub async fn doc_index(lang: &str, request: &mut Request) -> AppResult<Response> {

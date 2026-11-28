@@ -1,7 +1,9 @@
 //! What the database already applied: the migrations `seaql_migrations`
 //! records, and the checks `makemigrations` runs on them before computing.
-use crate::auth::migrations_table::FRAMEWORK_MIGRATION_NAMES;
-use crate::migration::steps::generate::lib_file::lib_modules;
+use crate::{
+    auth::migrations_table::FRAMEWORK_MIGRATION_NAMES,
+    migration::steps::generate::lib_file::lib_modules,
+};
 use anyhow::Result;
 use runique_i18n::tf;
 use sea_orm::{DatabaseConnection, EntityTrait, QueryOrder};
@@ -46,9 +48,10 @@ pub(crate) fn check_known(applied: &[String], migrations_path: &str) -> Result<(
 #[cfg(all(test, feature = "sqlite"))]
 mod tests {
     use super::*;
-    use crate::atomic::tests::TempDir;
-    use crate::migration::master::BuilderMaster;
-    use crate::migration::steps::generate::lib_file::initial_lib;
+    use crate::{
+        atomic::tests::TempDir,
+        migration::{master::BuilderMaster, steps::generate::lib_file::initial_lib},
+    };
     use sea_orm::{ActiveModelTrait, ConnectionTrait, Database, DbBackend, Schema, Set};
     use std::fs;
 

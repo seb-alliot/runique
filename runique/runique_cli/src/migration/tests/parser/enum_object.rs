@@ -1,5 +1,4 @@
-use crate::atomic::tests::TempDir;
-use crate::migration::tests::*;
+use crate::{atomic::tests::TempDir, migration::tests::*};
 use std::fs;
 
 fn enum_column(name: &str, of: &str, values: &[&str]) -> ParsedColumn {

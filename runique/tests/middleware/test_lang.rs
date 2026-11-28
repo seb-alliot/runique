@@ -11,10 +11,12 @@ use axum::{
     routing::get,
 };
 use http_body_util::BodyExt;
-use runique::app::RuniqueApp;
-use runique::config::RuniqueConfig;
-use runique::middleware::lang_middleware;
-use runique::translation::{Lang, current_lang};
+use runique::{
+    app::RuniqueApp,
+    config::RuniqueConfig,
+    middleware::lang_middleware,
+    translation::{Lang, current_lang},
+};
 use runique_i18n::set_lang;
 use sea_orm::Database;
 use serial_test::serial;
