@@ -2,7 +2,7 @@
 //! Couvre : register_asset_filters, mask_filter, csrf_filter, register_filter
 
 use runique::templates::register_asset_filters;
-use runique::utils::env::css_token;
+use runique::config::env::css_token;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use tera::{Context, Tera};

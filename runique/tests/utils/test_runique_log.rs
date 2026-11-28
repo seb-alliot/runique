@@ -1,7 +1,7 @@
-//! Tests — utils/config/runique_log
+//! Tests — log
 //! Couvre : RuniqueLog builder (arbre par module), dev(), subscriber_level
 
-use runique::utils::{MigrationTracing, RuniqueLog, TemplatesTracing};
+use runique::log::{MigrationTracing, RuniqueLog, TemplatesTracing};
 use tracing::Level;
 
 #[test]

@@ -1,5 +1,5 @@
 use runique::prelude::*;
-use runique::utils::password::{
+use runique::security::password::{
     AutoConfig, BaseHash, External, Manual, PasswordConfig, PasswordService, password_get,
     password_init,
 };
@@ -275,9 +275,9 @@ fn test_base_hash_detect_none_for_plaintext() {
 #[test]
 fn test_top_level_hash_and_verify() {
     // password_get() retourne le config globale (argon2 par défaut)
-    let h = runique::utils::password::hash("testpwd").unwrap();
-    assert!(runique::utils::password::verify("testpwd", &h));
-    assert!(!runique::utils::password::verify("wrongpwd", &h));
+    let h = runique::security::password::hash("testpwd").unwrap();
+    assert!(runique::security::password::verify("testpwd", &h));
+    assert!(!runique::security::password::verify("wrongpwd", &h));
 }
 
 #[tokio::test]

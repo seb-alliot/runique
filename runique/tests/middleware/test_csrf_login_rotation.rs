@@ -21,7 +21,7 @@ use runique::middleware::session::RuniqueSessionStore;
 use runique::{
     auth::session::{login, logout},
     middleware::{security::csrf::csrf_middleware, session::CleaningMemoryStore},
-    utils::crypto::csrf::CsrfToken,
+    security::csrf::CsrfToken,
 };
 #[cfg(feature = "orm")]
 use std::sync::Arc;

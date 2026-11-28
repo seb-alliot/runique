@@ -3,10 +3,11 @@
 use crate::admin::builder::confirm_form::ConfirmForm;
 use crate::admin::builder::registered::AdminError;
 use crate::admin::builder::site::AdminSite;
-use crate::admin::router::admin_router::AdminState;
+use crate::admin::constants::admin_form;
 use crate::admin::router::context::{
     GridBox, GridColumn, GridTable, ResourceRef, RightsContext, put,
 };
+use crate::admin::router::routes::AdminState;
 use crate::admin::router::{chrome, failure, unknown_resource};
 use crate::auth::current_user::CurrentUser;
 use crate::auth::gate::Refusal;
@@ -16,13 +17,12 @@ use crate::auth::gate::rights_grid::{
 };
 use crate::auth::permissions::group_rights;
 use crate::auth::user::{self, BuiltinUserEntity};
-use crate::forms::field::FormAccess;
+use crate::forms::runique_form::FormAccess;
 use crate::forms::validation_form::ValidationForm;
 use crate::http::request::Request;
 use crate::utils::aliases::AppResult;
-use crate::utils::constants::admin_key::admin_form;
-use crate::utils::pk::Pk;
-use crate::utils::translation::t;
+use crate::schema::pk::Pk;
+use crate::translation::t;
 use axum::Extension;
 use axum::extract::Path;
 use axum::response::{IntoResponse, Redirect, Response};
@@ -104,7 +104,7 @@ fn offered(
     model: &dyn crate::admin::builder::registered::RegisteredModel,
     for_group: bool,
 ) -> bool {
-    !for_group || !crate::utils::constants::resource_key::FRAMEWORK_KEYS.contains(&model.key())
+    !for_group || !crate::auth::constants::resource_key::FRAMEWORK_KEYS.contains(&model.key())
 }
 
 /// The grid of every model offered, ticked from `rows` (the holder's rows now).
@@ -121,7 +121,7 @@ fn grid(site: &AdminSite, rows: &[group_rights::Model], for_group: bool) -> Vec<
             // On an admin's grid, the groups offer their floor alone.
             let allowed = |right: &str| {
                 for_group
-                    || key != crate::utils::constants::resource_key::GROUPES
+                    || key != crate::auth::constants::resource_key::GROUPES
                     || crate::auth::gate::rights_grid::ADMIN_GROUP_RIGHTS.contains(&right)
             };
             GridTable {
@@ -133,7 +133,7 @@ fn grid(site: &AdminSite, rows: &[group_rights::Model], for_group: bool) -> Vec<
                     .filter(|(right, _)| allowed(right))
                     .map(|(right, label)| {
                         (
-                            crate::utils::translation::t(label).into_owned(),
+                            crate::translation::t(label).into_owned(),
                             GridBox {
                                 name: table_box(key, right),
                                 ticked: table_row.is_some_and(|r| table_flag(r, right)),
@@ -179,7 +179,7 @@ fn sent_grid(site: &AdminSite, req: &Request, for_group: bool) -> Option<Vec<Tab
         let key = model.key();
         // A box the grid doesn't offer stays unknown: sent anyway, it refuses
         // the whole save (the groups' floor on an admin's grid).
-        let floor = !for_group && key == crate::utils::constants::resource_key::GROUPES;
+        let floor = !for_group && key == crate::auth::constants::resource_key::GROUPES;
         let mut ticked = |name: String| {
             let right = name.rsplit("__").next().unwrap_or_default();
             if floor
@@ -233,7 +233,7 @@ pub(crate) async fn rights_view(
         return unknown_resource(&resource);
     };
     let not_found = || AdminError::Refused(Refusal::new(RefusalReason::NotFound));
-    if model.key() == crate::utils::constants::resource_key::GROUPES {
+    if model.key() == crate::auth::constants::resource_key::GROUPES {
         return group_rights(id, site, admin, user, req).await;
     }
     if !model.is_account_table() {
@@ -387,7 +387,7 @@ async fn group_rights(
     if may_set_group(&user, &group).is_err() {
         return failure(not_found(), &req, &admin).await;
     }
-    let key = crate::utils::constants::resource_key::GROUPES;
+    let key = crate::auth::constants::resource_key::GROUPES;
     let back = admin.paths.detail_of(&site, key, &id);
 
     let form = req.form::<ConfirmForm<group::Entity>>(admin_form::RIGHTS);
@@ -519,7 +519,7 @@ pub(crate) async fn group_select_view(
         return failure(not_found(), &req, &admin).await;
     }
     let url = admin.paths.rights_of(
-        crate::utils::constants::resource_key::GROUPES,
+        crate::auth::constants::resource_key::GROUPES,
         &group_id.to_string(),
     );
     Ok(Redirect::to(&url).into_response())

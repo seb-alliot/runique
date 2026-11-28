@@ -5,15 +5,15 @@
 //! write goes through only for the losses the dirigeant saw.
 use super::refusal::{Refusal, RefusalReason};
 use super::rights_grid::{describe, from_rows};
+use crate::auth::constants::resource_key;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::history::{ActionLog, log_action};
 use crate::auth::permissions::rank::Rang;
 use crate::auth::permissions::{group, group_rights, group_rows_within, user_groups};
 use crate::auth::user;
 use crate::utils::aliases::ADb;
-use crate::utils::constants::resource_key;
-use crate::utils::pk::Pk;
-use crate::utils::translation::t;
+use crate::schema::pk::Pk;
+use crate::translation::t;
 use sea_orm::sea_query::{Expr, Query};
 use sea_orm::{
     ActiveValue, ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, QueryFilter,

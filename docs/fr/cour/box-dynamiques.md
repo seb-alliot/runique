@@ -686,10 +686,10 @@ impl Evenements {
 ### 14.1 Les champs de formulaire
 
 ```rust
-// runique/src/forms/base.rs
+// runique/src/forms/form_field.rs
 pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Sync { /* ... */ }
 
-// runique/src/forms/field.rs
+// runique/src/forms/runique_form.rs
 dyn_clone::clone_trait_object!(FormField);
 
 // runique/src/utils/aliases/definition.rs
@@ -701,7 +701,7 @@ Un formulaire contient des champs de types différents (`TextField`, `MediaField
 ### 14.2 Les algorithmes de hachage de mot de passe
 
 ```rust
-// runique/src/utils/password/mod.rs
+// runique/src/security/password.rs
 pub trait PasswordHandler: Send + Sync + DynClone { /* ... */ }
 dyn_clone::clone_trait_object!(PasswordHandler);
 ```

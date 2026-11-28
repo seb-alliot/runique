@@ -2,12 +2,12 @@
 //! rows, then back to the same list page.
 use crate::admin::builder::registered::BulkOutcome;
 use crate::admin::builder::site::AdminSite;
-use crate::admin::router::admin_router::AdminState;
+use crate::admin::router::routes::AdminState;
 use crate::admin::router::{failure, unknown_resource};
 use crate::auth::current_user::CurrentUser;
 use crate::http::request::Request;
 use crate::utils::aliases::AppResult;
-use crate::utils::translation::t;
+use crate::translation::t;
 use axum::Extension;
 use axum::extract::Path;
 use axum::response::{IntoResponse, Redirect, Response};

@@ -246,7 +246,7 @@ pub fn get_credentials(form: &LoginForm) -> Option<(String, String)> {
 }
 
 pub async fn get_profile_user(
-    user_id: Option<runique::utils::pk::Pk>,
+    user_id: Option<runique::schema::pk::Pk>,
     username: Option<&str>,
     db: &ADb,
 ) -> (

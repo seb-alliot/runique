@@ -3,7 +3,7 @@
 
 use crate::helpers::temp::TempDir;
 use runique::config::StaticConfig;
-use runique::forms::base::FormField;
+use runique::forms::form_field::FormField;
 use runique::forms::fields::MediaField;
 use runique::forms::fields::file::{AllowedExtensions, FileField, FileSize, FileUploadConfig};
 
@@ -366,7 +366,7 @@ fn test_override_exceeds_limit_err() {
     // calculée qui finit par le même chiffre (6597069766656.0).
     assert_eq!(
         msg,
-        runique::utils::translation::tf(
+        runique::translation::tf(
             runique_i18n::keys::forms::error::MAX_SIZE_ABOVE_MODEL,
             &["6.0", "5.0"]
         )

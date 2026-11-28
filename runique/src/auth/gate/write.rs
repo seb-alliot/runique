@@ -55,7 +55,7 @@ pub(crate) fn linked_delete_error(err: sea_orm::DbErr) -> sea_orm::DbErr {
     if is_foreign_key_violation(&err) {
         tracing::warn!(error = %err, "delete blocked by a foreign key");
         sea_orm::DbErr::Custom(
-            crate::utils::translation::t(runique_i18n::keys::forms::error::DELETE_LINKED)
+            crate::translation::t(runique_i18n::keys::forms::error::DELETE_LINKED)
                 .into_owned(),
         )
     } else {
@@ -206,7 +206,7 @@ mod tests {
     use crate::utils::aliases::ADb;
     use sea_orm::Set;
 
-    async fn owner_of(db: &ADb, id: i32) -> Option<Option<crate::utils::pk::Pk>> {
+    async fn owner_of(db: &ADb, id: i32) -> Option<Option<crate::schema::pk::Pk>> {
         note::Entity::find_by_id(id)
             .one(&**db)
             .await
@@ -214,7 +214,7 @@ mod tests {
             .map(|n| n.owner_id)
     }
 
-    async fn reassign(db: &ADb, id: i32, owner: crate::utils::pk::Pk) {
+    async fn reassign(db: &ADb, id: i32, owner: crate::schema::pk::Pk) {
         note::ActiveModel {
             id: Set(id),
             owner_id: Set(Some(owner)),
@@ -224,7 +224,7 @@ mod tests {
         .unwrap();
     }
 
-    fn new_owner(owner: crate::utils::pk::Pk) -> note::ActiveModel {
+    fn new_owner(owner: crate::schema::pk::Pk) -> note::ActiveModel {
         note::ActiveModel {
             owner_id: Set(Some(owner)),
             ..Default::default()
@@ -398,7 +398,7 @@ mod tests {
         manager
     }
 
-    async fn account(db: &ADb, id: crate::utils::pk::Pk) -> user::Model {
+    async fn account(db: &ADb, id: crate::schema::pk::Pk) -> user::Model {
         user::Entity::find_by_id(id).one(db).await.unwrap().unwrap()
     }
 

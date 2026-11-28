@@ -4,7 +4,7 @@ Complément de [admin-resource-permissions.md](admin-resource-permissions.md).
 
 ## AdminConfig
 
-[`admin/config/config_admin.rs`](../../../runique/src/admin/config/config_admin.rs)
+[`admin/config/settings.rs`](../../../runique/src/admin/config/settings.rs)
 
 ```mermaid
 classDiagram
@@ -215,7 +215,7 @@ classDiagram
 
 ## Middleware admin
 
-[`admin/middleware/admin_middleware.rs`](../../../runique/src/admin/middleware/admin_middleware.rs)
+[`admin/middleware/access.rs`](../../../runique/src/admin/middleware/access.rs)
 
 ```mermaid
 sequenceDiagram

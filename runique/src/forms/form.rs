@@ -1,19 +1,18 @@
 //! `Forms` — main form container: fields, validation, rendering, CSRF management.
 use crate::forms::{
-    base::FormField,
+    form_field::FormField,
     fields::{ChoiceField, FormNameField, HiddenField, HoneypotField},
     generic::GenericField,
     renderer::FormRenderer,
     validator::{FormValidator, ValidationError},
 };
 
-use crate::middleware::errors::error::html_escape;
-use crate::utils::config::TraceResult;
-use crate::utils::{
-    aliases::{FieldsMap, JsonMap, StrMap},
-    constants::session_key::session::{CSRF_TOKEN_KEY, FORM_NAME_KEY},
-    translation::{t, tf},
-};
+use crate::forms::constants::FORM_NAME_KEY;
+use crate::security::constants::CSRF_TOKEN_KEY;
+use crate::log::TraceResult;
+use crate::security::escape::html_escape;
+use crate::translation::{t, tf};
+use crate::utils::aliases::{FieldsMap, JsonMap, StrMap};
 use axum::http::Method;
 use indexmap::IndexMap;
 use serde::{
@@ -153,7 +152,7 @@ impl Serialize for Forms {
         let rendered_html = match self.render() {
             Ok(h) => h,
             Err(e) => {
-                if let Some(level) = crate::utils::runique_log::log_level!(forms.render) {
+                if let Some(level) = crate::log::log_level!(forms.render) {
                     crate::runique_log!(level, error = %e, "form render failed");
                 }
                 format!("<p style='color:red'>Render error: {}</p>", html_escape(&e))
@@ -170,7 +169,7 @@ impl Serialize for Forms {
                 // then fails every submission with no trace on screen).
                 .map(|(name, field)| {
                     let html = renderer.render_field(field.as_ref()).unwrap_or_else(|e| {
-                        if let Some(level) = crate::utils::runique_log::log_level!(forms.render)
+                        if let Some(level) = crate::log::log_level!(forms.render)
                         {
                             crate::runique_log!(level, field = %name, error = %e, "field render failed");
                         }
@@ -227,7 +226,7 @@ impl Serialize for Forms {
             (Some(name), Some(renderer)) => {
                 let hp = HoneypotField::new(name);
                 renderer.render_field(&hp).trace_or_default(
-                    crate::utils::runique_log::log_level!(forms.render),
+                    crate::log::log_level!(forms.render),
                     "honeypot render",
                 )
             }
@@ -400,7 +399,7 @@ impl Forms {
         T: FormField + Clone + Into<GenericField> + 'static,
     {
         let generic_instance: GenericField = field_template.clone().into();
-        if let Some(level) = crate::utils::runique_log::log_level!(forms.field) {
+        if let Some(level) = crate::log::log_level!(forms.field) {
             crate::runique_log!(
                 level,
                 field = %generic_instance.name(),
@@ -450,7 +449,7 @@ impl Forms {
                 if !value.trim().is_empty() {
                     has_data = true;
                 }
-                if let Some(level) = crate::utils::runique_log::log_level!(forms.set_value) {
+                if let Some(level) = crate::log::log_level!(forms.set_value) {
                     if is_password {
                         crate::runique_log!(level, field = %field.name(), "set_value [hidden]");
                     } else if key == CSRF_TOKEN_KEY {
@@ -459,7 +458,7 @@ impl Forms {
                         crate::runique_log!(
                             level,
                             field = %field.name(),
-                            "{}", crate::utils::translation::t(runique_i18n::keys::csrf::log::SET_VALUE)
+                            "{}", crate::translation::t(runique_i18n::keys::csrf::log::SET_VALUE)
                         );
                     } else {
                         crate::runique_log!(level, field = %field.name(), value = %value, "set_value");
@@ -477,7 +476,7 @@ impl Forms {
                     && !field.is_locked()
                     && !data.contains_key(field.name())
                 {
-                    if let Some(level) = crate::utils::runique_log::log_level!(forms.set_value) {
+                    if let Some(level) = crate::log::log_level!(forms.set_value) {
                         crate::runique_log!(level, field = %field.name(), value = "false", "set_value [checkbox absent → false]");
                     }
                     field.set_value("false");
@@ -591,7 +590,7 @@ impl Forms {
     /// path, hashing a password) in registration order. File uploads remain
     /// staged until `publish_uploads` is called.
     pub async fn finalize(&mut self) -> Result<(), String> {
-        let log_finalize = crate::utils::runique_log::log_level!(forms.finalize);
+        let log_finalize = crate::log::log_level!(forms.finalize);
         for (name, field) in self.fields.iter_mut() {
             match field.finalize().await {
                 Ok(()) => {
@@ -666,7 +665,7 @@ impl Forms {
 impl Forms {
     /// Runs all field validators in order.
     /// Returns `Ok(false)` if the form was force-invalidated (honeypot).
-    /// Used internally by [`RuniqueForm::is_valid`](crate::forms::field::RuniqueForm::is_valid).
+    /// Used internally by [`RuniqueForm::is_valid`](crate::forms::runique_form::RuniqueForm::is_valid).
     pub async fn is_valid(&mut self) -> Result<bool, ValidationError> {
         if self.force_invalid {
             return Ok(false);
@@ -849,7 +848,7 @@ impl Forms {
 
     #[cfg(any(feature = "sqlite", feature = "postgres", feature = "mysql"))]
     fn extract_field_name(err_msg: &str) -> Option<String> {
-        use crate::utils::constants::{CONSTRAINT_REGEX, FAILED_REGEX, FOR_KEY_REGEX, KEY_REGEX};
+        use crate::forms::constants::{CONSTRAINT_REGEX, FAILED_REGEX, FOR_KEY_REGEX, KEY_REGEX};
 
         if let Some(cap) = CONSTRAINT_REGEX.captures(err_msg).ok()? {
             let constraint = cap.get(1)?.as_str();
@@ -918,7 +917,7 @@ mod save_comportement_tests {
 mod database_error_tests {
     use super::Forms;
     use crate::forms::fields::TextField;
-    use crate::utils::translation::t;
+    use crate::translation::t;
     use sea_orm::DbErr;
 
     fn form_with(name: &str) -> Forms {
@@ -953,7 +952,7 @@ mod database_error_tests {
 mod driver_error_tests {
     use super::Forms;
     use crate::forms::fields::TextField;
-    use crate::utils::translation::{t, tf};
+    use crate::translation::{t, tf};
     use sea_orm::sqlx::error::{DatabaseError, ErrorKind};
     use sea_orm::{DbErr, RuntimeErr};
     use std::sync::Arc;

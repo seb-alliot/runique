@@ -106,8 +106,8 @@ async fn tokens_reach(db: &DatabaseConnection, n: i64) -> i64 {
 #[serial]
 async fn only_pending_and_active_accounts_get_a_link_and_the_page_never_tells() {
     // No mailer, no link: a token nobody could receive is never made.
-    runique::utils::mailer::mailer_init(runique::utils::mailer::MailerConfig {
-        backend: runique::utils::mailer::MailerBackend::Console,
+    runique::mailer::mailer_init(runique::mailer::MailerConfig {
+        backend: runique::mailer::MailerBackend::Console,
         from: "test@runique.rs".to_string(),
         host: String::new(),
         port: 0,

@@ -1,11 +1,11 @@
 //! Every registered `ModelAdmin`, whatever its model.
-use super::admin_builder::ModelAdmin;
+use super::model_admin::ModelAdmin;
 use super::registered::{HistoryScope, RegisteredModel};
 use crate::admin::router::AdminView;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::meta::ModelMeta;
 use crate::auth::user;
-use crate::utils::translation::t;
+use crate::translation::t;
 use std::collections::HashMap;
 
 /// One model as the navigation shows it.
@@ -257,8 +257,8 @@ impl AdminSite {
 #[cfg(test)]
 mod tests {
     use super::AdminSite;
-    use crate::admin::builder::admin_builder::ModelAdmin;
     use crate::admin::builder::list::ListQuery;
+    use crate::admin::builder::model_admin::ModelAdmin;
     use crate::admin::builder::registered::AdminError;
     use crate::auth::gate::test_support::fixtures::note::{Column, Entity};
     use crate::auth::gate::test_support::fixtures::{db, pk, staff};

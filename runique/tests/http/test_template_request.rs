@@ -328,7 +328,7 @@ async fn public_url_never_uses_the_host() {
 use runique::auth::user::Entity as UserEntity;
 use runique::errors::ErrorContext;
 use runique::sea_orm::ConnectionTrait;
-use runique::utils::config::Pk;
+use runique::schema::Pk;
 
 /// By the primary key. `?table` creates the accounts table first: without
 /// it the lookup itself fails.

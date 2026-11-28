@@ -9,10 +9,10 @@ use super::file::{
 };
 use crate::atomic::{AtomicBuilder, SourceItems};
 use crate::config::static_files::resolve_media_root;
-use crate::forms::base::{FieldConfig, FormField};
+use crate::forms::form_field::{FieldConfig, FormField};
 use crate::utils::aliases::ATera;
-use crate::utils::config::TraceResult;
-use crate::utils::translation::{t, tf};
+use crate::log::TraceResult;
+use crate::translation::{t, tf};
 
 /// What the visitor reads when an upload can't be written: the detail (a
 /// server path, an OS error) goes to the log only.
@@ -89,7 +89,7 @@ impl UploadMedia {
         {
             let req_mb = bytes as f64 / (1024.0 * 1024.0);
             let lim_mb = limit as f64 / (1024.0 * 1024.0);
-            return Err(crate::utils::translation::tf(
+            return Err(crate::translation::tf(
                 runique_i18n::keys::forms::error::MAX_SIZE_ABOVE_MODEL,
                 &[format!("{req_mb:.1}"), format!("{lim_mb:.1}")],
             ));
@@ -429,7 +429,7 @@ async fn remove_replaced(previous: &str) {
         .is_ok_and(|metadata| metadata.file_type().is_file());
     if regular {
         crate::atomic::remove(&path).trace(
-            crate::utils::runique_log::log_level!(forms.finalize),
+            crate::log::log_level!(forms.finalize),
             runique_i18n::keys::forms::log::REMOVE_REPLACED,
         );
     }

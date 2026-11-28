@@ -12,7 +12,7 @@ pub enum PhantomType {
 impl PhantomType {
     pub fn to_tokens(&self) -> TokenStream2 {
         match self {
-            PhantomType::Pk => quote! { ::runique::utils::config::Pk },
+            PhantomType::Pk => quote! { ::runique::schema::Pk },
             PhantomType::String => quote! { String },
             PhantomType::Bool => quote! { bool },
             PhantomType::I32 => quote! { i32 },

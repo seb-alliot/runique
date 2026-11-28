@@ -8,7 +8,7 @@ use crate::auth::gate::write::linked_delete_error;
 use crate::auth::permissions::rights::ColumnRights;
 use crate::db::DbWrite;
 use crate::forms::FormEntity;
-use crate::forms::field::RuniqueForm;
+use crate::forms::runique_form::RuniqueForm;
 use crate::forms::form::{SaveComportement, write_replacing_uploads, write_with_uploads};
 use crate::forms::save::{SaveAction, not_found, on_fields, url_key};
 use crate::http::Request;
@@ -256,7 +256,7 @@ mod tests {
     use super::*;
     use crate::auth::gate::test_support::fixtures::{NoteForm, db, note, pk, staff};
     use crate::db::ADb;
-    use crate::forms::field::FormAccess;
+    use crate::forms::runique_form::FormAccess;
     use crate::forms::form::Forms;
     use sea_orm::{EntityTrait, TransactionTrait};
 

@@ -52,7 +52,7 @@ impl AdminPaths {
             transfer: format!("{prefix}/{{resource}}/{{id}}/transfer"),
             group_select: format!(
                 "{prefix}/{}/rights",
-                crate::utils::constants::resource_key::GROUPES
+                crate::auth::constants::resource_key::GROUPES
             ),
             history: format!("{prefix}/history"),
             history_entry: format!("{prefix}/history/{{id}}"),

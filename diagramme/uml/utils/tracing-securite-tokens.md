@@ -2,7 +2,7 @@
 
 ## Tracing — `RuniqueLog` (arbre par domaine)
 
-[`utils/config/runique_log/`](../../../runique/src/utils/config/runique_log/)
+[`log/`](../../../runique/src/log/)
 
 ```mermaid
 classDiagram
@@ -41,7 +41,7 @@ Chaque `*Tracing` (FormTracing, AuthTracing, AdminTracing…) = sous-struct avec
 
 ## TraceResult — ne pas avaler les `Result`
 
-[`utils/config/trace_ext.rs`](../../../runique/src/utils/config/trace_ext.rs)
+[`log/trace_ext.rs`](../../../runique/src/log/trace_ext.rs)
 
 ```mermaid
 classDiagram
@@ -58,7 +58,7 @@ logge `file:line` + l'erreur puis renvoie `Option`, au lieu d'un `.ok()` muet.
 
 ## Tokens — CSRF & CSP nonce
 
-[`utils/crypto/`](../../../runique/src/utils/crypto/)
+[`security/`](../../../runique/src/security/)
 
 ```mermaid
 classDiagram

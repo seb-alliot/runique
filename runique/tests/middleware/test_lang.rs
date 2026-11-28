@@ -14,7 +14,7 @@ use http_body_util::BodyExt;
 use runique::app::RuniqueApp;
 use runique::config::RuniqueConfig;
 use runique::middleware::lang_middleware;
-use runique::utils::translation::{Lang, current_lang};
+use runique::translation::{Lang, current_lang};
 use runique_i18n::set_lang;
 use sea_orm::Database;
 use serial_test::serial;
@@ -182,10 +182,10 @@ async fn built(with_lang: bool) -> Router {
 #[serial]
 async fn the_builder_puts_handlers_and_error_pages_in_the_visitors_language() {
     let _site = Site::in_lang(Lang::En);
-    let german_404 = Lang::De.get(runique::utils::translation::keys::http::error::CODE_404);
+    let german_404 = Lang::De.get(runique::translation::keys::http::error::CODE_404);
     assert_ne!(
         german_404,
-        Lang::En.get(runique::utils::translation::keys::http::error::CODE_404)
+        Lang::En.get(runique::translation::keys::http::error::CODE_404)
     );
 
     let app = built(true).await;

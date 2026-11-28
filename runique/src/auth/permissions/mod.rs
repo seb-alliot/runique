@@ -257,12 +257,12 @@ pub async fn prune_orphan_droits<C: ConnectionTrait>(
 /// traced, never swallowed silently.
 pub async fn pull_groupes_db<C: ConnectionTrait>(
     db: &C,
-    user_id: crate::utils::pk::Pk,
+    user_id: crate::schema::pk::Pk,
 ) -> Vec<Groupe> {
     let trace_err = |what: &str, e: &sea_orm::DbErr| {
         tracing::error!(user_id = %user_id, error = %e, "{what} failed — no rights granted for this request");
     };
-    let rows: Vec<(i32, String, bool, crate::utils::pk::Pk, bool, bool, bool)> =
+    let rows: Vec<(i32, String, bool, crate::schema::pk::Pk, bool, bool, bool)> =
         match group::Entity::find()
             .select_only()
             .column(group::Column::Id)
@@ -367,7 +367,7 @@ pub async fn load_rights<C: ConnectionTrait>(
 /// grants nothing and is traced, never swallowed.
 pub async fn pull_droits_compte<C: ConnectionTrait>(
     db: &C,
-    user_id: crate::utils::pk::Pk,
+    user_id: crate::schema::pk::Pk,
 ) -> Vec<Permission> {
     match group_rights::Entity::find()
         .filter(group_rights::Column::UserId.eq(user_id))

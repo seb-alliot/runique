@@ -1,8 +1,8 @@
 //! Loading and initialization of the Tera template engine (internal + user).
+use super::constants::*;
 use crate::config::RuniqueConfig;
 use crate::templates::static_tera;
 use crate::utils::aliases::{ARlockmap, StrMap};
-use crate::utils::constants::*;
 use regex::Captures;
 use std::path::Path;
 use tera::Tera;
@@ -70,10 +70,10 @@ impl TemplateLoader {
         url_registry: ARlockmap,
     ) -> Result<(Tera, Integrity), Box<dyn std::error::Error>> {
         let hashes = Integrity {
-            site: crate::utils::integrity::build_integrity_map(Path::new(
+            site: crate::templates::integrity::build_integrity_map(Path::new(
                 &config.static_files.staticfiles_dirs,
             )),
-            runique: crate::utils::integrity::build_integrity_map(Path::new(
+            runique: crate::templates::integrity::build_integrity_map(Path::new(
                 &config.static_files.static_runique_path,
             )),
         };
@@ -152,7 +152,7 @@ impl TemplateLoader {
             return Err(Box::new(e));
         }
 
-        if let Some(level) = crate::utils::runique_log::log_level!(builder.templates) {
+        if let Some(level) = crate::log::log_level!(builder.templates) {
             let internal_count = SIMPLE_TEMPLATES.len()
                 + ERROR_CORPS.len()
                 + FIELD_TEMPLATES.len()

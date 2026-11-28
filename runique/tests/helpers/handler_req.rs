@@ -22,10 +22,8 @@ use axum::{
     routing::get as axum_get,
 };
 use runique::{
-    auth::current_user::CurrentUser,
-    forms::Prisme,
-    http::request::Request as HandlerReq,
-    utils::{aliases::StrMap, crypto::csrf::CsrfToken},
+    auth::current_user::CurrentUser, forms::Prisme, http::request::Request as HandlerReq,
+    security::csrf::CsrfToken, utils::aliases::StrMap,
 };
 use std::sync::{Arc, Mutex};
 use tera::Context;

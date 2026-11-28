@@ -455,7 +455,7 @@ let admin = axum::Router::new()
     .route_layer(axum::middleware::from_fn(garde_admin));
 ```
 
-Dans l'admin actuel, cette garde est `declared_route_access` (`runique/src/admin/middleware/admin_middleware.rs`), posée sur les routes de l'admin seulement. Les routes publiques ne sont plus interceptées, et les 404 remontent normalement jusqu'au gestionnaire d'erreurs.
+Dans l'admin actuel, cette garde est `declared_route_access` (`runique/src/admin/middleware/access.rs`), posée sur les routes de l'admin seulement. Les routes publiques ne sont plus interceptées, et les 404 remontent normalement jusqu'au gestionnaire d'erreurs.
 
 ---
 

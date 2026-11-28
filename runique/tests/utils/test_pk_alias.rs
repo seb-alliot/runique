@@ -1,7 +1,7 @@
-// Tests pour l'alias global `Pk` (runique::utils::config::Pk) — doit suivre
+// Tests pour l'alias global `Pk` (runique::schema::Pk) — doit suivre
 // big-pk/pk-uuid, source de vérité unique pour le type de PK de l'application.
 
-use runique::utils::config::Pk;
+use runique::schema::Pk;
 
 #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
 #[test]

@@ -1,14 +1,14 @@
 //! `GET/POST {admin}/{resource}/{id}/edit`: one row's form, written through the gate.
 use crate::admin::builder::registered::FormOutcome;
 use crate::admin::builder::site::AdminSite;
-use crate::admin::router::admin_router::AdminState;
 use crate::admin::router::context::{EditContext, FormTexts, ResourceRef, put};
+use crate::admin::router::routes::AdminState;
 use crate::admin::router::{chrome, failure, unknown_resource};
 use crate::admin::translation::insert_admin_messages;
 use crate::auth::current_user::CurrentUser;
 use crate::http::request::Request;
 use crate::utils::aliases::AppResult;
-use crate::utils::translation::t;
+use crate::translation::t;
 use axum::Extension;
 use axum::extract::Path;
 use axum::response::{IntoResponse, Redirect, Response};

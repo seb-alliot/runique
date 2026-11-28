@@ -4,15 +4,15 @@
 //! routes: authentication, the current user, `noindex` and `AdminState` come
 //! from the layers `build_admin_router` wraps around them, never copied.
 pub mod account;
-pub mod admin_router;
 pub mod context;
 pub mod crud;
 pub mod history;
 pub mod path;
 pub mod permission;
+pub mod routes;
 
-pub use admin_router::{ADMIN_TEMPLATE_SESSION_KEY, AdminState, build_admin_router};
 pub use path::AdminPaths;
+pub use routes::{ADMIN_TEMPLATE_SESSION_KEY, AdminState, build_admin_router};
 
 /// Whether a declarative admin route replaces a generated view or stands alone.
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -24,6 +24,7 @@ pub enum AdminView {
 
 use crate::admin::builder::registered::AdminError;
 use crate::admin::builder::site::AdminSite;
+use crate::admin::constants::admin_route;
 use crate::admin::translation::{inject_admin_prefix, insert_admin_messages};
 use crate::auth::current_user::CurrentUser;
 use crate::errors::AppError;
@@ -31,7 +32,6 @@ use crate::errors::ErrorContext;
 use crate::http::Request;
 use crate::urlpatterns;
 use crate::utils::aliases::AppResult;
-use crate::utils::constants::admin_key::admin_route;
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::{Extension, Router, routing::get};
 use context::NavLinks;
@@ -113,7 +113,7 @@ fn chrome(
     req.context.insert("nav", &nav);
     req.context.insert("site_title", &admin.config.site_title);
     req.context
-        .insert("lang", crate::utils::translation::current_lang().code());
+        .insert("lang", crate::translation::current_lang().code());
 }
 
 /// What a page declared `admin` in `urlpatterns!` needs to extend

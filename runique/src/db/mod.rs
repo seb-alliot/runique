@@ -3,9 +3,9 @@ pub mod adb;
 pub mod builder;
 pub mod config;
 pub mod engine;
+pub mod sql_dialect;
 #[cfg(feature = "test-utils")]
 pub mod test_db;
-pub mod sql_dialect;
 pub mod write;
 
 pub use adb::ADb;

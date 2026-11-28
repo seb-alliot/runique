@@ -3,7 +3,7 @@
 ## Forms + hiérarchie de champs
 
 [`runique/src/forms/form.rs:30`](../../../runique/src/forms/form.rs#L30),
-[`base.rs`](../../../runique/src/forms/base.rs), [`generic.rs`](../../../runique/src/forms/generic.rs)
+[`form_field.rs`](../../../runique/src/forms/form_field.rs), [`generic.rs`](../../../runique/src/forms/generic.rs)
 
 ```mermaid
 classDiagram

@@ -4,14 +4,14 @@ use crate::config::app::RuniqueConfig;
 use crate::engine::RuniqueEngine;
 use crate::errors::AppError;
 use crate::prelude::{HostPolicy, PermissionsPolicy, SecurityPolicy};
-use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
+use crate::security::{csp_nonce::CspNonce, csrf::CsrfToken};
 use std::{collections::HashMap, result::Result, sync::Arc, sync::RwLock};
 use tera::Tera;
 use tower_sessions::SessionManagerLayer;
 
 // Import for new aliases
 use crate::flash::FlashMessage;
-use crate::forms::base::FormField;
+use crate::forms::form_field::FormField;
 use indexmap::IndexMap;
 
 // ============================================================================

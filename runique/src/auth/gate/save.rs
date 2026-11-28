@@ -19,8 +19,8 @@ use crate::auth::user;
 use crate::forms::form::{Forms, SaveComportement, write_replacing_uploads, write_with_uploads};
 use crate::forms::save::{SaveAction, on_fields, url_key};
 use crate::utils::aliases::ADb;
-use crate::utils::pk::Pk;
-use crate::utils::translation::t;
+use crate::schema::pk::Pk;
+use crate::translation::t;
 use sea_orm::sea_query::sea_value_to_json_value;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IdenStatic,
@@ -86,7 +86,7 @@ where
             ActionLog {
                 user_id: actor.id,
                 username: &actor.username,
-                resource_key: crate::utils::constants::resource_key::GROUPES,
+                resource_key: crate::auth::constants::resource_key::GROUPES,
                 object_pk: &group.id.to_string(),
                 object_repr: &group.nom,
                 action: "transfer",
@@ -236,7 +236,7 @@ where
                 && let Some(password) = E::Column::iter().find(|c| c.as_str() == "password")
             {
                 let unknown = format!("{}{}", uuid::Uuid::new_v4(), uuid::Uuid::new_v4());
-                let hash = crate::utils::password::hash(&unknown).map_err(DbErr::Custom)?;
+                let hash = crate::security::password::hash(&unknown).map_err(DbErr::Custom)?;
                 model.try_set(password, Value::from(hash))?;
             }
             missing_required::<E>(&model).map_err(|e| on_fields(form, e))?;
@@ -551,7 +551,7 @@ mod tests {
     use crate::forms::fields::TextField;
     #[cfg(feature = "pk-uuid")]
     use crate::forms::fields::UUIDField;
-    use crate::utils::pk::Pk;
+    use crate::schema::pk::Pk;
     use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryOrder, Schema, Set};
 
     /// `save_tickets`: a NOT NULL `title` without default, a NOT NULL `level`
@@ -559,7 +559,7 @@ mod tests {
     /// (`auto_now`, `auto_now_update`, ignored). Its `before_save` stamps
     /// `stamp` on an update, like an `auto_now_update` column.
     mod ticket {
-        use crate::utils::pk::Pk;
+        use crate::schema::pk::Pk;
         use sea_orm::entity::prelude::*;
         use sea_orm::{ConnectionTrait, DbErr};
 
@@ -602,12 +602,12 @@ mod tests {
         form: Forms,
     }
 
-    impl crate::forms::field::FormAccess for TicketForm {
+    impl crate::forms::runique_form::FormAccess for TicketForm {
         fn register_fields(_form: &mut Forms) {}
         crate::impl_form_access!();
     }
 
-    impl crate::forms::field::RuniqueForm for TicketForm {}
+    impl crate::forms::runique_form::RuniqueForm for TicketForm {}
 
     impl crate::forms::FormEntity for TicketForm {
         type Entity = ticket::Entity;
@@ -623,12 +623,12 @@ mod tests {
                 form: Forms,
             }
 
-            impl crate::forms::field::FormAccess for $form {
+            impl crate::forms::runique_form::FormAccess for $form {
                 fn register_fields(_form: &mut Forms) {}
                 crate::impl_form_access!();
             }
 
-            impl crate::forms::field::RuniqueForm for $form {}
+            impl crate::forms::runique_form::RuniqueForm for $form {}
 
             impl crate::forms::FormEntity for $form {
                 type Entity = $entity;

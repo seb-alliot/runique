@@ -1,6 +1,6 @@
 // Tests — ChoiceField, RadioField, CheckboxField
 
-use runique::forms::base::FormField;
+use runique::forms::form_field::FormField;
 use runique::forms::fields::choice::{CheckboxField, ChoiceField, ChoiceOption, RadioField};
 use std::sync::Arc;
 use tera::Tera;
@@ -305,7 +305,7 @@ fn test_checkbox_field_render_ok() {
 // joined value "fr,de" was compared whole to each choice.
 #[tokio::test]
 async fn test_choice_field_multiple_accepts_several_values() {
-    use runique::forms::base::FormField;
+    use runique::forms::form_field::FormField;
     let mut field = ChoiceField::new("pays")
         .multiple()
         .add_choice("fr", "France")

@@ -1,5 +1,5 @@
 //! Rate limiter by key (IP or other) with a fixed window and 429 response.
-use crate::utils::translation::t;
+use crate::translation::t;
 use axum::{
     body::Body,
     extract::State,
@@ -221,7 +221,7 @@ pub async fn rate_limit_middleware(
         next.run(req).await
     } else {
         let retry_after_secs = limiter.retry_after_secs(&ip);
-        if let Some(level) = crate::utils::runique_log::log_level!(middleware.rate_limit) {
+        if let Some(level) = crate::log::log_level!(middleware.rate_limit) {
             crate::runique_log!(level, %ip, retry_after = retry_after_secs, "rate limited");
         }
         (

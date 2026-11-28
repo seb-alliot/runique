@@ -2,7 +2,7 @@
 //! level it is logged at and the response it becomes.
 use super::build::BuildError;
 use super::context::{ErrorContext, ErrorType};
-use crate::utils::translation::{t, tf};
+use crate::translation::{t, tf};
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},

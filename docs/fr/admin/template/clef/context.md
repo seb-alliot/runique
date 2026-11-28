@@ -32,7 +32,7 @@ Et les variables de tout template Runique (`{% messages %}`, `{% csp %}`, `{% st
 
 ## Traductions
 
-Chaque page reçoit les traductions de sa section, sous la forme `admin.<section>.<clé>` → `{{ admin_<section>_<clé> }}` (par exemple `admin.list.btn_create` → `{{ admin_list_btn_create }}`). La liste des clés est dans `runique/src/utils/constants/admin_key.rs` (`ADMIN_MESSAGE_KEYS`), les textes dans `runique/src/utils/translation/<langue>.json`.
+Chaque page reçoit les traductions de sa section, sous la forme `admin.<section>.<clé>` → `{{ admin_<section>_<clé> }}` (par exemple `admin.list.btn_create` → `{{ admin_list_btn_create }}`). La liste des clés est dans `runique/src/admin/constants.rs` (`ADMIN_MESSAGE_KEYS`), les textes dans `runique/runique_i18n/src/locales/<langue>/admin/<écran>.json`.
 
 | Page | Sections |
 | --- | --- |

@@ -8,7 +8,7 @@ fn model_pk(pk: &str) -> String {
     )
 }
 
-// `pk: id => Pk` defers to the global alias `runique::utils::config::Pk` — the generated
+// `pk: id => Pk` defers to the global alias `runique::schema::Pk` — the generated
 // SQL must follow big-pk/pk-uuid, see runique/tests/migration/test_parser.rs
 // for the same check on the proc-macro side.
 #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]

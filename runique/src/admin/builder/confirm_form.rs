@@ -3,7 +3,7 @@
 //! can't serve, its required fields would fail a bare confirm button.
 use crate::auth::meta::ModelMeta;
 use crate::forms::FormEntity;
-use crate::forms::field::{FormAccess, RuniqueForm};
+use crate::forms::runique_form::{FormAccess, RuniqueForm};
 use crate::forms::form::Forms;
 use std::marker::PhantomData;
 

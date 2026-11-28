@@ -99,7 +99,7 @@ impl ConnectionTrait for ADb {
         // SeaORM's metric callback skips this call, so a `COMMIT` or a DDL
         // statement run this way would never show in a test's trace.
         #[cfg(feature = "test-utils")]
-        crate::runique_test::logic::builder_test::record(sql, started.elapsed(), result.is_err());
+        crate::runique_test::builder::record(sql, started.elapsed(), result.is_err());
         result
     }
 

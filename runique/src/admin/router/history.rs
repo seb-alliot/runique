@@ -9,7 +9,7 @@ use super::context::{
 use super::{chrome, failure};
 use crate::admin::builder::registered::{AdminError, HistoryScope};
 use crate::admin::builder::site::AdminSite;
-use crate::admin::router::admin_router::AdminState;
+use crate::admin::router::routes::AdminState;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::gate::Refusal;
 use crate::auth::gate::refusal::RefusalReason;
@@ -227,7 +227,7 @@ mod tests {
             object_pk: "7".into(),
             object_repr: object_repr.into(),
             action: "update".into(),
-            user_id: crate::utils::pk::Pk::default(),
+            user_id: crate::schema::pk::Pk::default(),
             username: "carol".into(),
             created_at: chrono::Utc::now().naive_utc(),
             summary: None,

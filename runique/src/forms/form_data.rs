@@ -5,7 +5,7 @@
 //! A value that can't be read is an error the caller shows on the form — never
 //! a default (`0`, `false`) saved in its place.
 use crate::utils::aliases::StrMap;
-use crate::utils::translation::tf;
+use crate::translation::tf;
 
 /// Why a value from the form data can't be saved.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -62,7 +62,7 @@ pub fn required<T>(value: Option<T>, name: &str) -> Result<T, FormDataError> {
 /// The password of an account created for someone else: a random one,
 /// hashed, that nobody knows — its owner sets theirs from the email link.
 pub fn unknown_password(name: &str) -> Result<String, FormDataError> {
-    crate::utils::password::hash(&uuid::Uuid::new_v4().to_string())
+    crate::security::password::hash(&uuid::Uuid::new_v4().to_string())
         .map_err(|_| FormDataError::Password(name.to_string()))
 }
 
@@ -70,9 +70,9 @@ pub fn unknown_password(name: &str) -> Result<String, FormDataError> {
 /// form's `finalize` hashed it), hashed otherwise. A failed hash is an error.
 pub fn password(value: &str, name: &str) -> Result<String, FormDataError> {
     let service =
-        crate::utils::password::PasswordService::new(crate::utils::password::password_get());
+        crate::security::password::PasswordService::new(crate::security::password::password_get());
     if service.is_already_hashed(value) {
         return Ok(value.to_string());
     }
-    crate::utils::password::hash(value).map_err(|_| FormDataError::Password(name.to_string()))
+    crate::security::password::hash(value).map_err(|_| FormDataError::Password(name.to_string()))
 }

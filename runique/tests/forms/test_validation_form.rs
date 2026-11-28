@@ -7,7 +7,7 @@
 use crate::helpers::{handler_req::build_handler_req, server::build_engine};
 use axum::http::Method;
 use runique::forms::{
-    field::{FormAccess, RuniqueForm},
+    runique_form::{FormAccess, RuniqueForm},
     fields::text::TextField,
     form::Forms,
 };
@@ -19,7 +19,7 @@ const NAME: &str = "f";
 /// `data` plus the form's name, as sent back by a form `try_form` named `NAME`.
 fn named(mut data: HashMap<String, String>) -> HashMap<String, String> {
     data.insert(
-        runique::utils::constants::session_key::session::FORM_NAME_KEY.to_string(),
+        runique::forms::constants::FORM_NAME_KEY.to_string(),
         NAME.to_string(),
     );
     data
@@ -259,7 +259,7 @@ async fn honeypot_filled_on_get_does_not_force_invalid() {
 // revient dans la requête est validé, les autres repartent sans erreur
 // ═══════════════════════════════════════════════════════════════
 
-use runique::utils::constants::session_key::session::FORM_NAME_KEY;
+use runique::forms::constants::FORM_NAME_KEY;
 
 fn named_data(name: Option<&str>, q: Option<&str>) -> HashMap<String, String> {
     let mut data = HashMap::new();

@@ -1,8 +1,8 @@
 //! `GET {admin}/{resource}/{id}/detail`: one row of a model.
 use crate::admin::builder::site::AdminSite;
 use crate::admin::router::AdminView;
-use crate::admin::router::admin_router::AdminState;
 use crate::admin::router::context::{DetailContext, ResourceRef, RowLinks, put};
+use crate::admin::router::routes::AdminState;
 use crate::admin::router::{chrome, failure, unknown_resource};
 use crate::admin::translation::insert_admin_messages;
 use crate::auth::current_user::CurrentUser;
@@ -50,7 +50,7 @@ pub(crate) async fn detail_view(
     let mut memberships = Vec::new();
     let mut account_summary = None;
     if model.is_account_table()
-        && let Ok(pk) = id.parse::<crate::utils::pk::Pk>()
+        && let Ok(pk) = id.parse::<crate::schema::pk::Pk>()
         && let Some(account) =
             crate::auth::user::BuiltinUserEntity::find_by_id(&req.engine.db, pk).await
     {
@@ -124,7 +124,7 @@ pub(crate) async fn detail_view(
     // dirigeant, and who took it back if it waits for a responsable.
     let mut transfer_receivers = Vec::new();
     let mut taken_by = None;
-    if key == crate::utils::constants::resource_key::GROUPES
+    if key == crate::auth::constants::resource_key::GROUPES
         && let Ok(group_id) = id.parse::<i32>()
         && let Ok(Some(group)) =
             <crate::auth::permissions::group::Entity as sea_orm::EntityTrait>::find_by_id(group_id)

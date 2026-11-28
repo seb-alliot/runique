@@ -1,7 +1,7 @@
 // Tests pour FormValidator et ValidationError
 
 use indexmap::IndexMap;
-use runique::forms::base::FormField;
+use runique::forms::form_field::FormField;
 use runique::forms::fields::hidden::HiddenField;
 use runique::forms::validator::{FormValidator, ValidationError};
 

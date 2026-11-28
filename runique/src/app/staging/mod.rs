@@ -2,12 +2,12 @@
 #[cfg(feature = "admin")]
 pub mod admin;
 mod applicator;
-pub mod core_staging;
+pub mod core;
 pub mod middleware;
-pub mod static_staging;
+pub mod statics;
 
 #[cfg(feature = "admin")]
 pub use admin::AdminStaging;
-pub use core_staging::CoreStaging;
+pub use core::CoreStaging;
 pub use middleware::MiddlewareStaging;
-pub use static_staging::StaticStaging;
+pub use statics::StaticStaging;

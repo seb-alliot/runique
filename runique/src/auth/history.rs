@@ -1,11 +1,10 @@
 //! The audit trail (`eihwaz_history`): one row per traced write, written by
 //! `save_as` in the write's own transaction — the admin's writes and the
 //! developer's `save_as` alike.
-use crate::utils::{
-    aliases::StrMap,
-    constants::session_key::session::{CSRF_TOKEN_KEY, FORM_NAME_KEY},
-    pk::Pk,
-};
+use crate::forms::constants::FORM_NAME_KEY;
+use crate::security::constants::CSRF_TOKEN_KEY;
+use crate::schema::Pk;
+use crate::utils::aliases::StrMap;
 use sea_orm::{ActiveValue::Set, entity::prelude::*};
 use serde_json::Value;
 
@@ -163,10 +162,9 @@ pub fn diff_fields(old: &Value, body: &StrMap) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::diff_fields;
-    use crate::utils::{
-        aliases::StrMap,
-        constants::session_key::session::{CSRF_TOKEN_KEY, FORM_NAME_KEY},
-    };
+    use crate::forms::constants::FORM_NAME_KEY;
+    use crate::security::constants::CSRF_TOKEN_KEY;
+    use crate::utils::aliases::StrMap;
     use serde_json::json;
 
     fn body(pairs: &[(&str, &str)]) -> StrMap {
@@ -205,7 +203,7 @@ mod tests {
             log_action(
                 &db,
                 ActionLog {
-                    user_id: crate::utils::pk::Pk::default(),
+                    user_id: crate::schema::pk::Pk::default(),
                     username: "u",
                     resource_key: "articles",
                     object_pk: "1",

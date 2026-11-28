@@ -108,7 +108,7 @@ async fn seed(dbc: &DatabaseConnection) {
         .expect("bare_notes");
 
     static HASH: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-    let hash = HASH.get_or_init(|| runique::utils::password::hash(PASSWORD).expect("hash"));
+    let hash = HASH.get_or_init(|| runique::security::password::hash(PASSWORD).expect("hash"));
     let now = chrono::Utc::now().naive_utc();
     for (n, name, dirigeant, admin, superuser) in [
         (ADMIN, "alice", false, true, false),
@@ -322,13 +322,14 @@ async fn build(opts: Opts) -> Router {
         .with_admin(move |a| {
             let mut a = a.path("/secret-admin").site(|s| {
                 s.register(
-                    runique::admin::builder::admin_builder::ModelAdmin::<probe::Entity>::new()
-                        .list(|l| {
+                    runique::admin::builder::model_admin::ModelAdmin::<probe::Entity>::new().list(
+                        |l| {
                             l.display([probe::Column::Title])
                                 .sortable([probe::Column::Title])
-                        }),
+                        },
+                    ),
                 )
-                .register(runique::admin::builder::admin_builder::ModelAdmin::<
+                .register(runique::admin::builder::model_admin::ModelAdmin::<
                     bare::Entity,
                 >::new())
             });

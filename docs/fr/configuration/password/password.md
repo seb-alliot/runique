@@ -76,7 +76,7 @@ Aucun mot de passe local n'est géré par Runique : `verify()` répond toujours 
 
 ```rust
 use runique::prelude::*;
-use runique::utils::password::External;
+use runique::security::password::External;
 
 password_init(PasswordConfig::Delegated(External::GoogleOAuth));
 password_init(PasswordConfig::Delegated(External::Microsoft));
@@ -91,7 +91,7 @@ Implémente le trait `PasswordHandler` pour brancher ta propre logique de hachag
 
 ```rust
 use runique::prelude::{PasswordConfig, password_init};
-use runique::utils::password::PasswordHandler;
+use runique::security::password::PasswordHandler;
 
 #[derive(Clone)] // requis : PasswordHandler est cloné avec la config
 struct MyHasher;

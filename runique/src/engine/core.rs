@@ -104,7 +104,7 @@ impl RuniqueEngine {
     /// error is returned and the sessions may survive: try again.
     pub async fn close_user_sessions(
         &self,
-        user_id: crate::utils::pk::Pk,
+        user_id: crate::schema::pk::Pk,
     ) -> Result<(), sea_orm::DbErr> {
         crate::auth::BuiltinUserEntity::increase_session_version(&self.db, user_id).await?;
         let db_store = self.session_db_store.read().ok().and_then(|g| g.clone());
@@ -118,7 +118,7 @@ impl RuniqueEngine {
     /// Drops the memory copies of `user_id`'s sessions. Cleanup only: the
     /// database decides whether a session lives, so this runs once the rows
     /// are gone, as after a password reset's transaction.
-    pub(crate) async fn forget_user_sessions(&self, user_id: crate::utils::pk::Pk) {
+    pub(crate) async fn forget_user_sessions(&self, user_id: crate::schema::pk::Pk) {
         let memory_store = self.session_store.read().ok().and_then(|g| g.clone());
         if let Some(store) = memory_store {
             store.invalidate_user_sessions(user_id).await;

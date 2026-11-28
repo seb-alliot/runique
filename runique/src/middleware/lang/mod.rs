@@ -1,6 +1,6 @@
 //! The language of each visitor: read from the `Accept-Language` header of
 //! the request, for the time of that request.
-use crate::utils::translation::{Lang, with_lang};
+use crate::translation::{Lang, with_lang};
 use axum::{
     body::Body,
     extract::Request,

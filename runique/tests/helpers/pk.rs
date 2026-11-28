@@ -2,7 +2,7 @@
 //! types de PK (`i32` par défaut, `i64` sous `big-pk`, `Uuid` sous `pk-uuid`).
 //! Deux appels avec des `n` différents donnent toujours des `Pk` différents.
 
-use runique::utils::config::Pk;
+use runique::schema::Pk;
 
 #[cfg(feature = "pk-uuid")]
 pub fn pk(n: u32) -> Pk {

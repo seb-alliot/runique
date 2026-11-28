@@ -54,8 +54,8 @@ arrive dans le contexte (`app_name`, `app_version`).
 
 ## flash — messages éphémères
 
-[`flash/flash_struct.rs`](../../../runique/src/flash/flash_struct.rs),
-[`flash/flash_manager.rs`](../../../runique/src/flash/flash_manager.rs)
+[`flash/message.rs`](../../../runique/src/flash/message.rs),
+[`flash/extractor.rs`](../../../runique/src/flash/extractor.rs)
 
 ```mermaid
 classDiagram
@@ -81,7 +81,7 @@ classDiagram
 
 ## mailer — `Email` / `MailerConfig`
 
-[`utils/mailer/mod.rs`](../../../runique/src/utils/mailer/mod.rs)
+[`mailer/mod.rs`](../../../runique/src/mailer/mod.rs)
 
 ```mermaid
 classDiagram
@@ -104,7 +104,7 @@ classDiagram
 
 ## password — hash (argon2/bcrypt/scrypt)
 
-[`utils/password/mod.rs`](../../../runique/src/utils/password/mod.rs)
+[`security/password.rs`](../../../runique/src/security/password.rs)
 
 ```mermaid
 classDiagram
@@ -138,7 +138,7 @@ p ≤ 4`, scrypt `log_n ≤ 17, r ≤ 8, p ≤ 4`, bcrypt `cost ≤ 14`.
 
 ## i18n — `Lang`
 
-[`utils/translation/switch_lang.rs`](../../../runique/src/utils/translation/switch_lang.rs)
+[`runique_i18n/src/switch_lang.rs`](../../../runique/runique_i18n/src/switch_lang.rs)
 
 ```mermaid
 classDiagram

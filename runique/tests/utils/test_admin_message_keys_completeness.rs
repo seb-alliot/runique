@@ -8,7 +8,7 @@
 //! de chacune des 9 langues directement (sur le disque, contournant le fallback de `Lang::get`)
 //! et vérifie que chaque clé de `ADMIN_MESSAGE_KEYS` y résout réellement.
 
-use runique::utils::constants::ADMIN_MESSAGE_KEYS;
+use runique::admin::constants::ADMIN_MESSAGE_KEYS;
 use serde_json::Value;
 
 const LANGS: &[&str] = &["fr", "en", "it", "es", "de", "pt", "ja", "zh", "ru"];

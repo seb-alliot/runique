@@ -11,7 +11,7 @@ use super::staging::{CoreStaging, MiddlewareStaging, StaticStaging};
 use crate::auth::{PasswordResetConfig, PasswordResetStaging};
 use crate::config::RuniqueConfig;
 use crate::router::Routes;
-use crate::utils::runique_log::RuniqueLog;
+use crate::log::RuniqueLog;
 
 #[cfg(feature = "orm")]
 use crate::db::DatabaseConfig;

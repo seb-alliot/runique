@@ -10,7 +10,7 @@ use std::{
 #[cfg(feature = "orm")]
 use super::session_db::RuniqueSessionStore;
 
-use crate::utils::config::TraceResult;
+use crate::log::TraceResult;
 use async_trait::async_trait;
 use tokio::sync::Mutex;
 use tower_sessions::{
@@ -40,13 +40,13 @@ const MAX_SESSION_RECORD_SIZE: usize = 50 * 1024; // 50 KB
 #[cfg(feature = "orm")]
 fn db_snapshot(
     record: &Record,
-) -> Option<(crate::utils::pk::Pk, chrono::NaiveDateTime, Option<String>)> {
+) -> Option<(crate::schema::pk::Pk, chrono::NaiveDateTime, Option<String>)> {
     let user_id = user_of(record, "decode session user_id for DB backup")?;
     let expires_at = chrono::DateTime::from_timestamp(record.expiry_date.unix_timestamp(), 0)
         .map(|dt| dt.naive_utc())
         .unwrap_or_else(|| chrono::Utc::now().naive_utc());
     let data = serde_json::to_string(&record.data).trace(
-        crate::utils::runique_log::log_level!(session.store),
+        crate::log::log_level!(session.store),
         "serialize session data for DB backup",
     );
     Some((user_id, expires_at, data))
@@ -76,12 +76,12 @@ fn is_protected(record: &Record) -> bool {
 /// The account a record was signed in with. A value that doesn't read as a key
 /// is logged under `ctx` (`session.store` channel) and counts as none.
 #[track_caller]
-fn user_of(record: &Record, ctx: &'static str) -> Option<crate::utils::pk::Pk> {
+fn user_of(record: &Record, ctx: &'static str) -> Option<crate::schema::pk::Pk> {
     let value = record
         .data
-        .get(crate::utils::constants::session_key::session::SESSION_USER_ID_KEY)?;
-    serde_json::from_value::<crate::utils::pk::Pk>(value.clone())
-        .trace(crate::utils::runique_log::log_level!(session.store), ctx)
+        .get(crate::auth::constants::SESSION_USER_ID_KEY)?;
+    serde_json::from_value::<crate::schema::pk::Pk>(value.clone())
+        .trace(crate::log::log_level!(session.store), ctx)
 }
 
 /// Removes the records `gone` picks, and returns the bytes they held.
@@ -195,7 +195,7 @@ impl CleaningMemoryStore {
             .map(|dt| dt.naive_utc())
             .unwrap_or_else(|| chrono::Utc::now().naive_utc());
         let data = serde_json::to_string(&record.data).trace(
-            crate::utils::runique_log::log_level!(session.store),
+            crate::log::log_level!(session.store),
             "serialize session data for DB backup",
         );
 
@@ -204,7 +204,7 @@ impl CleaningMemoryStore {
             .await
         {
             // Never silent: a session that isn't saved is lost at the next restart.
-            let level = crate::utils::runique_log::log_level!(session.store)
+            let level = crate::log::log_level!(session.store)
                 .unwrap_or(tracing::Level::WARN);
             crate::runique_log!(level, "session DB backup write failed: {e}");
         }
@@ -220,7 +220,7 @@ impl CleaningMemoryStore {
         {
             Ok(updated) => Some(updated),
             Err(e) => {
-                let level = crate::utils::runique_log::log_level!(session.store)
+                let level = crate::log::log_level!(session.store)
                     .unwrap_or(tracing::Level::WARN);
                 crate::runique_log!(level, "session DB backup update failed: {e}");
                 None
@@ -260,7 +260,7 @@ impl CleaningMemoryStore {
     /// Used to implement exclusive login (only one device at a time).
     /// The current session (new login) should not yet contain `user_id`
     /// at the time of call — it is thus preserved.
-    pub async fn invalidate_user_sessions(&self, user_id: crate::utils::pk::Pk) {
+    pub async fn invalidate_user_sessions(&self, user_id: crate::schema::pk::Pk) {
         let mut guard = self.data.lock().await;
         let freed = remove_where(&mut guard, |_, r| {
             user_of(r, "decode session user_id for invalidate_user_sessions")
@@ -279,7 +279,7 @@ impl CleaningMemoryStore {
             loop {
                 interval.tick().await;
                 if let Err(e) = store.delete_expired().await
-                    && let Some(level) = crate::utils::runique_log::log_level!(session.cleanup)
+                    && let Some(level) = crate::log::log_level!(session.cleanup)
                 {
                     crate::runique_log!(level, "session cleanup error: {e}");
                 }
@@ -295,7 +295,7 @@ impl CleaningMemoryStore {
 
         if freed > 0 {
             self.size_bytes.fetch_sub(freed, Ordering::Relaxed);
-            if let Some(level) = crate::utils::runique_log::log_level!(session.store) {
+            if let Some(level) = crate::log::log_level!(session.store) {
                 crate::runique_log!(
                     level,
                     "Low watermark: {} bytes freed (expired anonymous sessions)",
@@ -337,7 +337,7 @@ impl SessionStore for CleaningMemoryStore {
             if self.size_bytes.load(Ordering::Relaxed) >= self.high_watermark {
                 let freed2 = remove_where(&mut guard, |_, r| r.expiry_date <= now);
                 self.size_bytes.fetch_sub(freed2, Ordering::Relaxed);
-                if let Some(level) = crate::utils::runique_log::log_level!(session.store) {
+                if let Some(level) = crate::log::log_level!(session.store) {
                     crate::runique_log!(
                         level,
                         "High watermark: {} + {} bytes freed in emergency",
@@ -349,7 +349,7 @@ impl SessionStore for CleaningMemoryStore {
 
             // Still above → refusal
             if self.size_bytes.load(Ordering::Relaxed) >= self.high_watermark {
-                if let Some(level) = crate::utils::runique_log::log_level!(session.store) {
+                if let Some(level) = crate::log::log_level!(session.store) {
                     crate::runique_log!(
                         level,
                         "Session store saturated ({} bytes), new session refused",
@@ -369,7 +369,7 @@ impl SessionStore for CleaningMemoryStore {
 
         let size = estimate_size(record);
         if size > MAX_SESSION_RECORD_SIZE
-            && let Some(level) = crate::utils::runique_log::log_level!(session.store)
+            && let Some(level) = crate::log::log_level!(session.store)
         {
             crate::runique_log!(
                 level,
@@ -402,17 +402,14 @@ impl SessionStore for CleaningMemoryStore {
         #[cfg(feature = "orm")]
         let mut exclusive_db_invalidate: Option<(
             Arc<RuniqueSessionStore>,
-            crate::utils::pk::Pk,
+            crate::schema::pk::Pk,
             String,
         )> = None;
 
         if self.exclusive_login {
             let had_user = guard
                 .get(&record.id)
-                .and_then(|r| {
-                    r.data
-                        .get(crate::utils::constants::session_key::session::SESSION_USER_ID_KEY)
-                })
+                .and_then(|r| r.data.get(crate::auth::constants::SESSION_USER_ID_KEY))
                 .is_some();
             if let Some(user_id) = user_of(record, "decode session user_id (exclusive login check)")
                 && !had_user
@@ -425,7 +422,7 @@ impl SessionStore for CleaningMemoryStore {
                 if freed > 0 {
                     self.size_bytes.fetch_sub(freed, Ordering::Relaxed);
                     if let Some(level) =
-                        crate::utils::runique_log::log_level!(session.exclusive_login)
+                        crate::log::log_level!(session.exclusive_login)
                     {
                         crate::runique_log!(
                             level,
@@ -446,7 +443,7 @@ impl SessionStore for CleaningMemoryStore {
         }
 
         if new_size > MAX_SESSION_RECORD_SIZE
-            && let Some(level) = crate::utils::runique_log::log_level!(session.store)
+            && let Some(level) = crate::log::log_level!(session.store)
         {
             crate::runique_log!(
                 level,
@@ -473,7 +470,7 @@ impl SessionStore for CleaningMemoryStore {
             db.invalidate_other_sessions(user_id, &cookie_id)
                 .await
                 .trace(
-                    crate::utils::runique_log::log_level!(session.exclusive_login),
+                    crate::log::log_level!(session.exclusive_login),
                     "invalidate other sessions (exclusive login)",
                 );
         }
@@ -502,10 +499,10 @@ impl SessionStore for CleaningMemoryStore {
             if let Some(db) = &self.db_fallback
                 && let Some(user_id) = record
                     .data
-                    .get(crate::utils::constants::session_key::session::SESSION_USER_ID_KEY)
+                    .get(crate::auth::constants::SESSION_USER_ID_KEY)
                     .and_then(|value| {
-                        serde_json::from_value::<crate::utils::pk::Pk>(value.clone()).trace(
-                            crate::utils::runique_log::log_level!(session.store),
+                        serde_json::from_value::<crate::schema::pk::Pk>(value.clone()).trace(
+                            crate::log::log_level!(session.store),
                             runique_i18n::keys::session::log::DECODE_USER_MEMORY,
                         )
                     })
@@ -517,7 +514,7 @@ impl SessionStore for CleaningMemoryStore {
                         return Ok(None);
                     }
                     Err(error) => {
-                        if let Some(level) = crate::utils::runique_log::log_level!(session.store) {
+                        if let Some(level) = crate::log::log_level!(session.store) {
                             crate::runique_log!(
                                 level,
                                 "session DB validity check failed for in-memory cookie_id: {error}"
@@ -543,10 +540,10 @@ impl SessionStore for CleaningMemoryStore {
                             std::collections::HashMap<String, serde_json::Value>,
                         >(&data_str)
                         && let Some(data_user_id) = data
-                            .get(crate::utils::constants::session_key::session::SESSION_USER_ID_KEY)
+                            .get(crate::auth::constants::SESSION_USER_ID_KEY)
                             .and_then(|value| {
-                                serde_json::from_value::<crate::utils::pk::Pk>(value.clone()).trace(
-                                    crate::utils::runique_log::log_level!(session.store),
+                                serde_json::from_value::<crate::schema::pk::Pk>(value.clone()).trace(
+                                    crate::log::log_level!(session.store),
                                     runique_i18n::keys::session::log::DECODE_USER_DB,
                                 )
                             })
@@ -571,7 +568,7 @@ impl SessionStore for CleaningMemoryStore {
                 }
                 Ok(None) => {}
                 Err(e) => {
-                    if let Some(level) = crate::utils::runique_log::log_level!(session.store) {
+                    if let Some(level) = crate::log::log_level!(session.store) {
                         crate::runique_log!(
                             level,
                             "session DB fallback load failed for cookie_id lookup: {e}"
@@ -599,7 +596,7 @@ impl SessionStore for CleaningMemoryStore {
         if let Some(ref db) = self.db_fallback
             && let Err(error) = db.delete(&session_id.to_string()).await
         {
-            if let Some(level) = crate::utils::runique_log::log_level!(session.store) {
+            if let Some(level) = crate::log::log_level!(session.store) {
                 crate::runique_log!(level, "delete session from DB failed: {error}");
             }
             return Err(session_store::Error::Backend(error.to_string()));

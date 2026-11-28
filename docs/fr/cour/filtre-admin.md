@@ -77,7 +77,7 @@ Ce que montre la signature :
 Qu'une colonne existe, le compilateur le garantit. Ce qu'il ne peut pas savoir, c'est qu'une colonne est **secrète**. Chaque entité déclare ses colonnes secrètes (`E::SECRET`, par exemple le mot de passe), et le builder les refuse dans toutes les listes :
 
 ```rust
-// runique/src/admin/builder/admin_builder.rs (extrait)
+// runique/src/admin/builder/model_admin.rs (extrait)
 for secret in E::SECRET {
     let name = secret.as_str();
     for list in self

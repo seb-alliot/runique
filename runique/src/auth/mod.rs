@@ -1,4 +1,5 @@
 //! Authentication — session, guards, permissions, password reset.
+pub mod constants;
 pub mod current_user;
 pub mod form;
 pub mod gate;

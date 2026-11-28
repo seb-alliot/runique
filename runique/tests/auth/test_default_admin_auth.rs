@@ -72,7 +72,7 @@ async fn insert_user(
     password: &str,
     flags: (u8, u8, u8, u8),
 ) {
-    let hash = runique::utils::hash(password).unwrap();
+    let hash = runique::security::hash(password).unwrap();
     let (active, dirigeant, admin, superuser) = flags;
     db::exec(
         db,

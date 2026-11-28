@@ -1,7 +1,7 @@
 //! `POST {admin}/{resource}/{id}/reset-password`: sends an account's owner a
 //! link to choose a new password. The staff never sees it, nor any password.
 use crate::admin::builder::site::AdminSite;
-use crate::admin::router::admin_router::AdminState;
+use crate::admin::router::routes::AdminState;
 use crate::admin::router::{failure, unknown_resource};
 use crate::auth::current_user::CurrentUser;
 use crate::auth::history::{ActionLog, log_action};
@@ -9,8 +9,8 @@ use crate::auth::password::{ResetMail, send_reset_link};
 use crate::auth::user::BuiltinUserEntity;
 use crate::http::request::Request;
 use crate::utils::aliases::AppResult;
-use crate::utils::pk::Pk;
-use crate::utils::translation::{t, tf};
+use crate::schema::pk::Pk;
+use crate::translation::{t, tf};
 use axum::Extension;
 use axum::extract::Path;
 use axum::response::{IntoResponse, Redirect, Response};
@@ -51,7 +51,7 @@ impl AccountLink {
         // The language the mail is written in, for its `<html lang>`.
         let lang = (
             "lang",
-            crate::utils::translation::current_lang().code().to_string(),
+            crate::translation::current_lang().code().to_string(),
         );
         match self {
             Self::Reset => vec![
@@ -118,7 +118,7 @@ pub(crate) async fn send_account_link(
     let unavailable =
         || t(runique_i18n::keys::admin::reset_password::error::UNAVAILABLE).into_owned();
     // Asked before anything else: no token is written for a link that can't leave.
-    if !crate::utils::mailer_configured() {
+    if !crate::mailer::mailer_configured() {
         tracing::warn!("admin link not sent: the mailer configuration is missing or incomplete");
         return Err(t(runique_i18n::keys::admin::reset_password::error::NO_MAILER).into_owned());
     }

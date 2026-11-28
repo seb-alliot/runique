@@ -53,16 +53,30 @@ pub mod engine;
 pub mod flash;
 pub mod forms;
 pub mod http;
+pub mod log;
 pub mod macros;
+pub mod mailer;
 pub mod router;
 pub mod schema;
+pub mod security;
 pub mod templates;
+
+/// Internationalization — the language in use, the `t()` / `tf()` helpers
+/// and the project's own translations.
+/// The engine and the messages live in the `runique_i18n` crate.
+#[doc = include_str!("../doc-tests/i18n/switch_lang.md")]
+pub mod translation {
+    pub use runique_i18n::keys;
+    pub use runique_i18n::project::{
+        LanguageReport, LocaleError, ProjectReport, load_project, project_dir,
+    };
+    pub use runique_i18n::{Lang, LangId, current_lang, t, tf, with_lang};
+}
 
 #[cfg(feature = "admin")]
 pub mod admin;
 pub mod errors;
 pub mod middleware;
-pub mod tooling;
 
 pub mod utils;
 
@@ -101,6 +115,7 @@ pub use uuid;
 pub use derive_form::{extend, model};
 pub use dotenvy;
 pub use pulldown_cmark;
+pub mod  versions;
 
 // ---------------------------------------------------------------------------
 // Simplified Prelude
@@ -111,12 +126,12 @@ pub mod prelude {
     // ========================================================================
     pub use crate::errors::ErrorContext;
     pub use crate::errors::RuniqueError;
-    pub use crate::utils::config::runique_log::{
+    pub use crate::log::{
         AdminTracing, AuthTracing, BuilderTracing, DbTracing, ErrorsTracing, FormTracing,
         LogOutput, LogRecord, LogRotation, LogSink, MailerTracing, MiddlewareTracing,
         MigrationTracing, RuniqueLog, SessionTracing, TemplatesTracing,
     };
-    pub use crate::utils::init_logging;
+    pub use crate::log::init_logging;
     pub use tracing::{self, Level as LogLevel};
 
     // ========================================================================
@@ -129,7 +144,7 @@ pub mod prelude {
     pub use crate::flash::{FlashMessage, Message, MessageLevel};
     pub use crate::forms::{
         FormEntity, Forms, Prisme,
-        field::{FormAccess, FormField, RuniqueForm},
+        runique_form::{FormAccess, FormField, RuniqueForm},
         fields::{
             CheckboxField, DateField, DurationField, RadioField, TimeField,
             boolean::BooleanField,
@@ -149,7 +164,7 @@ pub mod prelude {
     pub use crate::http::Request;
     pub use crate::schema::ModelSchema;
     pub use crate::utils::aliases::*;
-    pub use crate::utils::config::Pk;
+    pub use crate::schema::Pk;
     pub use derive_form::{extend, form, model};
 
     // ========================================================================
@@ -157,8 +172,8 @@ pub mod prelude {
     // ========================================================================
     use crate::chrono;
     pub use crate::config::{security::SecurityConfig, server::ServerConfig};
-    pub use crate::utils::env::{is_debug, is_dev};
-    pub use crate::utils::translation::{Lang, current_lang};
+    pub use crate::config::env::{is_debug, is_dev};
+    pub use crate::translation::{Lang, current_lang};
     pub use dotenvy;
 
     // ========================================================================
@@ -168,7 +183,7 @@ pub mod prelude {
         RouterExt, Routes, UrlError, register_name_url, register_pending, reverse,
         reverse_with_parameters,
     };
-    pub use crate::utils::csp_nonce::*;
+    pub use crate::security::csp_nonce::*;
     pub use crate::{
         context_update, error, flash_now, impl_form_access, impl_objects, info, search,
         search_cond, success, urlpatterns, view, warning,
@@ -248,11 +263,11 @@ pub mod prelude {
     // ========================================================================
     // SECURITY - HMAC, Hashing, etc.
     // ========================================================================
-    pub use crate::utils::mailer::{Email, dispatch_email, mailer_configured};
-    pub use crate::utils::password::{
+    pub use crate::mailer::{Email, dispatch_email, mailer_configured};
+    pub use crate::security::password::{
         AutoConfig, Manual, PasswordConfig, hash, password_init, verify,
     };
-    pub use crate::utils::reset_token;
+    pub use crate::security::reset_token;
     pub use hmac::{Hmac, Mac};
     pub use sha2::Sha256;
 

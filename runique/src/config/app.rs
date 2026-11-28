@@ -1,8 +1,8 @@
 //! Main Runique application configuration.
 use crate::config::{security::SecurityConfig, server::ServerConfig, static_files::StaticConfig};
 use crate::middleware::MiddlewareConfig;
-use crate::utils::password::PasswordConfig;
-use crate::utils::runique_log::RuniqueLog;
+use crate::security::password::PasswordConfig;
+use crate::log::RuniqueLog;
 use serde::{Deserialize, Serialize};
 
 /// Aggregated global configuration: server, middleware, security, passwords, static files.
@@ -39,7 +39,7 @@ pub struct RuniqueConfig {
 impl RuniqueConfig {
     /// Loads configuration from environment variables (reads `.env` via `dotenvy`).
     pub fn from_env() -> Self {
-        use crate::utils::config::env::{debug_from, dev_from, runique_env_is_known};
+        use crate::config::env::{debug_from, dev_from, runique_env_is_known};
 
         dotenvy::dotenv().ok();
 

@@ -1,4 +1,4 @@
-use runique::utils::mailer::{Email, MailerBackend, MailerConfig, dispatch_email, mailer_init};
+use runique::mailer::{Email, MailerBackend, MailerConfig, dispatch_email, mailer_init};
 
 fn init_console_mailer() {
     mailer_init(MailerConfig {

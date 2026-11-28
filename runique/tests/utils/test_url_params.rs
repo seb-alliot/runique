@@ -1,7 +1,7 @@
 //! Tests — utils/config/url_params
 //! Couvre : UrlParams::new, UrlParams::get (path priority, query fallback, missing)
 
-use runique::utils::config::url_params::UrlParams;
+use runique::http::url_params::UrlParams;
 use std::collections::HashMap;
 
 fn hmap(pairs: &[(&str, &str)]) -> HashMap<String, String> {

@@ -1,9 +1,9 @@
-//! Tests — utils/reset_token
+//! Tests — security/reset_token
 //! Couvre : generate, consume et peek (DB-backed).
 
 use crate::helpers::db;
 use crate::helpers::pk::pk;
-use runique::utils::reset_token::{consume, generate, peek, resolve};
+use runique::security::reset_token::{consume, generate, peek, resolve};
 use std::time::Duration;
 
 #[cfg(feature = "pk-uuid")]

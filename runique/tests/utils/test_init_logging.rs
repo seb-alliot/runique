@@ -1,7 +1,7 @@
 //! Tests — utils/runique_log
 //! Couvre : log_init, get_log, reset_log_for_test, activation par domaine
 
-use runique::utils::runique_log::{RuniqueLog, get_log, log_init, reset_log_for_test};
+use runique::log::{RuniqueLog, get_log, log_init, reset_log_for_test};
 use serial_test::serial;
 use tracing::Level;
 
@@ -147,7 +147,7 @@ fn init_logging_does_not_panic() {
     // un second appel dans le même process ne panique pas, juste un warn.
     // Cf. `test_init_subscriber_does_not_panic` (test_runique_log.rs) qui
     // installe déjà un subscriber global dans ce binaire de tests.
-    let _guards = runique::utils::init_logging();
+    let _guards = runique::log::init_logging();
 }
 
 // ─── dev() global ────────────────────────────────────────────────────────────

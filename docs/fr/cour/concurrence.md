@@ -531,7 +531,7 @@ La crate `rayon` remplace `iter()` par `par_iter()` : le travail est réparti su
 ### 12.1 `LazyLock` pour l'environnement
 
 ```rust
-// runique/src/utils/config/env.rs (extrait)
+// runique/src/config/env.rs (extrait)
 static DEBUG: LazyLock<bool> = LazyLock::new(|| debug_from(read_after_dotenv("DEBUG").as_deref()));
 
 pub fn is_debug() -> bool {

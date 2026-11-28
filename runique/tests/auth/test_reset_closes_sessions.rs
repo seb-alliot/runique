@@ -14,8 +14,8 @@ use runique::config::RuniqueConfig;
 use runique::db::ADb;
 use runique::http::request::Request;
 use runique::sea_orm::{ConnectionTrait, DatabaseConnection};
-use runique::utils::password::PasswordConfig;
-use runique::utils::reset_token;
+use runique::security::password::PasswordConfig;
+use runique::security::reset_token;
 use serial_test::serial;
 use std::time::Duration;
 
@@ -78,7 +78,7 @@ async fn seeded_db() -> DatabaseConnection {
     for ddl in [USERS_DDL, RESET_TOKENS_DDL, SESSIONS_DDL] {
         db::exec(&dbc, ddl).await;
     }
-    let hash = runique::utils::password::hash("old password 123").unwrap();
+    let hash = runique::security::password::hash("old password 123").unwrap();
     for (n, name) in [(1, "alice"), (2, "bob")] {
         db::exec(
             &dbc,
@@ -409,7 +409,7 @@ async fn updating_the_stored_hash_closes_no_session() {
     let alice = client();
     text(&alice, format!("{base}/sign-in/1")).await;
 
-    let hash = runique::utils::password::hash("another password 456").unwrap();
+    let hash = runique::security::password::hash("another password 456").unwrap();
     BuiltinUserEntity::update_password_by_id(&adb, pk(1), &hash)
         .await
         .unwrap();

@@ -4,7 +4,7 @@
 //!          cleaned_value (path/query fallback), clear()
 
 use runique::forms::{
-    field::{FormAccess, RuniqueForm},
+    runique_form::{FormAccess, RuniqueForm},
     fields::text::TextField,
     form::Forms,
 };

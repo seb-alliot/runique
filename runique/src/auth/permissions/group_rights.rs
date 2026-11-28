@@ -1,6 +1,6 @@
 //! Table `eihwaz_groupes_droits`: the rights of a group or of an admin
 //! account, on a whole table (`colonne = ""`) or on one of its columns.
-use crate::utils::pk::Pk;
+use crate::schema::pk::Pk;
 use sea_orm::entity::prelude::*;
 
 /// SeaORM model for `eihwaz_groupes_droits`. Exactly one of `groupe_id` /

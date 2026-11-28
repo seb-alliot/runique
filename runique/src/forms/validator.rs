@@ -1,8 +1,6 @@
 //! Form validation: `ValidationError` and `FormValidator` with error accumulation.
-use crate::utils::{
-    aliases::{FieldsMap, StrMap},
-    translation::t,
-};
+use crate::translation::t;
+use crate::utils::aliases::{FieldsMap, StrMap};
 use std::fmt;
 
 /// Error returned when form validation fails to complete or produces errors.
@@ -47,7 +45,7 @@ impl FormValidator {
         fields: &mut FieldsMap,
         global_errors: &[String],
     ) -> Result<bool, ValidationError> {
-        let log_validate = crate::utils::runique_log::log_level!(forms.validate);
+        let log_validate = crate::log::log_level!(forms.validate);
         let mut is_all_valid = true;
 
         for field in fields.values_mut() {

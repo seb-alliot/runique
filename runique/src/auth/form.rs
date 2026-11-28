@@ -1,7 +1,7 @@
 //! `LoginAdmin` — admin login form with username/password fields.
 use crate::forms::{
     Forms,
-    field::{FormAccess, RuniqueForm},
+    runique_form::{FormAccess, RuniqueForm},
     fields::text::TextField,
 };
 use crate::impl_form_access;
@@ -21,7 +21,7 @@ impl FormAccess for LoginAdmin {
         form.field(
             &TextField::text("username")
                 .label(
-                    crate::utils::translation::t(
+                    crate::translation::t(
                         runique_i18n::keys::admin::common::label::USERNAME,
                     )
                     .as_ref(),
@@ -32,7 +32,7 @@ impl FormAccess for LoginAdmin {
         form.field(
             &TextField::password("password")
                 .label(
-                    crate::utils::translation::t(
+                    crate::translation::t(
                         runique_i18n::keys::admin::common::label::PASSWORD,
                     )
                     .as_ref(),

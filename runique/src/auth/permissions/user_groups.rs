@@ -1,5 +1,5 @@
 //! SeaORM entity `eihwaz_users_groupes` — user ↔ group junction table.
-use crate::utils::pk::Pk;
+use crate::schema::pk::Pk;
 use sea_orm::entity::prelude::*;
 
 /// SeaORM model for `eihwaz_users_groupes`, the user-to-group junction table

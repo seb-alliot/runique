@@ -1,7 +1,7 @@
 //! Numeric fields: `NumericField` (integer, decimal) with min/max validation and precision.
-use crate::forms::base::*;
+use crate::forms::form_field::*;
 use crate::utils::aliases::ATera;
-use crate::utils::translation::{t, tf};
+use crate::translation::{t, tf};
 use async_trait::async_trait;
 use serde::Serialize;
 use serde_json::json;
@@ -278,8 +278,8 @@ impl FormField for NumericField {
         crate::forms::column_value::read_field(&self.base, self.base.value.trim(), default)
     }
 
-    fn bounds(&self) -> crate::forms::base::FieldBounds {
-        use crate::forms::base::FieldBounds;
+    fn bounds(&self) -> crate::forms::form_field::FieldBounds {
+        use crate::forms::form_field::FieldBounds;
         match &self.config {
             NumericConfig::Integer { min, max } => FieldBounds {
                 min_int: *min,

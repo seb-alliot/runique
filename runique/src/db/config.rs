@@ -12,7 +12,7 @@ use std::time::Duration;
 
 use super::builder::DatabaseConfigBuilder;
 use super::engine::{DatabaseEngine, verify_database_driver};
-use crate::utils::translation::{t, tf};
+use crate::translation::{t, tf};
 
 /// Advanced database configuration.
 ///
@@ -391,7 +391,7 @@ impl DatabaseConfig {
             builder.config.max_lifetime = Duration::from_secs(n);
         }
         if let Some(v) = get("DB_LOGGING") {
-            builder.config.sqlx_logging = crate::utils::config::env::flag_from(&v).unwrap_or(false);
+            builder.config.sqlx_logging = crate::config::env::flag_from(&v).unwrap_or(false);
         }
 
         // The fallback connects with the same pool and timeouts.
@@ -510,7 +510,7 @@ impl DatabaseConfig {
     }
 
     async fn connect_once(&self) -> Result<DatabaseConnection, DbErr> {
-        if let Some(level) = crate::utils::runique_log::log_level!(db.connect) {
+        if let Some(level) = crate::log::log_level!(db.connect) {
             crate::runique_log!(level, "  Connecting to {} database...", self.engine.name());
         }
 
@@ -537,7 +537,7 @@ impl DatabaseConfig {
 
         match Database::connect(opt).await {
             Ok(conn) => {
-                if let Some(level) = crate::utils::runique_log::log_level!(db.connect) {
+                if let Some(level) = crate::log::log_level!(db.connect) {
                     crate::runique_log!(
                         level,
                         "Database connected successfully ({})",

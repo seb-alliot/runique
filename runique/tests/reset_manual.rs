@@ -7,8 +7,8 @@ mod helpers;
 mod support;
 
 use runique::db::ADb;
-use runique::utils::password::{Manual, PasswordConfig, PasswordService, password_get};
-use runique::utils::reset_token;
+use runique::security::password::{Manual, PasswordConfig, PasswordService, password_get};
+use runique::security::reset_token;
 use std::time::Duration;
 
 #[tokio::test]

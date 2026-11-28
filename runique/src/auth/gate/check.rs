@@ -9,7 +9,8 @@ use super::rights::{Crud, CrudAction, ReadableColumns};
 use super::write::pk_condition;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::meta::ModelMeta;
-use crate::utils::{aliases::ADb, pk::Pk};
+use crate::schema::Pk;
+use crate::utils::aliases::ADb;
 use sea_orm::{
     ColumnTrait, Condition, IdenStatic, Iterable, PrimaryKeyToColumn, QueryFilter, QuerySelect,
 };

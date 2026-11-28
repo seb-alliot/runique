@@ -44,6 +44,7 @@ pub mod macros;
 pub mod middleware;
 pub mod migration;
 pub mod router;
+pub mod security;
 pub mod templates;
 #[cfg(feature = "test-utils")]
 pub mod test_builder;

@@ -2,11 +2,11 @@
 use crate::admin::builder::list::ListQuery;
 use crate::admin::builder::registered::readable;
 use crate::admin::builder::site::AdminSite;
-use crate::admin::router::admin_router::AdminState;
 use crate::admin::router::context::{
     Display, FilterOption, ListContext, ListEntry, Pager, ResourceLinks, ResourceRef, RowLinks,
     filter_clear_qs, put,
 };
+use crate::admin::router::routes::AdminState;
 use crate::admin::router::{chrome, failure, unknown_resource};
 use crate::admin::translation::insert_admin_messages;
 use crate::auth::current_user::CurrentUser;
@@ -45,7 +45,7 @@ pub(crate) async fn list_view(
         Ok(page) => page,
         Err(error) => return failure(error, &req, &admin).await,
     };
-    if let Some(level) = crate::utils::runique_log::log_level!(admin.list) {
+    if let Some(level) = crate::log::log_level!(admin.list) {
         crate::runique_log!(
             level,
             resource = %resource,
@@ -55,7 +55,7 @@ pub(crate) async fn list_view(
             filters = query.filters.len(),
             search = query.search.is_some(),
             "{}",
-            crate::utils::translation::t(runique_i18n::keys::admin::log::LIST)
+            crate::translation::t(runique_i18n::keys::admin::log::LIST)
         );
     }
 
@@ -213,7 +213,7 @@ pub(crate) async fn list_view(
         });
     }
     if model.is_account_table() {
-        let ids: Vec<crate::utils::pk::Pk> =
+        let ids: Vec<crate::schema::pk::Pk> =
             entries.iter().filter_map(|e| e.id.parse().ok()).collect();
         match crate::admin::router::account::summary::account_summaries(&req.engine.db, &ids).await
         {
@@ -232,7 +232,7 @@ pub(crate) async fn list_view(
             }
         }
     }
-    if key == crate::utils::constants::resource_key::GROUPES {
+    if key == crate::auth::constants::resource_key::GROUPES {
         let ids: Vec<i32> = entries.iter().filter_map(|e| e.id.parse().ok()).collect();
         match crate::auth::gate::transfer::taken_by(&ids, &req.engine.db).await {
             Ok(names) => {
@@ -251,7 +251,7 @@ pub(crate) async fn list_view(
         }
     }
     let bulk_offered = !page.actions.is_empty() || can_delete;
-    let rights_shortcut = if key == crate::utils::constants::resource_key::GROUPES {
+    let rights_shortcut = if key == crate::auth::constants::resource_key::GROUPES {
         match crate::admin::router::permission::rights::managed_groups(&user, &req.engine.db).await
         {
             Ok(groups) => (!groups.is_empty()).then(|| paths.group_select.clone()),

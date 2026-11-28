@@ -686,10 +686,10 @@ impl Events {
 ### 14.1 Form fields
 
 ```rust
-// runique/src/forms/base.rs
+// runique/src/forms/form_field.rs
 pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Sync { /* ... */ }
 
-// runique/src/forms/field.rs
+// runique/src/forms/runique_form.rs
 dyn_clone::clone_trait_object!(FormField);
 
 // runique/src/utils/aliases/definition.rs
@@ -701,7 +701,7 @@ A form holds fields of different types (`TextField`, `MediaField`, `SelectField`
 ### 14.2 Password hashing algorithms
 
 ```rust
-// runique/src/utils/password/mod.rs
+// runique/src/security/password.rs
 pub trait PasswordHandler: Send + Sync + DynClone { /* ... */ }
 dyn_clone::clone_trait_object!(PasswordHandler);
 ```

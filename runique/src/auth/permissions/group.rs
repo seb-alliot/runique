@@ -1,5 +1,5 @@
 //! SeaORM entity `eihwaz_groupes` — admin permission groups.
-use crate::utils::pk::Pk;
+use crate::schema::pk::Pk;
 use sea_orm::entity::prelude::*;
 
 /// SeaORM model for `eihwaz_groupes`: a named permission group, linked to

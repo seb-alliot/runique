@@ -9,7 +9,7 @@ use runique::auth::BuiltinUserEntity;
 use runique::config::RuniqueConfig;
 use runique::db::ADb;
 use runique::sea_orm::DatabaseConnection;
-use runique::utils::password::PasswordConfig;
+use runique::security::password::PasswordConfig;
 
 pub const NEW_PASSWORD: &str = "Brand-new passw0rd!";
 

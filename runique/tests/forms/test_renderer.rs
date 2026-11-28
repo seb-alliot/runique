@@ -237,7 +237,7 @@ fn test_render_feuille_erreurs_chargee_si_erreur_globale() {
 #[test]
 fn test_render_feuille_erreurs_chargee_si_erreur_de_champ() {
     use indexmap::IndexMap;
-    use runique::forms::base::FormField;
+    use runique::forms::form_field::FormField;
     use runique::forms::fields::TextField;
     let renderer = make_renderer_with_error_template();
     let mut field = TextField::text("title");
@@ -331,7 +331,7 @@ fn test_render_avec_champ_et_js() {
     renderer.add_js(&["ui.js"]);
 
     let field = TextField::text("nom");
-    let mut fields: indexmap::IndexMap<String, Box<dyn runique::forms::base::FormField>> =
+    let mut fields: indexmap::IndexMap<String, Box<dyn runique::forms::form_field::FormField>> =
         IndexMap::new();
     fields.insert("nom".to_string(), Box::new(field));
 
@@ -354,7 +354,7 @@ fn test_render_js_emis_apres_les_champs() {
     let mut renderer = make_renderer_with_templates();
     renderer.add_js(&["ui.js"]);
 
-    let mut fields: indexmap::IndexMap<String, Box<dyn runique::forms::base::FormField>> =
+    let mut fields: indexmap::IndexMap<String, Box<dyn runique::forms::form_field::FormField>> =
         IndexMap::new();
     fields.insert("nom".to_string(), Box::new(TextField::text("nom")));
 
@@ -414,7 +414,7 @@ fn test_render_js_inclut_le_nonce_csp() {
 #[test]
 fn test_render_js_vrai_template_interne_ordre_et_nonce() {
     use indexmap::IndexMap;
-    use runique::utils::constants::template::{ERROR_CORPS, SIMPLE_TEMPLATES};
+    use runique::templates::constants::{ERROR_CORPS, SIMPLE_TEMPLATES};
 
     let mut tera = Tera::default();
     // Filtres d'abord : Tera 2 valide les filtres/fonctions au moment où les
@@ -563,7 +563,7 @@ fn a_richtext_value_comes_back_in_its_textarea_exactly() {
     )
     .unwrap();
     let render = |value: &str| {
-        use runique::forms::base::FormField;
+        use runique::forms::form_field::FormField;
         let mut field = runique::forms::fields::TextField::richtext("body");
         field.set_value(value);
         let mut ctx = tera::Context::new();

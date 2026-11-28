@@ -10,8 +10,8 @@ use std::path::{Path, PathBuf};
 
 /// The exact SeaORM requirement runique is built with, read from its manifest
 /// by `build.rs`.
-pub(crate) const SEA_ORM_REQ: &str = crate::tooling::SEA_ORM_REQ;
-pub(crate) const SEA_ORM_MIGRATION_REQ: &str = crate::tooling::SEA_ORM_MIGRATION_REQ;
+pub(crate) const SEA_ORM_REQ: &str = crate::versions::SEA_ORM_REQ;
+pub(crate) const SEA_ORM_MIGRATION_REQ: &str = crate::versions::SEA_ORM_MIGRATION_REQ;
 
 /// A database engine as a runique feature and the sqlx driver of
 /// `sea-orm-migration` that goes with it.
@@ -141,7 +141,7 @@ pub(crate) fn ensure(migrations_path: &str, engine: Engine) -> Result<()> {
     if migration_dir.exists() {
         return Ok(());
     }
-    write(migration_dir, engine, crate::tooling::VERSION)?;
+    write(migration_dir, engine, crate::versions::VERSION)?;
     println!(
         "{}",
         tf(
@@ -234,7 +234,7 @@ mod tests {
         // One column in the docs for both crates.
         assert_eq!(SEA_ORM_REQ, SEA_ORM_MIGRATION_REQ);
         let docs = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs");
-        let row = format!("| {} | `{SEA_ORM_REQ}` |", crate::tooling::VERSION);
+        let row = format!("| {} | `{SEA_ORM_REQ}` |", crate::versions::VERSION);
         let snippet = format!(r#"sea-orm = "{SEA_ORM_REQ}""#);
         for (page, expected) in [
             ("fr/installation/base-de-donnees/base-de-donnees.md", &row),

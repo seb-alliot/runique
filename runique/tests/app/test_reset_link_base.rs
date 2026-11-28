@@ -139,7 +139,7 @@ async fn production_keeps_the_configured_public_url() {
 #[tokio::test]
 #[serial]
 async fn the_boot_report_follows_the_language() {
-    use runique::utils::translation::{Lang, current_lang};
+    use runique::translation::{Lang, current_lang};
     use runique_i18n::set_lang;
     let before = current_lang();
     set_lang(Lang::Fr);

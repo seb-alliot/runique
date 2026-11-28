@@ -1,0 +1,1572 @@
+//! One model's admin: one block per responsibility, each set through a closure.
+use super::form::FormConfig;
+use super::list::ListConfig;
+use super::list::{ListQuery, TOTAL};
+use crate::auth::permissions::rights::ColumnRights;
+use crate::auth::{
+    gate::{Authorized, Guarded, List, View},
+    meta::ModelMeta,
+};
+use crate::forms::constants::FORM_NAME_KEY;
+use crate::forms::form::Forms;
+use crate::forms::{FormEntity, RuniqueForm};
+use crate::security::constants::CSRF_TOKEN_KEY;
+use crate::utils::aliases::ADb;
+use sea_orm::{
+    ColumnTrait, DbErr, FromQueryResult, IdenStatic, Iterable, PaginatorTrait, PrimaryKeyToColumn,
+    QueryFilter, QueryResult, QuerySelect,
+};
+
+/// `columns` with those holding a date or a time last, each group in its order.
+fn time_columns_last<C: ColumnTrait>(columns: impl IntoIterator<Item = C>) -> Vec<C> {
+    use sea_orm::sea_query::ColumnType;
+
+    let (time, mut others): (Vec<C>, Vec<C>) = columns.into_iter().partition(|col| {
+        matches!(
+            col.def().get_column_type(),
+            ColumnType::Date
+                | ColumnType::Time
+                | ColumnType::DateTime
+                | ColumnType::Timestamp
+                | ColumnType::TimestampWithTimeZone
+        )
+    });
+    others.extend(time);
+    others
+}
+
+/// The account table's rank flags: written by the gate alone, never a form field.
+const RANK_FLAGS: [&str; 3] = ["is_superuser", "is_dirigeant", "is_admin"];
+
+#[doc = include_str!("../../../doc-tests/admin/model_admin.md")]
+pub struct ModelAdmin<E: ModelMeta, F = <E as ModelMeta>::Form> {
+    pub list: ListConfig<E>,
+    pub form: FormConfig<E>,
+    /// The model's name in the admin, when set with `title()`.
+    pub(super) title: Option<String>,
+    /// Its pages, or blocks of them, replaced for this model only.
+    pub(super) templates: crate::admin::template::ModelTemplates,
+    /// `F` was given to `with_form`: its fields are held to the model at boot.
+    pub(super) custom_form: bool,
+    /// The form the create and edit pages build: `F`.
+    pub(super) form_type: std::marker::PhantomData<fn() -> F>,
+}
+
+/// One filter of a list: its column and the page of values it offers.
+#[derive(serde::Serialize)]
+pub(crate) struct ListFilter {
+    pub column: &'static str,
+    pub values: Vec<String>,
+    /// The page of values shown, from 1.
+    pub page: u64,
+    /// Values per page of this group.
+    pub size: u64,
+    /// Whether values follow this page.
+    pub has_next: bool,
+}
+
+/// A declared action the list's bar offers this account.
+#[derive(serde::Serialize)]
+pub struct OfferedAction {
+    /// Its rank among the declared actions, what the bar sends (`a<n>`).
+    pub index: usize,
+    pub label: String,
+}
+
+/// One page of a list, ready for the template.
+#[derive(serde::Serialize)]
+pub(crate) struct ListPage {
+    /// The columns shown, key out: the headers, cut tike the query.
+    pub columns: Vec<&'static str>,
+    /// The readable columns the list sorts on, in their declared order.
+    pub sortable: Vec<&'static str>,
+    pub rows: Vec<serde_json::Value>,
+    pub total: u64,
+    pub page: u64,
+    pub page_size: u64,
+    /// The readable filtered columns, with their values in the proof's scope.
+    pub filters: Vec<ListFilter>,
+    /// The declared actions this account may run.
+    pub actions: Vec<OfferedAction>,
+}
+
+/// One row of the list query: the columns shown, plus the window total read
+/// as a typed integer (SQLite gives a computed column no type, so the JSON
+/// conversion alone would drop it).
+struct ListRow {
+    fields: serde_json::Value,
+    total: i64,
+}
+
+impl FromQueryResult for ListRow {
+    fn from_query_result(res: &QueryResult, pre: &str) -> Result<Self, DbErr> {
+        Ok(Self {
+            fields: serde_json::Value::from_query_result(res, pre)?,
+            total: res.try_get(pre, TOTAL)?,
+        })
+    }
+}
+
+impl<E: ModelMeta> Default for ModelAdmin<E> {
+    fn default() -> Self {
+        Self {
+            list: ListConfig::default(),
+            form: FormConfig::default(),
+            title: None,
+            templates: Default::default(),
+            custom_form: false,
+            form_type: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<E: ModelMeta> ModelAdmin<E> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl<E, F> ModelAdmin<E, F>
+where
+    E: ModelMeta,
+    F: RuniqueForm + FormEntity<Entity = E>,
+{
+    /// Builds the create and edit pages from `G`, a form of this model
+    /// declared in the project (`#[form(schema = …)]`), instead of the
+    /// model's own: its `customize` and its `clean` then apply in the admin
+    /// too. `G` is held to the model when the application starts — every
+    /// field a column or a list field of the model, none secret, none
+    /// missing to create a row. What an account may read and write stays the
+    /// gate's decision: the form can only narrow it.
+    pub fn with_form<G>(self) -> ModelAdmin<E, G>
+    where
+        G: RuniqueForm + FormEntity<Entity = E>,
+    {
+        ModelAdmin {
+            list: self.list,
+            form: self.form,
+            title: self.title,
+            templates: self.templates,
+            custom_form: true,
+            form_type: std::marker::PhantomData,
+        }
+    }
+
+    /// A list that declares no `display` shows every column but the secret
+    /// ones; on the accounts, only the name, email and state — an account's
+    /// other columns (rank, activation date) are never listed by default.
+    pub(crate) fn with_default_display(mut self) -> Self {
+        use sea_orm::Iterable;
+        if self.list.has_display() {
+            return self;
+        }
+        let shown = E::Column::iter().filter(|c| {
+            let name = c.as_str();
+            if E::IS_ACCOUNT_TABLE {
+                ["username", "email", "is_active"].contains(&name)
+            } else {
+                !E::SECRET.iter().any(|s| s.as_str() == name)
+            }
+        });
+        self.list = self.list.display(time_columns_last(shown));
+        self
+    }
+
+    /// The model's name in the navigation and on its pages. Without it: the
+    /// model's `verbose_name_plural`, `verbose_name`, else its table name.
+    pub fn title(mut self, title: impl Into<String>) -> Self {
+        self.title = Some(title.into());
+        self
+    }
+
+    /// Replaces this model's pages, or blocks of them (their HTML, their
+    /// stylesheet), over the global replacements.
+    pub fn templates(
+        mut self,
+        t: impl FnOnce(crate::admin::template::ModelTemplates) -> crate::admin::template::ModelTemplates,
+    ) -> Self {
+        self.templates = t(self.templates);
+        self
+    }
+
+    pub fn list(mut self, l: impl FnOnce(ListConfig<E>) -> ListConfig<E>) -> Self {
+        self.list = l(self.list);
+        self
+    }
+
+    pub fn form(mut self, f: impl FnOnce(FormConfig<E>) -> FormConfig<E>) -> Self {
+        self.form = f(self.form);
+        self
+    }
+
+    pub(crate) fn validate(&self) -> Result<(), String> {
+        let mut errors = Vec::new();
+        if let Err(e) = self.list.validate() {
+            errors.push(e);
+        }
+        if let Err(e) = self.form.validate() {
+            errors.push(e);
+        }
+        if E::IS_ACCOUNT_TABLE {
+            // A rank and the activation have their own rules (the rank rule,
+            // `activated_at`): never a grouped action.
+            for name in RANK_FLAGS.iter().chain(["is_active"].iter()) {
+                if self.list.actions.iter().any(|a| a.col.as_str() == *name) {
+                    errors.push(format!(
+                        "action: `{name}` has its own rules, never a grouped action"
+                    ));
+                }
+            }
+            for flag in RANK_FLAGS {
+                if self.form.has_field(flag) {
+                    errors.push(format!(
+                        "fields: `{flag}` is a rank flag, never a form field"
+                    ));
+                }
+            }
+        }
+        for secret in E::SECRET {
+            let name = secret.as_str();
+            for list in self
+                .list
+                .lists_using(name)
+                .into_iter()
+                .chain(self.form.lists_using(name))
+            {
+                errors.push(format!(
+                    "{list}: `{name}` is a secret column, never shown, searched, filtered, sorted or written by the admin"
+                ));
+            }
+        }
+
+        // Without `.form()`, every field of the model's form is written: the
+        // action only has to stay off what `.form()` would freeze.
+        for action in &self.list.actions {
+            let name = action.col.as_str();
+            if !self.form.is_empty() && !self.form.writable_on_edit(name) {
+                errors.push(format!(
+                    "action `{}`: `{name}` is not written by the form on edit (in `fields`, not `readonly` or `create_only`)",
+                    action.label
+                ));
+            }
+            if E::OWNER.is_some_and(|owner| owner.as_str() == name) {
+                errors.push(format!(
+                    "action `{}`: `{name}` is the owner, a transfer is its own operation",
+                    action.label
+                ));
+            }
+        }
+
+        // Each declared column needs its field in the admin's form (the
+        // model's, or the one given to `with_form`), one that can hold the
+        // column's type: checked once here, not on every write.
+        let mut model_form = crate::forms::Forms::new("");
+        <F as crate::forms::FormAccess>::register_fields(&mut model_form);
+        for col in self.form.field_columns() {
+            let name = col.as_str();
+            match model_form.fields.get(name) {
+                None if self.custom_form => errors.push(format!(
+                    "fields: `{name}` is not a field of the form given to `with_form`"
+                )),
+                None => errors.push(format!(
+                    "fields: `{name}` is not a field of the model's form (`ModelMeta::Form`)"
+                )),
+                Some(field) if !field.accepts_column(col.def().get_column_type()) => {
+                    errors.push(format!(
+                        "fields: `{name}`: the form's field can't hold this column's type"
+                    ));
+                }
+                Some(_) => {}
+            }
+        }
+
+        // A form of the project is held to the model: the model's own is
+        // generated from it, this one is written by hand.
+        if self.custom_form {
+            for (name, field) in &model_form.fields {
+                let name = name.as_str();
+                if name == CSRF_TOKEN_KEY || name == FORM_NAME_KEY {
+                    continue;
+                }
+                let Some(col) = E::Column::iter().find(|c| c.as_str() == name) else {
+                    if !E::LISTS.contains(&name) {
+                        errors.push(format!(
+                            "with_form: `{name}` is neither a column nor a list field of the model"
+                        ));
+                    }
+                    continue;
+                };
+                if E::SECRET.iter().any(|s| s.as_str() == name) {
+                    errors.push(format!(
+                        "with_form: `{name}` is a secret column, never shown or written by the admin"
+                    ));
+                } else if E::IS_ACCOUNT_TABLE && RANK_FLAGS.contains(&name) {
+                    errors.push(format!(
+                        "with_form: `{name}` is a rank flag, never a form field"
+                    ));
+                } else if !field.accepts_column(col.def().get_column_type()) {
+                    errors.push(format!(
+                        "with_form: `{name}`: the form's field can't hold this column's type"
+                    ));
+                }
+            }
+        }
+
+        // What a create can't do without, and nothing else fills.
+        let filled_elsewhere = |col: &crate::schema::ColumnDef| {
+            let name = col.name.as_str();
+            col.nullable
+                || col.default.is_some()
+                || col.auto_now
+                || col.auto_now_update
+                || col.ignored
+                || (E::IS_ACCOUNT_TABLE && name == "password")
+                // The gate sets it to the account creating the row.
+                || E::OWNER.is_some_and(|owner| owner.as_str() == name)
+        };
+
+        if self.custom_form {
+            for col in E::schema().columns {
+                let name = col.name.as_str();
+                // A secret column is never the form's to fill.
+                let secret = E::SECRET.iter().any(|s| s.as_str() == name);
+                if !secret && !filled_elsewhere(&col) && !model_form.fields.contains_key(name) {
+                    errors.push(format!(
+                        "with_form: `{name}` is needed to create a row (NOT NULL, no default): the form has no field for it"
+                    ));
+                }
+            }
+        }
+
+        if !self.form.is_empty() {
+            for col in E::schema().columns {
+                let name = col.name.as_str();
+                if filled_elsewhere(&col) || self.form.writable_on_create(name) {
+                    continue;
+                }
+                if E::SECRET.iter().any(|s| s.as_str() == name) {
+                    errors.push(format!(
+                        "fields: `{name}` is a secret column needed to create a row (NOT NULL, no default): the admin can never fill it, give it a default"
+                    ));
+                } else if self.form.has_field(name) {
+                    // Listed, but `readonly` takes it out of the create form too.
+                    errors.push(format!(
+                        "fields: `{name}` is needed to create a row (NOT NULL, no default) but is `readonly`: use `create_only` to freeze it after creation, or give it a default"
+                    ));
+                } else {
+                    errors.push(format!(
+                        "fields: `{name}` is needed to create a row (NOT NULL, no default): add it to `fields` or give it a default"
+                ))
+                };
+            }
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(format!("admin `{}`:\n{}", E::KEY, errors.join("\n")))
+        }
+    }
+    /// One page of the list. Taking the gate's proof, it can't run without
+    /// it: the proof's scope narrows every row and the total.
+    pub(crate) async fn fetch_list(
+        &self,
+        db: &ADb,
+        proof: &Authorized<List, E>,
+        query: &ListQuery,
+        site_page_size: u64,
+        site_filter_size: u64,
+    ) -> Result<ListPage, DbErr> {
+        let backend = db.get_database_backend();
+        let list = self.list.readable_only(proof.readable());
+        let page_size = list.page_size(query, site_page_size);
+        let page = query.page.max(1);
+        let rows: Vec<ListRow> = list
+            .select(backend, proof.conditions(), query)
+            .limit(page_size)
+            .offset((page - 1).saturating_mul(page_size))
+            .into_model::<ListRow>()
+            .all(&**db)
+            .await?;
+
+        let total = match rows.first() {
+            Some(row) => u64::try_from(row.total).unwrap_or(0),
+            None if page > 1 => {
+                list.filtered(backend, proof.conditions(), query)
+                    .count(&**db)
+                    .await?
+            }
+            None => 0,
+        };
+
+        let rows = rows
+            .into_iter()
+            .map(|mut row| {
+                if let Some(fields) = row.fields.as_object_mut() {
+                    fields.remove(TOTAL);
+                }
+                row.fields
+            })
+            .collect();
+
+        let keys: Vec<&str> = E::PrimaryKey::iter()
+            .map(|k| k.into_column().as_str())
+            .collect();
+
+        let columns = list
+            .display_columns()
+            .iter()
+            .map(|c| c.as_str())
+            .filter(|name| !keys.contains(name))
+            .collect();
+        let sortable = list.sortable_columns().iter().map(|c| c.as_str()).collect();
+        let mut filters = Vec::new();
+        for col in list.filter_columns() {
+            let size = list.filter_page_size(query, site_filter_size);
+            let fetch = move |page: u64| {
+                ListConfig::<E>::filter_values(backend, proof.conditions(), *col, page, size)
+                    .into_tuple::<String>()
+                    .all(&**db)
+            };
+            let mut filter_page = query.filter_page(col.as_str());
+            let mut values = fetch(filter_page).await?;
+            // A page past the last (an old link, values gone since): the
+            // first page instead of an empty group with no way back.
+            if values.is_empty() && filter_page > 1 {
+                filter_page = 1;
+                values = fetch(1).await?;
+            }
+            let has_next = values.len() as u64 > size;
+            values.truncate(usize::try_from(size).unwrap_or(usize::MAX));
+            filters.push(ListFilter {
+                column: col.as_str(),
+                values,
+                page: filter_page,
+                size,
+                has_next,
+            });
+        }
+        Ok(ListPage {
+            columns,
+            sortable,
+            rows,
+            total,
+            page,
+            page_size,
+            filters,
+            actions: Vec::new(),
+        })
+    }
+
+    /// One row's page: the form's columns, read in one query filtered by the
+    /// proof's scope. `None` when no row matches, whether it is missing or out
+    /// of the user's reach: the caller refuses both alike.
+    pub(crate) async fn fetch_detail(
+        &self,
+        db: &ADb,
+        proof: &Authorized<View, E>,
+    ) -> Result<Option<serde_json::Value>, DbErr> {
+        let Some(id) = proof.id() else {
+            return Ok(None);
+        };
+        let columns = proof.readable().preserve::<E>(&self.detail_columns());
+        E::find_by_id(id.clone())
+            .filter(proof.conditions())
+            .select_only()
+            .columns(columns)
+            .into_json()
+            .one(&**db)
+            .await
+    }
+}
+
+impl<E, F> ModelAdmin<E, F>
+where
+    E: ModelMeta,
+    F: RuniqueForm + FormEntity<Entity = E>,
+{
+    /// The row's page shows what the list shows, in its order, then what else
+    /// the form holds, dates and times last; the key comes with the form's columns.
+    pub(crate) fn detail_columns(&self) -> Vec<E::Column> {
+        let mut columns: Vec<E::Column> = self.list.display_columns().to_vec();
+        for col in self.form_columns() {
+            if !columns.iter().any(|c| c.as_str() == col.as_str()) {
+                columns.push(col);
+            }
+        }
+        time_columns_last(columns)
+    }
+
+    /// The columns the form pages work on: the declared fields, or without
+    /// `.form()` every column but the secret ones. The key comes with them.
+    pub(crate) fn form_columns(&self) -> Vec<E::Column> {
+        if !self.form.is_empty() {
+            return self.form.read_columns();
+        }
+        E::Column::iter()
+            .filter(|c| !E::SECRET.iter().any(|s| s.as_str() == c.as_str()))
+            // Bumped by the framework to revoke sessions: nothing to read or edit.
+            .filter(|c| !(E::IS_ACCOUNT_TABLE && c.as_str() == "session_version"))
+            .collect()
+    }
+
+    /// The model's form as the edit page shows it: its fields among the
+    /// `readable` columns; locked when not ticked for update in `columns`, or
+    /// declared read-only or create-only.
+    pub(crate) fn shape_for_edit(
+        &self,
+        form: &mut Forms,
+        readable: &[E::Column],
+        lists: &[&'static str],
+        columns: &ColumnRights,
+    ) {
+        self.shape(
+            form,
+            // A list field has no column: it is shown by its name, when the
+            // gate lets it be read (`lists`).
+            |name| readable.iter().any(|c| c.as_str() == name) || lists.contains(&name),
+            |name| {
+                columns.can_update(name)
+                    && (self.form.is_empty() || self.form.writable_on_edit(name))
+            },
+        );
+    }
+
+    /// The model's form as the create page shows it: its fields; locked when
+    /// not ticked for create in `columns`, or declared read-only.
+    pub(crate) fn shape_for_create(&self, form: &mut Forms, columns: &ColumnRights) {
+        self.shape(
+            form,
+            |_| true,
+            |name| {
+                columns.can_create(name)
+                    && (self.form.is_empty() || self.form.writable_on_create(name))
+            },
+        );
+    }
+
+    /// The fields of the model's form `shown` lets through, locking those not
+    /// `writable`. Without `.form()`, every field of the model's form; with
+    /// it, only the declared ones, in their declared order, with their labels.
+    /// A field left out is neither shown nor written.
+    fn shape(
+        &self,
+        form: &mut Forms,
+        shown: impl Fn(&str) -> bool,
+        writable: impl Fn(&str) -> bool,
+    ) {
+        let kept = |name: &str| self.form.is_empty() || self.form.has_field(name);
+        form.fields.retain(|name, _| {
+            name == CSRF_TOKEN_KEY || name == FORM_NAME_KEY || (kept(name) && shown(name))
+        });
+        if !self.form.is_empty() {
+            let position = |name: &str| {
+                self.form
+                    .field_columns()
+                    .iter()
+                    .position(|c| c.as_str() == name)
+            };
+            form.fields
+                .sort_by(|a, _, b, _| position(a).cmp(&position(b)));
+        }
+        for (name, field) in form.fields.iter_mut() {
+            if name == CSRF_TOKEN_KEY || name == FORM_NAME_KEY {
+                continue;
+            }
+            if !writable(name) {
+                field.set_readonly(true, None);
+            }
+            if let Some(label) = self.form.label_of(name) {
+                field.set_label(label);
+            }
+        }
+    }
+}
+
+/// Puts `row`'s values in the fields of the same name, as the page shows
+/// them; a NULL leaves its field empty.
+pub(crate) fn prefill(form: &mut Forms, row: &serde_json::Value) {
+    let Some(row) = row.as_object() else {
+        return;
+    };
+    for (name, field) in form.fields.iter_mut() {
+        let text = match row.get(name) {
+            None | Some(serde_json::Value::Null) => continue,
+            Some(serde_json::Value::String(text)) => text.clone(),
+            Some(other) => other.to_string(),
+        };
+        field.set_value(&text);
+    }
+}
+
+#[cfg(feature = "sqlite")]
+#[cfg(test)]
+mod tests {
+    use super::{ListPage, ModelAdmin};
+    use crate::admin::builder::list::ListQuery;
+    use crate::auth::current_user::CurrentUser;
+    use crate::auth::gate::GateCtx;
+    use crate::auth::gate::check::{authorize_list, authorize_view};
+    use crate::auth::gate::test_support::fixtures::note::{Column, Entity};
+    use crate::auth::gate::test_support::fixtures::{db, pk, staff};
+    use crate::auth::permissions::rank::Rang;
+    use crate::auth::user;
+    use sea_orm::{IdenStatic, Order};
+
+    fn names<C: IdenStatic>(columns: &[C]) -> Vec<&'static str> {
+        columns.iter().map(|c| c.as_str()).collect()
+    }
+
+    #[test]
+    fn an_automatic_list_shows_its_dates_last() {
+        let admin = ModelAdmin::<article::Entity>::new().with_default_display();
+        let shown = names(admin.list.display_columns());
+        assert_eq!(shown[shown.len() - 2..], ["created_at", "updated_at"]);
+        assert!(shown.contains(&"title"), "{shown:?}");
+    }
+
+    #[test]
+    fn a_declared_list_keeps_its_order() {
+        let admin = ModelAdmin::<article::Entity>::new()
+            .list(|l| l.display([article::Column::CreatedAt, article::Column::Title]))
+            .with_default_display();
+        assert_eq!(names(admin.list.display_columns()), ["created_at", "title"]);
+    }
+
+    #[test]
+    fn a_row_page_shows_its_dates_last_even_if_declared_first() {
+        let admin = ModelAdmin::<article::Entity>::new()
+            .list(|l| l.display([article::Column::CreatedAt, article::Column::Title]));
+        let shown = names(&admin.detail_columns());
+        assert_eq!(shown[0], "title");
+        assert_eq!(shown[shown.len() - 2..], ["created_at", "updated_at"]);
+    }
+
+    /// One column of each kind the create check looks at.
+    mod article {
+        use sea_orm::entity::prelude::*;
+
+        #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+        #[sea_orm(table_name = "articles")]
+        pub struct Model {
+            #[sea_orm(primary_key)]
+            pub id: i32,
+            pub title: String,
+            pub status: String,
+            pub created_at: DateTime,
+            pub updated_at: DateTime,
+            pub summary: Option<String>,
+            pub token: String,
+            pub password: String,
+            pub published: bool,
+            pub owner_id: i32,
+        }
+
+        #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+        pub enum Relation {}
+
+        impl ActiveModelBehavior for ActiveModel {}
+
+        /// A field for every column a test may put in `fields`.
+        #[derive(serde::Serialize, Debug, Clone)]
+        #[serde(transparent)]
+        pub struct ArticleForm {
+            pub form: crate::forms::Forms,
+        }
+
+        impl crate::forms::FormAccess for ArticleForm {
+            fn register_fields(form: &mut crate::forms::Forms) {
+                use crate::forms::fields::{BooleanField, TextField};
+                form.field(&TextField::text("title"));
+                form.field(&TextField::text("status"));
+                form.field(&TextField::text("summary"));
+                form.field(&BooleanField::new("published"));
+                // Wrong on purpose: a box can't hold the text column `token`.
+                form.field(&BooleanField::new("token"));
+            }
+            crate::impl_form_access!();
+        }
+
+        impl crate::forms::RuniqueForm for ArticleForm {}
+
+        impl crate::forms::FormEntity for ArticleForm {
+            type Entity = Entity;
+        }
+
+        impl crate::auth::meta::ModelMeta for Entity {
+            const KEY: &'static str = "articles";
+            type Form = ArticleForm;
+            const SECRET: &'static [Column] = &[Column::Password];
+            const OWNER: Option<Column> = Some(Column::OwnerId);
+            fn schema() -> crate::schema::ModelSchema {
+                use crate::schema::ColumnDef;
+                crate::schema::ModelSchema::new("Article")
+                    .table_name("articles")
+                    .primary_key(
+                        crate::schema::PrimaryKeyDef::new("id")
+                            .i32()
+                            .auto_increment(),
+                    )
+                    .column(ColumnDef::new("title").string().required())
+                    .column(
+                        ColumnDef::new("status")
+                            .string()
+                            .required()
+                            .default("draft".into()),
+                    )
+                    .column(
+                        ColumnDef::new("created_at")
+                            .datetime()
+                            .required()
+                            .auto_now(),
+                    )
+                    .column(
+                        ColumnDef::new("updated_at")
+                            .datetime()
+                            .required()
+                            .auto_now_update(),
+                    )
+                    .column(ColumnDef::new("summary").string().nullable())
+                    .column(ColumnDef::new("token").string().required().ignore())
+                    .column(ColumnDef::new("password").string().required())
+                    .column(
+                        ColumnDef::new("published")
+                            .boolean()
+                            .required()
+                            .default(false.into()),
+                    )
+                    .column(ColumnDef::new("owner_id").integer().required())
+                    .build()
+                    .unwrap()
+            }
+        }
+    }
+
+    /// A form of the project for `article`, registering what `$body` declares.
+    macro_rules! article_form {
+        ($name:ident, |$form:ident| $body:block) => {
+            #[derive(serde::Serialize, Debug, Clone)]
+            #[serde(transparent)]
+            struct $name {
+                form: crate::forms::Forms,
+            }
+
+            impl crate::forms::FormAccess for $name {
+                fn register_fields($form: &mut crate::forms::Forms) $body
+                crate::impl_form_access!();
+            }
+
+            impl crate::forms::RuniqueForm for $name {}
+
+            impl crate::forms::FormEntity for $name {
+                type Entity = article::Entity;
+            }
+        };
+    }
+
+    #[test]
+    fn a_form_of_the_project_made_of_the_models_columns_is_accepted() {
+        use crate::forms::fields::TextField;
+        article_form!(Maison, |form| {
+            form.field(&TextField::text("title"));
+            form.field(&TextField::text("summary"));
+        });
+        let admin = ModelAdmin::<article::Entity>::new().with_form::<Maison>();
+        assert_eq!(admin.validate(), Ok(()));
+    }
+
+    /// The model's own form is generated from the model: only a form given to
+    /// `with_form` is held to it. `ArticleForm` declares `token` as a box.
+    #[test]
+    fn only_a_form_given_to_with_form_is_held_to_the_model() {
+        let own = ModelAdmin::<article::Entity>::new();
+        assert_eq!(own.validate(), Ok(()));
+
+        let given = ModelAdmin::<article::Entity>::new().with_form::<article::ArticleForm>();
+        let error = given.validate().unwrap_err();
+        assert!(
+            error.contains("with_form: `token`: the form's field can't hold this column's type"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn a_given_form_with_a_field_outside_the_model_is_refused() {
+        use crate::forms::fields::TextField;
+        article_form!(Fantome, |form| {
+            form.field(&TextField::text("title"));
+            form.field(&TextField::text("ghost"));
+        });
+        let error = ModelAdmin::<article::Entity>::new()
+            .with_form::<Fantome>()
+            .validate()
+            .unwrap_err();
+        assert!(
+            error.contains("with_form: `ghost` is neither a column nor a list field"),
+            "{error}"
+        );
+        assert!(!error.contains("`title`"), "{error}");
+    }
+
+    #[test]
+    fn a_given_form_with_a_secret_column_is_refused() {
+        use crate::forms::fields::TextField;
+        article_form!(Bavard, |form| {
+            form.field(&TextField::text("title"));
+            form.field(&TextField::text("password"));
+        });
+        let error = ModelAdmin::<article::Entity>::new()
+            .with_form::<Bavard>()
+            .validate()
+            .unwrap_err();
+        assert!(
+            error.contains("with_form: `password` is a secret column"),
+            "{error}"
+        );
+    }
+
+    /// `title` is NOT NULL without a default; `password` too, but secret: it
+    /// is never the form's to fill.
+    #[test]
+    fn a_given_form_missing_a_column_needed_to_create_is_refused() {
+        use crate::forms::fields::TextField;
+        article_form!(Court, |form| {
+            form.field(&TextField::text("summary"));
+        });
+        let error = ModelAdmin::<article::Entity>::new()
+            .with_form::<Court>()
+            .validate()
+            .unwrap_err();
+        assert!(
+            error.contains("with_form: `title` is needed to create a row"),
+            "{error}"
+        );
+        assert!(!error.contains("`password`"), "{error}");
+        assert!(!error.contains("`summary`"), "{error}");
+    }
+
+    #[test]
+    fn a_rank_flag_in_a_given_form_is_refused_on_the_account_table() {
+        use crate::forms::fields::{BooleanField, TextField};
+        #[derive(serde::Serialize, Debug, Clone)]
+        #[serde(transparent)]
+        struct Promotion {
+            form: crate::forms::Forms,
+        }
+        impl crate::forms::FormAccess for Promotion {
+            fn register_fields(form: &mut crate::forms::Forms) {
+                form.field(&TextField::text("username"));
+                form.field(&TextField::text("email"));
+                form.field(&BooleanField::new("is_superuser"));
+            }
+            crate::impl_form_access!();
+        }
+        impl crate::forms::RuniqueForm for Promotion {}
+        impl crate::forms::FormEntity for Promotion {
+            type Entity = user::Entity;
+        }
+
+        let error = ModelAdmin::<user::Entity>::new()
+            .with_form::<Promotion>()
+            .validate()
+            .unwrap_err();
+        assert!(
+            error.contains("with_form: `is_superuser` is a rank flag"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn a_consistent_admin_is_accepted() {
+        let admin = ModelAdmin::<Entity>::new()
+            .list(|l| l.display([Column::Id, Column::OwnerId]).links([Column::Id]))
+            .form(|f| f.fields([Column::OwnerId]));
+        assert!(admin.validate().is_ok());
+    }
+
+    #[test]
+    fn errors_of_every_block_are_reported_at_once() {
+        let admin = ModelAdmin::<Entity>::new()
+            .list(|l| l.display([Column::Id]).sortable([Column::OwnerId]))
+            .form(|f| f.fields([Column::Id]).readonly([Column::OwnerId]));
+        let error = admin.validate().unwrap_err();
+        assert!(error.contains("notes"), "{error}");
+        assert!(error.contains("sortable"), "{error}");
+        assert!(error.contains("readonly"), "{error}");
+    }
+
+    #[test]
+    fn every_rank_flag_is_refused_on_the_account_table() {
+        for (column, flag) in [
+            (user::Column::IsSuperuser, "is_superuser"),
+            (user::Column::IsDirigeant, "is_dirigeant"),
+            (user::Column::IsAdmin, "is_admin"),
+        ] {
+            let admin = ModelAdmin::<user::Entity>::new()
+                .form(|f| f.fields([user::Column::Username, column]));
+            let error = admin.validate().unwrap_err();
+            assert!(error.contains(&format!("`{flag}` is a rank")), "{error}");
+        }
+    }
+
+    /// A secret column is refused in every list that could show it, search
+    /// it, filter it, sort by it or write it: even unshown, a searchable or
+    /// sortable password hash gives itself away one guessed prefix at a time.
+    #[test]
+    fn a_secret_column_is_refused_in_every_list() {
+        let p = user::Column::Password;
+        let cases: [(&str, ModelAdmin<user::Entity>); 10] = [
+            ("display", ModelAdmin::new().list(|l| l.display([p]))),
+            ("search", ModelAdmin::new().list(|l| l.search([p]))),
+            ("filter", ModelAdmin::new().list(|l| l.filter([p]))),
+            ("sortable", ModelAdmin::new().list(|l| l.sortable([p]))),
+            (
+                "ordering",
+                ModelAdmin::new().list(|l| l.ordering([(p, Order::Asc)])),
+            ),
+            ("fields", ModelAdmin::new().form(|f| f.fields([p]))),
+            (
+                "create_only",
+                ModelAdmin::new().form(|f| f.fields([p]).create_only([p])),
+            ),
+            (
+                "labels",
+                ModelAdmin::new().form(|f| f.fields([p]).labels([(p, "Mot de passe")])),
+            ),
+            (
+                "readonly",
+                ModelAdmin::new().form(|f| f.fields([p]).readonly([p])),
+            ),
+            (
+                "links",
+                ModelAdmin::new().list(|l| l.display([p]).links([p])),
+            ),
+        ];
+        for (list, admin) in cases {
+            let error = admin.validate().unwrap_err();
+            assert!(
+                error.contains(&format!("{list}: `password` is a secret column")),
+                "{list}: {error}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_account_table_without_its_password_is_accepted() {
+        let admin = ModelAdmin::<user::Entity>::new()
+            .list(|l| {
+                l.display([user::Column::Username])
+                    .search([user::Column::Email])
+            })
+            .form(|f| f.fields([user::Column::Username, user::Column::Email]));
+        assert!(admin.validate().is_ok());
+    }
+
+    #[test]
+    fn an_action_outside_fields_is_refused() {
+        let admin = ModelAdmin::<user::Entity>::new()
+            .list(|l| l.action(user::Column::IsActive, false, "Désactiver"))
+            .form(|f| f.fields([user::Column::Username]));
+        let error = admin.validate().unwrap_err();
+        assert!(error.contains("action `Désactiver`"), "{error}");
+        assert!(error.contains("not written by the form"), "{error}");
+    }
+
+    #[test]
+    fn an_action_on_a_readonly_column_is_refused() {
+        let admin = ModelAdmin::<user::Entity>::new()
+            .list(|l| l.action(user::Column::IsActive, false, "Désactiver"))
+            .form(|f| {
+                f.fields([user::Column::Username, user::Column::IsActive])
+                    .readonly([user::Column::IsActive])
+            });
+        let error = admin.validate().unwrap_err();
+        assert!(error.contains("not written by the form"), "{error}");
+    }
+
+    #[test]
+    fn a_column_without_its_field_in_the_form_is_refused() {
+        let admin = ModelAdmin::<user::Entity>::new().form(|f| {
+            f.fields([
+                user::Column::Username,
+                user::Column::Email,
+                user::Column::IsActive,
+            ])
+        });
+        let error = admin.validate().unwrap_err();
+        assert!(
+            error.contains("`is_active` is not a field of the model's form"),
+            "{error}"
+        );
+        assert!(!error.contains("`username`"), "{error}");
+        assert!(!error.contains("`email`"), "{error}");
+    }
+
+    #[test]
+    fn a_field_that_cant_hold_its_column_is_refused() {
+        let admin = ModelAdmin::<article::Entity>::new()
+            .form(|f| f.fields([article::Column::Title, article::Column::Token]));
+        let error = admin.validate().unwrap_err();
+        assert!(
+            error.contains("`token`: the form's field can't hold this column's type"),
+            "{error}"
+        );
+        assert!(!error.contains("`title`"), "{error}");
+    }
+
+    #[test]
+    fn an_action_on_a_written_column_is_accepted() {
+        let admin = ModelAdmin::<article::Entity>::new()
+            .list(|l| l.action(article::Column::Published, true, "Publier"))
+            .form(|f| f.fields([article::Column::Title, article::Column::Published]));
+        // `article` still misses its secret column: only the action matters here.
+        let error = admin.validate().unwrap_err();
+        assert!(!error.contains("action `Publier`"), "{error}");
+    }
+
+    #[test]
+    fn an_action_on_the_owner_is_refused() {
+        let admin = ModelAdmin::<Entity>::new()
+            .list(|l| l.action(Column::OwnerId, pk(20), "Donner à 20"))
+            .form(|f| f.fields([Column::OwnerId]));
+        let error = admin.validate().unwrap_err();
+        assert!(error.contains("action `Donner à 20`"), "{error}");
+        assert!(error.contains("is the owner"), "{error}");
+        assert!(!error.contains("not written by the form"), "{error}");
+    }
+
+    #[test]
+    fn the_account_table_without_a_rank_flag_is_accepted() {
+        let admin = ModelAdmin::<user::Entity>::new()
+            .form(|f| f.fields([user::Column::Username, user::Column::Email]));
+        assert!(admin.validate().is_ok());
+    }
+
+    async fn page_of(admin: &ModelAdmin<Entity>, query: ListQuery) -> ListPage {
+        let db = db().await;
+        let reader = staff(
+            pk(10),
+            "notes",
+            [false, true, false, false, false, false, false],
+        );
+        let ctx = GateCtx {
+            db: &db,
+            user: &reader,
+        };
+        let proof = authorize_list::<Entity>(&ctx).unwrap();
+        admin.fetch_list(&db, &proof, &query, 25, 10).await.unwrap()
+    }
+
+    fn paged(per_page: u64) -> ModelAdmin<Entity> {
+        ModelAdmin::<Entity>::new().list(|l| {
+            l.display([Column::Id])
+                .filter([Column::Id])
+                .per_page(per_page)
+        })
+    }
+
+    #[tokio::test]
+    async fn every_page_carries_the_full_total() {
+        let first = page_of(
+            &paged(2),
+            ListQuery {
+                page: 1,
+                ..Default::default()
+            },
+        )
+        .await;
+        let second = page_of(
+            &paged(2),
+            ListQuery {
+                page: 2,
+                ..Default::default()
+            },
+        )
+        .await;
+        assert_eq!((first.rows.len(), first.total), (2, 3));
+        assert_eq!((second.rows.len(), second.total), (1, 3));
+    }
+
+    #[tokio::test]
+    async fn a_page_past_the_end_is_empty_but_keeps_the_total() {
+        let page = page_of(
+            &paged(2),
+            ListQuery {
+                page: 5,
+                ..Default::default()
+            },
+        )
+        .await;
+        assert!(page.rows.is_empty());
+        assert_eq!(page.total, 3);
+    }
+
+    #[tokio::test]
+    async fn only_the_columns_shown_and_the_key_are_read() {
+        let admin = ModelAdmin::<Entity>::new().list(|l| l.display([Column::OwnerId]));
+        let page = page_of(&admin, ListQuery::default()).await;
+        let fields = page.rows[0].as_object().unwrap();
+        let mut keys: Vec<&str> = fields.keys().map(String::as_str).collect();
+        keys.sort();
+        assert_eq!(keys, ["id", "owner_id"]);
+    }
+
+    /// The values a filter offers for `Id`, to account `id` holding `rights`.
+    async fn filter_values_for(id: crate::schema::pk::Pk, rights: [bool; 7]) -> Vec<String> {
+        let db = db().await;
+        let reader = staff(id, "notes", rights);
+        let ctx = GateCtx {
+            db: &db,
+            user: &reader,
+        };
+        let proof = authorize_list::<Entity>(&ctx).unwrap();
+        let admin =
+            ModelAdmin::<Entity>::new().list(|l| l.display([Column::Id]).filter([Column::Id]));
+        let page = admin
+            .fetch_list(&db, &proof, &ListQuery::default(), 25, 10)
+            .await
+            .unwrap();
+        let mut values = page.filters.into_iter().next().unwrap().values;
+        values.sort();
+        values
+    }
+
+    /// A filter offers the values of the rows the account reads, never more:
+    /// through `read_own` alone, another's row would show in the panel what
+    /// the list hides.
+    #[tokio::test]
+    async fn a_filter_offers_only_the_values_in_reach() {
+        let read = [false, true, false, false, false, false, false];
+        let read_own = [false, false, true, false, false, false, false];
+        assert_eq!(filter_values_for(pk(10), read).await, ["1", "2", "3"]);
+        assert_eq!(filter_values_for(pk(10), read_own).await, ["1"]);
+        assert_eq!(filter_values_for(pk(20), read_own).await, ["2"]);
+    }
+
+    /// A filter group shows one page of its values, and says whether another
+    /// follows, without counting them.
+    #[tokio::test]
+    async fn a_filter_pages_its_values() {
+        let db = db().await;
+        let reader = staff(
+            pk(10),
+            "notes",
+            [false, true, false, false, false, false, false],
+        );
+        let ctx = GateCtx {
+            db: &db,
+            user: &reader,
+        };
+        let proof = authorize_list::<Entity>(&ctx).unwrap();
+        let admin =
+            ModelAdmin::<Entity>::new().list(|l| l.display([Column::Id]).filter([Column::Id]));
+        let at = |page: u64| ListQuery {
+            filter_size: Some(2),
+            filter_pages: vec![("id".to_string(), page)],
+            ..Default::default()
+        };
+
+        let first = admin.fetch_list(&db, &proof, &at(1), 25, 10).await.unwrap();
+        let first = first.filters.into_iter().next().unwrap();
+        assert_eq!(
+            (first.values.len(), first.page, first.has_next),
+            (2, 1, true)
+        );
+
+        let last = admin.fetch_list(&db, &proof, &at(2), 25, 10).await.unwrap();
+        let last = last.filters.into_iter().next().unwrap();
+        assert_eq!((last.values.len(), last.page, last.has_next), (1, 2, false));
+
+        // Past the end, even a page no offset can reach: back to the first page.
+        let past = admin
+            .fetch_list(&db, &proof, &at(u64::MAX), 25, 10)
+            .await
+            .unwrap();
+        let past = past.filters.into_iter().next().unwrap();
+        assert_eq!((past.values.len(), past.page, past.has_next), (2, 1, true));
+    }
+
+    #[tokio::test]
+    async fn a_filter_narrows_rows_and_total_alike() {
+        let query = ListQuery {
+            filters: vec![("id".into(), "2".into())],
+            ..Default::default()
+        };
+        let page = page_of(&paged(25), query).await;
+        assert_eq!((page.rows.len(), page.total), (1, 1));
+    }
+
+    #[tokio::test]
+    async fn the_declared_order_comes_first() {
+        let admin = ModelAdmin::<Entity>::new().list(|l| {
+            l.display([Column::Id])
+                .ordering([(Column::Id, Order::Desc)])
+        });
+        let page = page_of(&admin, ListQuery::default()).await;
+        assert_eq!(page.rows[0]["id"], 3);
+    }
+
+    /// An admin reading the accounts: `username` always, `email` only if `email`.
+    fn account_reader(email: bool) -> CurrentUser {
+        use crate::auth::permissions::ColumnRight;
+        let mut admin = staff(
+            pk(40),
+            "users",
+            [false, true, false, false, false, false, false],
+        );
+        admin.rang = Rang::Admin;
+        admin.groupes[0].permissions[0].colonnes = [("username", true), ("email", email)]
+            .into_iter()
+            .map(|(name, read)| ColumnRight {
+                colonne: name.into(),
+                can_read: read,
+                can_create: false,
+                can_update: false,
+            })
+            .collect();
+        admin.droits = admin.groupes[0].permissions.clone();
+        admin
+    }
+
+    async fn accounts_page(reader: &CurrentUser, query: ListQuery) -> ListPage {
+        let db = db().await;
+        let ctx = GateCtx {
+            db: &db,
+            user: reader,
+        };
+        let proof = authorize_list::<user::Entity>(&ctx).unwrap();
+        ModelAdmin::<user::Entity>::new()
+            .list(|l| {
+                l.display([user::Column::Username, user::Column::Email])
+                    .search([user::Column::Email])
+                    .filter([user::Column::Email])
+                    .sortable([user::Column::Email])
+            })
+            .fetch_list(&db, &proof, &query, 25, 10)
+            .await
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn an_unreadable_column_is_neither_read_nor_headed() {
+        for (email, columns, keys) in [
+            (false, vec!["username"], vec!["id", "username"]),
+            (
+                true,
+                vec!["username", "email"],
+                vec!["email", "id", "username"],
+            ),
+        ] {
+            let page = accounts_page(&account_reader(email), ListQuery::default()).await;
+            assert_eq!(page.columns, columns, "email readable: {email}");
+            assert!(!page.rows.is_empty());
+            for row in &page.rows {
+                let mut read: Vec<&str> = row
+                    .as_object()
+                    .unwrap()
+                    .keys()
+                    .map(String::as_str)
+                    .collect();
+                read.sort();
+                assert_eq!(read, keys, "email readable: {email}");
+            }
+        }
+    }
+
+    /// A named list query, built afresh for each reader.
+    type Probe = (&'static str, fn() -> ListQuery);
+
+    /// Searching, filtering or sorting on an unreadable column would tell its
+    /// values one guess at a time: the page must be the one without the parameter.
+    #[tokio::test]
+    async fn an_unreadable_column_is_neither_searched_filtered_nor_sorted() {
+        let queries: [Probe; 3] = [
+            ("search", || ListQuery {
+                search: Some("member@".into()),
+                ..Default::default()
+            }),
+            ("filter", || ListQuery {
+                filters: vec![("email".into(), "member@example.com".into())],
+                ..Default::default()
+            }),
+            ("sort", || ListQuery {
+                sort_by: Some("email".into()),
+                sort_dir: Some("desc".into()),
+                ..Default::default()
+            }),
+        ];
+        let hidden = account_reader(false);
+        let shown = account_reader(true);
+        let hidden_base = accounts_page(&hidden, ListQuery::default()).await;
+        let shown_base = accounts_page(&shown, ListQuery::default()).await;
+        for (label, query) in queries {
+            let page = accounts_page(&hidden, query()).await;
+            assert_eq!(page.rows, hidden_base.rows, "hidden: {label}");
+            assert_eq!(page.total, hidden_base.total, "hidden: {label}");
+            let page = accounts_page(&shown, query()).await;
+            assert_ne!(page.rows, shown_base.rows, "shown: {label}");
+            assert_eq!(page.rows[0]["username"], "member", "shown: {label}");
+        }
+    }
+
+    /// A declared order on an unreadable column would still rank the rows by its
+    /// values: dropped, the rows come in key order.
+    #[tokio::test]
+    async fn a_declared_order_on_an_unreadable_column_is_dropped() {
+        let db = db().await;
+        let admin = ModelAdmin::<user::Entity>::new().list(|l| {
+            l.display([user::Column::Username, user::Column::Email])
+                .ordering([(user::Column::Email, Order::Desc)])
+        });
+        for (email, first) in [(false, "crawler"), (true, "member")] {
+            let reader = account_reader(email);
+            let ctx = GateCtx {
+                db: &db,
+                user: &reader,
+            };
+            let proof = authorize_list::<user::Entity>(&ctx).unwrap();
+            let page = admin
+                .fetch_list(&db, &proof, &ListQuery::default(), 25, 10)
+                .await
+                .unwrap();
+            assert_eq!(page.rows[0]["username"], first, "email readable: {email}");
+        }
+    }
+
+    /// The row's page adds the form's fields to the list's: those go through the
+    /// same cut, or a hidden field would come back by the form.
+    #[tokio::test]
+    async fn the_detail_leaves_out_an_unreadable_form_field() {
+        let db = db().await;
+        let admin = ModelAdmin::<user::Entity>::new()
+            .list(|l| l.display([user::Column::Username]))
+            .form(|f| f.fields([user::Column::Username, user::Column::Email]));
+        for (email, keys) in [
+            (false, vec!["id", "username"]),
+            (true, vec!["email", "id", "username"]),
+        ] {
+            let reader = account_reader(email);
+            let ctx = GateCtx {
+                db: &db,
+                user: &reader,
+            };
+            let proof = authorize_view::<user::Entity>(&ctx, pk(31)).unwrap();
+            let entry = admin.fetch_detail(&db, &proof).await.unwrap().unwrap();
+            let mut read: Vec<&str> = entry
+                .as_object()
+                .unwrap()
+                .keys()
+                .map(String::as_str)
+                .collect();
+            read.sort();
+            assert_eq!(read, keys, "email readable: {email}");
+        }
+    }
+    #[test]
+    fn a_needed_column_outside_fields_is_refused() {
+        let admin =
+            ModelAdmin::<article::Entity>::new().form(|f| f.fields([article::Column::Summary]));
+        let error = admin.validate().unwrap_err();
+        assert!(
+            error.contains("`title` is needed to create a row"),
+            "{error}"
+        );
+        assert!(error.contains("add it to `fields`"), "{error}");
+        assert!(!error.contains("create_only"), "{error}");
+    }
+
+    #[test]
+    fn a_needed_column_in_fields_is_accepted() {
+        let admin =
+            ModelAdmin::<article::Entity>::new().form(|f| f.fields([article::Column::Title]));
+        let error = admin.validate().unwrap_err();
+        assert!(!error.contains("`title`"), "{error}");
+    }
+
+    #[test]
+    fn a_needed_column_in_readonly_is_refused() {
+        let admin = ModelAdmin::<article::Entity>::new().form(|f| {
+            f.fields([article::Column::Title])
+                .readonly([article::Column::Title])
+        });
+        let error = admin.validate().unwrap_err();
+        assert!(
+            error.contains("`title` is needed to create a row"),
+            "{error}"
+        );
+        // Already listed: told about `create_only`, not to add it again.
+        assert!(error.contains("use `create_only`"), "{error}");
+        assert!(!error.contains("add it to `fields`"), "{error}");
+    }
+
+    /// One mutation per `||` of `filled_elsewhere`: dropping any of them
+    /// makes its column reported here.
+    #[test]
+    fn columns_filled_elsewhere_are_not_needed() {
+        let admin =
+            ModelAdmin::<article::Entity>::new().form(|f| f.fields([article::Column::Title]));
+        let error = admin.validate().unwrap_err();
+        for name in [
+            "status",
+            "created_at",
+            "updated_at",
+            "summary",
+            "token",
+            "owner_id",
+        ] {
+            assert!(!error.contains(&format!("`{name}`")), "{name}: {error}");
+        }
+    }
+
+    #[test]
+    fn a_needed_secret_column_gets_its_own_message() {
+        let admin =
+            ModelAdmin::<article::Entity>::new().form(|f| f.fields([article::Column::Title]));
+        let error = admin.validate().unwrap_err();
+        assert!(
+            error.contains("`password` is a secret column needed"),
+            "{error}"
+        );
+        assert!(!error.contains("`password` is needed to create"), "{error}");
+    }
+
+    #[test]
+    fn a_model_without_fields_has_no_create_check() {
+        let admin = ModelAdmin::<article::Entity>::new();
+        assert!(admin.validate().is_ok());
+    }
+
+    #[test]
+    fn an_action_on_a_create_only_column_is_refused() {
+        let admin = ModelAdmin::<user::Entity>::new()
+            .list(|l| l.action(user::Column::IsActive, false, "Désactiver"))
+            .form(|f| {
+                f.fields([
+                    user::Column::Username,
+                    user::Column::Email,
+                    user::Column::IsActive,
+                ])
+                .create_only([user::Column::IsActive])
+            });
+        let error = admin.validate().unwrap_err();
+        assert!(error.contains("not written by the form on edit"), "{error}");
+    }
+
+    #[test]
+    fn a_needed_column_in_create_only_is_accepted() {
+        let admin = ModelAdmin::<article::Entity>::new().form(|f| {
+            f.fields([article::Column::Title])
+                .create_only([article::Column::Title])
+        });
+        let error = admin.validate().unwrap_err();
+        assert!(!error.contains("`title`"), "{error}");
+    }
+
+    /// A model with a list field: `genres` has no column.
+    // `model!` also writes `Shelf::objects`, which these tests don't use.
+    #[allow(dead_code)]
+    mod shelf {
+        use runique::prelude::*;
+
+        model! {
+            Shelf,
+            table: "admin_shelves",
+            pk: id => Pk,
+            enums: {
+                Genre: [Roman, Policier],
+            },
+            {
+                title: text [required],
+                genres: checkbox [enum(Genre)],
+            }
+        }
+    }
+
+    /// A form of the project written as a project writes it.
+    mod shelf_form {
+        use super::shelf;
+        use runique::prelude::*;
+
+        #[form(schema = shelf, fields = All)]
+        pub struct ShelfForm;
+
+        impl RuniqueForm for ShelfForm {}
+    }
+
+    #[test]
+    fn a_form_declared_with_the_form_macro_is_accepted() {
+        let admin = ModelAdmin::<shelf::Entity>::new().with_form::<shelf_form::ShelfForm>();
+        assert_eq!(admin.validate(), Ok(()));
+    }
+
+    /// The shelf's form as the edit page shapes it: `title` readable, the
+    /// lists the gate lets read in `lists`.
+    fn shelf_edit_form(
+        lists: &[&'static str],
+        columns: &crate::auth::permissions::rights::ColumnRights,
+    ) -> crate::forms::form::Forms {
+        use crate::forms::runique_form::FormAccess;
+        let mut form = crate::forms::form::Forms::new("");
+        <shelf::Form as FormAccess>::register_fields(&mut form);
+        ModelAdmin::<shelf::Entity>::new().shape_for_edit(
+            &mut form,
+            &[shelf::Column::Id, shelf::Column::Title],
+            lists,
+            columns,
+        );
+        form
+    }
+
+    #[test]
+    fn the_edit_form_shows_a_list_field_only_when_the_gate_lets_it_be_read() {
+        use crate::auth::permissions::rights::ColumnRights;
+
+        let form = shelf_edit_form(&["genres"], &ColumnRights::All);
+        let genres = form.fields.get("genres").expect("readable: shown");
+        assert!(!genres.is_locked(), "every right: writable");
+
+        let form = shelf_edit_form(&[], &ColumnRights::All);
+        assert!(
+            form.fields.get("genres").is_none(),
+            "not readable: not shown"
+        );
+        assert!(form.fields.get("title").is_some(), "the columns still are");
+    }
+
+    #[test]
+    fn a_list_field_shown_without_the_update_right_is_locked() {
+        use crate::auth::permissions::ColumnRight;
+        use crate::auth::permissions::rights::ColumnRights;
+
+        let only = |can_update: bool| {
+            ColumnRights::Only(vec![ColumnRight {
+                colonne: "genres".to_string(),
+                can_read: true,
+                can_create: true,
+                can_update,
+            }])
+        };
+        let locked = |columns: &ColumnRights| {
+            shelf_edit_form(&["genres"], columns)
+                .fields
+                .get("genres")
+                .expect("shown")
+                .is_locked()
+        };
+        assert!(locked(&only(false)), "read without update: shown, locked");
+        assert!(!locked(&only(true)), "update: writable");
+    }
+
+    #[test]
+    fn the_rights_grid_offers_the_list_fields_after_the_columns() {
+        use crate::admin::builder::registered::RegisteredModel;
+
+        let grid = ModelAdmin::<shelf::Entity>::new().grid_columns();
+        assert_eq!(grid, ["title", "genres"], "the key is left out");
+
+        // The other side: a model without a list field offers its columns alone.
+        let grid = ModelAdmin::<article::Entity>::new().grid_columns();
+        assert!(grid.contains(&"title"), "{grid:?}");
+        assert!(!grid.contains(&"genres"), "{grid:?}");
+    }
+}

@@ -1,4 +1,4 @@
-use runique::admin::router::admin_router::ADMIN_TEMPLATE_SESSION_KEY;
+use runique::admin::router::routes::ADMIN_TEMPLATE_SESSION_KEY;
 use runique::axum::{
     Router,
     response::{IntoResponse, Redirect, Response},

@@ -5,12 +5,12 @@
 /// field is never shown, the `label` builder.
 macro_rules! field_base {
     ($field:ty) => {
-        impl $crate::forms::base::CommonFieldConfig for $field {
-            fn get_field_config(&self) -> &$crate::forms::base::FieldConfig {
+        impl $crate::forms::form_field::CommonFieldConfig for $field {
+            fn get_field_config(&self) -> &$crate::forms::form_field::FieldConfig {
                 &self.base
             }
 
-            fn get_field_config_mut(&mut self) -> &mut $crate::forms::base::FieldConfig {
+            fn get_field_config_mut(&mut self) -> &mut $crate::forms::form_field::FieldConfig {
                 &mut self.base
             }
         }

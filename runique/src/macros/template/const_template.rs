@@ -3,7 +3,10 @@
 #[macro_export]
 macro_rules! tpl {
     ($name:literal, $path:literal) => {
-        ($name, include_str!(concat!("../../../templates/", $path)))
+        (
+            $name,
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/", $path)),
+        )
     };
 }
 

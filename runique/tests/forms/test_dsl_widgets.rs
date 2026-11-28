@@ -6,7 +6,7 @@
 //! enum choices outside Postgres, ignored `[label]` and `[min]`; the admin
 //! ignored `[required]` on numbers; `3,5` validated as 3.5 but was saved as is.
 use runique::forms::Forms;
-use runique::forms::field::FormAccess;
+use runique::forms::runique_form::FormAccess;
 
 mod shop {
     use runique::prelude::*;
@@ -158,7 +158,7 @@ async fn audio_and_video_are_media_fields_checked_by_their_kind() {
         assert_eq!(
             video.error().cloned(),
             Some(
-                runique::utils::translation::t(
+                runique::translation::t(
                     runique_i18n::keys::forms::error::FILE_INVALID_VIDEO
                 )
                 .into_owned()

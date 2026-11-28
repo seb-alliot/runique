@@ -1,7 +1,7 @@
 //! Boolean field `BooleanField`: HTML checkbox with unchecked case management.
-use crate::forms::base::*;
+use crate::forms::form_field::*;
 use crate::utils::aliases::ATera;
-use crate::utils::translation::t;
+use crate::translation::t;
 use async_trait::async_trait;
 use serde::Serialize;
 
@@ -100,7 +100,7 @@ impl FormField for BooleanField {
             self.clear_error();
             return true;
         };
-        if let Some(level) = crate::utils::runique_log::log_level!(forms.validate) {
+        if let Some(level) = crate::log::log_level!(forms.validate) {
             crate::runique_log!(level, field = %self.base.name, reason, "boolean field refused");
         }
         self.set_error(message);

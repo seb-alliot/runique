@@ -3,12 +3,14 @@ pub mod column;
 pub mod foreign_key;
 pub mod hooks;
 pub mod index;
+pub mod pk;
 pub mod primary_key;
 
 pub use column::*;
 pub use foreign_key::*;
 pub use hooks::*;
 pub use index::*;
+pub use pk::Pk;
 pub use primary_key::*;
 use runique_dsl::snake_case;
 

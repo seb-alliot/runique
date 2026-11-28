@@ -1,12 +1,10 @@
 //! The session mechanics: login, logout, the authenticated session's lifetime and protection.
+use crate::auth::constants::{SESSION_ACTIVE_KEY, SESSION_USER_ID_KEY, SESSION_VERSION_KEY};
 use crate::auth::user_trait::RuniqueUser;
 use crate::middleware::security::csrf::rotate_csrf_token;
 use crate::middleware::session::session_db::RuniqueSessionStore;
-use crate::utils::config::TraceResult;
-use crate::utils::constants::session_key::session::{
-    SESSION_ACTIVE_KEY, SESSION_USER_ID_KEY, SESSION_VERSION_KEY,
-};
-use crate::utils::pk::Pk;
+use crate::log::TraceResult;
+use crate::schema::pk::Pk;
 use tower_sessions::Session;
 
 /// Default when the builder never set a duration (24h), so `login` never breaks
@@ -67,7 +65,7 @@ mod ttl_tests {
 mod session_version_tests {
     use super::{SESSION_VERSION_KEY, session_is_current};
     use crate::auth::user_trait::RuniqueUser;
-    use crate::utils::pk::Pk;
+    use crate::schema::pk::Pk;
     use std::sync::Arc;
     use tower_sessions::{MemoryStore, Session};
 
@@ -160,7 +158,7 @@ pub async fn is_authenticated(session: &Session) -> bool {
         .get::<Pk>(SESSION_USER_ID_KEY)
         .await
         .trace(
-            crate::utils::runique_log::log_level!(session.store),
+            crate::log::log_level!(session.store),
             runique_i18n::keys::session::log::READ_ACCOUNT,
         )
         .flatten()
@@ -174,7 +172,7 @@ pub(crate) async fn get_user_id(session: &Session) -> Option<Pk> {
         .get::<Pk>(SESSION_USER_ID_KEY)
         .await
         .trace(
-            crate::utils::runique_log::log_level!(session.store),
+            crate::log::log_level!(session.store),
             runique_i18n::keys::session::log::READ_ACCOUNT,
         )
         .flatten()
@@ -243,7 +241,7 @@ pub async fn login(
         rotate_csrf_token(session).await?;
     }
 
-    if let Some(level) = crate::utils::runique_log::log_level!(auth.login) {
+    if let Some(level) = crate::log::log_level!(auth.login) {
         crate::runique_log!(
             level,
             user_id = %user_id,
@@ -296,7 +294,7 @@ pub async fn login(
             .create(&cookie_id, user_id, &session_id, expires_at)
             .await
             .trace_or(
-                crate::utils::runique_log::log_level!(session.store),
+                crate::log::log_level!(session.store),
                 tracing::Level::WARN,
                 "persist session to DB",
             );
@@ -308,7 +306,7 @@ pub async fn login(
                 _ => None,
             };
             closed.trace_or(
-                crate::utils::runique_log::log_level!(session.exclusive_login),
+                crate::log::log_level!(session.exclusive_login),
                 tracing::Level::WARN,
                 "invalidate other sessions (exclusive login)",
             );
@@ -317,7 +315,7 @@ pub async fn login(
                 // closed too. Not through `logout`, which stops at the first
                 // refusal of the store — the very case here. `flush` empties
                 // this request's session before it asks the store anything.
-                let level = crate::utils::runique_log::log_level!(session.store);
+                let level = crate::log::log_level!(session.store);
                 store.delete(&cookie_id).await.trace_or(
                     level,
                     tracing::Level::WARN,
@@ -342,7 +340,7 @@ pub async fn login(
 /// (`WARN` when that channel is off) and tried once more. The second failure
 /// is returned: the caller must not attach an account to the id that stayed.
 async fn cycle_session_id(session: &Session) -> Result<(), tower_sessions::session::Error> {
-    let level = crate::utils::runique_log::log_level!(session.store);
+    let level = crate::log::log_level!(session.store);
     if let Err(error) = session.cycle_id().await {
         log_cycle_id_failure(level, &error);
         if let Err(error) = session.cycle_id().await {
@@ -398,10 +396,10 @@ pub enum LoginError {
 impl std::fmt::Display for LoginError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::CannotSignIn => f.write_str(&crate::utils::translation::t(
+            Self::CannotSignIn => f.write_str(&crate::translation::t(
                 runique_i18n::keys::auth::error::LOGIN_CANNOT_SIGN_IN,
             )),
-            Self::Session(e) => f.write_str(&crate::utils::translation::tf(
+            Self::Session(e) => f.write_str(&crate::translation::tf(
                 runique_i18n::keys::auth::error::LOGIN_SESSION_FAILED,
                 &[e],
             )),
@@ -427,7 +425,7 @@ pub(crate) async fn session_is_current(session: &Session, user: &impl RuniqueUse
         .get::<i32>(SESSION_VERSION_KEY)
         .await
         .trace(
-            crate::utils::runique_log::log_level!(session.store),
+            crate::log::log_level!(session.store),
             runique_i18n::keys::session::log::READ_VERSION,
         )
         .flatten()

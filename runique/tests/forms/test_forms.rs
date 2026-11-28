@@ -3,8 +3,8 @@ mod tests {
     use axum::http::Method;
     use runique::{
         forms::{
-            base::FormField,
-            field::{FormAccess, RuniqueForm},
+            form_field::FormField,
+            runique_form::{FormAccess, RuniqueForm},
             fields::{boolean::BooleanField, number::NumericField, text::TextField},
             form::Forms,
         },

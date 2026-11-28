@@ -4,7 +4,7 @@
 
 use runique::auth::{ForgotPasswordForm, PasswordResetConfig, PasswordResetForm};
 use runique::forms::{
-    field::{FormAccess, RuniqueForm},
+    runique_form::{FormAccess, RuniqueForm},
     form::Forms,
 };
 

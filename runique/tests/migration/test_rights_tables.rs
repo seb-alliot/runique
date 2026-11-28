@@ -5,13 +5,13 @@
 
 use crate::helpers::pk::{pk_sql_literal, pk_sql_literal_pg};
 use crate::helpers::{db, db_mysql, db_postgres};
+use runique::auth::constants::resource_key::FRAMEWORK_KEYS;
 use runique::migrations_table::{
     AdminTableMigration, DROITS_COLUMN_ROW_FLAGS, DROITS_GROUP_NEVER_FRAMEWORK, DROITS_ONE_HOLDER,
     EihwazUsersMigration,
 };
 use runique::sea_orm::sea_query::{Alias, Expr, Query};
 use runique::sea_orm::{ConnectionTrait, DatabaseConnection, ExprTrait, TransactionTrait};
-use runique::utils::constants::resource_key::FRAMEWORK_KEYS;
 use sea_orm_migration::{MigrationTrait, SchemaManager};
 use serial_test::serial;
 

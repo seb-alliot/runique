@@ -1,5 +1,5 @@
 //! Password hashing and verification — Argon2, bcrypt, scrypt via `PasswordHasher` trait.
-//! Copied from `runique::utils::password`: the algorithms, without the
+//! Copied from `runique::security::password`: the algorithms, without the
 //! application's configuration around them.
 
 // === password/hasher.rs ===

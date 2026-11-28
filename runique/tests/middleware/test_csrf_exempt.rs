@@ -12,7 +12,7 @@ use runique::{
         config::MiddlewareConfig,
         security::{allowed_hosts::HostPolicy, csp::SecurityPolicy, csrf::csrf_middleware},
     },
-    utils::crypto::csrf::CsrfToken,
+    security::csrf::CsrfToken,
 };
 use std::sync::Arc;
 use tower::ServiceExt;

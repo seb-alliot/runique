@@ -1,6 +1,6 @@
 //! Global security settings read from `.env` (HTTPS, HSTS, ACME). Allowed
 //! hosts and rate limits are set in the builder, not here.
-use crate::utils::config::env::env_flag;
+use crate::config::env::env_flag;
 use serde::{Deserialize, Serialize};
 
 /// Security settings read from the environment.
@@ -19,7 +19,7 @@ pub struct SecurityConfig {
     /// HSTS `max-age` in seconds (env: `HSTS_MAX_AGE`, default: `31536000` = 1 year).
     pub hsts_max_age: u64,
     /// HSTS `includeSubDomains` (env: `HSTS_INCLUDE_SUBDOMAINS`, default: `true`).
-    /// ⚠️ footgun: breaks any subdomain that isn't on HTTPS.
+    /// footgun: breaks any subdomain that isn't on HTTPS.
     pub hsts_include_subdomains: bool,
     /// HSTS `preload` (env: `HSTS_PRELOAD`, default: `false`). Near-irreversible
     /// commitment (submission to the browser preload list) → explicit opt-in.

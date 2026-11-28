@@ -1,6 +1,6 @@
 //! Persistent session store in the database (table `eihwaz_sessions`).
+use crate::security::session_cipher::SessionKey;
 use crate::utils::aliases::ADb;
-use crate::utils::crypto::session_cipher::SessionKey;
 use sea_orm::{ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter, entity::prelude::*};
 use sea_query::OnConflict;
 use sha2::{Digest, Sha256};
@@ -26,7 +26,7 @@ pub struct Model {
     pub cookie_id: String,
 
     /// FK → eihwaz_users.id
-    pub user_id: crate::utils::pk::Pk,
+    pub user_id: crate::schema::pk::Pk,
 
     /// Stable identifier per login/device
     pub session_id: String,
@@ -106,7 +106,7 @@ impl RuniqueSessionStore {
         let sealed = model.session_data.as_deref()?;
         let opened = self.key.open(sealed, &hash_cookie_id(&model.cookie_id));
         if opened.is_none()
-            && let Some(level) = crate::utils::runique_log::log_level!(session.store)
+            && let Some(level) = crate::log::log_level!(session.store)
         {
             crate::runique_log!(level, "stored session data could not be decrypted");
         }
@@ -117,7 +117,7 @@ impl RuniqueSessionStore {
     pub async fn create(
         &self,
         cookie_id: &str,
-        user_id: crate::utils::pk::Pk,
+        user_id: crate::schema::pk::Pk,
         session_id: &str,
         expires_at: chrono::NaiveDateTime,
     ) -> Result<(), DbErr> {
@@ -169,7 +169,7 @@ impl RuniqueSessionStore {
     /// Invalidates all sessions of a user except the current one (exclusive login).
     pub async fn invalidate_other_sessions(
         &self,
-        user_id: crate::utils::pk::Pk,
+        user_id: crate::schema::pk::Pk,
         current_cookie_id: &str,
     ) -> Result<(), DbErr> {
         Entity::delete_many()
@@ -181,7 +181,7 @@ impl RuniqueSessionStore {
     }
 
     /// Invalidates all sessions of a user (password change, etc.).
-    pub async fn invalidate_all(&self, user_id: crate::utils::pk::Pk) -> Result<(), DbErr> {
+    pub async fn invalidate_all(&self, user_id: crate::schema::pk::Pk) -> Result<(), DbErr> {
         Entity::delete_many()
             .filter(Column::UserId.eq(user_id))
             .exec(&*self.db)
@@ -208,7 +208,7 @@ impl RuniqueSessionStore {
     /// signs the account out everywhere, and the browser it ran in.
     pub(crate) async fn revoke_in_transaction(
         txn: &sea_orm::DatabaseTransaction,
-        user_id: crate::utils::pk::Pk,
+        user_id: crate::schema::pk::Pk,
         cookie_id: Option<&str>,
     ) -> Result<(), DbErr> {
         let mut sessions = sea_orm::Condition::any().add(Column::UserId.eq(user_id));
@@ -228,7 +228,7 @@ impl RuniqueSessionStore {
     pub async fn upsert_session(
         &self,
         cookie_id: &str,
-        user_id: crate::utils::pk::Pk,
+        user_id: crate::schema::pk::Pk,
         expires_at: chrono::NaiveDateTime,
         data: Option<String>,
     ) -> Result<(), DbErr> {
@@ -269,7 +269,7 @@ impl RuniqueSessionStore {
     pub async fn update_session(
         &self,
         cookie_id: &str,
-        user_id: crate::utils::pk::Pk,
+        user_id: crate::schema::pk::Pk,
         expires_at: chrono::NaiveDateTime,
         data: Option<String>,
     ) -> Result<bool, DbErr> {
@@ -300,7 +300,7 @@ impl RuniqueSessionStore {
                     .filter(Column::ExpiresAt.lt(now))
                     .exec(&*db)
                     .await
-                    && let Some(level) = crate::utils::runique_log::log_level!(session.cleanup)
+                    && let Some(level) = crate::log::log_level!(session.cleanup)
                 {
                     crate::runique_log!(level, "session cleanup error: {e}");
                 }

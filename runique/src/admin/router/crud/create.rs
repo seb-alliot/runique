@@ -2,15 +2,15 @@
 use crate::admin::builder::registered::FormOutcome;
 use crate::admin::builder::site::AdminSite;
 use crate::admin::router::account::reset_password::{AccountLink, send_account_link};
-use crate::admin::router::admin_router::AdminState;
 use crate::admin::router::context::{CreateContext, FormTexts, ResourceRef, put};
+use crate::admin::router::routes::AdminState;
 use crate::admin::router::{chrome, failure, unknown_resource};
 use crate::admin::translation::insert_admin_messages;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::user::BuiltinUserEntity;
 use crate::http::request::Request;
 use crate::utils::aliases::AppResult;
-use crate::utils::translation::t;
+use crate::translation::t;
 use axum::Extension;
 use axum::extract::Path;
 use axum::response::{IntoResponse, Redirect, Response};
@@ -31,7 +31,7 @@ pub(crate) async fn create_view(
     // The staff never holds a password: a created account is opened by the
     // link mailed to its owner. Without a complete mailer configuration that
     // link can't leave, so no account is created at all.
-    if model.is_account_table() && !crate::utils::mailer_configured() {
+    if model.is_account_table() && !crate::mailer::mailer_configured() {
         tracing::warn!("account not created: the mailer configuration is missing or incomplete");
         req.notices
             .error(t(

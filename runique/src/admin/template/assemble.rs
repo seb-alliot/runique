@@ -198,7 +198,7 @@ fn provided_unread(page: Page) -> Vec<String> {
     for section in message_sections(page) {
         let prefix = format!("admin.{section}.");
         keys.extend(
-            crate::utils::ADMIN_MESSAGE_KEYS
+            crate::admin::constants::ADMIN_MESSAGE_KEYS
                 .iter()
                 .filter(|(_, key)| key.starts_with(&prefix))
                 .map(|(variable, _)| variable.to_string()),

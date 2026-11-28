@@ -1,10 +1,10 @@
-// Tests pour flash_manager (Message extractor + push/get_all)
+// Tests pour flash/extractor.rs (Message extractor + push/get_all)
 //
 // Stratégie : serveur persistant (OnceLock) avec session MemoryStore.
 // Chaque test crée son propre client reqwest (cookie jar isolé → session distincte).
 
 use axum::{Json, Router, routing::get, routing::post};
-use runique::flash::{FlashMessage, flash_manager::Message};
+use runique::flash::{FlashMessage, extractor::Message};
 use std::{net::SocketAddr, sync::OnceLock};
 use tower_sessions::{MemoryStore, SessionManagerLayer};
 

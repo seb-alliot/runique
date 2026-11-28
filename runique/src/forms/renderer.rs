@@ -1,9 +1,7 @@
 //! HTML rendering of form fields via Tera with fallback to internal templates.
-use crate::forms::base::FormField;
-use crate::utils::{
-    aliases::{ATera, FieldsMap},
-    translation::tf,
-};
+use crate::forms::form_field::FormField;
+use crate::translation::tf;
+use crate::utils::aliases::{ATera, FieldsMap};
 use tracing::warn;
 
 /// Renders a form's fields to HTML via Tera: global errors first, then each
@@ -62,7 +60,7 @@ impl FormRenderer {
     /// `fields`, then the registered JS files, all joined with newlines.
     /// Fails on the first field that errors during rendering.
     pub fn render(&self, fields: &FieldsMap, errors: &[String]) -> Result<String, String> {
-        let log_render = crate::utils::runique_log::log_level!(forms.render);
+        let log_render = crate::log::log_level!(forms.render);
         if let Some(level) = log_render {
             crate::runique_log!(
                 level,

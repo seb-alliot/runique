@@ -8,11 +8,11 @@
 pub(crate) mod fixtures {
     use crate::auth::current_user::CurrentUser;
     use crate::utils::aliases::ADb;
-    use crate::utils::pk::Pk;
+    use crate::schema::pk::Pk;
     use sea_orm::{ActiveModelTrait, ConnectionTrait, Schema, Set};
 
     pub(crate) mod note {
-        use crate::utils::pk::Pk;
+        use crate::schema::pk::Pk;
         use sea_orm::entity::prelude::*;
 
         #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
@@ -35,7 +35,7 @@ pub(crate) mod fixtures {
         pub form: crate::forms::form::Forms,
     }
 
-    impl crate::forms::field::FormAccess for NoteForm {
+    impl crate::forms::runique_form::FormAccess for NoteForm {
         fn register_fields(form: &mut crate::forms::form::Forms) {
             #[cfg(feature = "pk-uuid")]
             form.field(&crate::forms::fields::UUIDField::new("owner_id"));
@@ -45,7 +45,7 @@ pub(crate) mod fixtures {
         crate::impl_form_access!();
     }
 
-    impl crate::forms::field::RuniqueForm for NoteForm {}
+    impl crate::forms::runique_form::RuniqueForm for NoteForm {}
 
     impl crate::forms::FormEntity for NoteForm {
         type Entity = note::Entity;

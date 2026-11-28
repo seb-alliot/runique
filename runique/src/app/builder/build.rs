@@ -28,7 +28,7 @@ use crate::middleware::HostPolicy;
 use crate::router::{add_urls, register_name_url};
 use crate::templates::loader::TemplateLoader;
 use crate::utils::aliases::{ADb, new};
-use crate::utils::runique_log::log_init;
+use crate::log::log_init;
 
 #[cfg(feature = "orm")]
 use crate::middleware::session::session_db::RuniqueSessionStore;
@@ -96,7 +96,7 @@ impl<P> RuniqueAppBuilder<P> {
         if !self.config.timezone.is_empty()
             && self.config.timezone.parse::<chrono_tz::Tz>().is_err()
         {
-            return Err(BuildError::validation(crate::utils::translation::tf(
+            return Err(BuildError::validation(crate::translation::tf(
                 runique_i18n::keys::build::error::TIMEZONE_UNKNOWN,
                 &[&self.config.timezone],
             )));
@@ -118,7 +118,7 @@ impl<P> RuniqueAppBuilder<P> {
 
         #[cfg(feature = "admin")]
         let admin_cache_policy = self.admin.enabled.then(|| {
-            crate::admin::router::admin_router::AdminCachePolicy::new(
+            crate::admin::router::routes::AdminCachePolicy::new(
                 self.admin.public_prefix(),
                 self.admin
                     .declared_routes
@@ -195,7 +195,7 @@ impl<P> RuniqueAppBuilder<P> {
         let tera = new(tera);
 
         let config = new(config);
-        crate::utils::password::password_init(config.password.clone());
+        crate::security::password::password_init(config.password.clone());
 
         // HSTS `preload` requires `includeSubDomains` + `max-age ≥ 1 an` to be
         // accepted on the browser preload list — warn once at boot if the combo
@@ -211,7 +211,7 @@ impl<P> RuniqueAppBuilder<P> {
         if config.debug && !config.dev {
             tracing::warn!(
                 "{}",
-                crate::utils::translation::t(runique_i18n::keys::build::log::DEBUG_IN_PROD)
+                crate::translation::t(runique_i18n::keys::build::log::DEBUG_IN_PROD)
             );
         }
 
@@ -338,7 +338,7 @@ impl<P> RuniqueAppBuilder<P> {
             // would make every other right look orphaned.
             let valid_keys = self.admin.site.keys();
             if self.admin.site.has_project_models() {
-                let level = crate::utils::runique_log::log_level!(builder.registry);
+                let level = crate::log::log_level!(builder.registry);
                 match crate::auth::permissions::prune_orphan_droits(&engine.db, &valid_keys).await {
                     Ok(n) if n > 0 => {
                         if let Some(level) = level {
@@ -355,7 +355,7 @@ impl<P> RuniqueAppBuilder<P> {
                         crate::runique_log!(
                             level.unwrap_or(tracing::Level::WARN),
                             error = %e,
-                            "{}", crate::utils::translation::t(runique_i18n::keys::build::log::PRUNE_FAILED)
+                            "{}", crate::translation::t(runique_i18n::keys::build::log::PRUNE_FAILED)
                         );
                     }
                 }
@@ -364,7 +364,7 @@ impl<P> RuniqueAppBuilder<P> {
             let sheets = {
                 let statics = &config.static_files;
                 let (site, runique) = (&integrity.site, &integrity.runique);
-                let version = crate::utils::env::css_token();
+                let version = crate::config::env::css_token();
                 crate::admin::template::PageSheets::build(
                     &self.admin.config.templates,
                     &self.admin.site.model_templates(),
@@ -426,7 +426,7 @@ impl<P> RuniqueAppBuilder<P> {
             router
         };
 
-        if let Some(level) = crate::utils::runique_log::log_level!(builder.routes) {
+        if let Some(level) = crate::log::log_level!(builder.routes) {
             let count = engine
                 .url_registry
                 .read()
@@ -473,7 +473,7 @@ impl<P> RuniqueAppBuilder<P> {
         let router = if let Some(policy) = admin_cache_policy {
             router.layer(axum::middleware::from_fn_with_state(
                 policy,
-                crate::admin::router::admin_router::admin_no_store,
+                crate::admin::router::routes::admin_no_store,
             ))
         } else {
             router
@@ -513,9 +513,9 @@ impl<P> RuniqueAppBuilder<P> {
             report.add(
                 CheckError::new(
                     "Security",
-                    crate::utils::translation::t(runique_i18n::keys::build::error::SECRET_KEY_WEAK),
+                    crate::translation::t(runique_i18n::keys::build::error::SECRET_KEY_WEAK),
                 )
-                .with_suggestion(crate::utils::translation::t(
+                .with_suggestion(crate::translation::t(
                     runique_i18n::keys::build::hint::SECRET_KEY_WEAK,
                 )),
             );
@@ -533,11 +533,11 @@ impl<P> RuniqueAppBuilder<P> {
             report.add(
                 CheckError::new(
                     "PublicUrl",
-                    crate::utils::translation::t(
+                    crate::translation::t(
                         runique_i18n::keys::build::error::PUBLIC_URL_MISSING,
                     ),
                 )
-                .with_suggestion(crate::utils::translation::t(
+                .with_suggestion(crate::translation::t(
                     runique_i18n::keys::build::hint::PUBLIC_URL_MISSING,
                 )),
             );
@@ -546,14 +546,14 @@ impl<P> RuniqueAppBuilder<P> {
         // No mailer, no reset email: the page could never send its link.
         // The mailer lives in the `.env` alone. Asked of the environment
         // itself, not of the process-wide mailer another app may have set.
-        let mailer_ready = crate::utils::mailer::MailerConfig::from_env().is_some();
+        let mailer_ready = crate::mailer::MailerConfig::from_env().is_some();
         if self.password_reset.is_some() && !mailer_ready {
             report.add(
                 CheckError::new(
                     "Mailer",
-                    crate::utils::translation::t(runique_i18n::keys::build::error::MAILER_MISSING),
+                    crate::translation::t(runique_i18n::keys::build::error::MAILER_MISSING),
                 )
-                .with_suggestion(crate::utils::translation::t(
+                .with_suggestion(crate::translation::t(
                     runique_i18n::keys::build::hint::MAILER_MISSING,
                 )),
             );
@@ -565,11 +565,11 @@ impl<P> RuniqueAppBuilder<P> {
                 report.add(
                     CheckError::new(
                         "ACME",
-                        crate::utils::translation::t(
+                        crate::translation::t(
                             runique_i18n::keys::build::error::ACME_DOMAIN_MISSING,
                         ),
                     )
-                    .with_suggestion(crate::utils::translation::t(
+                    .with_suggestion(crate::translation::t(
                         runique_i18n::keys::build::hint::ACME_DOMAIN_MISSING,
                     )),
                 );
@@ -578,11 +578,11 @@ impl<P> RuniqueAppBuilder<P> {
                 report.add(
                     CheckError::new(
                         "ACME",
-                        crate::utils::translation::t(
+                        crate::translation::t(
                             runique_i18n::keys::build::error::ACME_EMAIL_MISSING,
                         ),
                     )
-                    .with_suggestion(crate::utils::translation::t(
+                    .with_suggestion(crate::translation::t(
                         runique_i18n::keys::build::hint::ACME_EMAIL_MISSING,
                     )),
                 );
@@ -690,7 +690,7 @@ impl<P> RuniqueAppBuilder<P> {
             );
         }
 
-        if let Some(level) = crate::utils::runique_log::log_level!(builder.statics) {
+        if let Some(level) = crate::log::log_level!(builder.statics) {
             crate::runique_log!(
                 level,
                 static_url = %config.static_files.static_url,
@@ -710,7 +710,7 @@ impl<P> RuniqueAppBuilder<P> {
 /// read as translations stops the start; what it leaves untranslated or
 /// misspells is only said.
 fn load_project_locales(wanted: Option<&str>) -> Result<(), BuildError> {
-    use crate::utils::translation::{Lang, keys::build, load_project, project_dir, tf};
+    use crate::translation::{Lang, keys::build, load_project, project_dir, tf};
     use runique_i18n::{set_default_lang, set_lang};
 
     let report = load_project(&project_dir())

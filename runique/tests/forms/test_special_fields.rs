@@ -1,6 +1,6 @@
 // Tests for special fields: ColorField, SlugField, UUIDField, JSONField, IPAddressField
 
-use runique::forms::base::FormField;
+use runique::forms::form_field::FormField;
 use runique::forms::fields::special::{
     ColorField, IPAddressField, JSONField, SlugField, UUIDField,
 };

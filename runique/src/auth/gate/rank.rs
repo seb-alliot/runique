@@ -3,14 +3,14 @@
 //! or one equal to theirs, and the admin keeps a dirigeant above them.
 use super::refusal::{Refusal, RefusalReason};
 use super::save::take_back;
+use crate::auth::constants::resource_key;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::history::{ActionLog, log_action};
 use crate::auth::permissions::group_rights;
 use crate::auth::permissions::rank::Rang;
 use crate::auth::user::{self, Column};
 use crate::utils::aliases::ADb;
-use crate::utils::constants::resource_key;
-use crate::utils::pk::Pk;
+use crate::schema::pk::Pk;
 use sea_orm::sea_query::Expr;
 use sea_orm::{
     ColumnTrait, ConnectionTrait, DbErr, EntityTrait, PaginatorTrait, QueryFilter, TransactionTrait,

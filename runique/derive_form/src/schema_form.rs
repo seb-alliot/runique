@@ -146,7 +146,7 @@ pub(crate) fn model_schema(attr: TokenStream, item: TokenStream) -> TokenStream 
             pub form: ::runique::forms::Forms,
         }
 
-        impl ::runique::forms::field::FormAccess for #name {
+        impl ::runique::forms::runique_form::FormAccess for #name {
             ::runique::impl_form_access!(model);
         }
 

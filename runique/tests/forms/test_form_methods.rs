@@ -148,7 +148,7 @@ async fn test_finalize_ok_on_valid_form() {
 
 #[test]
 fn test_set_path_params_is_not_read_by_cleaned() {
-    use runique::forms::field::{FormAccess, RuniqueForm};
+    use runique::forms::runique_form::{FormAccess, RuniqueForm};
 
     struct F {
         form: Forms,
@@ -293,7 +293,7 @@ async fn test_serialize_form_errors_empty_when_valid() {
 }
 
 // Written from cargo-mutants survivors (2026-10-07).
-use runique::forms::base::FormField as _;
+use runique::forms::form_field::FormField as _;
 
 #[test]
 fn test_password_value_is_kept_verbatim_and_richtext_keeps_its_markup() {

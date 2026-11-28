@@ -1,10 +1,8 @@
 //! Aegis: extraction and normalization of the request body (multipart, urlencoded, JSON, GET).
 use super::BodyRefusal;
-use crate::utils::{
-    aliases::{ARuniqueConfig, StrMap, StrVecMap},
-    parse_html::parse_multipart_guarded,
-    translation::{t, tf},
-};
+use crate::translation::{t, tf};
+use super::multipart::parse_multipart_guarded;
+use crate::utils::aliases::{ARuniqueConfig, StrMap, StrVecMap};
 use axum::{
     body::Body,
     extract::{FromRequest, Multipart},
@@ -43,7 +41,7 @@ pub(crate) async fn aegis_guarded<S>(
     config: ARuniqueConfig,
     content_type: &str,
     upload_gate: Option<&str>,
-) -> Result<(StrVecMap, Option<crate::utils::parse_html::Lease>), BodyRefusal>
+) -> Result<(StrVecMap, Option<crate::forms::prisme::multipart::Lease>), BodyRefusal>
 where
     S: Send + Sync,
 {

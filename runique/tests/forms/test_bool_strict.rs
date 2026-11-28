@@ -5,9 +5,9 @@
 //! Below the field (a column, the generated write) a boolean reads six
 //! spellings and nothing else.
 use runique::forms::FormDataError;
-use runique::forms::base::FormField;
+use runique::forms::form_field::FormField;
 use runique::forms::column_value::column_value;
-use runique::forms::field::{FormAccess, RuniqueForm};
+use runique::forms::runique_form::{FormAccess, RuniqueForm};
 use runique::forms::fields::BooleanField;
 use runique::forms::form::Forms;
 use runique::sea_orm::ActiveValue;

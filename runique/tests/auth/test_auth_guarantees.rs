@@ -8,12 +8,12 @@ use crate::helpers::{
     db, framework_tables,
     pk::{pk, pk_sql_literal},
 };
+use runique::auth::constants::SESSION_USER_ID_KEY;
 use runique::auth::session::{LoginError, login};
 use runique::auth::{BuiltinUserEntity, authenticate_user};
 use runique::db::ADb;
-use runique::utils::config::Pk;
-use runique::utils::constants::session_key::session::SESSION_USER_ID_KEY;
-use runique::utils::password::{Manual, PasswordConfig, PasswordService};
+use runique::security::password::{Manual, PasswordConfig, PasswordService};
+use runique::schema::Pk;
 use std::sync::Arc;
 use tower_sessions::{MemoryStore, Session};
 
@@ -27,7 +27,7 @@ async fn users_db() -> ADb {
 }
 
 async fn insert_user(db: &ADb, n: u32, username: &str, active: bool) {
-    let hash = runique::utils::password::hash(PASSWORD).expect("hash");
+    let hash = runique::security::password::hash(PASSWORD).expect("hash");
     insert_user_hashed(db, n, username, active, &hash).await;
 }
 
@@ -307,7 +307,7 @@ async fn an_account_created_and_activated_in_one_transaction_is_all_or_nothing()
 async fn update_password_by_id_really_changes_the_password() {
     let db = users_db().await;
     insert_user(&db, 5, "erin", true).await;
-    let new_hash = runique::utils::password::hash("brand new secret").expect("hash");
+    let new_hash = runique::security::password::hash("brand new secret").expect("hash");
     BuiltinUserEntity::update_password_by_id(&db, pk(5), &new_hash)
         .await
         .expect("updated");
@@ -337,7 +337,7 @@ async fn account_state(db: &ADb, n: u32) -> (bool, bool) {
 async fn a_new_password_never_reactivates_a_blocked_account() {
     let db = users_db().await;
     insert_user(&db, 6, "frank", false).await; // activated once, blocked since
-    let hash = runique::utils::password::hash("another secret").expect("hash");
+    let hash = runique::security::password::hash("another secret").expect("hash");
     BuiltinUserEntity::update_password_by_id(&db, pk(6), &hash)
         .await
         .expect("updated");
@@ -365,7 +365,7 @@ async fn the_owners_first_password_activates_a_pending_account() {
         "pending"
     );
 
-    let hash = runique::utils::password::hash("gina's own").expect("hash");
+    let hash = runique::security::password::hash("gina's own").expect("hash");
     BuiltinUserEntity::set_password_and_activate(&db, pk(7), &hash)
         .await
         .expect("activated");
@@ -390,10 +390,10 @@ async fn an_active_but_never_activated_account_cannot_sign_in() {
 mod login_required {
     use crate::helpers::pk::pk;
     use axum::{Router, body::Body, http::Request, middleware::Next, routing::get};
+    use runique::auth::constants::SESSION_USER_ID_KEY;
     use runique::auth::current_user::CurrentUser;
     use runique::auth::permissions::rank::Rang;
     use runique::router::router_ext::RouterExt;
-    use runique::utils::constants::session_key::session::SESSION_USER_ID_KEY;
     use tower::ServiceExt;
     use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 

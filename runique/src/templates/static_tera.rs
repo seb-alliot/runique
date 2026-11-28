@@ -113,7 +113,7 @@ impl Filter<&str, Value> for MarkdownFilter {
         // Emitted unescaped, so XSS in user-authored Markdown (raw <script>,
         // javascript: links…) is neutralized here. `safe_string` is applied to the
         // sanitized result only — never to `output` before this line.
-        Value::safe_string(&crate::utils::sanitizer::sanitize_markdown(&output))
+        Value::safe_string(&crate::security::sanitizer::sanitize_markdown(&output))
     }
 }
 
@@ -129,7 +129,7 @@ impl Filter<&str, Value> for SanitizeFilter {
     }
 
     fn call(&self, raw: &str, _: Kwargs, _: &State) -> Value {
-        Value::safe_string(&crate::utils::sanitizer::sanitize_rich(raw))
+        Value::safe_string(&crate::security::sanitizer::sanitize_rich(raw))
     }
 }
 
@@ -142,7 +142,7 @@ impl Filter<&str, Value> for SanitizeFilter {
 // value. Both properties are load-bearing — this filter must stay auto-escaped,
 // otherwise it would emit as HTML the very markup it was asked to strip.
 fn plaintext_filter(raw: &str, _: Kwargs, _: &State) -> String {
-    crate::utils::sanitizer::sanitize_strict(raw)
+    crate::security::sanitizer::sanitize_strict(raw)
 }
 
 // Humanizes a machine identifier for display: splits on `_`/`-` and capitalizes
@@ -218,7 +218,7 @@ pub fn register_asset_filters(
     runique_media_url: String,
     url_registry: ARlockmap,
 ) {
-    let version = crate::utils::env::css_token();
+    let version = crate::config::env::css_token();
 
     // Filters inherited from Tera 1's `builtins` feature (urlencode, slug, date…),
     // moved to `tera-contrib` in 2.0. Registered first: the internal templates

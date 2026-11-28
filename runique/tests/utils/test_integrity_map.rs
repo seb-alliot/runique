@@ -4,7 +4,7 @@
 
 use crate::helpers::temp::TempDir;
 use base64::{Engine, engine::general_purpose::STANDARD};
-use runique::utils::config::integrity::build_integrity_map;
+use runique::templates::integrity::build_integrity_map;
 use sha2::{Digest, Sha384};
 
 #[test]

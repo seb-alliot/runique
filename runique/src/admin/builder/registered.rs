@@ -1,11 +1,12 @@
 //! The bridge between the typed `ModelAdmin<E, F>` and the type-erased
 //! `AdminSite`: what a request can ask of a model without knowing `E`.
 use super::{
-    admin_builder::{ListPage, ModelAdmin, OfferedAction, prefill},
     bulk_form::{BULK_ACTION, BULK_IDS, BulkForm},
     confirm_form::ConfirmForm,
     list::ListQuery,
+    model_admin::{ListPage, ModelAdmin, OfferedAction, prefill},
 };
+use crate::admin::constants::admin_form;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::{
     gate::{
@@ -17,11 +18,10 @@ use crate::auth::{
     },
     meta::ModelMeta,
 };
-use crate::forms::field::FormAccess;
+use crate::forms::runique_form::FormAccess;
 use crate::forms::validation_form::ValidationForm;
 use crate::http::request::Request;
 use crate::utils::aliases::ADb;
-use crate::utils::constants::admin_key::admin_form;
 use sea_orm::{
     sea_query::SelectStatement,
     {DbErr, IdenStatic, Iterable, PrimaryKeyToColumn},
@@ -176,7 +176,7 @@ pub(crate) trait RegisteredModel: Send + Sync {
         req: &Request,
         user: &CurrentUser,
         id: &str,
-    ) -> Result<Option<crate::utils::pk::Pk>, AdminError>;
+    ) -> Result<Option<crate::schema::pk::Pk>, AdminError>;
     /// A grouped action on the checked rows, sent by the list's bar: all of
     /// them or none, through the gate as `user`. At most a page of rows.
     async fn bulk(
@@ -410,7 +410,7 @@ where
         req: &Request,
         user: &CurrentUser,
         id: &str,
-    ) -> Result<Option<crate::utils::pk::Pk>, AdminError> {
+    ) -> Result<Option<crate::schema::pk::Pk>, AdminError> {
         let not_found = || AdminError::Refused(Refusal::new(RefusalReason::NotFound));
         if !E::IS_ACCOUNT_TABLE {
             return Err(not_found());
@@ -440,7 +440,7 @@ where
             return Err(not_found());
         }
         // The accounts' table keys its rows by `Pk`: the same text reads as one.
-        id.parse::<crate::utils::pk::Pk>()
+        id.parse::<crate::schema::pk::Pk>()
             .map(Some)
             .map_err(|_| not_found())
     }
@@ -477,7 +477,7 @@ where
         };
         if ids.is_empty() {
             return Ok(BulkOutcome::Refused(
-                crate::utils::translation::t(runique_i18n::keys::admin::bulk::error::NO_SELECTION)
+                crate::translation::t(runique_i18n::keys::admin::bulk::error::NO_SELECTION)
                     .into_owned(),
             ));
         }
@@ -497,11 +497,11 @@ where
             };
             BulkChange::Set(declared.col, declared.value.clone())
         };
-        let level = crate::utils::runique_log::log_level!(admin.bulk);
+        let level = crate::log::log_level!(admin.bulk);
         match bulk_as::<E>(user, &ids, &change, &req.engine.db).await {
             Ok(count) => {
                 if let Some(level) = level {
-                    crate::runique_log!(level, resource = E::KEY, action = %action, rows = count, "{}", crate::utils::translation::t(runique_i18n::keys::admin::log::BULK_DONE));
+                    crate::runique_log!(level, resource = E::KEY, action = %action, rows = count, "{}", crate::translation::t(runique_i18n::keys::admin::log::BULK_DONE));
                 }
                 Ok(match change {
                     BulkChange::Delete => BulkOutcome::Deleted(count),
@@ -510,7 +510,7 @@ where
             }
             Err(sea_orm::DbErr::Custom(message)) => {
                 if let Some(level) = level {
-                    crate::runique_log!(level, resource = E::KEY, action = %action, "{}", crate::utils::translation::t(runique_i18n::keys::admin::log::BULK_REFUSED));
+                    crate::runique_log!(level, resource = E::KEY, action = %action, "{}", crate::translation::t(runique_i18n::keys::admin::log::BULK_REFUSED));
                 }
                 Ok(BulkOutcome::Refused(message))
             }
@@ -621,13 +621,13 @@ where
 /// The detail of the change is in the history; a refusal's reason is logged by
 /// the gate.
 fn log_crud(resource: &'static str, outcome: &'static str) {
-    if let Some(level) = crate::utils::runique_log::log_level!(admin.crud) {
+    if let Some(level) = crate::log::log_level!(admin.crud) {
         crate::runique_log!(
             level,
             resource,
-            outcome = %crate::utils::translation::t(outcome),
+            outcome = %crate::translation::t(outcome),
             "{}",
-            crate::utils::translation::t(runique_i18n::keys::admin::log::WRITE)
+            crate::translation::t(runique_i18n::keys::admin::log::WRITE)
         );
     }
 }

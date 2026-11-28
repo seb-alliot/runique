@@ -2,14 +2,14 @@
 //! Never a form field of the account: only this operation writes them.
 use super::refusal::{Refusal, RefusalReason};
 use super::rights_grid::may_set_group;
+use crate::auth::constants::resource_key;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::history::{ActionLog, log_action};
 use crate::auth::permissions::rank::Rang;
 use crate::auth::permissions::{group, user_groups};
 use crate::auth::user;
 use crate::utils::aliases::ADb;
-use crate::utils::constants::resource_key;
-use crate::utils::pk::Pk;
+use crate::schema::pk::Pk;
 use sea_orm::{
     ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, Set,
     TransactionTrait,

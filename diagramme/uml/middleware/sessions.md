@@ -57,7 +57,7 @@ sessions **authentifiées** uniquement (présence `user_id`). `persist_to_db` é
 champs ensemble pour interdire un backup partiel/périmé. `load` : miss mémoire → DB →
 reconstruit le `Record`. `delete` purge mémoire **et** DB (couvre le cleanup `cycle_id`).
 
-**Chiffrement** ([`session_cipher.rs`](../../../runique/src/utils/crypto/session_cipher.rs)) :
+**Chiffrement** ([`session_cipher.rs`](../../../runique/src/security/session_cipher.rs)) :
 `session_data` est chiffré en XChaCha20-Poly1305, nonce aléatoire de 192 bits, clé dérivée de
 `SECRET_KEY`, hash de `cookie_id` en donnée authentifiée. Une ligne en clair, modifiée, copiée sur
 une autre ligne ou écrite sous une autre clé n'est pas restaurée : l'utilisateur se reconnecte.

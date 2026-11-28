@@ -31,7 +31,7 @@ pub fn create_new_project(name: &str) -> Result<()> {
         "🦀 {}",
         tf(runique_i18n::keys::cli::info::CREATING_PROJECT, &[&name])
     );
-    let runique_version = crate::tooling::VERSION;
+    let runique_version = crate::versions::VERSION;
 
     // Every file of the project in one batch: all of them, or nothing at all
     write_project_files(project_dir, name, runique_version)?;

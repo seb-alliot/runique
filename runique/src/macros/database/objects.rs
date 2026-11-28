@@ -62,7 +62,7 @@ use crate::errors::AppError;
 use crate::errors::{ErrorContext, ErrorType};
 use crate::http::Request;
 use crate::utils::aliases::{ADb, AppResult};
-use crate::utils::translation::t;
+use crate::translation::t;
 use axum::http::StatusCode;
 use sea_orm::{ColumnTrait, Condition, DbErr, EntityTrait};
 use std::marker::PhantomData;

@@ -76,7 +76,7 @@ No local password is managed by Runique: `verify()` always answers `false`, `has
 
 ```rust
 use runique::prelude::*;
-use runique::utils::password::External;
+use runique::security::password::External;
 
 password_init(PasswordConfig::Delegated(External::GoogleOAuth));
 password_init(PasswordConfig::Delegated(External::Microsoft));
@@ -91,7 +91,7 @@ Implement the `PasswordHandler` trait to plug in your own hashing/verification l
 
 ```rust
 use runique::prelude::{PasswordConfig, password_init};
-use runique::utils::password::PasswordHandler;
+use runique::security::password::PasswordHandler;
 
 #[derive(Clone)] // required: PasswordHandler is cloned with the config
 struct MyHasher;

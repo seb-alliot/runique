@@ -2,7 +2,7 @@
 //! Couvre : generation_token, generation_user_token, mask_csrf_token, unmask_csrf_token
 
 use crate::helpers::pk::pk;
-use runique::utils::csrf::{
+use runique::security::csrf::{
     CsrfContext, CsrfToken, generation_token, generation_user_token, mask_csrf_token,
     unmask_csrf_token,
 };

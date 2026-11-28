@@ -1,5 +1,5 @@
 //! `resolve_og_image` — absolute URL on `.with_public_url()`.
-use runique::utils::resolve_og_image;
+use runique::http::og_image::resolve_og_image;
 
 #[test]
 fn an_absolute_url_is_kept() {

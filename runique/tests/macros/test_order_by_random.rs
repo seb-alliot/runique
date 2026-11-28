@@ -71,7 +71,7 @@ async fn recreate_users_table(db: &DatabaseConnection) {
 const SEED_COUNT: u32 = 20;
 const RUNS: usize = 5;
 
-async fn seed_users(db: &DatabaseConnection) -> HashSet<runique::utils::config::Pk> {
+async fn seed_users(db: &DatabaseConnection) -> HashSet<runique::schema::Pk> {
     let mut ids = HashSet::new();
     for i in 0..SEED_COUNT {
         #[allow(unused_mut)]
@@ -106,7 +106,7 @@ async fn seed_users(db: &DatabaseConnection) -> HashSet<runique::utils::config::
 /// a mere "not empty"/"no SQL error" check would miss entirely).
 async fn assert_order_by_random_result(
     db: &ADb,
-    expected_ids: &HashSet<runique::utils::config::Pk>,
+    expected_ids: &HashSet<runique::schema::Pk>,
 ) {
     let mut orderings = Vec::with_capacity(RUNS);
 

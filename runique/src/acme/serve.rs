@@ -4,7 +4,7 @@ use super::renewal::{cert_needs_renewal, obtain_and_store, renew_if_due};
 #[cfg(feature = "orm")]
 use crate::app::runique_app::connected_db_message;
 use crate::app::runique_app::{RuniqueApp, shutdown_signal};
-use crate::utils::translation::{t, tf};
+use crate::translation::{t, tf};
 use axum::Router;
 
 impl RuniqueApp {
@@ -80,9 +80,9 @@ impl RuniqueApp {
         tokio::spawn(async move {
             // Never silent: without it the ACME challenge can't be answered, and
             // the next renewal fails weeks later with nothing to explain it.
-            use crate::utils::config::TraceResult;
+            use crate::log::TraceResult;
             axum::serve(http_listener, http_app).await.trace_or(
-                crate::utils::runique_log::log_level!(middleware.https),
+                crate::log::log_level!(middleware.https),
                 tracing::Level::WARN,
                 runique_i18n::keys::server::log::HTTPS_PORT80_STOPPED,
             );

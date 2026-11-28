@@ -1,6 +1,6 @@
 // Tests pour HiddenField (champs cachés et CSRF)
 
-use runique::forms::base::FormField;
+use runique::forms::form_field::FormField;
 use runique::forms::fields::hidden::HiddenField;
 use std::sync::Arc;
 use tera::Tera;

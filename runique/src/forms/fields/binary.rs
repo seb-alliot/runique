@@ -4,11 +4,11 @@
 //! Form values travel as strings up to the conversion into the entity, and
 //! arbitrary bytes aren't valid UTF-8: `finalize` reads the staged upload and
 //! hands its content on as base64, which [`decode_binary`] turns back into bytes.
-use crate::forms::base::{FieldConfig, FormField};
+use crate::forms::form_field::{FieldConfig, FormField};
 use crate::forms::fields::file::is_staged_upload;
 use crate::utils::aliases::ATera;
-use crate::utils::config::TraceResult;
-use crate::utils::translation::{t, tf};
+use crate::log::TraceResult;
+use crate::translation::{t, tf};
 use async_trait::async_trait;
 use base64::{Engine, engine::general_purpose::STANDARD};
 use serde::Serialize;
@@ -113,7 +113,7 @@ impl FormField for BinaryField {
             && size > max
         {
             tokio::fs::remove_file(&val).await.trace(
-                crate::utils::runique_log::log_level!(forms.finalize),
+                crate::log::log_level!(forms.finalize),
                 runique_i18n::keys::forms::log::REMOVE_OVERSIZED,
             );
             self.base.value.clear();
@@ -260,8 +260,8 @@ mod guarantees {
 #[cfg(test)]
 mod upload_tests {
     use crate::forms::Forms;
-    use crate::forms::field::FormAccess;
-    use crate::utils::forms::parse_html::parse_multipart;
+    use crate::forms::runique_form::FormAccess;
+    use crate::forms::prisme::multipart::parse_multipart;
     use axum::{
         Router,
         body::Body,

@@ -117,7 +117,7 @@ async fn test_no_user_id_when_not_logged_in() {
 
 #[tokio::test]
 async fn test_protect_session_inserts_key() {
-    use runique::utils::constants::session_key::session::SESSION_ACTIVE_KEY;
+    use runique::auth::constants::SESSION_ACTIVE_KEY;
     async fn handler(session: Session) -> impl IntoResponse {
         protect_session(&session, 3600).await.unwrap();
         let key = session.get::<i64>(SESSION_ACTIVE_KEY).await.ok().flatten();
@@ -133,7 +133,7 @@ async fn test_protect_session_inserts_key() {
 
 #[tokio::test]
 async fn test_unprotect_session_removes_key() {
-    use runique::utils::constants::session_key::session::SESSION_ACTIVE_KEY;
+    use runique::auth::constants::SESSION_ACTIVE_KEY;
     async fn handler(session: Session) -> impl IntoResponse {
         protect_session(&session, 3600).await.unwrap();
         unprotect_session(&session).await.unwrap();

@@ -1,6 +1,6 @@
 //! Why a request body was refused, kept small until it becomes the response.
 use crate::errors::ErrorContext;
-use crate::middleware::errors::error::too_large;
+use crate::errors::too_large;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -32,7 +32,7 @@ impl IntoResponse for BodyRefusal {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::middleware::errors::error::FrameworkTooLarge;
+    use crate::errors::FrameworkTooLarge;
     use http_body_util::BodyExt;
     use std::sync::Arc;
 

@@ -399,7 +399,7 @@ Runique's aliases are grouped in `runique/src/utils/aliases/definition.rs`, and 
 ### 11.1 An alias chosen by feature: `Pk`
 
 ```rust
-// runique/src/utils/config/pk.rs
+// runique/src/schema/pk.rs
 #[cfg(all(feature = "big-pk", feature = "pk-uuid"))]
 compile_error!("features `big-pk` and `pk-uuid` are mutually exclusive — enable at most one of them");
 

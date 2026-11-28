@@ -1,13 +1,14 @@
 //! HTTP error management middleware: renders the HTML error pages (`{code}.html`, the debug page).
-use crate::utils::{
-    aliases::{ARuniqueConfig, ATera, StrMap},
-    error_key::DEBUG_MESSAGE_KEYS,
-};
+use crate::security::escape::html_escape;
+use crate::utils::aliases::{ARuniqueConfig, ATera};
 use crate::{
     config::RuniqueConfig,
-    errors::{ErrorContext, ErrorType, RuniqueError, app_package},
-    utils::csrf::CsrfToken,
-    utils::translation::t,
+    errors::constants::DEBUG_MESSAGE_KEYS,
+    errors::{
+        ErrorContext, ErrorType, FrameworkTooLarge, RequestSnapshot, RuniqueError, app_package,
+    },
+    security::csrf::CsrfToken,
+    translation::t,
 };
 use axum::{
     extract::Extension,
@@ -24,14 +25,14 @@ use tracing_futures::Instrument;
 /// Level for non-critical HTTP error diagnostics (status/path of handled errors).
 /// `None` (disabled) by default — opt-in observability via `errors.http`.
 fn errors_http_level() -> Option<Level> {
-    crate::utils::runique_log::log_level!(errors.http)
+    crate::log::log_level!(errors.http)
 }
 
 /// Level for error-template render failures. Floored at `WARN`: a broken error
 /// template still serves a fallback, but the dev must see it. Configurable via
 /// `errors.render`.
 fn errors_render_level() -> Level {
-    crate::utils::runique_log::log_level!(errors.render).unwrap_or(Level::WARN)
+    crate::log::log_level!(errors.render).unwrap_or(Level::WARN)
 }
 
 /// A header whose name holds one of these is left off the debug page: such a
@@ -62,14 +63,6 @@ fn redact_sensitive_path(path: &str) -> String {
         *secret = "[redacted]";
     }
     parts.join("/")
-}
-
-/// Transport for request info used in contextual debug
-pub struct RequestSnapshot {
-    pub method: String,
-    pub path: String,
-    pub query: Option<String>,
-    pub headers: StrMap,
 }
 
 /// Principal Runique middleware with tracing + debug.
@@ -300,20 +293,6 @@ fn inject_security_headers(headers: &mut axum::http::HeaderMap, config: &Runique
 
 // --- Render Helpers ---
 
-/// Marks a 413 Runique built itself (a body over one of its limits), with
-/// its translated reason: only those get `413.html`, which shows the reason;
-/// an API's own 413 keeps its body.
-#[derive(Clone)]
-pub(crate) struct FrameworkTooLarge(String);
-
-/// A 413 built by Runique: `message` as the body for an HTTP client, and as
-/// the text of the page `error_handler_middleware` renders for a browser.
-pub(crate) fn too_large(message: String) -> Response {
-    let mut res = (StatusCode::PAYLOAD_TOO_LARGE, message.clone()).into_response();
-    res.extensions_mut().insert(FrameworkTooLarge(message));
-    res
-}
-
 /// Retry delay (seconds) advertised on a 503 so clients back off before retrying.
 const SERVICE_UNAVAILABLE_RETRY_AFTER_SECS: u32 = 30;
 
@@ -434,7 +413,7 @@ fn inject_global_vars(context: &mut Context, config: &RuniqueConfig, csrf_token:
     }
     context.insert("debug", &config.debug);
     context.insert("dev", &config.dev);
-    context.insert("lang", &crate::utils::translation::current_lang().code());
+    context.insert("lang", &crate::translation::current_lang().code());
 }
 
 // --- FALLBACKS ---
@@ -445,7 +424,7 @@ fn fallback_status_html(status: StatusCode, text: &str) -> Response {
     let code = status.as_u16();
     let html = format!(
         "<!DOCTYPE html><html lang=\"{lang}\"><head><meta charset=\"UTF-8\"><title>{code}</title></head><body><h1>{code}</h1><p>{text}</p><a href=\"/\">{back}</a></body></html>",
-        lang = crate::utils::translation::current_lang().code(),
+        lang = crate::translation::current_lang().code(),
         text = html_escape(text),
         back = html_escape(&t(runique_i18n::keys::http::label::BACK_HOME)),
     );
@@ -453,7 +432,7 @@ fn fallback_status_html(status: StatusCode, text: &str) -> Response {
 }
 
 fn critical_error_html(error: &str) -> Response {
-    let lang = crate::utils::translation::current_lang().code();
+    let lang = crate::translation::current_lang().code();
     let html = format!(
         r#"<!DOCTYPE html>
 <html lang="{lang}">
@@ -518,18 +497,10 @@ fn critical_error_html(error: &str) -> Response {
     (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response()
 }
 
-pub(crate) fn html_escape(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&#x27;")
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{errors_http_level, errors_render_level, html_escape, redact_sensitive_path};
-    use crate::utils::runique_log::{RuniqueLog, log_init, reset_log_for_test};
+    use super::{errors_http_level, errors_render_level, redact_sensitive_path};
+    use crate::log::{RuniqueLog, log_init, reset_log_for_test};
     use tracing::Level;
 
     #[test]
@@ -554,44 +525,11 @@ mod tests {
     }
 
     #[test]
-    fn test_html_escape_ampersand() {
-        assert_eq!(html_escape("a & b"), "a &amp; b");
-    }
-
-    #[test]
-    fn test_html_escape_lt_gt() {
-        assert_eq!(html_escape("<script>"), "&lt;script&gt;");
-    }
-
-    #[test]
     fn reset_token_paths_are_redacted_before_logging_or_rendering() {
         let token = "reset-bearer-secret-123";
         let path = redact_sensitive_path(&format!("/reset/{token}"));
         assert_eq!(path, "/reset/[redacted]");
         assert!(!path.contains(token));
-    }
-
-    #[test]
-    fn test_html_escape_double_quote() {
-        assert_eq!(html_escape(r#"say "hi""#), "say &quot;hi&quot;");
-    }
-
-    #[test]
-    fn test_html_escape_single_quote() {
-        assert_eq!(html_escape("it's"), "it&#x27;s");
-    }
-
-    #[test]
-    fn test_html_escape_empty() {
-        assert_eq!(html_escape(""), "");
-    }
-
-    #[test]
-    fn test_html_escape_mixed() {
-        assert_eq!(
-            html_escape("<b>\"Hello\" & 'World'</b>"),
-            "&lt;b&gt;&quot;Hello&quot; &amp; &#x27;World&#x27;&lt;/b&gt;"
-        );
     }
 
     #[test]
@@ -632,7 +570,7 @@ mod tests {
 #[cfg(test)]
 mod status_messages_tests {
     use super::status_messages;
-    use crate::utils::translation::t;
+    use crate::translation::t;
 
     // Each status Runique has a page for has its title and its text, both
     // of that status, and both exist.

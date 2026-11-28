@@ -82,7 +82,8 @@ async fn seed(dbc: &runique::sea_orm::DatabaseConnection) {
     }
     // Hashed once for the whole file: every test seeds a fresh database.
     static HASH: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-    let hash = HASH.get_or_init(|| runique::utils::password::hash(SIGN_IN_PASSWORD).expect("hash"));
+    let hash =
+        HASH.get_or_init(|| runique::security::password::hash(SIGN_IN_PASSWORD).expect("hash"));
     let account = |n: u32, name: &str, flags: &str| {
         format!(
             "({}, '{name}', '{name}@example.com', '{hash}', 1, {flags}, '2026-01-01 00:00:00')",
@@ -207,33 +208,30 @@ async fn spawn_with_reset(
                 .routes(routes)
                 .static_files(|s| s.enabled(false))
                 .with_admin(|a| {
-                    let a =
-                        a.path("/secret-admin").site(|s| {
-                            s
-                                .register(
-                                    runique::admin::builder::admin_builder::ModelAdmin::<
-                                        probe::Entity,
-                                    >::new()
-                                    .list(|l| {
-                                        l.display([probe::Column::Title])
-                                            .sortable([probe::Column::Title])
-                                            .filter([probe::Column::Title, probe::Column::Code])
-                                            .action(probe::Column::Flag, "OK", "Valider")
-                                    })
-                                    .form(|f| {
-                                        f.fields([
-                                            probe::Column::Title,
-                                            probe::Column::Code,
-                                            probe::Column::Flag,
-                                        ])
-                                        .readonly([probe::Column::Code])
-                                    }),
-                                )
-                                // No `.form()`: the pages take every field of its own form.
-                                .register(runique::admin::builder::admin_builder::ModelAdmin::<
-                                    bare::Entity,
-                                >::new())
-                        });
+                    let a = a.path("/secret-admin").site(|s| {
+                        s.register(
+                            runique::admin::builder::model_admin::ModelAdmin::<probe::Entity>::new(
+                            )
+                            .list(|l| {
+                                l.display([probe::Column::Title])
+                                    .sortable([probe::Column::Title])
+                                    .filter([probe::Column::Title, probe::Column::Code])
+                                    .action(probe::Column::Flag, "OK", "Valider")
+                            })
+                            .form(|f| {
+                                f.fields([
+                                    probe::Column::Title,
+                                    probe::Column::Code,
+                                    probe::Column::Flag,
+                                ])
+                                .readonly([probe::Column::Code])
+                            }),
+                        )
+                        // No `.form()`: the pages take every field of its own form.
+                        .register(
+                            runique::admin::builder::model_admin::ModelAdmin::<bare::Entity>::new(),
+                        )
+                    });
                     if mount.is_empty() { a } else { a.prefix(mount) }
                 })
                 .build()
@@ -404,7 +402,7 @@ async fn accounts_without_admin_access_go_home_with_a_notice_and_stay_signed_in(
         let notices = text(&client, format!("{base}/flashes")).await;
         assert_eq!(
             notices,
-            runique::utils::translation::t(
+            runique::translation::t(
                 runique_i18n::keys::admin::access::error::ACTION_NOT_ALLOWED
             ),
             "{why}"
@@ -718,7 +716,7 @@ async fn probe_reset_token_owners(req: Request) -> String {
         .unwrap();
     rows.iter()
         .map(|row| {
-            row.try_get::<runique::utils::pk::Pk>("", "user_id")
+            row.try_get::<runique::schema::pk::Pk>("", "user_id")
                 .unwrap()
                 .to_string()
         })
@@ -760,7 +758,7 @@ async fn probe_groups(req: Request) -> String {
     rows.iter()
         .map(|row| {
             let nom: String = row.try_get("", "nom").unwrap();
-            let responsable: runique::utils::pk::Pk = row.try_get("", "responsable_id").unwrap();
+            let responsable: runique::schema::pk::Pk = row.try_get("", "responsable_id").unwrap();
             format!("{nom}:{responsable}")
         })
         .collect::<Vec<_>>()
@@ -1953,8 +1951,8 @@ async fn a_grouped_action_refuses_an_oversized_or_forged_request() {
 
 /// The console mailer, for the whole test binary: a reset link needs one.
 fn console_mailer() {
-    runique::utils::mailer::mailer_init(runique::utils::mailer::MailerConfig {
-        backend: runique::utils::mailer::MailerBackend::Console,
+    runique::mailer::mailer_init(runique::mailer::MailerConfig {
+        backend: runique::mailer::MailerBackend::Console,
         from: "test@runique.rs".to_string(),
         host: String::new(),
         port: 0,
@@ -3523,7 +3521,7 @@ async fn a_group_handed_to_an_admin_is_reduced_to_his_rights() {
         "a sideways transfer keeps nothing at first"
     );
     // Each line names its table, then the right: the table's, or a column's.
-    use runique::utils::translation::t;
+    use runique::translation::t;
     assert!(
         page.contains(&format!(
             "— {}<",
@@ -3620,7 +3618,7 @@ async fn a_transfer_is_refused_outside_its_rules() {
     confirm_transfer(&su, &base, 2, ADMIN, Some(""), &[]).await;
     let flashes = text(&su, format!("{base}/flashes")).await;
     assert!(
-        flashes.contains(&*runique::utils::translation::t(
+        flashes.contains(&*runique::translation::t(
             runique_i18n::keys::admin::transfer::error::RANKED_MEMBERS
         )),
         "{flashes}"
@@ -3779,12 +3777,12 @@ async fn spawn_themed(
         .with_admin(|a| {
             a.path("/secret-admin").templates(global).site(|s| {
                 s.register(
-                    runique::admin::builder::admin_builder::ModelAdmin::<probe::Entity>::new()
+                    runique::admin::builder::model_admin::ModelAdmin::<probe::Entity>::new()
                         .list(|l| l.display([probe::Column::Title]))
                         .form(|f| f.fields([probe::Column::Title]))
                         .templates(notes),
                 )
-                .register(runique::admin::builder::admin_builder::ModelAdmin::<
+                .register(runique::admin::builder::model_admin::ModelAdmin::<
                     bare::Entity,
                 >::new())
             })

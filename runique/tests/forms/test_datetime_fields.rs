@@ -1,7 +1,7 @@
 // Tests — DateField, TimeField, DateTimeField, DurationField
 
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
-use runique::forms::base::FormField;
+use runique::forms::form_field::FormField;
 use runique::forms::fields::datetime::{DateField, DateTimeField, DurationField, TimeField};
 
 // ═══════════════════════════════════════════════════════════════

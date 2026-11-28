@@ -1,14 +1,12 @@
 //! Champs texte : `TextField`, `EmailField`, `UrlField`, `TextAreaField`, `PasswordField`.
 pub use crate::forms::generic::GenericField;
 use crate::forms::{
-    base::{FieldConfig, FormField, TextConfig},
+    form_field::{FieldConfig, FormField, TextConfig},
     options::LengthConstraint,
 };
-use crate::utils::{
-    aliases::ATera,
-    password::{PasswordConfig, PasswordService},
-    translation::{t, tf},
-};
+use crate::security::password::{PasswordConfig, PasswordService};
+use crate::translation::{t, tf};
+use crate::utils::aliases::ATera;
 use async_trait::async_trait;
 use serde::Serialize;
 use validator::ValidateEmail;
@@ -174,7 +172,7 @@ impl FormField for TextField {
         if self.base.is_password() {
             let hashed = self.hash_password
                 && !self.submitted
-                && PasswordService::new(crate::utils::password::password_get())
+                && PasswordService::new(crate::security::password::password_get())
                     .is_already_hashed(&self.base.value);
             if !hashed {
                 return Ok(None);
@@ -187,8 +185,8 @@ impl FormField for TextField {
         )
     }
 
-    fn bounds(&self) -> crate::forms::base::FieldBounds {
-        crate::forms::base::FieldBounds {
+    fn bounds(&self) -> crate::forms::form_field::FieldBounds {
+        crate::forms::form_field::FieldBounds {
             min_length: self.config.min_length.as_ref().map(|l| l.value),
             max_length: self.config.max_length.as_ref().map(|l| l.value),
             ..Default::default()
@@ -198,18 +196,18 @@ impl FormField for TextField {
     fn set_value(&mut self, value: &str) {
         let cleaned = match self.format {
             SpecialFormat::Password | SpecialFormat::Csrf => value.to_string(),
-            SpecialFormat::RichText => crate::utils::sanitizer::sanitize_rich(value),
+            SpecialFormat::RichText => crate::security::sanitizer::sanitize_rich(value),
             // `sanitize_strict` already strips every tag (scripts included) via ammonia
             // and decodes entities, so legitimate `>`, `&`, `<` survive. The XSS guard
             // stays the output-side auto-escaping; no lossy input mutation needed.
-            _ => crate::utils::sanitizer::sanitize_strict(value),
+            _ => crate::security::sanitizer::sanitize_strict(value),
         };
         self.base.value = cleaned;
         self.submitted = false;
     }
 
     fn set_submitted_value(&mut self, value: &str) {
-        if crate::forms::base::is_staged_path(value) {
+        if crate::forms::form_field::is_staged_path(value) {
             tracing::warn!(field = %self.base.name, "a file was sent for a field that takes none, ignored");
             return;
         }
@@ -295,7 +293,7 @@ impl FormField for TextField {
             && self.hash_password
             && !self.base.value.is_empty()
         {
-            let config = crate::utils::password::password_get();
+            let config = crate::security::password::password_get();
             if let PasswordConfig::Auto(_) = config {
                 let service = PasswordService::new(config);
                 // A typed value is hashed even when it looks like a hash: stored

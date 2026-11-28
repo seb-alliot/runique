@@ -85,7 +85,7 @@ async fn the_generic_save_writes_the_password_as_its_hash() -> Result<(), TestFa
         if account.password == TYPED {
             return Err(DbErr::Custom("the password was stored as typed".into()));
         }
-        if !runique::utils::password::verify(TYPED, &account.password) {
+        if !runique::security::password::verify(TYPED, &account.password) {
             return Err(DbErr::Custom(format!(
                 "the stored value isn't the typed password's hash: {}",
                 account.password

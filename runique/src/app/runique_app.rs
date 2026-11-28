@@ -5,7 +5,7 @@ use tokio::signal;
 
 use crate::config::RuniqueConfig;
 use crate::utils::aliases::AEngine;
-use crate::utils::translation::{t, tf};
+use crate::translation::{t, tf};
 
 use super::builder::RuniqueAppBuilder;
 
@@ -49,7 +49,7 @@ pub(crate) fn connected_db_message(backend: sea_orm::DbBackend) -> String {
 pub(crate) async fn shutdown_signal() {
     let ctrl_c = async {
         if let Err(error) = signal::ctrl_c().await {
-            tracing::warn!(%error, "{}", crate::utils::translation::t(runique_i18n::keys::server::log::CTRL_C_NOT_INSTALLED));
+            tracing::warn!(%error, "{}", crate::translation::t(runique_i18n::keys::server::log::CTRL_C_NOT_INSTALLED));
             std::future::pending::<()>().await;
         }
     };
@@ -60,7 +60,7 @@ pub(crate) async fn shutdown_signal() {
                 stream.recv().await;
             }
             Err(error) => {
-                tracing::warn!(%error, "{}", crate::utils::translation::t(runique_i18n::keys::server::log::SIGTERM_NOT_INSTALLED));
+                tracing::warn!(%error, "{}", crate::translation::t(runique_i18n::keys::server::log::SIGTERM_NOT_INSTALLED));
                 std::future::pending::<()>().await;
             }
         }
@@ -88,7 +88,7 @@ impl RuniqueApp {
     /// - Otherwise: serves HTTP on the configured port.
     pub async fn run(self) -> Result<(), Box<dyn std::error::Error>> {
         #[cfg(not(feature = "acme"))]
-        if crate::utils::config::env::env_flag("ACME_ENABLED", false) {
+        if crate::config::env::env_flag("ACME_ENABLED", false) {
             eprintln!(
                 "⚠  {}",
                 t(runique_i18n::keys::server::error::ACME_NOT_COMPILED)

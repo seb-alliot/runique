@@ -1,5 +1,6 @@
 //! Application configuration — server, security, static files.
 pub mod app;
+pub mod env;
 pub mod security;
 pub mod server;
 pub mod static_files;

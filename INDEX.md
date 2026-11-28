@@ -52,10 +52,10 @@ runique/
 - **`lib.rs`** — public API, prelude, module exports
 
 ### `admin/` — Admin Panel (beta)
-- **`builder/`** — typed `ModelAdmin` + `AdminSite`: `admin_builder.rs`, `list.rs`, `form.rs`, `site.rs`, `registered.rs`, bulk/confirm helpers
-- **`router/`** — CRUD handlers and routing: `admin_router.rs`, `context.rs`, `history.rs`, `crud/`, `account/`, `path/`, `permission/`
+- **`builder/`** — typed `ModelAdmin` + `AdminSite`: `model_admin.rs`, `list.rs`, `form.rs`, `site.rs`, `registered.rs`, bulk/confirm helpers
+- **`router/`** — CRUD handlers and routing: `routes.rs`, `context.rs`, `history.rs`, `crud/`, `account/`, `path/`, `permission/`
 - **`template/`** — page/block overrides (`page.rs`, `block.rs`, `assemble.rs`, `stylesheet.rs`)
-- **`config/`** — `config_admin.rs` (admin configuration struct)
+- **`config/`** — `settings.rs` (admin configuration struct)
 - **`middleware/`** — admin-specific middleware
 - **`translation/`** — admin-specific i18n
 
@@ -67,7 +67,7 @@ runique/
 ### `app/` — Application Lifecycle
 - **`builder/`** — `RuniqueApp::builder(config)` / `RuniqueAppBuilder<S>` (`mod.rs`: once-only settings tracked in the type; `build.rs`)
 - **`runique_app.rs`** — `RuniqueApp` struct, `.run()` entry point
-- **`staging/`** — builder stages, one file each: `core_staging.rs`, `middleware.rs` (its settings are in `middleware/config/`), `applicator.rs` (the slots, `SLOT_*`), `admin.rs`, `static_staging.rs`
+- **`staging/`** — builder stages, one file each: `core.rs`, `middleware.rs` (its settings are in `middleware/config/`), `applicator.rs` (the slots, `SLOT_*`), `admin.rs`, `statics.rs`
 
 ### `auth/` — Authentication
 - **`session.rs`** — `login`/`auth_login`/`logout`, `CurrentUser`, session keys
@@ -120,29 +120,36 @@ runique/
 - **`error.rs`** — `RuniqueError`, `RuniqueResult`: what went wrong, by kind
 
 ### `flash/` — Flash Messages
-- **`flash_struct.rs`** — `FlashMessage` data structure
-- **`flash_manager.rs`** — session-backed message manager
+- **`message.rs`** — `FlashMessage` data structure
+- **`extractor.rs`** — `Message`, the extractor that reads and writes them in the session
 
 ### `forms/` — Form System
-- **`base.rs`** — base form state
+- **`form_field.rs`** — `FormField` trait, `FieldConfig`
 - **`form.rs`** — `Forms` struct, `RuniqueForm` trait, `impl_form_access!`
 - **`validation_form.rs`** — `ValidationForm<F>` (validation proven by the type)
 - **`form_data.rs`** — form data → model conversions (`FormDataError`)
-- **`field.rs`** — `FormField` trait
+- **`runique_form.rs`** — `RuniqueForm` trait, `FormAccess`
 - **`generic.rs`** — generic field implementation
-- **`extractor.rs`** — Prisme pipeline (`prisme_pipeline`): CSRF check + body parsing, consumed via `request.form::<T>("name")`
 - **`renderer.rs`** — HTML renderer for form fields
 - **`validator.rs`** — validation logic
-- **`model_form/`** — `ModelForm` (form bound to a SeaORM model)
+- **`model_form.rs`** — `ModelForm` (form bound to a SeaORM model)
 - **`fields/`** — field types: `text`, `number`, `boolean`, `choice`, `datetime`, `file`, `media`, `binary`, `special`, `hidden`
 - **`options/`** — `length`, `bool_choice` option structs
-- **`prisme/`** — body extraction: `aegis` (CSRF check in `extractor::check_csrf`)
+- **`prisme/`** — the request body: `extractor` (`Prisme`, `prisme_pipeline`: CSRF check + body parsing, consumed via `request.form::<T>("name")`), `aegis` (body extraction), `multipart` (multipart reading, uploaded files), `refusal`
+
+### `log/` — Log channels
+- **`mod.rs`** — `RuniqueLog`, one file per category beside it (`admin.rs`, `auth.rs`, `db.rs`, `forms.rs`…), the `log_level!` macro
+- **`trace_ext.rs`** — `TraceResult`: logs a `Result` that is otherwise dropped
+- **`init.rs`** — `init_logging()`, for the command
 
 ### `macros/` — Macros
 - **`database/`** — `impl_objects!`, `search!` / `search_cond!` (+ internal `search_apply_op!`, `search_munch!`), `Objects` query builder (`objects.rs`, `query.rs`), list fields `HasLists` / `ListField` (`list.rs`)
 - **`context/`** — `context!` / `context_update!` (`context_simplifier.rs`), flash macros `flash_now!` / `info!` / `success!` / `warning!` / `error!` (`flash.rs`), `impl_from_error!` (`impl_error.rs`)
 - **`forms/`** — `impl_form_access!` (`impl_form.rs`), `define_enum_kind!` (`enum_kind.rs`), `delegate_to_kind!` (`kind.rs`)
 - **`template/`** — template context macros
+
+### `mailer/` — Email
+- **`mod.rs`** — `Email`, `dispatch_email`, `MailerConfig`, `mailer_configured`
 
 ### `middleware/` — Middleware
 (authentication lives in the top-level `auth/` module since the refactor)
@@ -183,21 +190,22 @@ Calls only: each command's logic lives in its own module, the binary goes throug
 - **`register_url.rs`** — registry of URL names: `register_name_url`, `reverse`, `reverse_with_parameters`
 - **`router_ext.rs`** — `RouterExt`: rate limit and login guard on a route
 
+### `security/` — Security primitives
+- **`password.rs`** — Argon2 / Bcrypt / Scrypt hashing and verification, `PasswordConfig`
+- **`csrf.rs`** — `CsrfToken`, mask / unmask
+- **`csp_nonce.rs`** — `CspNonce`
+- **`session_cipher.rs`** — session encryption (`SessionKey`)
+- **`reset_token/`** — single-use, hashed tokens for password resets
+
+### Root files
+- **`lib.rs`** — module declarations, the prelude, and `translation` (re-export of `runique_i18n`: `t`, `tf`, `Lang`)
+- **`versions.rs`** — the crate's version and SeaORM's, read by the `runique` command
+- **`atomic.rs`** — re-export of `runique_atomic`
+
+Every constant is in the `constants.rs` of its part: `admin/`, `auth/`, `errors/`, `flash/`, `forms/`, `middleware/`, `security/`, `templates/`.
+
 ### `utils/` — Utilities
 - **`aliases/`** — `ADb`, `AEngine`, `JsonMap`, `StrMap`… type aliases
-- **`config/env.rs`** — `.env` flags (`env_flag`, `debug_from`, `dev_from`), `is_debug()`, `is_dev()`, `css_token()`
-- **`config/pk.rs`** — `Pk` type alias (`i32` by default, `i64` with `big-pk`, `Uuid` with `pk-uuid`)
-- **`config/runique_log/`** — `RuniqueLog` categories
-- **`config/url_params.rs`** — URL query parameter helpers
-- **`constants/`** — session/CSRF/admin key constants, error strings, template names
-- **`crypto/`** — `csrf.rs` (`CsrfToken`, mask/unmask), `csp_nonce.rs`, `session_cipher.rs` (`SessionKey`)
-- **`forms/`** — `parse_html`, `sanitizer`, `parse_boolean`
-- **`init_error/init.rs`** — `init_logging()`
-- **`mailer/`** — email sending utilities
-- **`password/`** — Argon2 / Bcrypt / Scrypt hashing, `PasswordConfig`
-- **`reset_token/`** — secure token generation for password resets
-- **`resolve_ogimage/`** — Open Graph image resolution
-- **`translation/`** — i18n (9 languages), `switch_lang`
 
 ---
 

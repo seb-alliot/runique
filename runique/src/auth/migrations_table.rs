@@ -3,7 +3,7 @@
 //! own `up` migrations. The admin's history table is created here too; only
 //! its use (entity, pages) belongs to the admin.
 
-use crate::utils::constants::resource_key::FRAMEWORK_KEYS;
+use crate::auth::constants::resource_key::FRAMEWORK_KEYS;
 use sea_query::{
     Alias, Check, ColumnDef, Expr, ExprTrait, ForeignKey, ForeignKeyAction, Index,
     IndexCreateStatement, Table, TableCreateStatement,

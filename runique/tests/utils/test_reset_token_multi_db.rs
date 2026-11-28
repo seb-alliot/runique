@@ -16,7 +16,7 @@ use runique::sea_orm::{
     ActiveModelTrait, ActiveValue::Set, ConnectionTrait, DatabaseConnection, DbBackend, Schema,
     Statement,
 };
-use runique::utils::reset_token::{generate, peek};
+use runique::security::reset_token::{generate, peek};
 use serial_test::serial;
 use std::time::Duration;
 
@@ -47,7 +47,7 @@ async fn recreate_tables(db: &DatabaseConnection) {
         .expect("create eihwaz_reset_tokens");
 }
 
-async fn insert_alice(db: &DatabaseConnection) -> runique::utils::pk::Pk {
+async fn insert_alice(db: &DatabaseConnection) -> runique::schema::pk::Pk {
     #[allow(unused_mut)]
     let mut am = user::ActiveModel {
         username: Set("alice".to_string()),

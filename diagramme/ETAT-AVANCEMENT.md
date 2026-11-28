@@ -6,7 +6,7 @@ Ne pas toucher `demo-app`. Écrire les diagrammes dans `diagramme/` (racine).
 
 ## Correctifs appliqués (compilés, 216/216 vert)
 
-- C1/C3 upload staging (`parse_html.rs` + `file.rs finalize` + sweep, tracé)
+- C1/C3 upload staging (`multipart.rs` + `file.rs finalize` + sweep, tracé)
 - D1 big-pk `users_groupes.user_id`
 - Tracing « zéro erreur avalée » : forms rollback, file cleanup, history audit,
   user→groupe RBAC, reset_token, anti_bot, auth/password template, guard cache (into_inner)
@@ -144,7 +144,7 @@ complet du chantier : mémoire `project_form_auto_validate_idea.md` (hors dépô
 aurait exigé une surcharge manuelle `-> false` sur chaque formulaire mutant de
 l'app (login/inscription/contact/devis), répétant un garde de sécurité qui
 doit vivre dans le framework. Défaut basculé à `false` inconditionnel dans
-`forms/field.rs` ; les surcharges devenues redondantes retirées côté framework
+`forms/runique_form.rs` ; les surcharges devenues redondantes retirées côté framework
 (`ForgotPasswordForm`/`PasswordResetForm`) et côté Campanile (4 formulaires).
 Seul cas d'opt-in réel : `UsernameForm` (demo-app, recherche GET-only).
 

@@ -2,11 +2,13 @@
 //! and in debug the template, the request and the chain of causes.
 use super::debug_page::read_template_source;
 use super::error::{RuniqueError, tera_error_line};
-use crate::middleware::RequestSnapshot;
+use super::request_snapshot::RequestSnapshot;
+use crate::templates::constants::{
+    ADMIN_TEMPLATES, ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES,
+};
 use crate::utils::aliases::StrMap;
-use crate::utils::constants::{ADMIN_TEMPLATES, ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
-use crate::utils::env::is_debug;
-use crate::utils::translation::{t, tf};
+use crate::config::env::is_debug;
+use crate::translation::{t, tf};
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},

@@ -466,7 +466,7 @@ impl ColumnDef {
     /// Converts the column to a GenericField.
     /// Returns `None` if the column is auto-excluded.
     pub fn to_form_field(&self) -> Option<crate::forms::generic::GenericField> {
-        use crate::forms::base::FormField;
+        use crate::forms::form_field::FormField;
         use crate::forms::fields::{
             FileSize,
             boolean::BooleanField,
@@ -673,7 +673,7 @@ impl ColumnDef {
         &self,
         widget: runique_dsl::types::Widget,
     ) -> crate::forms::generic::GenericField {
-        use crate::forms::base::NumericConfig;
+        use crate::forms::form_field::NumericConfig;
         use crate::forms::fields::{
             FileSize,
             boolean::BooleanField,

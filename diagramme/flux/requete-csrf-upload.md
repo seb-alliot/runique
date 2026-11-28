@@ -80,7 +80,7 @@ sequenceDiagram
     sinon délégué à Prisme/`form()`.
   - JSON sans header → 403 `CSRF token required`.
   - `csrf_exempt` saute ces contrôles ; le jeton reste généré.
-- **`prisme_pipeline`** ([extractor.rs:63](../../runique/src/forms/extractor.rs#L63)) : aegis
+- **`prisme_pipeline`** ([extractor.rs:63](../../runique/src/forms/prisme/extractor.rs#L63)) : aegis
   (parse) → `check_csrf` (flag seulement, **ne rejette pas**). Sentinel et `GuardRules` n'existent plus.
 - **Enforcement réel** : `request.form(nom)` ([request.rs:467](../../runique/src/http/request.rs#L467))
   pose `force_invalid = true` si CSRF KO → `is_save_allowed()` renvoie false, et
@@ -99,7 +99,7 @@ sequenceDiagram
 **Corrigé (2.1.21).** `parse_multipart` écrit désormais en **staging** `.staging-{uuid}` (non
 servi) ; `FileField::finalize` est le seul committer (après CSRF + validation). Description du
 problème d'origine ci-dessous (conservée pour mémoire) :
-[`parse_html.rs:166-184`](../../runique/src/utils/forms/parse_html.rs#L166)
+[`multipart.rs:166-184`](../../runique/src/forms/prisme/multipart.rs#L166)
 `parse_multipart` ne fait pas que streamer en tmp : il **rename immédiatement tmp →
 `MEDIA_ROOT/uuid.ext`** à la fin du parsing, et renvoie les chemins finaux. Or `parse_multipart`
 tourne dans `prisme_pipeline`, exécuté par `Request::from_request` sur **toute** requête

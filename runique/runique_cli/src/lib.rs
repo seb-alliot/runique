@@ -11,5 +11,5 @@ pub mod db;
 pub mod migration;
 pub mod new_project;
 pub mod test_runner;
-pub(crate) mod tooling;
 pub mod utils;
+pub(crate) mod versions;

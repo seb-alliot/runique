@@ -77,7 +77,7 @@ What the signature shows:
 The compiler guarantees that a column exists. What it cannot know is that a column is **secret**. Each entity declares its secret columns (`E::SECRET`, for example the password), and the builder refuses them in all lists:
 
 ```rust
-// runique/src/admin/builder/admin_builder.rs (excerpt)
+// runique/src/admin/builder/model_admin.rs (excerpt)
 for secret in E::SECRET {
     let name = secret.as_str();
     for list in self

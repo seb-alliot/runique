@@ -231,7 +231,7 @@ pub struct ListContext {
     /// Columns holding HTML, shown as plain text in the list.
     pub rich_fields: Vec<String>,
     /// The declared actions the bar offers: `index` (sent as `a<index>`), `label`.
-    pub group_actions: Vec<crate::admin::builder::admin_builder::OfferedAction>,
+    pub group_actions: Vec<crate::admin::builder::model_admin::OfferedAction>,
     /// The list's current query (search, sort, filters, page), so a grouped
     /// action comes back to the same page.
     pub return_qs: String,

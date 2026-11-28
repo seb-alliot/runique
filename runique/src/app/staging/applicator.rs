@@ -438,7 +438,7 @@ impl MiddlewareStaging {
                 if let Some(existing) = seen.insert(entry.slot, entry.name) {
                     panic!(
                         "{}",
-                        crate::utils::translation::tf(
+                        crate::translation::tf(
                             runique_i18n::keys::middleware::error::SLOT_COLLISION,
                             &[
                                 existing.to_string(),
@@ -455,7 +455,7 @@ impl MiddlewareStaging {
         // In Axum, last `.layer()` = outermost = first executed on the request.
         entries.sort_by_key(|b| std::cmp::Reverse(b.slot));
 
-        if let Some(level) = crate::utils::runique_log::log_level!(builder.middleware) {
+        if let Some(level) = crate::log::log_level!(builder.middleware) {
             crate::runique_log!(level, count = entries.len(), "middleware stack");
             for entry in &entries {
                 crate::runique_log!(level, slot = entry.slot, name = %entry.name, "middleware slot");
@@ -501,7 +501,7 @@ async fn auth_middleware(
     use crate::auth::current_user::CurrentUser;
     use crate::auth::session::{get_user_id, logout, session_is_current};
     use crate::auth::user::BuiltinUserEntity;
-    use crate::utils::config::TraceResult;
+    use crate::log::TraceResult;
     use axum::response::IntoResponse;
 
     let session = req.extensions().get::<tower_sessions::Session>().cloned();
@@ -521,7 +521,7 @@ async fn auth_middleware(
                     tracing::Level::WARN,
                     user_id = %id,
                     error = %error,
-                    "{}", crate::utils::translation::t(runique_i18n::keys::auth::log::ACCOUNT_NOT_READ)
+                    "{}", crate::translation::t(runique_i18n::keys::auth::log::ACCOUNT_NOT_READ)
                 );
                 return axum::http::StatusCode::SERVICE_UNAVAILABLE.into_response();
             }
@@ -552,7 +552,7 @@ async fn auth_middleware(
                 // Logged, not fatal: the account is read again on every request and
                 // refused here each time, so a row that survives grants nothing.
                 logout(&session, db_store.as_deref()).await.trace_or(
-                    crate::utils::runique_log::log_level!(session.store),
+                    crate::log::log_level!(session.store),
                     tracing::Level::WARN,
                     "close the session of a deleted or inactive account, or an outdated one",
                 );

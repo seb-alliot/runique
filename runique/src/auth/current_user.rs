@@ -3,7 +3,7 @@
 //! Prisme and the developer's views.
 use crate::auth::permissions::rank::Rang;
 use crate::auth::permissions::{Groupe, Permission};
-use crate::utils::pk::Pk;
+use crate::schema::pk::Pk;
 use serde::{Deserialize, Serialize};
 
 /// Authenticated user injected into request extensions.

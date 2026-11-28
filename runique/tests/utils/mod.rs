@@ -1,12 +1,11 @@
 pub mod clean_tpm_test;
 pub mod env;
+#[cfg(feature = "admin")]
 pub mod test_admin_message_keys_completeness;
-pub mod test_constante_parse;
 pub mod test_flash_message;
 pub mod test_init_logging;
 pub mod test_integrity_map;
 pub mod test_mailer;
-pub mod test_parse_boolean;
 pub mod test_password;
 pub mod test_pk_alias;
 pub mod test_pk_fk_uuid;
@@ -14,5 +13,4 @@ pub mod test_reset_token;
 pub mod test_reset_token_multi_db;
 pub mod test_resolve_ogimage;
 pub mod test_runique_log;
-pub mod test_sanitizer;
 pub mod test_url_params;

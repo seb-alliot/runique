@@ -5,12 +5,10 @@ use axum::http::Request;
 /// Centralized module to inject all data into Axum extensions.
 use axum::http::request::Parts;
 
-use crate::utils::{
-    aliases::{
-        AEngine, ARuniqueConfig, ATera, OAEngine, OARuniqueConfig, OATera, OCspNonce, OCsrfToken,
-        OCurrentUser,
-    },
-    {csp_nonce::CspNonce, csrf::CsrfToken},
+use crate::security::{csp_nonce::CspNonce, csrf::CsrfToken};
+use crate::utils::aliases::{
+    AEngine, ARuniqueConfig, ATera, OAEngine, OARuniqueConfig, OATera, OCspNonce, OCsrfToken,
+    OCurrentUser,
 };
 
 /// Structure containing all data to be injected into extensions.

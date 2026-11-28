@@ -8,7 +8,7 @@ use runique::auth::user::RuniqueUser;
 // ═══════════════════════════════════════════════════════════════
 
 struct MockUser {
-    id: runique::utils::pk::Pk,
+    id: runique::schema::pk::Pk,
     username: String,
     email: String,
     is_active: bool,
@@ -16,7 +16,7 @@ struct MockUser {
 }
 
 impl RuniqueUser for MockUser {
-    fn user_id(&self) -> runique::utils::pk::Pk {
+    fn user_id(&self) -> runique::schema::pk::Pk {
         self.id
     }
     fn username(&self) -> &str {

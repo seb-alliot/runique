@@ -2,7 +2,7 @@
 //! helpers without needing a real DB-backed user model.
 
 use runique::auth::user::RuniqueUser;
-use runique::utils::config::Pk;
+use runique::schema::Pk;
 
 pub struct TestUser {
     id: Pk,
@@ -40,6 +40,6 @@ impl RuniqueUser for TestUser {
 /// The id a session was signed in with, read straight from the session (what
 /// `login` writes and `logout` clears). Handlers use `request.user` instead.
 pub async fn session_user_id(session: &tower_sessions::Session) -> Option<Pk> {
-    use runique::utils::constants::session_key::session::SESSION_USER_ID_KEY;
+    use runique::auth::constants::SESSION_USER_ID_KEY;
     session.get::<Pk>(SESSION_USER_ID_KEY).await.ok().flatten()
 }

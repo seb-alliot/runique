@@ -1,13 +1,12 @@
 //! CSRF Middleware: generates and stores the token in session, validates mutating requests.
+use crate::auth::constants::SESSION_USER_ID_KEY;
 use crate::auth::session::is_authenticated;
-use crate::forms::extractor::{csrf_required, is_csrf_exempt};
+use crate::forms::prisme::extractor::{csrf_required, is_csrf_exempt};
 use crate::http::RequestExtensions;
-use crate::utils::config::TraceResult;
-use crate::utils::{
-    aliases::AEngine,
-    constants::{session::CSRF_TOKEN_KEY, session_key::session::SESSION_USER_ID_KEY},
-    csrf::{CsrfContext, CsrfToken},
-};
+use crate::security::constants::CSRF_TOKEN_KEY;
+use crate::security::csrf::{CsrfContext, CsrfToken};
+use crate::utils::aliases::AEngine;
+use crate::log::TraceResult;
 use axum::{
     body::Body,
     extract::State,
@@ -217,13 +216,13 @@ pub async fn csrf_middleware(
 /// the admin, an upload: without it, nothing says the token is why a request
 /// or a form was turned down. `at` is the path, or the form's name.
 pub(crate) fn log_refusal(at: &str, reason: &'static str) {
-    if let Some(level) = crate::utils::runique_log::log_level!(middleware.csrf) {
+    if let Some(level) = crate::log::log_level!(middleware.csrf) {
         crate::runique_log!(
             level,
             at = %at,
-            reason = %crate::utils::translation::t(reason),
+            reason = %crate::translation::t(reason),
             "{}",
-            crate::utils::translation::t(runique_i18n::keys::csrf::log::REFUSED)
+            crate::translation::t(runique_i18n::keys::csrf::log::REFUSED)
         );
     }
 }
@@ -243,11 +242,11 @@ fn from_another_site(req: &Request<Body>) -> bool {
 /// middleware issues the replacement before the response leaves, so a custom
 /// auth flow only has to call this.
 pub async fn rotate_csrf_token(session: &Session) -> Result<(), tower_sessions::session::Error> {
-    if let Some(level) = crate::utils::runique_log::log_level!(middleware.csrf) {
+    if let Some(level) = crate::log::log_level!(middleware.csrf) {
         crate::runique_log!(
             level,
             "{}",
-            crate::utils::translation::t(runique_i18n::keys::csrf::log::TOKEN_DROPPED)
+            crate::translation::t(runique_i18n::keys::csrf::log::TOKEN_DROPPED)
         );
     }
     session.remove_value(CSRF_TOKEN_KEY).await.map(|_| ())
@@ -262,32 +261,32 @@ async fn session_csrf_token(session: &Session, secret: &str) -> Option<CsrfToken
         .get::<CsrfToken>(CSRF_TOKEN_KEY)
         .await
         .trace(
-            crate::utils::runique_log::log_level!(middleware.csrf),
+            crate::log::log_level!(middleware.csrf),
             runique_i18n::keys::csrf::log::READ_TOKEN,
         )
         .flatten()
     {
         session.insert(CSRF_TOKEN_KEY, &token).await.trace(
-            crate::utils::runique_log::log_level!(middleware.csrf),
+            crate::log::log_level!(middleware.csrf),
             runique_i18n::keys::csrf::log::KEEP_TOKEN,
         )?;
         return Some(token);
     }
     // A new token means the session had none: a first visit, a rotation, or a
     // session that expired — the forms of pages opened before it will be refused.
-    if let Some(level) = crate::utils::runique_log::log_level!(middleware.csrf) {
+    if let Some(level) = crate::log::log_level!(middleware.csrf) {
         crate::runique_log!(
             level,
             "{}",
-            crate::utils::translation::t(runique_i18n::keys::csrf::log::TOKEN_NEW)
+            crate::translation::t(runique_i18n::keys::csrf::log::TOKEN_NEW)
         );
     }
     let token = if is_authenticated(session).await {
-        let user_id: crate::utils::pk::Pk = session
-            .get::<crate::utils::pk::Pk>(SESSION_USER_ID_KEY)
+        let user_id: crate::schema::pk::Pk = session
+            .get::<crate::schema::pk::Pk>(SESSION_USER_ID_KEY)
             .await
             .trace(
-                crate::utils::runique_log::log_level!(middleware.csrf),
+                crate::log::log_level!(middleware.csrf),
                 runique_i18n::keys::csrf::log::READ_ACCOUNT,
             )
             .flatten()
@@ -303,7 +302,7 @@ async fn session_csrf_token(session: &Session, secret: &str) -> Option<CsrfToken
         )
     };
     session.insert(CSRF_TOKEN_KEY, &token).await.trace(
-        crate::utils::runique_log::log_level!(middleware.csrf),
+        crate::log::log_level!(middleware.csrf),
         runique_i18n::keys::csrf::log::WRITE_TOKEN,
     )?;
     Some(token)

@@ -1,0 +1,67 @@
+//! SeaORM entity for the `eihwaz_reset_tokens` table.
+//!
+//! Stores **hashed** password-reset tokens (never the raw token). The raw token
+//! lives only in the email link; the server hashes the incoming token and looks
+//! up the row, so a DB read leak cannot be replayed.
+use sea_orm::entity::prelude::*;
+
+/// SeaORM model for a row of `eihwaz_reset_tokens` — one outstanding
+/// password-reset request for a user.
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[sea_orm(table_name = "eihwaz_reset_tokens")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i64,
+
+    /// SHA-256 of the raw token, base64url without padding (the lookup key).
+    #[sea_orm(unique)]
+    pub token_hash: String,
+
+    /// FK → user table: the authoritative target of the reset. Unique: one
+    /// live link per user, enforced by the database.
+    #[sea_orm(unique)]
+    pub user_id: crate::schema::pk::Pk,
+
+    /// Expiration timestamp (UTC naive).
+    pub expires_at: chrono::NaiveDateTime,
+}
+
+/// Relations from `eihwaz_reset_tokens`.
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "crate::auth::user::Entity",
+        from = "Column::UserId",
+        to = "crate::auth::user::Column::Id",
+        on_delete = "Cascade"
+    )]
+    User,
+}
+
+impl Related<crate::auth::user::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::User.def()
+    }
+}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Deleting an account takes its pending reset link with it.
+    #[test]
+    fn the_relation_points_at_the_account_and_cascades() {
+        let relation = <Entity as Related<crate::auth::user::Entity>>::to();
+        assert!(matches!(
+            relation.on_delete,
+            Some(ForeignKeyAction::Cascade)
+        ));
+        assert_eq!(
+            relation.to_tbl,
+            sea_orm::EntityName::table_ref(&crate::auth::user::Entity),
+            "the accounts table"
+        );
+    }
+}

@@ -76,7 +76,7 @@ async fn teardown(db: &runique::sea_orm::DatabaseConnection) {
 /// contrainte. Même chose pour le responsable d'un groupe (`dirigeant`).
 async fn seed_user(
     db: &runique::sea_orm::DatabaseConnection,
-    id: runique::utils::config::Pk,
+    id: runique::schema::Pk,
     dirigeant: bool,
 ) {
     use runique::auth::user;

@@ -1,6 +1,7 @@
 //! Content Security Policy Middleware: generates CSP headers with nonce per request.
 use crate::http::RequestExtensions;
-use crate::utils::{aliases::AEngine, csp_nonce::CspNonce};
+use crate::security::csp_nonce::CspNonce;
+use crate::utils::aliases::AEngine;
 
 /// Hashes of inline styles injected by htmx (embedded version: 2.0.4).
 ///
@@ -330,8 +331,8 @@ pub async fn https_redirect_middleware(
         uri.path_and_query().map_or("", |pq| pq.as_str())
     );
 
-    if let Some(level) = crate::utils::runique_log::log_level!(middleware.https) {
-        crate::runique_log!(level, host = %host, "{}", crate::utils::translation::t(runique_i18n::keys::server::log::HTTPS_REDIRECTED));
+    if let Some(level) = crate::log::log_level!(middleware.https) {
+        crate::runique_log!(level, host = %host, "{}", crate::translation::t(runique_i18n::keys::server::log::HTTPS_REDIRECTED));
     }
     Redirect::permanent(&https_url).into_response()
 }

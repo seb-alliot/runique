@@ -2,14 +2,14 @@
 //! him, table by table and column by column. Never set from a form field of
 //! the account: only this operation writes them.
 use super::refusal::{Refusal, RefusalReason};
+use crate::auth::constants::resource_key;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::history::{ActionLog, log_action};
 use crate::auth::permissions::rank::Rang;
 use crate::auth::permissions::{group, group_rights, group_rows_within};
 use crate::auth::user;
 use crate::utils::aliases::ADb;
-use crate::utils::constants::resource_key;
-use crate::utils::pk::Pk;
+use crate::schema::pk::Pk;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect, Set,
     TransactionTrait,

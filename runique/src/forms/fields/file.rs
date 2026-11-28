@@ -4,7 +4,7 @@ use crate::config::static_files::resolve_media_root;
 use crate::utils::aliases::ATera;
 use crate::{
     config::StaticConfig,
-    forms::base::{FieldConfig, FormField},
+    forms::form_field::{FieldConfig, FormField},
 };
 
 /// Accepts an upload path in several forms:
@@ -649,7 +649,7 @@ impl FormField for FileField {
 #[cfg(test)]
 mod finalize_tests {
     use super::*;
-    use crate::forms::base::FormField;
+    use crate::forms::form_field::FormField;
     use crate::forms::fields::MediaField;
     use std::fs;
 
@@ -747,7 +747,7 @@ mod finalize_tests {
         };
         assert_eq!(
             error,
-            crate::utils::translation::t(runique_i18n::keys::forms::error::UPLOAD_FAILED)
+            crate::translation::t(runique_i18n::keys::forms::error::UPLOAD_FAILED)
         );
         assert!(!error.contains(media.to_str().unwrap()), "{error}");
 
@@ -1270,8 +1270,8 @@ mod finalize_tests {
 #[cfg(test)]
 mod guarantees {
     use super::*;
-    use crate::forms::base::FormField;
-    use crate::forms::field::{FormAccess, RuniqueForm};
+    use crate::forms::form_field::FormField;
+    use crate::forms::runique_form::{FormAccess, RuniqueForm};
     use crate::forms::fields::MediaField;
     use std::fs;
     use std::path::{Path, PathBuf};
@@ -1606,7 +1606,7 @@ mod guarantees {
         // wrong that merely ends with the same digit (2199023255552.0).
         assert_eq!(
             err,
-            crate::utils::translation::tf(
+            crate::translation::tf(
                 runique_i18n::keys::forms::error::MAX_SIZE_ABOVE_MODEL,
                 &["3.0", "2.0"]
             )
@@ -1734,7 +1734,7 @@ mod guarantees {
         form: crate::forms::form::Forms,
     }
 
-    impl crate::forms::field::FormAccess for UploadForm {
+    impl crate::forms::runique_form::FormAccess for UploadForm {
         fn register_fields(form: &mut crate::forms::form::Forms) {
             form.field(&FileField::any("doc"));
             form.field(&crate::forms::fields::BinaryField::new("blob"));
@@ -1744,7 +1744,7 @@ mod guarantees {
         crate::impl_form_access!();
     }
 
-    impl crate::forms::field::RuniqueForm for UploadForm {}
+    impl crate::forms::runique_form::RuniqueForm for UploadForm {}
 
     fn upload_form() -> UploadForm {
         let mut form = crate::forms::Forms::new("t");
@@ -1841,10 +1841,10 @@ mod guarantees {
         assert_eq!(fs::read(media.root.join("hello.txt")).unwrap(), b"hello");
         assert!(!Path::new(&doc).exists(), "published out of staging");
         {
-            let mut lease = crate::utils::parse_html::Lease::claim(media.staging.clone());
+            let mut lease = crate::forms::prisme::multipart::Lease::claim(media.staging.clone());
             let _ = lease.lock_dir();
             let _guard =
-                std::sync::Arc::new(crate::utils::parse_html::StagingDir::from_lease(lease));
+                std::sync::Arc::new(crate::forms::prisme::multipart::StagingDir::from_lease(lease));
         }
         assert!(
             !media.staging.exists(),

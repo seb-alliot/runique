@@ -126,7 +126,7 @@ fn hidden_value(body: &str, name: &str) -> Option<String> {
 #[tokio::test]
 async fn without_a_mailer_the_admin_creates_no_account() {
     assert!(
-        !runique::utils::mailer_configured(),
+        !runique::mailer::mailer_configured(),
         "this binary must start without a mailer"
     );
     let base = spawn().await;

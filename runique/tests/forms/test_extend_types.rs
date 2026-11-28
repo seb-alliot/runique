@@ -4,7 +4,7 @@
 //! `extend!{}` using one of them didn't compile; its integers had no bounds.
 use crate::helpers::pk::pk;
 use runique::forms::Forms;
-use runique::forms::field::FormAccess;
+use runique::forms::runique_form::FormAccess;
 use runique::utils::aliases::StrMap;
 
 mod groups {

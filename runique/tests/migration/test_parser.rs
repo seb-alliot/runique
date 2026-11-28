@@ -283,7 +283,7 @@ fn test_pk_uuid() {
     assert_eq!(pk.col_type, "Uuid");
 }
 
-// `pk: id => Pk` defers to the global `runique::utils::config::Pk` alias — resolved column
+// `pk: id => Pk` defers to the global `runique::schema::Pk` alias — resolved column
 // type must follow whichever of `big-pk`/`pk-uuid` is active (or plain i32 by default).
 #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
 #[test]

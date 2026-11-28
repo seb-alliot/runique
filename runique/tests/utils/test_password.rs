@@ -4,7 +4,7 @@
 // tested in round-trip. We limit to Argon2 for hash+verify tests.
 // Les autres algorithmes sont couverts via detect_algorithm / is_already_hashed.
 
-use runique::utils::password::{
+use runique::security::password::{
     AutoConfig, BaseHash, External, Manual, PasswordConfig, PasswordService,
 };
 
@@ -80,7 +80,7 @@ fn test_verify_prefixe_inconnu_coute_une_verification_argon2() {
     let argon2 = (0..3)
         .map(|_| {
             let start = Instant::now();
-            let _ = bh.verify("password", runique::utils::password::dummy_hash());
+            let _ = bh.verify("password", runique::security::password::dummy_hash());
             start.elapsed()
         })
         .min()
@@ -219,7 +219,7 @@ fn test_is_algorithm_current_unknown_prefix_is_left_alone() {
 #[derive(Debug, Clone)]
 struct Reversed;
 
-impl runique::utils::password::PasswordHasher for Reversed {
+impl runique::security::password::PasswordHasher for Reversed {
     fn hash(&self, password: &str) -> Result<String, String> {
         Ok(password.chars().rev().collect())
     }
@@ -330,7 +330,7 @@ fn test_auto_config_default_pas_de_hook() {
 mod guarantees {
     use runique::forms::FormField;
     use runique::forms::fields::TextField;
-    use runique::utils::password::{
+    use runique::security::password::{
         AutoConfig, BaseHash, PasswordConfig, PasswordHandler, PasswordService, dummy_hash,
     };
 

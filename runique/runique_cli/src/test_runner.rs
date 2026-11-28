@@ -12,8 +12,8 @@ use std::{
 const TEST_DIR: &str = "src/runique_test";
 
 /// Set by `runique test` when it writes to a terminal: the framework's test
-/// code reads it (`runique::tooling`).
-pub const COLOR_ENV: &str = crate::tooling::TEST_COLOR_ENV;
+/// code reads it (`runique::versions`).
+pub const COLOR_ENV: &str = crate::versions::TEST_COLOR_ENV;
 
 /// Entry point of `runique test [file] [test]`, run from the project root.
 ///

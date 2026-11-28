@@ -39,7 +39,7 @@ pub async fn open_redirect_middleware(
         return response;
     };
 
-    if let Some(level) = crate::utils::runique_log::log_level!(middleware.open_redirect) {
+    if let Some(level) = crate::log::log_level!(middleware.open_redirect) {
         crate::runique_log!(level, location = %unsafe_target, "open redirect blocked");
     }
 

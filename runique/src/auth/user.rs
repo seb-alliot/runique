@@ -3,8 +3,8 @@ use crate::auth::permissions::pull_groupes_db;
 use crate::auth::permissions::rank::Rang;
 pub use crate::auth::user_trait::RuniqueUser;
 use crate::utils::aliases::ADb;
-use crate::utils::config::TraceResult;
-use crate::utils::pk::Pk;
+use crate::log::TraceResult;
+use crate::schema::pk::Pk;
 use crate::{impl_objects, search};
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, EntityTrait, entity::prelude::*};
 
@@ -126,7 +126,7 @@ impl BuiltinUserEntity {
         Self::lookup_by_id(db, id)
             .await
             .trace(
-                crate::utils::runique_log::log_level!(db.query),
+                crate::log::log_level!(db.query),
                 "find user by id",
             )
             .flatten()
@@ -145,7 +145,7 @@ impl BuiltinUserEntity {
             .first(db)
             .await
             .trace(
-                crate::utils::runique_log::log_level!(db.query),
+                crate::log::log_level!(db.query),
                 "find user by username",
             )
             .flatten()
@@ -157,7 +157,7 @@ impl BuiltinUserEntity {
             .first(db)
             .await
             .trace(
-                crate::utils::runique_log::log_level!(db.query),
+                crate::log::log_level!(db.query),
                 "find user by email",
             )
             .flatten()
@@ -277,8 +277,8 @@ pub async fn authenticate_user(db: &ADb, username: &str, password: &str) -> Opti
     let hash = user_opt
         .as_ref()
         .map(|u| u.password.as_str())
-        .unwrap_or(crate::utils::password::dummy_hash());
-    let password_ok = crate::utils::password::verify(password, hash);
+        .unwrap_or(crate::security::password::dummy_hash());
+    let password_ok = crate::security::password::verify(password, hash);
     if password_ok && let Some(user) = user_opt.filter(RuniqueUser::can_sign_in) {
         Some(rehash_if_outdated(db, user, password).await)
     } else {
@@ -291,10 +291,10 @@ pub async fn authenticate_user(db: &ADb, username: &str, password: &str) -> Opti
 /// one moment the plain password is at hand. A failed rewrite doesn't fail the
 /// sign-in — the next one tries again.
 async fn rehash_if_outdated(db: &ADb, mut user: Model, password: &str) -> Model {
-    if crate::utils::password::is_algorithm_current(&user.password) {
+    if crate::security::password::is_algorithm_current(&user.password) {
         return user;
     }
-    let rehashed = match crate::utils::password::hash(password) {
+    let rehashed = match crate::security::password::hash(password) {
         Ok(rehashed) => rehashed,
         Err(e) => {
             tracing::error!(user_id = %user.id, error = %e, "password rehash failed");

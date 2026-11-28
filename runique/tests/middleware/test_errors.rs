@@ -5,8 +5,8 @@ use http_body_util::BodyExt;
 use runique::{
     config::app::RuniqueConfig,
     errors::AppError,
-    errors::ErrorContext,
-    middleware::errors::error::{RequestSnapshot, error_handler_middleware},
+    errors::{ErrorContext, RequestSnapshot},
+    middleware::errors::error::error_handler_middleware,
 };
 use std::{collections::HashMap, sync::Arc};
 
@@ -216,7 +216,7 @@ async fn test_debug_body_contient_info_erreur() {
 /// them: filters first, then `SIMPLE_TEMPLATES` + `ERROR_CORPS` in one batch
 /// (`debug.html` includes the `ERROR_CORPS` partials).
 fn internal_tera() -> tera::Tera {
-    use runique::utils::constants::template::{ERROR_CORPS, SIMPLE_TEMPLATES};
+    use runique::templates::constants::{ERROR_CORPS, SIMPLE_TEMPLATES};
     let mut tera = tera::Tera::default();
     tera.autoescape_on(vec!["html", "xml"]);
     runique::templates::static_tera::register_asset_filters(

@@ -1,7 +1,7 @@
 //! Selection field: `ChoiceField` with groups, multi-select, and dynamic options.
-use crate::forms::base::{FieldConfig, FormField};
+use crate::forms::form_field::{FieldConfig, FormField};
 use crate::utils::aliases::ATera;
-use crate::utils::translation::{t, tf};
+use crate::translation::{t, tf};
 use async_trait::async_trait;
 use serde::Serialize;
 use serde_json::{Value, json};

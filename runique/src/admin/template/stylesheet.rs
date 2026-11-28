@@ -263,9 +263,9 @@ impl PageSheets {
         if !missing.is_empty() {
             // Never silent: every admin page would load unstyled.
             crate::runique_log!(
-                crate::utils::runique_log::log_level!(builder.statics).unwrap_or(tracing::Level::WARN),
+                crate::log::log_level!(builder.statics).unwrap_or(tracing::Level::WARN),
                 sheets = ?missing,
-                "{}", crate::utils::translation::t(runique_i18n::keys::admin::log::BOOT_STYLESHEETS_MISSING)
+                "{}", crate::translation::t(runique_i18n::keys::admin::log::BOOT_STYLESHEETS_MISSING)
             );
         }
         Ok(Self(all))

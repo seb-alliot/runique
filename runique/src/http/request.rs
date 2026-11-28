@@ -4,15 +4,15 @@ use crate::errors::AppError;
 use crate::errors::ErrorContext;
 use crate::flash::Message;
 use crate::forms::{
-    extractor::{Prisme, csrf_required, prisme_pipeline},
-    field::RuniqueForm,
+    prisme::extractor::{Prisme, csrf_required, prisme_pipeline},
+    runique_form::RuniqueForm,
 };
 use crate::middleware::security::anti_bot::HoneypotFieldName;
+use crate::security::{csp_nonce::CspNonce, csrf::CsrfToken};
 use crate::templates::loader::TemplateLoader;
 use crate::utils::aliases::{ADb, AEngine, AppResult, StrMap};
-use crate::utils::translation::{t, tf};
-use crate::utils::url_params::UrlParams;
-use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
+use crate::translation::{t, tf};
+use crate::http::url_params::UrlParams;
 use axum::{
     body::Body,
     extract::{FromRequest, FromRequestParts, Path},
@@ -120,7 +120,7 @@ where
         let mut context = Context::new();
         context.insert("debug", &engine.config.debug);
         context.insert("dev", &engine.config.dev);
-        context.insert("lang", crate::utils::translation::current_lang().code());
+        context.insert("lang", crate::translation::current_lang().code());
         context.insert(
             "csrf_token",
             &csrf_token
@@ -142,11 +142,11 @@ where
             .unwrap_or_default();
 
         let public_url = engine.config.server.public_url.as_deref();
-        let ico_image = crate::utils::resolve_og_image(public_url, &ICON_IMAGE);
+        let ico_image = crate::http::og_image::resolve_og_image(public_url, &ICON_IMAGE);
         context.insert("icon_image", &ico_image);
 
         let og_image =
-            crate::utils::resolve_og_image(public_url, &engine.config.static_files.og_image);
+            crate::http::og_image::resolve_og_image(public_url, &engine.config.static_files.og_image);
         context.insert("og_image", &og_image);
 
         context.insert("current_path", parts.uri.path());
@@ -218,7 +218,7 @@ impl Request {
         // The backend cannot be reloaded here because it is shared between requests
         context.insert("debug", &engine.config.debug);
         context.insert("dev", &engine.config.dev);
-        context.insert("lang", crate::utils::translation::current_lang().code());
+        context.insert("lang", crate::translation::current_lang().code());
         context.insert("timezone", &engine.config.timezone);
         context.insert("static_runique", &engine.config.static_files);
         context.insert(
@@ -353,7 +353,7 @@ impl Request {
     }
 
     /// The id `login` stored in the session; `None` for an anonymous visitor.
-    pub async fn user_id(&self) -> Option<crate::utils::pk::Pk> {
+    pub async fn user_id(&self) -> Option<crate::schema::pk::Pk> {
         crate::auth::session::get_user_id(&self.session).await
     }
 
@@ -415,7 +415,7 @@ impl Request {
             .masked()
             .unwrap_or_else(|_| self.csrf_token.clone());
         let mut form =
-            crate::forms::field::build_form::<T>(self.engine.tera.clone(), masked.as_str());
+            crate::forms::runique_form::build_form::<T>(self.engine.tera.clone(), masked.as_str());
         let forms = form.forms_mut();
         forms.set_name(name);
         forms.set_path_params(&self.path_params);
@@ -450,12 +450,12 @@ impl Request {
             && csrf_required(&self.method)
             && self.prisme.data.get(hp_name).is_some_and(|v| !v.is_empty())
         {
-            if let Some(level) = crate::utils::runique_log::log_level!(middleware.anti_bot) {
+            if let Some(level) = crate::log::log_level!(middleware.anti_bot) {
                 crate::runique_log!(
                     level,
                     form = name,
                     "{}",
-                    crate::utils::translation::t(runique_i18n::keys::forms::log::ANTI_BOT_FILLED)
+                    crate::translation::t(runique_i18n::keys::forms::log::ANTI_BOT_FILLED)
                 );
             }
             forms.force_invalid = true;
@@ -470,12 +470,12 @@ impl Request {
         // `csrf.invalid`) never fires this way, and never did (its `expected_value`
         // is set by nothing outside unit tests). Push a message here directly so a
         // failed submission isn't silently indistinguishable from an untouched form —
-        // reuses the same key already shown by the admin CSRF check (`admin_router.rs`).
+        // reuses the same key already shown by the admin CSRF check (`admin/router/routes.rs`).
         if csrf_required(&self.method) && !self.prisme.csrf_valid {
             let sent = self
                 .prisme
                 .data
-                .contains_key(crate::utils::constants::session_key::session::CSRF_TOKEN_KEY)
+                .contains_key(crate::security::constants::CSRF_TOKEN_KEY)
                 || self.headers.contains_key("x-csrf-token");
             crate::middleware::security::csrf::log_refusal(
                 name,
@@ -505,10 +505,11 @@ mod admin_constraint_tests {
     use crate::config::RuniqueConfig;
     use crate::engine::RuniqueEngine;
     use crate::forms::{
-        field::{FormAccess, RuniqueForm},
+        runique_form::{FormAccess, RuniqueForm},
         form::{Forms, SaveComportement},
     };
-    use crate::utils::{aliases::AEngine, csrf::CsrfToken};
+    use crate::security::csrf::CsrfToken;
+    use crate::utils::aliases::AEngine;
     use axum::{
         body::Body,
         extract::FromRequest,
@@ -556,7 +557,7 @@ mod admin_constraint_tests {
     }
 
     /// The account a form is gated as, `None` when it is open.
-    fn gated_as(policy: &SaveComportement) -> Option<crate::utils::pk::Pk> {
+    fn gated_as(policy: &SaveComportement) -> Option<crate::schema::pk::Pk> {
         match policy {
             SaveComportement::Gated { user } => Some(user.id),
             SaveComportement::Open => None,

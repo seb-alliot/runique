@@ -147,7 +147,7 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
     // Both extendable tables have an `id` of the `Pk` alias (i32/i64/Uuid
     // depending on `big-pk`/`pk-uuid`). Under `pk-uuid` there is no DB
     // auto-increment to fall back on: a fresh id is generated here.
-    let id_ty = quote! { ::runique::utils::config::Pk };
+    let id_ty = quote! { ::runique::schema::Pk };
     let id_none_arm = if cfg!(feature = "pk-uuid") {
         quote! {
             ::std::option::Option::None => ::sea_orm::ActiveValue::Set(::sea_orm::prelude::Uuid::now_v7()),
@@ -333,13 +333,13 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
             pub form: ::runique::forms::Forms,
         }
 
-        impl ::runique::forms::field::RuniqueForm for #form_name {}
+        impl ::runique::forms::runique_form::RuniqueForm for #form_name {}
         impl ::runique::forms::FormEntity for #form_name {
             type Entity = Entity;
         }
 
 
-        impl ::runique::forms::field::FormAccess for #form_name {
+        impl ::runique::forms::runique_form::FormAccess for #form_name {
             fn register_fields(form: &mut ::runique::forms::Forms) {
                 #(#phantom_registrations)*
                 #(#extended_registrations)*

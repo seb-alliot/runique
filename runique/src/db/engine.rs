@@ -157,7 +157,7 @@ pub(super) fn verify_database_driver(engine: &DatabaseEngine) -> Result<(), Stri
 #[cfg(not(all(feature = "postgres", feature = "mysql", feature = "sqlite")))]
 fn driver_not_enabled(engine: &DatabaseEngine, feature: &str) -> String {
     let compiled = compiled_engines();
-    crate::utils::translation::tf(
+    crate::translation::tf(
         runique_i18n::keys::build::error::DRIVER_NOT_ENABLED,
         &[
             engine.name(),

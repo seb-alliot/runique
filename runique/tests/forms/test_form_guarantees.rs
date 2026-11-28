@@ -3,8 +3,8 @@
 //! form misbehaves today.
 use crate::helpers::{handler_req::build_handler_req, server::build_engine};
 use axum::http::Method;
-use runique::forms::base::{CommonFieldConfig, FormField};
-use runique::forms::field::{FormAccess, RuniqueForm};
+use runique::forms::form_field::{CommonFieldConfig, FormField};
+use runique::forms::runique_form::{FormAccess, RuniqueForm};
 use runique::forms::fields::{
     BooleanField, CheckboxField, ChoiceField, DateField, DateTimeField, DurationField, FileField,
     FileSize, HoneypotField, RadioField, TextField, TimeField,
@@ -231,7 +231,7 @@ async fn validation_form_records_a_database_error() {
     let mut body = HashMap::new();
     body.insert("q".to_string(), "rust".to_string());
     body.insert(
-        runique::utils::constants::session_key::session::FORM_NAME_KEY.to_string(),
+        runique::forms::constants::FORM_NAME_KEY.to_string(),
         "f".to_string(),
     );
     let request = build_handler_req(engine, None, body, Method::POST).await;

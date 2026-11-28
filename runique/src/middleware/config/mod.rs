@@ -63,7 +63,7 @@ impl MiddlewareConfig {
             // Host validation configured only via the builder
             enable_host_validation: false,
             enable_debug_errors: true, // always mounted — config.debug handles content
-            enable_cache: !crate::utils::config::env::dev_from(
+            enable_cache: !crate::config::env::dev_from(
                 std::env::var("RUNIQUE_ENV").ok().as_deref(),
             ),
             exclusive_login: false,

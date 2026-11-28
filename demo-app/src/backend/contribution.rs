@@ -28,7 +28,7 @@ pub async fn list_contributions(db: &ADb) -> Vec<ContributionItem> {
 pub async fn save_contribution(
     form: &mut ContributionForm,
     db: &ADb,
-    user_id: runique::utils::pk::Pk,
+    user_id: runique::schema::pk::Pk,
 ) -> Result<(), sea_orm::DbErr> {
     form.save(db, user_id).await.map(|_| ())
 }
