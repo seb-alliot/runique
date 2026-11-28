@@ -38,7 +38,7 @@ pub fn env_flag(key: &str, default: bool) -> bool {
         return default;
     };
     flag_from(&raw).unwrap_or_else(|| {
-        tracing::warn!(key, value = %raw, default, "not a yes/no value, using the default");
+        tracing::warn!(key, value = %raw, default, "{}", crate::translation::t(runique_i18n::keys::app::log::NOT_YES_NO_VALUE_USING_DEFAULT));
         default
     })
 }

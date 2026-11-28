@@ -240,7 +240,8 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
             0 => Ok(None),
             1 => Ok(Some(results.remove(0))),
             _ => Err(DbErr::Custom(
-                "search!.one(): multiple rows returned".to_string(),
+                crate::translation::t(runique_i18n::keys::database::error::SEARCH_ONE_MULTIPLE)
+                    .into_owned(),
             )),
         }
     }

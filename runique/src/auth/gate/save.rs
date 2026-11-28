@@ -111,7 +111,10 @@ where
 /// responsable. Readable, unlike the gate's one message: the actor manages
 /// the account and sees its groups, so naming the cause tells nothing new.
 pub(in crate::auth::gate) fn still_responsable() -> DbErr {
-    tracing::info!("refused: the account still answers for groups");
+    tracing::info!(
+        "{}",
+        crate::translation::t(runique_i18n::keys::auth::log::REFUSED_ACCOUNT_STILL_ANSWERS_GROUPS)
+    );
     DbErr::Custom(t(runique_i18n::keys::admin::access::error::STILL_RESPONSABLE).into_owned())
 }
 

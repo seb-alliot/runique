@@ -3,7 +3,19 @@
     "https_redirected": "richiesta ricevuta in HTTP: reindirizzata a HTTPS",
     "https_port80_stopped": "il server HTTP sulla porta 80 (sfida ACME e reindirizzamento HTTPS) si è fermato",
     "ctrl_c_not_installed": "gestore di Ctrl+C non installato",
-    "sigterm_not_installed": "gestore di SIGTERM non installato"
+    "sigterm_not_installed": "gestore di SIGTERM non installato",
+    "starting_acme_certificate_provisioning": "Avvio dell'ottenimento del certificato ACME",
+    "certificate_obtained_successfully": "Certificato ottenuto",
+    "certificate_missing_unreadable": "Il certificato di {} manca o è illeggibile",
+    "certificate_not_valid_pem": "Il certificato di {} non è un PEM valido",
+    "certificate_not_valid_x_509_certificate": "Il certificato di {} non è un certificato X.509 valido",
+    "certificate_does_not_cover_domain": "Il certificato di {} non copre il dominio",
+    "certificate_obtained_stored": "Certificato ottenuto e salvato",
+    "loading_existing_tls_certificate": "Caricamento del certificato TLS esistente",
+    "acme_renewal_failed_using_existing_certificate": "rinnovo ACME non riuscito — uso del certificato esistente in ./certs/",
+    "tls_certificate_renewed_reloaded": "Certificato TLS rinnovato e ricaricato",
+    "renewed_certificate_not_loaded_keeping_current": "Certificato rinnovato non caricato — si mantiene quello attuale",
+    "acme_renewal_failed_keeping_current_certificate": "rinnovo ACME non riuscito — si mantiene il certificato attuale"
   },
   "info": {
     "operational": "Runique è operativo",
@@ -18,6 +30,8 @@
     "stop": "ctrl + c per fermare"
   },
   "error": {
-    "acme_not_compiled": "ACME_ENABLED=true ma la feature `acme` non è compilata."
+    "acme_not_compiled": "ACME_ENABLED=true ma la feature `acme` non è compilata.",
+    "acme_authorization_status": "stato di autorizzazione inatteso: {}",
+    "acme_order_not_ready": "ordine ACME non pronto: {}"
   }
 }

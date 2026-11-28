@@ -198,8 +198,7 @@ fn build_error_context(
                 method = %request_snapshot.method,
                 path = %request_snapshot.path,
                 error_type = ?ctx.error_type,
-                "Error with full context"
-            );
+                "{}", crate::translation::t(runique_i18n::keys::debug::log::ERROR_FULL_CONTEXT));
         }
 
         let mut ctx = (*ctx).clone();
@@ -245,8 +244,7 @@ fn log_runique_error(err: &RuniqueError, request_snapshot: &RequestSnapshot) {
                 method = %request_snapshot.method,
                 path = %request_snapshot.path,
                 error = %err,
-                "Critical error occurred"
-            );
+                "{}", crate::translation::t(runique_i18n::keys::debug::log::CRITICAL_ERROR_OCCURRED));
         }
         RuniqueError::Validation(_) | RuniqueError::Forbidden | RuniqueError::NotFound => {
             if let Some(level) = errors_http_level() {
@@ -255,8 +253,7 @@ fn log_runique_error(err: &RuniqueError, request_snapshot: &RequestSnapshot) {
                     method = %request_snapshot.method,
                     path = %request_snapshot.path,
                     error = %err,
-                    "Handled error"
-                );
+                    "{}", crate::translation::t(runique_i18n::keys::debug::log::HANDLED_ERROR));
             }
         }
     }
@@ -350,7 +347,7 @@ fn render_status_page(
     let mut response = match tera.render(&template, &context) {
         Ok(html) => (status, Html(html)).into_response(),
         Err(e) => {
-            crate::runique_log!(errors_render_level(), error = %e, template = %template, "failed to render error template");
+            crate::runique_log!(errors_render_level(), error = %e, template = %template, "{}", crate::translation::t(runique_i18n::keys::debug::log::FAILED_RENDER_ERROR_TEMPLATE));
             fallback_status_html(status, &text)
         }
     };
@@ -373,7 +370,13 @@ fn render_debug_error_from_context(
     let mut context = match Context::from_serialize(error_ctx) {
         Ok(ctx) => ctx,
         Err(e) => {
-            error!("Failed to serialize error context: {}", e);
+            error!(
+                "{}",
+                crate::translation::tf(
+                    runique_i18n::keys::debug::log::FAILED_SERIALIZE_ERROR_CONTEXT,
+                    &[e]
+                )
+            );
             return critical_error_html(&format!("Serialization Error: {e}"));
         }
     };
@@ -391,7 +394,13 @@ fn render_debug_error_from_context(
         )
             .into_response(),
         Err(e) => {
-            error!("Failed to render debug template: {}", e);
+            error!(
+                "{}",
+                crate::translation::tf(
+                    runique_i18n::keys::debug::log::FAILED_RENDER_DEBUG_TEMPLATE,
+                    &[e]
+                )
+            );
             critical_error_html(&format!("Tera Rendering Error: {e}"))
         }
     };

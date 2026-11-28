@@ -181,7 +181,7 @@ async fn written<F: RuniqueForm>(mut form: F, result: Result<(), DbErr>) -> Resu
     let Err(err) = result else {
         return Ok(form);
     };
-    tracing::warn!(error = %err, "form write failed");
+    tracing::warn!(error = %err, "{}", crate::translation::t(runique_i18n::keys::forms::log::FORM_WRITE_FAILED));
     let forms = form.forms_mut();
     // A refusal before the write (unreadable key, refused column) never went
     // through the upload's own rollback: the field would keep the destination

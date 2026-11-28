@@ -1,8 +1,11 @@
 //! Keys of `csrf`.
 pub mod error {
+    pub const CROSS_SITE: &str = "csrf.error.cross_site";
     pub const INVALID: &str = "csrf.error.invalid";
     pub const INVALID_OR_MISSING: &str = "csrf.error.invalid_or_missing";
     pub const MISSING: &str = "csrf.error.missing";
+    pub const REQUIRED: &str = "csrf.error.required";
+    pub const SESSION_WRITE: &str = "csrf.error.session_write";
 }
 pub mod log {
     pub const KEEP_TOKEN: &str = "csrf.log.keep_token";

@@ -30,14 +30,22 @@ pub fn set_auth_session_ttl_secs(secs: i64) {
     match AUTH_SESSION_TTL_SECS.get() {
         None => {
             if AUTH_SESSION_TTL_SECS.set(secs).is_err() {
-                tracing::warn!("auth session TTL set raced at build — keeping the first value");
+                tracing::warn!(
+                    "{}",
+                    crate::translation::t(
+                        runique_i18n::keys::session::log::AUTH_SESSION_TTL_SET_RACED_BUILD
+                    )
+                );
             }
         }
         Some(&existing) if existing != secs => {
             tracing::warn!(
                 existing,
                 attempted = secs,
-                "auth session TTL already set to a different value (multi-app in one process?) — keeping the first"
+                "{}",
+                crate::translation::t(
+                    runique_i18n::keys::session::log::AUTH_SESSION_TTL_ALREADY_SET_DIFFERENT
+                )
             );
         }
         Some(_) => {}

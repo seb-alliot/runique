@@ -504,10 +504,9 @@ impl MiddlewareStaging {
             && cors.is_wildcard()
             && cors.allow_credentials
         {
-            return Err(BuildError::validation(
-                "CORS: any_origin() (*) is incompatible with allow_credentials(true). \
-                 Use explicit origins instead: .origin(\"https://app.example.com\")",
-            ));
+            return Err(BuildError::validation(crate::translation::t(
+                runique_i18n::keys::build::error::CORS_WILDCARD_CREDENTIALS,
+            )));
         }
         if let Some(proxies) = &self.trusted_proxies_config
             && proxies.trusts_every_address()

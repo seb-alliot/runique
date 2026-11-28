@@ -21,3 +21,8 @@ pub mod label {
     pub const NOT_FOUND: &str = "app.label.not_found";
     pub const TEMPLATE_IN: &str = "app.label.template_in";
 }
+pub mod log {
+    pub const NOT_YES_NO_VALUE_USING_DEFAULT: &str = "app.log.not_yes_no_value_using_default";
+    pub const RUNIQUE_WARNING_RUNIQUE_ENV_NEITHER_DEV: &str =
+        "app.log.runique_warning_runique_env_neither_dev";
+}

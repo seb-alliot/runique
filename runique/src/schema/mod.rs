@@ -150,9 +150,9 @@ impl ModelSchema {
     /// Finalizes the schema, failing if no primary key was set.
     pub fn build(self) -> Result<ModelSchema, String> {
         if self.primary_key.is_none() {
-            return Err(format!(
-                "ModelSchema '{}' : missing primary key",
-                self.model_name
+            return Err(crate::translation::tf(
+                runique_i18n::keys::build::error::SCHEMA_NO_PRIMARY_KEY,
+                &[&self.model_name],
             ));
         }
         Ok(self)

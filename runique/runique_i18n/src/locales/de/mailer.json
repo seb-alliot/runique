@@ -1,5 +1,23 @@
 {
   "log": {
-    "init_twice": "mailer_init() mehrfach aufgerufen — die ursprüngliche Konfiguration bleibt"
+    "init_twice": "mailer_init() mehrfach aufgerufen — die ursprüngliche Konfiguration bleibt",
+    "send_mailer_not_configured": "Senden — Mailer nicht konfiguriert",
+    "send": "Senden",
+    "send_error": "Fehler beim Senden"
+  },
+  "error": {
+    "template": "Template-Fehler ({}): {}",
+    "subject_line_break": "Der Betreff der E-Mail enthält einen Zeilenumbruch",
+    "not_configured": "Die Mailer-Konfiguration fehlt oder ist unvollständig: EMAIL_BACKEND und SMTP_* in der .env setzen",
+    "no_content": "E-Mail ohne Inhalt",
+    "invalid_sender": "Ungültige Absenderadresse: {}",
+    "invalid_recipient": "Ungültige Empfängeradresse: {}",
+    "invalid_reply_to": "Ungültiges Reply-To: {}",
+    "build_failed": "Fehler beim Erstellen der E-Mail: {}",
+    "smtp_connection": "SMTP-Verbindung fehlgeschlagen: {}",
+    "send_failed": "Fehler beim Senden der E-Mail: {}"
+  },
+  "label": {
+    "no_content": "(kein Inhalt)"
   }
 }

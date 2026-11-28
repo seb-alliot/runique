@@ -10,12 +10,21 @@
     "url_sqlite_default_file": "DATABASE_URL 要求使用 SQLite 但未指明文件：使用默认文件 {}。",
     "keys_without_engine": "缺少 DB_ENGINE：设置了 {} 却没有引擎。可用值：postgres、mysql、sqlite。",
     "url_failed_trying_keys": "通过 DATABASE_URL 连接失败（{}）：改用 DB_* 键重试。",
-    "url_failed_keys_unusable": "通过 DATABASE_URL 连接失败（{}），且 DB_* 键不足以连接：{}"
+    "url_failed_keys_unusable": "通过 DATABASE_URL 连接失败（{}），且 DB_* 键不足以连接：{}",
+    "unsupported_url_scheme": "不支持的数据库 URL 协议",
+    "list_postgres_only": "ListField::fetch_with 仅适用于 Postgres：先读取行，再调用 load_<字段>()",
+    "list_value_not_in_enum": "列表值 `{}` 与其枚举不匹配",
+    "search_one_multiple": "search!.one()：返回了多行"
   },
   "info": {
     "url_incomplete_reminder": "已通过 DB_* 键连接。DATABASE_URL 仍不完整（{}）：请修正或删除它。"
   },
   "log": {
-    "read_reset_token": "读取密码重置令牌"
+    "read_reset_token": "读取密码重置令牌",
+    "connecting_database": "正在连接 {} 数据库...",
+    "database_connected_successfully": "数据库连接成功（{}）",
+    "database_connection_failed": "数据库连接失败",
+    "engine": "引擎：{}",
+    "url": "URL：{}"
   }
 }

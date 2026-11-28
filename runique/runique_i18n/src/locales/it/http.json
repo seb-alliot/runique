@@ -18,5 +18,11 @@
     "503": "Servizio temporaneamente non disponibile per sovraccarico. Riprova tra poco.",
     "critical_text": "Il sistema di gestione degli errori ha riscontrato un errore.",
     "critical_contact": "Questa situazione non dovrebbe mai verificarsi. Contatta l'amministratore di sistema."
+  },
+  "log": {
+    "csrf_js_tag_not_rendered": "tag csrf.js non renderizzato",
+    "tera_rendering_failed_development": "rendering Tera non riuscito in sviluppo",
+    "tera_error_source": "origine dell'errore Tera",
+    "failed_initialize_templateloader_development": "inizializzazione di TemplateLoader in sviluppo non riuscita"
   }
 }

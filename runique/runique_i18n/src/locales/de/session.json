@@ -5,6 +5,25 @@
     "read_flash": "Flash-Nachrichten aus der Sitzung lesen",
     "read_dashboard_template": "gewählte Dashboard-Vorlage aus der Sitzung lesen",
     "decode_user_memory": "user_id der Sitzung dekodieren (Laden aus dem Speicher)",
-    "decode_user_db": "user_id der Sitzung dekodieren (Laden aus der Datenbank)"
+    "decode_user_db": "user_id der Sitzung dekodieren (Laden aus der Datenbank)",
+    "auth_session_ttl_set_raced_build": "TTL der authentifizierten Sitzung beim Aufbau gleichzeitig gesetzt — der erste Wert bleibt",
+    "auth_session_ttl_already_set_different": "TTL der authentifizierten Sitzung bereits auf einen anderen Wert gesetzt (mehrere Apps in einem Prozess?) — der erste bleibt",
+    "session_db_backup_write_failed": "Schreiben der Sitzungssicherung in die Datenbank fehlgeschlagen: {}",
+    "session_db_backup_update_failed": "Aktualisierung der Sitzungssicherung in der Datenbank fehlgeschlagen: {}",
+    "session_cleanup_error": "Fehler bei der Sitzungsbereinigung: {}",
+    "low_watermark_bytes_freed_expired_anonymous": "Untere Grenze: {} Bytes freigegeben (abgelaufene anonyme Sitzungen)",
+    "high_watermark_bytes_freed_emergency": "Obere Grenze: {} + {} Bytes im Notfall freigegeben",
+    "session_store_saturated_bytes_new_session": "Sitzungsspeicher voll ({} Bytes), neue Sitzung abgelehnt",
+    "large_session_record_bytes_avoid_storing": "Großer Sitzungseintrag ({} Bytes) — keine Dateien oder Bilder in der Sitzung speichern",
+    "exclusive_login_session_s_invalidated_user": "exclusive_login: {} Sitzung(en) für Benutzer {} beendet",
+    "session_db_validity_check_failed_memory": "Gültigkeitsprüfung in der Datenbank für eine Sitzung im Speicher (cookie_id) fehlgeschlagen: {}",
+    "session_db_fallback_load_failed_cookie": "Ersatzladen der Sitzung aus der Datenbank fehlgeschlagen (Suche nach cookie_id): {}",
+    "delete_session_db_failed": "Löschen der Sitzung aus der Datenbank fehlgeschlagen: {}",
+    "stored_session_data_could_not_decrypted": "die gespeicherten Sitzungsdaten konnten nicht entschlüsselt werden"
+  },
+  "error": {
+    "encrypt_failed": "die Sitzungsdaten konnten nicht verschlüsselt werden",
+    "create_empty_cookie": "Sitzung erstellen: leere cookie_id abgelehnt",
+    "upsert_empty_cookie": "Sitzung speichern: leere cookie_id abgelehnt"
   }
 }

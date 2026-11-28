@@ -3,7 +3,19 @@
     "https_redirected": "通过 HTTP 收到请求：已重定向到 HTTPS",
     "https_port80_stopped": "80 端口的 HTTP 服务器（ACME 质询与 HTTPS 重定向）已停止",
     "ctrl_c_not_installed": "未能安装 Ctrl+C 处理程序",
-    "sigterm_not_installed": "未能安装 SIGTERM 处理程序"
+    "sigterm_not_installed": "未能安装 SIGTERM 处理程序",
+    "starting_acme_certificate_provisioning": "开始获取 ACME 证书",
+    "certificate_obtained_successfully": "成功获取证书",
+    "certificate_missing_unreadable": "{} 的证书缺失或无法读取",
+    "certificate_not_valid_pem": "{} 的证书不是有效的 PEM",
+    "certificate_not_valid_x_509_certificate": "{} 的证书不是有效的 X.509 证书",
+    "certificate_does_not_cover_domain": "{} 的证书不包含该域名",
+    "certificate_obtained_stored": "已获取并保存证书",
+    "loading_existing_tls_certificate": "正在加载现有的 TLS 证书",
+    "acme_renewal_failed_using_existing_certificate": "ACME 续期失败 — 使用 ./certs/ 中的现有证书",
+    "tls_certificate_renewed_reloaded": "TLS 证书已续期并重新加载",
+    "renewed_certificate_not_loaded_keeping_current": "未加载续期后的证书 — 保留当前证书",
+    "acme_renewal_failed_keeping_current_certificate": "ACME 续期失败 — 保留当前证书"
   },
   "info": {
     "operational": "Runique 正在运行",
@@ -18,6 +30,8 @@
     "stop": "按 Ctrl + C 停止"
   },
   "error": {
-    "acme_not_compiled": "ACME_ENABLED=true，但未编译 `acme` 功能。"
+    "acme_not_compiled": "ACME_ENABLED=true，但未编译 `acme` 功能。",
+    "acme_authorization_status": "意外的授权状态：{}",
+    "acme_order_not_ready": "ACME 订单未就绪：{}"
   }
 }

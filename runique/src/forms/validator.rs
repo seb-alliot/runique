@@ -59,8 +59,7 @@ impl FormValidator {
                     field = %field.name(),
                     valid = valid,
                     error = ?field.error(),
-                    "validate"
-                );
+                    "{}", crate::translation::t(runique_i18n::keys::forms::log::VALIDATE));
             }
             if !valid {
                 is_all_valid = false;
@@ -73,7 +72,8 @@ impl FormValidator {
                 level,
                 ok = result,
                 global_errors = global_errors.len(),
-                "validate_fields result"
+                "{}",
+                crate::translation::t(runique_i18n::keys::forms::log::VALIDATE_FIELDS_RESULT)
             );
         }
 

@@ -5,6 +5,25 @@
     "read_flash": "lecture des messages flash dans la session",
     "read_dashboard_template": "lecture du gabarit de tableau de bord choisi dans la session",
     "decode_user_memory": "décodage du user_id de la session (chargement depuis la mémoire)",
-    "decode_user_db": "décodage du user_id de la session (chargement depuis la base)"
+    "decode_user_db": "décodage du user_id de la session (chargement depuis la base)",
+    "auth_session_ttl_set_raced_build": "durée de session authentifiée fixée deux fois en concurrence au démarrage — la première valeur est conservée",
+    "auth_session_ttl_already_set_different": "durée de session authentifiée déjà fixée à une autre valeur (plusieurs applications dans un processus ?) — la première est conservée",
+    "session_db_backup_write_failed": "échec de l'écriture de la sauvegarde de session en base : {}",
+    "session_db_backup_update_failed": "échec de la mise à jour de la sauvegarde de session en base : {}",
+    "session_cleanup_error": "erreur de nettoyage des sessions : {}",
+    "low_watermark_bytes_freed_expired_anonymous": "Seuil bas : {} octets libérés (sessions anonymes expirées)",
+    "high_watermark_bytes_freed_emergency": "Seuil haut : {} + {} octets libérés en urgence",
+    "session_store_saturated_bytes_new_session": "Stockage des sessions saturé ({} octets), nouvelle session refusée",
+    "large_session_record_bytes_avoid_storing": "Session volumineuse ({} octets) — évitez de stocker des fichiers ou des images en session",
+    "exclusive_login_session_s_invalidated_user": "exclusive_login : {} session(s) fermée(s) pour l'utilisateur {}",
+    "session_db_validity_check_failed_memory": "échec de la vérification en base d'une session en mémoire (cookie_id) : {}",
+    "session_db_fallback_load_failed_cookie": "échec du chargement de secours de la session en base (recherche par cookie_id) : {}",
+    "delete_session_db_failed": "échec de la suppression de la session en base : {}",
+    "stored_session_data_could_not_decrypted": "les données de session enregistrées n'ont pas pu être déchiffrées"
+  },
+  "error": {
+    "encrypt_failed": "les données de la session n'ont pas pu être chiffrées",
+    "create_empty_cookie": "création de session : cookie_id vide refusé",
+    "upsert_empty_cookie": "enregistrement de session : cookie_id vide refusé"
   }
 }

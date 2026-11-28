@@ -31,3 +31,13 @@ pub mod label {
     pub const TEMPLATE_NAME: &str = "debug.label.template_name";
     pub const TEMPLATE_SOURCE: &str = "debug.label.template_source";
 }
+pub mod log {
+    pub const APPERROR_OCCURRED: &str = "debug.log.apperror_occurred";
+    pub const CRITICAL_ERROR_OCCURRED: &str = "debug.log.critical_error_occurred";
+    pub const ERROR_FULL_CONTEXT: &str = "debug.log.error_full_context";
+    pub const FAILED_RENDER_DEBUG_TEMPLATE: &str = "debug.log.failed_render_debug_template";
+    pub const FAILED_RENDER_ERROR_TEMPLATE: &str = "debug.log.failed_render_error_template";
+    pub const FAILED_SERIALIZE_ERROR_CONTEXT: &str = "debug.log.failed_serialize_error_context";
+    pub const HANDLED_ERROR: &str = "debug.log.handled_error";
+    pub const TEMPLATE_RENDERING_ERROR: &str = "debug.log.template_rendering_error";
+}

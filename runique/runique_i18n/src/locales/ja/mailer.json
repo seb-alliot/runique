@@ -1,5 +1,23 @@
 {
   "log": {
-    "init_twice": "mailer_init() が複数回呼ばれた：最初の設定を維持"
+    "init_twice": "mailer_init() が複数回呼ばれた：最初の設定を維持",
+    "send_mailer_not_configured": "送信 — メールが設定されていません",
+    "send": "送信",
+    "send_error": "送信エラー"
+  },
+  "error": {
+    "template": "テンプレートのエラー（{}）：{}",
+    "subject_line_break": "メールの件名に改行が含まれています",
+    "not_configured": "メール設定がないか不完全です：.env に EMAIL_BACKEND と SMTP_* を設定してください",
+    "no_content": "本文のないメール",
+    "invalid_sender": "送信者のアドレスが無効です：{}",
+    "invalid_recipient": "受信者のアドレスが無効です：{}",
+    "invalid_reply_to": "Reply-To が無効です：{}",
+    "build_failed": "メールの作成エラー：{}",
+    "smtp_connection": "SMTP 接続に失敗しました：{}",
+    "send_failed": "メールの送信エラー：{}"
+  },
+  "label": {
+    "no_content": "（本文なし）"
   }
 }

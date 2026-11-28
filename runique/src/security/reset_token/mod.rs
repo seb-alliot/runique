@@ -45,7 +45,7 @@ pub async fn generate(db: &ADb, user_id: Pk, ttl: Duration) -> Result<String, Db
         .exec(db)
         .await
     {
-        tracing::warn!(user_id = %user_id, error = %e, "reset token cleanup failed");
+        tracing::warn!(user_id = %user_id, error = %e, "{}", crate::translation::t(runique_i18n::keys::reset::log::RESET_TOKEN_CLEANUP_FAILED));
     }
 
     let model = entity::ActiveModel {
@@ -92,7 +92,7 @@ pub async fn consume(db: &ADb, token: &str) -> Option<Pk> {
     let txn = match db.begin().await {
         Ok(txn) => txn,
         Err(error) => {
-            tracing::warn!(error = %error, "reset token consumption could not begin");
+            tracing::warn!(error = %error, "{}", crate::translation::t(runique_i18n::keys::reset::log::RESET_TOKEN_CONSUMPTION_COULD_NOT_BEGIN));
             return None;
         }
     };
@@ -100,20 +100,20 @@ pub async fn consume(db: &ADb, token: &str) -> Option<Pk> {
         Ok(Some(user_id)) => user_id,
         Ok(None) => {
             if let Err(error) = txn.rollback().await {
-                tracing::error!(error = %error, "reset token consumption rollback failed");
+                tracing::error!(error = %error, "{}", crate::translation::t(runique_i18n::keys::reset::log::RESET_TOKEN_CONSUMPTION_ROLLBACK_FAILED));
             }
             return None;
         }
         Err(error) => {
-            tracing::warn!(error = %error, "reset token consumption failed");
+            tracing::warn!(error = %error, "{}", crate::translation::t(runique_i18n::keys::reset::log::RESET_TOKEN_CONSUMPTION_FAILED));
             if let Err(rollback_error) = txn.rollback().await {
-                tracing::error!(error = %rollback_error, "reset token consumption rollback failed");
+                tracing::error!(error = %rollback_error, "{}", crate::translation::t(runique_i18n::keys::reset::log::RESET_TOKEN_CONSUMPTION_ROLLBACK_FAILED));
             }
             return None;
         }
     };
     if let Err(error) = txn.commit().await {
-        tracing::warn!(error = %error, "reset token consumption commit failed");
+        tracing::warn!(error = %error, "{}", crate::translation::t(runique_i18n::keys::reset::log::RESET_TOKEN_CONSUMPTION_COMMIT_FAILED));
         return None;
     }
     Some(user_id)

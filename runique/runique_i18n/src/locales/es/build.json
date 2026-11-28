@@ -19,7 +19,21 @@
     "mailer_missing": "Restablecimiento de contraseña sin mailer: el enlace nunca podría enviarse",
     "locales_invalid": "La carpeta de traducciones del proyecto no es válida: {}",
     "lang_unknown": "`.with_lang(\"{}\")`: ningún idioma cargado responde a ese código. Cargados: {}. Un idioma del proyecto es una carpeta de su `locales/`.",
-    "timezone_unknown": "`TIME_ZONE={}` no es una zona horaria. Escriba su nombre con la forma región/ciudad, por ejemplo `Europe/Paris`; sin `TIME_ZONE`, el sitio está en `UTC`."
+    "timezone_unknown": "`TIME_ZONE={}` no es una zona horaria. Escriba su nombre con la forma región/ciudad, por ejemplo `Europe/Paris`; sin `TIME_ZONE`, el sitio está en `UTC`.",
+    "not_ready": "Uno o más componentes no están listos para construirse",
+    "admin_route_name_taken": "el nombre de ruta del admin `{}` choca con una URL ya registrada",
+    "admin_routes_without_admin": "se declararon rutas del admin en `urlpatterns!`, pero el admin está desactivado",
+    "db_connect_failed": "No se pudo conectar a la base de datos: {}",
+    "cors_wildcard_credentials": "CORS: any_origin() (*) es incompatible con allow_credentials(true). Use orígenes explícitos: .origin(\"https://app.example.com\")",
+    "admin_model_invalid": "admin `{}`:\n{}",
+    "admin_override_unsafe_char": "la sustitución de plantilla del admin `{}` contiene un carácter que una plantilla no admite",
+    "admin_override_extension": "la sustitución de plantilla del admin `{}` debe ser una plantilla `.html` o `.xml`, escapada por Tera",
+    "admin_override_global_page": "modelo `{}`: la página {} no trata de ningún modelo, solo se sustituye globalmente",
+    "admin_override_missing": "sustitución de plantilla del admin no encontrada en la carpeta de plantillas: {}",
+    "admin_override_unknown_variable": "una sustitución de plantilla del admin lee una variable que su página nunca proporciona: {}",
+    "admin_view_replaced_twice": "modelo `{}`: su página {} se sustituye a la vez por una plantilla y por una ruta",
+    "admin_stylesheet_missing": "la hoja de estilo del admin `{}` no es un archivo de la carpeta static",
+    "schema_no_primary_key": "ModelSchema '{}': falta la clave primaria"
   },
   "hint": {
     "db_required": "Añada .with_database(db) o .with_database_config(config) a su cadena de construcción",
@@ -41,6 +55,12 @@
     "prune_failed": "fallo de la poda de derechos huérfanos: pueden quedar permisos obsoletos",
     "locales_missing": "traducciones del proyecto, idioma «{}»: {} mensaje(s) de Runique sin traducir ({}), mostrados en su idioma de respaldo",
     "locales_unknown": "traducciones del proyecto, idioma «{}»: clave(s) que Runique no conoce en uno de sus temas, sin efecto: {}",
-    "locales_placeholders": "traducciones del proyecto, idioma «{}»: número de parámetros distinto del mensaje de Runique: {}"
+    "locales_placeholders": "traducciones del proyecto, idioma «{}»: número de parámetros distinto del mensaje de Runique: {}",
+    "hsts_preload_set_but_combo_invalid": "HSTS_PRELOAD activado pero combinación no válida (requiere includeSubDomains + max-age ≥ 31536000) — los navegadores lo ignoran para el preload",
+    "orphan_group_rights_pruned_boot": "derechos de grupo huérfanos eliminados al arrancar",
+    "url_registry": "registro de URL",
+    "static_files_attached": "archivos estáticos conectados",
+    "templates_failed_load": "no se pudieron cargar las plantillas",
+    "templates_loaded": "plantillas cargadas"
   }
 }

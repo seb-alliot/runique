@@ -205,7 +205,7 @@ fn with_csrf_script(html: String, tera: &tera::Tera, context: &Context) -> Strin
             html
         }
         Err(e) => {
-            error!(error = %e, "csrf.js tag not rendered");
+            error!(error = %e, "{}", crate::translation::t(runique_i18n::keys::http::log::CSRF_JS_TAG_NOT_RENDERED));
             html
         }
     }
@@ -272,8 +272,7 @@ impl Request {
                             template = template,
                             error_kind = ?e.kind(),
                             error_message = %e,
-                            "Tera rendering failed in development"
-                        );
+                            "{}", crate::translation::t(runique_i18n::keys::http::log::TERA_RENDERING_FAILED_DEVELOPMENT));
 
                         // Log the full error chain (source)
                         // Uses the source() method from the std::error::Error trait
@@ -281,8 +280,7 @@ impl Request {
                         if let Some(source) = e.source() {
                             error!(
                                 source_error = %source,
-                                "Tera error source"
-                            );
+                                "{}", crate::translation::t(runique_i18n::keys::http::log::TERA_ERROR_SOURCE));
                         }
                     }
                     res
@@ -291,8 +289,7 @@ impl Request {
                     error!(
                         template = template,
                         error = %e,
-                        "Failed to initialize TemplateLoader in development"
-                    );
+                        "{}", crate::translation::t(runique_i18n::keys::http::log::FAILED_INITIALIZE_TEMPLATELOADER_DEVELOPMENT));
                     return Err(AppError::map_tera(
                         tera::Error::message(e.to_string()),
                         template,

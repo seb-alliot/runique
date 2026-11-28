@@ -12,5 +12,17 @@
   "boot_route": "объявленный маршрут админки",
   "boot_no_guard": "у входа в админку нет ни LoginGuard, ни ограничителя частоты: попытки ввода пароля не ограничены (`with_login_guard`, `with_rate_limiter`)",
   "boot_options_without_effect": "параметры списка админки приняты, но пока не показываются ни одной страницей",
-  "boot_stylesheets_missing": "таблицы стилей Runique для админки не найдены: проверьте STATIC_RUNIQUE_PATH"
+  "boot_stylesheets_missing": "таблицы стилей Runique для админки не найдены: проверьте STATIC_RUNIQUE_PATH",
+  "admin_access_gate": "проверка доступа к админке",
+  "admin_refused_no_admin_access_sent": "в админке отказано: нет доступа, перенаправлен на сайт",
+  "admin_account_gone_inactive_session_closed": "аккаунт администратора удалён или неактивен — сессия закрыта",
+  "declared_admin_route_refused_no_admin": "объявленный маршрут админки отклонён: нет доступа",
+  "account_groups_write_failed": "не удалось записать группы аккаунта",
+  "admin_link_not_sent_mailer_configuration": "ссылка админки не отправлена: настройки почты отсутствуют или неполны",
+  "admin_reset_link_not_sent": "ссылка сброса из админки не отправлена",
+  "admin_reset_trace_failed": "не удалось записать сброс из админки",
+  "account_not_created_mailer_configuration_missing": "аккаунт не создан: настройки почты отсутствуют или неполны",
+  "admin_rights_grid_write_failed": "не удалось записать таблицу прав администратора",
+  "group_rights_grid_write_failed": "не удалось записать таблицу прав группы",
+  "group_transfer_failed": "не удалось передать группу"
 }

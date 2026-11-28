@@ -12,12 +12,12 @@ use super::{
 use crate::translation::t;
 use sea_orm::{
     ActiveModelBehavior, ActiveModelTrait, ActiveValue, ColumnTrait, Condition, ConnectionTrait,
-    EntityTrait, IdenStatic, IntoActiveModel, Iterable, PrimaryKeyToColumn, QueryFilter,
-    RuntimeErr, Value, sea_query::IntoValueTuple,
+    EntityTrait, IdenStatic, IntoActiveModel, Iterable, PrimaryKeyToColumn, QueryFilter, Value,
+    sea_query::IntoValueTuple,
 };
 
 fn write_failed(e: sea_orm::DbErr) -> Refusal {
-    tracing::warn!(error = %e, "admin write refused by the database");
+    tracing::warn!(error = %e, "{}", crate::translation::t(runique_i18n::keys::auth::log::ADMIN_WRITE_REFUSED_DATABASE));
     Refusal::new(RefusalReason::WriteFailed)
 }
 
@@ -40,7 +40,7 @@ fn driver_reports_foreign_key(err: &sea_orm::DbErr) -> bool {
         sea_orm::DbErr::Exec(err) | sea_orm::DbErr::Query(err) | sea_orm::DbErr::Conn(err) => err,
         _ => return false,
     };
-    let RuntimeErr::SqlxError(err) = runtime else {
+    let sea_orm::RuntimeErr::SqlxError(err) = runtime else {
         return false;
     };
     err.as_database_error()
@@ -56,7 +56,7 @@ fn driver_reports_foreign_key(_: &sea_orm::DbErr) -> bool {
 /// Any other error is returned unchanged. The engine text is logged, never shown.
 pub(crate) fn linked_delete_error(err: sea_orm::DbErr) -> sea_orm::DbErr {
     if is_foreign_key_violation(&err) {
-        tracing::warn!(error = %err, "delete blocked by a foreign key");
+        tracing::warn!(error = %err, "{}", crate::translation::t(runique_i18n::keys::auth::log::DELETE_BLOCKED_FOREIGN_KEY));
         sea_orm::DbErr::Custom(t(runique_i18n::keys::forms::error::DELETE_LINKED).into_owned())
     } else {
         err
@@ -187,7 +187,7 @@ pub async fn delete<E: EntityTrait, C: ConnectionTrait>(
         .await
         .map_err(|error| {
             if is_foreign_key_violation(&error) {
-                tracing::warn!(error = %error, "delete blocked by a foreign key");
+                tracing::warn!(error = %error, "{}", crate::translation::t(runique_i18n::keys::auth::log::DELETE_BLOCKED_FOREIGN_KEY));
                 Refusal::new(RefusalReason::LinkedRecords)
             } else {
                 write_failed(error)

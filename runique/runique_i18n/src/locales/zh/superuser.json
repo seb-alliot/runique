@@ -23,7 +23,16 @@
     "email_taken": "该邮箱已被使用。",
     "password_too_short": "密码至少需要12个字符。",
     "password_weak": "密码必须至少包含一个小写字母、一个大写字母、一个数字和一个特殊字符。",
-    "password_mismatch": "密码不匹配，请重试。"
+    "password_mismatch": "密码不匹配，请重试。",
+    "provider_not_found": "未找到提供程序：'{}'",
+    "provider_not_a_file": "提供程序不是文件：'{}'",
+    "provider_symlink": "提供程序路径是符号链接，这是不允许的：'{}'",
+    "provider_launch_failed": "无法启动提供程序 '{}'：{}",
+    "provider_timeout": "提供程序 '{}' 在 {} 秒后超时",
+    "provider_wait_failed": "等待提供程序时出错：{}",
+    "provider_exit_code": "提供程序返回错误（退出码 {}）",
+    "provider_stdin_failed": "写入 stdin 时出错：{}",
+    "provider_output_invalid": "提供程序输出无效（UTF-8）：{}"
   },
   "info": {
     "review_algo": "  算法   : {}",

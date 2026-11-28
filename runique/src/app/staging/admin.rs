@@ -255,9 +255,9 @@ impl AdminStaging {
     pub fn validate(&self) -> Result<(), BuildError> {
         if !self.enabled {
             if !self.declared_routes.is_empty() {
-                return Err(BuildError::validation(
-                    "admin routes were declared in `urlpatterns!`, but the admin is disabled",
-                ));
+                return Err(BuildError::validation(crate::translation::t(
+                    runique_i18n::keys::build::error::ADMIN_ROUTES_WITHOUT_ADMIN,
+                )));
             }
             return Ok(());
         }

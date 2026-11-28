@@ -3,7 +3,19 @@
     "https_redirected": "HTTP でリクエストを受信：HTTPS にリダイレクト",
     "https_port80_stopped": "ポート 80 の HTTP サーバー（ACME チャレンジと HTTPS リダイレクト）が停止",
     "ctrl_c_not_installed": "Ctrl+C ハンドラーを設定できない",
-    "sigterm_not_installed": "SIGTERM ハンドラーを設定できない"
+    "sigterm_not_installed": "SIGTERM ハンドラーを設定できない",
+    "starting_acme_certificate_provisioning": "ACME 証明書の取得を開始します",
+    "certificate_obtained_successfully": "証明書を取得しました",
+    "certificate_missing_unreadable": "{} の証明書がないか読めません",
+    "certificate_not_valid_pem": "{} の証明書は有効な PEM ではありません",
+    "certificate_not_valid_x_509_certificate": "{} の証明書は有効な X.509 証明書ではありません",
+    "certificate_does_not_cover_domain": "{} の証明書はこのドメインを含んでいません",
+    "certificate_obtained_stored": "証明書を取得して保存しました",
+    "loading_existing_tls_certificate": "既存の TLS 証明書を読み込んでいます",
+    "acme_renewal_failed_using_existing_certificate": "ACME の更新に失敗しました — ./certs/ の既存の証明書を使います",
+    "tls_certificate_renewed_reloaded": "TLS 証明書を更新して再読み込みしました",
+    "renewed_certificate_not_loaded_keeping_current": "更新した証明書を読み込めませんでした — 現在のものを使い続けます",
+    "acme_renewal_failed_keeping_current_certificate": "ACME の更新に失敗しました — 現在の証明書を使い続けます"
   },
   "info": {
     "operational": "Runique は稼働中です",
@@ -18,6 +30,8 @@
     "stop": "停止するには Ctrl + C"
   },
   "error": {
-    "acme_not_compiled": "ACME_ENABLED=true ですが、`acme` フィーチャーがコンパイルされていません。"
+    "acme_not_compiled": "ACME_ENABLED=true ですが、`acme` フィーチャーがコンパイルされていません。",
+    "acme_authorization_status": "予期しない認可ステータス：{}",
+    "acme_order_not_ready": "ACME の注文が準備できていません：{}"
   }
 }

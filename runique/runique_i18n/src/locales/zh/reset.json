@@ -21,5 +21,19 @@
   },
   "info": {
     "check_inbox": "如果该地址关联了账户，您将收到一封包含操作说明的邮件。"
+  },
+  "log": {
+    "password_reset_asked_but_no_mailer": "请求了密码重置，但未配置邮件",
+    "reset_email_sent": "已发送重置邮件",
+    "reset_link_not_sent": "未发送重置链接",
+    "reset_token_invalid_expired": "重置令牌无效或已过期",
+    "password_reset_rollback_failed": "回滚密码重置失败",
+    "password_reset_ok": "密码重置成功",
+    "password_reset_db_error": "密码重置时数据库出错",
+    "reset_token_cleanup_failed": "清理重置令牌失败",
+    "reset_token_consumption_could_not_begin": "无法开始使用令牌",
+    "reset_token_consumption_rollback_failed": "回滚令牌使用失败",
+    "reset_token_consumption_failed": "使用令牌失败",
+    "reset_token_consumption_commit_failed": "提交令牌使用失败"
   }
 }

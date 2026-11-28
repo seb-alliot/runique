@@ -30,5 +30,15 @@
     "status_code": "Código de status",
     "header_name": "Nome",
     "header_value": "Valor"
+  },
+  "log": {
+    "template_rendering_error": "erro ao renderizar o template",
+    "apperror_occurred": "ocorreu um AppError",
+    "error_full_context": "erro com todo o contexto",
+    "critical_error_occurred": "ocorreu um erro crítico",
+    "handled_error": "erro tratado",
+    "failed_render_error_template": "falha ao renderizar o template de erro",
+    "failed_serialize_error_context": "Falha ao serializar o contexto de erro: {}",
+    "failed_render_debug_template": "Falha ao renderizar o template de depuração: {}"
   }
 }

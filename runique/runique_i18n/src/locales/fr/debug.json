@@ -30,5 +30,15 @@
     "status_code": "Code de statut",
     "header_name": "Nom",
     "header_value": "Valeur"
+  },
+  "log": {
+    "template_rendering_error": "erreur de rendu du template",
+    "apperror_occurred": "une AppError s'est produite",
+    "error_full_context": "erreur avec tout son contexte",
+    "critical_error_occurred": "une erreur critique s'est produite",
+    "handled_error": "erreur traitée",
+    "failed_render_error_template": "échec du rendu du template d'erreur",
+    "failed_serialize_error_context": "Échec de la sérialisation du contexte d'erreur : {}",
+    "failed_render_debug_template": "Échec du rendu du template de débogage : {}"
   }
 }

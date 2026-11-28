@@ -113,8 +113,7 @@ impl<P> RuniqueAppBuilder<P> {
                 static_dir = %config.static_files.staticfiles_dirs,
                 media_url = %config.static_files.media_url,
                 media_dir = %config.static_files.media_root,
-                "static files attached"
-            );
+                "{}", crate::translation::t(runique_i18n::keys::build::log::STATIC_FILES_ATTACHED));
         }
 
         router

@@ -23,7 +23,16 @@
     "email_taken": "このメールアドレスは既に使用されています。",
     "password_too_short": "パスワードは12文字以上必要です。",
     "password_weak": "パスワードには小文字、大文字、数字、記号をそれぞれ1文字以上含めてください。",
-    "password_mismatch": "パスワードが一致しません。もう一度お試しください。"
+    "password_mismatch": "パスワードが一致しません。もう一度お試しください。",
+    "provider_not_found": "プロバイダが見つかりません：'{}'",
+    "provider_not_a_file": "プロバイダがファイルではありません：'{}'",
+    "provider_symlink": "プロバイダのパスがシンボリックリンクです。これは許可されていません：'{}'",
+    "provider_launch_failed": "プロバイダ '{}' を起動できませんでした：{}",
+    "provider_timeout": "プロバイダ '{}' が {} 秒以内に応答しませんでした",
+    "provider_wait_failed": "プロバイダの待機中にエラー：{}",
+    "provider_exit_code": "プロバイダがエラーを返しました（終了コード {}）",
+    "provider_stdin_failed": "stdin への書き込みエラー：{}",
+    "provider_output_invalid": "プロバイダの出力が無効です（UTF-8）：{}"
   },
   "info": {
     "review_algo": "  アルゴリズム: {}",

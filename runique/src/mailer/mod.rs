@@ -1,5 +1,8 @@
 //! E-mail client (`lettre`) — SMTP + console backends, async sending, Tera template support.
-use crate::{config::env::env_keyword, translation::t};
+use crate::{
+    config::env::env_keyword,
+    translation::{t, tf},
+};
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor, message::header::ContentType,
     transport::smtp::authentication::Credentials,
@@ -221,9 +224,12 @@ impl Email {
         template_name: &str,
         ctx: Context,
     ) -> Result<Self, String> {
-        let rendered = tera
-            .render(template_name, &ctx)
-            .map_err(|e| format!("Template error ({template_name}): {e}"))?;
+        let rendered = tera.render(template_name, &ctx).map_err(|e| {
+            tf(
+                runique_i18n::keys::mailer::error::TEMPLATE,
+                &[template_name.to_string(), e.to_string()],
+            )
+        })?;
         self.html = Some(rendered);
         Ok(self)
     }
@@ -232,7 +238,7 @@ impl Email {
     /// headers of its own (CRLF injection): refused, never stripped.
     fn check_subject(&self) -> Result<(), String> {
         if self.subject.contains(['\r', '\n']) {
-            return Err("Email subject contains a line break".to_string());
+            return Err(t(runique_i18n::keys::mailer::error::SUBJECT_LINE_BREAK).into_owned());
         }
         Ok(())
     }
@@ -244,14 +250,13 @@ impl Email {
         let config = config().ok_or_else(|| {
             if let Some(level) = crate::log::log_level!(mailer.send)
             {
-                crate::runique_log!(level, to = %self.to, subject = %self.subject, "send — mailer not configured");
+                crate::runique_log!(level, to = %self.to, subject = %self.subject, "{}", crate::translation::t(runique_i18n::keys::mailer::log::SEND_MAILER_NOT_CONFIGURED));
             }
-            "The mailer configuration is missing or incomplete: set EMAIL_BACKEND and SMTP_* in .env"
-                .to_string()
+            t(runique_i18n::keys::mailer::error::NOT_CONFIGURED).into_owned()
         })?;
 
         if self.html.is_none() && self.text.is_none() {
-            return Err("Email without content".to_string());
+            return Err(t(runique_i18n::keys::mailer::error::NO_CONTENT).into_owned());
         }
         self.check_subject()?;
 
@@ -260,7 +265,7 @@ impl Email {
             MailerBackend::Smtp => "smtp",
         };
         if let Some(level) = crate::log::log_level!(mailer.send) {
-            crate::runique_log!(level, to = %self.to, subject = %self.subject, backend, "send");
+            crate::runique_log!(level, to = %self.to, subject = %self.subject, backend, "{}", crate::translation::t(runique_i18n::keys::mailer::log::SEND));
         }
         let result = match config.backend {
             MailerBackend::Console => self.send_console(config),
@@ -269,7 +274,7 @@ impl Email {
         if let Err(ref e) = result
             && let Some(level) = crate::log::log_level!(mailer.send)
         {
-            crate::runique_log!(level, error = %e, backend, "send error");
+            crate::runique_log!(level, error = %e, backend, "{}", crate::translation::t(runique_i18n::keys::mailer::log::SEND_ERROR));
         }
         result
     }
@@ -279,7 +284,8 @@ impl Email {
             .html
             .as_deref()
             .or(self.text.as_deref())
-            .unwrap_or("(no content)");
+            .map(str::to_string)
+            .unwrap_or_else(|| t(runique_i18n::keys::mailer::label::NO_CONTENT).into_owned());
 
         println!(
             "\n{}\n  From:    {}\n  To:      {}\n  Subject: {}{}\n\n{}\n{}",
@@ -301,19 +307,19 @@ impl Email {
         let from = config
             .from
             .parse::<lettre::message::Mailbox>()
-            .map_err(|e| format!("Invalid sender address: {e}"))?;
+            .map_err(|e| tf(runique_i18n::keys::mailer::error::INVALID_SENDER, &[e]))?;
 
         let to = self
             .to
             .parse::<lettre::message::Mailbox>()
-            .map_err(|e| format!("Invalid recipient address: {e}"))?;
+            .map_err(|e| tf(runique_i18n::keys::mailer::error::INVALID_RECIPIENT, &[e]))?;
 
         let mut builder = Message::builder().from(from).to(to).subject(self.subject);
 
         if let Some(reply_to) = &self.reply_to {
             let rt = reply_to
                 .parse::<lettre::message::Mailbox>()
-                .map_err(|e| format!("Invalid Reply-To: {e}"))?;
+                .map_err(|e| tf(runique_i18n::keys::mailer::error::INVALID_REPLY_TO, &[e]))?;
             builder = builder.reply_to(rt);
         }
 
@@ -321,27 +327,27 @@ impl Email {
             builder
                 .header(ContentType::TEXT_HTML)
                 .body(html)
-                .map_err(|e| format!("Error constructing email: {e}"))?
+                .map_err(|e| tf(runique_i18n::keys::mailer::error::BUILD_FAILED, &[e]))?
         } else if let Some(text) = self.text {
             builder
                 .header(ContentType::TEXT_PLAIN)
                 .body(text)
-                .map_err(|e| format!("Error constructing email: {e}"))?
+                .map_err(|e| tf(runique_i18n::keys::mailer::error::BUILD_FAILED, &[e]))?
         } else {
-            return Err("Email without content".to_string());
+            return Err(t(runique_i18n::keys::mailer::error::NO_CONTENT).into_owned());
         };
 
         let creds = Credentials::new(config.username.clone(), config.password.clone());
 
         let transport = if config.starttls {
             AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&config.host)
-                .map_err(|e| format!("SMTP connection failed: {e}"))?
+                .map_err(|e| tf(runique_i18n::keys::mailer::error::SMTP_CONNECTION, &[e]))?
                 .port(config.port)
                 .credentials(creds)
                 .build()
         } else {
             AsyncSmtpTransport::<Tokio1Executor>::relay(&config.host)
-                .map_err(|e| format!("SMTP connection failed: {e}"))?
+                .map_err(|e| tf(runique_i18n::keys::mailer::error::SMTP_CONNECTION, &[e]))?
                 .port(config.port)
                 .credentials(creds)
                 .build()
@@ -350,7 +356,7 @@ impl Email {
         transport
             .send(message)
             .await
-            .map_err(|e| format!("Error sending email: {e}"))?;
+            .map_err(|e| tf(runique_i18n::keys::mailer::error::SEND_FAILED, &[e]))?;
 
         Ok(())
     }

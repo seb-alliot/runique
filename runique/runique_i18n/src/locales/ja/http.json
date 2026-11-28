@@ -18,5 +18,11 @@
     "503": "高負荷のためサービスを一時的に利用できません。しばらくしてから再度お試しください。",
     "critical_text": "エラー処理システム自体がエラーに遭遇しました。",
     "critical_contact": "この状況は発生すべきではありません。システム管理者に連絡してください。"
+  },
+  "log": {
+    "csrf_js_tag_not_rendered": "csrf.js タグを描画できませんでした",
+    "tera_rendering_failed_development": "開発環境で Tera の描画に失敗しました",
+    "tera_error_source": "Tera のエラーの原因",
+    "failed_initialize_templateloader_development": "開発環境で TemplateLoader を初期化できませんでした"
   }
 }

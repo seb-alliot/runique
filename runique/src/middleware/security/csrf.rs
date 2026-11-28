@@ -121,7 +121,11 @@ pub async fn csrf_middleware(
     let secret = &engine.config.server.secret_key;
 
     let Some(session_token) = session_csrf_token(&session, secret).await else {
-        return (StatusCode::INTERNAL_SERVER_ERROR, "Session write error").into_response();
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            t(runique_i18n::keys::csrf::error::SESSION_WRITE),
+        )
+            .into_response();
     };
 
     if !exempt && csrf_required(req.method()) {
@@ -152,7 +156,11 @@ pub async fn csrf_middleware(
                         req.uri().path(),
                         runique_i18n::keys::csrf::log::REASON_HEADER_INVALID,
                     );
-                    return (StatusCode::FORBIDDEN, "Invalid CSRF token").into_response();
+                    return (
+                        StatusCode::FORBIDDEN,
+                        t(runique_i18n::keys::csrf::error::INVALID),
+                    )
+                        .into_response();
                 }
             }
         } else {
@@ -170,7 +178,11 @@ pub async fn csrf_middleware(
                     req.uri().path(),
                     runique_i18n::keys::csrf::log::REASON_NOT_A_FORM,
                 );
-                return (StatusCode::FORBIDDEN, "CSRF token required").into_response();
+                return (
+                    StatusCode::FORBIDDEN,
+                    t(runique_i18n::keys::csrf::error::REQUIRED),
+                )
+                    .into_response();
             }
             // A form posted from another site is refused here, before any
             // handler: one reading its body with an Axum extractor rather than
@@ -180,7 +192,11 @@ pub async fn csrf_middleware(
                     req.uri().path(),
                     runique_i18n::keys::csrf::log::REASON_CROSS_SITE,
                 );
-                return (StatusCode::FORBIDDEN, "Cross-site form submission").into_response();
+                return (
+                    StatusCode::FORBIDDEN,
+                    t(runique_i18n::keys::csrf::error::CROSS_SITE),
+                )
+                    .into_response();
             }
             // Otherwise, we let Prisme validate the form field
         }

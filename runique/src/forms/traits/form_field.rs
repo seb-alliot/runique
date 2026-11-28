@@ -147,7 +147,7 @@ pub trait FormField: FieldAccess + DynClone + std::fmt::Debug + Send + Sync {
     /// request uploaded.
     fn set_submitted_value(&mut self, value: &str) {
         if is_staged_path(value) {
-            tracing::warn!(field = %self.get_field_config().name, "a file was sent for a field that takes none, ignored");
+            tracing::warn!(field = %self.get_field_config().name, "{}", crate::translation::t(runique_i18n::keys::forms::log::FILE_SENT_FIELD_THAT_TAKES_NONE));
             return;
         }
         self.set_value(value);
@@ -174,7 +174,10 @@ pub trait FormField: FieldAccess + DynClone + std::fmt::Debug + Send + Sync {
 
     /// Overrides the effective max_size. Returns Err if it exceeds the model ceiling.
     fn set_max_size_bounded(&mut self, _size: FileSize) -> Result<(), String> {
-        Err("ce champ ne supporte pas max_size".to_string())
+        Err(
+            crate::translation::t(runique_i18n::keys::forms::error::MAX_SIZE_UNSUPPORTED)
+                .into_owned(),
+        )
     }
 
     /// The column this field is stored in, once given one.

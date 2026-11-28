@@ -18,5 +18,11 @@
     "503": "服务因负载过高暂时不可用，请稍后再试。",
     "critical_text": "错误处理系统本身发生了错误。",
     "critical_contact": "这种情况不应发生，请联系系统管理员。"
+  },
+  "log": {
+    "csrf_js_tag_not_rendered": "未渲染 csrf.js 标签",
+    "tera_rendering_failed_development": "开发环境中 Tera 渲染失败",
+    "tera_error_source": "Tera 错误来源",
+    "failed_initialize_templateloader_development": "开发环境中初始化 TemplateLoader 失败"
   }
 }

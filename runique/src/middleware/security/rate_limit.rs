@@ -220,7 +220,7 @@ pub async fn rate_limit_middleware(
     } else {
         let retry_after_secs = limiter.retry_after_secs(&ip);
         if let Some(level) = crate::log::log_level!(middleware.rate_limit) {
-            crate::runique_log!(level, %ip, retry_after = retry_after_secs, "rate limited");
+            crate::runique_log!(level, %ip, retry_after = retry_after_secs, "{}", crate::translation::t(runique_i18n::keys::middleware::log::RATE_LIMITED));
         }
         (
             StatusCode::TOO_MANY_REQUESTS,

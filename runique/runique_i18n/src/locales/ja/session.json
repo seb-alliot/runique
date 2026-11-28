@@ -5,6 +5,25 @@
     "read_flash": "セッションからフラッシュメッセージを読み取り",
     "read_dashboard_template": "セッションから選択中のダッシュボードテンプレートを読み取り",
     "decode_user_memory": "セッションの user_id をデコード（メモリから読み込み）",
-    "decode_user_db": "セッションの user_id をデコード（データベースから読み込み）"
+    "decode_user_db": "セッションの user_id をデコード（データベースから読み込み）",
+    "auth_session_ttl_set_raced_build": "起動時に認証済みセッションの TTL が同時に設定されました — 最初の値を使います",
+    "auth_session_ttl_already_set_different": "認証済みセッションの TTL は既に別の値に設定されています（1 つのプロセスに複数のアプリ？）— 最初の値を使います",
+    "session_db_backup_write_failed": "データベースへのセッション控えの書き込みに失敗しました：{}",
+    "session_db_backup_update_failed": "データベースのセッション控えの更新に失敗しました：{}",
+    "session_cleanup_error": "セッションの片付けでエラー：{}",
+    "low_watermark_bytes_freed_expired_anonymous": "下限：{} バイトを解放しました（期限切れの匿名セッション）",
+    "high_watermark_bytes_freed_emergency": "上限：緊急で {} + {} バイトを解放しました",
+    "session_store_saturated_bytes_new_session": "セッションの保存領域が満杯です（{} バイト）。新しいセッションを拒否しました",
+    "large_session_record_bytes_avoid_storing": "大きなセッション（{} バイト）— セッションにファイルや画像を保存しないでください",
+    "exclusive_login_session_s_invalidated_user": "exclusive_login：{} 件のセッションを無効にしました（ユーザー {}）",
+    "session_db_validity_check_failed_memory": "メモリ上のセッション（cookie_id）のデータベースでの確認に失敗しました：{}",
+    "session_db_fallback_load_failed_cookie": "データベースからのセッションの代替読み込みに失敗しました（cookie_id の検索）：{}",
+    "delete_session_db_failed": "データベースからのセッション削除に失敗しました：{}",
+    "stored_session_data_could_not_decrypted": "保存されたセッションデータを復号できませんでした"
+  },
+  "error": {
+    "encrypt_failed": "セッションデータを暗号化できませんでした",
+    "create_empty_cookie": "セッション作成：空の cookie_id は拒否されました",
+    "upsert_empty_cookie": "セッション保存：空の cookie_id は拒否されました"
   }
 }

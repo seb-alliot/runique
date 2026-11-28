@@ -23,7 +23,16 @@
     "email_taken": "Un utilisateur avec cet email existe déjà.",
     "password_too_short": "Le mot de passe doit contenir au moins 12 caractères.",
     "password_weak": "Le mot de passe doit contenir au moins une minuscule, une majuscule, un chiffre et un caractère spécial.",
-    "password_mismatch": "Les mots de passe ne correspondent pas. Veuillez réessayer."
+    "password_mismatch": "Les mots de passe ne correspondent pas. Veuillez réessayer.",
+    "provider_not_found": "Fournisseur introuvable : '{}'",
+    "provider_not_a_file": "Le fournisseur n'est pas un fichier : '{}'",
+    "provider_symlink": "Le chemin du fournisseur est un lien symbolique, ce qui n'est pas autorisé : '{}'",
+    "provider_launch_failed": "Échec du lancement du fournisseur '{}' : {}",
+    "provider_timeout": "Le fournisseur '{}' n'a pas répondu après {} secondes",
+    "provider_wait_failed": "Erreur en attendant le fournisseur : {}",
+    "provider_exit_code": "Le fournisseur a renvoyé une erreur (code de sortie {})",
+    "provider_stdin_failed": "Erreur d'écriture sur l'entrée standard : {}",
+    "provider_output_invalid": "Sortie du fournisseur invalide (UTF-8) : {}"
   },
   "info": {
     "review_algo": "  Algorithme  : {}",

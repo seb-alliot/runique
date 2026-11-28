@@ -29,8 +29,7 @@ impl AppError {
         error!(
             template = route,
             error = ?e,
-            "Template rendering error"
-        );
+            "{}", crate::translation::t(runique_i18n::keys::debug::log::TEMPLATE_RENDERING_ERROR));
 
         Box::new(Self {
             context: ErrorContext::from_tera_error(&e, route, tera),
@@ -54,8 +53,7 @@ impl IntoResponse for AppError {
             status = status.as_u16(),
             error_type = ?self.context.error_type,
             message = %self.context.message,
-            "AppError occurred"
-        );
+            "{}", crate::translation::t(runique_i18n::keys::debug::log::APPERROR_OCCURRED));
 
         let mut res = status.into_response();
         //  Insert ErrorContext so that the middleware can retrieve it

@@ -295,14 +295,14 @@ async fn rehash_if_outdated(db: &ADb, mut user: Model, password: &str) -> Model 
     let rehashed = match crate::security::password::hash(password) {
         Ok(rehashed) => rehashed,
         Err(e) => {
-            tracing::error!(user_id = %user.id, error = %e, "password rehash failed");
+            tracing::error!(user_id = %user.id, error = %e, "{}", crate::translation::t(runique_i18n::keys::auth::log::PASSWORD_REHASH_FAILED));
             return user;
         }
     };
     match BuiltinUserEntity::update_password_by_id(db, user.id, &rehashed).await {
         Ok(()) => user.password = rehashed,
         Err(e) => {
-            tracing::error!(user_id = %user.id, error = %e, "saving the rehashed password failed")
+            tracing::error!(user_id = %user.id, error = %e, "{}", crate::translation::t(runique_i18n::keys::auth::log::SAVING_REHASHED_PASSWORD_FAILED))
         }
     }
     user

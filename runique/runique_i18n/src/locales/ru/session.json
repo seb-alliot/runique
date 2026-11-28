@@ -5,6 +5,25 @@
     "read_flash": "чтение флеш-сообщений из сессии",
     "read_dashboard_template": "чтение выбранного шаблона панели из сессии",
     "decode_user_memory": "декодирование user_id сессии (загрузка из памяти)",
-    "decode_user_db": "декодирование user_id сессии (загрузка из базы данных)"
+    "decode_user_db": "декодирование user_id сессии (загрузка из базы данных)",
+    "auth_session_ttl_set_raced_build": "TTL авторизованной сессии задан одновременно при сборке — сохраняется первое значение",
+    "auth_session_ttl_already_set_different": "TTL авторизованной сессии уже задан другим значением (несколько приложений в одном процессе?) — сохраняется первое",
+    "session_db_backup_write_failed": "не удалось записать копию сессии в базу данных: {}",
+    "session_db_backup_update_failed": "не удалось обновить копию сессии в базе данных: {}",
+    "session_cleanup_error": "ошибка очистки сессий: {}",
+    "low_watermark_bytes_freed_expired_anonymous": "Нижний порог: освобождено {} байт (истёкшие анонимные сессии)",
+    "high_watermark_bytes_freed_emergency": "Верхний порог: в срочном порядке освобождено {} + {} байт",
+    "session_store_saturated_bytes_new_session": "Хранилище сессий переполнено ({} байт), новая сессия отклонена",
+    "large_session_record_bytes_avoid_storing": "Большая запись сессии ({} байт) — не храните файлы и изображения в сессии",
+    "exclusive_login_session_s_invalidated_user": "exclusive_login: закрыто сессий: {} (пользователь {})",
+    "session_db_validity_check_failed_memory": "не удалось проверить в базе данных сессию из памяти (cookie_id): {}",
+    "session_db_fallback_load_failed_cookie": "не удалось загрузить сессию из базы данных (поиск по cookie_id): {}",
+    "delete_session_db_failed": "не удалось удалить сессию из базы данных: {}",
+    "stored_session_data_could_not_decrypted": "не удалось расшифровать сохранённые данные сессии"
+  },
+  "error": {
+    "encrypt_failed": "не удалось зашифровать данные сессии",
+    "create_empty_cookie": "создание сессии: пустой cookie_id отклонён",
+    "upsert_empty_cookie": "сохранение сессии: пустой cookie_id отклонён"
   }
 }

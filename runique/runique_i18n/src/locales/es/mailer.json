@@ -1,5 +1,23 @@
 {
   "log": {
-    "init_twice": "mailer_init() llamado varias veces: se conserva la configuración inicial"
+    "init_twice": "mailer_init() llamado varias veces: se conserva la configuración inicial",
+    "send_mailer_not_configured": "envío — mailer no configurado",
+    "send": "envío",
+    "send_error": "error de envío"
+  },
+  "error": {
+    "template": "Error de plantilla ({}): {}",
+    "subject_line_break": "El asunto del correo contiene un salto de línea",
+    "not_configured": "La configuración del mailer falta o está incompleta: defina EMAIL_BACKEND y SMTP_* en el .env",
+    "no_content": "Correo sin contenido",
+    "invalid_sender": "Dirección de remitente no válida: {}",
+    "invalid_recipient": "Dirección de destinatario no válida: {}",
+    "invalid_reply_to": "Reply-To no válido: {}",
+    "build_failed": "Error al construir el correo: {}",
+    "smtp_connection": "Fallo de la conexión SMTP: {}",
+    "send_failed": "Error al enviar el correo: {}"
+  },
+  "label": {
+    "no_content": "(sin contenido)"
   }
 }

@@ -52,7 +52,9 @@ pub(crate) fn on_fields(form: &mut Forms, errors: FieldErrors) -> DbErr {
             None => form.errors.push(format!("{name}: {message}")),
         }
     }
-    DbErr::Custom("save: fields refused".to_string())
+    DbErr::Custom(
+        crate::translation::t(runique_i18n::keys::forms::error::FIELDS_REFUSED).into_owned(),
+    )
 }
 
 pub(crate) fn not_found() -> DbErr {

@@ -73,7 +73,7 @@ impl Forms {
             self.errors.push(message.clone());
             return;
         }
-        tracing::warn!(error = %db_err, "form database error");
+        tracing::warn!(error = %db_err, "{}", crate::translation::t(runique_i18n::keys::forms::log::FORM_DATABASE_ERROR));
         #[cfg(any(feature = "sqlite", feature = "postgres", feature = "mysql"))]
         match classify_driver(db_err) {
             Violation::Unique => self.push_unique(db_err),

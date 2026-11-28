@@ -10,12 +10,21 @@
     "url_sqlite_default_file": "DATABASE_URL запрашивает SQLite без указания файла: используется файл по умолчанию {}.",
     "keys_without_engine": "Не задан DB_ENGINE: {} указано без движка. Допустимые значения: postgres, mysql, sqlite.",
     "url_failed_trying_keys": "Подключение по DATABASE_URL не удалось ({}): повторная попытка по ключам DB_*.",
-    "url_failed_keys_unusable": "Подключение по DATABASE_URL не удалось ({}), а ключей DB_* недостаточно для подключения: {}"
+    "url_failed_keys_unusable": "Подключение по DATABASE_URL не удалось ({}), а ключей DB_* недостаточно для подключения: {}",
+    "unsupported_url_scheme": "Неподдерживаемая схема URL базы данных",
+    "list_postgres_only": "ListField::fetch_with работает только с Postgres: прочитайте строки, затем вызовите load_<поле>()",
+    "list_value_not_in_enum": "значение списка `{}` не соответствует своему перечислению",
+    "search_one_multiple": "search!.one(): возвращено несколько строк"
   },
   "info": {
     "url_incomplete_reminder": "Подключение установлено по ключам DB_*. DATABASE_URL по-прежнему неполная ({}): исправьте или удалите её."
   },
   "log": {
-    "read_reset_token": "чтение токена сброса пароля"
+    "read_reset_token": "чтение токена сброса пароля",
+    "connecting_database": "Подключение к базе данных {}...",
+    "database_connected_successfully": "База данных подключена ({})",
+    "database_connection_failed": "Не удалось подключиться к базе данных",
+    "engine": "Движок: {}",
+    "url": "URL: {}"
   }
 }

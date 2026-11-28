@@ -21,5 +21,19 @@
   },
   "info": {
     "check_inbox": "If this address is linked to an account, you will receive an email with instructions."
+  },
+  "log": {
+    "password_reset_asked_but_no_mailer": "password reset asked, but no mailer is configured",
+    "reset_email_sent": "reset email sent",
+    "reset_link_not_sent": "reset link not sent",
+    "reset_token_invalid_expired": "reset token invalid or expired",
+    "password_reset_rollback_failed": "password reset rollback failed",
+    "password_reset_ok": "password reset ok",
+    "password_reset_db_error": "password reset db error",
+    "reset_token_cleanup_failed": "reset token cleanup failed",
+    "reset_token_consumption_could_not_begin": "reset token consumption could not begin",
+    "reset_token_consumption_rollback_failed": "reset token consumption rollback failed",
+    "reset_token_consumption_failed": "reset token consumption failed",
+    "reset_token_consumption_commit_failed": "reset token consumption commit failed"
   }
 }

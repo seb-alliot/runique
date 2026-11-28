@@ -18,5 +18,11 @@
     "503": "Service temporairement indisponible en raison d'une forte charge. Veuillez réessayer dans un instant.",
     "critical_text": "Le système de gestion d'erreurs a lui-même rencontré une erreur.",
     "critical_contact": "Cette situation ne devrait jamais se produire. Veuillez contacter l'administrateur système."
+  },
+  "log": {
+    "csrf_js_tag_not_rendered": "balise csrf.js non rendue",
+    "tera_rendering_failed_development": "échec du rendu Tera en développement",
+    "tera_error_source": "source de l'erreur Tera",
+    "failed_initialize_templateloader_development": "échec de l'initialisation de TemplateLoader en développement"
   }
 }

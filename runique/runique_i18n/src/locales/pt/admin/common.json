@@ -2,5 +2,9 @@
   "label": {
     "username": "Nome de usuário",
     "password": "Senha"
+  },
+  "error": {
+    "page_context": "contexto da página do admin: {}",
+    "row_without_key": "uma linha da lista do admin não tem chave primária serializável"
   }
 }

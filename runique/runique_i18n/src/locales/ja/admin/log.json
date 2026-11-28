@@ -12,5 +12,17 @@
   "boot_route": "管理画面の宣言済みルート",
   "boot_no_guard": "管理画面のログインに LoginGuard もレート制限もない：パスワード試行が無制限（`with_login_guard`、`with_rate_limiter`）",
   "boot_options_without_effect": "管理画面の一覧オプションは受け付けたが、まだどのページにも表示されない",
-  "boot_stylesheets_missing": "管理画面用の Runique スタイルシートが見つからない：STATIC_RUNIQUE_PATH を確認"
+  "boot_stylesheets_missing": "管理画面用の Runique スタイルシートが見つからない：STATIC_RUNIQUE_PATH を確認",
+  "admin_access_gate": "管理画面へのアクセス判定",
+  "admin_refused_no_admin_access_sent": "管理画面を拒否：アクセス権がないためサイトへ移動しました",
+  "admin_account_gone_inactive_session_closed": "管理者アカウントが削除されたか無効です — セッションを閉じました",
+  "declared_admin_route_refused_no_admin": "宣言された管理画面のルートを拒否：アクセス権がありません",
+  "account_groups_write_failed": "アカウントのグループの書き込みに失敗しました",
+  "admin_link_not_sent_mailer_configuration": "管理画面のリンクを送信できませんでした：メール設定がないか不完全です",
+  "admin_reset_link_not_sent": "管理画面の再設定リンクを送信できませんでした",
+  "admin_reset_trace_failed": "管理画面の再設定の記録に失敗しました",
+  "account_not_created_mailer_configuration_missing": "アカウントは作成されませんでした：メール設定がないか不完全です",
+  "admin_rights_grid_write_failed": "管理者の権限表の書き込みに失敗しました",
+  "group_rights_grid_write_failed": "グループの権限表の書き込みに失敗しました",
+  "group_transfer_failed": "グループの引き継ぎに失敗しました"
 }

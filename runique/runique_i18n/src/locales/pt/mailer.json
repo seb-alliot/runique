@@ -1,5 +1,23 @@
 {
   "log": {
-    "init_twice": "mailer_init() chamado várias vezes: a configuração inicial é mantida"
+    "init_twice": "mailer_init() chamado várias vezes: a configuração inicial é mantida",
+    "send_mailer_not_configured": "envio — mailer não configurado",
+    "send": "envio",
+    "send_error": "erro de envio"
+  },
+  "error": {
+    "template": "Erro de template ({}): {}",
+    "subject_line_break": "O assunto do e-mail contém uma quebra de linha",
+    "not_configured": "A configuração do mailer está ausente ou incompleta: defina EMAIL_BACKEND e SMTP_* no .env",
+    "no_content": "E-mail sem conteúdo",
+    "invalid_sender": "Endereço do remetente inválido: {}",
+    "invalid_recipient": "Endereço do destinatário inválido: {}",
+    "invalid_reply_to": "Reply-To inválido: {}",
+    "build_failed": "Erro ao montar o e-mail: {}",
+    "smtp_connection": "Falha na conexão SMTP: {}",
+    "send_failed": "Erro ao enviar o e-mail: {}"
+  },
+  "label": {
+    "no_content": "(sem conteúdo)"
   }
 }

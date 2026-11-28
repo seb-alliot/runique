@@ -23,7 +23,16 @@
     "email_taken": "Esiste già un utente con questa email.",
     "password_too_short": "La password deve contenere almeno 12 caratteri.",
     "password_weak": "La password deve contenere almeno una lettera minuscola, una maiuscola, una cifra e un carattere speciale.",
-    "password_mismatch": "Le password non corrispondono. Riprovare."
+    "password_mismatch": "Le password non corrispondono. Riprovare.",
+    "provider_not_found": "Provider non trovato: '{}'",
+    "provider_not_a_file": "Il provider non è un file: '{}'",
+    "provider_symlink": "Il percorso del provider è un link simbolico, cosa non consentita: '{}'",
+    "provider_launch_failed": "Impossibile avviare il provider '{}': {}",
+    "provider_timeout": "Il provider '{}' non ha risposto dopo {} secondi",
+    "provider_wait_failed": "Errore durante l'attesa del provider: {}",
+    "provider_exit_code": "Il provider ha restituito un errore (codice di uscita {})",
+    "provider_stdin_failed": "Errore di scrittura su stdin: {}",
+    "provider_output_invalid": "Output del provider non valido (UTF-8): {}"
   },
   "info": {
     "review_algo": "  Algoritmo  : {}",

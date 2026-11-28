@@ -5,6 +5,25 @@
     "read_flash": "read the flash messages from the session",
     "read_dashboard_template": "read the dashboard template choice from the session",
     "decode_user_memory": "decode session user_id (load from memory)",
-    "decode_user_db": "decode session user_id (load from the database)"
+    "decode_user_db": "decode session user_id (load from the database)",
+    "auth_session_ttl_set_raced_build": "auth session TTL set raced at build — keeping the first value",
+    "auth_session_ttl_already_set_different": "auth session TTL already set to a different value (multi-app in one process?) — keeping the first",
+    "session_db_backup_write_failed": "session DB backup write failed: {}",
+    "session_db_backup_update_failed": "session DB backup update failed: {}",
+    "session_cleanup_error": "session cleanup error: {}",
+    "low_watermark_bytes_freed_expired_anonymous": "Low watermark: {} bytes freed (expired anonymous sessions)",
+    "high_watermark_bytes_freed_emergency": "High watermark: {} + {} bytes freed in emergency",
+    "session_store_saturated_bytes_new_session": "Session store saturated ({} bytes), new session refused",
+    "large_session_record_bytes_avoid_storing": "Large session record ({} bytes) — avoid storing files or images in session",
+    "exclusive_login_session_s_invalidated_user": "exclusive_login: {} session(s) invalidated for user {}",
+    "session_db_validity_check_failed_memory": "session DB validity check failed for in-memory cookie_id: {}",
+    "session_db_fallback_load_failed_cookie": "session DB fallback load failed for cookie_id lookup: {}",
+    "delete_session_db_failed": "delete session from DB failed: {}",
+    "stored_session_data_could_not_decrypted": "stored session data could not be decrypted"
+  },
+  "error": {
+    "encrypt_failed": "session data could not be encrypted",
+    "create_empty_cookie": "create session: empty cookie_id rejected",
+    "upsert_empty_cookie": "upsert session: empty cookie_id rejected"
   }
 }

@@ -2,5 +2,9 @@
   "label": {
     "username": "Nome utente",
     "password": "Password"
+  },
+  "error": {
+    "page_context": "contesto della pagina dell'admin: {}",
+    "row_without_key": "a una riga della lista dell'admin manca una chiave primaria serializzabile"
   }
 }

@@ -30,5 +30,15 @@
     "status_code": "ステータスコード",
     "header_name": "名前",
     "header_value": "値"
+  },
+  "log": {
+    "template_rendering_error": "テンプレートの描画エラー",
+    "apperror_occurred": "AppError が発生しました",
+    "error_full_context": "完全なコンテキスト付きのエラー",
+    "critical_error_occurred": "重大なエラーが発生しました",
+    "handled_error": "処理済みのエラー",
+    "failed_render_error_template": "エラー用テンプレートの描画に失敗しました",
+    "failed_serialize_error_context": "エラーのコンテキストをシリアライズできませんでした：{}",
+    "failed_render_debug_template": "デバッグ用テンプレートの描画に失敗しました：{}"
   }
 }

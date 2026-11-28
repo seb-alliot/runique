@@ -44,8 +44,7 @@ fn log_convert_failure<T, E: std::fmt::Display>(
                     field = %name,
                     raw = %raw,
                     error = %e,
-                    "cleaned conversion failed"
-                );
+                    "{}", crate::translation::t(runique_i18n::keys::forms::log::CLEANED_CONVERSION_FAILED));
             }
             None
         }

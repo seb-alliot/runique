@@ -124,7 +124,12 @@ pub(crate) async fn send_account_link(
         || t(runique_i18n::keys::admin::reset_password::error::UNAVAILABLE).into_owned();
     // Asked before anything else: no token is written for a link that can't leave.
     if !mailer_configured() {
-        tracing::warn!("admin link not sent: the mailer configuration is missing or incomplete");
+        tracing::warn!(
+            "{}",
+            crate::translation::t(
+                runique_i18n::keys::admin::log::ADMIN_LINK_NOT_SENT_MAILER_CONFIGURATION
+            )
+        );
         return Err(t(runique_i18n::keys::admin::reset_password::error::NO_MAILER).into_owned());
     }
     let Some(account) = BuiltinUserEntity::find_by_id(&req.engine.db, account_id).await else {
@@ -143,7 +148,7 @@ pub(crate) async fn send_account_link(
     match send_reset_link(&req.engine, &host, link, &account, mail).await {
         Ok(()) => Ok(account.username),
         Err(e) => {
-            tracing::warn!(error = %e, "admin reset link not sent");
+            tracing::warn!(error = %e, "{}", crate::translation::t(runique_i18n::keys::admin::log::ADMIN_RESET_LINK_NOT_SENT));
             Err(unavailable())
         }
     }
@@ -189,7 +194,7 @@ pub(crate) async fn reset_password_view(
             )
             .await
             {
-                tracing::error!(error = %e, "admin reset trace failed");
+                tracing::error!(error = %e, "{}", crate::translation::t(runique_i18n::keys::admin::log::ADMIN_RESET_TRACE_FAILED));
             }
             req.notices
                 .success(t(

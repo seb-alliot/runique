@@ -21,5 +21,19 @@
   },
   "info": {
     "check_inbox": "Se questo indirizzo è associato a un account, riceverai un'email con le istruzioni."
+  },
+  "log": {
+    "password_reset_asked_but_no_mailer": "reimpostazione richiesta, ma nessun mailer è configurato",
+    "reset_email_sent": "e-mail di reimpostazione inviata",
+    "reset_link_not_sent": "link di reimpostazione non inviato",
+    "reset_token_invalid_expired": "token di reimpostazione non valido o scaduto",
+    "password_reset_rollback_failed": "annullamento della reimpostazione non riuscito",
+    "password_reset_ok": "reimpostazione riuscita",
+    "password_reset_db_error": "errore del database durante la reimpostazione",
+    "reset_token_cleanup_failed": "pulizia dei token di reimpostazione non riuscita",
+    "reset_token_consumption_could_not_begin": "impossibile avviare l'uso del token",
+    "reset_token_consumption_rollback_failed": "annullamento dell'uso del token non riuscito",
+    "reset_token_consumption_failed": "uso del token non riuscito",
+    "reset_token_consumption_commit_failed": "conferma dell'uso del token non riuscita"
   }
 }

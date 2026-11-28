@@ -22,3 +22,21 @@ pub mod label {
     pub const RESET_TITLE: &str = "reset.label.reset_title";
     pub const SUCCESS_TITLE: &str = "reset.label.success_title";
 }
+pub mod log {
+    pub const PASSWORD_RESET_ASKED_BUT_NO_MAILER: &str =
+        "reset.log.password_reset_asked_but_no_mailer";
+    pub const PASSWORD_RESET_DB_ERROR: &str = "reset.log.password_reset_db_error";
+    pub const PASSWORD_RESET_OK: &str = "reset.log.password_reset_ok";
+    pub const PASSWORD_RESET_ROLLBACK_FAILED: &str = "reset.log.password_reset_rollback_failed";
+    pub const RESET_EMAIL_SENT: &str = "reset.log.reset_email_sent";
+    pub const RESET_LINK_NOT_SENT: &str = "reset.log.reset_link_not_sent";
+    pub const RESET_TOKEN_CLEANUP_FAILED: &str = "reset.log.reset_token_cleanup_failed";
+    pub const RESET_TOKEN_CONSUMPTION_COMMIT_FAILED: &str =
+        "reset.log.reset_token_consumption_commit_failed";
+    pub const RESET_TOKEN_CONSUMPTION_COULD_NOT_BEGIN: &str =
+        "reset.log.reset_token_consumption_could_not_begin";
+    pub const RESET_TOKEN_CONSUMPTION_FAILED: &str = "reset.log.reset_token_consumption_failed";
+    pub const RESET_TOKEN_CONSUMPTION_ROLLBACK_FAILED: &str =
+        "reset.log.reset_token_consumption_rollback_failed";
+    pub const RESET_TOKEN_INVALID_EXPIRED: &str = "reset.log.reset_token_invalid_expired";
+}

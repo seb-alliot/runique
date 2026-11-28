@@ -196,7 +196,7 @@ impl FormField for TextField {
 
     fn set_submitted_value(&mut self, value: &str) {
         if is_staged_path(value) {
-            tracing::warn!(field = %self.base.name, "a file was sent for a field that takes none, ignored");
+            tracing::warn!(field = %self.base.name, "{}", crate::translation::t(runique_i18n::keys::forms::log::FILE_SENT_FIELD_THAT_TAKES_NONE));
             return;
         }
         self.set_value(value);

@@ -5,6 +5,25 @@
     "read_flash": "lectura de los mensajes flash de la sesión",
     "read_dashboard_template": "lectura de la plantilla del panel elegida en la sesión",
     "decode_user_memory": "decodificación del user_id de la sesión (carga desde memoria)",
-    "decode_user_db": "decodificación del user_id de la sesión (carga desde la base de datos)"
+    "decode_user_db": "decodificación del user_id de la sesión (carga desde la base de datos)",
+    "auth_session_ttl_set_raced_build": "TTL de la sesión autenticada fijado a la vez durante el arranque — se conserva el primer valor",
+    "auth_session_ttl_already_set_different": "TTL de la sesión autenticada ya fijado en otro valor (¿varias aplicaciones en un proceso?) — se conserva el primero",
+    "session_db_backup_write_failed": "fallo al escribir la copia de la sesión en la base de datos: {}",
+    "session_db_backup_update_failed": "fallo al actualizar la copia de la sesión en la base de datos: {}",
+    "session_cleanup_error": "error al limpiar las sesiones: {}",
+    "low_watermark_bytes_freed_expired_anonymous": "Umbral bajo: {} bytes liberados (sesiones anónimas caducadas)",
+    "high_watermark_bytes_freed_emergency": "Umbral alto: {} + {} bytes liberados de urgencia",
+    "session_store_saturated_bytes_new_session": "Almacén de sesiones saturado ({} bytes), nueva sesión rechazada",
+    "large_session_record_bytes_avoid_storing": "Registro de sesión grande ({} bytes) — evite guardar archivos o imágenes en la sesión",
+    "exclusive_login_session_s_invalidated_user": "exclusive_login: {} sesión(es) cerrada(s) para el usuario {}",
+    "session_db_validity_check_failed_memory": "fallo al comprobar en la base de datos una sesión en memoria (cookie_id): {}",
+    "session_db_fallback_load_failed_cookie": "fallo al cargar la sesión de respaldo desde la base de datos (búsqueda por cookie_id): {}",
+    "delete_session_db_failed": "fallo al eliminar la sesión de la base de datos: {}",
+    "stored_session_data_could_not_decrypted": "no se pudieron descifrar los datos de sesión guardados"
+  },
+  "error": {
+    "encrypt_failed": "no se pudieron cifrar los datos de la sesión",
+    "create_empty_cookie": "crear sesión: cookie_id vacío rechazado",
+    "upsert_empty_cookie": "guardar sesión: cookie_id vacío rechazado"
   }
 }

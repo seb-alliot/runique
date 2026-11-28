@@ -70,7 +70,7 @@ pub(crate) async fn memberships_view(
                 .map_err(|e| match e {
                     DbErr::Custom(message) => message,
                     other => {
-                        tracing::error!(error = %other, "account groups write failed");
+                        tracing::error!(error = %other, "{}", crate::translation::t(runique_i18n::keys::admin::log::ACCOUNT_GROUPS_WRITE_FAILED));
                         Refusal::new(RefusalReason::WriteFailed).message()
                     }
                 }),

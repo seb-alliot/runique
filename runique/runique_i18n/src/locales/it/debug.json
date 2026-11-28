@@ -30,5 +30,15 @@
     "status_code": "Codice di stato",
     "header_name": "Nome",
     "header_value": "Valore"
+  },
+  "log": {
+    "template_rendering_error": "errore di rendering del template",
+    "apperror_occurred": "si è verificato un AppError",
+    "error_full_context": "errore con tutto il contesto",
+    "critical_error_occurred": "si è verificato un errore critico",
+    "handled_error": "errore gestito",
+    "failed_render_error_template": "rendering del template di errore non riuscito",
+    "failed_serialize_error_context": "Serializzazione del contesto di errore non riuscita: {}",
+    "failed_render_debug_template": "Rendering del template di debug non riuscito: {}"
   }
 }

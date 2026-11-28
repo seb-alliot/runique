@@ -8,15 +8,33 @@ use std::{error::Error, future::Future, path::Path};
 /// lifetime left (Let's Encrypt's advice, whatever the lifetime).
 pub(super) async fn cert_needs_renewal(cert_path: &Path, domain: &str) -> bool {
     let Ok(bytes) = tokio::fs::read(cert_path).await else {
-        tracing::info!("Certificate for {domain} is missing or unreadable");
+        tracing::info!(
+            "{}",
+            crate::translation::tf(
+                runique_i18n::keys::server::log::CERTIFICATE_MISSING_UNREADABLE,
+                &[domain]
+            )
+        );
         return true;
     };
     let Ok((_, perm)) = x509_parser::pem::parse_x509_pem(&bytes) else {
-        tracing::info!("Certificate for {domain} is not a valid PEM");
+        tracing::info!(
+            "{}",
+            crate::translation::tf(
+                runique_i18n::keys::server::log::CERTIFICATE_NOT_VALID_PEM,
+                &[domain]
+            )
+        );
         return true;
     };
     let Ok(cert) = perm.parse_x509() else {
-        tracing::info!("Certificate for {domain} is not a valid X.509 certificate");
+        tracing::info!(
+            "{}",
+            crate::translation::tf(
+                runique_i18n::keys::server::log::CERTIFICATE_NOT_VALID_X_509_CERTIFICATE,
+                &[domain]
+            )
+        );
         return true;
     };
     let covers_domain = cert
@@ -30,7 +48,13 @@ pub(super) async fn cert_needs_renewal(cert_path: &Path, domain: &str) -> bool {
             })
         });
     if !covers_domain {
-        tracing::info!("Certificate for {domain} does not cover the domain");
+        tracing::info!(
+            "{}",
+            crate::translation::tf(
+                runique_i18n::keys::server::log::CERTIFICATE_DOES_NOT_COVER_DOMAIN,
+                &[domain]
+            )
+        );
         return true;
     }
     let validity = cert.validity();
@@ -72,7 +96,11 @@ pub(super) async fn obtain_and_store(
     tokio::fs::create_dir_all(certs_dir).await?;
     tokio::fs::write(format!("{certs_dir}/cert.pem"), &cert).await?;
     write(Path::new(&format!("{certs_dir}/key.pem")), &key)?;
-    tracing::info!(domain, "Certificate obtained and stored");
+    tracing::info!(
+        domain,
+        "{}",
+        crate::translation::t(runique_i18n::keys::server::log::CERTIFICATE_OBTAINED_STORED)
+    );
     Ok((cert, key))
 }
 

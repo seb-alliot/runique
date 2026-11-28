@@ -10,12 +10,21 @@
     "url_sqlite_default_file": "DATABASE_URL demande SQLite sans nommer de fichier : le fichier par défaut {} est utilisé.",
     "keys_without_engine": "DB_ENGINE manque : {} est renseigné sans le moteur. Valeurs acceptées : postgres, mysql, sqlite.",
     "url_failed_trying_keys": "La connexion par DATABASE_URL a échoué ({}) : nouvel essai par les clés DB_*.",
-    "url_failed_keys_unusable": "La connexion par DATABASE_URL a échoué ({}), et les clés DB_* ne permettent pas de se connecter : {}"
+    "url_failed_keys_unusable": "La connexion par DATABASE_URL a échoué ({}), et les clés DB_* ne permettent pas de se connecter : {}",
+    "unsupported_url_scheme": "Schéma d'URL de base de données non pris en charge",
+    "list_postgres_only": "ListField::fetch_with ne fonctionne qu'avec Postgres : lisez les lignes, puis appelez load_<champ>()",
+    "list_value_not_in_enum": "la valeur de liste `{}` ne correspond pas à son enum",
+    "search_one_multiple": "search!.one() : plusieurs lignes renvoyées"
   },
   "info": {
     "url_incomplete_reminder": "Connexion établie par les clés DB_*. DATABASE_URL reste incomplète ({}) : corrigez-la ou retirez-la."
   },
   "log": {
-    "read_reset_token": "lecture d'un jeton de réinitialisation de mot de passe"
+    "read_reset_token": "lecture d'un jeton de réinitialisation de mot de passe",
+    "connecting_database": "Connexion à la base {}...",
+    "database_connected_successfully": "Base connectée ({})",
+    "database_connection_failed": "Échec de la connexion à la base",
+    "engine": "Moteur : {}",
+    "url": "URL : {}"
   }
 }

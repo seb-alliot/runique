@@ -439,7 +439,8 @@ impl PasswordService {
 
                 if value.is_empty() {
                     if !config.allow_empty {
-                        return Err("Empty password not allowed".to_string());
+                        return Err(t(runique_i18n::keys::forms::error::PASSWORD_EMPTY_REFUSED)
+                            .into_owned());
                     }
                     return Ok(());
                 }
@@ -449,9 +450,9 @@ impl PasswordService {
                 }
 
                 if self.looks_like_hash(value) {
-                    return Err(format!(
-                        "The field '{}' contains a value resembling an unrecognized hash",
-                        field.base.name
+                    return Err(tf(
+                        runique_i18n::keys::forms::error::FIELD_LOOKS_HASHED,
+                        &[&field.base.name],
                     ));
                 }
 
@@ -477,21 +478,25 @@ impl PasswordService {
         if password.is_empty() {
             match &self.config {
                 PasswordConfig::Auto(config) if !config.allow_empty => {
-                    return Err("Empty password not allowed".to_string());
+                    return Err(
+                        t(runique_i18n::keys::forms::error::PASSWORD_EMPTY_REFUSED).into_owned()
+                    );
                 }
                 _ => {}
             }
         }
 
         if self.looks_like_hash(password) {
-            return Err("The password resembles an already processed hash".to_string());
+            return Err(t(runique_i18n::keys::forms::error::PASSWORD_LOOKS_HASHED).into_owned());
         }
 
         match &self.config {
             PasswordConfig::Auto(config) => self.hasher.hash(password, &config.algorithm),
             PasswordConfig::Manual(algorithm) => self.hasher.hash(password, algorithm),
             PasswordConfig::Custom(handler) => handler.transform(password),
-            PasswordConfig::Delegated(_) => Err("No hashing in delegated mode".to_string()),
+            PasswordConfig::Delegated(_) => {
+                Err(t(runique_i18n::keys::forms::error::DELEGATED_NO_HASH).into_owned())
+            }
         }
     }
     /// Verifies `password` against `hash` per the configured mode: `Auto`/`Manual`
@@ -596,7 +601,10 @@ pub fn password_init(config: PasswordConfig) {
     {
         crate::runique_log!(
             level,
-            "password_init() called multiple times — initial configuration is kept"
+            "{}",
+            crate::translation::t(
+                runique_i18n::keys::auth::log::PASSWORD_INIT_CALLED_MULTIPLE_TIMES_INITIAL
+            )
         );
     }
 }

@@ -18,5 +18,11 @@
     "503": "Service temporarily unavailable due to high load. Please try again shortly.",
     "critical_text": "The error handling system itself encountered an error.",
     "critical_contact": "This should never happen. Please contact the system administrator."
+  },
+  "log": {
+    "csrf_js_tag_not_rendered": "csrf.js tag not rendered",
+    "tera_rendering_failed_development": "Tera rendering failed in development",
+    "tera_error_source": "Tera error source",
+    "failed_initialize_templateloader_development": "Failed to initialize TemplateLoader in development"
   }
 }

@@ -21,5 +21,19 @@
   },
   "info": {
     "check_inbox": "このアドレスがアカウントに関連付けられている場合、手順を記載したメールが届きます。"
+  },
+  "log": {
+    "password_reset_asked_but_no_mailer": "パスワードの再設定が求められましたが、メールが設定されていません",
+    "reset_email_sent": "再設定のメールを送信しました",
+    "reset_link_not_sent": "再設定のリンクを送信できませんでした",
+    "reset_token_invalid_expired": "再設定トークンが無効か期限切れです",
+    "password_reset_rollback_failed": "パスワード再設定の取り消しに失敗しました",
+    "password_reset_ok": "パスワードを再設定しました",
+    "password_reset_db_error": "パスワード再設定中のデータベースエラー",
+    "reset_token_cleanup_failed": "再設定トークンの片付けに失敗しました",
+    "reset_token_consumption_could_not_begin": "トークンの使用を開始できませんでした",
+    "reset_token_consumption_rollback_failed": "トークン使用の取り消しに失敗しました",
+    "reset_token_consumption_failed": "トークンの使用に失敗しました",
+    "reset_token_consumption_commit_failed": "トークン使用の確定に失敗しました"
   }
 }

@@ -346,9 +346,14 @@ fn check_slots(entries: &[MiddlewareEntry]) -> Result<(), BuildError> {
 
 fn log_stack(entries: &[MiddlewareEntry]) {
     if let Some(level) = crate::log::log_level!(builder.middleware) {
-        crate::runique_log!(level, count = entries.len(), "middleware stack");
+        crate::runique_log!(
+            level,
+            count = entries.len(),
+            "{}",
+            crate::translation::t(runique_i18n::keys::middleware::log::MIDDLEWARE_STACK)
+        );
         for entry in entries {
-            crate::runique_log!(level, slot = entry.slot, name = %entry.name, "middleware slot");
+            crate::runique_log!(level, slot = entry.slot, name = %entry.name, "{}", crate::translation::t(runique_i18n::keys::middleware::log::MIDDLEWARE_SLOT));
         }
     }
 }

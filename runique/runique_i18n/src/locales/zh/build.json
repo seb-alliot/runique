@@ -19,7 +19,21 @@
     "mailer_missing": "没有邮件服务的密码重置：链接永远无法发送",
     "locales_invalid": "项目的翻译文件夹无效：{}",
     "lang_unknown": "`.with_lang(\"{}\")`：没有已加载的语言对应此代码。已加载：{}。项目的语言是其 `locales/` 中的一个文件夹。",
-    "timezone_unknown": "`TIME_ZONE={}` 不是一个时区。请以“地区/城市”的形式书写其名称，例如 `Europe/Paris`；没有 `TIME_ZONE` 时，站点使用 `UTC`。"
+    "timezone_unknown": "`TIME_ZONE={}` 不是一个时区。请以“地区/城市”的形式书写其名称，例如 `Europe/Paris`；没有 `TIME_ZONE` 时，站点使用 `UTC`。",
+    "not_ready": "一个或多个组件尚未准备好构建",
+    "admin_route_name_taken": "管理后台路由名 `{}` 与已注册的 URL 冲突",
+    "admin_routes_without_admin": "在 `urlpatterns!` 中声明了管理后台路由，但管理后台已禁用",
+    "db_connect_failed": "连接数据库失败：{}",
+    "cors_wildcard_credentials": "CORS：any_origin() (*) 与 allow_credentials(true) 不兼容。请改用明确的来源：.origin(\"https://app.example.com\")",
+    "admin_model_invalid": "管理后台 `{}`：\n{}",
+    "admin_override_unsafe_char": "管理后台模板替换 `{}` 包含模板无法接受的字符",
+    "admin_override_extension": "管理后台模板替换 `{}` 必须是由 Tera 转义的 `.html` 或 `.xml` 模板",
+    "admin_override_global_page": "模型 `{}`：{} 页面不属于任何模型，只能全局替换",
+    "admin_override_missing": "在模板文件夹中找不到管理后台模板替换：{}",
+    "admin_override_unknown_variable": "管理后台模板替换读取了其页面从不提供的变量：{}",
+    "admin_view_replaced_twice": "模型 `{}`：其 {} 页面同时被模板和路由替换",
+    "admin_stylesheet_missing": "管理后台样式表 `{}` 不是 static 文件夹中的文件",
+    "schema_no_primary_key": "ModelSchema '{}'：缺少主键"
   },
   "hint": {
     "db_required": "请在构建链中添加 .with_database(db) 或 .with_database_config(config)",
@@ -41,6 +55,12 @@
     "prune_failed": "清理孤立权限失败 — 可能残留过期授权",
     "locales_missing": "项目翻译，语言“{}”：Runique 的 {} 条消息未翻译（{}），将以其回退语言显示",
     "locales_unknown": "项目翻译，语言“{}”：Runique 的主题中不存在的键，不起作用：{}",
-    "locales_placeholders": "项目翻译，语言“{}”：参数数量与 Runique 的消息不同：{}"
+    "locales_placeholders": "项目翻译，语言“{}”：参数数量与 Runique 的消息不同：{}",
+    "hsts_preload_set_but_combo_invalid": "设置了 HSTS_PRELOAD 但组合无效（需要 includeSubDomains + max-age ≥ 31536000）— 浏览器在 preload 时会忽略",
+    "orphan_group_rights_pruned_boot": "启动时清除了孤立的组权限",
+    "url_registry": "URL 注册表",
+    "static_files_attached": "已挂载静态文件",
+    "templates_failed_load": "模板加载失败",
+    "templates_loaded": "模板已加载"
   }
 }

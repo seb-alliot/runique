@@ -19,7 +19,21 @@
     "mailer_missing": "Réinitialisation du mot de passe sans mailer : le lien ne pourrait jamais être envoyé",
     "locales_invalid": "Le dossier de traductions du projet est invalide : {}",
     "lang_unknown": "`.with_lang(\"{}\")` : aucune langue chargée ne répond à ce code. Chargées : {}. Une langue du projet est un dossier de son `locales/`.",
-    "timezone_unknown": "`TIME_ZONE={}` n'est pas un fuseau horaire. Écrivez son nom sous la forme région/ville, par exemple `Europe/Paris` ; sans `TIME_ZONE`, le site est en `UTC`."
+    "timezone_unknown": "`TIME_ZONE={}` n'est pas un fuseau horaire. Écrivez son nom sous la forme région/ville, par exemple `Europe/Paris` ; sans `TIME_ZONE`, le site est en `UTC`.",
+    "not_ready": "Un ou plusieurs composants ne sont pas prêts à être construits",
+    "admin_route_name_taken": "le nom de route de l'admin `{}` est déjà pris par une URL enregistrée",
+    "admin_routes_without_admin": "des routes de l'admin sont déclarées dans `urlpatterns!`, mais l'admin est désactivé",
+    "db_connect_failed": "Échec de la connexion à la base : {}",
+    "cors_wildcard_credentials": "CORS : any_origin() (*) est incompatible avec allow_credentials(true). Utilisez des origines explicites : .origin(\"https://app.example.com\")",
+    "admin_model_invalid": "admin `{}` :\n{}",
+    "admin_override_unsafe_char": "le remplacement de template de l'admin `{}` contient un caractère qu'un template ne peut pas recevoir",
+    "admin_override_extension": "le remplacement de template de l'admin `{}` doit être un template `.html` ou `.xml`, échappé par Tera",
+    "admin_override_global_page": "modèle `{}` : la page {} ne concerne aucun modèle, elle ne se remplace que globalement",
+    "admin_override_missing": "remplacement de template de l'admin introuvable dans le dossier des templates : {}",
+    "admin_override_unknown_variable": "un remplacement de template de l'admin lit une variable que sa page ne fournit jamais : {}",
+    "admin_view_replaced_twice": "modèle `{}` : sa page {} est remplacée à la fois par un template et par une route",
+    "admin_stylesheet_missing": "la feuille de style de l'admin `{}` n'est pas un fichier du dossier static",
+    "schema_no_primary_key": "ModelSchema '{}' : clé primaire manquante"
   },
   "hint": {
     "db_required": "Ajoutez .with_database(db) ou .with_database_config(config) à votre chaîne de construction",
@@ -41,6 +55,12 @@
     "prune_failed": "échec de l'élagage des droits orphelins : des droits périmés peuvent rester",
     "locales_missing": "traductions du projet, langue « {} » : {} message(s) de Runique non traduit(s) ({}), affichés dans sa langue de repli",
     "locales_unknown": "traductions du projet, langue « {} » : clé(s) que Runique ne connaît pas dans l'un de ses sujets, sans effet : {}",
-    "locales_placeholders": "traductions du projet, langue « {} » : nombre de paramètres différent de celui du message de Runique : {}"
+    "locales_placeholders": "traductions du projet, langue « {} » : nombre de paramètres différent de celui du message de Runique : {}",
+    "hsts_preload_set_but_combo_invalid": "HSTS_PRELOAD activé mais combinaison invalide (il faut includeSubDomains + max-age ≥ 31536000) — ignoré par les navigateurs pour le preload",
+    "orphan_group_rights_pruned_boot": "droits de groupe orphelins supprimés au démarrage",
+    "url_registry": "registre des URL",
+    "static_files_attached": "fichiers statiques branchés",
+    "templates_failed_load": "échec du chargement des templates",
+    "templates_loaded": "templates chargés"
   }
 }

@@ -3,7 +3,24 @@
 //! [`ColumnDef`] is the entry point. It follows the builder pattern:
 //! `ColumnDef::new("slug").varchar(200).unique().nullable()`.
 //! The [`ColumnDef::to_form_field`] method automatically generates the appropriate form field.
-use crate::forms::fields::BinaryField;
+use crate::{
+    forms::{
+        fields::{
+            BinaryField, FileSize,
+            boolean::BooleanField,
+            choice::ChoiceField,
+            datetime::{DateField, DateTimeField, TimeField},
+            file::FileField,
+            media::MediaField,
+            number::NumericField,
+            special::{ColorField, IPAddressField, JSONField, SlugField, UUIDField},
+            text::TextField,
+        },
+        generic::GenericField,
+        traits::form_field::FormField,
+    },
+    translation::t,
+};
 use sea_query::{ColumnType, IntoIden};
 
 /// What a file column takes — drives the form widget and the allowed
@@ -466,239 +483,185 @@ impl ColumnDef {
 
     /// Converts the column to a GenericField.
     /// Returns `None` if the column is auto-excluded.
-    pub fn to_form_field(&self) -> Option<crate::forms::generic::GenericField> {
-        use crate::forms::{
-            fields::{
-                FileSize,
-                boolean::BooleanField,
-                choice::ChoiceField,
-                datetime::{DateField, DateTimeField, TimeField},
-                file::FileField,
-                media::MediaField,
-                number::NumericField,
-                special::{ColorField, IPAddressField, JSONField, SlugField, UUIDField},
-                text::TextField,
-            },
-            generic::GenericField,
-            traits::form_field::FormField,
-        };
-
+    pub fn to_form_field(&self) -> Option<GenericField> {
         if self.ignored {
             return None;
         }
-
-        let name = self.name.as_str();
         let label = self.label.clone().unwrap_or_else(|| self.format_label());
-        // A checkbox always answers: NOT NULL alone doesn't make it required,
-        // only a declared `required` does ("must be checked").
+        // Declared in the DSL: its type decides, never the column's name. A
+        // file column is stored as String at the SQL level, so the file marker
+        // is checked before the column type would route it to a TextField.
+        let mut field = if let Some(field_type) = self.field_type {
+            self.widget_field(field_type.widget())
+        } else if self.is_file {
+            self.file_field()
+        } else {
+            self.field_by_column_type()
+        };
+        field.set_label(&label);
+        if self.is_required() && !self.auto_now && !self.auto_now_update {
+            field.set_required(true, None);
+        }
+        Some(field)
+    }
+
+    /// A checkbox always answers: NOT NULL alone doesn't make it required,
+    /// only a declared `required` does ("must be checked").
+    fn is_required(&self) -> bool {
         let is_box = self.field_type == Some(runique_dsl::ast::FormFieldType::Bool)
             || matches!(self.col_type, ColumnType::Boolean);
-        let required = if is_box {
+        if is_box {
             self.required_declared
         } else {
             !self.nullable
-        };
-
-        // A file column is stored as String at the SQL level, so the file
-        // marker must be checked before the col_type match would route it to a
-        // TextField. `max_size` sets the model ceiling, which later bounds any
-        // form-level override via `set_max_size_bounded`.
-        // Declared in the DSL: its type decides, never the column's name.
-        let mut field: GenericField = if let Some(field_type) = self.field_type {
-            self.widget_field(field_type.widget())
-        } else if self.is_file {
-            let size = self.max_size.map(FileSize::bytes);
-            match self.upload_type {
-                Some(UploadType::Image) => {
-                    let mf = MediaField::image(name);
-                    size.map_or(mf.clone(), |s| mf.max_size(s)).into()
-                }
-                Some(UploadType::Audio) => {
-                    let mf = MediaField::audio(name);
-                    size.map_or(mf.clone(), |s| mf.max_size(s)).into()
-                }
-                Some(UploadType::Video) => {
-                    let mf = MediaField::video(name);
-                    size.map_or(mf.clone(), |s| mf.max_size(s)).into()
-                }
-                Some(UploadType::Document) => {
-                    let ff = FileField::document(name);
-                    size.map_or(ff.clone(), |s| ff.max_size(s)).into()
-                }
-                Some(UploadType::Any) | None => {
-                    let ff = FileField::any(name);
-                    size.map_or(ff.clone(), |s| ff.max_size(s)).into()
-                }
-            }
-        } else {
-            match &self.col_type {
-                ColumnType::String(_) => {
-                    if name == "email" || name.ends_with("_email") {
-                        let mut tf = TextField::email(name);
-                        if let Some(max_model) = self.max_length {
-                            let current = tf.config.max_length.as_ref().map(|c| c.value);
-                            let effective = match current {
-                                Some(f) => max_model.min(f),
-                                None => max_model,
-                            };
-                            tf = tf.max_length(effective, "Too long");
-                        }
-                        tf.into()
-                    } else if name == "password"
-                        || name.ends_with("_password")
-                        || name.ends_with("_pwd")
-                    {
-                        let mut tf = TextField::password(name);
-                        if let Some(max_model) = self.max_length {
-                            let current = tf.config.max_length.as_ref().map(|c| c.value);
-                            let effective = match current {
-                                Some(f) => max_model.min(f),
-                                None => max_model,
-                            };
-                            tf = tf.max_length(effective, "Too long");
-                        }
-                        tf.into()
-                    } else if name == "url"
-                        || name.ends_with("_url")
-                        || name == "website"
-                        || name.ends_with("_website")
-                        || name.contains("http")
-                    {
-                        let mut tf = TextField::url(name);
-                        if let Some(max_model) = self.max_length {
-                            let current = tf.config.max_length.as_ref().map(|c| c.value);
-                            let effective = match current {
-                                Some(f) => max_model.min(f),
-                                None => max_model,
-                            };
-                            tf = tf.max_length(effective, "Too long");
-                        }
-                        tf.into()
-                    } else if name == "slug" || name.ends_with("_slug") {
-                        SlugField::new(name).into()
-                    } else if name == "color"
-                        || name.ends_with("_color")
-                        || name == "colour"
-                        || name.ends_with("_colour")
-                    {
-                        ColorField::new(name).into()
-                    } else if name == "ip" || name.ends_with("_ip") || name.contains("ip_address") {
-                        IPAddressField::new(name).into()
-                    } else {
-                        let mut tf = TextField::text(name);
-                        if let Some(max_model) = self.max_length {
-                            let current = tf.config.max_length.as_ref().map(|c| c.value);
-                            let effective = match current {
-                                Some(f) => max_model.min(f),
-                                None => max_model,
-                            };
-                            tf = tf.max_length(effective, "Too long");
-                        }
-                        tf.into()
-                    }
-                }
-                ColumnType::Text => {
-                    let mut tf = if name.contains("description")
-                        || name.contains("bio")
-                        || name.contains("content")
-                        || name.contains("message")
-                        || name.contains("summary")
-                        || name.contains("richtext")
-                    {
-                        TextField::richtext(name)
-                    } else {
-                        TextField::textarea(name)
-                    };
-                    if let Some(max_model) = self.max_length {
-                        let current = tf.config.max_length.as_ref().map(|c| c.value);
-                        let effective = match current {
-                            Some(f) => max_model.min(f),
-                            None => max_model,
-                        };
-                        tf = tf.max_length(effective, "Too long");
-                    }
-                    tf.into()
-                }
-                ColumnType::Integer
-                | ColumnType::BigInteger
-                | ColumnType::TinyInteger
-                | ColumnType::SmallInteger
-                | ColumnType::Unsigned
-                | ColumnType::BigUnsigned => NumericField::integer(name).into(),
-                ColumnType::Float | ColumnType::Double => NumericField::float(name).into(),
-                ColumnType::Decimal(len) => {
-                    let nf = NumericField::decimal(name);
-                    match len {
-                        Some((p, s)) => nf.decimal_len(*p, *s).into(),
-                        None => nf.into(),
-                    }
-                }
-                ColumnType::Boolean => BooleanField::new(name).into(),
-                ColumnType::Date => DateField::new(name).into(),
-                ColumnType::Time => TimeField::new(name).into(),
-                ColumnType::DateTime
-                | ColumnType::Timestamp
-                | ColumnType::TimestampWithTimeZone => DateTimeField::new(name).into(),
-                ColumnType::Uuid => UUIDField::new(name).into(),
-                ColumnType::Enum { .. } => {
-                    let mut f = ChoiceField::new(name);
-                    for (value, label) in self.labeled_choices() {
-                        f = f.add_choice(value, label);
-                    }
-                    f.into()
-                }
-                ColumnType::Json | ColumnType::JsonBinary => JSONField::new(name).into(),
-                ColumnType::Char(_) => TextField::text(name).into(),
-                // Unsupported type (binary/blob/inet/cidr/interval…): falls back to a text field.
-                // Logged so it stays visible (silent fallback otherwise), not a fatal error.
-                other => {
-                    tracing::debug!(
-                        field = %name,
-                        col_type = ?other,
-                        "to_form_field: type de colonne non géré → TextField par défaut"
-                    );
-                    TextField::text(name).into()
-                }
-            }
-        };
-
-        field.set_label(&label);
-        if required && !self.auto_now && !self.auto_now_update {
-            field.set_required(true, None);
         }
+    }
 
-        Some(field)
+    /// An upload field of the column's kind. `max_size` sets the model
+    /// ceiling, which later bounds any form-level override via
+    /// `set_max_size_bounded`.
+    fn file_field(&self) -> GenericField {
+        let name = self.name.as_str();
+        let size = self.max_size.map(FileSize::bytes);
+        match self.upload_type {
+            Some(UploadType::Image) => {
+                let mf = MediaField::image(name);
+                size.map_or(mf.clone(), |s| mf.max_size(s)).into()
+            }
+            Some(UploadType::Audio) => {
+                let mf = MediaField::audio(name);
+                size.map_or(mf.clone(), |s| mf.max_size(s)).into()
+            }
+            Some(UploadType::Video) => {
+                let mf = MediaField::video(name);
+                size.map_or(mf.clone(), |s| mf.max_size(s)).into()
+            }
+            Some(UploadType::Document) => {
+                let ff = FileField::document(name);
+                size.map_or(ff.clone(), |s| ff.max_size(s)).into()
+            }
+            Some(UploadType::Any) | None => {
+                let ff = FileField::any(name);
+                size.map_or(ff.clone(), |s| ff.max_size(s)).into()
+            }
+        }
+    }
+
+    /// The field a column type calls for, when the DSL declared none.
+    fn field_by_column_type(&self) -> GenericField {
+        let name = self.name.as_str();
+        match &self.col_type {
+            ColumnType::String(_) => self.string_field(),
+            ColumnType::Text => {
+                let tf = if name.contains("description")
+                    || name.contains("bio")
+                    || name.contains("content")
+                    || name.contains("message")
+                    || name.contains("summary")
+                    || name.contains("richtext")
+                {
+                    TextField::richtext(name)
+                } else {
+                    TextField::textarea(name)
+                };
+                self.capped(tf).into()
+            }
+            ColumnType::Integer
+            | ColumnType::BigInteger
+            | ColumnType::TinyInteger
+            | ColumnType::SmallInteger
+            | ColumnType::Unsigned
+            | ColumnType::BigUnsigned => NumericField::integer(name).into(),
+            ColumnType::Float | ColumnType::Double => NumericField::float(name).into(),
+            ColumnType::Decimal(len) => {
+                let nf = NumericField::decimal(name);
+                match len {
+                    Some((p, s)) => nf.decimal_len(*p, *s).into(),
+                    None => nf.into(),
+                }
+            }
+            ColumnType::Boolean => BooleanField::new(name).into(),
+            ColumnType::Date => DateField::new(name).into(),
+            ColumnType::Time => TimeField::new(name).into(),
+            ColumnType::DateTime | ColumnType::Timestamp | ColumnType::TimestampWithTimeZone => {
+                DateTimeField::new(name).into()
+            }
+            ColumnType::Uuid => UUIDField::new(name).into(),
+            ColumnType::Enum { .. } => {
+                let mut f = ChoiceField::new(name);
+                for (value, label) in self.labeled_choices() {
+                    f = f.add_choice(value, label);
+                }
+                f.into()
+            }
+            ColumnType::Json | ColumnType::JsonBinary => JSONField::new(name).into(),
+            ColumnType::Char(_) => TextField::text(name).into(),
+            // Unsupported type (binary/blob/inet/cidr/interval…): falls back to a text field.
+            // Logged so it stays visible (silent fallback otherwise), not a fatal error.
+            other => {
+                tracing::debug!(
+                    field = %name,
+                    col_type = ?other,
+                    "{}",
+                    t(runique_i18n::keys::forms::log::UNSUPPORTED_COLUMN)
+                );
+                TextField::text(name).into()
+            }
+        }
+    }
+
+    /// A text column, read by its name: email, password, URL, slug, color,
+    /// IP address, or plain text.
+    fn string_field(&self) -> GenericField {
+        let name = self.name.as_str();
+        if name == "email" || name.ends_with("_email") {
+            self.capped(TextField::email(name)).into()
+        } else if name == "password" || name.ends_with("_password") || name.ends_with("_pwd") {
+            self.capped(TextField::password(name)).into()
+        } else if name == "url"
+            || name.ends_with("_url")
+            || name == "website"
+            || name.ends_with("_website")
+            || name.contains("http")
+        {
+            self.capped(TextField::url(name)).into()
+        } else if name == "slug" || name.ends_with("_slug") {
+            SlugField::new(name).into()
+        } else if name == "color"
+            || name.ends_with("_color")
+            || name == "colour"
+            || name.ends_with("_colour")
+        {
+            ColorField::new(name).into()
+        } else if name == "ip" || name.ends_with("_ip") || name.contains("ip_address") {
+            IPAddressField::new(name).into()
+        } else {
+            self.capped(TextField::text(name)).into()
+        }
+    }
+
+    /// `tf` held to the column's `max_length`, never above what it already
+    /// allowed. Its message is the field's default one, translated.
+    fn capped(&self, tf: TextField) -> TextField {
+        let Some(max_model) = self.max_length else {
+            return tf;
+        };
+        let current = tf.config.max_length.as_ref().map(|c| c.value);
+        tf.max_length(current.map_or(max_model, |f| max_model.min(f)), "")
     }
 
     /// The form field for a DSL type (`runique_dsl::types`), with the bounds
     /// declared on the column.
-    fn widget_field(
-        &self,
-        widget: runique_dsl::types::Widget,
-    ) -> crate::forms::generic::GenericField {
+    fn widget_field(&self, widget: runique_dsl::types::Widget) -> GenericField {
         use crate::forms::{
             config::field_config::NumericConfig,
-            fields::{
-                FileSize,
-                boolean::BooleanField,
-                choice::{CheckboxField, ChoiceField, RadioField},
-                datetime::{DateField, DateTimeField, TimeField},
-                file::FileField,
-                media::MediaField,
-                number::NumericField,
-                special::{ColorField, IPAddressField, JSONField, SlugField, UUIDField},
-                text::TextField,
-            },
+            fields::choice::{CheckboxField, RadioField},
         };
         use runique_dsl::types::Widget;
 
         let name = self.name.as_str();
         let text = |tf: TextField| -> crate::forms::generic::GenericField {
-            let mut tf = tf;
-            if let Some(max_model) = self.max_length {
-                let current = tf.config.max_length.as_ref().map(|c| c.value);
-                tf = tf.max_length(current.map_or(max_model, |f| max_model.min(f)), "Too long");
-            }
+            let mut tf = self.capped(tf);
             if let Some(min) = self.min_length {
                 tf = tf.min_length(min, "");
             }

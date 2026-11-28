@@ -2,7 +2,10 @@
   "error": {
     "missing": "CSRF-Token fehlt",
     "invalid": "Ungültiger CSRF-Token",
-    "invalid_or_missing": "CSRF-Token ungültig oder fehlt"
+    "invalid_or_missing": "CSRF-Token ungültig oder fehlt",
+    "session_write": "Fehler beim Schreiben der Sitzung",
+    "required": "CSRF-Token erforderlich",
+    "cross_site": "Formular von einer anderen Website gesendet"
   },
   "log": {
     "refused": "CSRF abgelehnt",

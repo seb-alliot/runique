@@ -21,5 +21,19 @@
   },
   "info": {
     "check_inbox": "Если этот адрес связан с учётной записью, вы получите письмо с дальнейшими инструкциями."
+  },
+  "log": {
+    "password_reset_asked_but_no_mailer": "запрошен сброс пароля, но почта не настроена",
+    "reset_email_sent": "письмо для сброса отправлено",
+    "reset_link_not_sent": "ссылка для сброса не отправлена",
+    "reset_token_invalid_expired": "токен сброса недействителен или истёк",
+    "password_reset_rollback_failed": "не удалось откатить сброс пароля",
+    "password_reset_ok": "пароль успешно сброшен",
+    "password_reset_db_error": "ошибка базы данных при сбросе пароля",
+    "reset_token_cleanup_failed": "не удалось очистить токены сброса",
+    "reset_token_consumption_could_not_begin": "не удалось начать использование токена",
+    "reset_token_consumption_rollback_failed": "не удалось откатить использование токена",
+    "reset_token_consumption_failed": "не удалось использовать токен",
+    "reset_token_consumption_commit_failed": "не удалось зафиксировать использование токена"
   }
 }

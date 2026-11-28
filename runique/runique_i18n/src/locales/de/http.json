@@ -18,5 +18,11 @@
     "503": "Dienst wegen hoher Auslastung vorübergehend nicht verfügbar. Bitte versuchen Sie es in Kürze erneut.",
     "critical_text": "Das Fehlerbehandlungssystem ist selbst auf einen Fehler gestoßen.",
     "critical_contact": "Diese Situation sollte niemals auftreten. Bitte kontaktieren Sie den Systemadministrator."
+  },
+  "log": {
+    "csrf_js_tag_not_rendered": "csrf.js-Tag nicht gerendert",
+    "tera_rendering_failed_development": "Tera-Rendering in der Entwicklung fehlgeschlagen",
+    "tera_error_source": "Ursache des Tera-Fehlers",
+    "failed_initialize_templateloader_development": "Initialisierung von TemplateLoader in der Entwicklung fehlgeschlagen"
   }
 }

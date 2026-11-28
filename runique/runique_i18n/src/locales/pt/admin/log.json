@@ -12,5 +12,17 @@
   "boot_route": "rota declarada do admin",
   "boot_no_guard": "o início de sessão do admin não tem LoginGuard nem limitador de taxa: as tentativas de palavra-passe são ilimitadas (`with_login_guard`, `with_rate_limiter`)",
   "boot_options_without_effect": "opções de lista do admin aceites, mas ainda não mostradas por nenhuma página",
-  "boot_stylesheets_missing": "folhas de estilo do Runique não encontradas para o admin: verifique STATIC_RUNIQUE_PATH"
+  "boot_stylesheets_missing": "folhas de estilo do Runique não encontradas para o admin: verifique STATIC_RUNIQUE_PATH",
+  "admin_access_gate": "controle de acesso ao admin",
+  "admin_refused_no_admin_access_sent": "admin recusado: sem acesso ao admin, enviado ao site",
+  "admin_account_gone_inactive_session_closed": "conta de admin removida ou inativa — sessão encerrada",
+  "declared_admin_route_refused_no_admin": "rota declarada do admin recusada: sem acesso ao admin",
+  "account_groups_write_failed": "falha ao gravar os grupos da conta",
+  "admin_link_not_sent_mailer_configuration": "link do admin não enviado: a configuração do mailer está ausente ou incompleta",
+  "admin_reset_link_not_sent": "link de redefinição do admin não enviado",
+  "admin_reset_trace_failed": "falha ao registrar a redefinição do admin",
+  "account_not_created_mailer_configuration_missing": "conta não criada: a configuração do mailer está ausente ou incompleta",
+  "admin_rights_grid_write_failed": "falha ao gravar a grade de direitos do admin",
+  "group_rights_grid_write_failed": "falha ao gravar a grade de direitos do grupo",
+  "group_transfer_failed": "falha na transferência do grupo"
 }

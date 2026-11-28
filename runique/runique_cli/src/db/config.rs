@@ -533,9 +533,24 @@ impl DatabaseConfig {
         match Database::connect(opt).await {
             Ok(conn) => Ok(conn),
             Err(e) => {
-                tracing::error!("└──> Database connection failed");
-                tracing::error!("   └──> Engine: {}", self.engine.name());
-                tracing::error!("       └──> URL: {}", mask_password(&self.url));
+                tracing::error!(
+                    "└──> {}",
+                    runique_i18n::t(runique_i18n::keys::database::log::DATABASE_CONNECTION_FAILED)
+                );
+                tracing::error!(
+                    "   └──> {}",
+                    runique_i18n::tf(
+                        runique_i18n::keys::database::log::ENGINE,
+                        &[self.engine.name()]
+                    )
+                );
+                tracing::error!(
+                    "       └──> {}",
+                    runique_i18n::tf(
+                        runique_i18n::keys::database::log::URL,
+                        &[mask_password(&self.url)]
+                    )
+                );
                 Err(redact_url(e, &self.url))
             }
         }

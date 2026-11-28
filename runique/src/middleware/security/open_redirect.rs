@@ -41,10 +41,14 @@ pub async fn open_redirect_middleware(
     };
 
     if let Some(level) = crate::log::log_level!(middleware.open_redirect) {
-        crate::runique_log!(level, location = %unsafe_target, "open redirect blocked");
+        crate::runique_log!(level, location = %unsafe_target, "{}", crate::translation::t(runique_i18n::keys::middleware::log::OPEN_REDIRECT_BLOCKED));
     }
 
-    (StatusCode::BAD_REQUEST, "Forbidden redirect").into_response()
+    (
+        StatusCode::BAD_REQUEST,
+        crate::translation::t(runique_i18n::keys::middleware::error::FORBIDDEN_REDIRECT),
+    )
+        .into_response()
 }
 
 /// The URLs a `Refresh` value may send the browser to (`5; url=/next`,

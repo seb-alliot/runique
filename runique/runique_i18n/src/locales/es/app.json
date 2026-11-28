@@ -20,5 +20,9 @@
     "not_found": "Página no encontrada",
     "internal": "Error interno del servidor",
     "template_in": "Error de plantilla en '{}'"
+  },
+  "log": {
+    "runique_warning_runique_env_neither_dev": "[runique] AVISO: RUNIQUE_ENV={} no es ni `dev` ni `prod` — se ejecuta en modo producción.",
+    "not_yes_no_value_using_default": "no es un valor sí/no, se usa el valor por defecto"
   }
 }

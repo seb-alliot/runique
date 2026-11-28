@@ -3,7 +3,19 @@
     "https_redirected": "request received over HTTP — redirected to HTTPS",
     "https_port80_stopped": "HTTP server on port 80 (ACME challenge and HTTPS redirect) stopped",
     "ctrl_c_not_installed": "Ctrl+C handler not installed",
-    "sigterm_not_installed": "SIGTERM handler not installed"
+    "sigterm_not_installed": "SIGTERM handler not installed",
+    "starting_acme_certificate_provisioning": "Starting ACME certificate provisioning",
+    "certificate_obtained_successfully": "Certificate obtained successfully",
+    "certificate_missing_unreadable": "Certificate for {} is missing or unreadable",
+    "certificate_not_valid_pem": "Certificate for {} is not a valid PEM",
+    "certificate_not_valid_x_509_certificate": "Certificate for {} is not a valid X.509 certificate",
+    "certificate_does_not_cover_domain": "Certificate for {} does not cover the domain",
+    "certificate_obtained_stored": "Certificate obtained and stored",
+    "loading_existing_tls_certificate": "Loading existing TLS certificate",
+    "acme_renewal_failed_using_existing_certificate": "ACME renewal failed — using existing certificate from ./certs/",
+    "tls_certificate_renewed_reloaded": "TLS certificate renewed and reloaded",
+    "renewed_certificate_not_loaded_keeping_current": "Renewed certificate not loaded — keeping the current one",
+    "acme_renewal_failed_keeping_current_certificate": "ACME renewal failed — keeping the current certificate"
   },
   "info": {
     "operational": "Runique is operational",
@@ -18,6 +30,8 @@
     "stop": "ctrl + c to stop"
   },
   "error": {
-    "acme_not_compiled": "ACME_ENABLED=true but the `acme` feature is not compiled in."
+    "acme_not_compiled": "ACME_ENABLED=true but the `acme` feature is not compiled in.",
+    "acme_authorization_status": "unexpected authorization status: {}",
+    "acme_order_not_ready": "ACME order not ready: {}"
   }
 }

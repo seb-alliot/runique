@@ -207,7 +207,14 @@ impl CleaningMemoryStore {
         {
             // Never silent: a session that isn't saved is lost at the next restart.
             let level = crate::log::log_level!(session.store).unwrap_or(Level::WARN);
-            crate::runique_log!(level, "session DB backup write failed: {e}");
+            crate::runique_log!(
+                level,
+                "{}",
+                crate::translation::tf(
+                    runique_i18n::keys::session::log::SESSION_DB_BACKUP_WRITE_FAILED,
+                    &[e]
+                )
+            );
         }
     }
 
@@ -222,7 +229,14 @@ impl CleaningMemoryStore {
             Ok(updated) => Some(updated),
             Err(e) => {
                 let level = crate::log::log_level!(session.store).unwrap_or(Level::WARN);
-                crate::runique_log!(level, "session DB backup update failed: {e}");
+                crate::runique_log!(
+                    level,
+                    "{}",
+                    crate::translation::tf(
+                        runique_i18n::keys::session::log::SESSION_DB_BACKUP_UPDATE_FAILED,
+                        &[e]
+                    )
+                );
                 None
             }
         }
@@ -281,7 +295,14 @@ impl CleaningMemoryStore {
                 if let Err(e) = store.delete_expired().await
                     && let Some(level) = crate::log::log_level!(session.cleanup)
                 {
-                    crate::runique_log!(level, "session cleanup error: {e}");
+                    crate::runique_log!(
+                        level,
+                        "{}",
+                        crate::translation::tf(
+                            runique_i18n::keys::session::log::SESSION_CLEANUP_ERROR,
+                            &[e]
+                        )
+                    );
                 }
             }
         });
@@ -298,9 +319,7 @@ impl CleaningMemoryStore {
             if let Some(level) = crate::log::log_level!(session.store) {
                 crate::runique_log!(
                     level,
-                    "Low watermark: {} bytes freed (expired anonymous sessions)",
-                    freed
-                );
+                    "{}", crate::translation::tf(runique_i18n::keys::session::log::LOW_WATERMARK_BYTES_FREED_EXPIRED_ANONYMOUS, &[freed]));
             }
         }
     }
@@ -340,9 +359,11 @@ impl SessionStore for CleaningMemoryStore {
                 if let Some(level) = crate::log::log_level!(session.store) {
                     crate::runique_log!(
                         level,
-                        "High watermark: {} + {} bytes freed in emergency",
-                        freed,
-                        freed2
+                        "{}",
+                        crate::translation::tf(
+                            runique_i18n::keys::session::log::HIGH_WATERMARK_BYTES_FREED_EMERGENCY,
+                            &[freed.to_string(), freed2.to_string()]
+                        )
                     );
                 }
             }
@@ -352,9 +373,7 @@ impl SessionStore for CleaningMemoryStore {
                 if let Some(level) = crate::log::log_level!(session.store) {
                     crate::runique_log!(
                         level,
-                        "Session store saturated ({} bytes), new session refused",
-                        self.size_bytes()
-                    );
+                        "{}", crate::translation::tf(runique_i18n::keys::session::log::SESSION_STORE_SATURATED_BYTES_NEW_SESSION, &[self.size_bytes()]));
                 }
                 return Err(session_store::Error::Backend(
                     "session store capacity exceeded".into(),
@@ -373,8 +392,11 @@ impl SessionStore for CleaningMemoryStore {
         {
             crate::runique_log!(
                 level,
-                "Large session record ({} bytes) — avoid storing files or images in session",
-                size
+                "{}",
+                crate::translation::tf(
+                    runique_i18n::keys::session::log::LARGE_SESSION_RECORD_BYTES_AVOID_STORING,
+                    &[size]
+                )
             );
         }
 
@@ -421,10 +443,7 @@ impl SessionStore for CleaningMemoryStore {
                         crate::runique_log!(
                             level,
                             user_id = %user_id,
-                            "exclusive_login: {} session(s) invalidated for user {}",
-                            freed,
-                            user_id
-                        );
+                            "{}", crate::translation::tf(runique_i18n::keys::session::log::EXCLUSIVE_LOGIN_SESSION_S_INVALIDATED_USER, &[freed.to_string(), user_id.to_string()]));
                     }
                 }
 
@@ -441,8 +460,11 @@ impl SessionStore for CleaningMemoryStore {
         {
             crate::runique_log!(
                 level,
-                "Large session record ({} bytes) — avoid storing files or images in session",
-                new_size
+                "{}",
+                crate::translation::tf(
+                    runique_i18n::keys::session::log::LARGE_SESSION_RECORD_BYTES_AVOID_STORING,
+                    &[new_size]
+                )
             );
         }
 
@@ -508,8 +530,7 @@ impl SessionStore for CleaningMemoryStore {
                         if let Some(level) = crate::log::log_level!(session.store) {
                             crate::runique_log!(
                                 level,
-                                "session DB validity check failed for in-memory cookie_id: {error}"
-                            );
+                                "{}", crate::translation::tf(runique_i18n::keys::session::log::SESSION_DB_VALIDITY_CHECK_FAILED_MEMORY, &[error]));
                         }
                         return Err(session_store::Error::Backend(error.to_string()));
                     }
@@ -561,8 +582,7 @@ impl SessionStore for CleaningMemoryStore {
                     if let Some(level) = crate::log::log_level!(session.store) {
                         crate::runique_log!(
                             level,
-                            "session DB fallback load failed for cookie_id lookup: {e}"
-                        );
+                            "{}", crate::translation::tf(runique_i18n::keys::session::log::SESSION_DB_FALLBACK_LOAD_FAILED_COOKIE, &[e]));
                     }
                     return Err(session_store::Error::Backend(e.to_string()));
                 }
@@ -587,7 +607,14 @@ impl SessionStore for CleaningMemoryStore {
             && let Err(error) = db.delete(&session_id.to_string()).await
         {
             if let Some(level) = crate::log::log_level!(session.store) {
-                crate::runique_log!(level, "delete session from DB failed: {error}");
+                crate::runique_log!(
+                    level,
+                    "{}",
+                    crate::translation::tf(
+                        runique_i18n::keys::session::log::DELETE_SESSION_DB_FAILED,
+                        &[error]
+                    )
+                );
             }
             return Err(session_store::Error::Backend(error.to_string()));
         }

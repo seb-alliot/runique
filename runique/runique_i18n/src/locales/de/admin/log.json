@@ -12,5 +12,17 @@
   "boot_route": "deklarierte Admin-Route",
   "boot_no_guard": "die Admin-Anmeldung hat weder LoginGuard noch Rate-Limiter: Passwortversuche sind unbegrenzt (`with_login_guard`, `with_rate_limiter`)",
   "boot_options_without_effect": "Admin-Listenoptionen akzeptiert, aber noch von keiner Seite angezeigt",
-  "boot_stylesheets_missing": "Runique-Stylesheets für den Admin nicht gefunden: STATIC_RUNIQUE_PATH prüfen"
+  "boot_stylesheets_missing": "Runique-Stylesheets für den Admin nicht gefunden: STATIC_RUNIQUE_PATH prüfen",
+  "admin_access_gate": "Zugangsprüfung des Admins",
+  "admin_refused_no_admin_access_sent": "Admin abgelehnt: kein Admin-Zugang, zur Website weitergeleitet",
+  "admin_account_gone_inactive_session_closed": "Admin-Konto verschwunden oder inaktiv — Sitzung geschlossen",
+  "declared_admin_route_refused_no_admin": "deklarierte Admin-Route abgelehnt: kein Admin-Zugang",
+  "account_groups_write_failed": "Schreiben der Kontogruppen fehlgeschlagen",
+  "admin_link_not_sent_mailer_configuration": "Admin-Link nicht gesendet: die Mailer-Konfiguration fehlt oder ist unvollständig",
+  "admin_reset_link_not_sent": "Admin-Link zum Zurücksetzen nicht gesendet",
+  "admin_reset_trace_failed": "Protokollierung des Admin-Zurücksetzens fehlgeschlagen",
+  "account_not_created_mailer_configuration_missing": "Konto nicht erstellt: die Mailer-Konfiguration fehlt oder ist unvollständig",
+  "admin_rights_grid_write_failed": "Schreiben des Rechteschemas des Admins fehlgeschlagen",
+  "group_rights_grid_write_failed": "Schreiben des Rechteschemas der Gruppe fehlgeschlagen",
+  "group_transfer_failed": "Gruppenübergabe fehlgeschlagen"
 }

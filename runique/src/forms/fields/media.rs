@@ -28,7 +28,7 @@ use tokio::fs::File;
 /// What the visitor reads when an upload can't be written: the detail (a
 /// server path, an OS error) goes to the log only.
 pub(crate) fn upload_failed(detail: String) -> String {
-    tracing::warn!(error = %detail, "upload not written");
+    tracing::warn!(error = %detail, "{}", crate::translation::t(runique_i18n::keys::forms::log::UPLOAD_NOT_WRITTEN));
     t(runique_i18n::keys::forms::error::UPLOAD_FAILED).into_owned()
 }
 use std::path::{Component, Path, PathBuf};
@@ -200,7 +200,7 @@ impl Upload {
                 let file_size = match tokio::fs::metadata(filename).await {
                     Ok(metadata) => metadata.len(),
                     Err(e) => {
-                        tracing::warn!(field = %base.name, error = %e, "file field: upload size unreadable, refused");
+                        tracing::warn!(field = %base.name, error = %e, "{}", crate::translation::t(runique_i18n::keys::forms::log::FILE_FIELD_UPLOAD_SIZE_UNREADABLE_REFUSED));
                         cleanup_files(&files).await;
                         return UploadCheck::Refused(
                             t(runique_i18n::keys::forms::error::FILE_UNREADABLE).to_string(),
@@ -270,16 +270,22 @@ impl Upload {
 
             // Only an upload is ever moved: any other existing file stays where it is.
             if !is_staged_upload(file_path) {
-                return Err(format!("'{file_path}' is not an upload"));
+                return Err(crate::translation::tf(
+                    runique_i18n::keys::forms::error::UPLOAD_NOT_STAGED,
+                    &[file_path],
+                ));
             }
 
             let filename = src
                 .file_name()
                 .and_then(|n| n.to_str())
                 .unwrap_or(file_path.as_str());
-            let canonical_root = tokio::fs::canonicalize(&media_root)
-                .await
-                .map_err(|e| format!("media root '{}': {e}", media_root.display()))?;
+            let canonical_root = tokio::fs::canonicalize(&media_root).await.map_err(|e| {
+                crate::translation::tf(
+                    runique_i18n::keys::forms::error::MEDIA_ROOT_FAILED,
+                    &[media_root.display().to_string(), e.to_string()],
+                )
+            })?;
             self.pending_uploads.push(PendingUpload {
                 staged: src.to_path_buf(),
                 destination: canonical_root.join(&upload_rel_clean).join(filename),
@@ -298,40 +304,48 @@ impl Upload {
         }
 
         let media_root = PathBuf::from(resolve_media_root());
-        let canonical_root = tokio::fs::canonicalize(&media_root)
-            .await
-            .map_err(|e| format!("media root '{}': {e}", media_root.display()))?;
+        let canonical_root = tokio::fs::canonicalize(&media_root).await.map_err(|e| {
+            crate::translation::tf(
+                runique_i18n::keys::forms::error::MEDIA_ROOT_FAILED,
+                &[media_root.display().to_string(), e.to_string()],
+            )
+        })?;
 
         let mut batch = AtomicBuilder::create();
         let mut destinations = Vec::with_capacity(self.pending_uploads.len());
         for upload in &self.pending_uploads {
             if !is_staged_upload(&upload.staged.to_string_lossy()) {
-                return Err(format!(
-                    "'{}' is no longer a staged upload",
-                    upload.staged.display()
+                return Err(crate::translation::tf(
+                    runique_i18n::keys::forms::error::UPLOAD_NO_LONGER_STAGED,
+                    &[upload.staged.display()],
                 ));
             }
             let metadata = tokio::fs::symlink_metadata(&upload.staged)
                 .await
-                .map_err(|e| format!("staged upload '{}': {e}", upload.staged.display()))?;
+                .map_err(|e| {
+                    crate::translation::tf(
+                        runique_i18n::keys::forms::error::STAGED_UPLOAD_FAILED,
+                        &[upload.staged.display().to_string(), e.to_string()],
+                    )
+                })?;
             if !metadata.file_type().is_file() {
-                return Err(format!(
-                    "'{}' is not a regular staged file",
-                    upload.staged.display()
+                return Err(crate::translation::tf(
+                    runique_i18n::keys::forms::error::UPLOAD_NOT_REGULAR_FILE,
+                    &[upload.staged.display()],
                 ));
             }
 
             let parent = upload.destination.parent().ok_or_else(|| {
-                format!(
-                    "invalid upload destination '{}'",
-                    upload.destination.display()
+                crate::translation::tf(
+                    runique_i18n::keys::forms::error::UPLOAD_DESTINATION_INVALID,
+                    &[upload.destination.display()],
                 )
             })?;
             let safe_parent = ensure_safe_upload_dir(&canonical_root, parent).await?;
             let filename = upload.destination.file_name().ok_or_else(|| {
-                format!(
-                    "invalid upload destination '{}'",
-                    upload.destination.display()
+                crate::translation::tf(
+                    runique_i18n::keys::forms::error::UPLOAD_DESTINATION_INVALID,
+                    &[upload.destination.display()],
                 )
             })?;
             let destination = safe_parent.join(filename);
@@ -342,7 +356,12 @@ impl Upload {
                     SourceItems::File(upload.staged.clone()),
                     false,
                 )
-                .map_err(|e| format!("publish '{}': {e}", destination.display()))?;
+                .map_err(|e| {
+                    crate::translation::tf(
+                        runique_i18n::keys::forms::error::PUBLISH_FAILED_AT,
+                        &[destination.display().to_string(), e.to_string()],
+                    )
+                })?;
             destinations.push(destination);
         }
 
@@ -351,15 +370,19 @@ impl Upload {
         // every file, or none. The batch does blocking IO, hence the thread.
         tokio::task::spawn_blocking(move || batch.start())
             .await
-            .map_err(|e| format!("publish: {e}"))?
-            .map_err(|e| format!("publish: {e}"))?;
+            .map_err(|e| {
+                crate::translation::tf(runique_i18n::keys::forms::error::PUBLISH_FAILED, &[e])
+            })?
+            .map_err(|e| {
+                crate::translation::tf(runique_i18n::keys::forms::error::PUBLISH_FAILED, &[e])
+            })?;
         self.published_uploads.extend(destinations);
 
         for upload in &self.pending_uploads {
             if let Err(error) = tokio::fs::remove_file(&upload.staged).await {
-                return Err(format!(
-                    "remove staged upload '{}': {error}",
-                    upload.staged.display()
+                return Err(crate::translation::tf(
+                    runique_i18n::keys::forms::error::REMOVE_STAGED_FAILED,
+                    &[upload.staged.display().to_string(), error.to_string()],
                 ));
             }
         }
@@ -372,7 +395,7 @@ impl Upload {
             if let Err(error) = tokio::fs::remove_file(&path).await
                 && error.kind() != ErrorKind::NotFound
             {
-                tracing::error!(path = %path.display(), error = %error, "published upload rollback failed");
+                tracing::error!(path = %path.display(), error = %error, "{}", crate::translation::t(runique_i18n::keys::forms::log::PUBLISHED_UPLOAD_ROLLBACK_FAILED));
             }
         }
         if !self.pending_uploads.is_empty() {
@@ -579,16 +602,14 @@ impl MediaField {
                     field = %self.base.name,
                     file = %filename,
                     error = %error,
-                    "image field: dimensions unreadable, refused"
-                );
+                    "{}", crate::translation::t(runique_i18n::keys::forms::log::IMAGE_FIELD_DIMENSIONS_UNREADABLE_REFUSED));
                 None
             }
             Err(error) => {
                 tracing::warn!(
                     field = %self.base.name,
                     error = %error,
-                    "image field: dimension read task failed, refused"
-                );
+                    "{}", crate::translation::t(runique_i18n::keys::forms::log::IMAGE_FIELD_DIMENSION_READ_TASK_FAILED));
                 None
             }
         };
@@ -675,7 +696,7 @@ impl FormField for MediaField {
         let staged = parse_file_list(value).iter().all(|p| is_staged_upload(p));
         if !staged {
             // Not an upload from this request: the client sent a path as text.
-            tracing::warn!(field = %self.base.name, "media field: submitted value is not a staged upload, ignored");
+            tracing::warn!(field = %self.base.name, "{}", crate::translation::t(runique_i18n::keys::forms::log::MEDIA_FIELD_SUBMITTED_VALUE_NOT_STAGED));
             return;
         }
         self.set_value(value);

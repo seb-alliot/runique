@@ -428,7 +428,12 @@ pub async fn handle_forgot_password(
     // No mailer (debug only: production refuses to boot without one): the
     // same message for every address, so it tells nothing of an account.
     if !mailer_configured() {
-        tracing::warn!("password reset asked, but no mailer is configured");
+        tracing::warn!(
+            "{}",
+            crate::translation::t(
+                runique_i18n::keys::reset::log::PASSWORD_RESET_ASKED_BUT_NO_MAILER
+            )
+        );
         request
             .notices
             .error(t(runique_i18n::keys::reset::error::UNAVAILABLE).to_string())
@@ -480,10 +485,12 @@ pub async fn handle_forgot_password(
         match send_reset_link(&engine, &host, &link, &user, mail).await {
             Ok(()) => {
                 if let Some(level) = log_level {
-                    crate::runique_log!(level, %email, "reset email sent");
+                    crate::runique_log!(level, %email, "{}", crate::translation::t(runique_i18n::keys::reset::log::RESET_EMAIL_SENT));
                 }
             }
-            Err(e) => tracing::warn!(error = %e, "reset link not sent"),
+            Err(e) => {
+                tracing::warn!(error = %e, "{}", crate::translation::t(runique_i18n::keys::reset::log::RESET_LINK_NOT_SENT))
+            }
         }
     });
 
@@ -516,7 +523,11 @@ pub async fn handle_password_reset(
     // Resolve the account bound to this token without consuming it yet.
     let Some(user_id) = resolve(&db, &token).await else {
         if let Some(level) = crate::log::log_level!(auth.reset) {
-            crate::runique_log!(level, "reset token invalid or expired");
+            crate::runique_log!(
+                level,
+                "{}",
+                crate::translation::t(runique_i18n::keys::reset::log::RESET_TOKEN_INVALID_EXPIRED)
+            );
         }
         request
             .notices
@@ -608,7 +619,7 @@ pub async fn handle_password_reset(
         Ok(Some(user_id)) if user_id == user.id => user_id,
         Ok(_) => {
             if let Err(error) = txn.rollback().await {
-                tracing::error!(error = %error, "password reset rollback failed");
+                tracing::error!(error = %error, "{}", crate::translation::t(runique_i18n::keys::reset::log::PASSWORD_RESET_ROLLBACK_FAILED));
             }
             request
                 .notices
@@ -618,7 +629,7 @@ pub async fn handle_password_reset(
         }
         Err(error) => {
             if let Err(rollback_error) = txn.rollback().await {
-                tracing::error!(error = %rollback_error, "password reset rollback failed");
+                tracing::error!(error = %rollback_error, "{}", crate::translation::t(runique_i18n::keys::reset::log::PASSWORD_RESET_ROLLBACK_FAILED));
             }
             form.forms_mut().database_error(&error);
             apply_extra_context(request, &config.extra_context).await;
@@ -662,7 +673,7 @@ pub async fn handle_password_reset(
                     "clear this browser's session after the reset",
                 );
                 if let Some(level) = crate::log::log_level!(auth.reset) {
-                    crate::runique_log!(level, email = %email_clean, "password reset ok");
+                    crate::runique_log!(level, email = %email_clean, "{}", crate::translation::t(runique_i18n::keys::reset::log::PASSWORD_RESET_OK));
                 }
                 form.clear();
                 apply_extra_context(request, &config.extra_context).await;
@@ -680,10 +691,10 @@ pub async fn handle_password_reset(
         },
         Err(e) => {
             if let Err(rollback_error) = txn.rollback().await {
-                tracing::error!(error = %rollback_error, "password reset rollback failed");
+                tracing::error!(error = %rollback_error, "{}", crate::translation::t(runique_i18n::keys::reset::log::PASSWORD_RESET_ROLLBACK_FAILED));
             }
             if let Some(level) = crate::log::log_level!(auth.reset) {
-                crate::runique_log!(level, email = %email_clean, error = %e, "password reset db error");
+                crate::runique_log!(level, email = %email_clean, error = %e, "{}", crate::translation::t(runique_i18n::keys::reset::log::PASSWORD_RESET_DB_ERROR));
             }
             form.forms_mut().database_error(&e);
         }

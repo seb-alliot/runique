@@ -593,7 +593,7 @@ pub(crate) fn put<T: Serialize>(req: &mut Request, page: &T) -> AppResult<()> {
     let context = Context::from_serialize(page).map_err(|e| {
         Box::new(AppError::new(ErrorContext::generic(
             StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("admin page context: {e}"),
+            &crate::translation::tf(runique_i18n::keys::admin::common::error::PAGE_CONTEXT, &[e]),
         )))
     })?;
     req.context.extend(context);

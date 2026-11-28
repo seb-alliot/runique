@@ -2,7 +2,10 @@
   "error": {
     "missing": "Отсутствует CSRF токен",
     "invalid": "Неверный CSRF токен",
-    "invalid_or_missing": "Неверный или отсутствующий CSRF токен"
+    "invalid_or_missing": "Неверный или отсутствующий CSRF токен",
+    "session_write": "Ошибка записи сессии",
+    "required": "Требуется CSRF-токен",
+    "cross_site": "Форма отправлена с другого сайта"
   },
   "log": {
     "refused": "CSRF отклонён",

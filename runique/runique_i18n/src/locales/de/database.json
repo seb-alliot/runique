@@ -10,12 +10,21 @@
     "url_sqlite_default_file": "DATABASE_URL verlangt SQLite, ohne eine Datei zu nennen: Die Standarddatei {} wird verwendet.",
     "keys_without_engine": "DB_ENGINE fehlt: {} ist ohne die Engine gesetzt. Zulässige Werte: postgres, mysql, sqlite.",
     "url_failed_trying_keys": "Die Verbindung über DATABASE_URL ist fehlgeschlagen ({}): neuer Versuch über die DB_*-Schlüssel.",
-    "url_failed_keys_unusable": "Die Verbindung über DATABASE_URL ist fehlgeschlagen ({}), und die DB_*-Schlüssel reichen für eine Verbindung nicht aus: {}"
+    "url_failed_keys_unusable": "Die Verbindung über DATABASE_URL ist fehlgeschlagen ({}), und die DB_*-Schlüssel reichen für eine Verbindung nicht aus: {}",
+    "unsupported_url_scheme": "Nicht unterstütztes Datenbank-URL-Schema",
+    "list_postgres_only": "ListField::fetch_with funktioniert nur mit Postgres: Zeilen lesen, dann load_<Feld>() aufrufen",
+    "list_value_not_in_enum": "der Listenwert `{}` passt nicht zu seinem Enum",
+    "search_one_multiple": "search!.one(): mehrere Zeilen zurückgegeben"
   },
   "info": {
     "url_incomplete_reminder": "Verbindung über die DB_*-Schlüssel hergestellt. DATABASE_URL ist weiterhin unvollständig ({}): Korrigieren oder entfernen Sie sie."
   },
   "log": {
-    "read_reset_token": "Token zum Zurücksetzen des Passworts lesen"
+    "read_reset_token": "Token zum Zurücksetzen des Passworts lesen",
+    "connecting_database": "Verbindung zur Datenbank {}...",
+    "database_connected_successfully": "Datenbank erfolgreich verbunden ({})",
+    "database_connection_failed": "Datenbankverbindung fehlgeschlagen",
+    "engine": "Engine: {}",
+    "url": "URL: {}"
   }
 }

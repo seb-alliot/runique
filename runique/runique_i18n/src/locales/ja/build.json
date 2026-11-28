@@ -19,7 +19,21 @@
     "mailer_missing": "メーラーなしのパスワードリセット：リンクを送信できません",
     "locales_invalid": "プロジェクトの翻訳フォルダーが無効です：{}",
     "lang_unknown": "`.with_lang(\"{}\")`：このコードに対応する読み込み済みの言語はありません。読み込み済み：{}。プロジェクトの言語は `locales/` 内のフォルダです。",
-    "timezone_unknown": "`TIME_ZONE={}` はタイムゾーンではありません。地域/都市の形式で名前を書いてください（例：`Europe/Paris`）。`TIME_ZONE` がない場合、サイトは `UTC` になります。"
+    "timezone_unknown": "`TIME_ZONE={}` はタイムゾーンではありません。地域/都市の形式で名前を書いてください（例：`Europe/Paris`）。`TIME_ZONE` がない場合、サイトは `UTC` になります。",
+    "not_ready": "構築の準備ができていないコンポーネントがあります",
+    "admin_route_name_taken": "管理画面のルート名 `{}` は登録済みの URL と重複しています",
+    "admin_routes_without_admin": "`urlpatterns!` に管理画面のルートが宣言されていますが、管理画面は無効です",
+    "db_connect_failed": "データベースへの接続に失敗しました：{}",
+    "cors_wildcard_credentials": "CORS：any_origin() (*) は allow_credentials(true) と併用できません。明示的なオリジンを使ってください：.origin(\"https://app.example.com\")",
+    "admin_model_invalid": "管理画面 `{}`：\n{}",
+    "admin_override_unsafe_char": "管理画面テンプレートの置き換え `{}` にテンプレートで使えない文字があります",
+    "admin_override_extension": "管理画面テンプレートの置き換え `{}` は Tera がエスケープする `.html` か `.xml` のテンプレートでなければなりません",
+    "admin_override_global_page": "モデル `{}`：{} ページはモデルに属さないため、全体でのみ置き換えられます",
+    "admin_override_missing": "テンプレートフォルダに管理画面テンプレートの置き換えが見つかりません：{}",
+    "admin_override_unknown_variable": "管理画面テンプレートの置き換えが、ページで提供されない変数を読み込んでいます：{}",
+    "admin_view_replaced_twice": "モデル `{}`：{} ページがテンプレートとルートの両方で置き換えられています",
+    "admin_stylesheet_missing": "管理画面のスタイルシート `{}` は static フォルダのファイルではありません",
+    "schema_no_primary_key": "ModelSchema '{}'：主キーがありません"
   },
   "hint": {
     "db_required": "構築チェーンに .with_database(db) または .with_database_config(config) を追加してください",
@@ -41,6 +55,12 @@
     "prune_failed": "孤立した権限の整理に失敗 — 古い権限が残る可能性あり",
     "locales_missing": "プロジェクトの翻訳、言語「{}」：Runique のメッセージ {} 件が未翻訳です（{}）。フォールバック言語で表示されます",
     "locales_unknown": "プロジェクトの翻訳、言語「{}」：Runique の主題に存在しないキーです（効果なし）：{}",
-    "locales_placeholders": "プロジェクトの翻訳、言語「{}」：パラメーターの数が Runique のメッセージと異なります：{}"
+    "locales_placeholders": "プロジェクトの翻訳、言語「{}」：パラメーターの数が Runique のメッセージと異なります：{}",
+    "hsts_preload_set_but_combo_invalid": "HSTS_PRELOAD が設定されていますが組み合わせが無効です（includeSubDomains と max-age ≥ 31536000 が必要）— ブラウザは preload で無視します",
+    "orphan_group_rights_pruned_boot": "起動時に孤立したグループの権限を削除しました",
+    "url_registry": "URL の登録簿",
+    "static_files_attached": "静的ファイルを接続しました",
+    "templates_failed_load": "テンプレートを読み込めませんでした",
+    "templates_loaded": "テンプレートを読み込みました"
   }
 }

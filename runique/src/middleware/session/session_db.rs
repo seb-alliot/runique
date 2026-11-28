@@ -95,9 +95,12 @@ impl RuniqueSessionStore {
     /// Refuses to write rather than store a payload in clear.
     fn seal_data(&self, cookie_hash: &str, data: Option<String>) -> Result<Option<String>, DbErr> {
         data.map(|plain| {
-            self.key
-                .seal(&plain, cookie_hash)
-                .ok_or_else(|| DbErr::Custom("session data could not be encrypted".to_string()))
+            self.key.seal(&plain, cookie_hash).ok_or_else(|| {
+                DbErr::Custom(
+                    crate::translation::t(runique_i18n::keys::session::error::ENCRYPT_FAILED)
+                        .into_owned(),
+                )
+            })
         })
         .transpose()
     }
@@ -112,7 +115,13 @@ impl RuniqueSessionStore {
         if opened.is_none()
             && let Some(level) = crate::log::log_level!(session.store)
         {
-            crate::runique_log!(level, "stored session data could not be decrypted");
+            crate::runique_log!(
+                level,
+                "{}",
+                crate::translation::t(
+                    runique_i18n::keys::session::log::STORED_SESSION_DATA_COULD_NOT_DECRYPTED
+                )
+            );
         }
         opened
     }
@@ -129,7 +138,8 @@ impl RuniqueSessionStore {
         // Reject early rather than let an opaque SQL error bubble up.
         if cookie_id.is_empty() {
             return Err(DbErr::Custom(
-                "create session: empty cookie_id rejected".to_string(),
+                crate::translation::t(runique_i18n::keys::session::error::CREATE_EMPTY_COOKIE)
+                    .into_owned(),
             ));
         }
         let model = ActiveModel {
@@ -238,7 +248,8 @@ impl RuniqueSessionStore {
     ) -> Result<(), DbErr> {
         if cookie_id.is_empty() {
             return Err(DbErr::Custom(
-                "upsert session: empty cookie_id rejected".to_string(),
+                crate::translation::t(runique_i18n::keys::session::error::UPSERT_EMPTY_COOKIE)
+                    .into_owned(),
             ));
         }
         let cookie_hash = hash_cookie_id(cookie_id);
@@ -303,7 +314,14 @@ impl RuniqueSessionStore {
                     .await
                     && let Some(level) = crate::log::log_level!(session.cleanup)
                 {
-                    crate::runique_log!(level, "session cleanup error: {e}");
+                    crate::runique_log!(
+                        level,
+                        "{}",
+                        crate::translation::tf(
+                            runique_i18n::keys::session::log::SESSION_CLEANUP_ERROR,
+                            &[e]
+                        )
+                    );
                 }
             }
         });

@@ -19,3 +19,11 @@ pub mod label {
     pub const BACK_HOME: &str = "http.label.back_home";
     pub const CRITICAL: &str = "http.label.critical";
 }
+pub mod log {
+    pub const CSRF_JS_TAG_NOT_RENDERED: &str = "http.log.csrf_js_tag_not_rendered";
+    pub const FAILED_INITIALIZE_TEMPLATELOADER_DEVELOPMENT: &str =
+        "http.log.failed_initialize_templateloader_development";
+    pub const TERA_ERROR_SOURCE: &str = "http.log.tera_error_source";
+    pub const TERA_RENDERING_FAILED_DEVELOPMENT: &str =
+        "http.log.tera_rendering_failed_development";
+}

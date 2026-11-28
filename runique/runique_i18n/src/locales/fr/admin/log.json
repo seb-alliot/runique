@@ -12,5 +12,17 @@
   "boot_route": "route déclarée de l'admin",
   "boot_no_guard": "la connexion de l'admin n'a ni LoginGuard ni limiteur de débit : les essais de mot de passe sont illimités (`with_login_guard`, `with_rate_limiter`)",
   "boot_options_without_effect": "options de liste de l'admin acceptées, mais affichées par aucune page pour l'instant",
-  "boot_stylesheets_missing": "feuilles de style de Runique introuvables pour l'admin : vérifiez STATIC_RUNIQUE_PATH"
+  "boot_stylesheets_missing": "feuilles de style de Runique introuvables pour l'admin : vérifiez STATIC_RUNIQUE_PATH",
+  "admin_access_gate": "porte d'accès à l'admin",
+  "admin_refused_no_admin_access_sent": "admin refusé : pas d'accès à l'admin, renvoyé vers le site",
+  "admin_account_gone_inactive_session_closed": "compte admin disparu ou inactif — session fermée",
+  "declared_admin_route_refused_no_admin": "route déclarée de l'admin refusée : pas d'accès à l'admin",
+  "account_groups_write_failed": "échec de l'écriture des groupes du compte",
+  "admin_link_not_sent_mailer_configuration": "lien de l'admin non envoyé : la configuration du mailer est absente ou incomplète",
+  "admin_reset_link_not_sent": "lien de réinitialisation de l'admin non envoyé",
+  "admin_reset_trace_failed": "échec de la trace de réinitialisation de l'admin",
+  "account_not_created_mailer_configuration_missing": "compte non créé : la configuration du mailer est absente ou incomplète",
+  "admin_rights_grid_write_failed": "échec de l'écriture de la grille des droits de l'admin",
+  "group_rights_grid_write_failed": "échec de l'écriture de la grille des droits du groupe",
+  "group_transfer_failed": "échec de la cession du groupe"
 }

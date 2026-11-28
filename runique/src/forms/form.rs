@@ -157,7 +157,7 @@ impl Serialize for Forms {
             Ok(h) => h,
             Err(e) => {
                 if let Some(level) = crate::log::log_level!(forms.render) {
-                    crate::runique_log!(level, error = %e, "form render failed");
+                    crate::runique_log!(level, error = %e, "{}", crate::translation::t(runique_i18n::keys::forms::log::FORM_RENDER_FAILED));
                 }
                 format!("<p style='color:red'>Render error: {}</p>", html_escape(&e))
             }
@@ -175,7 +175,7 @@ impl Serialize for Forms {
                     let html = renderer.render_field(field.as_ref()).unwrap_or_else(|e| {
                         if let Some(level) = crate::log::log_level!(forms.render)
                         {
-                            crate::runique_log!(level, field = %name, error = %e, "field render failed");
+                            crate::runique_log!(level, field = %name, error = %e, "{}", crate::translation::t(runique_i18n::keys::forms::log::FIELD_RENDER_FAILED));
                         }
                         format!("<p style='color:red'>Render error: {}</p>", html_escape(&e))
                     });
@@ -408,8 +408,7 @@ impl Forms {
                 field = %generic_instance.name(),
                 kind = %generic_instance.field_type(),
                 required = generic_instance.required(),
-                "field registered"
-            );
+                "{}", crate::translation::t(runique_i18n::keys::forms::log::FIELD_REGISTERED));
         }
         self.fields.insert(
             generic_instance.name().to_string(),
@@ -454,7 +453,7 @@ impl Forms {
                 }
                 if let Some(level) = crate::log::log_level!(forms.set_value) {
                     if is_password {
-                        crate::runique_log!(level, field = %field.name(), "set_value [hidden]");
+                        crate::runique_log!(level, field = %field.name(), "{}", crate::translation::t(runique_i18n::keys::forms::log::SET_VALUE_HIDDEN));
                     } else if key == CSRF_TOKEN_KEY {
                         // A secret, not something typed: whether it was accepted
                         // is what matters, and `middleware.csrf` says it.
@@ -464,7 +463,7 @@ impl Forms {
                             "{}", crate::translation::t(runique_i18n::keys::csrf::log::SET_VALUE)
                         );
                     } else {
-                        crate::runique_log!(level, field = %field.name(), value = %value, "set_value");
+                        crate::runique_log!(level, field = %field.name(), value = %value, "{}", crate::translation::t(runique_i18n::keys::forms::log::SET_VALUE));
                     }
                 }
                 field.set_submitted_value(value);
@@ -480,7 +479,7 @@ impl Forms {
                     && !data.contains_key(field.name())
                 {
                     if let Some(level) = crate::log::log_level!(forms.set_value) {
-                        crate::runique_log!(level, field = %field.name(), value = "false", "set_value [checkbox absent → false]");
+                        crate::runique_log!(level, field = %field.name(), value = "false", "{}", crate::translation::t(runique_i18n::keys::forms::log::SET_VALUE_CHECKBOX_ABSENT_FALSE));
                     }
                     field.set_value("false");
                 }
@@ -594,12 +593,12 @@ impl Forms {
             match field.finalize().await {
                 Ok(()) => {
                     if let Some(level) = log_finalize {
-                        crate::runique_log!(level, field = %name, kind = %field.field_type(), "finalize ok");
+                        crate::runique_log!(level, field = %name, kind = %field.field_type(), "{}", crate::translation::t(runique_i18n::keys::forms::log::FINALIZE_OK));
                     }
                 }
                 Err(e) => {
                     if let Some(level) = log_finalize {
-                        crate::runique_log!(level, field = %name, kind = %field.field_type(), error = %e, "finalize error");
+                        crate::runique_log!(level, field = %name, kind = %field.field_type(), error = %e, "{}", crate::translation::t(runique_i18n::keys::forms::log::FINALIZE_ERROR));
                     }
                     return Err(tf(runique_i18n::keys::forms::error::FINALIZE, &[name, &e]));
                 }

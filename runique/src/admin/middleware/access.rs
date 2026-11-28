@@ -70,8 +70,7 @@ pub(crate) async fn admin_access(
             rang = ?cu.map(|u| u.rang),
             is_staff = cu.is_some_and(CurrentUser::is_staff),
             granted = authed,
-            "admin access gate"
-        );
+            "{}", crate::translation::t(runique_i18n::keys::admin::log::ADMIN_ACCESS_GATE));
     }
     let Some(user) = admin_user else {
         return Redirect::to(&admin.paths.login).into_response();
@@ -123,7 +122,7 @@ pub(crate) async fn load_admin_user(
         // included: back to the site, its session left open.
         Some(current_user) => {
             if let Some(level) = crate::log::log_level!(admin.auth) {
-                crate::runique_log!(level, user = %current_user.username, "admin refused: no admin access, sent to the site");
+                crate::runique_log!(level, user = %current_user.username, "{}", crate::translation::t(runique_i18n::keys::admin::log::ADMIN_REFUSED_NO_ADMIN_ACCESS_SENT));
             }
             let notices = Message { session };
             notices
@@ -136,7 +135,7 @@ pub(crate) async fn load_admin_user(
         // The account is gone or may no longer sign in: its session ends.
         None => {
             if let Some(level) = crate::log::log_level!(admin.auth) {
-                crate::runique_log!(level, user_id = %user_id, "admin account gone or inactive — session closed");
+                crate::runique_log!(level, user_id = %user_id, "{}", crate::translation::t(runique_i18n::keys::admin::log::ADMIN_ACCOUNT_GONE_INACTIVE_SESSION_CLOSED));
             }
             let db_store = engine.sessions.database.clone();
             // Logged, not fatal: the account is read again on every request and
@@ -230,7 +229,7 @@ pub(crate) async fn declared_route_access(
         }
         Some(user) => {
             if let Some(level) = crate::log::log_level!(admin.auth) {
-                crate::runique_log!(level, user = %user.username, "declared admin route refused: no admin access");
+                crate::runique_log!(level, user = %user.username, "{}", crate::translation::t(runique_i18n::keys::admin::log::DECLARED_ADMIN_ROUTE_REFUSED_NO_ADMIN));
             }
             let notices = Message { session };
             notices

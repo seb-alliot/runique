@@ -20,5 +20,9 @@
     "not_found": "页面不存在",
     "internal": "服务器内部错误",
     "template_in": "'{}' 的模板错误"
+  },
+  "log": {
+    "runique_warning_runique_env_neither_dev": "[runique] 警告：RUNIQUE_ENV={} 既不是 `dev` 也不是 `prod` — 以生产模式运行。",
+    "not_yes_no_value_using_default": "不是 yes/no 值，使用默认值"
   }
 }

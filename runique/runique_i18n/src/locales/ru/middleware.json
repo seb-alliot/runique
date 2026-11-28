@@ -1,6 +1,16 @@
 {
   "error": {
     "bad_request": "Неверный запрос",
-    "slot_collision": "Коллизия слота middleware Runique: «{}» и «{}» оба используют слот {}. Зарегистрируйте меньше пользовательских middleware или задайте этому явный слот."
+    "slot_collision": "Коллизия слота middleware Runique: «{}» и «{}» оба используют слот {}. Зарегистрируйте меньше пользовательских middleware или задайте этому явный слот.",
+    "forbidden_redirect": "Запрещённое перенаправление"
+  },
+  "log": {
+    "middleware_stack": "стек middleware",
+    "middleware_slot": "слот middleware",
+    "host_rejected_no_host_header_uri": "хост отклонён: нет заголовка Host и authority в URI",
+    "host_rejected_not_allowlist": "хост отклонён: его нет в списке разрешённых",
+    "honeypot_field_name_insert_into_session": "не удалось записать имя поля-ловушки в сессию",
+    "open_redirect_blocked": "открытое перенаправление заблокировано",
+    "rate_limited": "превышен лимит запросов"
   }
 }

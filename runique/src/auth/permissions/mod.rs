@@ -259,7 +259,7 @@ pub async fn prune_orphan_droits<C: ConnectionTrait>(
 /// traced, never swallowed silently.
 pub async fn pull_groupes_db<C: ConnectionTrait>(db: &C, user_id: Pk) -> Vec<Groupe> {
     let trace_err = |what: &str, e: &DbErr| {
-        tracing::error!(user_id = %user_id, error = %e, "{what} failed — no rights granted for this request");
+        tracing::error!(user_id = %user_id, error = %e, "{}", crate::translation::tf(runique_i18n::keys::auth::log::FAILED_NO_RIGHTS_GRANTED_REQUEST, &[what]));
     };
     let rows: Vec<(i32, String, bool, Pk, bool, bool, bool)> = match group::Entity::find()
         .select_only()
@@ -368,7 +368,7 @@ pub async fn pull_droits_compte<C: ConnectionTrait>(db: &C, user_id: Pk) -> Vec<
     {
         Ok(rows) => assemble(rows),
         Err(e) => {
-            tracing::error!(user_id = %user_id, error = %e, "loading account rights failed — no rights granted for this request");
+            tracing::error!(user_id = %user_id, error = %e, "{}", crate::translation::t(runique_i18n::keys::auth::log::LOADING_ACCOUNT_RIGHTS_FAILED_NO_RIGHTS));
             Vec::new()
         }
     }

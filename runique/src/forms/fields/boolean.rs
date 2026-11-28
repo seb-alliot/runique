@@ -104,7 +104,7 @@ impl FormField for BooleanField {
             return true;
         };
         if let Some(level) = crate::log::log_level!(forms.validate) {
-            crate::runique_log!(level, field = %self.base.name, reason, "boolean field refused");
+            crate::runique_log!(level, field = %self.base.name, reason, "{}", crate::translation::t(runique_i18n::keys::forms::log::BOOLEAN_FIELD_REFUSED));
         }
         self.set_error(message);
         false

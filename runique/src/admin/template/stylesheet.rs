@@ -236,8 +236,9 @@ impl PageSheets {
                 }
                 Stylesheet::Dev(path) => {
                     let Some(hash) = statics.site.get(&path) else {
-                        return Err(format!(
-                            "admin stylesheet `{path}` is not a file of the static folder"
+                        return Err(crate::translation::tf(
+                            runique_i18n::keys::build::error::ADMIN_STYLESHEET_MISSING,
+                            &[&path],
                         ));
                     };
                     ServedStylesheet {

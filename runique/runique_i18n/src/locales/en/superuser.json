@@ -23,7 +23,16 @@
     "email_taken": "A user with this email already exists.",
     "password_too_short": "Password must be at least 12 characters.",
     "password_weak": "Password must contain at least one lowercase letter, one uppercase letter, one digit and one special character.",
-    "password_mismatch": "Passwords do not match. Please try again."
+    "password_mismatch": "Passwords do not match. Please try again.",
+    "provider_not_found": "Provider not found: '{}'",
+    "provider_not_a_file": "Provider is not a file: '{}'",
+    "provider_symlink": "Provider path is a symbolic link, which is not allowed: '{}'",
+    "provider_launch_failed": "Failed to launch provider '{}': {}",
+    "provider_timeout": "Provider '{}' timed out after {} seconds",
+    "provider_wait_failed": "Error waiting for provider: {}",
+    "provider_exit_code": "Provider returned an error (exit code {})",
+    "provider_stdin_failed": "Error writing to stdin: {}",
+    "provider_output_invalid": "Invalid provider output (UTF-8): {}"
   },
   "info": {
     "review_algo": "  Algorithm   : {}",

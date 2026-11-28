@@ -143,7 +143,7 @@ impl TemplateLoader {
         let user_count = all_templates.len() - internal_loaded;
         if let Err(e) = tera.add_raw_templates(all_templates) {
             // Tera's error message already contains the template name and line number
-            tracing::error!(error = %e, "templates failed to load");
+            tracing::error!(error = %e, "{}", crate::translation::t(runique_i18n::keys::build::log::TEMPLATES_FAILED_LOAD));
             return Err(Box::new(e));
         }
 
@@ -158,7 +158,8 @@ impl TemplateLoader {
                 internal = internal_count,
                 user = user_count,
                 total = internal_count + user_count,
-                "templates loaded"
+                "{}",
+                crate::translation::t(runique_i18n::keys::build::log::TEMPLATES_LOADED)
             );
         }
 

@@ -2,5 +2,9 @@
   "label": {
     "username": "Username",
     "password": "Password"
+  },
+  "error": {
+    "page_context": "admin page context: {}",
+    "row_without_key": "admin list row is missing a serializable primary key"
   }
 }

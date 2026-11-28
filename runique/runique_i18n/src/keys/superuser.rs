@@ -6,6 +6,15 @@ pub mod error {
     pub const PASSWORD_MISMATCH: &str = "superuser.error.password_mismatch";
     pub const PASSWORD_TOO_SHORT: &str = "superuser.error.password_too_short";
     pub const PASSWORD_WEAK: &str = "superuser.error.password_weak";
+    pub const PROVIDER_EXIT_CODE: &str = "superuser.error.provider_exit_code";
+    pub const PROVIDER_LAUNCH_FAILED: &str = "superuser.error.provider_launch_failed";
+    pub const PROVIDER_NOT_A_FILE: &str = "superuser.error.provider_not_a_file";
+    pub const PROVIDER_NOT_FOUND: &str = "superuser.error.provider_not_found";
+    pub const PROVIDER_OUTPUT_INVALID: &str = "superuser.error.provider_output_invalid";
+    pub const PROVIDER_STDIN_FAILED: &str = "superuser.error.provider_stdin_failed";
+    pub const PROVIDER_SYMLINK: &str = "superuser.error.provider_symlink";
+    pub const PROVIDER_TIMEOUT: &str = "superuser.error.provider_timeout";
+    pub const PROVIDER_WAIT_FAILED: &str = "superuser.error.provider_wait_failed";
     pub const USERNAME_EMPTY: &str = "superuser.error.username_empty";
     pub const USERNAME_TAKEN: &str = "superuser.error.username_taken";
 }

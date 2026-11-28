@@ -5,6 +5,25 @@
     "read_flash": "leitura das mensagens flash da sessão",
     "read_dashboard_template": "leitura do modelo do painel escolhido na sessão",
     "decode_user_memory": "descodificação do user_id da sessão (carregamento da memória)",
-    "decode_user_db": "descodificação do user_id da sessão (carregamento da base de dados)"
+    "decode_user_db": "descodificação do user_id da sessão (carregamento da base de dados)",
+    "auth_session_ttl_set_raced_build": "TTL da sessão autenticada definido em concorrência na inicialização — o primeiro valor é mantido",
+    "auth_session_ttl_already_set_different": "TTL da sessão autenticada já definido com outro valor (vários apps em um processo?) — o primeiro é mantido",
+    "session_db_backup_write_failed": "falha ao gravar a cópia da sessão no banco de dados: {}",
+    "session_db_backup_update_failed": "falha ao atualizar a cópia da sessão no banco de dados: {}",
+    "session_cleanup_error": "erro na limpeza das sessões: {}",
+    "low_watermark_bytes_freed_expired_anonymous": "Limite baixo: {} bytes liberados (sessões anônimas expiradas)",
+    "high_watermark_bytes_freed_emergency": "Limite alto: {} + {} bytes liberados em emergência",
+    "session_store_saturated_bytes_new_session": "Armazenamento de sessões saturado ({} bytes), nova sessão recusada",
+    "large_session_record_bytes_avoid_storing": "Registro de sessão grande ({} bytes) — evite armazenar arquivos ou imagens na sessão",
+    "exclusive_login_session_s_invalidated_user": "exclusive_login: {} sessão(ões) encerrada(s) para o usuário {}",
+    "session_db_validity_check_failed_memory": "falha ao verificar no banco de dados uma sessão em memória (cookie_id): {}",
+    "session_db_fallback_load_failed_cookie": "falha ao carregar a sessão de reserva do banco de dados (busca por cookie_id): {}",
+    "delete_session_db_failed": "falha ao excluir a sessão do banco de dados: {}",
+    "stored_session_data_could_not_decrypted": "não foi possível descriptografar os dados de sessão armazenados"
+  },
+  "error": {
+    "encrypt_failed": "não foi possível criptografar os dados da sessão",
+    "create_empty_cookie": "criar sessão: cookie_id vazio recusado",
+    "upsert_empty_cookie": "salvar sessão: cookie_id vazio recusado"
   }
 }

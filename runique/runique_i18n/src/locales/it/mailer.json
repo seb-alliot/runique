@@ -1,5 +1,23 @@
 {
   "log": {
-    "init_twice": "mailer_init() chiamato più volte: la configurazione iniziale è mantenuta"
+    "init_twice": "mailer_init() chiamato più volte: la configurazione iniziale è mantenuta",
+    "send_mailer_not_configured": "invio — mailer non configurato",
+    "send": "invio",
+    "send_error": "errore di invio"
+  },
+  "error": {
+    "template": "Errore di template ({}): {}",
+    "subject_line_break": "L'oggetto dell'e-mail contiene un a capo",
+    "not_configured": "La configurazione del mailer manca o è incompleta: impostare EMAIL_BACKEND e SMTP_* nel .env",
+    "no_content": "E-mail senza contenuto",
+    "invalid_sender": "Indirizzo del mittente non valido: {}",
+    "invalid_recipient": "Indirizzo del destinatario non valido: {}",
+    "invalid_reply_to": "Reply-To non valido: {}",
+    "build_failed": "Errore nella costruzione dell'e-mail: {}",
+    "smtp_connection": "Connessione SMTP non riuscita: {}",
+    "send_failed": "Errore durante l'invio dell'e-mail: {}"
+  },
+  "label": {
+    "no_content": "(nessun contenuto)"
   }
 }

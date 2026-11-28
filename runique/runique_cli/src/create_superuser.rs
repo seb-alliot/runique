@@ -279,15 +279,21 @@ fn hash_via_provider(password: &str, provider_path: &str) -> Result<String, Stri
     // Verify that the path is an existing and executable file — no shell injection
     let path = Path::new(provider_path);
     if !path.exists() {
-        return Err(format!("Provider not found: '{}'", provider_path));
+        return Err(tf(
+            runique_i18n::keys::superuser::error::PROVIDER_NOT_FOUND,
+            &[provider_path],
+        ));
     }
     if !path.is_file() {
-        return Err(format!("Provider is not a file: '{}'", provider_path));
+        return Err(tf(
+            runique_i18n::keys::superuser::error::PROVIDER_NOT_A_FILE,
+            &[provider_path],
+        ));
     }
     if path.is_symlink() {
-        return Err(format!(
-            "Provider path is a symbolic link, which is not allowed: '{}'",
-            provider_path
+        return Err(tf(
+            runique_i18n::keys::superuser::error::PROVIDER_SYMLINK,
+            &[provider_path],
         ));
     }
 
@@ -298,7 +304,12 @@ fn hash_via_provider(password: &str, provider_path: &str) -> Result<String, Stri
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()
-        .map_err(|e| format!("Failed to launch provider '{}': {}", provider_path, e))?;
+        .map_err(|e| {
+            tf(
+                runique_i18n::keys::superuser::error::PROVIDER_LAUNCH_FAILED,
+                &[provider_path.to_string(), e.to_string()],
+            )
+        })?;
 
     // A provider that exits before reading stdin makes this write fail with
     // BrokenPipe depending on scheduling: its exit status is the real answer,
@@ -318,24 +329,39 @@ fn hash_via_provider(password: &str, provider_path: &str) -> Result<String, Stri
     let output = rx
         .recv_timeout(std::time::Duration::from_secs(PROVIDER_TIMEOUT_SECS))
         .map_err(|_| {
-            format!(
-                "Provider '{}' timed out after {} seconds",
-                provider_path, PROVIDER_TIMEOUT_SECS
+            tf(
+                runique_i18n::keys::superuser::error::PROVIDER_TIMEOUT,
+                &[provider_path.to_string(), PROVIDER_TIMEOUT_SECS.to_string()],
             )
         })?
-        .map_err(|e| format!("Error waiting for provider: {}", e))?;
+        .map_err(|e| {
+            tf(
+                runique_i18n::keys::superuser::error::PROVIDER_WAIT_FAILED,
+                &[e],
+            )
+        })?;
 
     if !output.status.success() {
-        return Err(format!(
-            "Provider returned an error (exit code {:?})",
-            output.status.code()
+        return Err(tf(
+            runique_i18n::keys::superuser::error::PROVIDER_EXIT_CODE,
+            &[format!("{:?}", output.status.code())],
         ));
     }
-    write_result.map_err(|e| format!("Error writing to stdin: {}", e))?;
+    write_result.map_err(|e| {
+        tf(
+            runique_i18n::keys::superuser::error::PROVIDER_STDIN_FAILED,
+            &[e],
+        )
+    })?;
 
     String::from_utf8(output.stdout)
         .map(|s| s.trim().to_string())
-        .map_err(|e| format!("Invalid provider output (UTF-8): {}", e))
+        .map_err(|e| {
+            tf(
+                runique_i18n::keys::superuser::error::PROVIDER_OUTPUT_INVALID,
+                &[e],
+            )
+        })
 }
 
 // ─── Entry point ──────────────────────────────────────────────────────────────

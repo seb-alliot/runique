@@ -19,7 +19,21 @@
     "mailer_missing": "Passwort-Zurücksetzung ohne Mailer: der Link könnte nie gesendet werden",
     "locales_invalid": "Der Übersetzungsordner des Projekts ist ungültig: {}",
     "lang_unknown": "`.with_lang(\"{}\")`: Keine geladene Sprache entspricht diesem Code. Geladen: {}. Eine Sprache des Projekts ist ein Ordner in dessen `locales/`.",
-    "timezone_unknown": "`TIME_ZONE={}` ist keine Zeitzone. Schreiben Sie ihren Namen in der Form Region/Stadt, zum Beispiel `Europe/Paris`; ohne `TIME_ZONE` ist die Website in `UTC`."
+    "timezone_unknown": "`TIME_ZONE={}` ist keine Zeitzone. Schreiben Sie ihren Namen in der Form Region/Stadt, zum Beispiel `Europe/Paris`; ohne `TIME_ZONE` ist die Website in `UTC`.",
+    "not_ready": "Eine oder mehrere Komponenten sind nicht bereit zum Aufbau",
+    "admin_route_name_taken": "der Admin-Routenname `{}` kollidiert mit einer bereits registrierten URL",
+    "admin_routes_without_admin": "Admin-Routen wurden in `urlpatterns!` deklariert, aber der Admin ist deaktiviert",
+    "db_connect_failed": "Verbindung zur Datenbank fehlgeschlagen: {}",
+    "cors_wildcard_credentials": "CORS: any_origin() (*) ist nicht mit allow_credentials(true) vereinbar. Stattdessen explizite Origins verwenden: .origin(\"https://app.example.com\")",
+    "admin_model_invalid": "Admin `{}`:\n{}",
+    "admin_override_unsafe_char": "die Admin-Template-Ersetzung `{}` enthält ein Zeichen, das ein Template nicht aufnehmen kann",
+    "admin_override_extension": "die Admin-Template-Ersetzung `{}` muss ein `.html`- oder `.xml`-Template sein, das Tera maskiert",
+    "admin_override_global_page": "Modell `{}`: die Seite {} betrifft kein Modell, sie wird nur global ersetzt",
+    "admin_override_missing": "Admin-Template-Ersetzung im Template-Ordner nicht gefunden: {}",
+    "admin_override_unknown_variable": "eine Admin-Template-Ersetzung liest eine Variable, die ihre Seite nie bereitstellt: {}",
+    "admin_view_replaced_twice": "Modell `{}`: seine Seite {} wird sowohl durch ein Template als auch durch eine Route ersetzt",
+    "admin_stylesheet_missing": "das Admin-Stylesheet `{}` ist keine Datei des static-Ordners",
+    "schema_no_primary_key": "ModelSchema '{}': Primärschlüssel fehlt"
   },
   "hint": {
     "db_required": "Fügen Sie .with_database(db) oder .with_database_config(config) zu Ihrer Builder-Kette hinzu",
@@ -41,6 +55,12 @@
     "prune_failed": "Bereinigung verwaister Rechte fehlgeschlagen — veraltete Rechte können bleiben",
     "locales_missing": "Übersetzungen des Projekts, Sprache „{}“: {} Meldung(en) von Runique nicht übersetzt ({}), in der Ersatzsprache angezeigt",
     "locales_unknown": "Übersetzungen des Projekts, Sprache „{}“: Schlüssel, die Runique in einem seiner Themen nicht kennt, ohne Wirkung: {}",
-    "locales_placeholders": "Übersetzungen des Projekts, Sprache „{}“: andere Anzahl von Parametern als in der Meldung von Runique: {}"
+    "locales_placeholders": "Übersetzungen des Projekts, Sprache „{}“: andere Anzahl von Parametern als in der Meldung von Runique: {}",
+    "hsts_preload_set_but_combo_invalid": "HSTS_PRELOAD gesetzt, aber Kombination ungültig (benötigt includeSubDomains + max-age ≥ 31536000) — von Browsern für Preload ignoriert",
+    "orphan_group_rights_pruned_boot": "verwaiste Gruppenrechte beim Start entfernt",
+    "url_registry": "URL-Verzeichnis",
+    "static_files_attached": "statische Dateien eingebunden",
+    "templates_failed_load": "Templates konnten nicht geladen werden",
+    "templates_loaded": "Templates geladen"
   }
 }

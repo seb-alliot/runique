@@ -119,7 +119,13 @@ pub(crate) async fn allowed_hosts_middleware(
         Some(h) => h,
         None => {
             if let Some(level) = crate::log::log_level!(middleware.host_validation) {
-                crate::runique_log!(level, "host rejected: no Host header or URI authority");
+                crate::runique_log!(
+                    level,
+                    "{}",
+                    crate::translation::t(
+                        runique_i18n::keys::middleware::log::HOST_REJECTED_NO_HOST_HEADER_URI
+                    )
+                );
             }
             let msg = engine.security.hosts.make_error_message("<no host>");
             return (StatusCode::BAD_REQUEST, msg).into_response();
@@ -128,7 +134,7 @@ pub(crate) async fn allowed_hosts_middleware(
 
     if !engine.security.hosts.is_host_allowed(host) {
         if let Some(level) = crate::log::log_level!(middleware.host_validation) {
-            crate::runique_log!(level, host = %host, "host rejected: not in allowlist");
+            crate::runique_log!(level, host = %host, "{}", crate::translation::t(runique_i18n::keys::middleware::log::HOST_REJECTED_NOT_ALLOWLIST));
         }
         let msg = engine.security.hosts.make_error_message(host);
         return (StatusCode::BAD_REQUEST, msg).into_response();

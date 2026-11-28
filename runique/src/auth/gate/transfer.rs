@@ -34,7 +34,13 @@ fn refused(reason: RefusalReason) -> DbErr {
 /// cause: the selector offers only valid receivers, so this answers a forged
 /// form or a race, and the cause goes to the logs.
 fn unsuitable(cause: &str) -> DbErr {
-    tracing::info!(cause, "group transfer refused: unsuitable receiver");
+    tracing::info!(
+        cause,
+        "{}",
+        crate::translation::t(
+            runique_i18n::keys::auth::log::GROUP_TRANSFER_REFUSED_UNSUITABLE_RECEIVER
+        )
+    );
     DbErr::Custom(t(runique_i18n::keys::admin::transfer::error::UNSUITABLE).into_owned())
 }
 
@@ -330,7 +336,12 @@ pub(crate) async fn plan<C: ConnectionTrait>(
         .one(db)
         .await?;
     if ranked.is_some() {
-        tracing::info!("group transfer refused: ranked members for an admin");
+        tracing::info!(
+            "{}",
+            crate::translation::t(
+                runique_i18n::keys::auth::log::GROUP_TRANSFER_REFUSED_RANKED_MEMBERS_ADMIN
+            )
+        );
         return Err(DbErr::Custom(
             t(runique_i18n::keys::admin::transfer::error::RANKED_MEMBERS).into_owned(),
         ));

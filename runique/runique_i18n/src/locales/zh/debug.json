@@ -30,5 +30,15 @@
     "status_code": "状态码",
     "header_name": "名称",
     "header_value": "值"
+  },
+  "log": {
+    "template_rendering_error": "模板渲染错误",
+    "apperror_occurred": "发生了 AppError",
+    "error_full_context": "带完整上下文的错误",
+    "critical_error_occurred": "发生了严重错误",
+    "handled_error": "已处理的错误",
+    "failed_render_error_template": "渲染错误模板失败",
+    "failed_serialize_error_context": "序列化错误上下文失败：{}",
+    "failed_render_debug_template": "渲染调试模板失败：{}"
   }
 }

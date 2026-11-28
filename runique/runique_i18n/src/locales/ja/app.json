@@ -20,5 +20,9 @@
     "not_found": "ページが見つかりません",
     "internal": "内部サーバーエラー",
     "template_in": "'{}' のテンプレートエラー"
+  },
+  "log": {
+    "runique_warning_runique_env_neither_dev": "[runique] 警告：RUNIQUE_ENV={} は `dev` でも `prod` でもありません — 本番モードで起動します。",
+    "not_yes_no_value_using_default": "yes/no の値ではないため既定値を使います"
   }
 }

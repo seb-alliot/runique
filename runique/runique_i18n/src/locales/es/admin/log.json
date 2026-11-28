@@ -12,5 +12,17 @@
   "boot_route": "ruta declarada del admin",
   "boot_no_guard": "el inicio de sesión del admin no tiene LoginGuard ni limitador de frecuencia: los intentos de contraseña son ilimitados (`with_login_guard`, `with_rate_limiter`)",
   "boot_options_without_effect": "opciones de lista del admin aceptadas, pero aún no mostradas por ninguna página",
-  "boot_stylesheets_missing": "hojas de estilo de Runique no encontradas para el admin: compruebe STATIC_RUNIQUE_PATH"
+  "boot_stylesheets_missing": "hojas de estilo de Runique no encontradas para el admin: compruebe STATIC_RUNIQUE_PATH",
+  "admin_access_gate": "control de acceso al admin",
+  "admin_refused_no_admin_access_sent": "admin rechazado: sin acceso al admin, enviado al sitio",
+  "admin_account_gone_inactive_session_closed": "cuenta de admin desaparecida o inactiva — sesión cerrada",
+  "declared_admin_route_refused_no_admin": "ruta declarada del admin rechazada: sin acceso al admin",
+  "account_groups_write_failed": "fallo al escribir los grupos de la cuenta",
+  "admin_link_not_sent_mailer_configuration": "enlace del admin no enviado: la configuración del mailer falta o está incompleta",
+  "admin_reset_link_not_sent": "enlace de restablecimiento del admin no enviado",
+  "admin_reset_trace_failed": "fallo al registrar el restablecimiento del admin",
+  "account_not_created_mailer_configuration_missing": "cuenta no creada: la configuración del mailer falta o está incompleta",
+  "admin_rights_grid_write_failed": "fallo al escribir la tabla de derechos del admin",
+  "group_rights_grid_write_failed": "fallo al escribir la tabla de derechos del grupo",
+  "group_transfer_failed": "fallo en la cesión del grupo"
 }

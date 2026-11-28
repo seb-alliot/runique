@@ -2,7 +2,10 @@
   "error": {
     "missing": "缺少 CSRF 令牌",
     "invalid": "CSRF 令牌无效",
-    "invalid_or_missing": "CSRF 令牌无效或缺失"
+    "invalid_or_missing": "CSRF 令牌无效或缺失",
+    "session_write": "会话写入错误",
+    "required": "需要 CSRF 令牌",
+    "cross_site": "从其他网站提交的表单"
   },
   "log": {
     "refused": "CSRF 被拒绝",

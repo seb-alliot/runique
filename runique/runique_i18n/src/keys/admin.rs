@@ -28,6 +28,10 @@ pub mod bulk {
     }
 }
 pub mod common {
+    pub mod error {
+        pub const PAGE_CONTEXT: &str = "admin.common.error.page_context";
+        pub const ROW_WITHOUT_KEY: &str = "admin.common.error.row_without_key";
+    }
     pub mod label {
         pub const PASSWORD: &str = "admin.common.label.password";
         pub const USERNAME: &str = "admin.common.label.username";
@@ -188,6 +192,19 @@ pub mod list {
     }
 }
 pub mod log {
+    pub const ACCOUNT_GROUPS_WRITE_FAILED: &str = "admin.log.account_groups_write_failed";
+    pub const ACCOUNT_NOT_CREATED_MAILER_CONFIGURATION_MISSING: &str =
+        "admin.log.account_not_created_mailer_configuration_missing";
+    pub const ADMIN_ACCESS_GATE: &str = "admin.log.admin_access_gate";
+    pub const ADMIN_ACCOUNT_GONE_INACTIVE_SESSION_CLOSED: &str =
+        "admin.log.admin_account_gone_inactive_session_closed";
+    pub const ADMIN_LINK_NOT_SENT_MAILER_CONFIGURATION: &str =
+        "admin.log.admin_link_not_sent_mailer_configuration";
+    pub const ADMIN_REFUSED_NO_ADMIN_ACCESS_SENT: &str =
+        "admin.log.admin_refused_no_admin_access_sent";
+    pub const ADMIN_RESET_LINK_NOT_SENT: &str = "admin.log.admin_reset_link_not_sent";
+    pub const ADMIN_RESET_TRACE_FAILED: &str = "admin.log.admin_reset_trace_failed";
+    pub const ADMIN_RIGHTS_GRID_WRITE_FAILED: &str = "admin.log.admin_rights_grid_write_failed";
     pub const BOOT_ADMIN: &str = "admin.log.boot_admin";
     pub const BOOT_MODEL: &str = "admin.log.boot_model";
     pub const BOOT_NO_GUARD: &str = "admin.log.boot_no_guard";
@@ -196,6 +213,10 @@ pub mod log {
     pub const BOOT_STYLESHEETS_MISSING: &str = "admin.log.boot_stylesheets_missing";
     pub const BULK_DONE: &str = "admin.log.bulk_done";
     pub const BULK_REFUSED: &str = "admin.log.bulk_refused";
+    pub const DECLARED_ADMIN_ROUTE_REFUSED_NO_ADMIN: &str =
+        "admin.log.declared_admin_route_refused_no_admin";
+    pub const GROUP_RIGHTS_GRID_WRITE_FAILED: &str = "admin.log.group_rights_grid_write_failed";
+    pub const GROUP_TRANSFER_FAILED: &str = "admin.log.group_transfer_failed";
     pub const LIST: &str = "admin.log.list";
     pub const OUTCOME_DELETE_REFUSED: &str = "admin.log.outcome_delete_refused";
     pub const OUTCOME_DELETED: &str = "admin.log.outcome_deleted";

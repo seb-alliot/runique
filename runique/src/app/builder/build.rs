@@ -50,9 +50,9 @@ impl<P> RuniqueAppBuilder<P> {
 
         self.validate()?;
         if !self.all_ready() {
-            return Err(BuildError::validation(
-                "One or more components are not ready for construction",
-            ));
+            return Err(BuildError::validation(crate::translation::t(
+                runique_i18n::keys::build::error::NOT_READY,
+            )));
         }
 
         //   - `with_database(db)`        → already connected, taken as is
@@ -167,7 +167,10 @@ fn warn_hsts_preload(config: &RuniqueConfig) {
         tracing::warn!(
             max_age = config.security.hsts_max_age,
             include_subdomains = config.security.hsts_include_subdomains,
-            "HSTS_PRELOAD set but combo invalid (needs includeSubDomains + max-age ≥ 31536000) — ignored by browsers for preload"
+            "{}",
+            crate::translation::t(
+                runique_i18n::keys::build::log::HSTS_PRELOAD_SET_BUT_COMBO_INVALID
+            )
         );
     }
 }

@@ -42,7 +42,12 @@ pub(crate) async fn create_view(
     // link mailed to its owner. Without a complete mailer configuration that
     // link can't leave, so no account is created at all.
     if model.is_account_table() && !mailer_configured() {
-        tracing::warn!("account not created: the mailer configuration is missing or incomplete");
+        tracing::warn!(
+            "{}",
+            crate::translation::t(
+                runique_i18n::keys::admin::log::ACCOUNT_NOT_CREATED_MAILER_CONFIGURATION_MISSING
+            )
+        );
         req.notices
             .error(t(
                 runique_i18n::keys::admin::reset_password::error::NO_MAILER,

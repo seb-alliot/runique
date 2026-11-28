@@ -21,5 +21,19 @@
   },
   "info": {
     "check_inbox": "Si cette adresse est associée à un compte, vous recevrez un email avec la marche à suivre."
+  },
+  "log": {
+    "password_reset_asked_but_no_mailer": "réinitialisation demandée, mais aucun mailer n'est configuré",
+    "reset_email_sent": "e-mail de réinitialisation envoyé",
+    "reset_link_not_sent": "lien de réinitialisation non envoyé",
+    "reset_token_invalid_expired": "jeton de réinitialisation invalide ou expiré",
+    "password_reset_rollback_failed": "échec de l'annulation de la réinitialisation",
+    "password_reset_ok": "réinitialisation réussie",
+    "password_reset_db_error": "erreur de base lors de la réinitialisation",
+    "reset_token_cleanup_failed": "échec du nettoyage des jetons de réinitialisation",
+    "reset_token_consumption_could_not_begin": "l'utilisation du jeton n'a pas pu commencer",
+    "reset_token_consumption_rollback_failed": "échec de l'annulation de l'utilisation du jeton",
+    "reset_token_consumption_failed": "échec de l'utilisation du jeton",
+    "reset_token_consumption_commit_failed": "échec de la validation de l'utilisation du jeton"
   }
 }

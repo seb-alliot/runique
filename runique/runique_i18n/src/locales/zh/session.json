@@ -5,6 +5,25 @@
     "read_flash": "从会话读取闪现消息",
     "read_dashboard_template": "从会话读取所选的仪表盘模板",
     "decode_user_memory": "解码会话 user_id（从内存加载）",
-    "decode_user_db": "解码会话 user_id（从数据库加载）"
+    "decode_user_db": "解码会话 user_id（从数据库加载）",
+    "auth_session_ttl_set_raced_build": "构建时已认证会话的 TTL 被并发设置 — 保留第一个值",
+    "auth_session_ttl_already_set_different": "已认证会话的 TTL 已设为其他值（一个进程中有多个应用？）— 保留第一个",
+    "session_db_backup_write_failed": "写入数据库中的会话备份失败：{}",
+    "session_db_backup_update_failed": "更新数据库中的会话备份失败：{}",
+    "session_cleanup_error": "清理会话出错：{}",
+    "low_watermark_bytes_freed_expired_anonymous": "下限：释放了 {} 字节（已过期的匿名会话）",
+    "high_watermark_bytes_freed_emergency": "上限：紧急释放了 {} + {} 字节",
+    "session_store_saturated_bytes_new_session": "会话存储已满（{} 字节），拒绝新会话",
+    "large_session_record_bytes_avoid_storing": "会话记录过大（{} 字节）— 请避免在会话中存储文件或图片",
+    "exclusive_login_session_s_invalidated_user": "exclusive_login：已使 {} 个会话失效（用户 {}）",
+    "session_db_validity_check_failed_memory": "在数据库中检查内存会话（cookie_id）失败：{}",
+    "session_db_fallback_load_failed_cookie": "从数据库备用加载会话失败（按 cookie_id 查找）：{}",
+    "delete_session_db_failed": "从数据库删除会话失败：{}",
+    "stored_session_data_could_not_decrypted": "无法解密已存储的会话数据"
+  },
+  "error": {
+    "encrypt_failed": "无法加密会话数据",
+    "create_empty_cookie": "创建会话：拒绝空的 cookie_id",
+    "upsert_empty_cookie": "保存会话：拒绝空的 cookie_id"
   }
 }

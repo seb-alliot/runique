@@ -153,8 +153,7 @@ fn remove_staging_dir(path: &Path) {
         warn!(
             dir = %path.display(),
             error = %e,
-            "staged upload directory was not removed"
-        );
+            "{}", crate::translation::t(runique_i18n::keys::forms::log::STAGED_UPLOAD_DIRECTORY_NOT_REMOVED));
     }
 }
 
@@ -176,7 +175,9 @@ fn open_staging_lock(dir: &Path) -> std::io::Result<File> {
             .open(&path)
         {
             Ok(file) => Ok(file),
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => open_existing_lock(&path),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+                open_existing_lock(&path)
+            }
             Err(error) => Err(error),
         }
     }

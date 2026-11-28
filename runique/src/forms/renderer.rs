@@ -39,7 +39,7 @@ impl FormRenderer {
     pub fn add_js(&mut self, files: &[&str]) {
         for file in files {
             if let Some(reason) = Self::validate_js_path(file) {
-                warn!(file = %file, reason = reason, "Skipping JS file");
+                warn!(file = %file, reason = reason, "{}", crate::translation::t(runique_i18n::keys::forms::log::SKIPPING_JS_FILE));
                 continue;
             }
             self.js_files.push(file.to_string());
@@ -69,7 +69,8 @@ impl FormRenderer {
                 level,
                 fields = fields.len(),
                 global_errors = errors.len(),
-                "render start"
+                "{}",
+                crate::translation::t(runique_i18n::keys::forms::log::RENDER_START)
             );
         }
         let mut html = Vec::new();
@@ -83,13 +84,13 @@ impl FormRenderer {
             match field.render(&self.tera) {
                 Ok(rendered) => {
                     if let Some(level) = log_render {
-                        crate::runique_log!(level, field = %field.name(), "rendered ok");
+                        crate::runique_log!(level, field = %field.name(), "{}", crate::translation::t(runique_i18n::keys::forms::log::RENDERED_OK));
                     }
                     html.push(rendered);
                 }
                 Err(e) => {
                     if let Some(level) = log_render {
-                        crate::runique_log!(level, field = %field.name(), error = %e, "render error");
+                        crate::runique_log!(level, field = %field.name(), error = %e, "{}", crate::translation::t(runique_i18n::keys::forms::log::RENDER_ERROR));
                     }
                     return Err(tf(
                         runique_i18n::keys::forms::error::FINALIZE,

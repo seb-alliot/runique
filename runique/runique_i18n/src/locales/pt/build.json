@@ -19,7 +19,21 @@
     "mailer_missing": "Redefinição de senha sem mailer: o link nunca poderia ser enviado",
     "locales_invalid": "A pasta de traduções do projeto é inválida: {}",
     "lang_unknown": "`.with_lang(\"{}\")`: nenhuma língua carregada responde a este código. Carregadas: {}. Uma língua do projeto é uma pasta do seu `locales/`.",
-    "timezone_unknown": "`TIME_ZONE={}` não é um fuso horário. Escreva o seu nome na forma região/cidade, por exemplo `Europe/Paris`; sem `TIME_ZONE`, o site está em `UTC`."
+    "timezone_unknown": "`TIME_ZONE={}` não é um fuso horário. Escreva o seu nome na forma região/cidade, por exemplo `Europe/Paris`; sem `TIME_ZONE`, o site está em `UTC`.",
+    "not_ready": "Um ou mais componentes não estão prontos para a construção",
+    "admin_route_name_taken": "o nome de rota do admin `{}` conflita com uma URL já registrada",
+    "admin_routes_without_admin": "rotas do admin foram declaradas em `urlpatterns!`, mas o admin está desativado",
+    "db_connect_failed": "Falha ao conectar ao banco de dados: {}",
+    "cors_wildcard_credentials": "CORS: any_origin() (*) é incompatível com allow_credentials(true). Use origens explícitas: .origin(\"https://app.example.com\")",
+    "admin_model_invalid": "admin `{}`:\n{}",
+    "admin_override_unsafe_char": "a substituição de template do admin `{}` contém um caractere que um template não aceita",
+    "admin_override_extension": "a substituição de template do admin `{}` deve ser um template `.html` ou `.xml`, escapado pelo Tera",
+    "admin_override_global_page": "modelo `{}`: a página {} não diz respeito a nenhum modelo, só é substituída globalmente",
+    "admin_override_missing": "substituição de template do admin não encontrada na pasta de templates: {}",
+    "admin_override_unknown_variable": "uma substituição de template do admin lê uma variável que sua página nunca fornece: {}",
+    "admin_view_replaced_twice": "modelo `{}`: sua página {} é substituída ao mesmo tempo por um template e por uma rota",
+    "admin_stylesheet_missing": "a folha de estilo do admin `{}` não é um arquivo da pasta static",
+    "schema_no_primary_key": "ModelSchema '{}': chave primária ausente"
   },
   "hint": {
     "db_required": "Adicione .with_database(db) ou .with_database_config(config) à sua cadeia de construção",
@@ -41,6 +55,12 @@
     "prune_failed": "falha da limpeza de direitos órfãos: podem restar permissões obsoletas",
     "locales_missing": "traduções do projeto, idioma «{}»: {} mensagem(ns) do Runique não traduzida(s) ({}), mostradas no idioma de recurso",
     "locales_unknown": "traduções do projeto, idioma «{}»: chave(s) que o Runique não conhece num dos seus temas, sem efeito: {}",
-    "locales_placeholders": "traduções do projeto, idioma «{}»: número de parâmetros diferente do da mensagem do Runique: {}"
+    "locales_placeholders": "traduções do projeto, idioma «{}»: número de parâmetros diferente do da mensagem do Runique: {}",
+    "hsts_preload_set_but_combo_invalid": "HSTS_PRELOAD definido, mas combinação inválida (requer includeSubDomains + max-age ≥ 31536000) — ignorado pelos navegadores para preload",
+    "orphan_group_rights_pruned_boot": "direitos de grupo órfãos removidos na inicialização",
+    "url_registry": "registro de URLs",
+    "static_files_attached": "arquivos estáticos conectados",
+    "templates_failed_load": "falha ao carregar os templates",
+    "templates_loaded": "templates carregados"
   }
 }

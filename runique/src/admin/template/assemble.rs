@@ -17,8 +17,9 @@ use tera::Tera;
 fn literal(text: &str) -> Result<&str, String> {
     let unsafe_char = |c: char| matches!(c, '"' | '\\' | '{' | '}' | '%' | '#') || c.is_control();
     if text.is_empty() || text.chars().any(unsafe_char) {
-        return Err(format!(
-            "admin template override `{text}` holds a character a template can't take"
+        return Err(crate::translation::tf(
+            runique_i18n::keys::build::error::ADMIN_OVERRIDE_UNSAFE_CHAR,
+            &[text],
         ));
     }
     Ok(text)
@@ -28,8 +29,9 @@ fn literal(text: &str) -> Result<&str, String> {
 /// escapes by the template's extension, another one would render unescaped.
 fn template(path: &str) -> Result<&str, String> {
     if !(path.ends_with(".html") || path.ends_with(".xml")) {
-        return Err(format!(
-            "admin template override `{path}` must be a `.html` or `.xml` template, escaped by Tera"
+        return Err(crate::translation::tf(
+            runique_i18n::keys::build::error::ADMIN_OVERRIDE_EXTENSION,
+            &[path],
         ));
     }
     literal(path)
@@ -80,8 +82,9 @@ pub(crate) fn dispatch(
 ) -> Result<Vec<BlockDispatch>, String> {
     for (key, t) in models {
         if let Some(page) = t.pages.keys().find(|p| !p.per_model()) {
-            return Err(format!(
-                "model `{key}`: the {page:?} page is about no model, it is replaced globally only"
+            return Err(crate::translation::tf(
+                runique_i18n::keys::build::error::ADMIN_OVERRIDE_GLOBAL_PAGE,
+                &[key.to_string(), format!("{page:?}")],
             ));
         }
         for path in t.pages.values() {
@@ -149,9 +152,9 @@ pub(crate) fn missing_pages(
     if missing.is_empty() {
         Ok(())
     } else {
-        Err(format!(
-            "admin template override not found in the templates folder: {}",
-            missing.join(", ")
+        Err(crate::translation::tf(
+            runique_i18n::keys::build::error::ADMIN_OVERRIDE_MISSING,
+            &[missing.join(", ")],
         ))
     }
 }
@@ -354,9 +357,9 @@ pub(crate) fn unknown_variables(
     if problems.is_empty() {
         Ok(())
     } else {
-        Err(format!(
-            "admin template override reads a variable its page never provides: {}",
-            problems.join("; ")
+        Err(crate::translation::tf(
+            runique_i18n::keys::build::error::ADMIN_OVERRIDE_UNKNOWN_VARIABLE,
+            &[problems.join("; ")],
         ))
     }
 }
@@ -372,8 +375,9 @@ pub(crate) fn check_replaced_views(
             .iter()
             .any(|(k, t)| *k == key && t.pages.contains_key(&page))
         {
-            return Err(format!(
-                "model `{key}`: its {page:?} page is both replaced by a template and by a route"
+            return Err(crate::translation::tf(
+                runique_i18n::keys::build::error::ADMIN_VIEW_REPLACED_TWICE,
+                &[key.to_string(), format!("{page:?}")],
             ));
         }
     }

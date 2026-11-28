@@ -1,5 +1,23 @@
 {
   "log": {
-    "init_twice": "mailer_init() called multiple times — initial configuration is kept"
+    "init_twice": "mailer_init() called multiple times — initial configuration is kept",
+    "send_mailer_not_configured": "send — mailer not configured",
+    "send": "send",
+    "send_error": "send error"
+  },
+  "error": {
+    "template": "Template error ({}): {}",
+    "subject_line_break": "Email subject contains a line break",
+    "not_configured": "The mailer configuration is missing or incomplete: set EMAIL_BACKEND and SMTP_* in .env",
+    "no_content": "Email without content",
+    "invalid_sender": "Invalid sender address: {}",
+    "invalid_recipient": "Invalid recipient address: {}",
+    "invalid_reply_to": "Invalid Reply-To: {}",
+    "build_failed": "Error constructing email: {}",
+    "smtp_connection": "SMTP connection failed: {}",
+    "send_failed": "Error sending email: {}"
+  },
+  "label": {
+    "no_content": "(no content)"
   }
 }

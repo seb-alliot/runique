@@ -365,7 +365,10 @@ where
         if errors.is_empty() {
             Ok(())
         } else {
-            Err(format!("admin `{}`:\n{}", E::KEY, errors.join("\n")))
+            Err(crate::translation::tf(
+                runique_i18n::keys::build::error::ADMIN_MODEL_INVALID,
+                &[E::KEY.to_string(), errors.join("\n")],
+            ))
         }
     }
     /// One page of the list. Taking the gate's proof, it can't run without

@@ -23,7 +23,16 @@
     "email_taken": "Ein Benutzer mit dieser E-Mail existiert bereits.",
     "password_too_short": "Das Passwort muss mindestens 12 Zeichen lang sein.",
     "password_weak": "Das Passwort muss mindestens einen Kleinbuchstaben, einen Großbuchstaben, eine Ziffer und ein Sonderzeichen enthalten.",
-    "password_mismatch": "Passwörter stimmen nicht überein. Bitte erneut versuchen."
+    "password_mismatch": "Passwörter stimmen nicht überein. Bitte erneut versuchen.",
+    "provider_not_found": "Anbieter nicht gefunden: '{}'",
+    "provider_not_a_file": "Der Anbieter ist keine Datei: '{}'",
+    "provider_symlink": "Der Pfad des Anbieters ist ein symbolischer Link, was nicht erlaubt ist: '{}'",
+    "provider_launch_failed": "Anbieter '{}' konnte nicht gestartet werden: {}",
+    "provider_timeout": "Anbieter '{}' hat nach {} Sekunden nicht geantwortet",
+    "provider_wait_failed": "Fehler beim Warten auf den Anbieter: {}",
+    "provider_exit_code": "Der Anbieter hat einen Fehler zurückgegeben (Exit-Code {})",
+    "provider_stdin_failed": "Fehler beim Schreiben in stdin: {}",
+    "provider_output_invalid": "Ungültige Ausgabe des Anbieters (UTF-8): {}"
   },
   "info": {
     "review_algo": "  Algorithmus : {}",

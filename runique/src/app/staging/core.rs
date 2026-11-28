@@ -120,7 +120,9 @@ impl CoreStaging {
                     "Database",
                     crate::translation::t(runique_i18n::keys::build::error::DB_REQUIRED),
                 )
-                    .with_suggestion(crate::translation::t(runique_i18n::keys::build::hint::DB_REQUIRED)),
+                .with_suggestion(crate::translation::t(
+                    runique_i18n::keys::build::hint::DB_REQUIRED,
+                )),
             );
         }
 
@@ -146,7 +148,10 @@ impl CoreStaging {
         // Path 2: connection from DatabaseConfig
         if let Some(config) = self.db_config.take() {
             let db = config.connect().await.map_err(|e| {
-                BuildError::validation(format!("Failed to connect to the database: {}", e))
+                BuildError::validation(crate::translation::tf(
+                    runique_i18n::keys::build::error::DB_CONNECT_FAILED,
+                    &[e],
+                ))
             })?;
             return Ok(db);
         }

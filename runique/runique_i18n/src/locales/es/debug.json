@@ -30,5 +30,15 @@
     "status_code": "Código de estado",
     "header_name": "Nombre",
     "header_value": "Valor"
+  },
+  "log": {
+    "template_rendering_error": "error al renderizar la plantilla",
+    "apperror_occurred": "se produjo un AppError",
+    "error_full_context": "error con todo su contexto",
+    "critical_error_occurred": "se produjo un error crítico",
+    "handled_error": "error gestionado",
+    "failed_render_error_template": "fallo al renderizar la plantilla de error",
+    "failed_serialize_error_context": "Fallo al serializar el contexto de error: {}",
+    "failed_render_debug_template": "Fallo al renderizar la plantilla de depuración: {}"
   }
 }

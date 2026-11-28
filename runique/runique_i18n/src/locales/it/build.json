@@ -19,7 +19,21 @@
     "mailer_missing": "Reimpostazione della password senza mailer: il link non potrebbe mai essere inviato",
     "locales_invalid": "La cartella delle traduzioni del progetto non è valida: {}",
     "lang_unknown": "`.with_lang(\"{}\")`: nessuna lingua caricata risponde a questo codice. Caricate: {}. Una lingua del progetto è una cartella del suo `locales/`.",
-    "timezone_unknown": "`TIME_ZONE={}` non è un fuso orario. Scrivetene il nome nella forma regione/città, ad esempio `Europe/Paris`; senza `TIME_ZONE`, il sito è in `UTC`."
+    "timezone_unknown": "`TIME_ZONE={}` non è un fuso orario. Scrivetene il nome nella forma regione/città, ad esempio `Europe/Paris`; senza `TIME_ZONE`, il sito è in `UTC`.",
+    "not_ready": "Uno o più componenti non sono pronti per la costruzione",
+    "admin_route_name_taken": "il nome di rotta dell'admin `{}` è già usato da un URL registrato",
+    "admin_routes_without_admin": "sono state dichiarate rotte dell'admin in `urlpatterns!`, ma l'admin è disattivato",
+    "db_connect_failed": "Connessione al database non riuscita: {}",
+    "cors_wildcard_credentials": "CORS: any_origin() (*) non è compatibile con allow_credentials(true). Usare origini esplicite: .origin(\"https://app.example.com\")",
+    "admin_model_invalid": "admin `{}`:\n{}",
+    "admin_override_unsafe_char": "la sostituzione di template dell'admin `{}` contiene un carattere che un template non accetta",
+    "admin_override_extension": "la sostituzione di template dell'admin `{}` deve essere un template `.html` o `.xml`, con escape di Tera",
+    "admin_override_global_page": "modello `{}`: la pagina {} non riguarda alcun modello, si sostituisce solo globalmente",
+    "admin_override_missing": "sostituzione di template dell'admin non trovata nella cartella dei template: {}",
+    "admin_override_unknown_variable": "una sostituzione di template dell'admin legge una variabile che la sua pagina non fornisce mai: {}",
+    "admin_view_replaced_twice": "modello `{}`: la sua pagina {} è sostituita sia da un template sia da una rotta",
+    "admin_stylesheet_missing": "il foglio di stile dell'admin `{}` non è un file della cartella static",
+    "schema_no_primary_key": "ModelSchema '{}': chiave primaria mancante"
   },
   "hint": {
     "db_required": "Aggiungi .with_database(db) o .with_database_config(config) alla tua catena di costruzione",
@@ -41,6 +55,12 @@
     "prune_failed": "potatura dei diritti orfani fallita: possono restare diritti obsoleti",
     "locales_missing": "traduzioni del progetto, lingua «{}»: {} messaggio/i di Runique non tradotto/i ({}), mostrati nella lingua di riserva",
     "locales_unknown": "traduzioni del progetto, lingua «{}»: chiave/i che Runique non conosce in uno dei suoi argomenti, senza effetto: {}",
-    "locales_placeholders": "traduzioni del progetto, lingua «{}»: numero di parametri diverso da quello del messaggio di Runique: {}"
+    "locales_placeholders": "traduzioni del progetto, lingua «{}»: numero di parametri diverso da quello del messaggio di Runique: {}",
+    "hsts_preload_set_but_combo_invalid": "HSTS_PRELOAD impostato ma combinazione non valida (serve includeSubDomains + max-age ≥ 31536000) — ignorato dai browser per il preload",
+    "orphan_group_rights_pruned_boot": "diritti di gruppo orfani rimossi all'avvio",
+    "url_registry": "registro degli URL",
+    "static_files_attached": "file statici collegati",
+    "templates_failed_load": "caricamento dei template non riuscito",
+    "templates_loaded": "template caricati"
   }
 }

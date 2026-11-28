@@ -10,12 +10,21 @@
     "url_sqlite_default_file": "DATABASE_URL asks for SQLite without naming a file: the default file {} is used.",
     "keys_without_engine": "DB_ENGINE is missing: {} is set without the engine. Accepted values: postgres, mysql, sqlite.",
     "url_failed_trying_keys": "Connecting with DATABASE_URL failed ({}): trying again with the DB_* keys.",
-    "url_failed_keys_unusable": "Connecting with DATABASE_URL failed ({}), and the DB_* keys are not enough to connect: {}"
+    "url_failed_keys_unusable": "Connecting with DATABASE_URL failed ({}), and the DB_* keys are not enough to connect: {}",
+    "unsupported_url_scheme": "Unsupported database URL scheme",
+    "list_postgres_only": "ListField::fetch_with is Postgres-only: read the rows, then call load_<field>()",
+    "list_value_not_in_enum": "list value `{}` doesn't fit its enum",
+    "search_one_multiple": "search!.one(): multiple rows returned"
   },
   "info": {
     "url_incomplete_reminder": "Connected with the DB_* keys. DATABASE_URL is still incomplete ({}): fix it or remove it."
   },
   "log": {
-    "read_reset_token": "read a password reset token"
+    "read_reset_token": "read a password reset token",
+    "connecting_database": "Connecting to {} database...",
+    "database_connected_successfully": "Database connected successfully ({})",
+    "database_connection_failed": "Database connection failed",
+    "engine": "Engine: {}",
+    "url": "URL: {}"
   }
 }

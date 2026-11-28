@@ -1,8 +1,9 @@
 //! List fields (`checkbox` / `multichoice` in `model!{}`): filters on the
 //! values chosen, stored in the field's own table (`{table}_{field}`).
+#[cfg(feature = "postgres")]
+use sea_orm::{ActiveEnum, ConnectionTrait, Select};
 use sea_orm::{
-    ActiveEnum, ColumnTrait, Condition, ConnectionTrait, EntityTrait, Iterable, PrimaryKeyToColumn,
-    Select, Value, sea_query::Query,
+    ColumnTrait, Condition, EntityTrait, Iterable, PrimaryKeyToColumn, Value, sea_query::Query,
 };
 use std::marker::PhantomData;
 
@@ -92,8 +93,8 @@ where
 
         if db.get_database_backend() != DbBackend::Postgres {
             return Err(DbErr::Custom(
-                "ListField::fetch_with is Postgres-only: read the rows, then call load_<field>()"
-                    .to_string(),
+                crate::translation::t(runique_i18n::keys::database::error::LIST_POSTGRES_ONLY)
+                    .into_owned(),
             ));
         }
         const ALIAS: &str = "runique_list_values";
@@ -123,7 +124,10 @@ where
             let mut list = Vec::new();
             for raw in joined.iter().flat_map(|j| j.split('\u{1f}')) {
                 let stored = raw.parse::<V::Value>().map_err(|_| {
-                    DbErr::Custom(format!("list value `{raw}` doesn't fit its enum"))
+                    DbErr::Custom(crate::translation::tf(
+                        runique_i18n::keys::database::error::LIST_VALUE_NOT_IN_ENUM,
+                        &[raw],
+                    ))
                 })?;
                 list.push(V::try_from_value(&stored)?);
             }

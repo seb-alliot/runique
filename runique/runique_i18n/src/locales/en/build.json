@@ -19,7 +19,21 @@
     "mailer_missing": "Password reset without a mailer: the link could never be sent",
     "locales_invalid": "The project's translations folder is invalid: {}",
     "lang_unknown": "`.with_lang(\"{}\")`: no loaded language answers to that code. Loaded: {}. A language of the project is a folder of its `locales/`.",
-    "timezone_unknown": "`TIME_ZONE={}` is not a time zone. Write its name as region/city, for example `Europe/Paris`; without `TIME_ZONE`, the site is in `UTC`."
+    "timezone_unknown": "`TIME_ZONE={}` is not a time zone. Write its name as region/city, for example `Europe/Paris`; without `TIME_ZONE`, the site is in `UTC`.",
+    "not_ready": "One or more components are not ready for construction",
+    "admin_route_name_taken": "admin route name `{}` conflicts with an already registered URL",
+    "admin_routes_without_admin": "admin routes were declared in `urlpatterns!`, but the admin is disabled",
+    "db_connect_failed": "Failed to connect to the database: {}",
+    "cors_wildcard_credentials": "CORS: any_origin() (*) is incompatible with allow_credentials(true). Use explicit origins instead: .origin(\"https://app.example.com\")",
+    "admin_model_invalid": "admin `{}`:\n{}",
+    "admin_override_unsafe_char": "admin template override `{}` holds a character a template can't take",
+    "admin_override_extension": "admin template override `{}` must be a `.html` or `.xml` template, escaped by Tera",
+    "admin_override_global_page": "model `{}`: the {} page is about no model, it is replaced globally only",
+    "admin_override_missing": "admin template override not found in the templates folder: {}",
+    "admin_override_unknown_variable": "admin template override reads a variable its page never provides: {}",
+    "admin_view_replaced_twice": "model `{}`: its {} page is both replaced by a template and by a route",
+    "admin_stylesheet_missing": "admin stylesheet `{}` is not a file of the static folder",
+    "schema_no_primary_key": "ModelSchema '{}' : missing primary key"
   },
   "hint": {
     "db_required": "Add .with_database(db) or .with_database_config(config) to your construction chain",
@@ -41,6 +55,12 @@
     "prune_failed": "orphan rights prune failed — stale grants may remain",
     "locales_missing": "project translations, language '{}': {} message(s) of Runique not translated ({}), shown in its fallback language",
     "locales_unknown": "project translations, language '{}': key(s) Runique doesn't know in one of its subjects, without effect: {}",
-    "locales_placeholders": "project translations, language '{}': number of parameters different from that of Runique's message: {}"
+    "locales_placeholders": "project translations, language '{}': number of parameters different from that of Runique's message: {}",
+    "hsts_preload_set_but_combo_invalid": "HSTS_PRELOAD set but combo invalid (needs includeSubDomains + max-age ≥ 31536000) — ignored by browsers for preload",
+    "orphan_group_rights_pruned_boot": "orphan group rights pruned at boot",
+    "url_registry": "url registry",
+    "static_files_attached": "static files attached",
+    "templates_failed_load": "templates failed to load",
+    "templates_loaded": "templates loaded"
   }
 }

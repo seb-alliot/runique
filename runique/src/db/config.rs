@@ -514,7 +514,14 @@ impl DatabaseConfig {
 
     async fn connect_once(&self) -> Result<DatabaseConnection, DbErr> {
         if let Some(level) = crate::log::log_level!(db.connect) {
-            crate::runique_log!(level, "  Connecting to {} database...", self.engine.name());
+            crate::runique_log!(
+                level,
+                "  {}",
+                crate::translation::tf(
+                    runique_i18n::keys::database::log::CONNECTING_DATABASE,
+                    &[self.engine.name()]
+                )
+            );
         }
 
         verify_database_driver(&self.engine).map_err(DbErr::Custom)?;
@@ -543,16 +550,36 @@ impl DatabaseConfig {
                 if let Some(level) = crate::log::log_level!(db.connect) {
                     crate::runique_log!(
                         level,
-                        "Database connected successfully ({})",
-                        self.engine.name()
+                        "{}",
+                        crate::translation::tf(
+                            runique_i18n::keys::database::log::DATABASE_CONNECTED_SUCCESSFULLY,
+                            &[self.engine.name()]
+                        )
                     );
                 }
                 Ok(conn)
             }
             Err(e) => {
-                tracing::error!("└──> Database connection failed");
-                tracing::error!("   └──> Engine: {}", self.engine.name());
-                tracing::error!("       └──> URL: {}", mask_password(&self.url));
+                tracing::error!(
+                    "└──> {}",
+                    crate::translation::t(
+                        runique_i18n::keys::database::log::DATABASE_CONNECTION_FAILED
+                    )
+                );
+                tracing::error!(
+                    "   └──> {}",
+                    crate::translation::tf(
+                        runique_i18n::keys::database::log::ENGINE,
+                        &[self.engine.name()]
+                    )
+                );
+                tracing::error!(
+                    "       └──> {}",
+                    crate::translation::tf(
+                        runique_i18n::keys::database::log::URL,
+                        &[mask_password(&self.url)]
+                    )
+                );
                 Err(redact_url(e, &self.url))
             }
         }

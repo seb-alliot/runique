@@ -21,5 +21,19 @@
   },
   "info": {
     "check_inbox": "Si esta dirección está asociada a una cuenta, recibirá un correo con los pasos a seguir."
+  },
+  "log": {
+    "password_reset_asked_but_no_mailer": "restablecimiento solicitado, pero no hay ningún mailer configurado",
+    "reset_email_sent": "correo de restablecimiento enviado",
+    "reset_link_not_sent": "enlace de restablecimiento no enviado",
+    "reset_token_invalid_expired": "token de restablecimiento no válido o caducado",
+    "password_reset_rollback_failed": "fallo al deshacer el restablecimiento",
+    "password_reset_ok": "contraseña restablecida",
+    "password_reset_db_error": "error de base de datos al restablecer la contraseña",
+    "reset_token_cleanup_failed": "fallo al limpiar los tokens de restablecimiento",
+    "reset_token_consumption_could_not_begin": "no se pudo iniciar el uso del token",
+    "reset_token_consumption_rollback_failed": "fallo al deshacer el uso del token",
+    "reset_token_consumption_failed": "fallo al usar el token",
+    "reset_token_consumption_commit_failed": "fallo al confirmar el uso del token"
   }
 }

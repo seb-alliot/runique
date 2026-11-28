@@ -10,12 +10,21 @@
     "url_sqlite_default_file": "DATABASE_URL はファイル名なしで SQLite を指定しています：既定のファイル {} を使用します。",
     "keys_without_engine": "DB_ENGINE がありません：エンジンなしで {} が設定されています。使用できる値：postgres、mysql、sqlite。",
     "url_failed_trying_keys": "DATABASE_URL での接続に失敗しました（{}）：DB_* キーで再試行します。",
-    "url_failed_keys_unusable": "DATABASE_URL での接続に失敗し（{}）、DB_* キーでも接続できません：{}"
+    "url_failed_keys_unusable": "DATABASE_URL での接続に失敗し（{}）、DB_* キーでも接続できません：{}",
+    "unsupported_url_scheme": "サポートされていないデータベース URL のスキーム",
+    "list_postgres_only": "ListField::fetch_with は Postgres 専用です：行を読み込んでから load_<フィールド>() を呼んでください",
+    "list_value_not_in_enum": "リストの値 `{}` が列挙型に合いません",
+    "search_one_multiple": "search!.one()：複数の行が返されました"
   },
   "info": {
     "url_incomplete_reminder": "DB_* キーで接続しました。DATABASE_URL は不完全なままです（{}）：修正するか削除してください。"
   },
   "log": {
-    "read_reset_token": "パスワード再設定トークンを読み取り"
+    "read_reset_token": "パスワード再設定トークンを読み取り",
+    "connecting_database": "{} データベースに接続しています...",
+    "database_connected_successfully": "データベースに接続しました（{}）",
+    "database_connection_failed": "データベースへの接続に失敗しました",
+    "engine": "エンジン：{}",
+    "url": "URL：{}"
   }
 }

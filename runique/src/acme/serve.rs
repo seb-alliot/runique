@@ -103,7 +103,13 @@ impl RuniqueApp {
         let needs_renewal = !key_path.exists() || cert_needs_renewal(cert_path, &domain).await;
 
         let (cert_pem, key_pem) = if !needs_renewal {
-            tracing::info!(certs_dir, "Loading existing TLS certificate");
+            tracing::info!(
+                certs_dir,
+                "{}",
+                crate::translation::t(
+                    runique_i18n::keys::server::log::LOADING_EXISTING_TLS_CERTIFICATE
+                )
+            );
             (
                 tokio::fs::read(cert_path).await?,
                 tokio::fs::read(key_path).await?,
@@ -117,8 +123,7 @@ impl RuniqueApp {
                     if cert_path.exists() && key_path.exists() {
                         tracing::warn!(
                             error = %e,
-                            "ACME renewal failed — using existing certificate from ./certs/"
-                        );
+                            "{}", crate::translation::t(runique_i18n::keys::server::log::ACME_RENEWAL_FAILED_USING_EXISTING_CERTIFICATE));
                         (
                             tokio::fs::read(cert_path).await?,
                             tokio::fs::read(key_path).await?,
@@ -156,11 +161,11 @@ impl RuniqueApp {
                         .map_err(|e| e.to_string());
                     match obtained {
                         Ok((cert, key)) => match tls.reload_from_pem(cert, key).await {
-                            Ok(()) => tracing::info!("TLS certificate renewed and reloaded"),
-                            Err(e) => tracing::warn!(error = %e, "Renewed certificate not loaded — keeping the current one"),
+                            Ok(()) => tracing::info!("{}", crate::translation::t(runique_i18n::keys::server::log::TLS_CERTIFICATE_RENEWED_RELOADED)),
+                            Err(e) => tracing::warn!(error = %e, "{}", crate::translation::t(runique_i18n::keys::server::log::RENEWED_CERTIFICATE_NOT_LOADED_KEEPING_CURRENT)),
                         },
                         Err(e) => {
-                            tracing::warn!(error = %e, "ACME renewal failed — keeping the current certificate");
+                            tracing::warn!(error = %e, "{}", crate::translation::t(runique_i18n::keys::server::log::ACME_RENEWAL_FAILED_KEEPING_CURRENT_CERTIFICATE));
                         }
                     }
                 })
@@ -188,7 +193,10 @@ impl RuniqueApp {
                 t(runique_i18n::keys::server::info::TEST_UTILS_FEATURE_ENABLED)
             );
         }
-        println!("              └──> ctrl + c to stop");
+        println!(
+            "              └──> {}",
+            crate::translation::t(runique_i18n::keys::server::hint::STOP)
+        );
 
         // ConnectInfo must be propagated so `trusted_proxies` sees the real peer IP.
         // Without it, conn_ip defaults to loopback (trusted) and X-Forwarded-For

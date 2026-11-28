@@ -21,5 +21,19 @@
   },
   "info": {
     "check_inbox": "Wenn diese Adresse mit einem Konto verknüpft ist, erhalten Sie eine E-Mail mit den nächsten Schritten."
+  },
+  "log": {
+    "password_reset_asked_but_no_mailer": "Zurücksetzen angefordert, aber kein Mailer konfiguriert",
+    "reset_email_sent": "E-Mail zum Zurücksetzen gesendet",
+    "reset_link_not_sent": "Link zum Zurücksetzen nicht gesendet",
+    "reset_token_invalid_expired": "Token zum Zurücksetzen ungültig oder abgelaufen",
+    "password_reset_rollback_failed": "Rücknahme des Zurücksetzens fehlgeschlagen",
+    "password_reset_ok": "Passwort erfolgreich zurückgesetzt",
+    "password_reset_db_error": "Datenbankfehler beim Zurücksetzen des Passworts",
+    "reset_token_cleanup_failed": "Bereinigung der Zurücksetz-Token fehlgeschlagen",
+    "reset_token_consumption_could_not_begin": "die Token-Verwendung konnte nicht beginnen",
+    "reset_token_consumption_rollback_failed": "Rücknahme der Token-Verwendung fehlgeschlagen",
+    "reset_token_consumption_failed": "Token-Verwendung fehlgeschlagen",
+    "reset_token_consumption_commit_failed": "Bestätigen der Token-Verwendung fehlgeschlagen"
   }
 }

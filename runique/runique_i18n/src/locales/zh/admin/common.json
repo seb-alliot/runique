@@ -2,5 +2,9 @@
   "label": {
     "username": "用户名",
     "password": "密码"
+  },
+  "error": {
+    "page_context": "管理后台页面上下文：{}",
+    "row_without_key": "管理后台列表行缺少可序列化的主键"
   }
 }

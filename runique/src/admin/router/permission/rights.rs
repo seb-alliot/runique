@@ -268,7 +268,7 @@ pub(crate) async fn rights_view(
                     .map_err(|e| match e {
                         DbErr::Custom(message) => message,
                         other => {
-                            tracing::error!(error = %other, "admin rights grid write failed");
+                            tracing::error!(error = %other, "{}", crate::translation::t(runique_i18n::keys::admin::log::ADMIN_RIGHTS_GRID_WRITE_FAILED));
                             Refusal::new(RefusalReason::WriteFailed).message()
                         }
                     }),
@@ -399,7 +399,7 @@ async fn group_rights(
                     .map_err(|e| match e {
                         DbErr::Custom(message) => message,
                         other => {
-                            tracing::error!(error = %other, "group rights grid write failed");
+                            tracing::error!(error = %other, "{}", crate::translation::t(runique_i18n::keys::admin::log::GROUP_RIGHTS_GRID_WRITE_FAILED));
                             Refusal::new(RefusalReason::WriteFailed).message()
                         }
                     }),

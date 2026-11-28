@@ -3,7 +3,19 @@
     "https_redirected": "запрос получен по HTTP — перенаправлен на HTTPS",
     "https_port80_stopped": "HTTP-сервер на порту 80 (проверка ACME и перенаправление на HTTPS) остановлен",
     "ctrl_c_not_installed": "обработчик Ctrl+C не установлен",
-    "sigterm_not_installed": "обработчик SIGTERM не установлен"
+    "sigterm_not_installed": "обработчик SIGTERM не установлен",
+    "starting_acme_certificate_provisioning": "Начало получения сертификата ACME",
+    "certificate_obtained_successfully": "Сертификат успешно получен",
+    "certificate_missing_unreadable": "Сертификат для {} отсутствует или не читается",
+    "certificate_not_valid_pem": "Сертификат для {} не является корректным PEM",
+    "certificate_not_valid_x_509_certificate": "Сертификат для {} не является корректным сертификатом X.509",
+    "certificate_does_not_cover_domain": "Сертификат для {} не покрывает домен",
+    "certificate_obtained_stored": "Сертификат получен и сохранён",
+    "loading_existing_tls_certificate": "Загрузка существующего сертификата TLS",
+    "acme_renewal_failed_using_existing_certificate": "обновление ACME не удалось — используется сертификат из ./certs/",
+    "tls_certificate_renewed_reloaded": "Сертификат TLS обновлён и перезагружен",
+    "renewed_certificate_not_loaded_keeping_current": "Обновлённый сертификат не загружен — сохраняется текущий",
+    "acme_renewal_failed_keeping_current_certificate": "обновление ACME не удалось — сохраняется текущий сертификат"
   },
   "info": {
     "operational": "Runique работает",
@@ -18,6 +30,8 @@
     "stop": "ctrl + c для остановки"
   },
   "error": {
-    "acme_not_compiled": "ACME_ENABLED=true, но функция `acme` не скомпилирована."
+    "acme_not_compiled": "ACME_ENABLED=true, но функция `acme` не скомпилирована.",
+    "acme_authorization_status": "неожиданный статус авторизации: {}",
+    "acme_order_not_ready": "заказ ACME не готов: {}"
   }
 }

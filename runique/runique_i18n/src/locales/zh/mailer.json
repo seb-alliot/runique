@@ -1,5 +1,23 @@
 {
   "log": {
-    "init_twice": "mailer_init() 被多次调用：保留初始配置"
+    "init_twice": "mailer_init() 被多次调用：保留初始配置",
+    "send_mailer_not_configured": "发送 — 未配置邮件",
+    "send": "发送",
+    "send_error": "发送错误"
+  },
+  "error": {
+    "template": "模板错误（{}）：{}",
+    "subject_line_break": "邮件主题包含换行符",
+    "not_configured": "邮件配置缺失或不完整：请在 .env 中设置 EMAIL_BACKEND 和 SMTP_*",
+    "no_content": "邮件没有内容",
+    "invalid_sender": "发件人地址无效：{}",
+    "invalid_recipient": "收件人地址无效：{}",
+    "invalid_reply_to": "Reply-To 无效：{}",
+    "build_failed": "构建邮件时出错：{}",
+    "smtp_connection": "SMTP 连接失败：{}",
+    "send_failed": "发送邮件时出错：{}"
+  },
+  "label": {
+    "no_content": "（无内容）"
   }
 }

@@ -1,6 +1,16 @@
 {
   "error": {
     "bad_request": "请求格式错误",
-    "slot_collision": "Runique 中间件插槽冲突：'{}' 和 '{}' 都占用了插槽 {}。请减少自定义中间件的数量，或为其指定一个明确的插槽。"
+    "slot_collision": "Runique 中间件插槽冲突：'{}' 和 '{}' 都占用了插槽 {}。请减少自定义中间件的数量，或为其指定一个明确的插槽。",
+    "forbidden_redirect": "禁止的重定向"
+  },
+  "log": {
+    "middleware_stack": "中间件栈",
+    "middleware_slot": "中间件槽位",
+    "host_rejected_no_host_header_uri": "拒绝主机：没有 Host 头，URI 中也没有授权部分",
+    "host_rejected_not_allowlist": "拒绝主机：不在允许列表中",
+    "honeypot_field_name_insert_into_session": "将蜜罐字段名写入会话失败",
+    "open_redirect_blocked": "已阻止开放重定向",
+    "rate_limited": "达到请求频率上限"
   }
 }

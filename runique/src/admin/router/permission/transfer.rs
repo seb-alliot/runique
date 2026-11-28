@@ -83,7 +83,7 @@ fn message(e: DbErr) -> String {
     match e {
         DbErr::Custom(message) => message,
         other => {
-            tracing::error!(error = %other, "group transfer failed");
+            tracing::error!(error = %other, "{}", crate::translation::t(runique_i18n::keys::admin::log::GROUP_TRANSFER_FAILED));
             Refusal::new(RefusalReason::WriteFailed).message()
         }
     }

@@ -2,5 +2,9 @@
   "label": {
     "username": "ユーザー名",
     "password": "パスワード"
+  },
+  "error": {
+    "page_context": "管理画面ページのコンテキスト：{}",
+    "row_without_key": "管理画面一覧の行にシリアライズ可能な主キーがありません"
   }
 }

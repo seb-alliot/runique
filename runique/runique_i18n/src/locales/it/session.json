@@ -5,6 +5,25 @@
     "read_flash": "lettura dei messaggi flash dalla sessione",
     "read_dashboard_template": "lettura del template della dashboard scelto dalla sessione",
     "decode_user_memory": "decodifica del user_id della sessione (caricamento dalla memoria)",
-    "decode_user_db": "decodifica del user_id della sessione (caricamento dal database)"
+    "decode_user_db": "decodifica del user_id della sessione (caricamento dal database)",
+    "auth_session_ttl_set_raced_build": "TTL della sessione autenticata impostato in concorrenza all'avvio — si mantiene il primo valore",
+    "auth_session_ttl_already_set_different": "TTL della sessione autenticata già impostato su un altro valore (più app in un processo?) — si mantiene il primo",
+    "session_db_backup_write_failed": "scrittura della copia della sessione nel database non riuscita: {}",
+    "session_db_backup_update_failed": "aggiornamento della copia della sessione nel database non riuscito: {}",
+    "session_cleanup_error": "errore nella pulizia delle sessioni: {}",
+    "low_watermark_bytes_freed_expired_anonymous": "Soglia bassa: {} byte liberati (sessioni anonime scadute)",
+    "high_watermark_bytes_freed_emergency": "Soglia alta: {} + {} byte liberati d'urgenza",
+    "session_store_saturated_bytes_new_session": "Archivio delle sessioni saturo ({} byte), nuova sessione rifiutata",
+    "large_session_record_bytes_avoid_storing": "Sessione voluminosa ({} byte) — evitare di salvare file o immagini nella sessione",
+    "exclusive_login_session_s_invalidated_user": "exclusive_login: {} sessione/i chiusa/e per l'utente {}",
+    "session_db_validity_check_failed_memory": "verifica nel database di una sessione in memoria (cookie_id) non riuscita: {}",
+    "session_db_fallback_load_failed_cookie": "caricamento di riserva della sessione dal database non riuscito (ricerca per cookie_id): {}",
+    "delete_session_db_failed": "eliminazione della sessione dal database non riuscita: {}",
+    "stored_session_data_could_not_decrypted": "impossibile decifrare i dati di sessione salvati"
+  },
+  "error": {
+    "encrypt_failed": "impossibile cifrare i dati della sessione",
+    "create_empty_cookie": "creazione sessione: cookie_id vuoto rifiutato",
+    "upsert_empty_cookie": "salvataggio sessione: cookie_id vuoto rifiutato"
   }
 }

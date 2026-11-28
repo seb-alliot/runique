@@ -2,5 +2,9 @@
   "label": {
     "username": "Benutzername",
     "password": "Passwort"
+  },
+  "error": {
+    "page_context": "Kontext der Admin-Seite: {}",
+    "row_without_key": "einer Zeile der Admin-Liste fehlt ein serialisierbarer Primärschlüssel"
   }
 }

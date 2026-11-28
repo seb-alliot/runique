@@ -60,7 +60,10 @@ impl DatabaseEngine {
             // SeaORM accepts.
             Ok(DatabaseEngine::SQLite)
         } else {
-            Err("Unsupported database URL scheme".to_string())
+            Err(
+                runique_i18n::t(runique_i18n::keys::database::error::UNSUPPORTED_URL_SCHEME)
+                    .into_owned(),
+            )
         }
     }
 

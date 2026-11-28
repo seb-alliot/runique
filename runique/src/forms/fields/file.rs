@@ -79,7 +79,7 @@ pub(crate) async fn cleanup_files(files: &[String]) {
         if let Err(e) = tokio::fs::remove_file(path).await
             && e.kind() != ErrorKind::NotFound
         {
-            tracing::warn!(path = %path, error = %e, "cleanup_files: remove failed");
+            tracing::warn!(path = %path, error = %e, "{}", crate::translation::t(runique_i18n::keys::forms::log::CLEANUP_FILES_REMOVE_FAILED));
         }
     }
 }
@@ -89,14 +89,20 @@ pub(crate) fn checked_upload_relative(raw: &str) -> Result<String, String> {
         return Ok(String::new());
     }
     if raw.contains('\\') || raw.contains(':') {
-        return Err(format!("invalid upload_to path '{raw}'"));
+        return Err(crate::translation::tf(
+            runique_i18n::keys::forms::error::UPLOAD_TO_INVALID,
+            &[raw],
+        ));
     }
     let segments = raw.strip_suffix('/').unwrap_or(raw).split('/');
     if segments
         .clone()
         .any(|part| part.is_empty() || matches!(part, "." | ".."))
     {
-        return Err(format!("invalid upload_to path '{raw}'"));
+        return Err(crate::translation::tf(
+            runique_i18n::keys::forms::error::UPLOAD_TO_INVALID,
+            &[raw],
+        ));
     }
 
     let path = Path::new(raw);
@@ -105,7 +111,10 @@ pub(crate) fn checked_upload_relative(raw: &str) -> Result<String, String> {
             .components()
             .any(|component| !matches!(component, Component::Normal(_)))
     {
-        return Err(format!("invalid upload_to path '{raw}'"));
+        return Err(crate::translation::tf(
+            runique_i18n::keys::forms::error::UPLOAD_TO_INVALID,
+            &[raw],
+        ));
     }
 
     Ok(raw.trim_end_matches('/').to_string())
@@ -113,52 +122,67 @@ pub(crate) fn checked_upload_relative(raw: &str) -> Result<String, String> {
 
 pub(crate) async fn ensure_safe_upload_dir(root: &Path, parent: &Path) -> Result<PathBuf, String> {
     let relative = parent.strip_prefix(root).map_err(|_| {
-        format!(
-            "upload destination '{}' escapes MEDIA_ROOT",
-            parent.display()
+        crate::translation::tf(
+            runique_i18n::keys::forms::error::UPLOAD_ESCAPES_ROOT,
+            &[parent.display()],
         )
     })?;
     let mut current = root.to_path_buf();
 
     for component in relative.components() {
         let Component::Normal(name) = component else {
-            return Err(format!("invalid upload destination '{}'", parent.display()));
+            return Err(crate::translation::tf(
+                runique_i18n::keys::forms::error::UPLOAD_DESTINATION_INVALID,
+                &[parent.display()],
+            ));
         };
         current.push(name);
         match tokio::fs::symlink_metadata(&current).await {
             Ok(metadata) if metadata.is_dir() && !metadata.file_type().is_symlink() => {}
             Ok(_) => {
-                return Err(format!(
-                    "upload destination '{}' contains a non-directory or symlink",
-                    current.display()
+                return Err(crate::translation::tf(
+                    runique_i18n::keys::forms::error::UPLOAD_NOT_A_DIRECTORY,
+                    &[current.display()],
                 ));
             }
             Err(error) if error.kind() == ErrorKind::NotFound => {
-                tokio::fs::create_dir(&current)
-                    .await
-                    .map_err(|e| format!("upload dir '{}': {e}", current.display()))?;
-                let metadata = tokio::fs::symlink_metadata(&current)
-                    .await
-                    .map_err(|e| format!("upload dir '{}': {e}", current.display()))?;
+                tokio::fs::create_dir(&current).await.map_err(|e| {
+                    crate::translation::tf(
+                        runique_i18n::keys::forms::error::UPLOAD_DIR_FAILED,
+                        &[current.display().to_string(), e.to_string()],
+                    )
+                })?;
+                let metadata = tokio::fs::symlink_metadata(&current).await.map_err(|e| {
+                    crate::translation::tf(
+                        runique_i18n::keys::forms::error::UPLOAD_DIR_FAILED,
+                        &[current.display().to_string(), e.to_string()],
+                    )
+                })?;
                 if !metadata.is_dir() || metadata.file_type().is_symlink() {
-                    return Err(format!(
-                        "upload destination '{}' is not a real directory",
-                        current.display()
+                    return Err(crate::translation::tf(
+                        runique_i18n::keys::forms::error::UPLOAD_NOT_REAL_DIRECTORY,
+                        &[current.display()],
                     ));
                 }
             }
             Err(error) => {
-                return Err(format!("upload dir '{}': {error}", current.display()));
+                return Err(crate::translation::tf(
+                    runique_i18n::keys::forms::error::UPLOAD_DIR_FAILED,
+                    &[current.display().to_string(), error.to_string()],
+                ));
             }
         }
 
-        let canonical = tokio::fs::canonicalize(&current)
-            .await
-            .map_err(|e| format!("upload dir '{}': {e}", current.display()))?;
+        let canonical = tokio::fs::canonicalize(&current).await.map_err(|e| {
+            crate::translation::tf(
+                runique_i18n::keys::forms::error::UPLOAD_DIR_FAILED,
+                &[current.display().to_string(), e.to_string()],
+            )
+        })?;
         if !canonical.starts_with(root) {
-            return Err(format!(
-                "upload destination '{}' escapes MEDIA_ROOT",
-                current.display()
+            return Err(crate::translation::tf(
+                runique_i18n::keys::forms::error::UPLOAD_ESCAPES_ROOT,
+                &[current.display()],
             ));
         }
     }
@@ -563,7 +587,7 @@ impl FormField for FileField {
         let staged = parse_file_list(value).iter().all(|p| is_staged_upload(p));
         if !staged {
             // Not an upload from this request: the client sent a path as text.
-            tracing::warn!(field = %self.base.name, "file field: submitted value is not a staged upload, ignored");
+            tracing::warn!(field = %self.base.name, "{}", crate::translation::t(runique_i18n::keys::forms::log::FILE_FIELD_SUBMITTED_VALUE_NOT_STAGED));
             return;
         }
         self.set_value(value);

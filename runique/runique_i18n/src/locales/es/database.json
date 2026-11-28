@@ -10,12 +10,21 @@
     "url_sqlite_default_file": "DATABASE_URL pide SQLite sin nombrar un archivo: se usa el archivo por defecto {}.",
     "keys_without_engine": "Falta DB_ENGINE: {} está definido sin el motor. Valores aceptados: postgres, mysql, sqlite.",
     "url_failed_trying_keys": "La conexión mediante DATABASE_URL ha fallado ({}): nuevo intento mediante las claves DB_*.",
-    "url_failed_keys_unusable": "La conexión mediante DATABASE_URL ha fallado ({}), y las claves DB_* no bastan para conectarse: {}"
+    "url_failed_keys_unusable": "La conexión mediante DATABASE_URL ha fallado ({}), y las claves DB_* no bastan para conectarse: {}",
+    "unsupported_url_scheme": "Esquema de URL de base de datos no admitido",
+    "list_postgres_only": "ListField::fetch_with solo funciona con Postgres: lea las filas y luego llame a load_<campo>()",
+    "list_value_not_in_enum": "el valor de lista `{}` no corresponde a su enum",
+    "search_one_multiple": "search!.one(): se devolvieron varias filas"
   },
   "info": {
     "url_incomplete_reminder": "Conexión establecida mediante las claves DB_*. DATABASE_URL sigue incompleta ({}): corríjala o elimínela."
   },
   "log": {
-    "read_reset_token": "lectura de un token de restablecimiento de contraseña"
+    "read_reset_token": "lectura de un token de restablecimiento de contraseña",
+    "connecting_database": "Conectando a la base de datos {}...",
+    "database_connected_successfully": "Base de datos conectada ({})",
+    "database_connection_failed": "Fallo de la conexión a la base de datos",
+    "engine": "Motor: {}",
+    "url": "URL: {}"
   }
 }

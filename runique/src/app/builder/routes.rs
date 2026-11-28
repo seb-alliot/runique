@@ -12,6 +12,8 @@ use crate::config::RuniqueConfig;
 use crate::errors::build::BuildError;
 #[cfg(feature = "admin")]
 use crate::templates::loader::Integrity;
+#[cfg(feature = "admin")]
+use crate::{auth::permissions::prune_orphan_droits, config::env::css_token, translation::t};
 use crate::{
     auth::{
         PasswordResetConfig, PasswordResetStaging,
@@ -21,8 +23,6 @@ use crate::{
     router::register_name_url,
     utils::aliases::{AEngine, AppResult},
 };
-#[cfg(feature = "admin")]
-use crate::{auth::permissions::prune_orphan_droits, config::env::css_token, translation::t};
 use axum::{Router, response::Response};
 use std::sync::Arc;
 #[cfg(feature = "admin")]
@@ -134,8 +134,9 @@ pub(super) async fn router_admin(
             .unwrap_or_else(|e| e.into_inner())
             .contains_key(&name);
         if already_registered {
-            return Err(BuildError::validation(format!(
-                "admin route name `{name}` conflicts with an already registered URL"
+            return Err(BuildError::validation(crate::translation::tf(
+                runique_i18n::keys::build::error::ADMIN_ROUTE_NAME_TAKEN,
+                &[&name],
             )));
         }
         register_name_url(engine, name, path);
@@ -163,7 +164,14 @@ async fn drop_unregistered_rights(engine: &AEngine, admin: &AdminStaging) {
     match prune_orphan_droits(&engine.db, &valid_keys).await {
         Ok(n) if n > 0 => {
             if let Some(level) = level {
-                crate::runique_log!(level, pruned = n, "orphan group rights pruned at boot");
+                crate::runique_log!(
+                    level,
+                    pruned = n,
+                    "{}",
+                    crate::translation::t(
+                        runique_i18n::keys::build::log::ORPHAN_GROUP_RIGHTS_PRUNED_BOOT
+                    )
+                );
             }
         }
         Ok(_) => {}
@@ -266,6 +274,11 @@ pub(super) fn log_url_registry(engine: &AEngine) {
             .read()
             .map(|guard| guard.len())
             .unwrap_or(0);
-        crate::runique_log!(level, routes = count, "url registry");
+        crate::runique_log!(
+            level,
+            routes = count,
+            "{}",
+            crate::translation::t(runique_i18n::keys::build::log::URL_REGISTRY)
+        );
     }
 }

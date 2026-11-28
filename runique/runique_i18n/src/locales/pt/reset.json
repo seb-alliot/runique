@@ -21,5 +21,19 @@
   },
   "info": {
     "check_inbox": "Se este endereço estiver associado a uma conta, você receberá um e-mail com as instruções."
+  },
+  "log": {
+    "password_reset_asked_but_no_mailer": "redefinição solicitada, mas nenhum mailer está configurado",
+    "reset_email_sent": "e-mail de redefinição enviado",
+    "reset_link_not_sent": "link de redefinição não enviado",
+    "reset_token_invalid_expired": "token de redefinição inválido ou expirado",
+    "password_reset_rollback_failed": "falha ao desfazer a redefinição",
+    "password_reset_ok": "senha redefinida",
+    "password_reset_db_error": "erro de banco de dados na redefinição de senha",
+    "reset_token_cleanup_failed": "falha ao limpar os tokens de redefinição",
+    "reset_token_consumption_could_not_begin": "não foi possível iniciar o uso do token",
+    "reset_token_consumption_rollback_failed": "falha ao desfazer o uso do token",
+    "reset_token_consumption_failed": "falha ao usar o token",
+    "reset_token_consumption_commit_failed": "falha ao confirmar o uso do token"
   }
 }

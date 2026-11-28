@@ -27,7 +27,7 @@ pub struct GateCtx<'a> {
 
 /// A lookup the gate needs failed: refused, never let through.
 fn lookup_failed(e: DbErr) -> Refusal {
-    tracing::warn!(error = %e, "admin gate: lookup failed, action refused");
+    tracing::warn!(error = %e, "{}", crate::translation::t(runique_i18n::keys::auth::log::ADMIN_GATE_LOOKUP_FAILED_ACTION_REFUSED));
     Refusal::new(RefusalReason::LookupFailed)
 }
 

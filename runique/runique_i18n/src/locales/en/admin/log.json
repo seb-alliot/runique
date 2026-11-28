@@ -12,5 +12,17 @@
   "boot_route": "admin declared route",
   "boot_no_guard": "admin sign-in has neither a LoginGuard nor a rate limiter: password attempts are unlimited (`with_login_guard`, `with_rate_limiter`)",
   "boot_options_without_effect": "admin list options accepted but shown by no page yet",
-  "boot_stylesheets_missing": "admin stylesheets of Runique not found: check STATIC_RUNIQUE_PATH"
+  "boot_stylesheets_missing": "admin stylesheets of Runique not found: check STATIC_RUNIQUE_PATH",
+  "admin_access_gate": "admin access gate",
+  "admin_refused_no_admin_access_sent": "admin refused: no admin access, sent to the site",
+  "admin_account_gone_inactive_session_closed": "admin account gone or inactive — session closed",
+  "declared_admin_route_refused_no_admin": "declared admin route refused: no admin access",
+  "account_groups_write_failed": "account groups write failed",
+  "admin_link_not_sent_mailer_configuration": "admin link not sent: the mailer configuration is missing or incomplete",
+  "admin_reset_link_not_sent": "admin reset link not sent",
+  "admin_reset_trace_failed": "admin reset trace failed",
+  "account_not_created_mailer_configuration_missing": "account not created: the mailer configuration is missing or incomplete",
+  "admin_rights_grid_write_failed": "admin rights grid write failed",
+  "group_rights_grid_write_failed": "group rights grid write failed",
+  "group_transfer_failed": "group transfer failed"
 }

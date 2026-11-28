@@ -36,7 +36,7 @@ pub async fn anti_bot_middleware(
         .unwrap_or_else(generate_field_name);
 
     if let Err(e) = session.insert(HP_FIELD_KEY, &field_name).await {
-        tracing::warn!(error = %e, "honeypot field name insert into session failed");
+        tracing::warn!(error = %e, "{}", crate::translation::t(runique_i18n::keys::middleware::log::HONEYPOT_FIELD_NAME_INSERT_INTO_SESSION));
     }
 
     req.extensions_mut().insert(HoneypotFieldName(field_name));

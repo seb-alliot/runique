@@ -51,7 +51,11 @@ impl RuniqueConfig {
             && !runique_env_is_known(value)
         {
             eprintln!(
-                "[runique] WARNING: RUNIQUE_ENV={value:?} is neither `dev` nor `prod` — running in production mode."
+                "{}",
+                crate::translation::tf(
+                    runique_i18n::keys::app::log::RUNIQUE_WARNING_RUNIQUE_ENV_NEITHER_DEV,
+                    &[format!("{:?}", value)]
+                )
             );
         }
 

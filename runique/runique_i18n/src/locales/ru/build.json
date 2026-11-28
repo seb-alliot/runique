@@ -19,7 +19,21 @@
     "mailer_missing": "Сброс пароля без почтовой службы: ссылку невозможно отправить",
     "locales_invalid": "Папка переводов проекта недействительна: {}",
     "lang_unknown": "`.with_lang(\"{}\")`: ни один загруженный язык не соответствует этому коду. Загружены: {}. Язык проекта — это папка в его `locales/`.",
-    "timezone_unknown": "`TIME_ZONE={}` не является часовым поясом. Запишите его название в виде регион/город, например `Europe/Paris`; без `TIME_ZONE` сайт работает в `UTC`."
+    "timezone_unknown": "`TIME_ZONE={}` не является часовым поясом. Запишите его название в виде регион/город, например `Europe/Paris`; без `TIME_ZONE` сайт работает в `UTC`.",
+    "not_ready": "Один или несколько компонентов не готовы к сборке",
+    "admin_route_name_taken": "имя маршрута админки `{}` уже занято зарегистрированным URL",
+    "admin_routes_without_admin": "маршруты админки объявлены в `urlpatterns!`, но админка отключена",
+    "db_connect_failed": "Не удалось подключиться к базе данных: {}",
+    "cors_wildcard_credentials": "CORS: any_origin() (*) несовместим с allow_credentials(true). Укажите источники явно: .origin(\"https://app.example.com\")",
+    "admin_model_invalid": "админка `{}`:\n{}",
+    "admin_override_unsafe_char": "замена шаблона админки `{}` содержит символ, недопустимый в шаблоне",
+    "admin_override_extension": "замена шаблона админки `{}` должна быть шаблоном `.html` или `.xml`, экранируемым Tera",
+    "admin_override_global_page": "модель `{}`: страница {} не относится к модели, её можно заменить только глобально",
+    "admin_override_missing": "замена шаблона админки не найдена в папке шаблонов: {}",
+    "admin_override_unknown_variable": "замена шаблона админки читает переменную, которую её страница никогда не передаёт: {}",
+    "admin_view_replaced_twice": "модель `{}`: её страница {} заменена и шаблоном, и маршрутом",
+    "admin_stylesheet_missing": "таблица стилей админки `{}` не является файлом папки static",
+    "schema_no_primary_key": "ModelSchema '{}': отсутствует первичный ключ"
   },
   "hint": {
     "db_required": "Добавьте .with_database(db) или .with_database_config(config) в цепочку построения",
@@ -41,6 +55,12 @@
     "prune_failed": "не удалось удалить осиротевшие права — устаревшие права могут остаться",
     "locales_missing": "переводы проекта, язык «{}»: не переведено сообщений Runique: {} ({}), они показываются на резервном языке",
     "locales_unknown": "переводы проекта, язык «{}»: ключи, которых нет в одной из тем Runique, без эффекта: {}",
-    "locales_placeholders": "переводы проекта, язык «{}»: число параметров отличается от сообщения Runique: {}"
+    "locales_placeholders": "переводы проекта, язык «{}»: число параметров отличается от сообщения Runique: {}",
+    "hsts_preload_set_but_combo_invalid": "HSTS_PRELOAD задан, но комбинация неверна (нужны includeSubDomains + max-age ≥ 31536000) — браузеры игнорируют его для preload",
+    "orphan_group_rights_pruned_boot": "при запуске удалены осиротевшие права групп",
+    "url_registry": "реестр URL",
+    "static_files_attached": "статические файлы подключены",
+    "templates_failed_load": "не удалось загрузить шаблоны",
+    "templates_loaded": "шаблоны загружены"
   }
 }

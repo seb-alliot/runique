@@ -68,7 +68,7 @@ impl FormField for BinaryField {
     fn set_submitted_value(&mut self, value: &str) {
         let value = value.trim();
         if !value.is_empty() && !is_staged_upload(value) {
-            tracing::warn!(field = %self.base.name, "binary field: submitted value is not a staged upload, ignored");
+            tracing::warn!(field = %self.base.name, "{}", crate::translation::t(runique_i18n::keys::forms::log::BINARY_FIELD_SUBMITTED_VALUE_NOT_STAGED));
             return;
         }
         self.set_value(value);
@@ -89,7 +89,7 @@ impl FormField for BinaryField {
         // would otherwise skip the column's limit and still be read by
         // `finalize`.
         if !is_staged_upload(&val) {
-            tracing::warn!(field = %self.base.name, "binary field: value is no longer a staged upload, refused");
+            tracing::warn!(field = %self.base.name, "{}", crate::translation::t(runique_i18n::keys::forms::log::BINARY_FIELD_VALUE_NO_LONGER_STAGED));
             self.base.value.clear();
             self.set_error(t(runique_i18n::keys::forms::error::FILE_UNREADABLE).to_string());
             return false;
@@ -97,7 +97,7 @@ impl FormField for BinaryField {
         let size = match tokio::fs::metadata(&val).await {
             Ok(meta) => meta.len(),
             Err(e) => {
-                tracing::warn!(field = %self.base.name, error = %e, "binary field: staged upload size unreadable, refused");
+                tracing::warn!(field = %self.base.name, error = %e, "{}", crate::translation::t(runique_i18n::keys::forms::log::BINARY_FIELD_STAGED_UPLOAD_SIZE_UNREADABLE));
                 self.base.value.clear();
                 self.set_error(t(runique_i18n::keys::forms::error::FILE_UNREADABLE).to_string());
                 return false;
@@ -134,7 +134,7 @@ impl FormField for BinaryField {
             .await
             .map_err(|e| super::media::upload_failed(format!("read upload '{val}': {e}")))?;
         if let Err(e) = tokio::fs::remove_file(&val).await {
-            tracing::warn!(path = %val, error = %e, "binary field: staged upload removal failed");
+            tracing::warn!(path = %val, error = %e, "{}", crate::translation::t(runique_i18n::keys::forms::log::BINARY_FIELD_STAGED_UPLOAD_REMOVAL_FAILED));
         }
         self.base.value = STANDARD.encode(bytes);
         Ok(())

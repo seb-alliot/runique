@@ -35,7 +35,13 @@ pub async fn obtain_certificate(
         LetsEncrypt::Production.url().to_owned()
     };
 
-    tracing::info!(domain, "Starting ACME certificate provisioning");
+    tracing::info!(
+        domain,
+        "{}",
+        crate::translation::t(
+            runique_i18n::keys::server::log::STARTING_ACME_CERTIFICATE_PROVISIONING
+        )
+    );
 
     // 1. Create Let's Encrypt account
     let (account, _credentials) = Account::builder()?
@@ -62,7 +68,13 @@ pub async fn obtain_certificate(
         match authz.status {
             AuthorizationStatus::Valid => continue,
             AuthorizationStatus::Pending => {}
-            _ => return Err(format!("unexpected authorization status: {:?}", authz.status).into()),
+            _ => {
+                return Err(crate::translation::tf(
+                    runique_i18n::keys::server::error::ACME_AUTHORIZATION_STATUS,
+                    &[format!("{:?}", authz.status)],
+                )
+                .into());
+            }
         }
 
         let mut challenge = authz
@@ -80,7 +92,11 @@ pub async fn obtain_certificate(
     // 4. Wait for order to become ready
     let status = order.poll_ready(&RetryPolicy::default()).await?;
     if status != OrderStatus::Ready {
-        return Err(format!("ACME order not ready: {status:?}").into());
+        return Err(crate::translation::tf(
+            runique_i18n::keys::server::error::ACME_ORDER_NOT_READY,
+            &[format!("{status:?}")],
+        )
+        .into());
     }
 
     // 5. Generate CSR + finalize — returns the private key PEM
@@ -89,7 +105,11 @@ pub async fn obtain_certificate(
     // 6. Download the signed certificate chain
     let cert_pem = order.poll_certificate(&RetryPolicy::default()).await?;
 
-    tracing::info!(domain, "Certificate obtained successfully");
+    tracing::info!(
+        domain,
+        "{}",
+        crate::translation::t(runique_i18n::keys::server::log::CERTIFICATE_OBTAINED_SUCCESSFULLY)
+    );
 
     Ok((cert_pem.into_bytes(), key_pem.into_bytes()))
 }

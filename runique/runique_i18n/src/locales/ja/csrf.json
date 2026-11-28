@@ -2,7 +2,10 @@
   "error": {
     "missing": "CSRFトークンがありません",
     "invalid": "無効なCSRFトークン",
-    "invalid_or_missing": "CSRFトークンが無効または存在しません"
+    "invalid_or_missing": "CSRFトークンが無効または存在しません",
+    "session_write": "セッションの書き込みエラー",
+    "required": "CSRFトークンが必要です",
+    "cross_site": "別のサイトから送信されたフォーム"
   },
   "log": {
     "refused": "CSRF を拒否",

@@ -23,7 +23,16 @@
     "email_taken": "Já existe um usuário com este email.",
     "password_too_short": "A senha deve ter pelo menos 12 caracteres.",
     "password_weak": "A senha deve conter pelo menos uma letra minúscula, uma maiúscula, um dígito e um caractere especial.",
-    "password_mismatch": "As senhas não correspondem. Por favor, tente novamente."
+    "password_mismatch": "As senhas não correspondem. Por favor, tente novamente.",
+    "provider_not_found": "Provedor não encontrado: '{}'",
+    "provider_not_a_file": "O provedor não é um arquivo: '{}'",
+    "provider_symlink": "O caminho do provedor é um link simbólico, o que não é permitido: '{}'",
+    "provider_launch_failed": "Falha ao iniciar o provedor '{}': {}",
+    "provider_timeout": "O provedor '{}' não respondeu após {} segundos",
+    "provider_wait_failed": "Erro ao aguardar o provedor: {}",
+    "provider_exit_code": "O provedor retornou um erro (código de saída {})",
+    "provider_stdin_failed": "Erro ao escrever no stdin: {}",
+    "provider_output_invalid": "Saída do provedor inválida (UTF-8): {}"
   },
   "info": {
     "review_algo": "  Algoritmo  : {}",
