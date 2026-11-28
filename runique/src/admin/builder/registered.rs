@@ -7,7 +7,7 @@ use super::{
     model_admin::{ListPage, ModelAdmin, OfferedAction, prefill},
 };
 use crate::{
-    admin::{constants::admin_form, template::ModelTemplates},
+    admin::{constants::form_names, template::ModelTemplates},
     auth::{
         current_user::CurrentUser,
         gate::{
@@ -366,7 +366,7 @@ where
         let db = &req.engine.db;
         authorize_create::<E>(&GateCtx { db, user })?;
 
-        let mut form = req.form::<F>(admin_form::CREATE);
+        let mut form = req.form::<F>(form_names::CREATE);
         let forms = form.forms_mut();
         crate::auth::gate::change::type_fields::<E>(forms);
         self.shape_for_create(forms, &user.rights_on(E::KEY).columns);
@@ -422,7 +422,7 @@ where
             key.clone(),
         )
         .await?;
-        let form = req.form::<ConfirmForm<E>>(admin_form::RESET_PASSWORD);
+        let form = req.form::<ConfirmForm<E>>(form_names::RESET_PASSWORD);
         if ValidationForm::try_form(form, req).await.is_err() {
             return Ok(None);
         }
@@ -448,7 +448,7 @@ where
         site_page_size: u64,
     ) -> Result<BulkOutcome, AdminError> {
         let refused = || BulkOutcome::Refused(Refusal::new(RefusalReason::NoRight).message());
-        let form = req.form::<BulkForm<E>>(admin_form::BULK);
+        let form = req.form::<BulkForm<E>>(form_names::BULK);
         let Ok(form) = ValidationForm::try_form(form, req).await else {
             return Ok(refused());
         };
@@ -526,10 +526,10 @@ where
         // Without the delete right on this row, not even the confirmation.
         authorize_row::<Delete, E>(&gate, key.clone()).await?;
 
-        let mut form = req.form::<ConfirmForm<E>>(admin_form::DELETE);
+        let mut form = req.form::<ConfirmForm<E>>(form_names::DELETE);
         let forms = form.forms_mut();
         forms.path_params.insert(
-            row_param(admin_form::DELETE, self.pk_column()),
+            row_param(form_names::DELETE, self.pk_column()),
             id.to_string(),
         );
 
@@ -580,14 +580,14 @@ where
             .filter(|name| view.readable().allows(name))
             .collect();
 
-        let mut form = req.form::<F>(admin_form::UPDATE);
+        let mut form = req.form::<F>(form_names::UPDATE);
         let forms = form.forms_mut();
         crate::auth::gate::change::type_fields::<E>(forms);
         self.shape_for_edit(forms, &readable, &lists, &user.rights_on(E::KEY).columns);
         // `save_as` looks for the row under the form's name and the key's; the
         // route calls it `{id}` whatever the model names it.
         forms.path_params.insert(
-            row_param(admin_form::UPDATE, self.pk_column()),
+            row_param(form_names::UPDATE, self.pk_column()),
             id.to_string(),
         );
 

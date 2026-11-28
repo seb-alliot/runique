@@ -7,7 +7,7 @@ use crate::{
             registered::{AdminError, RegisteredModel},
             site::AdminSite,
         },
-        constants::admin_form,
+        constants::form_names,
         router::{
             chrome,
             context::{GridBox, GridColumn, GridTable, ResourceRef, RightsContext, put},
@@ -257,7 +257,7 @@ pub(crate) async fn rights_view(
     let key = model.key();
     let back = admin.paths.detail_of(&site, key, &id);
 
-    let form = req.form::<ConfirmForm<user::Entity>>(admin_form::RIGHTS);
+    let form = req.form::<ConfirmForm<user::Entity>>(form_names::RIGHTS);
     if !req.method.is_safe() {
         let message = match ValidationForm::try_form(form, &req).await {
             Err(_) => Err(t(runique_i18n::keys::csrf::error::INVALID_OR_MISSING).into_owned()),
@@ -388,7 +388,7 @@ async fn group_rights(
     let key = GROUPES;
     let back = admin.paths.detail_of(&site, key, &id);
 
-    let form = req.form::<ConfirmForm<group::Entity>>(admin_form::RIGHTS);
+    let form = req.form::<ConfirmForm<group::Entity>>(form_names::RIGHTS);
     if !req.method.is_safe() {
         let message = match ValidationForm::try_form(form, &req).await {
             Err(_) => Err(t(runique_i18n::keys::csrf::error::INVALID_OR_MISSING).into_owned()),

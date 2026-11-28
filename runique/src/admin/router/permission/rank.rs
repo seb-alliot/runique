@@ -7,7 +7,7 @@ use crate::{
             registered::AdminError,
             site::AdminSite,
         },
-        constants::admin_form,
+        constants::form_names,
         router::{account::summary::rank_label, failure, routes::AdminState, unknown_resource},
     },
     auth::{
@@ -70,7 +70,7 @@ pub(crate) async fn rank_view(
         let not_found = AdminError::Refused(Refusal::new(RefusalReason::NotFound));
         return failure(not_found, &req, &admin).await;
     }
-    let form = req.form::<BulkForm<user::Entity>>(admin_form::RANK);
+    let form = req.form::<BulkForm<user::Entity>>(form_names::RANK);
     let form = ValidationForm::try_form(form, &req).await;
     let value = |name: &str| match &form {
         Ok(form) => form

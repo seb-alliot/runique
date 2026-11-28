@@ -207,7 +207,7 @@ Calls only: each command's logic lives in its own module, the binary goes throug
 - **`versions.rs`** — the crate's version and SeaORM's, read by the `runique` command
 - **`atomic.rs`** — re-export of `runique_atomic`
 
-Every constant is in the `constants.rs` of its part: `admin/`, `auth/`, `errors/`, `flash/`, `forms/`, `security/`, `templates/`. The anti-bot's session key (`HP_FIELD_KEY`) is in `middleware/security/anti_bot.rs`, its only user.
+Every constant is in the `constants.rs` of its part (a `constants/` folder for the admin: `messages.rs`, `route_names.rs`, `form_names.rs`): `admin/`, `auth/`, `errors/`, `flash/`, `forms/`, `security/`, `templates/`. The anti-bot's session key (`HP_FIELD_KEY`) is in `middleware/security/anti_bot.rs`, its only user.
 
 ### `utils/` — Utilities
 - **`aliases/`** — `ADb`, `AEngine`, `JsonMap`, `StrMap`… type aliases

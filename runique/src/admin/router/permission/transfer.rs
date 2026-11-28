@@ -5,7 +5,7 @@ use super::rights::{column_right_label, right_text, table_right_label};
 use crate::{
     admin::{
         builder::{confirm_form::ConfirmForm, registered::AdminError, site::AdminSite},
-        constants::admin_form,
+        constants::form_names,
         router::{
             chrome,
             context::{ResourceRef, TransferContext, TransferLine, put},
@@ -111,7 +111,7 @@ pub(crate) async fn transfer_view(
     let here = paths.transfer_of(model.key(), &id);
 
     if req.method == Method::POST {
-        let form = req.form::<ConfirmForm<group::Entity>>(admin_form::TRANSFER);
+        let form = req.form::<ConfirmForm<group::Entity>>(form_names::TRANSFER);
         let field = |name: &str| req.prisme.data.get(name).cloned().unwrap_or_default();
         let (to, shown) = (field(TO), field(SHOWN));
         let outcome = match ValidationForm::try_form(form, &req).await {

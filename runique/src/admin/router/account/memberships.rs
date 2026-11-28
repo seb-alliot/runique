@@ -3,7 +3,7 @@
 use crate::{
     admin::{
         builder::{confirm_form::ConfirmForm, registered::AdminError, site::AdminSite},
-        constants::admin_form,
+        constants::form_names,
         router::{failure, routes::AdminState, unknown_resource},
     },
     auth::{
@@ -60,7 +60,7 @@ pub(crate) async fn memberships_view(
     }
     let back = admin.paths.detail_of(&site, model.key(), &id);
 
-    let form = req.form::<ConfirmForm<user::Entity>>(admin_form::GROUPS);
+    let form = req.form::<ConfirmForm<user::Entity>>(form_names::GROUPS);
     let message = match ValidationForm::try_form(form, &req).await {
         Err(_) => Err(t(runique_i18n::keys::csrf::error::INVALID_OR_MISSING).into_owned()),
         Ok(_) => match ticked_groups(&req) {

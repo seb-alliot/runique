@@ -27,7 +27,7 @@ pub enum AdminView {
 use crate::{
     admin::{
         builder::{registered::AdminError, site::AdminSite},
-        constants::admin_route,
+        constants::route_names,
         translation::{inject_admin_prefix, insert_admin_messages},
     },
     auth::current_user::CurrentUser,
@@ -48,20 +48,20 @@ use std::sync::Arc;
 /// `urlpatterns!`, for a project's own templates (`{% link "admin_list" … %}`).
 pub(crate) fn refonte_router(paths: &AdminPaths, site: Arc<AdminSite>) -> Router {
     urlpatterns! {
-        &paths.list => get(crud::list::list_view), name = admin_route::LIST,
-        &paths.detail => get(crud::detail::detail_view), name = admin_route::DETAIL,
-        &paths.create => get(crud::create::create_view).post(crud::create::create_view), name = admin_route::CREATE,
-        &paths.rights => get(permission::rights::rights_view).post(permission::rights::rights_view), name = admin_route::RIGHTS,
-        &paths.rank => axum::routing::post(permission::rank::rank_view), name = admin_route::RANK,
-        &paths.group_select => get(permission::rights::group_select_view), name = admin_route::GROUP_SELECT,
-        &paths.groups => axum::routing::post(account::memberships::memberships_view), name = admin_route::GROUPS,
-        &paths.transfer => get(permission::transfer::transfer_view).post(permission::transfer::transfer_view), name = admin_route::TRANSFER,
-        &paths.bulk => axum::routing::post(crud::bulk::bulk_view), name = admin_route::BULK,
-        &paths.reset_password => axum::routing::post(account::reset_password::reset_password_view), name = admin_route::RESET_PASSWORD,
-        &paths.history => get(history::history_view), name = admin_route::HISTORY,
-        &paths.history_entry => get(history::history_entry_view), name = admin_route::HISTORY_ENTRY,
-        &paths.delete => get(crud::delete::delete_view).post(crud::delete::delete_view), name = admin_route::DELETE,
-        &paths.edit => get(crud::edit::edit_view).post(crud::edit::edit_view), name = admin_route::EDIT,
+        &paths.list => get(crud::list::list_view), name = route_names::LIST,
+        &paths.detail => get(crud::detail::detail_view), name = route_names::DETAIL,
+        &paths.create => get(crud::create::create_view).post(crud::create::create_view), name = route_names::CREATE,
+        &paths.rights => get(permission::rights::rights_view).post(permission::rights::rights_view), name = route_names::RIGHTS,
+        &paths.rank => axum::routing::post(permission::rank::rank_view), name = route_names::RANK,
+        &paths.group_select => get(permission::rights::group_select_view), name = route_names::GROUP_SELECT,
+        &paths.groups => axum::routing::post(account::memberships::memberships_view), name = route_names::GROUPS,
+        &paths.transfer => get(permission::transfer::transfer_view).post(permission::transfer::transfer_view), name = route_names::TRANSFER,
+        &paths.bulk => axum::routing::post(crud::bulk::bulk_view), name = route_names::BULK,
+        &paths.reset_password => axum::routing::post(account::reset_password::reset_password_view), name = route_names::RESET_PASSWORD,
+        &paths.history => get(history::history_view), name = route_names::HISTORY,
+        &paths.history_entry => get(history::history_entry_view), name = route_names::HISTORY_ENTRY,
+        &paths.delete => get(crud::delete::delete_view).post(crud::delete::delete_view), name = route_names::DELETE,
+        &paths.edit => get(crud::edit::edit_view).post(crud::edit::edit_view), name = route_names::EDIT,
     }
     .into_router()
     .layer(Extension(site))
