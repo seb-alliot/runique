@@ -95,7 +95,7 @@ runique/
 ### `http/` — What a handler receives
 - **`request.rs`** — `Request`: the extractor handlers take, and its rendering helpers
 - **`context.rs`** — `RuniqueContext` (engine, session, CSRF, flash)
-- **`extension.rs`** — `RequestExtensions` (injects engine, Tera, config, CSRF, current user)
+- **`extension.rs`** — `RequestExtensions` (injects the engine, which carries Tera and the config, CSRF, CSP nonce, current user)
 
 ### `templates/` — Template engine (Tera)
 - **`loader.rs`** — Tera engine initialization & template loader (`TemplateLoader`, `preprocess`)

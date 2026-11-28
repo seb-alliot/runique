@@ -226,7 +226,7 @@ pub async fn security_headers_middleware(
     let headers = response.headers_mut();
 
     // Use the nonce to build the CSP
-    let csp_value = engine.security_csp.to_header_value(Some(nonce.as_str()));
+    let csp_value = engine.security.csp.to_header_value(Some(nonce.as_str()));
     if let Ok(header) = HeaderValue::from_str(&csp_value) {
         headers.insert(axum::http::header::CONTENT_SECURITY_POLICY, header);
     }
@@ -252,7 +252,7 @@ pub async fn security_headers_middleware(
         HeaderValue::from_static("strict-origin-when-cross-origin"),
     );
 
-    let pp = engine.permissions_policy.to_header_value();
+    let pp = engine.security.permissions_policy.to_header_value();
     if let Ok(v) = HeaderValue::from_str(&pp) {
         headers.insert("permissions-policy", v);
     }

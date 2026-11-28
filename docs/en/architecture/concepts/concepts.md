@@ -6,13 +6,12 @@ The app's **main shared state**, built by the builder and reachable from every h
 
 ```rust
 pub struct RuniqueEngine {
-    pub config: RuniqueConfig,        // configuration (.env + builder)
+    pub config: ARuniqueConfig,       // configuration (.env + builder)
     pub tera: ATera,                  // template engine
     pub db: ADb,                      // database connection (SeaORM)
     pub url_registry: ARlockmap,      // named routes, for {% link %}
-    pub security_csp: ASecurityCsp,   // CSP policy
-    pub security_hosts: ASecurityHosts,
-    pub trusted_proxies: Arc<TrustedProxies>,
+    pub security: SecurityPolicies,   // CSP, allowed hosts, CSRF-exempt paths,
+                                      // Permissions-Policy, trusted proxies
     // … sessions, middleware settings, extra connections (with_custom_db)
 }
 ```

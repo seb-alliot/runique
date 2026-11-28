@@ -21,10 +21,10 @@ use axum::{
 };
 use runique::{
     config::app::RuniqueConfig,
-    engine::RuniqueEngine,
+    engine::{RuniqueEngine, SecurityPolicies},
     middleware::{
         config::MiddlewareConfig,
-        security::{allowed_hosts::HostPolicy, csp::SecurityPolicy, csrf::csrf_middleware},
+        security::{allowed_hosts::HostPolicy, csrf::csrf_middleware},
     },
 };
 use sea_orm::Database;
@@ -90,6 +90,19 @@ pub async fn build_engine_https() -> Arc<RuniqueEngine> {
     build_engine_cfg(true, false).await
 }
 
+/// The default test engine, changed by `edit` before it is shared: a test that
+/// needs another config, Tera or security policy starts from here.
+///
+/// ```rust
+/// let engine = build_engine_with(|e| e.tera = Arc::new(tera)).await;
+/// let engine = build_engine_with(|e| Arc::make_mut(&mut e.config).debug = true).await;
+/// ```
+pub async fn build_engine_with(edit: impl FnOnce(&mut RuniqueEngine)) -> Arc<RuniqueEngine> {
+    let mut engine = build_engine().await;
+    edit(Arc::get_mut(&mut engine).expect("fresh engine"));
+    engine
+}
+
 async fn build_engine_cfg(enforce_https: bool, dev: bool) -> Arc<RuniqueEngine> {
     let db = Database::connect(SQLITE_URL)
         .await
@@ -101,16 +114,15 @@ async fn build_engine_cfg(enforce_https: bool, dev: bool) -> Arc<RuniqueEngine> 
     config.dev = dev;
 
     Arc::new(RuniqueEngine {
-        config,
+        config: Arc::new(config),
         tera: Arc::new(Tera::default()),
         db: runique::db::ADb::from_connection(db),
         url_registry: Arc::new(std::sync::RwLock::new(std::collections::HashMap::new())),
         features: MiddlewareConfig::default(),
-        security_csp: Arc::new(SecurityPolicy::default()),
-        security_hosts: Arc::new(HostPolicy::new(vec![], true)),
-        csrf_exempt_paths: Arc::new(vec![]),
-        permissions_policy: Arc::new(runique::middleware::PermissionsPolicy::default()),
-        trusted_proxies: Arc::new(runique::middleware::TrustedProxies::default()),
+        security: SecurityPolicies {
+            hosts: Arc::new(HostPolicy::new(vec![], true)),
+            ..SecurityPolicies::default()
+        },
         session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
         session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
         extensions: std::collections::HashMap::new(),

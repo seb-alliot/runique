@@ -1,6 +1,6 @@
 //! HTTP error management middleware: renders the HTML error pages (`{code}.html`, the debug page).
 use crate::security::escape::html_escape;
-use crate::utils::aliases::{ARuniqueConfig, ATera};
+use crate::utils::aliases::AEngine;
 use crate::{
     config::RuniqueConfig,
     errors::constants::DEBUG_MESSAGE_KEYS,
@@ -71,15 +71,15 @@ fn redact_sensitive_path(path: &str) -> String {
 /// would dump every header onto every child log line and drown the console.
 #[instrument(
     name = "RuniqueRequest",
-    skip(tera, config, next, request),
+    skip(engine, next, request),
     fields(method = %request.method(), uri = %redact_sensitive_path(request.uri().path()))
 )]
 pub async fn error_handler_middleware(
-    Extension(tera): Extension<ATera>,
-    Extension(config): Extension<ARuniqueConfig>,
+    Extension(engine): Extension<AEngine>,
     request: Request<axum::body::Body>,
     next: Next,
 ) -> Response {
+    let (tera, config) = (engine.tera.clone(), engine.config.clone());
     // --- Collect request info ---
     let csrf_token: Option<String> = request.extensions().get::<CsrfToken>().map(|t| t.0.clone());
     let request_snapshot = RequestSnapshot {

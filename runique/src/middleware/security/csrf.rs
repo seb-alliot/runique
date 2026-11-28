@@ -112,7 +112,7 @@ pub async fn csrf_middleware(
     // failed with a 500 on any exempt handler that used them for anything else
     // (session access, template context, …) — exempting a path from CSRF checks
     // shouldn't also break an unrelated feature.
-    let exempt = is_csrf_exempt(req.uri().path(), &engine.csrf_exempt_paths);
+    let exempt = is_csrf_exempt(req.uri().path(), &engine.security.csrf_exempt_paths);
 
     let secret = &engine.config.server.secret_key;
 

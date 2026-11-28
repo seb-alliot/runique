@@ -3,7 +3,11 @@
 //
 // Stack : csrf_router — csrf_middleware (GET seulement, token validé).
 
-use crate::helpers::{assert::body_str, request, server::build_engine};
+use crate::helpers::{
+    assert::body_str,
+    request,
+    server::{build_engine, build_engine_with},
+};
 use axum::{
     Router,
     body::Body,
@@ -24,16 +28,14 @@ use tower_sessions::{MemoryStore, SessionManagerLayer};
 
 // ── Middlewares d'injection ─────────────────────────────────────────────────
 
-/// Injecte engine + config (requis par prisme_pipeline dans Request::from_request).
+/// Injecte l'engine, qui porte la config lue par prisme_pipeline dans Request::from_request.
 async fn engine_inject(
     State(engine): State<AEngine>,
     mut req: Request<Body>,
     next: Next,
 ) -> Response {
-    let config = Arc::new(engine.config.clone());
     RequestExtensions::new()
         .with_engine(engine)
-        .with_config(config)
         .inject_request(&mut req);
     next.run(req).await
 }
@@ -113,33 +115,11 @@ async fn test_insert_does_not_panic() {
 // ── Tests — render succès (avec template Tera) ──────────────────────────────
 
 async fn app_with_template() -> Router {
-    let engine = build_engine().await;
-
     let mut tera = Tera::default();
     tera.add_raw_template("hello.html", "<h1>Hello</h1>")
         .unwrap();
 
-    use runique::engine::RuniqueEngine;
-    use runique::middleware::{
-        config::MiddlewareConfig,
-        security::{allowed_hosts::HostPolicy, csp::SecurityPolicy},
-    };
-
-    let engine_with_tpl = Arc::new(RuniqueEngine {
-        tera: Arc::new(tera),
-        config: engine.config.clone(),
-        db: engine.db.clone(),
-        url_registry: engine.url_registry.clone(),
-        features: MiddlewareConfig::default(),
-        security_csp: Arc::new(SecurityPolicy::default()),
-        security_hosts: Arc::new(HostPolicy::new(vec![], true)),
-        csrf_exempt_paths: Arc::new(vec![]),
-        permissions_policy: Arc::new(runique::middleware::PermissionsPolicy::default()),
-        trusted_proxies: Arc::new(runique::middleware::TrustedProxies::default()),
-        session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-        session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-        extensions: std::collections::HashMap::new(),
-    });
+    let engine_with_tpl = build_engine_with(|e| e.tera = Arc::new(tera)).await;
 
     let session_layer = SessionManagerLayer::new(MemoryStore::default());
     Router::new()
@@ -272,30 +252,12 @@ async fn handler_public_url(req: TplRequest) -> impl IntoResponse {
 
 /// App whose engine has the given public URL, in development or production.
 async fn public_url_app(public_url: Option<&str>, dev: bool) -> Router {
-    use runique::engine::RuniqueEngine;
-    use runique::middleware::{
-        config::MiddlewareConfig,
-        security::{allowed_hosts::HostPolicy, csp::SecurityPolicy},
-    };
-    let base = build_engine().await;
-    let mut config = base.config.clone();
-    config.server.public_url = public_url.map(str::to_string);
-    config.dev = dev;
-    let engine = Arc::new(RuniqueEngine {
-        tera: base.tera.clone(),
-        config,
-        db: base.db.clone(),
-        url_registry: base.url_registry.clone(),
-        features: MiddlewareConfig::default(),
-        security_csp: Arc::new(SecurityPolicy::default()),
-        security_hosts: Arc::new(HostPolicy::new(vec![], true)),
-        csrf_exempt_paths: Arc::new(vec![]),
-        permissions_policy: Arc::new(runique::middleware::PermissionsPolicy::default()),
-        trusted_proxies: Arc::new(runique::middleware::TrustedProxies::default()),
-        session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-        session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-        extensions: std::collections::HashMap::new(),
-    });
+    let engine = build_engine_with(|e| {
+        let config = Arc::make_mut(&mut e.config);
+        config.server.public_url = public_url.map(str::to_string);
+        config.dev = dev;
+    })
+    .await;
     Router::new()
         .route("/u", get(handler_public_url))
         .layer(middleware::from_fn_with_state(

@@ -1,18 +1,14 @@
 //! `RuniqueEngine` implementation — construction, middleware attachment, store access.
+use crate::engine::SecurityPolicies;
 use crate::middleware::session::{CleaningMemoryStore, session_db::RuniqueSessionStore};
-use crate::utils::aliases::{
-    ADb, APermissionsPolicy, ARlockmap, ASecurityCsp, ASecurityHosts, ATera, new, new_registry,
-};
+use crate::utils::aliases::{ADb, ARlockmap, ARuniqueConfig, ATera, new, new_registry};
 use std::any::TypeId;
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock, RwLock};
 use tera::Tera;
 
 use crate::config::RuniqueConfig;
-// Import our newly renamed structures
-use crate::middleware::{
-    HostPolicy, MiddlewareConfig, PermissionsPolicy, SecurityPolicy, TrustedProxies,
-};
+use crate::middleware::MiddlewareConfig;
 
 #[cfg(feature = "orm")]
 use sea_orm::DatabaseConnection;
@@ -20,8 +16,9 @@ use sea_orm::DatabaseConnection;
 /// database, URL registry, and all security policies.
 #[derive(Debug)]
 pub struct RuniqueEngine {
-    /// General application configuration.
-    pub config: RuniqueConfig,
+    /// General application configuration, shared with what reads it outside
+    /// the engine.
+    pub config: ARuniqueConfig,
     /// Shared Tera instance for read/write.
     pub tera: ATera,
     #[cfg(feature = "orm")]
@@ -31,16 +28,8 @@ pub struct RuniqueEngine {
     pub url_registry: ARlockmap,
     /// Middleware toggles (cache, CSP, CSRF, etc.).
     pub features: MiddlewareConfig,
-    /// Active Content Security Policy.
-    pub security_csp: ASecurityCsp,
-    /// Policy for validating allowed hosts.
-    pub security_hosts: ASecurityHosts,
-    /// Paths exempt from CSRF validation (ex: webhook endpoints).
-    pub csrf_exempt_paths: Arc<Vec<String>>,
-    /// Active Permissions-Policy header configuration.
-    pub permissions_policy: APermissionsPolicy,
-    /// Trusted proxy IPs/CIDRs for real client IP extraction.
-    pub trusted_proxies: Arc<TrustedProxies>,
+    /// CSP, allowed hosts, CSRF-exempt paths, Permissions-Policy, trusted proxies.
+    pub security: SecurityPolicies,
     /// Memory store — anonymous sessions + CSRF.
     pub session_store: LazyLock<RwLock<Option<Arc<CleaningMemoryStore>>>>,
     /// DB store — persistent authenticated sessions (table `eihwaz_sessions`).
@@ -56,20 +45,14 @@ impl RuniqueEngine {
     pub fn new(config: RuniqueConfig, tera: Tera, db: DatabaseConnection) -> Self {
         // Single load at startup
         let features = MiddlewareConfig::from_env();
-        let security_csp = SecurityPolicy::default();
-        let security_hosts = HostPolicy::default();
 
         Self {
-            config,
+            config: new(config),
             tera: new(tera),
             db: ADb::from_connection(db),
             url_registry: new_registry(),
             features,
-            security_csp: new(security_csp),
-            security_hosts: new(security_hosts),
-            csrf_exempt_paths: Arc::new(vec![]),
-            permissions_policy: Arc::new(PermissionsPolicy::default()),
-            trusted_proxies: Arc::new(TrustedProxies::default()),
+            security: SecurityPolicies::default(),
             session_store: LazyLock::new(|| RwLock::new(None)),
             session_db_store: LazyLock::new(|| RwLock::new(None)),
             extensions: HashMap::new(),

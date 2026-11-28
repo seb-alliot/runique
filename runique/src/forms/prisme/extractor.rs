@@ -4,7 +4,7 @@ use crate::forms::prisme::{BodyRefusal, aegis};
 use crate::security::constants::CSRF_TOKEN_KEY;
 use crate::security::csrf::unmask_csrf_token;
 use crate::translation::t;
-use crate::utils::aliases::{ARuniqueConfig, StrMap, StrVecMap};
+use crate::utils::aliases::{AEngine, StrMap, StrVecMap};
 
 use axum::{
     body::Body,
@@ -62,16 +62,14 @@ pub async fn prisme_pipeline<S>(req: Request<Body>, state: &S) -> Result<Prisme,
 where
     S: Send + Sync,
 {
-    let config = req
-        .extensions()
-        .get::<ARuniqueConfig>()
-        .cloned()
-        .ok_or_else(|| {
-            BodyRefusal::Status(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                t(runique_i18n::keys::forms::error::CONFIG_NOT_FOUND).to_string(),
-            )
-        })?;
+    // The config comes with the engine: without it, the body can't be read.
+    let engine = req.extensions().get::<AEngine>().cloned().ok_or_else(|| {
+        BodyRefusal::Status(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            t(runique_i18n::keys::forms::error::CONFIG_NOT_FOUND).to_string(),
+        )
+    })?;
+    let config = engine.config.clone();
 
     let csrf_session = req
         .extensions()
@@ -105,10 +103,7 @@ where
     // A multipart body writes its files to disk while it's read: without a
     // valid header token, the `csrf_token` field must come before the first
     // file, or nothing is written (an exempt path keeps its own check).
-    let exempt = req
-        .extensions()
-        .get::<crate::utils::aliases::AEngine>()
-        .is_some_and(|engine| is_csrf_exempt(req.uri().path(), &engine.csrf_exempt_paths));
+    let exempt = is_csrf_exempt(req.uri().path(), &engine.security.csrf_exempt_paths);
     let header_valid = header_token
         .as_deref()
         .is_some_and(|token| token_matches(token, csrf_session.as_str()));

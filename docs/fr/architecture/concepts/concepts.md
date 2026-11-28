@@ -6,13 +6,12 @@
 
 ```rust
 pub struct RuniqueEngine {
-    pub config: RuniqueConfig,        // configuration (.env + builder)
+    pub config: ARuniqueConfig,       // configuration (.env + builder)
     pub tera: ATera,                  // moteur de templates
     pub db: ADb,                      // connexion à la base (SeaORM)
     pub url_registry: ARlockmap,      // routes nommées, pour {% link %}
-    pub security_csp: ASecurityCsp,   // politique CSP
-    pub security_hosts: ASecurityHosts,
-    pub trusted_proxies: Arc<TrustedProxies>,
+    pub security: SecurityPolicies,   // CSP, hôtes autorisés, chemins exemptés du CSRF,
+                                      // Permissions-Policy, proxys de confiance
     // … sessions, réglages des middlewares, connexions additionnelles (with_custom_db)
 }
 ```

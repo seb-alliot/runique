@@ -5,7 +5,10 @@
 //! Rendus avec les vrais templates de `templates/field_html/` et les filtres
 //! Runique : c'est le seul niveau où l'erreur Tera du nom manquant se voit.
 
-use crate::helpers::{handler_req::build_handler_req, server::build_engine};
+use crate::helpers::{
+    handler_req::build_handler_req,
+    server::{build_engine, build_engine_with},
+};
 use axum::http::Method;
 use runique::forms::constants::FORM_NAME_KEY;
 use runique::forms::{
@@ -141,8 +144,7 @@ async fn script_tag(nonce: Option<&str>) -> String {
             ("csrf.html", include_str!("../../templates/csrf/csrf.html")),
         ])
         .unwrap();
-    let mut engine = build_engine().await;
-    Arc::get_mut(&mut engine).expect("fresh engine").tera = Arc::new(js_tera);
+    let engine = build_engine_with(|e| e.tera = Arc::new(js_tera)).await;
     let mut request = build_handler_req(engine, None, HashMap::new(), Method::GET).await;
     if let Some(nonce) = nonce {
         request.context.insert("csp_nonce", nonce);

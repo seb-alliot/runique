@@ -13,8 +13,6 @@ use runique::security::csrf::CsrfToken;
 fn test_new_all_fields_none() {
     let ext = RequestExtensions::new();
     assert!(ext.engine.is_none());
-    assert!(ext.tera.is_none());
-    assert!(ext.config.is_none());
     assert!(ext.csrf_token.is_none());
     assert!(ext.csp_nonce.is_none());
     assert!(ext.current_user.is_none());
@@ -103,33 +101,4 @@ fn test_inject_request_current_user() {
 
     let injected = req.extensions().get::<CurrentUser>().unwrap();
     assert_eq!(injected.username, "bob");
-}
-
-// ── inject (Parts) ───────────────────────────────────────────────
-
-#[test]
-fn test_inject_parts_csrf_token() {
-    use axum::http::Request;
-
-    let token = CsrfToken("parts_token".to_string());
-    let ext = RequestExtensions::new().with_csrf_token(token);
-
-    let req = Request::builder().uri("/").body(Body::empty()).unwrap();
-    let (mut parts, _body) = req.into_parts();
-
-    ext.inject(&mut parts);
-
-    assert!(parts.extensions.get::<CsrfToken>().is_some());
-}
-
-#[test]
-fn test_inject_empty_does_nothing() {
-    let ext = RequestExtensions::new();
-    let req = Request::builder().uri("/").body(Body::empty()).unwrap();
-    let (mut parts, _) = req.into_parts();
-
-    ext.inject(&mut parts);
-
-    assert!(parts.extensions.get::<CsrfToken>().is_none());
-    assert!(parts.extensions.get::<CspNonce>().is_none());
 }

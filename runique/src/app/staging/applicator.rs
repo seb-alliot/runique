@@ -43,7 +43,7 @@ use crate::middleware::{
     error_handler_middleware, https_redirect_middleware, lang_middleware, open_redirect_middleware,
     security_headers_middleware, trusted_proxies_middleware,
 };
-use crate::utils::aliases::{AEngine, ARuniqueConfig, ATera};
+use crate::utils::aliases::AEngine;
 use axum::{self, Router, middleware};
 use std::sync::Arc;
 use tower_http::compression::CompressionLayer;
@@ -55,7 +55,7 @@ use super::MiddlewareStaging;
 
 // ─── Built-in slots — Guaranteed execution order on the request ───────────────
 
-const SLOT_EXTENSIONS: u16 = 0; // Engine/Tera/Config injection (outermost)
+const SLOT_EXTENSIONS: u16 = 0; // Engine injection (outermost)
 const SLOT_TRUSTED_PROXIES: u16 = 2; // Real client IP extraction — before everything
 const SLOT_COMPRESSION: u16 = 5; // Compression (external, before any other middleware)
 const SLOT_CORS: u16 = 8; // Outside ErrorHandler — OPTIONS preflight never reaches CSRF
@@ -95,18 +95,14 @@ impl MiddlewareStaging {
     pub(crate) fn apply_to_router(
         self,
         router: Router,
-        config: ARuniqueConfig,
         engine: AEngine,
-        tera: ATera,
     ) -> (Router, Option<Arc<CleaningMemoryStore>>) {
-        let dev = config.dev;
+        let dev = engine.config.dev;
         let mut entries: Vec<MiddlewareEntry> = Vec::new();
 
-        // Slot 0: Extensions (Engine, Tera, Config) — outermost
+        // Slot 0: the engine, which carries Tera and the config — outermost
         {
             let eng = engine.clone();
-            let t = tera.clone();
-            let c = config.clone();
             entries.push(MiddlewareEntry {
                 slot: SLOT_EXTENSIONS,
                 name: "Extensions",
@@ -114,10 +110,7 @@ impl MiddlewareStaging {
                     r.layer(axum::middleware::from_fn(
                         move |mut req: axum::http::Request<axum::body::Body>,
                               next: axum::middleware::Next| {
-                            let extensions = RequestExtensions::new()
-                                .with_tera(t.clone())
-                                .with_config(c.clone())
-                                .with_engine(eng.clone());
+                            let extensions = RequestExtensions::new().with_engine(eng.clone());
                             extensions.inject_request(&mut req);
                             async move { next.run(req).await }
                         },

@@ -10,7 +10,10 @@ use runique::{
 };
 use std::{collections::HashMap, sync::Arc};
 
-use crate::helpers::{request, server::build_engine};
+use crate::helpers::{
+    request,
+    server::{build_engine, build_engine_with},
+};
 
 // ═══════════════════════════════════════════════════════════════
 // Builders locaux
@@ -18,9 +21,7 @@ use crate::helpers::{request, server::build_engine};
 
 /// Router minimal avec error_handler_middleware en mode production (debug=false).
 async fn build_error_app() -> Router {
-    let engine = build_engine().await;
-    let tera = engine.tera.clone();
-    let config = Arc::new(engine.config.clone()); // debug=false par défaut
+    let engine = build_engine().await; // debug=false par défaut
 
     Router::new()
         .route("/ok", get(|| async { "ok" }))
@@ -29,17 +30,12 @@ async fn build_error_app() -> Router {
             get(|| async { StatusCode::INTERNAL_SERVER_ERROR }),
         )
         .layer(middleware::from_fn(error_handler_middleware))
-        .layer(Extension(tera))
-        .layer(Extension(config))
+        .layer(Extension(engine))
 }
 
 /// Même router mais avec debug=true.
 async fn build_debug_error_app() -> Router {
-    let engine = build_engine().await;
-    let tera = engine.tera.clone();
-    let mut config = engine.config.clone();
-    config.debug = true;
-    let config = Arc::new(config);
+    let engine = build_engine_with(|e| Arc::make_mut(&mut e.config).debug = true).await;
 
     Router::new()
         .route("/ok", get(|| async { "ok" }))
@@ -48,8 +44,7 @@ async fn build_debug_error_app() -> Router {
             get(|| async { StatusCode::INTERNAL_SERVER_ERROR }),
         )
         .layer(middleware::from_fn(error_handler_middleware))
-        .layer(Extension(tera))
-        .layer(Extension(config))
+        .layer(Extension(engine))
 }
 
 async fn bad_query() -> Box<AppError> {
@@ -239,10 +234,11 @@ fn internal_tera() -> tera::Tera {
 
 /// Router with the framework's real templates (400.html, debug.html).
 async fn build_templated_error_app(debug: bool) -> Router {
-    let engine = build_engine().await;
-    let mut config = engine.config.clone();
-    config.debug = debug;
-    let tera = Arc::new(internal_tera());
+    let engine = build_engine_with(|e| {
+        Arc::make_mut(&mut e.config).debug = debug;
+        e.tera = Arc::new(internal_tera());
+    })
+    .await;
     Router::new()
         .route("/bad_query", get(bad_query))
         .route(
@@ -261,8 +257,7 @@ async fn build_templated_error_app(debug: bool) -> Router {
             get(|| async { (StatusCode::PAYLOAD_TOO_LARGE, "{\"error\":\"big\"}") }),
         )
         .layer(middleware::from_fn(error_handler_middleware))
-        .layer(Extension(tera))
-        .layer(Extension(Arc::new(config)))
+        .layer(Extension(engine))
 }
 
 async fn get_page(debug: bool, path: &str) -> (StatusCode, String) {
@@ -310,14 +305,11 @@ async fn test_debug_error_page_redacts_password_reset_token_from_path() {
 /// survivors (2026-10-08): error.rs:429 fallback_400_html.
 #[tokio::test]
 async fn test_bad_request_without_template_uses_the_fallback_page() {
-    let engine = build_engine().await;
-    let mut config = engine.config.clone();
-    config.debug = false;
+    let engine = build_engine_with(|e| Arc::make_mut(&mut e.config).debug = false).await;
     let app = Router::new()
         .route("/bad_query", get(bad_query))
         .layer(middleware::from_fn(error_handler_middleware))
-        .layer(Extension(Arc::new(tera::Tera::default())))
-        .layer(Extension(Arc::new(config)));
+        .layer(Extension(engine));
     let resp = request::get(app, "/bad_query").await;
     assert_eq!(resp.status(), 400);
     let body = resp.into_body().collect().await.unwrap().to_bytes();
@@ -357,8 +349,7 @@ async fn build_status_app() -> Router {
         .route("/r429", get(|| async { StatusCode::TOO_MANY_REQUESTS }))
         .route("/r503", get(|| async { StatusCode::SERVICE_UNAVAILABLE }))
         .layer(middleware::from_fn(error_handler_middleware))
-        .layer(Extension(engine.tera.clone()))
-        .layer(Extension(Arc::new(engine.config.clone())))
+        .layer(Extension(engine))
 }
 
 #[tokio::test]
@@ -376,8 +367,7 @@ async fn test_429_page_keeps_the_retry_after_it_replaced() {
             }),
         )
         .layer(middleware::from_fn(error_handler_middleware))
-        .layer(Extension(engine.tera.clone()))
-        .layer(Extension(Arc::new(engine.config.clone())));
+        .layer(Extension(engine));
     let resp = request::get(app, "/r429_wait").await;
     assert_eq!(resp.status(), 429);
     assert_eq!(

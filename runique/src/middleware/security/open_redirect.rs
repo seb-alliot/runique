@@ -120,7 +120,7 @@ fn is_safe_redirect(location: &str, engine: &crate::engine::RuniqueEngine) -> bo
     }
 
     // Check against the configured allowed hosts
-    engine.security_hosts.is_host_allowed(host)
+    engine.security.hosts.is_host_allowed(host)
 }
 
 /// Extracts the host (with port, if any) from an absolute or

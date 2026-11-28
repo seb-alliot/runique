@@ -2,7 +2,7 @@
 //! before the handler, on the browser's `Sec-Fetch-Site`. Nothing sent from the
 //! site itself, nor without the header, changes.
 
-use crate::helpers::server::{build_default_router, build_engine};
+use crate::helpers::server::{build_default_router, build_engine_with};
 use axum::{
     body::Body,
     http::{Method, Request, header},
@@ -13,10 +13,10 @@ use std::sync::Arc;
 use tower::ServiceExt;
 
 async fn engine(exempt: &[&str]) -> Arc<RuniqueEngine> {
-    let mut engine = build_engine().await;
-    let e = Arc::get_mut(&mut engine).expect("fresh engine");
-    e.csrf_exempt_paths = Arc::new(exempt.iter().map(|p| p.to_string()).collect());
-    engine
+    build_engine_with(|e| {
+        e.security.csrf_exempt_paths = Arc::new(exempt.iter().map(|p| p.to_string()).collect());
+    })
+    .await
 }
 
 /// A form `POST /submit`, with `Sec-Fetch-Site: site` when given.

@@ -22,7 +22,7 @@ use super::RuniqueAppBuilder;
 #[cfg(feature = "admin")]
 use crate::admin::build_admin_router;
 use crate::config::RuniqueConfig;
-use crate::engine::RuniqueEngine;
+use crate::engine::{RuniqueEngine, SecurityPolicies};
 use crate::errors::build::BuildError;
 use crate::log::log_init;
 use crate::middleware::HostPolicy;
@@ -216,8 +216,8 @@ impl<P> RuniqueAppBuilder<P> {
         }
 
         let engine = new(RuniqueEngine {
-            config: (*config).clone(),
-            tera: tera.clone(),
+            config: config.clone(),
+            tera,
             #[cfg(feature = "orm")]
             db: ADb::from_connection(db),
             features: {
@@ -226,36 +226,40 @@ impl<P> RuniqueAppBuilder<P> {
                 f
             },
             url_registry,
-            security_csp: {
-                let mut policy = middleware.security_policy.take().unwrap_or_default();
-                // `strict()` turns it on, and a local server only speaks HTTP.
-                if config.dev {
-                    policy.upgrade_insecure_requests = false;
-                }
-                // Only the admin adds to the policy.
-                #[cfg(feature = "admin")]
-                if self.admin.enabled {
-                    policy.merge_htmx_hashes();
-                }
-                new(policy)
+            security: SecurityPolicies {
+                csp: {
+                    let mut policy = middleware.security_policy.take().unwrap_or_default();
+                    // `strict()` turns it on, and a local server only speaks HTTP.
+                    if config.dev {
+                        policy.upgrade_insecure_requests = false;
+                    }
+                    // Only the admin adds to the policy.
+                    #[cfg(feature = "admin")]
+                    if self.admin.enabled {
+                        policy.merge_htmx_hashes();
+                    }
+                    new(policy)
+                },
+                hosts: new(HostPolicy::new(
+                    middleware.allowed_hosts.clone(),
+                    middleware.features.enable_host_validation,
+                )),
+                csrf_exempt_paths: Arc::new(middleware.csrf_exempt_paths.clone()),
+                permissions_policy: Arc::new(
+                    middleware.permissions_policy.take().unwrap_or_default(),
+                ),
+                trusted_proxies: Arc::new(match middleware.trusted_proxies_config.take() {
+                    // Explicit config always wins; otherwise the default is edge-aware
+                    // (private ranges behind a proxy, but `none()` when Runique is the
+                    // ACME TLS edge — closes SEC2). See `TrustedProxies::default_for_edge`.
+                    Some(c) => c.build(),
+                    None => {
+                        crate::middleware::security::trusted_proxies::TrustedProxies::default_for_edge(
+                            config.security.acme_enabled,
+                        )
+                    }
+                }),
             },
-            security_hosts: new(HostPolicy::new(
-                middleware.allowed_hosts.clone(),
-                middleware.features.enable_host_validation,
-            )),
-            csrf_exempt_paths: Arc::new(middleware.csrf_exempt_paths.clone()),
-            permissions_policy: Arc::new(middleware.permissions_policy.take().unwrap_or_default()),
-            trusted_proxies: Arc::new(match middleware.trusted_proxies_config.take() {
-                // Explicit config always wins; otherwise the default is edge-aware
-                // (private ranges behind a proxy, but `none()` when Runique is the
-                // ACME TLS edge — closes SEC2). See `TrustedProxies::default_for_edge`.
-                Some(c) => c.build(),
-                None => {
-                    crate::middleware::security::trusted_proxies::TrustedProxies::default_for_edge(
-                        config.security.acme_enabled,
-                    )
-                }
-            }),
             session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
             session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
             extensions,
@@ -437,8 +441,7 @@ impl<P> RuniqueAppBuilder<P> {
 
         // Step 5: middleware staging — automatic slot sort and apply
         let _exclusive_login = middleware.exclusive_login;
-        let (router, session_store) =
-            middleware.apply_to_router(router, config, engine.clone(), tera);
+        let (router, session_store) = middleware.apply_to_router(router, engine.clone());
         if let Some(store) = session_store
             && let Ok(mut guard) = engine.session_store.write()
         {

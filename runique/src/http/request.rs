@@ -578,7 +578,6 @@ mod admin_constraint_tests {
             .unwrap();
         let ext = http.extensions_mut();
         ext.insert(engine.clone());
-        ext.insert(Arc::new(engine.config.clone()));
         ext.insert(csrf());
         ext.insert(session());
         if let Some(user) = constrained {

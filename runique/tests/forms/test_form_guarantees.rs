@@ -1,7 +1,10 @@
 //! Form engine guarantees, written from cargo-mutants survivors (2026-10-02):
 //! each test fails when the matching check is altered — not only when the
 //! form misbehaves today.
-use crate::helpers::{handler_req::build_handler_req, server::build_engine};
+use crate::helpers::{
+    handler_req::build_handler_req,
+    server::{build_engine, build_engine_with},
+};
 use axum::http::Method;
 use runique::forms::fields::{
     BooleanField, CheckboxField, ChoiceField, DateField, DateTimeField, DurationField, FileField,
@@ -529,13 +532,12 @@ impl RuniqueForm for DocForm {}
 /// its template reads it, with the server's limits set to `max_upload_mb` /
 /// `max_body_mb` and an optional `form.max_size` from the handler.
 async fn doc_limit(max_upload_mb: u64, max_body_mb: u64, handler_size: Option<FileSize>) -> u64 {
-    let mut engine = build_engine().await;
-    let statics = &mut Arc::get_mut(&mut engine)
-        .expect("fresh engine")
-        .config
-        .static_files;
-    statics.max_upload_mb = max_upload_mb;
-    statics.max_body_mb = max_body_mb;
+    let engine = build_engine_with(|e| {
+        let statics = &mut Arc::make_mut(&mut e.config).static_files;
+        statics.max_upload_mb = max_upload_mb;
+        statics.max_body_mb = max_body_mb;
+    })
+    .await;
     let request = build_handler_req(engine, None, HashMap::new(), Method::GET).await;
     let mut form: DocForm = request.form("d");
     if let Some(size) = handler_size {

@@ -206,7 +206,10 @@ pub async fn trusted_proxies_middleware(
         .get::<ConnectInfo<SocketAddr>>()
         .map(|ci| ci.0.ip());
 
-    let client_ip = engine.trusted_proxies.extract_client_ip(&req, conn_ip);
+    let client_ip = engine
+        .security
+        .trusted_proxies
+        .extract_client_ip(&req, conn_ip);
     req.extensions_mut().insert(ClientIp(client_ip));
     next.run(req).await
 }

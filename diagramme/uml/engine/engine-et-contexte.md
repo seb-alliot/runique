@@ -7,16 +7,12 @@
 ```mermaid
 classDiagram
     class RuniqueEngine {
-        +RuniqueConfig config
+        +ARuniqueConfig config
         +ATera tera
         +ADb db
         +ARlockmap url_registry
         +MiddlewareConfig features
-        +ASecurityCsp security_csp
-        +ASecurityHosts security_hosts
-        +Arc~Vec~String~~ csrf_exempt_paths
-        +Arc~PermissionsPolicy~ permissions_policy
-        +Arc~TrustedProxies~ trusted_proxies
+        +SecurityPolicies security
         +LazyLock~RwLock~Option~Arc~CleaningMemoryStore~~~~ session_store
         +LazyLock~RwLock~Option~Arc~RuniqueSessionStore~~~~ session_db_store
         +HashMap~TypeId, Arc~Any~~ extensions
@@ -27,6 +23,14 @@ classDiagram
     RuniqueEngine "1" o-- "1" CleaningMemoryStore : sessions anonymes + CSRF
     RuniqueEngine "1" o-- "1" RuniqueSessionStore : sessions authentifiées (DB)
     RuniqueEngine "1" *-- "1" RuniqueConfig
+    RuniqueEngine "1" *-- "1" SecurityPolicies
+    class SecurityPolicies {
+        +ASecurityCsp csp
+        +ASecurityHosts hosts
+        +Arc~Vec~String~~ csrf_exempt_paths
+        +Arc~PermissionsPolicy~ permissions_policy
+        +Arc~TrustedProxies~ trusted_proxies
+    }
     RuniqueEngine "1" o-- "*" Any : extensions (custom_db)
 ```
 

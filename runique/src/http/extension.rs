@@ -1,21 +1,14 @@
-//! Axum request extensions: injects engine, Tera, config, CSRF, CSP nonce, and current user.
+//! Axum request extensions: injects the engine (which carries Tera and the config), CSRF, CSP nonce, and current user.
 use crate::auth::current_user::CurrentUser;
 use axum::body::Body;
 use axum::http::Request;
-/// Centralized module to inject all data into Axum extensions.
-use axum::http::request::Parts;
 
 use crate::security::{csp_nonce::CspNonce, csrf::CsrfToken};
-use crate::utils::aliases::{
-    AEngine, ARuniqueConfig, ATera, OAEngine, OARuniqueConfig, OATera, OCspNonce, OCsrfToken,
-    OCurrentUser,
-};
+use crate::utils::aliases::{AEngine, OAEngine, OCspNonce, OCsrfToken, OCurrentUser};
 
 /// Structure containing all data to be injected into extensions.
 pub struct RequestExtensions {
     pub engine: OAEngine,
-    pub tera: OATera,
-    pub config: OARuniqueConfig,
     pub csrf_token: OCsrfToken,
     pub csp_nonce: OCspNonce,
     pub current_user: OCurrentUser,
@@ -26,33 +19,9 @@ impl RequestExtensions {
     pub fn new() -> Self {
         Self {
             engine: None,
-            tera: None,
-            config: None,
             csrf_token: None,
             csp_nonce: None,
             current_user: None,
-        }
-    }
-
-    /// Injects all present data into extensions.
-    pub fn inject(&self, parts: &mut Parts) {
-        if let Some(engine) = &self.engine {
-            parts.extensions.insert(engine.clone());
-        }
-        if let Some(tera) = &self.tera {
-            parts.extensions.insert(tera.clone());
-        }
-        if let Some(config) = &self.config {
-            parts.extensions.insert(config.clone());
-        }
-        if let Some(csrf_token) = &self.csrf_token {
-            parts.extensions.insert(csrf_token.clone());
-        }
-        if let Some(csp_nonce) = &self.csp_nonce {
-            parts.extensions.insert(csp_nonce.clone());
-        }
-        if let Some(current_user) = &self.current_user {
-            parts.extensions.insert(current_user.clone());
         }
     }
 
@@ -63,12 +32,6 @@ impl RequestExtensions {
 
         if let Some(engine) = &self.engine {
             extensions.insert(engine.clone());
-        }
-        if let Some(tera) = &self.tera {
-            extensions.insert(tera.clone());
-        }
-        if let Some(config) = &self.config {
-            extensions.insert(config.clone());
         }
         if let Some(csrf_token) = &self.csrf_token {
             extensions.insert(csrf_token.clone());
@@ -88,18 +51,6 @@ impl RequestExtensions {
     /// Builder pattern - Engine
     pub fn with_engine(mut self, engine: AEngine) -> Self {
         self.engine = Some(engine);
-        self
-    }
-
-    /// Builder pattern - Tera
-    pub fn with_tera(mut self, tera: ATera) -> Self {
-        self.tera = Some(tera);
-        self
-    }
-
-    /// Builder pattern - Config
-    pub fn with_config(mut self, config: ARuniqueConfig) -> Self {
-        self.config = Some(config);
         self
     }
 

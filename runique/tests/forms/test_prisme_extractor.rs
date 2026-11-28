@@ -14,35 +14,23 @@ use axum::{
     response::{IntoResponse, Response},
     routing::get,
 };
-use runique::{http::RequestExtensions, utils::aliases::AEngine};
-use std::sync::Arc;
+use runique::{
+    forms::{BodyRefusal, prisme_pipeline},
+    http::RequestExtensions,
+    security::csrf::CsrfToken,
+    utils::aliases::AEngine,
+};
 use tower_sessions::{MemoryStore, SessionManagerLayer};
 
-// ── Middleware : injecte engine + config dans les extensions ─────────────────
+// ── Middleware : injecte l'engine (qui porte la config) dans les extensions ──
 
 async fn full_inject(
     State(engine): State<AEngine>,
     mut req: Request<Body>,
     next: Next,
 ) -> Response {
-    let config = Arc::new(engine.config.clone());
     RequestExtensions::new()
-        .with_engine(engine.clone())
-        .with_tera(engine.tera.clone())
-        .with_config(config)
-        .inject_request(&mut req);
-    next.run(req).await
-}
-
-async fn no_config_inject(
-    State(engine): State<AEngine>,
-    mut req: Request<Body>,
-    next: Next,
-) -> Response {
-    // Omet ARuniqueConfig intentionnellement — prisme_pipeline échoue
-    RequestExtensions::new()
-        .with_engine(engine.clone())
-        .with_tera(engine.tera.clone())
+        .with_engine(engine)
         .inject_request(&mut req);
     next.run(req).await
 }
@@ -69,22 +57,6 @@ async fn full_app() -> Router {
         .layer(session_layer)
 }
 
-async fn no_config_app() -> Router {
-    let engine = build_engine().await;
-    let session_layer = SessionManagerLayer::new(MemoryStore::default());
-    Router::new()
-        .route("/form", get(prisme_handler))
-        .layer(middleware::from_fn_with_state(
-            engine.clone(),
-            runique::middleware::security::csrf::csrf_middleware,
-        ))
-        .layer(middleware::from_fn_with_state(
-            engine.clone(),
-            no_config_inject,
-        ))
-        .layer(session_layer)
-}
-
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 #[tokio::test]
@@ -93,10 +65,31 @@ async fn test_prisme_get_happy_path_200() {
     assert_status(&resp, 200);
 }
 
+// The config is read from the engine: without it, the body is refused
+// before anything is read.
 #[tokio::test]
-async fn test_prisme_get_missing_config_500() {
-    let resp = request::get(no_config_app().await, "/form").await;
-    assert_status(&resp, 500);
+async fn test_prisme_without_engine_is_refused_500() {
+    let mut req = Request::builder().uri("/form").body(Body::empty()).unwrap();
+    req.extensions_mut().insert(CsrfToken("t".repeat(64)));
+    match prisme_pipeline(req, &()).await {
+        Err(BodyRefusal::Status(status, _)) => {
+            assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+        }
+        other => panic!("expected a 500 refusal, got {:?}", other.map(|_| ())),
+    }
+}
+
+// With the engine but no CSRF token in the extensions, the body is refused too.
+#[tokio::test]
+async fn test_prisme_with_engine_without_csrf_token_is_refused_500() {
+    let mut req = Request::builder().uri("/form").body(Body::empty()).unwrap();
+    req.extensions_mut().insert(build_engine().await);
+    match prisme_pipeline(req, &()).await {
+        Err(BodyRefusal::Status(status, _)) => {
+            assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+        }
+        other => panic!("expected a 500 refusal, got {:?}", other.map(|_| ())),
+    }
 }
 
 #[tokio::test]

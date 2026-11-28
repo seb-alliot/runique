@@ -1,17 +1,12 @@
 use crate::helpers::{
     assert::{assert_header_eq, assert_redirect, assert_status},
     request,
-    server::build_engine,
+    server::{build_engine, build_engine_with},
 };
 use axum::{Router, middleware, response::Redirect, routing::get};
 use runique::{
     engine::RuniqueEngine,
-    middleware::{
-        config::MiddlewareConfig,
-        security::{
-            allowed_hosts::HostPolicy, csp::SecurityPolicy, open_redirect::open_redirect_middleware,
-        },
-    },
+    middleware::security::{allowed_hosts::HostPolicy, open_redirect::open_redirect_middleware},
 };
 use std::sync::Arc;
 
@@ -28,22 +23,7 @@ fn redirect_app(engine: Arc<RuniqueEngine>, location: &'static str) -> Router {
 
 async fn engine_with_hosts(allowed: Vec<&str>) -> Arc<RuniqueEngine> {
     let hosts: Vec<String> = allowed.iter().map(|s| s.to_string()).collect();
-    let base = build_engine().await;
-    Arc::new(RuniqueEngine {
-        config: base.config.clone(),
-        tera: base.tera.clone(),
-        db: base.db.clone(),
-        url_registry: base.url_registry.clone(),
-        features: MiddlewareConfig::default(),
-        security_csp: Arc::new(SecurityPolicy::default()),
-        security_hosts: Arc::new(HostPolicy::new(hosts, true)),
-        csrf_exempt_paths: Arc::new(vec![]),
-        permissions_policy: Arc::new(runique::middleware::PermissionsPolicy::default()),
-        trusted_proxies: Arc::new(runique::middleware::TrustedProxies::default()),
-        session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-        session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-        extensions: std::collections::HashMap::new(),
-    })
+    build_engine_with(|e| e.security.hosts = Arc::new(HostPolicy::new(hosts, true))).await
 }
 
 // ── Fonctions unitaires ───────────────────────────────────────────────────────

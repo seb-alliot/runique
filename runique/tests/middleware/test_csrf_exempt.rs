@@ -1,4 +1,7 @@
-use crate::helpers::{assert::assert_status, server::build_engine};
+use crate::helpers::{
+    assert::assert_status,
+    server::{build_engine, build_engine_with},
+};
 use axum::{
     Router,
     body::Body,
@@ -7,12 +10,7 @@ use axum::{
     routing::{get, post},
 };
 use runique::{
-    engine::RuniqueEngine,
-    middleware::{
-        config::MiddlewareConfig,
-        security::{allowed_hosts::HostPolicy, csp::SecurityPolicy, csrf::csrf_middleware},
-    },
-    security::csrf::CsrfToken,
+    engine::RuniqueEngine, middleware::security::csrf::csrf_middleware, security::csrf::CsrfToken,
 };
 use std::sync::Arc;
 use tower::ServiceExt;
@@ -21,22 +19,10 @@ use tower_sessions::{MemoryStore, SessionManagerLayer};
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 async fn engine_with_exempt(paths: Vec<&str>) -> Arc<RuniqueEngine> {
-    let base = build_engine().await;
-    Arc::new(RuniqueEngine {
-        config: base.config.clone(),
-        tera: base.tera.clone(),
-        db: base.db.clone(),
-        url_registry: base.url_registry.clone(),
-        features: MiddlewareConfig::default(),
-        security_csp: Arc::new(SecurityPolicy::default()),
-        security_hosts: Arc::new(HostPolicy::new(vec![], true)),
-        csrf_exempt_paths: Arc::new(paths.iter().map(|s| s.to_string()).collect()),
-        permissions_policy: Arc::new(runique::middleware::PermissionsPolicy::default()),
-        trusted_proxies: Arc::new(runique::middleware::TrustedProxies::default()),
-        session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-        session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-        extensions: std::collections::HashMap::new(),
+    build_engine_with(|e| {
+        e.security.csrf_exempt_paths = Arc::new(paths.iter().map(|s| s.to_string()).collect());
     })
+    .await
 }
 
 /// Returns 200 if a `CsrfToken` extension is present on the request, 404 otherwise —

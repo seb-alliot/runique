@@ -6,12 +6,12 @@ use crate::entities::blog::{
 };
 use crate::forms::BlogForm;
 use runique::config::app::RuniqueConfig;
-use runique::engine::RuniqueEngine;
+use runique::engine::{RuniqueEngine, SecurityPolicies};
 use runique::forms::Prisme;
 use runique::forms::constants::FORM_NAME_KEY;
 use runique::http::request::Request;
 use runique::middleware::config::MiddlewareConfig;
-use runique::middleware::security::{allowed_hosts::HostPolicy, csp::SecurityPolicy};
+use runique::middleware::security::allowed_hosts::HostPolicy;
 use runique::prelude::*;
 use runique::runique_test::{TestFailure, runique_test};
 use runique::security::csrf::CsrfToken;
@@ -35,16 +35,15 @@ pub(super) fn named_request(
     body: &[(&str, &str)],
 ) -> Request {
     let engine = Arc::new(RuniqueEngine {
-        config: RuniqueConfig::default(),
+        config: Arc::new(RuniqueConfig::default()),
         tera: Arc::new(runique::tera::Tera::default()),
         db: db.clone(),
         url_registry: Arc::new(std::sync::RwLock::new(std::collections::HashMap::new())),
         features: MiddlewareConfig::default(),
-        security_csp: Arc::new(SecurityPolicy::default()),
-        security_hosts: Arc::new(HostPolicy::new(vec![], true)),
-        csrf_exempt_paths: Arc::new(vec![]),
-        permissions_policy: Arc::new(runique::middleware::PermissionsPolicy::default()),
-        trusted_proxies: Arc::new(runique::middleware::TrustedProxies::default()),
+        security: SecurityPolicies {
+            hosts: Arc::new(HostPolicy::new(vec![], true)),
+            ..SecurityPolicies::default()
+        },
         session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
         session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
         extensions: std::collections::HashMap::new(),

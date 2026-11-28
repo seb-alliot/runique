@@ -3,6 +3,7 @@ use crate::auth::current_user::CurrentUser;
 use crate::config::app::RuniqueConfig;
 use crate::engine::RuniqueEngine;
 use crate::errors::AppError;
+use crate::middleware::TrustedProxies;
 use crate::prelude::{HostPolicy, PermissionsPolicy, SecurityPolicy};
 use crate::security::{csp_nonce::CspNonce, csrf::CsrfToken};
 use std::{collections::HashMap, result::Result, sync::Arc, sync::RwLock};
@@ -20,7 +21,6 @@ use indexmap::IndexMap;
 
 /// Tera
 pub type ATera = Arc<Tera>;
-pub type OATera = Option<ATera>;
 
 /// Database connection — see [`crate::db::ADb`]. Re-exported here so
 /// existing `use runique::utils::ADb;` / `use runique::utils::aliases::ADb;`
@@ -36,13 +36,18 @@ pub type ASecurityHosts = Arc<HostPolicy>;
 /// Permissions Policy
 pub type APermissionsPolicy = Arc<PermissionsPolicy>;
 
+/// Csrf exempte path
+pub type ACsrfExemptPath = Arc<Vec<String>>;
+
+/// Trusted proxies
+pub type ATrustedProxies = Arc<TrustedProxies>;
+
 /// Runique Engine
 pub type AEngine = Arc<RuniqueEngine>;
 pub type OAEngine = Option<AEngine>;
 
 /// Runique Config
 pub type ARuniqueConfig = Arc<RuniqueConfig>;
-pub type OARuniqueConfig = Option<ARuniqueConfig>;
 
 // ============================================================================
 // OPTION<T> ALIASES - OPTIONAL TYPES

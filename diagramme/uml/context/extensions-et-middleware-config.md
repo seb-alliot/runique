@@ -9,12 +9,10 @@ classDiagram
     class RequestExtensions {
         +Option~AEngine~ engine
         +Option~CsrfToken~ csrf_token
-        +Option~ATera~ tera
-        +Option~ARuniqueConfig~ config
         +Option~CspNonce~ csp_nonce
         +Option~CurrentUser~ current_user
-        +with_engine/with_csrf_token/with_tera/with_config/with_csp_nonce/with_current_user()
-        +inject(parts) / inject_request(req)
+        +with_engine/with_csrf_token/with_csp_nonce/with_current_user()
+        +inject_request(req)
     }
     note for RequestExtensions "Pose dans req.extensions les valeurs que\nRequest::from_request lira (cf. context/request-pipeline)"
 ```
