@@ -5,14 +5,14 @@ use crate::errors::ErrorContext;
 use crate::flash::Message;
 use crate::forms::{
     prisme::extractor::{Prisme, csrf_required, prisme_pipeline},
-    runique_form::RuniqueForm,
+    traits::runique_form::RuniqueForm,
 };
+use crate::http::url_params::UrlParams;
 use crate::middleware::security::anti_bot::HoneypotFieldName;
 use crate::security::{csp_nonce::CspNonce, csrf::CsrfToken};
 use crate::templates::loader::TemplateLoader;
-use crate::utils::aliases::{ADb, AEngine, AppResult, StrMap};
 use crate::translation::{t, tf};
-use crate::http::url_params::UrlParams;
+use crate::utils::aliases::{ADb, AEngine, AppResult, StrMap};
 use axum::{
     body::Body,
     extract::{FromRequest, FromRequestParts, Path},
@@ -145,8 +145,10 @@ where
         let ico_image = crate::http::og_image::resolve_og_image(public_url, &ICON_IMAGE);
         context.insert("icon_image", &ico_image);
 
-        let og_image =
-            crate::http::og_image::resolve_og_image(public_url, &engine.config.static_files.og_image);
+        let og_image = crate::http::og_image::resolve_og_image(
+            public_url,
+            &engine.config.static_files.og_image,
+        );
         context.insert("og_image", &og_image);
 
         context.insert("current_path", parts.uri.path());
@@ -414,8 +416,10 @@ impl Request {
             .csrf_token
             .masked()
             .unwrap_or_else(|_| self.csrf_token.clone());
-        let mut form =
-            crate::forms::runique_form::build_form::<T>(self.engine.tera.clone(), masked.as_str());
+        let mut form = crate::forms::traits::runique_form::build_form::<T>(
+            self.engine.tera.clone(),
+            masked.as_str(),
+        );
         let forms = form.forms_mut();
         forms.set_name(name);
         forms.set_path_params(&self.path_params);
@@ -433,8 +437,7 @@ impl Request {
         }
 
         if let Some(user) = &self.admin_constraint {
-            forms.save_comportement =
-                crate::forms::form::SaveComportement::Gated { user: user.clone() };
+            forms.save_mode = crate::forms::form::SaveMode::Gated { user: user.clone() };
         }
 
         if let Some(ref hp_name) = self.honeypot {
@@ -505,8 +508,8 @@ mod admin_constraint_tests {
     use crate::config::RuniqueConfig;
     use crate::engine::RuniqueEngine;
     use crate::forms::{
-        runique_form::{FormAccess, RuniqueForm},
-        form::{Forms, SaveComportement},
+        form::{Forms, SaveMode},
+        traits::runique_form::{FormAccess, RuniqueForm},
     };
     use crate::security::csrf::CsrfToken;
     use crate::utils::aliases::AEngine;
@@ -557,10 +560,10 @@ mod admin_constraint_tests {
     }
 
     /// The account a form is gated as, `None` when it is open.
-    fn gated_as(policy: &SaveComportement) -> Option<crate::schema::pk::Pk> {
+    fn gated_as(policy: &SaveMode) -> Option<crate::schema::pk::Pk> {
         match policy {
-            SaveComportement::Gated { user } => Some(user.id),
-            SaveComportement::Open => None,
+            SaveMode::Gated { user } => Some(user.id),
+            SaveMode::Open => None,
         }
     }
 
@@ -616,14 +619,14 @@ mod admin_constraint_tests {
         let mut req = Request::new(engine().await, session(), csrf(), Method::GET);
         req.admin_constraint = Some(account(7));
         let form = req.form::<ProbeForm>("probe");
-        assert_eq!(gated_as(&form.forms().save_comportement), Some(pk(7)));
+        assert_eq!(gated_as(&form.forms().save_mode), Some(pk(7)));
     }
 
     #[tokio::test]
     async fn an_unconstrained_request_builds_open_forms() {
         let req = Request::new(engine().await, session(), csrf(), Method::GET);
         let form = req.form::<ProbeForm>("probe");
-        assert_eq!(gated_as(&form.forms().save_comportement), None);
+        assert_eq!(gated_as(&form.forms().save_mode), None);
     }
 
     /// The handler can change `req.user`; the form is still gated as the
@@ -633,7 +636,7 @@ mod admin_constraint_tests {
         let mut req = extracted(Method::GET, Some(account(7))).await;
         req.user = Some(account(9));
         let form = req.form::<ProbeForm>("probe");
-        assert_eq!(gated_as(&form.forms().save_comportement), Some(pk(7)));
+        assert_eq!(gated_as(&form.forms().save_mode), Some(pk(7)));
     }
 
     /// A signed-in user outside the constraint gives an open form.
@@ -642,7 +645,7 @@ mod admin_constraint_tests {
         let mut req = extracted(Method::GET, None).await;
         req.user = Some(account(9));
         let form = req.form::<ProbeForm>("probe");
-        assert_eq!(gated_as(&form.forms().save_comportement), None);
+        assert_eq!(gated_as(&form.forms().save_mode), None);
     }
 
     /// Both policies through the real extraction path, extension to form.
@@ -651,11 +654,11 @@ mod admin_constraint_tests {
         let gated = extracted(Method::GET, Some(account(7)))
             .await
             .form::<ProbeForm>("probe");
-        assert_eq!(gated_as(&gated.forms().save_comportement), Some(pk(7)));
+        assert_eq!(gated_as(&gated.forms().save_mode), Some(pk(7)));
         let open = extracted(Method::GET, None)
             .await
             .form::<ProbeForm>("probe");
-        assert_eq!(gated_as(&open.forms().save_comportement), None);
+        assert_eq!(gated_as(&open.forms().save_mode), None);
     }
 }
 

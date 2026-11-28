@@ -101,10 +101,10 @@ pub fn generate_partial_update(model: &ModelInput) -> TokenStream2 {
 }
 
 /// How a field's raw string is read into its Rust type: a `&str -> Option<T>`
-/// closure handed to `runique::forms::form_data::read`.
+/// closure handed to `runique::forms::data::form_data::read`.
 fn parser(ty: &FieldType) -> TokenStream2 {
     match ty {
-        FieldType::Bool => quote! { |v: &str| ::runique::forms::column_value::parse_bool(v) },
+        FieldType::Bool => quote! { |v: &str| ::runique::forms::data::column_value::parse_bool(v) },
         FieldType::I8
         | FieldType::I16
         | FieldType::I32
@@ -183,7 +183,7 @@ fn field_value(field: &FieldDef) -> Option<TokenStream2> {
     );
 
     let value = if field.field_type == FormFieldType::Password {
-        quote! { ::runique::forms::form_data::password(&v, #name)? }
+        quote! { ::runique::forms::data::form_data::password(&v, #name)? }
     } else {
         quote! { v }
     };
@@ -232,7 +232,7 @@ fn field_value(field: &FieldDef) -> Option<TokenStream2> {
     };
 
     Some(quote! {
-        match ::runique::forms::form_data::read(__data, #name, #parse)? {
+        match ::runique::forms::data::form_data::read(__data, #name, #parse)? {
             Some(v) => #set,
             None if __data.contains_key(#name) => #absent,
             None => #missing,

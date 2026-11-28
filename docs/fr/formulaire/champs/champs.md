@@ -6,7 +6,7 @@
 
 ## TextField — Champs texte
 
-Le `TextField` gère 6 formats spéciaux via l'enum `SpecialFormat` :
+Le `TextField` gère 6 formats spéciaux via l'enum `TextFormat` :
 
 ```rust
 // Texte simple

@@ -22,17 +22,11 @@ mod tests {
     #[test]
     fn the_values_are_those_of_runique() {
         assert_eq!(super::VERSION, runique::versions::VERSION);
-        assert_eq!(
-            super::SEA_ORM_REQ,
-            runique::versions::SEA_ORM_REQ
-        );
+        assert_eq!(super::SEA_ORM_REQ, runique::versions::SEA_ORM_REQ);
         assert_eq!(
             super::SEA_ORM_MIGRATION_REQ,
             runique::versions::SEA_ORM_MIGRATION_REQ
         );
-        assert_eq!(
-            super::TEST_COLOR_ENV,
-            runique::versions::TEST_COLOR_ENV
-        );
+        assert_eq!(super::TEST_COLOR_ENV, runique::versions::TEST_COLOR_ENV);
     }
 }

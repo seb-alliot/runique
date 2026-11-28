@@ -1,8 +1,8 @@
 // Tests pour GenericField — délégation via GeneratedField
 
-use runique::forms::form_field::FormField;
 use runique::forms::fields::{HiddenField, TextField};
 use runique::forms::generic::GenericField;
+use runique::forms::traits::form_field::FormField;
 
 // ── From<TextField> → GenericField ──────────────────────────────
 

@@ -1,153 +1,14 @@
-//! `FormField` trait and `FieldConfig` structure: common base for all form fields.
-use crate::forms::options::*;
-use crate::utils::aliases::*;
+//! `FormField`: what every form field implements (validation, rendering, the
+//! value its column stores), on top of its `FieldConfig`.
+use crate::forms::config::{BoolChoice, FieldBounds, FieldConfig};
 use crate::translation::{t, tf};
+use crate::utils::aliases::ATera;
 use async_trait::async_trait;
 use dyn_clone::DynClone;
-use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use std::collections::HashMap;
-
-/// Common configuration for a form field (name, label, value, error, HTML attributes).
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct FieldConfig {
-    pub name: String,
-    pub label: String,
-    pub value: String,
-    pub placeholder: String,
-    pub is_required: BoolChoice,
-    pub error: Option<String>,
-    pub type_field: String,
-    pub html_attributes: StrMap,
-    pub template_name: String,
-    pub extra_context: JsonMap,
-    /// Field whose value must **never** leak out: not in the rendered widget,
-    /// not in an audit trail, not in an admin view.
-    ///
-    /// Private, with no way to turn it back off: the only way to set it is
-    /// [`FieldConfig::mark_password`] — there's no way to unset it. Read via
-    /// [`FieldConfig::is_password`], which also returns `true` for any field of
-    /// type `password` — so a sensitive field stays protected even if no one
-    /// thought to set the flag.
-    #[serde(default)]
-    is_password: bool,
-    /// The column this field is stored in, set by
-    /// [`FormField::apply_column_type`]. `None`: a field no column was given
-    /// to (a form without a model, a confirmation, a captcha).
-    #[serde(skip)]
-    pub column_type: Option<sea_orm::sea_query::ColumnType>,
-    /// Name of the form this field belongs to, set by `try_form`: prefixes the
-    /// field's HTML `id` (`id_{form}-{field}`), unique across forms on a page.
-    #[serde(skip)]
-    pub form_name: Option<&'static str>,
-}
-
-impl FieldConfig {
-    /// Creates a config with the given name, semantic `type_field` (e.g. `"text"`,
-    /// `"password"`), and Tera `template_name`. `is_password` is derived from
-    /// `type_field` here, so a `"password"` type is always protected from the start.
-    pub fn new(name: &str, type_field: &str, template_name: &str) -> Self {
-        Self {
-            name: name.to_string(),
-            label: String::new(),
-            value: String::new(),
-            placeholder: String::new(),
-            is_required: BoolChoice::default(),
-            error: None,
-            type_field: type_field.to_string(),
-            html_attributes: HashMap::new(),
-            template_name: template_name.to_string(),
-            extra_context: HashMap::new(),
-            // Derived from the type right at construction: any `password` field,
-            // whatever constructor was used, is born protected. The flag can
-            // therefore never be missed by omission.
-            is_password: type_field == "password",
-            column_type: None,
-            form_name: None,
-        }
-    }
-
-    /// `true` if this field's value must never be exposed.
-    ///
-    /// The type wins over the flag: even if the field was built by hand without
-    /// going through `mark_password`, a `type_field` of `password` is enough to
-    /// protect it.
-    #[must_use]
-    pub fn is_password(&self) -> bool {
-        self.is_password || self.type_field == "password"
-    }
-
-    /// Marks the field as carrying a secret (API key, token…).
-    ///
-    /// One-way, on purpose: there is no reverse operation. A field declared
-    /// sensitive can't stop being sensitive along the way, which rules out any
-    /// code path accidentally "unmasking" it.
-    pub fn mark_password(&mut self) {
-        self.is_password = true;
-    }
-}
-
-/// Length constraints for text-like fields (min/max character length).
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
-pub struct TextConfig {
-    pub max_length: Option<LengthConstraint>,
-    pub min_length: Option<LengthConstraint>,
-}
-
-/// Per-kind numeric validation state. Which variant a field holds depends on
-/// its semantic (integer, float, decimal, percent, or a stepped range slider);
-/// [`NumericField::min`](crate::forms::fields::NumericField::min) and `::max`
-/// match on it to update the right bound representation.
-#[derive(Clone, Serialize, Debug)]
-pub enum NumericConfig {
-    Integer {
-        min: Option<i64>,
-        max: Option<i64>,
-    },
-    Float {
-        value: Option<Range>,
-    },
-    Decimal {
-        value: Option<Range>,
-    },
-    /// Bounded `0.0..=100.0` by default (see [`NumericField::percent`](crate::forms::fields::NumericField::percent)).
-    Percent {
-        value: Range,
-    },
-    /// Backs an `<input type="range">`; `default` is the initial value and
-    /// `step` the increment.
-    Range {
-        value: Range,
-        default: f64,
-        step: f64,
-    },
-}
-
-/// The bounds a field accepts: lengths for text, values for numbers. Read
-/// after `customize` to check it didn't loosen what the model declares.
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
-pub struct FieldBounds {
-    pub min_length: Option<u32>,
-    pub max_length: Option<u32>,
-    pub min_int: Option<i64>,
-    pub max_int: Option<i64>,
-    pub min_float: Option<f64>,
-    pub max_float: Option<f64>,
-    /// A decimal's digits after the point.
-    pub max_decimal_places: Option<usize>,
-    /// A decimal's digits before the point.
-    pub max_integer_digits: Option<usize>,
-}
-
-/// An inclusive `min..=max` bound used by [`NumericConfig`] variants.
-#[derive(Clone, Serialize, Debug)]
-pub struct Range {
-    pub min: f64,
-    pub max: f64,
-}
 
 /// Common trait to access a field's configuration
-pub trait CommonFieldConfig {
+pub trait FieldAccess {
     fn get_field_config(&self) -> &FieldConfig;
     fn get_field_config_mut(&mut self) -> &mut FieldConfig;
 
@@ -161,7 +22,7 @@ pub trait CommonFieldConfig {
     }
 }
 
-impl CommonFieldConfig for FieldConfig {
+impl FieldAccess for FieldConfig {
     fn get_field_config(&self) -> &FieldConfig {
         self
     }
@@ -182,13 +43,13 @@ pub(crate) fn is_staged_path(value: &str) -> bool {
 
 /// Behavior every form field widget implements: validation, HTML rendering,
 /// and JSON serialization for client-side use. Most getters/setters have
-/// default implementations built on [`CommonFieldConfig`]; only
+/// default implementations built on [`FieldAccess`]; only
 /// [`FormField::validate`] and [`FormField::render`] are field-type specific
 /// and have no default.
 #[async_trait]
-pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Sync {
+pub trait FormField: FieldAccess + DynClone + std::fmt::Debug + Send + Sync {
     // ========================================================================
-    // GETTERS - Default implementation via CommonFieldConfig
+    // GETTERS - Default implementation via FieldAccess
     // ========================================================================
 
     fn name(&self) -> &str {
@@ -224,7 +85,7 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
     }
 
     // ========================================================================
-    // SETTERS - Default implementation via CommonFieldConfig
+    // SETTERS - Default implementation via FieldAccess
     // ========================================================================
 
     fn set_name(&mut self, name: &str) {
@@ -258,10 +119,8 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
     }
 
     fn set_required(&mut self, required: bool, msg: Option<&str>) {
-        self.get_field_config_mut().is_required = BoolChoice {
-            choice: required,
-            message: msg.map(|s| s.to_string()),
-        };
+        self.get_field_config_mut().is_required =
+            BoolChoice::new(required, msg.map(str::to_string));
     }
 
     fn set_html_attribute(&mut self, key: &str, value: &str) {
@@ -271,23 +130,11 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
     }
 
     fn set_readonly(&mut self, readonly: bool, msg: Option<&str>) {
-        self.get_field_config_mut().extra_context.insert(
-            "readonly".to_string(),
-            json!({
-                "choice": readonly,
-                "message": msg.map(|s| s.to_string())
-            }),
-        );
+        self.get_field_config_mut().readonly = BoolChoice::new(readonly, msg.map(str::to_string));
     }
 
     fn set_disabled(&mut self, disabled: bool, msg: Option<&str>) {
-        self.get_field_config_mut().extra_context.insert(
-            "disabled".to_string(),
-            json!({
-                "choice": disabled,
-                "message": msg.map(|s| s.to_string())
-            }),
-        );
+        self.get_field_config_mut().disabled = BoolChoice::new(disabled, msg.map(str::to_string));
     }
 
     /// Sets a value that came from the request (`Forms::fill`), as opposed to
@@ -363,8 +210,8 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
     /// sent, so it would arrive empty; a readonly one is sent, so it can be
     /// forged.
     fn is_locked(&self) -> bool {
-        let set = |state: Value| state["choice"].as_bool().unwrap_or(false);
-        set(self.to_json_readonly()) || set(self.to_json_disabled())
+        let config = self.get_field_config();
+        config.readonly.choice || config.disabled.choice
     }
 
     /// Field-type specific validation
@@ -462,19 +309,11 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
     }
 
     fn to_json_readonly(&self) -> Value {
-        self.get_field_config()
-            .extra_context
-            .get("readonly")
-            .cloned()
-            .unwrap_or_else(|| json!({"choice": false, "message": null}))
+        json!(self.get_field_config().readonly)
     }
 
     fn to_json_disabled(&self) -> Value {
-        self.get_field_config()
-            .extra_context
-            .get("disabled")
-            .cloned()
-            .unwrap_or_else(|| json!({"choice": false, "message": null}))
+        json!(self.get_field_config().disabled)
     }
 
     fn to_json_attributes(&self) -> Value {
@@ -535,6 +374,28 @@ mod tests {
         field.set_readonly(true, None);
         field.set_disabled(false, None);
         assert!(field.is_locked());
+    }
+
+    // The lock is the typed flag: nothing left in `extra_context` decides it.
+    #[test]
+    fn extra_context_neither_locks_nor_unlocks_a_field() {
+        let mut field = TextField::text("t");
+        field
+            .base
+            .extra_context
+            .insert("readonly".into(), json!({"choice": true}));
+        assert!(!field.is_locked());
+        field.set_disabled(true, Some("why"));
+        field
+            .base
+            .extra_context
+            .insert("disabled".into(), json!({"choice": false}));
+        assert!(field.is_locked());
+        assert_eq!(field.base.disabled.message.as_deref(), Some("why"));
+        assert_eq!(
+            field.to_json_disabled(),
+            json!({"choice": true, "message": "why"})
+        );
     }
 
     #[test]

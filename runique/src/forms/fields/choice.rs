@@ -1,7 +1,8 @@
 //! Selection field: `ChoiceField` with groups, multi-select, and dynamic options.
-use crate::forms::form_field::{FieldConfig, FormField};
-use crate::utils::aliases::ATera;
+use crate::forms::config::field_config::FieldConfig;
+use crate::forms::traits::form_field::FormField;
 use crate::translation::{t, tf};
+use crate::utils::aliases::ATera;
 use async_trait::async_trait;
 use serde::Serialize;
 use serde_json::{Value, json};
@@ -67,20 +68,14 @@ impl ChoiceField {
         self.choices.push(ChoiceOption::new(value, label));
         self
     }
-
-    /// Marks the field as required (empty selection fails validation).
-    pub fn required(mut self) -> Self {
-        self.set_required(true, None);
-        self
-    }
 }
 
-field_base!(ChoiceField, label);
+field_base!(ChoiceField, label, required);
 
 #[async_trait]
 impl FormField for ChoiceField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::column_value::read_field(
+        crate::forms::data::column_value::read_field(
             &self.base,
             self.base.value.trim(),
             sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
@@ -165,20 +160,14 @@ impl RadioField {
         self.choices.push(ChoiceOption::new(value, label));
         self
     }
-
-    /// Marks the field as required (no selection fails validation).
-    pub fn required(mut self) -> Self {
-        self.set_required(true, None);
-        self
-    }
 }
 
-field_base!(RadioField, label);
+field_base!(RadioField, label, required);
 
 #[async_trait]
 impl FormField for RadioField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::column_value::read_field(
+        crate::forms::data::column_value::read_field(
             &self.base,
             self.base.value.trim(),
             sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
@@ -250,14 +239,8 @@ impl CheckboxField {
         self.choices.push(ChoiceOption::new(value, label));
         self
     }
-
-    /// Marks the field as required (no selection fails validation).
-    pub fn required(mut self) -> Self {
-        self.set_required(true, None);
-        self
-    }
 }
-field_base!(CheckboxField, label);
+field_base!(CheckboxField, label, required);
 
 #[async_trait]
 impl FormField for CheckboxField {

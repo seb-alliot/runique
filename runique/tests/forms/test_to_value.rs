@@ -1,12 +1,12 @@
 //! A field renders its cleaned value as its column stores it (`to_value`),
 //! is held to that column once given it (`apply_column_type`), and a form
 //! whose value can't be stored isn't valid.
-use runique::forms::form_field::FormField;
-use runique::forms::column_value::column_value;
-use runique::forms::runique_form::{FormAccess, RuniqueForm};
+use runique::forms::data::column_value::column_value;
 use runique::forms::fields::{BooleanField, CheckboxField, HiddenField, NumericField, TextField};
 use runique::forms::form::Forms;
 use runique::forms::generic::{GenericField, accepts};
+use runique::forms::traits::form_field::FormField;
+use runique::forms::traits::runique_form::{FormAccess, RuniqueForm};
 use runique::sea_orm::Value;
 use runique::sea_orm::prelude::Decimal;
 use runique::sea_orm::sea_query::{ColumnType, StringLen};

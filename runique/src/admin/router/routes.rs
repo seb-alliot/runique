@@ -21,8 +21,8 @@ use crate::auth::{
 };
 use crate::http::request::Request;
 use crate::middleware::security::rate_limit_middleware;
-use crate::urlpatterns;
 use crate::translation::{current_lang, t, tf};
+use crate::urlpatterns;
 use crate::utils::aliases::{AppResult, StrMap};
 use crate::{
     admin::{
@@ -308,10 +308,7 @@ async fn admin_dashboard(
     let resource_counts = site
         .counts(&req.engine.db, &current_user)
         .await
-        .trace(
-            crate::log::log_level!(admin.list),
-            "dashboard counts",
-        )
+        .trace(crate::log::log_level!(admin.list), "dashboard counts")
         .unwrap_or_default();
 
     let my_groups = my_groups(&current_user, &site);

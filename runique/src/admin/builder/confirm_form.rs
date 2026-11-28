@@ -3,8 +3,8 @@
 //! can't serve, its required fields would fail a bare confirm button.
 use crate::auth::meta::ModelMeta;
 use crate::forms::FormEntity;
-use crate::forms::runique_form::{FormAccess, RuniqueForm};
 use crate::forms::form::Forms;
+use crate::forms::traits::runique_form::{FormAccess, RuniqueForm};
 use std::marker::PhantomData;
 
 pub(crate) struct ConfirmForm<E> {

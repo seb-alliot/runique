@@ -2,7 +2,7 @@
 //! Couvre : to_form_field (types manquants), format_label, postgres types,
 //!          binary/char/var_binary
 
-use runique::forms::form_field::FormField;
+use runique::forms::traits::form_field::FormField;
 use runique::schema::ColumnDef;
 use sea_query::ColumnType;
 // ═══════════════════════════════════════════════════════════════

@@ -1,9 +1,9 @@
 //! The session mechanics: login, logout, the authenticated session's lifetime and protection.
 use crate::auth::constants::{SESSION_ACTIVE_KEY, SESSION_USER_ID_KEY, SESSION_VERSION_KEY};
 use crate::auth::user_trait::RuniqueUser;
+use crate::log::TraceResult;
 use crate::middleware::security::csrf::rotate_csrf_token;
 use crate::middleware::session::session_db::RuniqueSessionStore;
-use crate::log::TraceResult;
 use crate::schema::pk::Pk;
 use tower_sessions::Session;
 

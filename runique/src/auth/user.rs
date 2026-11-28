@@ -2,9 +2,9 @@
 use crate::auth::permissions::pull_groupes_db;
 use crate::auth::permissions::rank::Rang;
 pub use crate::auth::user_trait::RuniqueUser;
-use crate::utils::aliases::ADb;
 use crate::log::TraceResult;
 use crate::schema::pk::Pk;
+use crate::utils::aliases::ADb;
 use crate::{impl_objects, search};
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, EntityTrait, entity::prelude::*};
 
@@ -125,10 +125,7 @@ impl BuiltinUserEntity {
     pub async fn find_by_id(db: &ADb, id: Pk) -> Option<Model> {
         Self::lookup_by_id(db, id)
             .await
-            .trace(
-                crate::log::log_level!(db.query),
-                "find user by id",
-            )
+            .trace(crate::log::log_level!(db.query), "find user by id")
             .flatten()
     }
 
@@ -144,10 +141,7 @@ impl BuiltinUserEntity {
         search!(Entity => Username eq username)
             .first(db)
             .await
-            .trace(
-                crate::log::log_level!(db.query),
-                "find user by username",
-            )
+            .trace(crate::log::log_level!(db.query), "find user by username")
             .flatten()
     }
 
@@ -156,10 +150,7 @@ impl BuiltinUserEntity {
         search!(Entity => Email eq email)
             .first(db)
             .await
-            .trace(
-                crate::log::log_level!(db.query),
-                "find user by email",
-            )
+            .trace(crate::log::log_level!(db.query), "find user by email")
             .flatten()
     }
 

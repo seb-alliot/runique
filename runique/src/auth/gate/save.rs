@@ -16,11 +16,11 @@ use crate::auth::permissions::group;
 use crate::auth::permissions::rank::Rang;
 use crate::auth::permissions::rights::ColumnRights;
 use crate::auth::user;
-use crate::forms::form::{Forms, SaveComportement, write_replacing_uploads, write_with_uploads};
-use crate::forms::save::{SaveAction, on_fields, url_key};
-use crate::utils::aliases::ADb;
+use crate::forms::data::save::{SaveAction, on_fields, url_key};
+use crate::forms::form::{Forms, SaveMode, write_replacing_uploads, write_with_uploads};
 use crate::schema::pk::Pk;
 use crate::translation::t;
+use crate::utils::aliases::ADb;
 use sea_orm::sea_query::sea_value_to_json_value;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IdenStatic,
@@ -213,7 +213,7 @@ where
     E::ActiveModel: Send,
     E::Model: sea_orm::IntoActiveModel<E::ActiveModel>,
 {
-    let SaveComportement::Gated { user } = &form.save_comportement else {
+    let SaveMode::Gated { user } = &form.save_mode else {
         return Err(refused(Refusal::new(RefusalReason::NoRight)));
     };
     let user = user.clone();
@@ -602,12 +602,12 @@ mod tests {
         form: Forms,
     }
 
-    impl crate::forms::runique_form::FormAccess for TicketForm {
+    impl crate::forms::traits::runique_form::FormAccess for TicketForm {
         fn register_fields(_form: &mut Forms) {}
         crate::impl_form_access!();
     }
 
-    impl crate::forms::runique_form::RuniqueForm for TicketForm {}
+    impl crate::forms::traits::runique_form::RuniqueForm for TicketForm {}
 
     impl crate::forms::FormEntity for TicketForm {
         type Entity = ticket::Entity;
@@ -623,12 +623,12 @@ mod tests {
                 form: Forms,
             }
 
-            impl crate::forms::runique_form::FormAccess for $form {
+            impl crate::forms::traits::runique_form::FormAccess for $form {
                 fn register_fields(_form: &mut Forms) {}
                 crate::impl_form_access!();
             }
 
-            impl crate::forms::runique_form::RuniqueForm for $form {}
+            impl crate::forms::traits::runique_form::RuniqueForm for $form {}
 
             impl crate::forms::FormEntity for $form {
                 type Entity = $entity;
@@ -755,14 +755,16 @@ mod tests {
                 field.apply_column_type(column.def().get_column_type());
             }
         }
-        form.save_comportement = match user {
-            Some(user) => SaveComportement::Gated { user },
-            None => SaveComportement::Open,
+        form.save_mode = match user {
+            Some(user) => SaveMode::Gated { user },
+            None => SaveMode::Open,
         };
         if let Some(key) = target {
             form.set_name("row");
-            form.path_params
-                .insert(crate::forms::save::row_param("row", "id"), key.to_string());
+            form.path_params.insert(
+                crate::forms::data::save::row_param("row", "id"),
+                key.to_string(),
+            );
         }
         for (name, value) in values {
             form.add_value(name, value);

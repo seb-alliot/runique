@@ -1,8 +1,8 @@
 //! `LoginAdmin` — admin login form with username/password fields.
 use crate::forms::{
     Forms,
-    runique_form::{FormAccess, RuniqueForm},
     fields::text::TextField,
+    traits::runique_form::{FormAccess, RuniqueForm},
 };
 use crate::impl_form_access;
 
@@ -21,10 +21,8 @@ impl FormAccess for LoginAdmin {
         form.field(
             &TextField::text("username")
                 .label(
-                    crate::translation::t(
-                        runique_i18n::keys::admin::common::label::USERNAME,
-                    )
-                    .as_ref(),
+                    crate::translation::t(runique_i18n::keys::admin::common::label::USERNAME)
+                        .as_ref(),
                 )
                 .required(),
         );
@@ -32,10 +30,8 @@ impl FormAccess for LoginAdmin {
         form.field(
             &TextField::password("password")
                 .label(
-                    crate::translation::t(
-                        runique_i18n::keys::admin::common::label::PASSWORD,
-                    )
-                    .as_ref(),
+                    crate::translation::t(runique_i18n::keys::admin::common::label::PASSWORD)
+                        .as_ref(),
                 )
                 .required(),
         );
@@ -54,7 +50,7 @@ pub struct UserModelForm {
     pub form: Forms,
 }
 
-impl crate::forms::model_form::ModelForm for UserModelForm {
+impl crate::forms::traits::model_form::ModelForm for UserModelForm {
     fn schema() -> crate::schema::ModelSchema {
         crate::auth::user::schema()
     }
@@ -82,7 +78,7 @@ pub struct GroupeModelForm {
     pub form: Forms,
 }
 
-impl crate::forms::model_form::ModelForm for GroupeModelForm {
+impl crate::forms::traits::model_form::ModelForm for GroupeModelForm {
     fn schema() -> crate::schema::ModelSchema {
         crate::auth::permissions::group::schema()
     }

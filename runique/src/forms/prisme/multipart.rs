@@ -3,8 +3,8 @@ use crate::{
     errors::ErrorContext,
     forms::prisme::BodyRefusal,
     security::constants::CSRF_TOKEN_KEY,
-    utils::aliases::StrVecMap,
     translation::{t, tf},
+    utils::aliases::StrVecMap,
 };
 use axum::{extract::Multipart, http::StatusCode};
 use futures_util::StreamExt;
@@ -1372,7 +1372,7 @@ mod upload_chain_tests {
     #[tokio::test]
     async fn upload_to_cannot_escape_media_root() {
         let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
-        use crate::forms::form_field::FormField;
+        use crate::forms::traits::form_field::FormField;
 
         let media = media_root();
         let escaped_name = format!("{}_escaped", media.file_name().unwrap().to_string_lossy());

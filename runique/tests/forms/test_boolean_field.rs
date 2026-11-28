@@ -1,7 +1,7 @@
 //! Tests — forms/fields/boolean.rs : BooleanField builders et validate()
 
-use runique::forms::form_field::FormField;
 use runique::forms::fields::boolean::BooleanField;
+use runique::forms::traits::form_field::FormField;
 use std::sync::Arc;
 use tera::Tera;
 

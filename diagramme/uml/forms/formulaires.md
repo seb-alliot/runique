@@ -3,7 +3,7 @@
 ## Forms + hiérarchie de champs
 
 [`runique/src/forms/form.rs:30`](../../../runique/src/forms/form.rs#L30),
-[`form_field.rs`](../../../runique/src/forms/form_field.rs), [`generic.rs`](../../../runique/src/forms/generic.rs)
+[`form_field.rs`](../../../runique/src/forms/traits/form_field.rs), [`field_config.rs`](../../../runique/src/forms/config/field_config.rs), [`generic.rs`](../../../runique/src/forms/generic.rs)
 
 ```mermaid
 classDiagram
@@ -18,7 +18,7 @@ classDiagram
         -HashMap query_params
         -bool force_invalid
         -Option~String~ honeypot_field_name
-        -SaveComportement save_comportement
+        -SaveMode save_mode
         -Option~str~ name
         -StrMap code_values  « add_value hors champ »
         +field_label(name, v) &mut Self
@@ -108,8 +108,8 @@ classDiagram
     }
     class FileField {
         +FieldConfig base
-        +FileFieldType field_type
-        +UploadMedia upload
+        +FileType field_type
+        +Upload upload
         +document(name)$ / any(name)$
         +max_size(FileSize) Self
     }

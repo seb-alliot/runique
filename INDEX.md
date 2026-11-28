@@ -124,15 +124,15 @@ runique/
 - **`extractor.rs`** — `Message`, the extractor that reads and writes them in the session
 
 ### `forms/` — Form System
-- **`form_field.rs`** — `FormField` trait, `FieldConfig`
+- **`config/`** — a field's configuration: `field_config` (`FieldConfig`, `TextConfig`, `NumericConfig`, `FieldBounds`), `limit` (`Limit<T>`), `bool_choice`
 - **`form.rs`** — `Forms` struct, `RuniqueForm` trait, `impl_form_access!`
-- **`validation_form.rs`** — `ValidationForm<F>` (validation proven by the type)
-- **`form_data.rs`** — form data → model conversions (`FormDataError`)
-- **`runique_form.rs`** — `RuniqueForm` trait, `FormAccess`
+- **`validation_form/`** — `ValidationForm<F>` (validation proven by the type) in `mod.rs`, its `save` / `delete` in `write.rs`, their tests in `tests.rs`
+- **`database_error.rs`** — a database error turned into a form error (`Forms::database_error`)
 - **`generic.rs`** — generic field implementation
 - **`renderer.rs`** — HTML renderer for form fields
 - **`validator.rs`** — validation logic
-- **`model_form.rs`** — `ModelForm` (form bound to a SeaORM model)
+- **`traits/`** — what a form implements: `runique_form` (`RuniqueForm`, `FormAccess`), `model_form` (`ModelForm`, form bound to a model), `form_entity` (`FormEntity`), `form_field` (`FormField`)
+- **`data/`** — from a form's values to its model's: `column_value` (field text → column value), `form_data` (values → entity types, `FormDataError`), `save` (the row a write points at)
 - **`fields/`** — field types: `text`, `number`, `boolean`, `choice`, `datetime`, `file`, `media`, `binary`, `special`, `hidden`
 - **`options/`** — `length`, `bool_choice` option structs
 - **`prisme/`** — the request body: `extractor` (`Prisme`, `prisme_pipeline`: CSRF check + body parsing, consumed via `request.form::<T>("name")`), `aegis` (body extraction), `multipart` (multipart reading, uploaded files), `refusal`

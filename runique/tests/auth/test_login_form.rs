@@ -7,8 +7,8 @@
 
 use axum::http::Method;
 use runique::auth::LoginAdmin;
-use runique::forms::runique_form::{FormAccess, RuniqueForm, build_form_for_test};
 use runique::forms::form::Forms;
+use runique::forms::traits::runique_form::{FormAccess, RuniqueForm, build_form_for_test};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tera::Tera;

@@ -7,9 +7,9 @@
 use crate::helpers::{handler_req::build_handler_req, server::build_engine};
 use axum::http::Method;
 use runique::forms::{
-    runique_form::{FormAccess, RuniqueForm},
     fields::text::TextField,
     form::Forms,
+    traits::runique_form::{FormAccess, RuniqueForm},
 };
 use runique::prelude::ValidationForm;
 use std::collections::HashMap;

@@ -24,11 +24,11 @@ use crate::admin::build_admin_router;
 use crate::config::RuniqueConfig;
 use crate::engine::RuniqueEngine;
 use crate::errors::build::BuildError;
+use crate::log::log_init;
 use crate::middleware::HostPolicy;
 use crate::router::{add_urls, register_name_url};
 use crate::templates::loader::TemplateLoader;
 use crate::utils::aliases::{ADb, new};
-use crate::log::log_init;
 
 #[cfg(feature = "orm")]
 use crate::middleware::session::session_db::RuniqueSessionStore;
@@ -533,9 +533,7 @@ impl<P> RuniqueAppBuilder<P> {
             report.add(
                 CheckError::new(
                     "PublicUrl",
-                    crate::translation::t(
-                        runique_i18n::keys::build::error::PUBLIC_URL_MISSING,
-                    ),
+                    crate::translation::t(runique_i18n::keys::build::error::PUBLIC_URL_MISSING),
                 )
                 .with_suggestion(crate::translation::t(
                     runique_i18n::keys::build::hint::PUBLIC_URL_MISSING,
@@ -578,9 +576,7 @@ impl<P> RuniqueAppBuilder<P> {
                 report.add(
                     CheckError::new(
                         "ACME",
-                        crate::translation::t(
-                            runique_i18n::keys::build::error::ACME_EMAIL_MISSING,
-                        ),
+                        crate::translation::t(runique_i18n::keys::build::error::ACME_EMAIL_MISSING),
                     )
                     .with_suggestion(crate::translation::t(
                         runique_i18n::keys::build::hint::ACME_EMAIL_MISSING,

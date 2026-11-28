@@ -12,8 +12,8 @@ use runique::auth::constants::SESSION_USER_ID_KEY;
 use runique::auth::session::{LoginError, login};
 use runique::auth::{BuiltinUserEntity, authenticate_user};
 use runique::db::ADb;
-use runique::security::password::{Manual, PasswordConfig, PasswordService};
 use runique::schema::Pk;
+use runique::security::password::{Manual, PasswordConfig, PasswordService};
 use std::sync::Arc;
 use tower_sessions::{MemoryStore, Session};
 

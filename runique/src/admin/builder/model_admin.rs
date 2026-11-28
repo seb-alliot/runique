@@ -1505,7 +1505,7 @@ mod tests {
         lists: &[&'static str],
         columns: &crate::auth::permissions::rights::ColumnRights,
     ) -> crate::forms::form::Forms {
-        use crate::forms::runique_form::FormAccess;
+        use crate::forms::traits::runique_form::FormAccess;
         let mut form = crate::forms::form::Forms::new("");
         <shelf::Form as FormAccess>::register_fields(&mut form);
         ModelAdmin::<shelf::Entity>::new().shape_for_edit(

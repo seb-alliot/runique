@@ -204,8 +204,7 @@ impl CleaningMemoryStore {
             .await
         {
             // Never silent: a session that isn't saved is lost at the next restart.
-            let level = crate::log::log_level!(session.store)
-                .unwrap_or(tracing::Level::WARN);
+            let level = crate::log::log_level!(session.store).unwrap_or(tracing::Level::WARN);
             crate::runique_log!(level, "session DB backup write failed: {e}");
         }
     }
@@ -220,8 +219,7 @@ impl CleaningMemoryStore {
         {
             Ok(updated) => Some(updated),
             Err(e) => {
-                let level = crate::log::log_level!(session.store)
-                    .unwrap_or(tracing::Level::WARN);
+                let level = crate::log::log_level!(session.store).unwrap_or(tracing::Level::WARN);
                 crate::runique_log!(level, "session DB backup update failed: {e}");
                 None
             }
@@ -421,9 +419,7 @@ impl SessionStore for CleaningMemoryStore {
                 });
                 if freed > 0 {
                     self.size_bytes.fetch_sub(freed, Ordering::Relaxed);
-                    if let Some(level) =
-                        crate::log::log_level!(session.exclusive_login)
-                    {
+                    if let Some(level) = crate::log::log_level!(session.exclusive_login) {
                         crate::runique_log!(
                             level,
                             user_id = %user_id,
@@ -542,10 +538,11 @@ impl SessionStore for CleaningMemoryStore {
                         && let Some(data_user_id) = data
                             .get(crate::auth::constants::SESSION_USER_ID_KEY)
                             .and_then(|value| {
-                                serde_json::from_value::<crate::schema::pk::Pk>(value.clone()).trace(
-                                    crate::log::log_level!(session.store),
-                                    runique_i18n::keys::session::log::DECODE_USER_DB,
-                                )
+                                serde_json::from_value::<crate::schema::pk::Pk>(value.clone())
+                                    .trace(
+                                        crate::log::log_level!(session.store),
+                                        runique_i18n::keys::session::log::DECODE_USER_DB,
+                                    )
                             })
                         && data_user_id == model.user_id
                     {

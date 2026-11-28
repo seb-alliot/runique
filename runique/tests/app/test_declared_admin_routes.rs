@@ -402,9 +402,7 @@ async fn accounts_without_admin_access_go_home_with_a_notice_and_stay_signed_in(
         let notices = text(&client, format!("{base}/flashes")).await;
         assert_eq!(
             notices,
-            runique::translation::t(
-                runique_i18n::keys::admin::access::error::ACTION_NOT_ALLOWED
-            ),
+            runique::translation::t(runique_i18n::keys::admin::access::error::ACTION_NOT_ALLOWED),
             "{why}"
         );
         assert_eq!(

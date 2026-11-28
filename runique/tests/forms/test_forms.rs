@@ -3,10 +3,10 @@ mod tests {
     use axum::http::Method;
     use runique::{
         forms::{
-            form_field::FormField,
-            runique_form::{FormAccess, RuniqueForm},
             fields::{boolean::BooleanField, number::NumericField, text::TextField},
             form::Forms,
+            traits::form_field::FormField,
+            traits::runique_form::{FormAccess, RuniqueForm},
         },
         utils::aliases::StrMap,
     };

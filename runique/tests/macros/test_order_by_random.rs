@@ -104,10 +104,7 @@ async fn seed_users(db: &DatabaseConnection) -> HashSet<runique::schema::Pk> {
 /// return the rows in a different order (proof `order_by_random()` is really
 /// randomizing, not silently falling back to a stable default order — which
 /// a mere "not empty"/"no SQL error" check would miss entirely).
-async fn assert_order_by_random_result(
-    db: &ADb,
-    expected_ids: &HashSet<runique::schema::Pk>,
-) {
+async fn assert_order_by_random_result(db: &ADb, expected_ids: &HashSet<runique::schema::Pk>) {
     let mut orderings = Vec::with_capacity(RUNS);
 
     for run in 0..RUNS {

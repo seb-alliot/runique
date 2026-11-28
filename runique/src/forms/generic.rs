@@ -1,7 +1,7 @@
 //! Generic field `GenericField`: unified enum to dispatch to any field type.
 use crate::forms::{
-    form_field::{CommonFieldConfig, FormField},
     fields::*,
+    traits::form_field::{FieldAccess, FormField},
 };
 use crate::utils::aliases::ATera;
 use crate::{define_enum_field, delegate_to_field};
@@ -42,12 +42,12 @@ pub struct GenericField {
     pub field: GeneratedField,
 }
 
-impl CommonFieldConfig for GenericField {
-    fn get_field_config(&self) -> &crate::forms::form_field::FieldConfig {
+impl FieldAccess for GenericField {
+    fn get_field_config(&self) -> &crate::forms::config::field_config::FieldConfig {
         delegate_to_field!(self, get_field_config)
     }
 
-    fn get_field_config_mut(&mut self) -> &mut crate::forms::form_field::FieldConfig {
+    fn get_field_config_mut(&mut self) -> &mut crate::forms::config::field_config::FieldConfig {
         delegate_to_field!(mut self, get_field_config_mut)
     }
 }
@@ -110,7 +110,7 @@ impl FormField for GenericField {
         delegate_to_field!(mut self, set_type_bounds, min, max)
     }
 
-    fn bounds(&self) -> crate::forms::form_field::FieldBounds {
+    fn bounds(&self) -> crate::forms::config::field_config::FieldBounds {
         delegate_to_field!(self, bounds)
     }
 
@@ -227,7 +227,7 @@ impl FormField for GenericField {
 /// catch-all: a new one doesn't compile here until it says which columns it
 /// takes.
 pub fn accepts(field: &GeneratedField, column: &sea_orm::sea_query::ColumnType) -> bool {
-    use crate::forms::form_field::NumericConfig;
+    use crate::forms::config::field_config::NumericConfig;
     use sea_orm::sea_query::ColumnType as C;
 
     let text = matches!(column, C::String(_) | C::Text | C::Char(_));

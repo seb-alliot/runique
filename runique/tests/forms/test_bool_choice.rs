@@ -1,7 +1,7 @@
 //! Tests — forms/options/bool_choice.rs
 //! Couvre : BoolChoice::new, Default, champs choice et message.
 
-use runique::forms::options::BoolChoice;
+use runique::forms::config::BoolChoice;
 
 #[test]
 fn test_bool_choice_new_true_avec_message() {

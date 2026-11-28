@@ -11,6 +11,7 @@ pub const ENV: &str = ".env.sqlite";
 mod blog;
 mod contribution;
 mod expected_failures;
+mod field_limits;
 mod form_save;
 mod form_upload;
 mod user;

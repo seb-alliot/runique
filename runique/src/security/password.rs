@@ -398,7 +398,7 @@ impl PasswordConfig {
 
 // === password/service.rs ===
 
-use crate::forms::{SpecialFormat, TextField};
+use crate::forms::{TextField, TextFormat};
 
 /// Runtime facade over a [`PasswordConfig`] — hashes/verifies passwords and
 /// auto-processes password form fields consistently with the app's chosen mode.
@@ -418,7 +418,7 @@ impl PasswordService {
     }
 
     /// Called on every text field during form processing; only acts when in
-    /// `Auto` mode and the field is a `SpecialFormat::Password`. In that case:
+    /// `Auto` mode and the field is a `TextFormat::Password`. In that case:
     /// an empty value is rejected unless `allow_empty` is set (then left as-is);
     /// a value that already carries a recognized hash prefix is left untouched
     /// (idempotent re-save of an unchanged password); a value that merely
@@ -429,7 +429,7 @@ impl PasswordService {
     pub fn auto_process(&self, field: &mut TextField) -> Result<(), String> {
         match &self.config {
             PasswordConfig::Auto(config) => {
-                if field.format != SpecialFormat::Password {
+                if field.format != TextFormat::Password {
                     return Ok(());
                 }
 

@@ -3,8 +3,8 @@
 //!          clear_error, set_html_attribute, to_json_value, to_json_readonly,
 //!          to_json_disabled, to_json_attributes, to_json_meta, finalize.
 
-use runique::forms::form_field::FormField;
 use runique::forms::fields::TextField;
+use runique::forms::traits::form_field::FormField;
 
 // Helper: accède aux getters via le trait (UFCS) pour éviter l'ambiguïté
 // avec les builder methods de TextField (label/placeholder prennent un &str)
@@ -259,7 +259,7 @@ fn test_builder_disabled_via_builder_method() {
 
 #[test]
 fn test_field_config_new_valeurs_par_defaut() {
-    use runique::forms::form_field::FieldConfig;
+    use runique::forms::config::field_config::FieldConfig;
     let config = FieldConfig::new("mon_champ", "text", "base_string");
     assert_eq!(config.name, "mon_champ");
     assert_eq!(config.type_field, "text");

@@ -1,10 +1,10 @@
 //! Numeric fields: `NumericField` (integer, decimal) with min/max validation and precision.
-use crate::forms::form_field::*;
-use crate::utils::aliases::ATera;
+use crate::forms::config::field_config::*;
+use crate::forms::traits::form_field::*;
 use crate::translation::{t, tf};
+use crate::utils::aliases::ATera;
 use async_trait::async_trait;
 use serde::Serialize;
-use serde_json::json;
 
 /// Numeric input (integer, decimal, float, percent, or range slider).
 /// Construct with [`NumericField::integer`], [`::decimal`](NumericField::decimal),
@@ -19,13 +19,17 @@ pub struct NumericField {
     /// Digits allowed before the point: a decimal column's precision minus
     /// its scale (`decimal_len`).
     pub max_integer_digits: Option<usize>,
+    /// The message given to `min`, shown instead of the default error.
+    pub min_message: Option<String>,
+    /// The message given to `max`, shown instead of the default error.
+    pub max_message: Option<String>,
     /// What the Rust field behind an integer can hold (`integer_in`); `i64`
     /// otherwise. Checked before the `min`/`max` the developer adds.
     #[serde(skip)]
     pub int_range: Option<(i128, i128)>,
 }
 
-field_base!(NumericField, label);
+field_base!(NumericField, label, required, placeholder);
 
 impl NumericField {
     fn create(name: &str, type_field: &str, config: NumericConfig) -> Self {
@@ -35,6 +39,8 @@ impl NumericField {
             min_digits: None,
             max_digits: None,
             max_integer_digits: None,
+            min_message: None,
+            max_message: None,
             int_range: None,
         }
     }
@@ -81,18 +87,6 @@ impl NumericField {
         field
     }
 
-    /// Marks the field as required (empty value fails validation).
-    pub fn required(mut self) -> Self {
-        self.set_required(true, None);
-        self
-    }
-
-    /// Sets the HTML `placeholder` attribute.
-    pub fn placeholder(mut self, p: &str) -> Self {
-        self.set_placeholder(p);
-        self
-    }
-
     /// Floating-point input (`f64`). Accepts `,` as decimal separator.
     pub fn float(name: &str) -> Self {
         Self::create(name, "number", NumericConfig::Float { value: None })
@@ -109,7 +103,7 @@ impl NumericField {
             name,
             "number",
             NumericConfig::Percent {
-                value: Range {
+                value: MinMax {
                     min: 0.0,
                     max: 100.0,
                 },
@@ -123,7 +117,7 @@ impl NumericField {
             name,
             "range",
             NumericConfig::Range {
-                value: Range { min, max },
+                value: MinMax { min, max },
                 default,
                 step: 1.0,
             },
@@ -140,7 +134,7 @@ impl NumericField {
                 if let Some(f) = value {
                     f.min = val;
                 } else {
-                    *value = Some(Range {
+                    *value = Some(MinMax {
                         min: val,
                         max: f64::MAX,
                     });
@@ -151,9 +145,7 @@ impl NumericField {
             }
         }
         if !msg.is_empty() {
-            self.base
-                .extra_context
-                .insert("min_message".to_string(), json!(msg));
+            self.min_message = Some(msg.to_string());
         }
         self
     }
@@ -166,7 +158,7 @@ impl NumericField {
                 if let Some(f) = value {
                     f.max = val;
                 } else {
-                    *value = Some(Range {
+                    *value = Some(MinMax {
                         min: f64::MIN,
                         max: val,
                     });
@@ -177,9 +169,7 @@ impl NumericField {
             }
         }
         if !msg.is_empty() {
-            self.base
-                .extra_context
-                .insert("max_message".to_string(), json!(msg));
+            self.max_message = Some(msg.to_string());
         }
         self
     }
@@ -214,12 +204,8 @@ impl NumericField {
 
 impl NumericField {
     /// The message given to `min` / `max` for this bound, else the default.
-    fn bound_message(&self, key: &str, default: impl FnOnce() -> String) -> String {
-        self.base
-            .extra_context
-            .get(key)
-            .and_then(|v| v.as_str())
-            .map_or_else(default, str::to_string)
+    fn bound_message(custom: &Option<String>, default: impl FnOnce() -> String) -> String {
+        custom.clone().unwrap_or_else(default)
     }
 }
 
@@ -256,7 +242,7 @@ impl FormField for NumericField {
             && let NumericConfig::Float { value } = &mut self.config
         {
             let limit = f64::from(f32::MAX);
-            let range = value.get_or_insert(Range {
+            let range = value.get_or_insert(MinMax {
                 min: f64::MIN,
                 max: f64::MAX,
             });
@@ -275,11 +261,11 @@ impl FormField for NumericField {
             | NumericConfig::Percent { .. }
             | NumericConfig::Range { .. } => C::Double,
         };
-        crate::forms::column_value::read_field(&self.base, self.base.value.trim(), default)
+        crate::forms::data::column_value::read_field(&self.base, self.base.value.trim(), default)
     }
 
-    fn bounds(&self) -> crate::forms::form_field::FieldBounds {
-        use crate::forms::form_field::FieldBounds;
+    fn bounds(&self) -> crate::forms::config::field_config::FieldBounds {
+        use crate::forms::config::field_config::FieldBounds;
         match &self.config {
             NumericConfig::Integer { min, max } => FieldBounds {
                 min_int: *min,
@@ -369,14 +355,14 @@ impl FormField for NumericField {
                 let lo = min.map_or(lo, |m| lo.max(m.into()));
                 let hi = max.map_or(hi, |m| hi.min(m.into()));
                 if v < lo {
-                    let msg = self.bound_message("min_message", || {
+                    let msg = Self::bound_message(&self.min_message, || {
                         tf(runique_i18n::keys::forms::error::MIN_VALUE, &[&lo])
                     });
                     self.set_error(msg);
                     return false;
                 }
                 if v > hi {
-                    let msg = self.bound_message("max_message", || {
+                    let msg = Self::bound_message(&self.max_message, || {
                         tf(runique_i18n::keys::forms::error::MAX_VALUE, &[&hi])
                     });
                     self.set_error(msg);
@@ -425,7 +411,7 @@ impl FormField for NumericField {
                         if let Some(min) = min
                             && v < min
                         {
-                            let msg = self.bound_message("min_message", || {
+                            let msg = Self::bound_message(&self.min_message, || {
                                 tf(runique_i18n::keys::forms::error::MIN_VALUE, &[&f.min])
                             });
                             self.set_error(msg);
@@ -434,7 +420,7 @@ impl FormField for NumericField {
                         if let Some(max) = max
                             && v > max
                         {
-                            let msg = self.bound_message("max_message", || {
+                            let msg = Self::bound_message(&self.max_message, || {
                                 tf(runique_i18n::keys::forms::error::MAX_VALUE, &[&f.max])
                             });
                             self.set_error(msg);
@@ -442,14 +428,14 @@ impl FormField for NumericField {
                         }
                     } else if let Some(v) = float_value {
                         if v < f.min {
-                            let msg = self.bound_message("min_message", || {
+                            let msg = Self::bound_message(&self.min_message, || {
                                 tf(runique_i18n::keys::forms::error::MIN_VALUE, &[&f.min])
                             });
                             self.set_error(msg);
                             return false;
                         }
                         if v > f.max {
-                            let msg = self.bound_message("max_message", || {
+                            let msg = Self::bound_message(&self.max_message, || {
                                 tf(runique_i18n::keys::forms::error::MAX_VALUE, &[&f.max])
                             });
                             self.set_error(msg);
@@ -464,12 +450,12 @@ impl FormField for NumericField {
                 match normalized.parse::<f64>() {
                     Ok(v) if v >= min && v <= max => normalized,
                     Ok(v) if v.is_finite() => {
-                        let key = if v < min {
-                            "min_message"
+                        let custom = if v < min {
+                            &self.min_message
                         } else {
-                            "max_message"
+                            &self.max_message
                         };
-                        let msg = self.bound_message(key, || {
+                        let msg = Self::bound_message(custom, || {
                             t(runique_i18n::keys::forms::error::NUMBER_INVALID).to_string()
                         });
                         self.set_error(msg);

@@ -1,7 +1,8 @@
 //! Special fields: `ColorField`, `UUIDField`, `IPAddressField`, `JSONField`, `SlugField`.
-use crate::forms::form_field::{FieldConfig, FormField};
-use crate::utils::aliases::ATera;
+use crate::forms::config::field_config::FieldConfig;
+use crate::forms::traits::form_field::FormField;
 use crate::translation::{t, tf};
+use crate::utils::aliases::ATera;
 use async_trait::async_trait;
 use serde::Serialize;
 use serde_json::json;
@@ -22,12 +23,6 @@ impl ColorField {
         }
     }
 
-    /// Marks the field as required; empty input fails validation.
-    pub fn required(mut self) -> Self {
-        self.set_required(true, None);
-        self
-    }
-
     /// Sets the default color value. Only accepted if it matches the `#RGB` or
     /// `#RRGGBB` hex format; otherwise the value passed in is silently ignored.
     pub fn default_color(mut self, color: &str) -> Self {
@@ -39,12 +34,12 @@ impl ColorField {
     }
 }
 
-field_base!(ColorField, label);
+field_base!(ColorField, label, required);
 
 #[async_trait]
 impl FormField for ColorField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::column_value::read_field(
+        crate::forms::data::column_value::read_field(
             &self.base,
             self.base.value.trim(),
             sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
@@ -96,7 +91,7 @@ pub struct SlugField {
     pub allow_unicode: bool,
 }
 
-field_base!(SlugField, label);
+field_base!(SlugField, label, required, placeholder);
 
 impl SlugField {
     /// Creates a new slug field with ASCII-only validation by default.
@@ -113,23 +108,12 @@ impl SlugField {
         self.allow_unicode = true;
         self
     }
-    /// Sets the placeholder text shown in the empty input.
-    pub fn placeholder(mut self, p: &str) -> Self {
-        self.set_placeholder(p);
-        self
-    }
-
-    /// Marks the field as required (empty value fails validation).
-    pub fn required(mut self) -> Self {
-        self.set_required(true, None);
-        self
-    }
 }
 
 #[async_trait]
 impl FormField for SlugField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::column_value::read_field(
+        crate::forms::data::column_value::read_field(
             &self.base,
             self.base.value.trim(),
             sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
@@ -201,26 +185,14 @@ impl UUIDField {
             base: FieldConfig::new(name, "text", "base_special.html"),
         }
     }
-
-    /// Marks the field as required; empty input fails validation.
-    pub fn required(mut self) -> Self {
-        self.set_required(true, None);
-        self
-    }
-
-    /// Sets the placeholder text shown in the empty input.
-    pub fn placeholder(mut self, p: &str) -> Self {
-        self.set_placeholder(p);
-        self
-    }
 }
 
-field_base!(UUIDField, label);
+field_base!(UUIDField, label, required, placeholder);
 
 #[async_trait]
 impl FormField for UUIDField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::column_value::read_field(
+        crate::forms::data::column_value::read_field(
             &self.base,
             self.base.value.trim(),
             sea_orm::sea_query::ColumnType::Uuid,
@@ -270,18 +242,6 @@ impl JSONField {
         }
     }
 
-    /// Marks the field as required; empty input fails validation.
-    pub fn required(mut self) -> Self {
-        self.set_required(true, None);
-        self
-    }
-
-    /// Sets the placeholder text shown in the empty textarea.
-    pub fn placeholder(mut self, p: &str) -> Self {
-        self.base.placeholder = p.to_string();
-        self
-    }
-
     /// Sets the number of visible rows on the rendered textarea (defaults to 10 if never set).
     pub fn rows(mut self, rows: usize) -> Self {
         self.base
@@ -291,12 +251,12 @@ impl JSONField {
     }
 }
 
-field_base!(JSONField, label);
+field_base!(JSONField, label, required, placeholder);
 
 #[async_trait]
 impl FormField for JSONField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::column_value::read_field(
+        crate::forms::data::column_value::read_field(
             &self.base,
             self.base.value.trim(),
             sea_orm::sea_query::ColumnType::Json,
@@ -375,26 +335,14 @@ impl IPAddressField {
         self.ipv4_only = false;
         self
     }
-
-    /// Marks the field as required; empty input fails validation.
-    pub fn required(mut self) -> Self {
-        self.set_required(true, None);
-        self
-    }
-
-    /// Sets the placeholder text shown in the empty input.
-    pub fn placeholder(mut self, p: &str) -> Self {
-        self.base.placeholder = p.to_string();
-        self
-    }
 }
 
-field_base!(IPAddressField, label);
+field_base!(IPAddressField, label, required, placeholder);
 
 #[async_trait]
 impl FormField for IPAddressField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::column_value::read_field(
+        crate::forms::data::column_value::read_field(
             &self.base,
             self.base.value.trim(),
             sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),

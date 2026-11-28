@@ -237,8 +237,8 @@ fn test_render_feuille_erreurs_chargee_si_erreur_globale() {
 #[test]
 fn test_render_feuille_erreurs_chargee_si_erreur_de_champ() {
     use indexmap::IndexMap;
-    use runique::forms::form_field::FormField;
     use runique::forms::fields::TextField;
+    use runique::forms::traits::form_field::FormField;
     let renderer = make_renderer_with_error_template();
     let mut field = TextField::text("title");
     field.set_error("invalide".to_string());
@@ -331,8 +331,10 @@ fn test_render_avec_champ_et_js() {
     renderer.add_js(&["ui.js"]);
 
     let field = TextField::text("nom");
-    let mut fields: indexmap::IndexMap<String, Box<dyn runique::forms::form_field::FormField>> =
-        IndexMap::new();
+    let mut fields: indexmap::IndexMap<
+        String,
+        Box<dyn runique::forms::traits::form_field::FormField>,
+    > = IndexMap::new();
     fields.insert("nom".to_string(), Box::new(field));
 
     let result = renderer.render(&fields, &[]);
@@ -354,8 +356,10 @@ fn test_render_js_emis_apres_les_champs() {
     let mut renderer = make_renderer_with_templates();
     renderer.add_js(&["ui.js"]);
 
-    let mut fields: indexmap::IndexMap<String, Box<dyn runique::forms::form_field::FormField>> =
-        IndexMap::new();
+    let mut fields: indexmap::IndexMap<
+        String,
+        Box<dyn runique::forms::traits::form_field::FormField>,
+    > = IndexMap::new();
     fields.insert("nom".to_string(), Box::new(TextField::text("nom")));
 
     let html = renderer.render(&fields, &[]).unwrap();
@@ -563,7 +567,7 @@ fn a_richtext_value_comes_back_in_its_textarea_exactly() {
     )
     .unwrap();
     let render = |value: &str| {
-        use runique::forms::form_field::FormField;
+        use runique::forms::traits::form_field::FormField;
         let mut field = runique::forms::fields::TextField::richtext("body");
         field.set_value(value);
         let mut ctx = tera::Context::new();

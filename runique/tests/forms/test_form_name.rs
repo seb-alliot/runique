@@ -9,10 +9,10 @@ use crate::helpers::{handler_req::build_handler_req, server::build_engine};
 use axum::http::Method;
 use runique::forms::constants::FORM_NAME_KEY;
 use runique::forms::{
-    runique_form::{FormAccess, RuniqueForm, build_form_for_test},
     fields::text::TextField,
     form::Forms,
     renderer::FormRenderer,
+    traits::runique_form::{FormAccess, RuniqueForm, build_form_for_test},
 };
 use runique::prelude::ValidationForm;
 use runique::security::constants::CSRF_TOKEN_KEY;

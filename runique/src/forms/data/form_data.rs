@@ -4,8 +4,8 @@
 //!
 //! A value that can't be read is an error the caller shows on the form — never
 //! a default (`0`, `false`) saved in its place.
-use crate::utils::aliases::StrMap;
 use crate::translation::tf;
+use crate::utils::aliases::StrMap;
 
 /// Why a value from the form data can't be saved.
 #[derive(Debug, Clone, PartialEq, Eq)]

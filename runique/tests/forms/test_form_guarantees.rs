@@ -3,13 +3,13 @@
 //! form misbehaves today.
 use crate::helpers::{handler_req::build_handler_req, server::build_engine};
 use axum::http::Method;
-use runique::forms::form_field::{CommonFieldConfig, FormField};
-use runique::forms::runique_form::{FormAccess, RuniqueForm};
 use runique::forms::fields::{
     BooleanField, CheckboxField, ChoiceField, DateField, DateTimeField, DurationField, FileField,
     FileSize, HoneypotField, RadioField, TextField, TimeField,
 };
 use runique::forms::generic::GenericField;
+use runique::forms::traits::form_field::{FieldAccess, FormField};
+use runique::forms::traits::runique_form::{FormAccess, RuniqueForm};
 use runique::forms::{FormRenderer, Forms};
 use runique::prelude::ValidationForm;
 use runique::utils::aliases::StrMap;

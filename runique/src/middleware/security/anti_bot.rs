@@ -1,9 +1,9 @@
 //! Anti-bot middleware: injects a session-bound random honeypot field name into every request.
 //! The field name is generated on first visit and stored in session — no recognizable prefix.
 //! On POST, `Request::form()` checks if the field was filled and sets `force_invalid`.
+use crate::log::TraceResult;
 use crate::middleware::constants::HP_FIELD_KEY;
 use crate::utils::aliases::AEngine;
-use crate::log::TraceResult;
 use axum::{body::Body, extract::State, http::Request, middleware::Next, response::Response};
 use tower_sessions::Session;
 

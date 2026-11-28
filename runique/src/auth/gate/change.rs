@@ -2,7 +2,7 @@
 //! floor first, then the account's rights, then each field's own value.
 use crate::auth::meta::ModelMeta;
 use crate::auth::permissions::rights::ColumnRights;
-use crate::forms::column_value::{column_value, null_value};
+use crate::forms::data::column_value::{column_value, null_value};
 use crate::forms::form::Forms;
 use crate::translation::t;
 use sea_orm::{
@@ -182,12 +182,12 @@ mod tests {
         form: Forms,
     }
 
-    impl crate::forms::runique_form::FormAccess for ItemForm {
+    impl crate::forms::traits::runique_form::FormAccess for ItemForm {
         fn register_fields(_form: &mut Forms) {}
         crate::impl_form_access!();
     }
 
-    impl crate::forms::runique_form::RuniqueForm for ItemForm {}
+    impl crate::forms::traits::runique_form::RuniqueForm for ItemForm {}
 
     impl crate::forms::FormEntity for ItemForm {
         type Entity = item::Entity;

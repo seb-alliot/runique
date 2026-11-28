@@ -1,9 +1,9 @@
 // Tests for special fields: ColorField, SlugField, UUIDField, JSONField, IPAddressField
 
-use runique::forms::form_field::FormField;
 use runique::forms::fields::special::{
     ColorField, IPAddressField, JSONField, SlugField, UUIDField,
 };
+use runique::forms::traits::form_field::FormField;
 use std::sync::Arc;
 use tera::Tera;
 

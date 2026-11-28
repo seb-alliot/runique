@@ -1,6 +1,6 @@
 //! A field's cleaned text, read into the value its column stores. One reading
 //! for every field type, the same `admin_from_form` makes from the model.
-use crate::forms::form_field::FieldConfig;
+use crate::forms::config::field_config::FieldConfig;
 use crate::forms::fields::{decode_binary, parse_datetime_local, parse_utc_datetime};
 use crate::translation::t;
 use sea_orm::Value;

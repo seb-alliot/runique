@@ -686,10 +686,10 @@ impl Evenements {
 ### 14.1 Les champs de formulaire
 
 ```rust
-// runique/src/forms/form_field.rs
-pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Sync { /* ... */ }
+// runique/src/forms/traits/form_field.rs
+pub trait FormField: FieldAccess + DynClone + std::fmt::Debug + Send + Sync { /* ... */ }
 
-// runique/src/forms/runique_form.rs
+// runique/src/forms/traits/runique_form.rs
 dyn_clone::clone_trait_object!(FormField);
 
 // runique/src/utils/aliases/definition.rs

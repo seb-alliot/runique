@@ -55,8 +55,7 @@ pub(crate) fn linked_delete_error(err: sea_orm::DbErr) -> sea_orm::DbErr {
     if is_foreign_key_violation(&err) {
         tracing::warn!(error = %err, "delete blocked by a foreign key");
         sea_orm::DbErr::Custom(
-            crate::translation::t(runique_i18n::keys::forms::error::DELETE_LINKED)
-                .into_owned(),
+            crate::translation::t(runique_i18n::keys::forms::error::DELETE_LINKED).into_owned(),
         )
     } else {
         err

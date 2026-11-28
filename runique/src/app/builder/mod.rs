@@ -10,8 +10,8 @@ use super::staging::AdminStaging;
 use super::staging::{CoreStaging, MiddlewareStaging, StaticStaging};
 use crate::auth::{PasswordResetConfig, PasswordResetStaging};
 use crate::config::RuniqueConfig;
-use crate::router::Routes;
 use crate::log::RuniqueLog;
+use crate::router::Routes;
 
 #[cfg(feature = "orm")]
 use crate::db::DatabaseConfig;

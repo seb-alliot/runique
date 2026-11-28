@@ -2,9 +2,9 @@
 //! with its CSRF token and its name. Runique's own, for the list's bar.
 use crate::auth::meta::ModelMeta;
 use crate::forms::FormEntity;
-use crate::forms::runique_form::{FormAccess, RuniqueForm};
 use crate::forms::fields::HiddenField;
 use crate::forms::form::Forms;
+use crate::forms::traits::runique_form::{FormAccess, RuniqueForm};
 use std::marker::PhantomData;
 
 /// The selected rows' keys, comma-separated.

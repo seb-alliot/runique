@@ -3,7 +3,7 @@
 //! the enums it declares.
 use crate::utils::env::{restore_media_root, set_env};
 use runique::forms::Forms;
-use runique::forms::runique_form::FormAccess;
+use runique::forms::traits::runique_form::FormAccess;
 use runique::schema::OrderDir;
 use runique::sea_orm::ActiveEnum;
 use runique::sea_orm::sea_query::ColumnType;

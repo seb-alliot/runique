@@ -182,7 +182,7 @@ async fn search_on_a_schema_form_returns_the_matching_row_only() {
 #[tokio::test]
 async fn a_schema_form_types_each_field_like_its_column() {
     use crate::helpers::{handler_req::build_handler_req, server::build_engine};
-    use runique::forms::runique_form::FormAccess;
+    use runique::forms::traits::runique_form::FormAccess;
     use runique::prelude::ValidationForm;
     use runique::sea_orm::ColumnTrait;
 
@@ -228,7 +228,7 @@ async fn a_schema_form_types_each_field_like_its_column() {
 #[tokio::test]
 async fn cleaned_reads_through_the_field_column() {
     use crate::helpers::{handler_req::build_handler_req, server::build_engine};
-    use runique::forms::{RuniqueForm, field::FormAccess};
+    use runique::forms::{FormAccess, RuniqueForm};
     use std::collections::HashMap;
 
     let body = HashMap::from([

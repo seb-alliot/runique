@@ -1,6 +1,7 @@
 //! `RuniqueQueryBuilder<E>` — Django-style query builder: filter, exclude, order_by, limit, all, get, count…
 use crate::auth::gate::{Authorized, Guarded, List};
 use crate::errors::{ErrorContext, ErrorType};
+use crate::translation::t;
 /// Django-inspired query builder for SeaORM
 ///
 /// This struct wraps SeaORM's `Select<E>` and provides convenient,
@@ -58,7 +59,6 @@ use crate::errors::{ErrorContext, ErrorType};
 /// tokio::runtime::Runtime::new().unwrap().block_on(sqlite_query_example());
 /// ```
 use crate::utils::aliases::ADb;
-use crate::translation::t;
 use axum::http::StatusCode;
 use sea_orm::{
     ColumnTrait, Condition, DbErr, EntityTrait, ExprTrait, JoinType, QueryFilter, QueryOrder,

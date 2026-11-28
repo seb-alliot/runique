@@ -16,8 +16,8 @@ use crate::auth::user::BuiltinUserEntity;
 use crate::auth::user_trait::RuniqueUser;
 use crate::forms::{
     Forms,
-    runique_form::{FormAccess, RuniqueForm},
     fields::{hidden::HiddenField, text::TextField},
+    traits::runique_form::{FormAccess, RuniqueForm},
 };
 use crate::http::request::Request;
 use crate::security::password::PasswordService;

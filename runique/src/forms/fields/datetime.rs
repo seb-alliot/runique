@@ -1,18 +1,19 @@
 //! Date/time fields: `DateField`, `TimeField`, `DateTimeField` with min/max validation.
-use crate::forms::form_field::{FieldConfig, FormField};
-use crate::utils::aliases::ATera;
+use crate::forms::config::Limit;
+use crate::forms::config::field_config::FieldConfig;
+use crate::forms::traits::form_field::FormField;
 use crate::translation::{t, tf};
+use crate::utils::aliases::ATera;
 use async_trait::async_trait;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Timelike};
 use serde::Serialize;
-use serde_json::json;
 
 /// Date input (`<input type="date">`). Validates `YYYY-MM-DD` format with optional min/max bounds.
 #[derive(Clone, Serialize, Debug)]
 pub struct DateField {
     pub base: FieldConfig,
-    pub min_date: Option<NaiveDate>,
-    pub max_date: Option<NaiveDate>,
+    pub min_date: Option<Limit<NaiveDate>>,
+    pub max_date: Option<Limit<NaiveDate>>,
 }
 
 impl DateField {
@@ -25,47 +26,25 @@ impl DateField {
         }
     }
 
-    /// Sets the HTML `placeholder` attribute.
-    pub fn placeholder(mut self, p: &str) -> Self {
-        self.set_placeholder(p);
-        self
-    }
-
     /// Minimum accepted date. `msg` overrides the default error (pass `""` for default).
     pub fn min(mut self, date: NaiveDate, msg: &str) -> Self {
-        self.min_date = Some(date);
-        if !msg.is_empty() {
-            self.base
-                .extra_context
-                .insert("min_message".to_string(), json!(msg));
-        }
+        self.min_date = Some(Limit::new(date, msg));
         self
     }
 
     /// Maximum accepted date. `msg` overrides the default error (pass `""` for default).
     pub fn max(mut self, date: NaiveDate, msg: &str) -> Self {
-        self.max_date = Some(date);
-        if !msg.is_empty() {
-            self.base
-                .extra_context
-                .insert("max_message".to_string(), json!(msg));
-        }
-        self
-    }
-
-    /// Marks the field as required (empty value fails validation).
-    pub fn required(mut self) -> Self {
-        self.set_required(true, None);
+        self.max_date = Some(Limit::new(date, msg));
         self
     }
 }
 
-field_base!(DateField, label);
+field_base!(DateField, label, required, placeholder);
 
 #[async_trait]
 impl FormField for DateField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::column_value::read_field(
+        crate::forms::data::column_value::read_field(
             &self.base,
             self.base.value.trim(),
             sea_orm::sea_query::ColumnType::Date,
@@ -92,34 +71,30 @@ impl FormField for DateField {
         };
 
         // Check min
-        if let Some(min) = self.min_date
-            && date < min
+        if let Some(min) = &self.min_date
+            && date < min.value
         {
-            let msg = self
-                .base
-                .extra_context
-                .get("min_message")
-                .cloned()
-                .unwrap_or_else(|| {
-                    json!(tf(runique_i18n::keys::forms::error::DATE_TOO_OLD, &[&min]))
-                });
-            self.set_error(msg.as_str().unwrap_or_default().to_string());
+            let msg = min.message_or(|| {
+                tf(
+                    runique_i18n::keys::forms::error::DATE_TOO_OLD,
+                    &[&min.value],
+                )
+            });
+            self.set_error(msg);
             return false;
         }
 
         // Check max
-        if let Some(max) = self.max_date
-            && date > max
+        if let Some(max) = &self.max_date
+            && date > max.value
         {
-            let msg = self
-                .base
-                .extra_context
-                .get("max_message")
-                .cloned()
-                .unwrap_or_else(|| {
-                    json!(tf(runique_i18n::keys::forms::error::DATE_TOO_FAR, &[&max]))
-                });
-            self.set_error(msg.as_str().unwrap_or_default().to_string());
+            let msg = max.message_or(|| {
+                tf(
+                    runique_i18n::keys::forms::error::DATE_TOO_FAR,
+                    &[&max.value],
+                )
+            });
+            self.set_error(msg);
             return false;
         }
 
@@ -131,10 +106,10 @@ impl FormField for DateField {
         let mut context = self.base_context();
 
         if let Some(min) = &self.min_date {
-            context.insert("min_date", &min.format("%Y-%m-%d").to_string());
+            context.insert("min_date", &min.value.format("%Y-%m-%d").to_string());
         }
         if let Some(max) = &self.max_date {
-            context.insert("max_date", &max.format("%Y-%m-%d").to_string());
+            context.insert("max_date", &max.value.format("%Y-%m-%d").to_string());
         }
 
         self.render_template(tera, &context)
@@ -145,8 +120,8 @@ impl FormField for DateField {
 #[derive(Clone, Serialize, Debug)]
 pub struct TimeField {
     pub base: FieldConfig,
-    pub min_time: Option<NaiveTime>,
-    pub max_time: Option<NaiveTime>,
+    pub min_time: Option<Limit<NaiveTime>>,
+    pub max_time: Option<Limit<NaiveTime>>,
 }
 
 impl TimeField {
@@ -161,38 +136,22 @@ impl TimeField {
 
     /// Minimum accepted time. `msg` overrides the default error (pass `""` for default).
     pub fn min(mut self, time: NaiveTime, msg: &str) -> Self {
-        self.min_time = Some(time);
-        if !msg.is_empty() {
-            self.base
-                .extra_context
-                .insert("min_message".to_string(), json!(msg));
-        }
+        self.min_time = Some(Limit::new(time, msg));
         self
     }
 
     /// Maximum accepted time. `msg` overrides the default error (pass `""` for default).
     pub fn max(mut self, time: NaiveTime, msg: &str) -> Self {
-        self.max_time = Some(time);
-        if !msg.is_empty() {
-            self.base
-                .extra_context
-                .insert("max_message".to_string(), json!(msg));
-        }
-        self
-    }
-
-    /// Marks the field as required (empty value fails validation).
-    pub fn required(mut self) -> Self {
-        self.set_required(true, None);
+        self.max_time = Some(Limit::new(time, msg));
         self
     }
 }
 
-field_base!(TimeField, label);
+field_base!(TimeField, label, required);
 #[async_trait]
 impl FormField for TimeField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::column_value::read_field(
+        crate::forms::data::column_value::read_field(
             &self.base,
             self.base.value.trim(),
             sea_orm::sea_query::ColumnType::Time,
@@ -221,34 +180,30 @@ impl FormField for TimeField {
         };
 
         // Check min
-        if let Some(min) = self.min_time
-            && time < min
+        if let Some(min) = &self.min_time
+            && time < min.value
         {
-            let msg = self
-                .base
-                .extra_context
-                .get("min_message")
-                .cloned()
-                .unwrap_or_else(|| {
-                    json!(tf(runique_i18n::keys::forms::error::TIME_TOO_OLD, &[&min]))
-                });
-            self.set_error(msg.as_str().unwrap_or_default().to_string());
+            let msg = min.message_or(|| {
+                tf(
+                    runique_i18n::keys::forms::error::TIME_TOO_OLD,
+                    &[&min.value],
+                )
+            });
+            self.set_error(msg);
             return false;
         }
 
         // Check max
-        if let Some(max) = self.max_time
-            && time > max
+        if let Some(max) = &self.max_time
+            && time > max.value
         {
-            let msg = self
-                .base
-                .extra_context
-                .get("max_message")
-                .cloned()
-                .unwrap_or_else(|| {
-                    json!(tf(runique_i18n::keys::forms::error::TIME_TOO_FAR, &[&max]))
-                });
-            self.set_error(msg.as_str().unwrap_or_default().to_string());
+            let msg = max.message_or(|| {
+                tf(
+                    runique_i18n::keys::forms::error::TIME_TOO_FAR,
+                    &[&max.value],
+                )
+            });
+            self.set_error(msg);
             return false;
         }
 
@@ -260,10 +215,10 @@ impl FormField for TimeField {
         let mut context = self.base_context();
 
         if let Some(min) = &self.min_time {
-            context.insert("min_time", &min.format("%H:%M").to_string());
+            context.insert("min_time", &min.value.format("%H:%M").to_string());
         }
         if let Some(max) = &self.max_time {
-            context.insert("max_time", &max.format("%H:%M").to_string());
+            context.insert("max_time", &max.value.format("%H:%M").to_string());
         }
 
         self.render_template(tera, &context)
@@ -274,8 +229,8 @@ impl FormField for TimeField {
 #[derive(Clone, Serialize, Debug)]
 pub struct DateTimeField {
     pub base: FieldConfig,
-    pub min_datetime: Option<NaiveDateTime>,
-    pub max_datetime: Option<NaiveDateTime>,
+    pub min_datetime: Option<Limit<NaiveDateTime>>,
+    pub max_datetime: Option<Limit<NaiveDateTime>>,
 }
 
 impl DateTimeField {
@@ -290,38 +245,22 @@ impl DateTimeField {
 
     /// Minimum accepted datetime. `msg` overrides the default error (pass `""` for default).
     pub fn min(mut self, datetime: NaiveDateTime, msg: &str) -> Self {
-        self.min_datetime = Some(datetime);
-        if !msg.is_empty() {
-            self.base
-                .extra_context
-                .insert("min_message".to_string(), json!(msg));
-        }
+        self.min_datetime = Some(Limit::new(datetime, msg));
         self
     }
 
     /// Maximum accepted datetime. `msg` overrides the default error (pass `""` for default).
     pub fn max(mut self, datetime: NaiveDateTime, msg: &str) -> Self {
-        self.max_datetime = Some(datetime);
-        if !msg.is_empty() {
-            self.base
-                .extra_context
-                .insert("max_message".to_string(), json!(msg));
-        }
-        self
-    }
-
-    /// Marks the field as required (empty value fails validation).
-    pub fn required(mut self) -> Self {
-        self.set_required(true, None);
+        self.max_datetime = Some(Limit::new(datetime, msg));
         self
     }
 }
-field_base!(DateTimeField, label);
+field_base!(DateTimeField, label, required);
 
 #[async_trait]
 impl FormField for DateTimeField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::column_value::read_field(
+        crate::forms::data::column_value::read_field(
             &self.base,
             self.base.value.trim(),
             sea_orm::sea_query::ColumnType::DateTime,
@@ -347,40 +286,30 @@ impl FormField for DateTimeField {
         };
 
         // Check min
-        if let Some(min) = self.min_datetime
-            && datetime < min
+        if let Some(min) = &self.min_datetime
+            && datetime < min.value
         {
-            let msg = self
-                .base
-                .extra_context
-                .get("min_message")
-                .cloned()
-                .unwrap_or_else(|| {
-                    json!(tf(
-                        runique_i18n::keys::forms::error::DATETIME_TOO_OLD,
-                        &[&min]
-                    ))
-                });
-            self.set_error(msg.as_str().unwrap_or_default().to_string());
+            let msg = min.message_or(|| {
+                tf(
+                    runique_i18n::keys::forms::error::DATETIME_TOO_OLD,
+                    &[&min.value],
+                )
+            });
+            self.set_error(msg);
             return false;
         }
 
         // Check max
-        if let Some(max) = self.max_datetime
-            && datetime > max
+        if let Some(max) = &self.max_datetime
+            && datetime > max.value
         {
-            let msg = self
-                .base
-                .extra_context
-                .get("max_message")
-                .cloned()
-                .unwrap_or_else(|| {
-                    json!(tf(
-                        runique_i18n::keys::forms::error::DATETIME_TOO_FAR,
-                        &[&max]
-                    ))
-                });
-            self.set_error(msg.as_str().unwrap_or_default().to_string());
+            let msg = max.message_or(|| {
+                tf(
+                    runique_i18n::keys::forms::error::DATETIME_TOO_FAR,
+                    &[&max.value],
+                )
+            });
+            self.set_error(msg);
             return false;
         }
 
@@ -408,10 +337,16 @@ impl FormField for DateTimeField {
         }
 
         if let Some(min) = &self.min_datetime {
-            context.insert("min_datetime", &min.format("%Y-%m-%dT%H:%M").to_string());
+            context.insert(
+                "min_datetime",
+                &min.value.format("%Y-%m-%dT%H:%M").to_string(),
+            );
         }
         if let Some(max) = &self.max_datetime {
-            context.insert("max_datetime", &max.format("%Y-%m-%dT%H:%M").to_string());
+            context.insert(
+                "max_datetime",
+                &max.value.format("%Y-%m-%dT%H:%M").to_string(),
+            );
         }
 
         self.render_template(tera, &context)
@@ -422,8 +357,8 @@ impl FormField for DateTimeField {
 #[derive(Clone, Serialize, Debug)]
 pub struct DurationField {
     pub base: FieldConfig,
-    pub min_seconds: Option<u64>,
-    pub max_seconds: Option<u64>,
+    pub min_seconds: Option<Limit<u64>>,
+    pub max_seconds: Option<Limit<u64>>,
 }
 
 impl DurationField {
@@ -438,39 +373,23 @@ impl DurationField {
 
     /// Minimum duration in seconds. `msg` overrides the default error (pass `""` for default).
     pub fn min_seconds(mut self, seconds: u64, msg: &str) -> Self {
-        self.min_seconds = Some(seconds);
-        if !msg.is_empty() {
-            self.base
-                .extra_context
-                .insert("min_message".to_string(), json!(msg));
-        }
+        self.min_seconds = Some(Limit::new(seconds, msg));
         self
     }
 
     /// Maximum duration in seconds. `msg` overrides the default error (pass `""` for default).
     pub fn max_seconds(mut self, seconds: u64, msg: &str) -> Self {
-        self.max_seconds = Some(seconds);
-        if !msg.is_empty() {
-            self.base
-                .extra_context
-                .insert("max_message".to_string(), json!(msg));
-        }
-        self
-    }
-
-    /// Marks the field as required (empty value fails validation).
-    pub fn required(mut self) -> Self {
-        self.set_required(true, None);
+        self.max_seconds = Some(Limit::new(seconds, msg));
         self
     }
 }
 
-field_base!(DurationField, label);
+field_base!(DurationField, label, required);
 
 #[async_trait]
 impl FormField for DurationField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::column_value::read_field(
+        crate::forms::data::column_value::read_field(
             &self.base,
             self.base.value.trim(),
             sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
@@ -497,40 +416,30 @@ impl FormField for DurationField {
         };
 
         // Check min
-        if let Some(min) = self.min_seconds
-            && seconds < min
+        if let Some(min) = &self.min_seconds
+            && seconds < min.value
         {
-            let msg = self
-                .base
-                .extra_context
-                .get("min_message")
-                .cloned()
-                .unwrap_or_else(|| {
-                    json!(tf(
-                        runique_i18n::keys::forms::error::DURATION_TOO_SHORT,
-                        &[&min]
-                    ))
-                });
-            self.set_error(msg.as_str().unwrap_or_default().to_string());
+            let msg = min.message_or(|| {
+                tf(
+                    runique_i18n::keys::forms::error::DURATION_TOO_SHORT,
+                    &[&min.value],
+                )
+            });
+            self.set_error(msg);
             return false;
         }
 
         // Check max
-        if let Some(max) = self.max_seconds
-            && seconds > max
+        if let Some(max) = &self.max_seconds
+            && seconds > max.value
         {
-            let msg = self
-                .base
-                .extra_context
-                .get("max_message")
-                .cloned()
-                .unwrap_or_else(|| {
-                    json!(tf(
-                        runique_i18n::keys::forms::error::DURATION_TOO_LONG,
-                        &[&max]
-                    ))
-                });
-            self.set_error(msg.as_str().unwrap_or_default().to_string());
+            let msg = max.message_or(|| {
+                tf(
+                    runique_i18n::keys::forms::error::DURATION_TOO_LONG,
+                    &[&max.value],
+                )
+            });
+            self.set_error(msg);
             return false;
         }
 
@@ -542,10 +451,10 @@ impl FormField for DurationField {
         let mut context = self.base_context();
 
         if let Some(min) = &self.min_seconds {
-            context.insert("min_seconds", min);
+            context.insert("min_seconds", &min.value);
         }
         if let Some(max) = &self.max_seconds {
-            context.insert("max_seconds", max);
+            context.insert("max_seconds", &max.value);
         }
 
         self.render_template(tera, &context)

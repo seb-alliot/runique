@@ -3,9 +3,9 @@
 
 use crate::helpers::temp::TempDir;
 use runique::config::StaticConfig;
-use runique::forms::form_field::FormField;
 use runique::forms::fields::MediaField;
 use runique::forms::fields::file::{AllowedExtensions, FileField, FileSize, FileUploadConfig};
+use runique::forms::traits::form_field::FormField;
 
 // ═══════════════════════════════════════════════════════════════
 // AllowedExtensions
@@ -315,7 +315,7 @@ async fn test_file_field_validate_max_files_exceeded() {
 async fn test_file_field_validate_max_files_exact() {
     let mut f = FileField::document("docs").max_files(2);
     // Extension "pdf" is allowed, 2 files exactly at limit
-    // Files don't exist → image validation (FileFieldType::Document) skips is_valid_path
+    // Files don't exist → image validation (FileType::Document) skips is_valid_path
     // Size check uses metadata → Err (file not found) → skipped
     f.set_value("a.pdf,b.pdf");
     // Should pass extension + count, and no image check for Document type

@@ -11,7 +11,7 @@ use tower_sessions::SessionManagerLayer;
 
 // Import for new aliases
 use crate::flash::FlashMessage;
-use crate::forms::form_field::FormField;
+use crate::forms::traits::form_field::FormField;
 use indexmap::IndexMap;
 
 // ============================================================================

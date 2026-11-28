@@ -144,7 +144,7 @@ complet du chantier : mémoire `project_form_auto_validate_idea.md` (hors dépô
 aurait exigé une surcharge manuelle `-> false` sur chaque formulaire mutant de
 l'app (login/inscription/contact/devis), répétant un garde de sécurité qui
 doit vivre dans le framework. Défaut basculé à `false` inconditionnel dans
-`forms/runique_form.rs` ; les surcharges devenues redondantes retirées côté framework
+`forms/traits/runique_form.rs` ; les surcharges devenues redondantes retirées côté framework
 (`ForgotPasswordForm`/`PasswordResetForm`) et côté Campanile (4 formulaires).
 Seul cas d'opt-in réel : `UsernameForm` (demo-app, recherche GET-only).
 
@@ -229,7 +229,7 @@ Schéma données 4.0 : `is_staff` quitte `users` pour `groupes` ; rangs
 Mis à jour d'après le code : `flux/requete-csrf-upload` (refus cross-site, `request.form(nom)`,
 `try_form`, nouvelle séquence `save` + fichier), `flux/auth-session-et-makemigrations` (login,
 nouvelle séquence de fermeture), `uml/forms/*` (`FormAccess`, `DbWrite`, `MediaField`,
-`UploadMedia`), `uml/middleware/*`, `uml/auth/authentification`, `merise/modele-donnees`
+`Upload`), `uml/middleware/*`, `uml/auth/authentification`, `merise/modele-donnees`
 (`session_version`, `session_data` chiffré, `reset_tokens.user_id` unique), `uml/context/*`,
 `uml/engine`, `uml/utils`, `uml/derive_form`, `uml/admin/admin-complements`.
 

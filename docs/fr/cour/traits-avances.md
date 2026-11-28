@@ -557,7 +557,7 @@ trait Stockage4: Send + Sync {
 | `-> impl Future + Send` | oui | non | non |
 | `Pin<Box<dyn Future>>` / `async-trait` | oui | oui | une par appel |
 
-Runique utilise `async-trait` pour `FormField` (`forms/form_field.rs`) : les champs d'un formulaire sont des `Box<dyn FormField>` (voir `box-dynamiques`) et certaines de leurs méthodes sont asynchrones, ce qui exige la forme 3. Dans `db/adb.rs`, il sert à implémenter `ConnectionTrait` et `TransactionTrait`, des traits de SeaORM déclarés eux-mêmes avec `async-trait`.
+Runique utilise `async-trait` pour `FormField` (`forms/traits/form_field.rs`) : les champs d'un formulaire sont des `Box<dyn FormField>` (voir `box-dynamiques`) et certaines de leurs méthodes sont asynchrones, ce qui exige la forme 3. Dans `db/adb.rs`, il sert à implémenter `ConnectionTrait` et `TransactionTrait`, des traits de SeaORM déclarés eux-mêmes avec `async-trait`.
 
 ## 12. Syntaxe complète et ambiguïtés
 

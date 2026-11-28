@@ -9,11 +9,11 @@ implémentent `FormField` et portent un `FieldConfig` de base (`base`).
 classDiagram
     class FormField { <<trait>> }
     class TextField {
-        +SpecialFormat? format
+        +TextFormat? format
         +TextConfig config
         text/email/password/url/textarea/richtext/slug…
     }
-    class SpecialFormat { <<enum>> Email/Password/Url/… }
+    class TextFormat { <<enum>> Email/Password/Url/… }
     class NumericField {
         +NumericConfig (Integer/Float/Decimal/Percent/Range)
         +min / max (f64) · min_i64 / max_i64 (entiers exacts)
@@ -27,11 +27,11 @@ classDiagram
     class TimeField
     class DateTimeField
     class DurationField
-    class FileField { +FileFieldType field_type +UploadMedia upload }
-    class FileFieldType { <<enum>> None/Document/Any }
-    class MediaField { +MediaKind kind +UploadMedia upload +max_width +max_height }
+    class FileField { +FileType field_type +Upload upload }
+    class FileType { <<enum>> None/Document/Any }
+    class MediaField { +MediaKind kind +Upload upload +max_width +max_height }
     class MediaKind { <<enum>> Image/Audio/Video }
-    class UploadMedia {
+    class Upload {
         +AllowedExtensions allowed_extensions
         +FileUploadConfig upload_config
         +model_max_size +max_files +prev_value
@@ -69,17 +69,17 @@ classDiagram
     UUIDField ..|> FormField
     JSONField ..|> FormField
     IPAddressField ..|> FormField
-    TextField *-- SpecialFormat
+    TextField *-- TextFormat
     ChoiceField *-- "*" ChoiceOption
-    FileField *-- FileFieldType
-    FileField *-- UploadMedia
-    MediaField *-- UploadMedia
+    FileField *-- FileType
+    FileField *-- Upload
+    MediaField *-- Upload
     MediaField *-- MediaKind
-    UploadMedia *-- FileUploadConfig
-    UploadMedia *-- AllowedExtensions
+    Upload *-- FileUploadConfig
+    Upload *-- AllowedExtensions
 ```
 
-`FileField` et `MediaField` partagent `UploadMedia` : quota, extension, taille, déplacement et
+`FileField` et `MediaField` partagent `Upload` : quota, extension, taille, déplacement et
 retour arrière. Quelle que soit la liste d'extensions (`any()` compris), `ACTIVE_CONTENT`
 est toujours refusé : `.svg`, `.svgz`, `.html`, `.htm`, `.xhtml`, `.xht`, `.shtml`, `.xml`,
 `.js`, `.mjs` — ce qu'un navigateur ouvre comme document du site une fois servi depuis
@@ -97,6 +97,8 @@ classDiagram
     class FieldConfig {
         +name / label / value / placeholder
         +BoolChoice is_required
+        +BoolChoice readonly
+        +BoolChoice disabled
         +Option~String~ error
         +type_field / template_name
         +StrMap html_attributes
@@ -105,16 +107,16 @@ classDiagram
         +is_password() bool
         +mark_password()
     }
-    class LengthConstraint { +u32 value +String message }
+    class Limit~T~ { +T value +Option~String~ message }
     class BoolChoice { +bool choice }
-    class TextConfig { +Option~LengthConstraint~ max_length / min_length }
+    class TextConfig { +Option~Limit~u32~~ max_length / min_length }
     class NumericConfig { <<enum>> Integer(min,max i64)/Float/Decimal/Percent/Range }
     class ValidationError {
         <<enum>> Required / TooLong / TooShort / Invalid / OutOfRange …
     }
     class FormValidator
     FieldConfig *-- BoolChoice
-    TextConfig *-- LengthConstraint
+    TextConfig *-- Limit
 ```
 
 Bornes numériques :

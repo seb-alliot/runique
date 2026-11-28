@@ -265,9 +265,7 @@ impl AdminStaging {
             report.add(
                 CheckError::new(
                     "AdminPanel",
-                    crate::translation::t(
-                        runique_i18n::keys::build::error::ADMIN_PREFIX_EMPTY,
-                    ),
+                    crate::translation::t(runique_i18n::keys::build::error::ADMIN_PREFIX_EMPTY),
                 )
                 .with_suggestion(crate::translation::t(
                     runique_i18n::keys::build::hint::ADMIN_PREFIX_EMPTY,

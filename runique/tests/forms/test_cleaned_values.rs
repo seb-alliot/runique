@@ -4,9 +4,9 @@
 //!          cleaned_value (path/query fallback), clear()
 
 use runique::forms::{
-    runique_form::{FormAccess, RuniqueForm},
     fields::text::TextField,
     form::Forms,
+    traits::runique_form::{FormAccess, RuniqueForm},
 };
 
 // ── Helper : form de test ──────────────────────────────────────

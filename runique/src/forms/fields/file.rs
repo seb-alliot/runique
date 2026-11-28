@@ -1,10 +1,10 @@
 //! File Field: `FileField` with type, size, and upload path validation.
-use super::media::{UploadCheck, UploadMedia};
+use super::media::{Upload, UploadCheck};
 use crate::config::static_files::resolve_media_root;
 use crate::utils::aliases::ATera;
 use crate::{
     config::StaticConfig,
-    forms::form_field::{FieldConfig, FormField},
+    forms::{config::FieldConfig, traits::form_field::FormField},
 };
 
 /// Accepts an upload path in several forms:
@@ -265,7 +265,7 @@ pub(crate) fn parse_file_list(val: &str) -> Vec<&str> {
 
 /// Determines which validation rules and allowed extensions apply to a [`FileField`].
 #[derive(Debug, Clone, Serialize)]
-pub enum FileFieldType {
+pub enum FileType {
     None,
     Document,
     Any,
@@ -440,31 +440,31 @@ impl FileUploadConfig {
 #[derive(Clone, Debug)]
 pub struct FileField {
     pub base: FieldConfig,
-    pub field_type: FileFieldType,
-    pub upload: UploadMedia,
+    pub field_type: FileType,
+    pub upload: Upload,
 }
 
-field_base!(FileField, label);
+field_base!(FileField, label, required);
 
 impl FileField {
     /// Low-level constructor. Prefer [`MediaField::image`](crate::forms::fields::MediaField::image) for images, [`document`](FileField::document), or [`any`](FileField::any).
-    pub fn create(name: &str, type_field: &str, format: FileFieldType) -> Self {
+    pub fn create(name: &str, type_field: &str, format: FileType) -> Self {
         let extensions = match format {
-            FileFieldType::Document => AllowedExtensions::documents(),
-            FileFieldType::Any => AllowedExtensions::any(),
-            FileFieldType::None => AllowedExtensions::new(vec![]),
+            FileType::Document => AllowedExtensions::documents(),
+            FileType::Any => AllowedExtensions::any(),
+            FileType::None => AllowedExtensions::new(vec![]),
         };
 
         Self {
             base: FieldConfig::new(name, type_field, "base_file.html"),
             field_type: format,
-            upload: UploadMedia::new(extensions),
+            upload: Upload::new(extensions),
         }
     }
 
     /// Document upload field. Accepts pdf, doc, docx, txt, odt.
     pub fn document(name: &str) -> Self {
-        Self::create(name, "file", FileFieldType::Document)
+        Self::create(name, "file", FileType::Document)
     }
 
     /// Generic upload field. Every extension is accepted except those a browser
@@ -474,7 +474,7 @@ impl FileField {
     /// [`document`](Self::document), or [`allowed_extensions`](Self::allowed_extensions)
     /// for a closed list.
     pub fn any(name: &str) -> Self {
-        Self::create(name, "file", FileFieldType::Any)
+        Self::create(name, "file", FileType::Any)
     }
 
     /// Destination directory, relative to `MEDIA_ROOT` (`"avatars"` →
@@ -519,12 +519,6 @@ impl FileField {
         self
     }
 
-    /// Marks the field as required (no file fails validation).
-    pub fn required(mut self) -> Self {
-        self.set_required(true, None);
-        self
-    }
-
     /// Overrides the extension whitelist. Pass lowercase extensions without dots: `vec!["jpg", "png"]`.
     pub fn allowed_extensions(mut self, exts: Vec<&str>) -> Self {
         self.upload.allowed_extensions = AllowedExtensions::new(exts);
@@ -535,7 +529,7 @@ impl FileField {
 #[async_trait]
 impl FormField for FileField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::column_value::read_field(
+        crate::forms::data::column_value::read_field(
             &self.base,
             &self.base.value,
             sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
@@ -649,8 +643,8 @@ impl FormField for FileField {
 #[cfg(test)]
 mod finalize_tests {
     use super::*;
-    use crate::forms::form_field::FormField;
     use crate::forms::fields::MediaField;
+    use crate::forms::traits::form_field::FormField;
     use std::fs;
 
     fn unique_dir(tag: &str) -> std::path::PathBuf {
@@ -1270,9 +1264,9 @@ mod finalize_tests {
 #[cfg(test)]
 mod guarantees {
     use super::*;
-    use crate::forms::form_field::FormField;
-    use crate::forms::runique_form::{FormAccess, RuniqueForm};
     use crate::forms::fields::MediaField;
+    use crate::forms::traits::form_field::FormField;
+    use crate::forms::traits::runique_form::{FormAccess, RuniqueForm};
     use std::fs;
     use std::path::{Path, PathBuf};
 
@@ -1734,7 +1728,7 @@ mod guarantees {
         form: crate::forms::form::Forms,
     }
 
-    impl crate::forms::runique_form::FormAccess for UploadForm {
+    impl crate::forms::traits::runique_form::FormAccess for UploadForm {
         fn register_fields(form: &mut crate::forms::form::Forms) {
             form.field(&FileField::any("doc"));
             form.field(&crate::forms::fields::BinaryField::new("blob"));
@@ -1744,7 +1738,7 @@ mod guarantees {
         crate::impl_form_access!();
     }
 
-    impl crate::forms::runique_form::RuniqueForm for UploadForm {}
+    impl crate::forms::traits::runique_form::RuniqueForm for UploadForm {}
 
     fn upload_form() -> UploadForm {
         let mut form = crate::forms::Forms::new("t");
@@ -1843,8 +1837,9 @@ mod guarantees {
         {
             let mut lease = crate::forms::prisme::multipart::Lease::claim(media.staging.clone());
             let _ = lease.lock_dir();
-            let _guard =
-                std::sync::Arc::new(crate::forms::prisme::multipart::StagingDir::from_lease(lease));
+            let _guard = std::sync::Arc::new(
+                crate::forms::prisme::multipart::StagingDir::from_lease(lease),
+            );
         }
         assert!(
             !media.staging.exists(),

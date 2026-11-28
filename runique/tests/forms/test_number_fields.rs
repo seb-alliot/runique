@@ -1,7 +1,7 @@
 // Tests — NumericField (integer, float, decimal, percent, range)
 
-use runique::forms::form_field::FormField;
 use runique::forms::fields::number::NumericField;
+use runique::forms::traits::form_field::FormField;
 
 // ═══════════════════════════════════════════════════════════════
 // Integer
@@ -386,7 +386,7 @@ async fn test_min_max_without_message_keep_the_default() {
     let high = error_for(field(), "10").await.expect("refused");
     assert!(!low.is_empty() && !high.is_empty());
     assert_ne!(low, high, "each bound its own default message");
-    assert!(!field().base.extra_context.contains_key("min_message"));
+    assert!(field().min_message.is_none());
 }
 
 #[tokio::test]

@@ -1,6 +1,6 @@
 // Tests pour ModelForm — valeurs par défaut des méthodes `fields()` et `exclude()`
 
-use runique::forms::model_form::ModelForm;
+use runique::forms::traits::model_form::ModelForm;
 use runique::schema::ModelSchema;
 
 // Implémentation minimale pour tester les valeurs par défaut du trait

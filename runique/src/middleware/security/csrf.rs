@@ -3,10 +3,10 @@ use crate::auth::constants::SESSION_USER_ID_KEY;
 use crate::auth::session::is_authenticated;
 use crate::forms::prisme::extractor::{csrf_required, is_csrf_exempt};
 use crate::http::RequestExtensions;
+use crate::log::TraceResult;
 use crate::security::constants::CSRF_TOKEN_KEY;
 use crate::security::csrf::{CsrfContext, CsrfToken};
 use crate::utils::aliases::AEngine;
-use crate::log::TraceResult;
 use axum::{
     body::Body,
     extract::State,

@@ -1,4 +1,4 @@
-//! `UploadMedia`: the upload mechanism every field taking files shares —
+//! `Upload`: the upload mechanism every field taking files shares —
 //! what it accepts, the staged files waiting to move, the ones moved, and the
 //! value they replace. `MediaField`: images, audio and video, each checked by
 //! its content.
@@ -9,10 +9,11 @@ use super::file::{
 };
 use crate::atomic::{AtomicBuilder, SourceItems};
 use crate::config::static_files::resolve_media_root;
-use crate::forms::form_field::{FieldConfig, FormField};
-use crate::utils::aliases::ATera;
+use crate::forms::config::field_config::FieldConfig;
+use crate::forms::traits::form_field::FormField;
 use crate::log::TraceResult;
 use crate::translation::{t, tf};
+use crate::utils::aliases::ATera;
 
 /// What the visitor reads when an upload can't be written: the detail (a
 /// server path, an OS error) goes to the log only.
@@ -35,7 +36,7 @@ struct PendingUpload {
 /// row's write and its commit (`publish`), and is taken back if that write
 /// doesn't commit (`rollback`).
 #[derive(Clone, Debug)]
-pub struct UploadMedia {
+pub struct Upload {
     pub allowed_extensions: AllowedExtensions,
     pub upload_config: FileUploadConfig,
     pub model_max_size: Option<u64>,
@@ -48,7 +49,7 @@ pub struct UploadMedia {
     published_uploads: Vec<PathBuf>,
 }
 
-/// What [`UploadMedia::check`] found in a field's value.
+/// What [`Upload::check`] found in a field's value.
 pub(crate) enum UploadCheck {
     /// Required and empty: the message to show.
     Required(String),
@@ -61,7 +62,7 @@ pub(crate) enum UploadCheck {
     Files(Vec<String>),
 }
 
-impl UploadMedia {
+impl Upload {
     pub fn new(allowed_extensions: AllowedExtensions) -> Self {
         Self {
             allowed_extensions,
@@ -446,19 +447,19 @@ pub enum MediaType {
 
 /// Upload field for images, audio and video: [`MediaField::image`],
 /// [`::audio`](MediaField::audio), [`::video`](MediaField::video). Shares the
-/// upload mechanism of every file field ([`UploadMedia`]); on top, checks the
+/// upload mechanism of every file field ([`Upload`]); on top, checks the
 /// content of each file — an image's signature and dimensions, an audio or
 /// video file's signature. Documents and other files: [`FileField`](super::FileField).
 #[derive(Clone, Debug)]
 pub struct MediaField {
     pub base: FieldConfig,
     pub media_type: MediaType,
-    pub upload: UploadMedia,
+    pub upload: Upload,
     pub max_width: Option<u32>,
     pub max_height: Option<u32>,
 }
 
-field_base!(MediaField, label);
+field_base!(MediaField, label, required);
 
 impl MediaField {
     fn create(name: &str, kind: MediaType) -> Self {
@@ -470,7 +471,7 @@ impl MediaField {
         Self {
             base: FieldConfig::new(name, "file", "base_file.html"),
             media_type: kind,
-            upload: UploadMedia::new(extensions),
+            upload: Upload::new(extensions),
             max_width: None,
             max_height: None,
         }
@@ -529,12 +530,6 @@ impl MediaField {
     /// No effect on a field taking several files (`max_files` above 1).
     pub fn replace(mut self) -> Self {
         self.upload.replace = true;
-        self
-    }
-
-    /// Marks the field as required (no file fails validation).
-    pub fn required(mut self) -> Self {
-        self.set_required(true, None);
         self
     }
 
@@ -643,7 +638,7 @@ pub(crate) async fn has_av_signature(path: &str, kind: MediaType) -> bool {
 #[async_trait::async_trait]
 impl FormField for MediaField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::column_value::read_field(
+        crate::forms::data::column_value::read_field(
             &self.base,
             &self.base.value,
             sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
@@ -937,7 +932,7 @@ mod tests {
     }
 
     // Written from cargo-mutants survivors: `MediaField` delegates its upload to
-    // `UploadMedia`, and these delegations were only tested through `FileField`.
+    // `Upload`, and these delegations were only tested through `FileField`.
 
     /// `set_value` then `validate`, as a real submission does, then `finalize`.
     async fn finalized(field: &mut MediaField, staged: &str) {

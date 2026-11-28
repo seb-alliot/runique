@@ -1,8 +1,8 @@
 //! Main Runique application configuration.
 use crate::config::{security::SecurityConfig, server::ServerConfig, static_files::StaticConfig};
+use crate::log::RuniqueLog;
 use crate::middleware::MiddlewareConfig;
 use crate::security::password::PasswordConfig;
-use crate::log::RuniqueLog;
 use serde::{Deserialize, Serialize};
 
 /// Aggregated global configuration: server, middleware, security, passwords, static files.

@@ -1,8 +1,8 @@
 //! Champs texte : `TextField`, `EmailField`, `UrlField`, `TextAreaField`, `PasswordField`.
 pub use crate::forms::generic::GenericField;
 use crate::forms::{
-    form_field::{FieldConfig, FormField, TextConfig},
-    options::LengthConstraint,
+    config::{FieldConfig, Limit, TextConfig},
+    traits::form_field::FormField,
 };
 use crate::security::password::{PasswordConfig, PasswordService};
 use crate::translation::{t, tf};
@@ -25,7 +25,7 @@ fn is_web_url(value: &str) -> bool {
 pub struct TextField {
     pub base: FieldConfig,
     pub config: TextConfig,
-    pub format: SpecialFormat,
+    pub format: TextFormat,
     pub hash_password: bool, // true by default
     /// The value came from the request: a password is then hashed whatever it
     /// looks like. Only a value set by code may already be a hash.
@@ -35,7 +35,7 @@ pub struct TextField {
 
 /// Validation format applied to a [`TextField`].
 #[derive(Clone, Debug, Serialize, PartialEq)]
-pub enum SpecialFormat {
+pub enum TextFormat {
     None,
     Email,
     Url,
@@ -44,12 +44,12 @@ pub enum SpecialFormat {
     Csrf,
     Phone,
 }
-field_base!(TextField, label);
+field_base!(TextField, label, required, placeholder);
 
 // Implementation of methods for TextField
 impl TextField {
     // Private generic constructor based on the generic field — avoids code duplication
-    fn create(name: &str, type_field: &str, format: SpecialFormat) -> Self {
+    fn create(name: &str, type_field: &str, format: TextFormat) -> Self {
         Self {
             base: FieldConfig::new(name, type_field, "base_string.html"),
             config: TextConfig::default(),
@@ -65,67 +65,49 @@ impl TextField {
     }
     /// Minimum character count. `msg` overrides the default error message (pass `""` for default).
     pub fn min_length(mut self, min: u32, msg: &str) -> Self {
-        self.config.min_length = Some(LengthConstraint {
-            value: min,
-            message: (!msg.is_empty()).then(|| msg.to_string()),
-        });
+        self.config.min_length = Some(Limit::new(min, msg));
         self
     }
 
     /// Maximum character count. `msg` overrides the default error message (pass `""` for default).
     pub fn max_length(mut self, max: u32, msg: &str) -> Self {
-        self.config.max_length = Some(LengthConstraint {
-            value: max,
-            message: (!msg.is_empty()).then(|| msg.to_string()),
-        });
+        self.config.max_length = Some(Limit::new(max, msg));
         self
     }
 
     /// Plain text `<input type="text">`.
     pub fn text(name: &str) -> Self {
-        Self::create(name, "text", SpecialFormat::None)
+        Self::create(name, "text", TextFormat::None)
     }
     /// Multi-line `<textarea>`.
     pub fn textarea(name: &str) -> Self {
-        Self::create(name, "textarea", SpecialFormat::None)
+        Self::create(name, "textarea", TextFormat::None)
     }
     /// Rich-text editor (HTML sanitized on save).
     pub fn richtext(name: &str) -> Self {
-        Self::create(name, "richtext", SpecialFormat::RichText)
+        Self::create(name, "richtext", TextFormat::RichText)
     }
     /// Password input. Value is auto-hashed on `finalize()` when password mode is `Auto`.
     ///
     /// The protection doesn't depend on this constructor: `FieldConfig::new`
     /// marks every field of type `password`.
     pub fn password(name: &str) -> Self {
-        Self::create(name, "password", SpecialFormat::Password)
+        Self::create(name, "password", TextFormat::Password)
     }
     /// Email input. Validates RFC format and normalizes to lowercase.
     pub fn email(name: &str) -> Self {
-        let mut field = Self::create(name, "email", SpecialFormat::Email);
+        let mut field = Self::create(name, "email", TextFormat::Email);
         field.base.value = field.base.value.to_lowercase();
         field
     }
     /// URL input. Accepts an absolute `http` or `https` URL only: the value
     /// can go into an `href`.
     pub fn url(name: &str) -> Self {
-        Self::create(name, "url", SpecialFormat::Url)
+        Self::create(name, "url", TextFormat::Url)
     }
     /// Phone number input (`<input type="tel">`). Validates E.164-compatible format.
     pub fn phone(name: &str) -> Self {
-        Self::create(name, "tel", SpecialFormat::Phone)
-    }
-
-    /// Marks the field as required (empty value fails validation).
-    pub fn required(mut self) -> Self {
-        self.set_required(true, None);
-        self
-    }
-
-    /// Sets the HTML `placeholder` attribute.
-    pub fn placeholder(mut self, p: &str) -> Self {
-        self.set_placeholder(p);
-        self
+        Self::create(name, "tel", TextFormat::Phone)
     }
 
     /// Renders the field as read-only. `msg` is shown instead of the input when displayed.
@@ -157,10 +139,7 @@ impl FormField for TextField {
         if let sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::N(n)) = column
             && self.config.max_length.as_ref().is_none_or(|m| m.value > *n)
         {
-            self.config.max_length = Some(LengthConstraint {
-                value: *n,
-                message: None,
-            });
+            self.config.max_length = Some(Limit::new(*n, ""));
         }
         self.base.column_type = Some(column.clone());
     }
@@ -178,15 +157,15 @@ impl FormField for TextField {
                 return Ok(None);
             }
         }
-        crate::forms::column_value::read_field(
+        crate::forms::data::column_value::read_field(
             &self.base,
             &self.base.value,
             sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
         )
     }
 
-    fn bounds(&self) -> crate::forms::form_field::FieldBounds {
-        crate::forms::form_field::FieldBounds {
+    fn bounds(&self) -> crate::forms::config::field_config::FieldBounds {
+        crate::forms::config::field_config::FieldBounds {
             min_length: self.config.min_length.as_ref().map(|l| l.value),
             max_length: self.config.max_length.as_ref().map(|l| l.value),
             ..Default::default()
@@ -195,8 +174,8 @@ impl FormField for TextField {
 
     fn set_value(&mut self, value: &str) {
         let cleaned = match self.format {
-            SpecialFormat::Password | SpecialFormat::Csrf => value.to_string(),
-            SpecialFormat::RichText => crate::security::sanitizer::sanitize_rich(value),
+            TextFormat::Password | TextFormat::Csrf => value.to_string(),
+            TextFormat::RichText => crate::security::sanitizer::sanitize_rich(value),
             // `sanitize_strict` already strips every tag (scripts included) via ammonia
             // and decodes entities, so legitimate `>`, `&`, `<` survive. The XSS guard
             // stays the output-side auto-escaping; no lossy input mutation needed.
@@ -207,7 +186,7 @@ impl FormField for TextField {
     }
 
     fn set_submitted_value(&mut self, value: &str) {
-        if crate::forms::form_field::is_staged_path(value) {
+        if crate::forms::traits::form_field::is_staged_path(value) {
             tracing::warn!(field = %self.base.name, "a file was sent for a field that takes none, ignored");
             return;
         }
@@ -229,7 +208,7 @@ impl FormField for TextField {
         if let Some(limits) = &self.config.min_length {
             let count: u32 = val.chars().count() as u32;
             if count < limits.value {
-                let msg = limits.message.clone().unwrap_or_else(|| {
+                let msg = limits.message_or(|| {
                     tf(
                         runique_i18n::keys::forms::error::TOO_SHORT,
                         &[&limits.value],
@@ -244,7 +223,7 @@ impl FormField for TextField {
         if let Some(limits) = &self.config.max_length {
             let count: u32 = val.chars().count() as u32;
             if count > limits.value {
-                let msg = limits.message.clone().unwrap_or_else(|| {
+                let msg = limits.message_or(|| {
                     tf(runique_i18n::keys::forms::error::TOO_LONG, &[&limits.value])
                 });
                 self.set_error(msg);
@@ -254,18 +233,18 @@ impl FormField for TextField {
 
         // Special format validation
         match &self.format {
-            SpecialFormat::Email if !val.validate_email() => {
+            TextFormat::Email if !val.validate_email() => {
                 self.set_error(t(runique_i18n::keys::forms::error::EMAIL_INVALID).to_string());
                 return false;
             }
-            SpecialFormat::Email => {
+            TextFormat::Email => {
                 val = val.to_lowercase();
             }
-            SpecialFormat::Url if !is_web_url(&val) => {
+            TextFormat::Url if !is_web_url(&val) => {
                 self.set_error(t(runique_i18n::keys::forms::error::URL_INVALID).to_string());
                 return false;
             }
-            SpecialFormat::Phone => {
+            TextFormat::Phone => {
                 let digit_count = val.chars().filter(|c| c.is_ascii_digit()).count();
                 let has_only_valid_chars = val
                     .chars()
@@ -289,7 +268,7 @@ impl FormField for TextField {
     }
 
     async fn finalize(&mut self) -> Result<(), String> {
-        if let SpecialFormat::Password = &self.format
+        if let TextFormat::Password = &self.format
             && self.hash_password
             && !self.base.value.is_empty()
         {
@@ -312,7 +291,7 @@ impl FormField for TextField {
         let mut context = self.base_context();
 
         // Prepare a "secured" version of the base.
-        // Clearing is driven by `is_password`, not by `SpecialFormat`, so that
+        // Clearing is driven by `is_password`, not by `TextFormat`, so that
         // a field flagged as sensitive some other way than `SpecialField::password`
         // gets the same rule.
         let mut base_data = self.base.clone();

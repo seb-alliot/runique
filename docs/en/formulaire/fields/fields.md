@@ -6,7 +6,7 @@
 
 ## TextField — Text fields
 
-`TextField` supports 6 special formats via the `SpecialFormat` enum:
+`TextField` supports 6 special formats via the `TextFormat` enum:
 
 ```rust
 // Plain text

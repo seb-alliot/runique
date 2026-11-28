@@ -18,7 +18,7 @@ use crate::auth::{
     },
     meta::ModelMeta,
 };
-use crate::forms::runique_form::FormAccess;
+use crate::forms::traits::runique_form::FormAccess;
 use crate::forms::validation_form::ValidationForm;
 use crate::http::request::Request;
 use crate::utils::aliases::ADb;
@@ -534,7 +534,7 @@ where
         let mut form = req.form::<ConfirmForm<E>>(admin_form::DELETE);
         let forms = form.forms_mut();
         forms.path_params.insert(
-            crate::forms::save::row_param(admin_form::DELETE, self.pk_column()),
+            crate::forms::data::save::row_param(admin_form::DELETE, self.pk_column()),
             id.to_string(),
         );
 
@@ -592,7 +592,7 @@ where
         // `save_as` looks for the row under the form's name and the key's; the
         // route calls it `{id}` whatever the model names it.
         forms.path_params.insert(
-            crate::forms::save::row_param(admin_form::UPDATE, self.pk_column()),
+            crate::forms::data::save::row_param(admin_form::UPDATE, self.pk_column()),
             id.to_string(),
         );
 

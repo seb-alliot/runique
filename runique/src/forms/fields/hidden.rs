@@ -1,8 +1,9 @@
 //! Hidden field `HiddenField` for non-displayed data (tokens, internal IDs).
-use crate::forms::form_field::{FieldConfig, FormField};
+use crate::forms::config::field_config::FieldConfig;
 use crate::forms::constants::FORM_NAME_KEY;
-use crate::utils::aliases::ATera;
+use crate::forms::traits::form_field::FormField;
 use crate::translation::t;
+use crate::utils::aliases::ATera;
 use async_trait::async_trait;
 use serde::Serialize;
 use subtle::ConstantTimeEq;
@@ -132,7 +133,7 @@ impl FormField for HiddenField {
         if self.base.column_type.is_none() {
             return Ok(None);
         }
-        crate::forms::column_value::read_field(
+        crate::forms::data::column_value::read_field(
             &self.base,
             &self.base.value,
             sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),

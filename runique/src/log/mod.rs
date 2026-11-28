@@ -19,6 +19,7 @@ mod builder;
 mod db;
 mod errors;
 mod forms;
+mod init;
 mod mailer;
 mod middleware;
 mod migration;
@@ -26,7 +27,6 @@ mod output;
 mod session;
 mod templates;
 pub mod trace_ext;
-mod init;
 
 pub use admin::AdminTracing;
 pub use auth::AuthTracing;
@@ -34,12 +34,12 @@ pub use builder::BuilderTracing;
 pub use db::DbTracing;
 pub use errors::ErrorsTracing;
 pub use forms::FormTracing;
+pub use init::init_logging;
 pub use mailer::MailerTracing;
 pub use middleware::MiddlewareTracing;
 pub use migration::MigrationTracing;
 pub use output::{LogOutput, LogRecord, LogRotation, LogSink};
 pub use session::SessionTracing;
-pub use init::init_logging;
 pub use templates::TemplatesTracing;
 pub use trace_ext::TraceResult;
 
@@ -265,9 +265,7 @@ impl RuniqueLog {
         if self.external && !self.outputs.is_empty() {
             tracing::warn!(
                 "{}",
-                crate::translation::t(
-                    runique_i18n::keys::build::error::EXTERNAL_OUTPUTS_IGNORED
-                )
+                crate::translation::t(runique_i18n::keys::build::error::EXTERNAL_OUTPUTS_IGNORED)
             );
         }
         if self.external {

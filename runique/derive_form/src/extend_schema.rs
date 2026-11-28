@@ -89,7 +89,7 @@ fn phantom_active_model_field(col: &PhantomColumn, partial: bool) -> Option<Toke
         }),
         FormWidget::Password => Some(quote! {
             #name: ::sea_orm::ActiveValue::Set(
-                ::runique::forms::form_data::unknown_password(#name_str)?
+                ::runique::forms::data::form_data::unknown_password(#name_str)?
             ),
         }),
         // Read like a `model!` boolean: a forged value (`banana`) is refused,
@@ -97,10 +97,10 @@ fn phantom_active_model_field(col: &PhantomColumn, partial: bool) -> Option<Toke
         FormWidget::Bool => {
             if partial {
                 Some(quote! {
-                    #name: match ::runique::forms::form_data::read(
+                    #name: match ::runique::forms::data::form_data::read(
                         __data,
                         #name_str,
-                        |v: &str| ::runique::forms::column_value::parse_bool(v),
+                        |v: &str| ::runique::forms::data::column_value::parse_bool(v),
                     )? {
                         Some(v) => ::sea_orm::ActiveValue::Set(v),
                         None => ::sea_orm::ActiveValue::NotSet,
@@ -109,10 +109,10 @@ fn phantom_active_model_field(col: &PhantomColumn, partial: bool) -> Option<Toke
             } else {
                 Some(quote! {
                     #name: ::sea_orm::ActiveValue::Set(
-                        ::runique::forms::form_data::read(
+                        ::runique::forms::data::form_data::read(
                             __data,
                             #name_str,
-                            |v: &str| ::runique::forms::column_value::parse_bool(v),
+                            |v: &str| ::runique::forms::data::column_value::parse_bool(v),
                         )?
                         .unwrap_or(false)
                     ),
@@ -333,13 +333,13 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
             pub form: ::runique::forms::Forms,
         }
 
-        impl ::runique::forms::runique_form::RuniqueForm for #form_name {}
+        impl ::runique::forms::traits::runique_form::RuniqueForm for #form_name {}
         impl ::runique::forms::FormEntity for #form_name {
             type Entity = Entity;
         }
 
 
-        impl ::runique::forms::runique_form::FormAccess for #form_name {
+        impl ::runique::forms::traits::runique_form::FormAccess for #form_name {
             fn register_fields(form: &mut ::runique::forms::Forms) {
                 #(#phantom_registrations)*
                 #(#extended_registrations)*
