@@ -9,10 +9,11 @@ use super::{
     proof::Authorized,
     refusal::{Refusal, RefusalReason},
 };
+use crate::translation::t;
 use sea_orm::{
     ActiveModelBehavior, ActiveModelTrait, ActiveValue, ColumnTrait, Condition, ConnectionTrait,
-    EntityTrait, IdenStatic, IntoActiveModel, Iterable, PrimaryKeyToColumn, QueryFilter, Value,
-    sea_query::IntoValueTuple,
+    EntityTrait, IdenStatic, IntoActiveModel, Iterable, PrimaryKeyToColumn, QueryFilter,
+    RuntimeErr, Value, sea_query::IntoValueTuple,
 };
 
 fn write_failed(e: sea_orm::DbErr) -> Refusal {
@@ -39,7 +40,7 @@ fn driver_reports_foreign_key(err: &sea_orm::DbErr) -> bool {
         sea_orm::DbErr::Exec(err) | sea_orm::DbErr::Query(err) | sea_orm::DbErr::Conn(err) => err,
         _ => return false,
     };
-    let sea_orm::RuntimeErr::SqlxError(err) = runtime else {
+    let RuntimeErr::SqlxError(err) = runtime else {
         return false;
     };
     err.as_database_error()
@@ -56,9 +57,7 @@ fn driver_reports_foreign_key(_: &sea_orm::DbErr) -> bool {
 pub(crate) fn linked_delete_error(err: sea_orm::DbErr) -> sea_orm::DbErr {
     if is_foreign_key_violation(&err) {
         tracing::warn!(error = %err, "delete blocked by a foreign key");
-        sea_orm::DbErr::Custom(
-            crate::translation::t(runique_i18n::keys::forms::error::DELETE_LINKED).into_owned(),
-        )
+        sea_orm::DbErr::Custom(t(runique_i18n::keys::forms::error::DELETE_LINKED).into_owned())
     } else {
         err
     }

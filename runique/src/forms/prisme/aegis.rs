@@ -1,17 +1,18 @@
 //! Aegis: extraction and normalization of the request body (multipart, urlencoded, JSON, GET).
 use super::{BodyRefusal, multipart::parse_multipart_guarded};
 use crate::{
+    forms::prisme::multipart::Lease,
     translation::{t, tf},
     utils::aliases::{ARuniqueConfig, StrMap, StrVecMap},
 };
 use axum::{
     body::Body,
     extract::{FromRequest, Multipart},
-    http::{Method, Request, StatusCode},
+    http::{Method, Request, StatusCode, header::CONTENT_LENGTH},
 };
 use form_urlencoded;
 use http_body_util::BodyExt;
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 use tracing::warn;
 
 /// Largest body read into memory (urlencoded, JSON): the multipart limit is
@@ -42,7 +43,7 @@ pub(crate) async fn aegis_guarded<S>(
     config: ARuniqueConfig,
     content_type: &str,
     upload_gate: Option<&str>,
-) -> Result<(StrVecMap, Option<crate::forms::prisme::multipart::Lease>), BodyRefusal>
+) -> Result<(StrVecMap, Option<Lease>), BodyRefusal>
 where
     S: Send + Sync,
 {
@@ -74,7 +75,7 @@ where
         .saturating_mul(1024 * 1024);
     if let Some(len) = req
         .headers()
-        .get(axum::http::header::CONTENT_LENGTH)
+        .get(CONTENT_LENGTH)
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.parse::<u64>().ok())
         && len > body_limit
@@ -93,7 +94,7 @@ where
             )
         })?;
 
-        let upload_dir = std::path::Path::new(&config.static_files.media_root);
+        let upload_dir = Path::new(&config.static_files.media_root);
         let (body, dir) = parse_multipart_guarded(
             multipart,
             upload_dir,

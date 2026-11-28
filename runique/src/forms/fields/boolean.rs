@@ -5,6 +5,7 @@ use crate::{
     utils::aliases::ATera,
 };
 use async_trait::async_trait;
+use sea_orm::Value;
 use serde::Serialize;
 
 /// Checkbox or radio input for boolean values.
@@ -77,9 +78,9 @@ impl BooleanField {
 #[async_trait]
 impl FormField for BooleanField {
     /// Unchecked (or never filled) is `false`, never empty.
-    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+    fn to_value(&self) -> Result<Option<Value>, String> {
         self.state()
-            .map(|checked| Some(sea_orm::Value::from(checked)))
+            .map(|checked| Some(Value::from(checked)))
             .map_err(|()| t(runique_i18n::keys::forms::error::VALUE_UNCONVERTIBLE).into_owned())
     }
 

@@ -10,7 +10,7 @@ use std::{
     any::Any,
     panic::AssertUnwindSafe,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, MutexGuard},
     time::Duration,
 };
 
@@ -242,7 +242,7 @@ pub(crate) fn mark_expected_from(start: usize) {
     });
 }
 
-fn lock(trace: &TraceSink) -> std::sync::MutexGuard<'_, Vec<QueryTrace>> {
+fn lock(trace: &TraceSink) -> MutexGuard<'_, Vec<QueryTrace>> {
     trace.lock().unwrap_or_else(|e| e.into_inner())
 }
 

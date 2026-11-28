@@ -1,6 +1,11 @@
 //! `build`: the order in which the application is put together. Each step is
 //! a function of its own, in this file or beside it (`start`, `checks`,
 //! `templates`, `routes`, `static_files`).
+use crate::{
+    middleware::security::trusted_proxies::TrustedProxies, security::password::password_init,
+    translation::t,
+};
+use axum::extract::DefaultBodyLimit;
 
 use std::sync::Arc;
 
@@ -75,7 +80,7 @@ impl<P> RuniqueAppBuilder<P> {
         templates::check_admin_pages(&self.admin, &config, &url_registry, &tera)?;
 
         let config = new(config);
-        crate::security::password::password_init(config.password.clone());
+        password_init(config.password.clone());
         warn_hsts_preload(&config);
         warn_debug_in_prod(&config);
 
@@ -169,10 +174,7 @@ fn warn_hsts_preload(config: &RuniqueConfig) {
 
 fn warn_debug_in_prod(config: &RuniqueConfig) {
     if config.debug && !config.dev {
-        tracing::warn!(
-            "{}",
-            crate::translation::t(runique_i18n::keys::build::log::DEBUG_IN_PROD)
-        );
+        tracing::warn!("{}", t(runique_i18n::keys::build::log::DEBUG_IN_PROD));
     }
 }
 
@@ -211,9 +213,7 @@ fn security_policies(
             // (private ranges behind a proxy, but `none()` when Runique is the
             // ACME TLS edge — closes SEC2). See `TrustedProxies::default_for_edge`.
             Some(c) => c.build(),
-            None => crate::middleware::security::trusted_proxies::TrustedProxies::default_for_edge(
-                config.security.acme_enabled,
-            ),
+            None => TrustedProxies::default_for_edge(config.security.acme_enabled),
         }),
     }
 }
@@ -228,7 +228,7 @@ fn body_limit(max_upload_mb: u64) -> usize {
 /// `parse_multipart`, the whole request to `max_body_mb`. Bodies read into
 /// memory (urlencoded, JSON) are held to `FORM_BODY_LIMIT` by Aegis.
 fn limit_body(router: Router, engine: &AEngine) -> Router {
-    router.layer(axum::extract::DefaultBodyLimit::max(body_limit(
+    router.layer(DefaultBodyLimit::max(body_limit(
         engine.config.static_files.max_body_mb,
     )))
 }

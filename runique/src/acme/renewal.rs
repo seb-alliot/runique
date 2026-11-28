@@ -1,9 +1,12 @@
 //! When a certificate is renewed, and where it is stored once obtained.
+use crate::utils::private_file::write;
+use chrono::Utc;
+use std::{error::Error, future::Future, path::Path};
 
 /// Whether the certificate at `cert_path` must be replaced: missing,
 /// unreadable, not issued for `domain`, or with less than a third of its
 /// lifetime left (Let's Encrypt's advice, whatever the lifetime).
-pub(super) async fn cert_needs_renewal(cert_path: &std::path::Path, domain: &str) -> bool {
+pub(super) async fn cert_needs_renewal(cert_path: &Path, domain: &str) -> bool {
     let Ok(bytes) = tokio::fs::read(cert_path).await else {
         tracing::info!("Certificate for {domain} is missing or unreadable");
         return true;
@@ -34,19 +37,15 @@ pub(super) async fn cert_needs_renewal(cert_path: &std::path::Path, domain: &str
     let not_before = validity.not_before.timestamp();
     let not_after = validity.not_after.timestamp();
     let re_new_from = not_after - (not_after - not_before) / 3;
-    chrono::Utc::now().timestamp() >= re_new_from
+    Utc::now().timestamp() >= re_new_from
 }
 
 /// Runs `renew` when the certificate at `cert_path` must be replaced (see
 /// [`cert_needs_renewal`]). Returns whether it ran.
-pub(super) async fn renew_if_due<F, Fut>(
-    cert_path: &std::path::Path,
-    domain: &str,
-    renew: F,
-) -> bool
+pub(super) async fn renew_if_due<F, Fut>(cert_path: &Path, domain: &str, renew: F) -> bool
 where
     F: FnOnce() -> Fut,
-    Fut: std::future::Future<Output = ()>,
+    Fut: Future<Output = ()>,
 {
     if !cert_needs_renewal(cert_path, domain).await {
         return false;
@@ -62,7 +61,7 @@ pub(super) async fn obtain_and_store(
     email: &str,
     challenge_store: super::ChallengeStore,
     certs_dir: &str,
-) -> Result<(Vec<u8>, Vec<u8>), Box<dyn std::error::Error>> {
+) -> Result<(Vec<u8>, Vec<u8>), Box<dyn Error>> {
     let (cert, key) = super::obtain_certificate(
         domain,
         email,
@@ -72,7 +71,7 @@ pub(super) async fn obtain_and_store(
     .await?;
     tokio::fs::create_dir_all(certs_dir).await?;
     tokio::fs::write(format!("{certs_dir}/cert.pem"), &cert).await?;
-    crate::utils::private_file::write(std::path::Path::new(&format!("{certs_dir}/key.pem")), &key)?;
+    write(Path::new(&format!("{certs_dir}/key.pem")), &key)?;
     tracing::info!(domain, "Certificate obtained and stored");
     Ok((cert, key))
 }

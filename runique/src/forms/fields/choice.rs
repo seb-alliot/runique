@@ -1,10 +1,14 @@
 //! Selection field: `ChoiceField` with groups, multi-select, and dynamic options.
 use crate::{
-    forms::{config::field_config::FieldConfig, traits::form_field::FormField},
+    forms::{
+        config::field_config::FieldConfig, data::column_value::read_field,
+        traits::form_field::FormField,
+    },
     translation::{t, tf},
     utils::aliases::ATera,
 };
 use async_trait::async_trait;
+use sea_orm::sea_query::{ColumnType, StringLen};
 use serde::Serialize;
 use serde_json::{Value, json};
 
@@ -76,10 +80,10 @@ field_base!(ChoiceField, label, required);
 #[async_trait]
 impl FormField for ChoiceField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::data::column_value::read_field(
+        read_field(
             &self.base,
             self.base.value.trim(),
-            sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
+            ColumnType::String(StringLen::None),
         )
     }
 
@@ -168,10 +172,10 @@ field_base!(RadioField, label, required);
 #[async_trait]
 impl FormField for RadioField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::data::column_value::read_field(
+        read_field(
             &self.base,
             self.base.value.trim(),
-            sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
+            ColumnType::String(StringLen::None),
         )
     }
 

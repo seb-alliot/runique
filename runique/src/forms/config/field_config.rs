@@ -2,6 +2,7 @@
 //! the text and numeric fields add to it.
 use super::{BoolChoice, Limit};
 use crate::utils::aliases::{JsonMap, StrMap};
+use sea_orm::sea_query::ColumnType;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -38,7 +39,7 @@ pub struct FieldConfig {
     /// [`FormField::apply_column_type`](crate::forms::traits::form_field::FormField::apply_column_type). `None`: a field no column was given
     /// to (a form without a model, a confirmation, a captcha).
     #[serde(skip)]
-    pub column_type: Option<sea_orm::sea_query::ColumnType>,
+    pub column_type: Option<ColumnType>,
     /// Name of the form this field belongs to, set by `try_form`: prefixes the
     /// field's HTML `id` (`id_{form}-{field}`), unique across forms on a page.
     #[serde(skip)]

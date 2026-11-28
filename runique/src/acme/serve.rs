@@ -7,7 +7,10 @@ use crate::{
     app::runique_app::{RuniqueApp, shutdown_signal},
     translation::{t, tf},
 };
-use axum::Router;
+use axum::{Router, http::Uri};
+use std::{error::Error, net::SocketAddr, path::PathBuf, time::Duration};
+use tokio::net::TcpListener;
+use tracing::Level;
 
 impl RuniqueApp {
     /// HTTPS server with automatic Let's Encrypt certificate (ACME HTTP-01).
@@ -16,7 +19,7 @@ impl RuniqueApp {
     /// 1. Start HTTP server on port 80 (ACME challenge + redirect to HTTPS)
     /// 2. Obtain certificate from Let's Encrypt (or load existing from ./certs/)
     /// 3. Start HTTPS server on port 443
-    pub(crate) async fn run_with_acme(self) -> Result<(), Box<dyn std::error::Error>> {
+    pub(crate) async fn run_with_acme(self) -> Result<(), Box<dyn Error>> {
         // Err = a crypto provider is already installed (rustls idiom) → harmless, not a
         // swallowed error: the goal (a default provider is in place) is met.
         let _ = rustls::crypto::ring::default_provider().install_default();
@@ -68,7 +71,7 @@ impl RuniqueApp {
             )
             // Same path and query in HTTPS; the host comes from the config,
             // never from the request's `Host` header.
-            .fallback(move |uri: axum::http::Uri| {
+            .fallback(move |uri: Uri| {
                 let domain = domain_clone.clone();
                 async move {
                     let path = uri.path_and_query().map_or("/", |pq| pq.as_str());
@@ -78,14 +81,14 @@ impl RuniqueApp {
             .with_state(store_clone);
 
         let http_addr = format!("{ip}:80");
-        let http_listener = tokio::net::TcpListener::bind(&http_addr).await?;
+        let http_listener = TcpListener::bind(&http_addr).await?;
         tokio::spawn(async move {
             // Never silent: without it the ACME challenge can't be answered, and
             // the next renewal fails weeks later with nothing to explain it.
             use crate::log::TraceResult;
             axum::serve(http_listener, http_app).await.trace_or(
                 crate::log::log_level!(middleware.https),
-                tracing::Level::WARN,
+                Level::WARN,
                 runique_i18n::keys::server::log::HTTPS_PORT80_STOPPED,
             );
         });
@@ -142,8 +145,8 @@ impl RuniqueApp {
         );
         tokio::spawn(async move {
             let (domain, email, store, certs_dir, tls) = renewal;
-            let cert_path = std::path::PathBuf::from(format!("{certs_dir}/cert.pem"));
-            let mut ticker = tokio::time::interval(std::time::Duration::from_secs(12 * 3600));
+            let cert_path = PathBuf::from(format!("{certs_dir}/cert.pem"));
+            let mut ticker = tokio::time::interval(Duration::from_secs(12 * 3600));
             ticker.tick().await;
             loop {
                 ticker.tick().await;
@@ -191,17 +194,17 @@ impl RuniqueApp {
         // Without it, conn_ip defaults to loopback (trusted) and X-Forwarded-For
         // becomes spoofable in standalone-TLS mode (no reverse proxy).
         // Requests in flight get this long to finish once the stop is asked.
-        let handle = axum_server::Handle::<std::net::SocketAddr>::new();
+        let handle = axum_server::Handle::<SocketAddr>::new();
         let stop = handle.clone();
         tokio::spawn(async move {
             shutdown_signal().await;
-            stop.graceful_shutdown(Some(std::time::Duration::from_secs(30)));
+            stop.graceful_shutdown(Some(Duration::from_secs(30)));
         });
-        axum_server::bind_rustls(https_addr.parse::<std::net::SocketAddr>()?, tls_config)
+        axum_server::bind_rustls(https_addr.parse::<SocketAddr>()?, tls_config)
             .handle(handle)
             .serve(
                 self.router
-                    .into_make_service_with_connect_info::<std::net::SocketAddr>(),
+                    .into_make_service_with_connect_info::<SocketAddr>(),
             )
             .await?;
 

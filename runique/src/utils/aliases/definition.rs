@@ -8,6 +8,7 @@ use crate::{
     prelude::{HostPolicy, PermissionsPolicy, SecurityPolicy},
     security::{csp_nonce::CspNonce, csrf::CsrfToken},
 };
+use serde_json::Value;
 use std::{
     collections::HashMap,
     result::Result,
@@ -84,7 +85,7 @@ pub type StrVecMap = HashMap<String, Vec<String>>;
 /// Deliberately `serde_json::Value`, not `tera::Value`: these maps are built with
 /// `json!()` and reach templates through `Context::insert` (which takes `Serialize`).
 /// Tera 2 passes filter/function arguments as `Kwargs`, so no alias is needed there.
-pub type JsonMap = HashMap<String, serde_json::Value>;
+pub type JsonMap = HashMap<String, Value>;
 
 /// Ordered form fields collection
 pub type FieldsMap = IndexMap<String, Box<dyn FormField>>;

@@ -3,10 +3,16 @@ pub use crate::forms::{
     form::Forms, renderer::FormRenderer, traits::form_field::FormField, validator::ValidationError,
 };
 use crate::{
+    forms::{
+        data::column_value::column_value,
+        fields::{FileSize, discard_staged_uploads},
+    },
     http::Request,
     translation::t,
     utils::aliases::{ATera, StrMap},
 };
+use sea_orm::sea_query::ValueType;
+use std::str::FromStr;
 
 use async_trait::async_trait;
 use sea_orm::DbErr;
@@ -82,7 +88,7 @@ pub trait RuniqueForm: FormAccess {
     /// hash in `Auto` mode (`finalize` replaced it); as typed only when marked
     /// `.no_hash()` (a sign-in form compares it), or in `Manual` / `Custom`
     /// mode, where hashing it is the developer's job.
-    fn cleaned<T: sea_orm::sea_query::ValueType>(&self, name: &str) -> Option<T> {
+    fn cleaned<T: ValueType>(&self, name: &str) -> Option<T> {
         let raw = cleaned_value(self.forms(), name)?;
         let column = self
             .forms()
@@ -90,14 +96,14 @@ pub trait RuniqueForm: FormAccess {
             .get(name)
             .and_then(|field| field.column_type().cloned())
             .unwrap_or_else(T::column_type);
-        let read = crate::forms::data::column_value::column_value(&column, &raw)
+        let read = column_value(&column, &raw)
             .and_then(|value| T::try_from(value).map_err(|e| e.to_string()));
         log_convert_failure(name, &raw, read)
     }
 
     /// An enum of `model!{}` (text or integer) — `None` if unknown, empty, or
     /// not a valid variant.
-    fn cleaned_enum<T: std::str::FromStr>(&self, name: &str) -> Option<T> {
+    fn cleaned_enum<T: FromStr>(&self, name: &str) -> Option<T> {
         let raw = cleaned_value(self.forms(), name)?;
         log_convert_failure(name, &raw, T::from_str(&raw).map_err(|_| "not a variant"))
     }
@@ -105,7 +111,7 @@ pub trait RuniqueForm: FormAccess {
     /// The values of a list field (`checkbox` / `multichoice`), in the order
     /// submitted; empty if the field is unknown or nothing was chosen. A value
     /// that isn't a variant is left out (and logged).
-    fn cleaned_enums<T: std::str::FromStr>(&self, name: &str) -> Vec<T> {
+    fn cleaned_enums<T: FromStr>(&self, name: &str) -> Vec<T> {
         let Some(raw) = cleaned_value(self.forms(), name) else {
             return Vec::new();
         };
@@ -159,11 +165,7 @@ pub trait RuniqueForm: FormAccess {
     }
 
     /// Overrides max_size for a file field. Returns Err if it exceeds the model ceiling.
-    fn max_size(
-        &mut self,
-        name: &str,
-        size: crate::forms::fields::FileSize,
-    ) -> Result<&mut Self, String> {
+    fn max_size(&mut self, name: &str, size: FileSize) -> Result<&mut Self, String> {
         self.forms_mut().field_max_size(name, size)?;
         Ok(self)
     }
@@ -239,7 +241,7 @@ pub trait RuniqueForm: FormAccess {
         if !accepted {
             // The file never reached `finalize`. Drop it before the handler
             // re-renders the form, so the page doesn't keep a staging path.
-            crate::forms::fields::discard_staged_uploads(&mut self.forms_mut().fields).await;
+            discard_staged_uploads(&mut self.forms_mut().fields).await;
         }
         accepted
     }

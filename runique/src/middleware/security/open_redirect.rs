@@ -1,4 +1,4 @@
-use crate::utils::aliases::AEngine;
+use crate::{engine::RuniqueEngine, utils::aliases::AEngine};
 use axum::{
     body::Body,
     extract::State,
@@ -6,6 +6,7 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use std::net::Ipv4Addr;
 
 /// Blocks redirects to untrusted destinations: inspects the `Location`
 /// header of a redirect response and the `Refresh` header of any response,
@@ -82,7 +83,7 @@ fn refresh_targets(value: &str) -> Vec<String> {
 /// `.invalid` is reserved (RFC 2606): no real redirect can target it.
 const PROBE_HOST: &str = "runique.invalid";
 
-fn is_safe_redirect(location: &str, engine: &crate::engine::RuniqueEngine) -> bool {
+fn is_safe_redirect(location: &str, engine: &RuniqueEngine) -> bool {
     // Resolved by the WHATWG URL parser, the one browsers follow: tabs and
     // newlines dropped, `\` read as `/`, credentials split from the host. A
     // hand-written split misses some of these ("/\t/evil.com" lands on evil.com).
@@ -159,10 +160,7 @@ pub fn is_local_host(host: &str) -> bool {
     // IPv4 / hostname: strip optional port
     let bare = host.split(':').next().unwrap_or(host);
     // Parsed, not a `127.` prefix: `127.evil.com` is a domain anyone can register.
-    bare == "localhost"
-        || bare
-            .parse::<std::net::Ipv4Addr>()
-            .is_ok_and(|ip| ip.is_loopback())
+    bare == "localhost" || bare.parse::<Ipv4Addr>().is_ok_and(|ip| ip.is_loopback())
 }
 
 fn is_loopback_ipv6(addr: &str) -> bool {

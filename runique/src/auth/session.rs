@@ -7,8 +7,12 @@ use crate::{
     log::TraceResult,
     middleware::{security::csrf::rotate_csrf_token, session::session_db::RuniqueSessionStore},
     schema::pk::Pk,
+    translation::{t, tf},
 };
-use tower_sessions::Session;
+use chrono::Utc;
+use std::{panic::Location, sync::OnceLock};
+use tower_sessions::{Expiry, Session};
+use tracing::Level;
 
 /// Default when the builder never set a duration (24h), so `login` never breaks
 /// even when called outside a full build (tests, library usage).
@@ -18,7 +22,7 @@ const DEFAULT_AUTH_SESSION_TTL_SECS: i64 = 86_400;
 /// Set **once** at build time from `MiddlewareStaging.session_duration`
 /// (builder `.with_session_duration(...)`). Single source → the cookie, the
 /// `eihwaz_sessions` row, and the per-request refresh can no longer diverge.
-static AUTH_SESSION_TTL_SECS: std::sync::OnceLock<i64> = std::sync::OnceLock::new();
+static AUTH_SESSION_TTL_SECS: OnceLock<i64> = OnceLock::new();
 
 /// Called once at build time. Idempotent. A second call with a **different**
 /// value (two apps in the same process) is **logged**, never swallowed.
@@ -266,7 +270,7 @@ pub async fn login(
     // the 5-min anonymous window. The ttl-upgrade middleware only kicks in from the
     // next request; without this, a restart in that first window logs the user out.
     let ttl_secs = auth_session_ttl_secs();
-    session.set_expiry(Some(tower_sessions::Expiry::OnInactivity(
+    session.set_expiry(Some(Expiry::OnInactivity(
         tower_sessions::cookie::time::Duration::seconds(ttl_secs),
     )));
 
@@ -280,24 +284,24 @@ pub async fn login(
 
         let Some(cookie_id) = session.id().map(|id| id.to_string()) else {
             crate::runique_log!(
-                tracing::Level::WARN,
+                Level::WARN,
                 user_id = %user_id,
                 "session id unavailable after save — skipping DB persistence"
             );
             return Ok(());
         };
         let session_id = uuid::Uuid::new_v4().to_string();
-        let expires_at = chrono::Utc::now()
+        let expires_at = Utc::now()
             .naive_utc()
             .checked_add_signed(chrono::Duration::seconds(ttl_secs))
-            .unwrap_or_else(|| chrono::Utc::now().naive_utc());
+            .unwrap_or_else(|| Utc::now().naive_utc());
 
         store
             .create(&cookie_id, user_id, &session_id, expires_at)
             .await
             .trace_or(
                 crate::log::log_level!(session.store),
-                tracing::Level::WARN,
+                Level::WARN,
                 "persist session to DB",
             );
 
@@ -309,7 +313,7 @@ pub async fn login(
             };
             closed.trace_or(
                 crate::log::log_level!(session.exclusive_login),
-                tracing::Level::WARN,
+                Level::WARN,
                 "invalidate other sessions (exclusive login)",
             );
             if let Some(reason) = refused {
@@ -320,12 +324,12 @@ pub async fn login(
                 let level = crate::log::log_level!(session.store);
                 store.delete(&cookie_id).await.trace_or(
                     level,
-                    tracing::Level::WARN,
+                    Level::WARN,
                     "delete the row of a refused exclusive login",
                 );
                 session.flush().await.trace_or(
                     level,
-                    tracing::Level::WARN,
+                    Level::WARN,
                     "close the session of a refused exclusive login",
                 );
                 return Err(LoginError::Session(tower_sessions::session::Error::Store(
@@ -354,10 +358,10 @@ async fn cycle_session_id(session: &Session) -> Result<(), tower_sessions::sessi
 }
 
 #[track_caller]
-fn log_cycle_id_failure(level: Option<tracing::Level>, error: &impl std::fmt::Debug) {
-    let loc = std::panic::Location::caller();
+fn log_cycle_id_failure(level: Option<Level>, error: &impl std::fmt::Debug) {
+    let loc = Location::caller();
     crate::runique_log!(
-        level.unwrap_or(tracing::Level::WARN),
+        level.unwrap_or(Level::WARN),
         error = ?error,
         at = %loc,
         "cycle session id (session fixation protection)"
@@ -398,10 +402,10 @@ pub enum LoginError {
 impl std::fmt::Display for LoginError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::CannotSignIn => f.write_str(&crate::translation::t(
-                runique_i18n::keys::auth::error::LOGIN_CANNOT_SIGN_IN,
-            )),
-            Self::Session(e) => f.write_str(&crate::translation::tf(
+            Self::CannotSignIn => {
+                f.write_str(&t(runique_i18n::keys::auth::error::LOGIN_CANNOT_SIGN_IN))
+            }
+            Self::Session(e) => f.write_str(&tf(
                 runique_i18n::keys::auth::error::LOGIN_SESSION_FAILED,
                 &[e],
             )),
@@ -477,7 +481,7 @@ pub async fn protect_session(
     session: &Session,
     duration_secs: i64,
 ) -> Result<(), tower_sessions::session::Error> {
-    let protect_until = chrono::Utc::now().timestamp().saturating_add(duration_secs);
+    let protect_until = Utc::now().timestamp().saturating_add(duration_secs);
     session.insert(SESSION_ACTIVE_KEY, protect_until).await
 }
 

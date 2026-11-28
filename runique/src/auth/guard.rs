@@ -1,5 +1,7 @@
 //! Brute-force protection and the `login_required` middleware.
+use crate::auth::current_user::CurrentUser;
 use std::{
+    borrow::Cow,
     collections::HashMap,
     sync::{Arc, Mutex},
     time::{Duration, Instant},
@@ -167,12 +169,12 @@ impl LoginGuard {
     ///   `admin`, `Admin` and `admin `, which must share one counter.
     /// - Empty or absent username → `"anonym:{ip}"` (anonymous protection by IP)
     #[must_use]
-    pub fn effective_key<'a>(username: &'a str, ip: &str) -> std::borrow::Cow<'a, str> {
+    pub fn effective_key<'a>(username: &'a str, ip: &str) -> Cow<'a, str> {
         let username = username.trim();
         if username.is_empty() {
-            std::borrow::Cow::Owned(format!("anonym:{ip}"))
+            Cow::Owned(format!("anonym:{ip}"))
         } else {
-            std::borrow::Cow::Owned(username.to_lowercase())
+            Cow::Owned(username.to_lowercase())
         }
     }
 
@@ -236,11 +238,7 @@ pub(crate) async fn login_required_middleware(
     // The auth middleware puts a `CurrentUser` only for an account the database
     // still accepts. The session alone says who signed in, not that they still
     // may: it survives a logout the store refused.
-    if req
-        .extensions()
-        .get::<crate::auth::current_user::CurrentUser>()
-        .is_some()
-    {
+    if req.extensions().get::<CurrentUser>().is_some() {
         next.run(req).await
     } else {
         Redirect::to(redirect_url.as_str()).into_response()

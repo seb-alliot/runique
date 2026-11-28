@@ -7,7 +7,7 @@ use crate::{
         constants::resource_key,
         current_user::CurrentUser,
         history::{ActionLog, log_action},
-        permissions::{group, group_rights, group_rows_within, rank::Rang},
+        permissions::{Permission, group, group_rights, group_rows_within, rank::Rang},
         user,
     },
     schema::pk::Pk,
@@ -17,6 +17,7 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect, Set,
     TransactionTrait,
 };
+use std::collections::BTreeMap;
 
 /// The table rights of one row: create, read, read_own, update, update_own,
 /// delete, delete_own.
@@ -86,7 +87,7 @@ impl ColumnGrant {
 
 /// The grid as it is stored: a table's row, then its columns' rows.
 pub(in crate::auth::gate) fn from_rows(rows: &[group_rights::Model]) -> Vec<TableGrant> {
-    let mut tables: std::collections::BTreeMap<&str, TableGrant> = Default::default();
+    let mut tables: BTreeMap<&str, TableGrant> = Default::default();
     for row in rows {
         let table = tables
             .entry(row.resource_key.as_str())
@@ -321,7 +322,7 @@ pub(crate) fn may_set_group(actor: &CurrentUser, group: &group::Model) -> Result
 
 /// Whether `holder`'s grid holds every right `grant` ticks: an admin gives a
 /// group only what he has himself, his full right covering an `_own` one.
-fn covered(grant: &TableGrant, holder: &[crate::auth::permissions::Permission]) -> bool {
+fn covered(grant: &TableGrant, holder: &[Permission]) -> bool {
     let columns_ticked = grant.columns.iter().any(|c| c.read || c.create || c.update);
     if !grant.table.any() && !columns_ticked {
         return true;

@@ -1,4 +1,6 @@
 //! Admin permissions: groups and rights loaded from the database.
+use crate::{auth::current_user::CurrentUser, schema::pk::Pk};
+use sea_orm::DbErr;
 pub mod group;
 pub mod group_rights;
 pub mod rank;
@@ -235,7 +237,7 @@ pub struct Groupe {
 pub async fn prune_orphan_droits<C: ConnectionTrait>(
     db: &C,
     valid_keys: &[&str],
-) -> Result<u64, sea_orm::DbErr> {
+) -> Result<u64, DbErr> {
     if valid_keys.is_empty() {
         return Ok(0);
     }
@@ -255,44 +257,40 @@ pub async fn prune_orphan_droits<C: ConnectionTrait>(
 /// groups to his own grid, read at each request; a dirigeant or superuser
 /// leaves them whole. A database error grants nothing (no group) and is
 /// traced, never swallowed silently.
-pub async fn pull_groupes_db<C: ConnectionTrait>(
-    db: &C,
-    user_id: crate::schema::pk::Pk,
-) -> Vec<Groupe> {
-    let trace_err = |what: &str, e: &sea_orm::DbErr| {
+pub async fn pull_groupes_db<C: ConnectionTrait>(db: &C, user_id: Pk) -> Vec<Groupe> {
+    let trace_err = |what: &str, e: &DbErr| {
         tracing::error!(user_id = %user_id, error = %e, "{what} failed — no rights granted for this request");
     };
-    let rows: Vec<(i32, String, bool, crate::schema::pk::Pk, bool, bool, bool)> =
-        match group::Entity::find()
-            .select_only()
-            .column(group::Column::Id)
-            .column(group::Column::Nom)
-            .column(group::Column::IsStaff)
-            .column(group::Column::ResponsableId)
-            .column(user::Column::IsSuperuser)
-            .column(user::Column::IsDirigeant)
-            .column(user::Column::IsAdmin)
-            .join(JoinType::InnerJoin, group::Relation::UsersGroupes.def())
-            .join(JoinType::InnerJoin, group::Relation::Responsable.def())
-            .filter(user_groups::Column::UserId.eq(user_id))
-            .filter(group::Column::IsActive.eq(true))
-            .filter(user::Column::IsActive.eq(true))
-            .filter(
-                Condition::any()
-                    .add(user::Column::IsSuperuser.eq(true))
-                    .add(user::Column::IsDirigeant.eq(true))
-                    .add(user::Column::IsAdmin.eq(true)),
-            )
-            .into_tuple()
-            .all(db)
-            .await
-        {
-            Ok(rows) => rows,
-            Err(e) => {
-                trace_err("loading groups", &e);
-                return Vec::new();
-            }
-        };
+    let rows: Vec<(i32, String, bool, Pk, bool, bool, bool)> = match group::Entity::find()
+        .select_only()
+        .column(group::Column::Id)
+        .column(group::Column::Nom)
+        .column(group::Column::IsStaff)
+        .column(group::Column::ResponsableId)
+        .column(user::Column::IsSuperuser)
+        .column(user::Column::IsDirigeant)
+        .column(user::Column::IsAdmin)
+        .join(JoinType::InnerJoin, group::Relation::UsersGroupes.def())
+        .join(JoinType::InnerJoin, group::Relation::Responsable.def())
+        .filter(user_groups::Column::UserId.eq(user_id))
+        .filter(group::Column::IsActive.eq(true))
+        .filter(user::Column::IsActive.eq(true))
+        .filter(
+            Condition::any()
+                .add(user::Column::IsSuperuser.eq(true))
+                .add(user::Column::IsDirigeant.eq(true))
+                .add(user::Column::IsAdmin.eq(true)),
+        )
+        .into_tuple()
+        .all(db)
+        .await
+    {
+        Ok(rows) => rows,
+        Err(e) => {
+            trace_err("loading groups", &e);
+            return Vec::new();
+        }
+    };
     if rows.is_empty() {
         return Vec::new();
     }
@@ -350,10 +348,7 @@ pub async fn pull_groupes_db<C: ConnectionTrait>(
 /// reads, by the rank: the groups for everyone (a lambda's rights, the staff
 /// summary, Prisme's roles), the account's own grid for an admin. The one
 /// loader of the admin and of the developer's views alike.
-pub async fn load_rights<C: ConnectionTrait>(
-    db: &C,
-    user: &mut crate::auth::current_user::CurrentUser,
-) {
+pub async fn load_rights<C: ConnectionTrait>(db: &C, user: &mut CurrentUser) {
     user.groupes = pull_groupes_db(db, user.id).await;
     user.droits = if user.rang == crate::auth::permissions::rank::Rang::Admin {
         pull_droits_compte(db, user.id).await
@@ -365,10 +360,7 @@ pub async fn load_rights<C: ConnectionTrait>(
 /// Loads an admin account's own rights (its `user_id` rows, table and
 /// columns), set by the dirigeant. One query, admins only. A database error
 /// grants nothing and is traced, never swallowed.
-pub async fn pull_droits_compte<C: ConnectionTrait>(
-    db: &C,
-    user_id: crate::schema::pk::Pk,
-) -> Vec<Permission> {
+pub async fn pull_droits_compte<C: ConnectionTrait>(db: &C, user_id: Pk) -> Vec<Permission> {
     match group_rights::Entity::find()
         .filter(group_rights::Column::UserId.eq(user_id))
         .all(db)

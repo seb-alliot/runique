@@ -2,13 +2,18 @@
 use crate::{
     forms::{
         config::{Limit, field_config::FieldConfig},
+        data::column_value::read_field,
         traits::form_field::FormField,
     },
     translation::{t, tf},
     utils::aliases::ATera,
 };
 use async_trait::async_trait;
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Timelike};
+use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Timelike, Utc};
+use sea_orm::{
+    Value,
+    sea_query::{ColumnType, StringLen},
+};
 use serde::Serialize;
 
 /// Date input (`<input type="date">`). Validates `YYYY-MM-DD` format with optional min/max bounds.
@@ -46,12 +51,8 @@ field_base!(DateField, label, required, placeholder);
 
 #[async_trait]
 impl FormField for DateField {
-    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::data::column_value::read_field(
-            &self.base,
-            self.base.value.trim(),
-            sea_orm::sea_query::ColumnType::Date,
-        )
+    fn to_value(&self) -> Result<Option<Value>, String> {
+        read_field(&self.base, self.base.value.trim(), ColumnType::Date)
     }
 
     async fn validate(&mut self) -> bool {
@@ -153,12 +154,8 @@ impl TimeField {
 field_base!(TimeField, label, required);
 #[async_trait]
 impl FormField for TimeField {
-    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::data::column_value::read_field(
-            &self.base,
-            self.base.value.trim(),
-            sea_orm::sea_query::ColumnType::Time,
-        )
+    fn to_value(&self) -> Result<Option<Value>, String> {
+        read_field(&self.base, self.base.value.trim(), ColumnType::Time)
     }
 
     async fn validate(&mut self) -> bool {
@@ -262,12 +259,8 @@ field_base!(DateTimeField, label, required);
 
 #[async_trait]
 impl FormField for DateTimeField {
-    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::data::column_value::read_field(
-            &self.base,
-            self.base.value.trim(),
-            sea_orm::sea_query::ColumnType::DateTime,
-        )
+    fn to_value(&self) -> Result<Option<Value>, String> {
+        read_field(&self.base, self.base.value.trim(), ColumnType::DateTime)
     }
 
     async fn validate(&mut self) -> bool {
@@ -391,11 +384,11 @@ field_base!(DurationField, label, required);
 
 #[async_trait]
 impl FormField for DurationField {
-    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::data::column_value::read_field(
+    fn to_value(&self) -> Result<Option<Value>, String> {
+        read_field(
             &self.base,
             self.base.value.trim(),
-            sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
+            ColumnType::String(StringLen::None),
         )
     }
 
@@ -470,7 +463,7 @@ impl FormField for DurationField {
 /// in UTC like `parse_utc_datetime` stores it. The input shows neither an
 /// offset nor more than seconds, so `render` rewrites the value into its shape.
 pub fn parse_datetime_local(value: &str) -> Option<NaiveDateTime> {
-    if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(value) {
+    if let Ok(dt) = DateTime::parse_from_rfc3339(value) {
         return Some(dt.naive_utc());
     }
     NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S%.f")
@@ -481,6 +474,6 @@ pub fn parse_datetime_local(value: &str) -> Option<NaiveDateTime> {
 /// Reads a value meant for a `timestamp_tz` column. An RFC 3339 value keeps its
 /// offset; the `YYYY-MM-DDTHH:MM[:SS]` a `datetime-local` input sends carries
 /// none, so it's taken as UTC — the browser gives no way to know the user's zone.
-pub fn parse_utc_datetime(value: &str) -> Option<chrono::DateTime<chrono::Utc>> {
+pub fn parse_utc_datetime(value: &str) -> Option<DateTime<Utc>> {
     parse_datetime_local(value).map(|dt| dt.and_utc())
 }

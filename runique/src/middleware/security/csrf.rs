@@ -4,16 +4,18 @@ use crate::{
     forms::prisme::extractor::{csrf_required, is_csrf_exempt},
     http::RequestExtensions,
     log::TraceResult,
+    schema::pk::Pk,
     security::{
         constants::CSRF_TOKEN_KEY,
         csrf::{CsrfContext, CsrfToken},
     },
+    translation::t,
     utils::aliases::AEngine,
 };
 use axum::{
     body::Body,
     extract::State,
-    http::{HeaderValue, Method, Request, StatusCode},
+    http::{HeaderValue, Method, Request, StatusCode, header::LOCATION},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -101,8 +103,7 @@ pub async fn csrf_middleware(
 
             if let Ok(location) = HeaderValue::from_str(&new_uri) {
                 let mut res = (StatusCode::FOUND, "").into_response();
-                res.headers_mut()
-                    .insert(axum::http::header::LOCATION, location);
+                res.headers_mut().insert(LOCATION, location);
                 return res;
             }
         }
@@ -223,9 +224,9 @@ pub(crate) fn log_refusal(at: &str, reason: &'static str) {
         crate::runique_log!(
             level,
             at = %at,
-            reason = %crate::translation::t(reason),
+            reason = %t(reason),
             "{}",
-            crate::translation::t(runique_i18n::keys::csrf::log::REFUSED)
+            t(runique_i18n::keys::csrf::log::REFUSED)
         );
     }
 }
@@ -246,11 +247,7 @@ fn from_another_site(req: &Request<Body>) -> bool {
 /// auth flow only has to call this.
 pub async fn rotate_csrf_token(session: &Session) -> Result<(), tower_sessions::session::Error> {
     if let Some(level) = crate::log::log_level!(middleware.csrf) {
-        crate::runique_log!(
-            level,
-            "{}",
-            crate::translation::t(runique_i18n::keys::csrf::log::TOKEN_DROPPED)
-        );
+        crate::runique_log!(level, "{}", t(runique_i18n::keys::csrf::log::TOKEN_DROPPED));
     }
     session.remove_value(CSRF_TOKEN_KEY).await.map(|_| ())
 }
@@ -278,15 +275,11 @@ async fn session_csrf_token(session: &Session, secret: &str) -> Option<CsrfToken
     // A new token means the session had none: a first visit, a rotation, or a
     // session that expired — the forms of pages opened before it will be refused.
     if let Some(level) = crate::log::log_level!(middleware.csrf) {
-        crate::runique_log!(
-            level,
-            "{}",
-            crate::translation::t(runique_i18n::keys::csrf::log::TOKEN_NEW)
-        );
+        crate::runique_log!(level, "{}", t(runique_i18n::keys::csrf::log::TOKEN_NEW));
     }
     let token = if is_authenticated(session).await {
-        let user_id: crate::schema::pk::Pk = session
-            .get::<crate::schema::pk::Pk>(SESSION_USER_ID_KEY)
+        let user_id: Pk = session
+            .get::<Pk>(SESSION_USER_ID_KEY)
             .await
             .trace(
                 crate::log::log_level!(middleware.csrf),

@@ -35,6 +35,9 @@
 //! handling) but before Session/Auth/CSRF — a request with a spoofed Host
 //! header is rejected before paying for session load, auth lookup and CSRF
 //! checks. Moving it any lower than ErrorHandler would remove that panic net.
+use crate::{auth::session::set_auth_session_ttl_secs, translation::tf};
+use std::{cmp::Reverse, collections::HashMap};
+use tower_sessions::cookie::SameSite;
 
 use crate::{
     engine::SessionStores,
@@ -241,7 +244,7 @@ impl MiddlewareStaging {
         check_slots(&entries)?;
         // Descending sort: highest slot → first `.layer()` → most internal.
         // In Axum, last `.layer()` = outermost = first executed on the request.
-        entries.sort_by_key(|b| std::cmp::Reverse(b.slot));
+        entries.sort_by_key(|b| Reverse(b.slot));
         log_stack(&entries);
 
         Ok(entries
@@ -292,7 +295,7 @@ impl MiddlewareStaging {
                     let layer = SessionManagerLayer::new((*store).clone())
                         .with_secure(!dev)
                         .with_http_only(true)
-                        .with_same_site(tower_sessions::cookie::SameSite::Strict)
+                        .with_same_site(SameSite::Strict)
                         .with_expiry(Expiry::OnInactivity(anon_duration));
                     r.layer(layer)
                 }
@@ -305,7 +308,7 @@ impl MiddlewareStaging {
 fn session_upgrade_entry(duration: Duration) -> MiddlewareEntry {
     // Single source of truth: login reads the same value (builder) as this middleware,
     // through the OnceLock set here → cookie/DB/refresh can no longer drift apart (AM3).
-    crate::auth::session::set_auth_session_ttl_secs(duration.whole_seconds());
+    set_auth_session_ttl_secs(duration.whole_seconds());
     MiddlewareEntry {
         slot: SLOT_SESSION_UPGRADE,
         name: "SessionTtlUpgrade",
@@ -325,10 +328,10 @@ fn session_upgrade_entry(duration: Duration) -> MiddlewareEntry {
 /// `SLOT_CUSTOM_BASE + i` walks into a fixed slot (e.g. 6+ custom
 /// middlewares reaches 25 = SLOT_OPEN_REDIRECT).
 fn check_slots(entries: &[MiddlewareEntry]) -> Result<(), BuildError> {
-    let mut seen: std::collections::HashMap<u16, &'static str> = std::collections::HashMap::new();
+    let mut seen: HashMap<u16, &'static str> = HashMap::new();
     for entry in entries {
         if let Some(existing) = seen.insert(entry.slot, entry.name) {
-            return Err(BuildError::validation(crate::translation::tf(
+            return Err(BuildError::validation(tf(
                 runique_i18n::keys::middleware::error::SLOT_COLLISION,
                 &[
                     existing.to_string(),

@@ -1,7 +1,8 @@
 //! List fields (`checkbox` / `multichoice` in `model!{}`): filters on the
 //! values chosen, stored in the field's own table (`{table}_{field}`).
 use sea_orm::{
-    ColumnTrait, Condition, EntityTrait, Iterable, PrimaryKeyToColumn, Value, sea_query::Query,
+    ActiveEnum, ColumnTrait, Condition, ConnectionTrait, EntityTrait, Iterable, PrimaryKeyToColumn,
+    Select, Value, sea_query::Query,
 };
 use std::marker::PhantomData;
 
@@ -73,16 +74,16 @@ where
     O: EntityTrait,
     O::Model: sea_orm::FromQueryResult,
     C: ColumnTrait,
-    V: sea_orm::ActiveEnum + Into<Value>,
-    <V as sea_orm::ActiveEnum>::Value: std::str::FromStr,
+    V: ActiveEnum + Into<Value>,
+    <V as ActiveEnum>::Value: std::str::FromStr,
 {
     pub async fn fetch_with<D>(
         &self,
         db: &D,
-        query: sea_orm::Select<O>,
+        query: Select<O>,
     ) -> Result<Vec<(O::Model, Vec<V>)>, sea_orm::DbErr>
     where
-        D: sea_orm::ConnectionTrait,
+        D: ConnectionTrait,
     {
         use sea_orm::{
             DbBackend, DbErr, EntityName, FromQueryResult, IdenStatic, QuerySelect, QueryTrait,

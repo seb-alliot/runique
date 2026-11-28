@@ -4,6 +4,7 @@ use crate::{
     log::RuniqueLog,
     middleware::MiddlewareConfig,
     security::password::PasswordConfig,
+    templates::loader::BlockDispatch,
 };
 use serde::{Deserialize, Serialize};
 
@@ -35,7 +36,7 @@ pub struct RuniqueConfig {
     /// the builder, never by hand.
     #[doc(hidden)]
     #[serde(skip)]
-    pub block_dispatch: Vec<crate::templates::loader::BlockDispatch>,
+    pub block_dispatch: Vec<BlockDispatch>,
 }
 
 impl RuniqueConfig {

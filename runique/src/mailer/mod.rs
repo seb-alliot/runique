@@ -1,9 +1,11 @@
 //! E-mail client (`lettre`) — SMTP + console backends, async sending, Tera template support.
+use crate::{config::env::env_keyword, translation::t};
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor, message::header::ContentType,
     transport::smtp::authentication::Credentials,
 };
 use std::{env::var, sync::OnceLock};
+use tera::{Context, Tera};
 
 // ─── Backend ─────────────────────────────────────────────────────────────────
 
@@ -66,10 +68,7 @@ impl MailerConfig {
     /// missing), plus optional `SMTP_PORT` (default `587`) and `SMTP_STARTTLS`
     /// (default `true`).
     pub fn from_env() -> Option<Self> {
-        let backend = match crate::config::env::env_keyword("EMAIL_BACKEND")
-            .as_deref()
-            .unwrap_or("smtp")
-        {
+        let backend = match env_keyword("EMAIL_BACKEND").as_deref().unwrap_or("smtp") {
             "console" => MailerBackend::Console,
             _ => MailerBackend::Smtp,
         };
@@ -114,11 +113,7 @@ pub fn mailer_init(config: MailerConfig) {
     if MAILER_CONFIG.set(config).is_err()
         && let Some(level) = crate::log::log_level!(mailer.send)
     {
-        crate::runique_log!(
-            level,
-            "{}",
-            crate::translation::t(runique_i18n::keys::mailer::log::INIT_TWICE)
-        );
+        crate::runique_log!(level, "{}", t(runique_i18n::keys::mailer::log::INIT_TWICE));
     }
 }
 
@@ -222,9 +217,9 @@ impl Email {
     /// ```
     pub fn template(
         mut self,
-        tera: &tera::Tera,
+        tera: &Tera,
         template_name: &str,
-        ctx: tera::Context,
+        ctx: Context,
     ) -> Result<Self, String> {
         let rendered = tera
             .render(template_name, &ctx)

@@ -1,3 +1,4 @@
+use crate::router::register_url::register_pending;
 use axum::{Router, routing::MethodRouter};
 
 #[cfg(feature = "admin")]
@@ -70,7 +71,7 @@ impl Routes {
         handler: MethodRouter,
     ) {
         let path = path.as_ref();
-        crate::router::register_url::register_pending(name, path);
+        register_pending(name, path);
         self.add_route(path, handler);
     }
 

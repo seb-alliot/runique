@@ -1,13 +1,29 @@
 //! Built-in password reset flow: forgot + reset via email token.
-use crate::log::TraceResult;
+use crate::{
+    auth::user::Model,
+    forms::ValidationForm,
+    log::TraceResult,
+    mailer::{Email, mailer_configured},
+    middleware::{security::rate_limit::RateLimiter, session::session_db::RuniqueSessionStore},
+    security::{
+        password::password_get,
+        reset_token::{consume_in_transaction, generate, resolve},
+    },
+    utils::aliases::AEngine,
+};
 use axum::{
     Router,
     extract::{Path, State},
+    http::{HeaderValue, header::CACHE_CONTROL},
+    middleware::Next,
     response::{IntoResponse, Redirect, Response},
 };
 use futures_util::future::BoxFuture;
+use sea_orm::DbErr;
 use serde::Serialize;
 use std::{sync::Arc, time::Duration};
+use tera::Context;
+use tracing::Level;
 
 use async_trait::async_trait;
 
@@ -292,7 +308,7 @@ pub enum ResetLinkError {
     Blocked,
     /// No mailer: the link could only be shown, and never to the staff.
     NoMailer,
-    Token(sea_orm::DbErr),
+    Token(DbErr),
     Render(String),
     Send(String),
 }
@@ -312,7 +328,7 @@ impl std::fmt::Display for ResetLinkError {
 /// Whether `account` may get a reset link: not one the staff blocked
 /// (activated once, inactive now). Its owner hears of the block otherwise.
 #[must_use]
-pub fn may_receive_reset_link(account: &crate::auth::user::Model) -> bool {
+pub fn may_receive_reset_link(account: &Model) -> bool {
     account.activated_at.is_none() || account.is_active
 }
 
@@ -325,19 +341,19 @@ pub fn may_receive_reset_link(account: &crate::auth::user::Model) -> bool {
 /// with the account's lookup, so neither its answer nor its timing tells
 /// whether an account exists; the admin waits, to tell the staff.
 pub async fn send_reset_link(
-    engine: &crate::utils::aliases::AEngine,
+    engine: &AEngine,
     host: &str,
     link: &ResetLinkConfig,
-    account: &crate::auth::user::Model,
+    account: &Model,
     mail: ResetMail,
 ) -> Result<(), ResetLinkError> {
     if !may_receive_reset_link(account) {
         return Err(ResetLinkError::Blocked);
     }
-    if !crate::mailer::mailer_configured() {
+    if !mailer_configured() {
         return Err(ResetLinkError::NoMailer);
     }
-    let token = crate::security::reset_token::generate(&engine.db, account.id, link.token_ttl)
+    let token = generate(&engine.db, account.id, link.token_ttl)
         .await
         .map_err(ResetLinkError::Token)?;
     let reset_url = format!(
@@ -345,14 +361,14 @@ pub async fn send_reset_link(
         host.trim_end_matches('/'),
         link.reset_route.trim_matches('/')
     );
-    let email = crate::mailer::Email::new().to(account.email.clone());
+    let email = Email::new().to(account.email.clone());
     let email = match mail {
         ResetMail::Template {
             name,
             subject,
             texts,
         } => {
-            let mut ctx = tera::Context::new();
+            let mut ctx = Context::new();
             ctx.insert("username", &account.username);
             ctx.insert("reset_url", &reset_url);
             for (key, text) in texts {
@@ -397,7 +413,7 @@ pub async fn handle_forgot_password(
     let email_template = config.email_template.as_deref();
     request.context.insert("lang", &current_lang().code());
 
-    let form = match crate::forms::ValidationForm::try_form(form, request).await {
+    let form = match ValidationForm::try_form(form, request).await {
         Ok(validated) => validated.into_form(),
         Err(form) => {
             apply_extra_context(request, &config.extra_context).await;
@@ -411,7 +427,7 @@ pub async fn handle_forgot_password(
 
     // No mailer (debug only: production refuses to boot without one): the
     // same message for every address, so it tells nothing of an account.
-    if !crate::mailer::mailer_configured() {
+    if !mailer_configured() {
         tracing::warn!("password reset asked, but no mailer is configured");
         request
             .notices
@@ -437,18 +453,14 @@ pub async fn handle_forgot_password(
         };
         // Blocked by the staff: no link, only its owner hears about it.
         if !may_receive_reset_link(&user) {
-            if crate::mailer::mailer_configured() {
-                crate::mailer::Email::new()
+            if mailer_configured() {
+                Email::new()
                     .to(email)
                     .subject(t(runique_i18n::keys::reset::label::BLOCKED_SUBJECT).to_string())
                     .html(builtin_blocked_body(user.username()))
                     .send()
                     .await
-                    .trace_or(
-                        log_level,
-                        tracing::Level::WARN,
-                        "blocked account email send",
-                    );
+                    .trace_or(log_level, Level::WARN, "blocked account email send");
             }
             return;
         }
@@ -502,7 +514,7 @@ pub async fn handle_password_reset(
     let db = request.engine.db.clone();
 
     // Resolve the account bound to this token without consuming it yet.
-    let Some(user_id) = crate::security::reset_token::resolve(&db, &token).await else {
+    let Some(user_id) = resolve(&db, &token).await else {
         if let Some(level) = crate::log::log_level!(auth.reset) {
             crate::runique_log!(level, "reset token invalid or expired");
         }
@@ -520,7 +532,7 @@ pub async fn handle_password_reset(
         return Ok(Redirect::to("/").into_response());
     };
 
-    let mut form = match crate::forms::ValidationForm::try_form(form, request).await {
+    let mut form = match ValidationForm::try_form(form, request).await {
         Ok(validated) => validated.into_form(),
         Err(mut form) => {
             if !form.is_submitted() {
@@ -555,7 +567,7 @@ pub async fn handle_password_reset(
         // The global configuration, the one sign-in verifies with: hashed from
         // the builder's copy, a `password_init` made before `build()` with
         // another one would leave the account unable to sign in.
-        match PasswordService::new(crate::security::password::password_get()).hash(&new_password) {
+        match PasswordService::new(password_get()).hash(&new_password) {
             Ok(hash) => hash,
             Err(error) => {
                 if let Some(level) = crate::log::log_level!(auth.reset) {
@@ -592,33 +604,32 @@ pub async fn handle_password_reset(
             return request.render(template);
         }
     };
-    let consumed_user_id =
-        match crate::security::reset_token::consume_in_transaction(&txn, &token).await {
-            Ok(Some(user_id)) if user_id == user.id => user_id,
-            Ok(_) => {
-                if let Err(error) = txn.rollback().await {
-                    tracing::error!(error = %error, "password reset rollback failed");
-                }
-                request
-                    .notices
-                    .error(t(runique_i18n::keys::reset::error::INVALID_OR_EXPIRED).to_string())
-                    .await;
-                return Ok(Redirect::to("/").into_response());
+    let consumed_user_id = match consume_in_transaction(&txn, &token).await {
+        Ok(Some(user_id)) if user_id == user.id => user_id,
+        Ok(_) => {
+            if let Err(error) = txn.rollback().await {
+                tracing::error!(error = %error, "password reset rollback failed");
             }
-            Err(error) => {
-                if let Err(rollback_error) = txn.rollback().await {
-                    tracing::error!(error = %rollback_error, "password reset rollback failed");
-                }
-                form.forms_mut().database_error(&error);
-                apply_extra_context(request, &config.extra_context).await;
-                context_update!(request => {
-                    "title"      => t(runique_i18n::keys::reset::label::RESET_TITLE).as_ref(),
-                    "reset_form" => &form,
-                    "token"      => &token,
-                });
-                return request.render(template);
+            request
+                .notices
+                .error(t(runique_i18n::keys::reset::error::INVALID_OR_EXPIRED).to_string())
+                .await;
+            return Ok(Redirect::to("/").into_response());
+        }
+        Err(error) => {
+            if let Err(rollback_error) = txn.rollback().await {
+                tracing::error!(error = %rollback_error, "password reset rollback failed");
             }
-        };
+            form.forms_mut().database_error(&error);
+            apply_extra_context(request, &config.extra_context).await;
+            context_update!(request => {
+                "title"      => t(runique_i18n::keys::reset::label::RESET_TITLE).as_ref(),
+                "reset_form" => &form,
+                "token"      => &token,
+            });
+            return request.render(template);
+        }
+    };
 
     let written = async {
         BuiltinUserEntity::set_password_and_activate_in_transaction(
@@ -629,14 +640,14 @@ pub async fn handle_password_reset(
         .await?;
         // Without the DB session store, `eihwaz_sessions` may not exist.
         if revokes_rows {
-            crate::middleware::session::session_db::RuniqueSessionStore::revoke_in_transaction(
+            RuniqueSessionStore::revoke_in_transaction(
                 &txn,
                 consumed_user_id,
                 cookie_id.as_deref(),
             )
             .await?;
         }
-        Ok::<(), sea_orm::DbErr>(())
+        Ok::<(), DbErr>(())
     }
     .await;
 
@@ -717,21 +728,16 @@ async fn reset_view(
 }
 
 /// The rate limiter `config` sets, shared by the routes of one router.
-fn limiter_of(
-    config: &PasswordResetConfig,
-) -> Arc<crate::middleware::security::rate_limit::RateLimiter> {
+fn limiter_of(config: &PasswordResetConfig) -> Arc<RateLimiter> {
     Arc::new(
-        crate::middleware::security::rate_limit::RateLimiter::new()
+        RateLimiter::new()
             .max_requests(u32::try_from(config.max_requests).unwrap_or(u32::MAX))
             .retry_after(config.retry_after),
     )
 }
 
 /// The page a link leads to (`{reset_route}/{token}`), rate limited.
-fn reset_route(
-    config: Arc<PasswordResetConfig>,
-    limiter: Arc<crate::middleware::security::rate_limit::RateLimiter>,
-) -> Router {
+fn reset_route(config: Arc<PasswordResetConfig>, limiter: Arc<RateLimiter>) -> Router {
     use crate::middleware::security::rate_limit::rate_limit_middleware;
     use axum::{middleware, routing::any};
 
@@ -777,15 +783,11 @@ pub fn build_reset_router(config: Arc<PasswordResetConfig>) -> Router {
 
 /// The reset pages carry a token (in the path, and the form's CSRF token):
 /// never kept by a cache between the browser and the site.
-async fn no_store(
-    request: axum::extract::Request,
-    next: axum::middleware::Next,
-) -> axum::response::Response {
+async fn no_store(request: axum::extract::Request, next: Next) -> axum::response::Response {
     let mut response = next.run(request).await;
-    response.headers_mut().insert(
-        axum::http::header::CACHE_CONTROL,
-        axum::http::HeaderValue::from_static("no-store"),
-    );
+    response
+        .headers_mut()
+        .insert(CACHE_CONTROL, HeaderValue::from_static("no-store"));
     response
 }
 

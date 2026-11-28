@@ -1,11 +1,16 @@
 //! `LoginAdmin` — admin login form with username/password fields.
 use crate::{
     forms::{
-        Forms,
+        FormEntity, Forms,
         fields::text::TextField,
-        traits::runique_form::{FormAccess, RuniqueForm},
+        traits::{
+            model_form::ModelForm,
+            runique_form::{FormAccess, RuniqueForm},
+        },
     },
     impl_form_access,
+    schema::ModelSchema,
+    translation::t,
 };
 
 /// Admin login form provided by Runique.
@@ -22,19 +27,13 @@ impl FormAccess for LoginAdmin {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::text("username")
-                .label(
-                    crate::translation::t(runique_i18n::keys::admin::common::label::USERNAME)
-                        .as_ref(),
-                )
+                .label(t(runique_i18n::keys::admin::common::label::USERNAME).as_ref())
                 .required(),
         );
 
         form.field(
             &TextField::password("password")
-                .label(
-                    crate::translation::t(runique_i18n::keys::admin::common::label::PASSWORD)
-                        .as_ref(),
-                )
+                .label(t(runique_i18n::keys::admin::common::label::PASSWORD).as_ref())
                 .required(),
         );
     }
@@ -52,8 +51,8 @@ pub struct UserModelForm {
     pub form: Forms,
 }
 
-impl crate::forms::traits::model_form::ModelForm for UserModelForm {
-    fn schema() -> crate::schema::ModelSchema {
+impl ModelForm for UserModelForm {
+    fn schema() -> ModelSchema {
         crate::auth::user::schema()
     }
     fn fields() -> Option<&'static [&'static str]> {
@@ -67,7 +66,7 @@ impl FormAccess for UserModelForm {
 
 impl RuniqueForm for UserModelForm {}
 
-impl crate::forms::FormEntity for UserModelForm {
+impl FormEntity for UserModelForm {
     type Entity = crate::auth::user::Entity;
 }
 
@@ -80,8 +79,8 @@ pub struct GroupeModelForm {
     pub form: Forms,
 }
 
-impl crate::forms::traits::model_form::ModelForm for GroupeModelForm {
-    fn schema() -> crate::schema::ModelSchema {
+impl ModelForm for GroupeModelForm {
+    fn schema() -> ModelSchema {
         crate::auth::permissions::group::schema()
     }
     fn fields() -> Option<&'static [&'static str]> {
@@ -95,6 +94,6 @@ impl FormAccess for GroupeModelForm {
 
 impl RuniqueForm for GroupeModelForm {}
 
-impl crate::forms::FormEntity for GroupeModelForm {
+impl FormEntity for GroupeModelForm {
     type Entity = crate::auth::permissions::group::Entity;
 }

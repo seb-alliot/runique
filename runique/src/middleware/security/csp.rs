@@ -1,5 +1,10 @@
 //! Content Security Policy Middleware: generates CSP headers with nonce per request.
-use crate::{http::RequestExtensions, security::csp_nonce::CspNonce, utils::aliases::AEngine};
+use crate::{
+    http::RequestExtensions, security::csp_nonce::CspNonce, translation::t, utils::aliases::AEngine,
+};
+use axum::http::header::{
+    CONTENT_SECURITY_POLICY, HOST, REFERRER_POLICY, X_CONTENT_TYPE_OPTIONS, X_FRAME_OPTIONS,
+};
 
 /// Hashes of inline styles injected by htmx (embedded version: 2.0.4).
 ///
@@ -226,19 +231,13 @@ pub async fn security_headers_middleware(
     // Use the nonce to build the CSP
     let csp_value = engine.security.csp.to_header_value(Some(nonce.as_str()));
     if let Ok(header) = HeaderValue::from_str(&csp_value) {
-        headers.insert(axum::http::header::CONTENT_SECURITY_POLICY, header);
+        headers.insert(CONTENT_SECURITY_POLICY, header);
     }
 
     // Other security headers
-    headers.insert(
-        axum::http::header::X_CONTENT_TYPE_OPTIONS,
-        HeaderValue::from_static("nosniff"),
-    );
+    headers.insert(X_CONTENT_TYPE_OPTIONS, HeaderValue::from_static("nosniff"));
 
-    headers.insert(
-        axum::http::header::X_FRAME_OPTIONS,
-        HeaderValue::from_static("DENY"),
-    );
+    headers.insert(X_FRAME_OPTIONS, HeaderValue::from_static("DENY"));
 
     headers.insert(
         "x-xss-protection",
@@ -246,7 +245,7 @@ pub async fn security_headers_middleware(
     );
 
     headers.insert(
-        axum::http::header::REFERRER_POLICY,
+        REFERRER_POLICY,
         HeaderValue::from_static("strict-origin-when-cross-origin"),
     );
 
@@ -317,7 +316,7 @@ pub async fn https_redirect_middleware(
     // Build the HTTPS URL
     let host = req
         .headers()
-        .get(axum::http::header::HOST)
+        .get(HOST)
         .and_then(|v| v.to_str().ok())
         .or_else(|| req.uri().authority().map(|a| a.as_str()))
         .unwrap_or("localhost");
@@ -330,7 +329,7 @@ pub async fn https_redirect_middleware(
     );
 
     if let Some(level) = crate::log::log_level!(middleware.https) {
-        crate::runique_log!(level, host = %host, "{}", crate::translation::t(runique_i18n::keys::server::log::HTTPS_REDIRECTED));
+        crate::runique_log!(level, host = %host, "{}", t(runique_i18n::keys::server::log::HTTPS_REDIRECTED));
     }
     Redirect::permanent(&https_url).into_response()
 }

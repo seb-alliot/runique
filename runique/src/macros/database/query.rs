@@ -58,13 +58,15 @@
 use crate::utils::aliases::ADb;
 use crate::{
     auth::gate::{Authorized, Guarded, List},
-    errors::{ErrorContext, ErrorType},
+    errors::{AppError, ErrorContext, ErrorType},
+    http::request::Request,
     translation::t,
+    utils::aliases::AppResult,
 };
 use axum::http::StatusCode;
 use sea_orm::{
-    ColumnTrait, Condition, DbErr, EntityTrait, ExprTrait, JoinType, QueryFilter, QueryOrder,
-    QuerySelect, Select,
+    ColumnTrait, Condition, DbErr, EntityTrait, ExprTrait, IntoSimpleExpr, JoinType, QueryFilter,
+    QueryOrder, QuerySelect, Related, RelationDef, Select, SelectTwo, Value,
 };
 
 /// Django-style query builder wrapping a SeaORM `Select<E>`. Built by
@@ -121,7 +123,7 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
     pub fn filter_many<C, V, I>(mut self, filters: I) -> Self
     where
         C: ColumnTrait,
-        V: Into<sea_orm::Value>,
+        V: Into<Value>,
         I: IntoIterator<Item = (C, V)>,
     {
         for (col, val) in filters {
@@ -136,7 +138,7 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
     pub fn exclude_many<C, V, I>(mut self, filters: I) -> Self
     where
         C: ColumnTrait,
-        V: Into<sea_orm::Value>,
+        V: Into<Value>,
         I: IntoIterator<Item = (C, V)>,
     {
         for (col, val) in filters {
@@ -184,7 +186,7 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
     /// cases the `asc`/`desc` helpers can't express directly.
     pub fn order_by_expr<T>(mut self, expr: T, order: sea_orm::Order) -> Self
     where
-        T: sea_orm::IntoSimpleExpr,
+        T: IntoSimpleExpr,
     {
         self.query = self.query.order_by(expr, order);
         self
@@ -244,13 +246,13 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
     }
 
     /// Adds an inner join on `rel`.
-    pub fn join(mut self, rel: sea_orm::RelationDef) -> Self {
+    pub fn join(mut self, rel: RelationDef) -> Self {
         self.query = self.query.join(JoinType::InnerJoin, rel);
         self
     }
 
     /// Adds a left join on `rel`.
-    pub fn left_join(mut self, rel: sea_orm::RelationDef) -> Self {
+    pub fn left_join(mut self, rel: RelationDef) -> Self {
         self.query = self.query.join(JoinType::LeftJoin, rel);
         self
     }
@@ -262,10 +264,10 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
     ///     .also_related(eihwaz_users::Entity)
     ///     .all(db).await
     /// ```
-    pub fn also_related<R>(self, r: R) -> sea_orm::SelectTwo<E, R>
+    pub fn also_related<R>(self, r: R) -> SelectTwo<E, R>
     where
         R: sea_orm::EntityTrait,
-        E: sea_orm::Related<R>,
+        E: Related<R>,
     {
         self.query.find_also_related(r)
     }
@@ -273,23 +275,21 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
     pub async fn get_or_404(
         self,
         db: &ADb,
-        _ctx: &crate::http::request::Request,
+        _ctx: &Request,
         error_msg: &str,
-    ) -> crate::utils::aliases::AppResult<E::Model> {
+    ) -> AppResult<E::Model> {
         match self.first(db).await {
             Ok(Some(entity)) => Ok(entity),
             // The context of the error: once it is the response, the error
             // middleware renders the page (`404.html` / `500.html`, or the debug
             // page with the reason).
-            Ok(None) => Err(Box::new(crate::errors::AppError::new(ErrorContext::new(
+            Ok(None) => Err(Box::new(AppError::new(ErrorContext::new(
                 ErrorType::NotFound,
                 StatusCode::NOT_FOUND,
                 &t(runique_i18n::keys::app::label::NOT_FOUND),
                 error_msg,
             )))),
-            Err(e) => Err(Box::new(crate::errors::AppError::new(
-                ErrorContext::database(e),
-            ))),
+            Err(e) => Err(Box::new(AppError::new(ErrorContext::database(e)))),
         }
     }
 }

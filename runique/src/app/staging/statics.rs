@@ -1,5 +1,10 @@
 //! Static files staging: enables or disables the asset service.
-use crate::{config::static_files::resolve_media_root, errors::build::BuildError};
+use crate::{
+    config::static_files::resolve_media_root,
+    errors::build::{BuildError, CheckError, CheckReport},
+    translation::{t, tf},
+};
+use axum::http::HeaderValue;
 use std::borrow::Cow;
 //
 // Controls whether static files (CSS, JS, media, Runique
@@ -92,20 +97,18 @@ impl StaticStaging {
             ("static_cache", &self.static_cache),
             ("media_cache", &self.media_cache),
         ] {
-            if axum::http::HeaderValue::from_str(value).is_err() {
+            if HeaderValue::from_str(value).is_err() {
                 return Err(BuildError::check({
-                    let mut report = crate::errors::build::CheckReport::new();
+                    let mut report = CheckReport::new();
                     report.add(
-                        crate::errors::build::CheckError::new(
+                        CheckError::new(
                             label,
-                            crate::translation::tf(
+                            tf(
                                 runique_i18n::keys::build::error::CACHE_CONTROL_INVALID,
                                 &[&value],
                             ),
                         )
-                        .with_suggestion(crate::translation::t(
-                            runique_i18n::keys::build::hint::CACHE_CONTROL_INVALID,
-                        )),
+                        .with_suggestion(t(runique_i18n::keys::build::hint::CACHE_CONTROL_INVALID)),
                     );
                     report
                 }));
@@ -114,18 +117,16 @@ impl StaticStaging {
         let media_root = resolve_media_root();
         std::fs::create_dir_all(&media_root).map_err(|e| {
             BuildError::check({
-                let mut report = crate::errors::build::CheckReport::new();
+                let mut report = CheckReport::new();
                 report.add(
-                    crate::errors::build::CheckError::new(
+                    CheckError::new(
                         "MediaRoot",
-                        crate::translation::tf(
+                        tf(
                             runique_i18n::keys::build::error::MEDIA_ROOT_UNUSABLE,
                             &[media_root.to_string(), e.to_string()],
                         ),
                     )
-                    .with_suggestion(crate::translation::t(
-                        runique_i18n::keys::build::hint::MEDIA_ROOT_UNUSABLE,
-                    )),
+                    .with_suggestion(t(runique_i18n::keys::build::hint::MEDIA_ROOT_UNUSABLE)),
                 );
                 report
             })

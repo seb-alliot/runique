@@ -1,18 +1,25 @@
 //! Multipart request parsing — text field extraction and file uploads to disk.
 use crate::{
     errors::ErrorContext,
-    forms::prisme::BodyRefusal,
+    forms::prisme::{BodyRefusal, extractor::token_matches},
+    middleware::security::csrf::log_refusal,
     security::constants::CSRF_TOKEN_KEY,
     translation::{t, tf},
     utils::aliases::StrVecMap,
 };
-use axum::{extract::Multipart, http::StatusCode};
+use axum::{
+    extract::{Multipart, multipart::MultipartError},
+    http::StatusCode,
+};
 use futures_util::StreamExt;
 use std::{
     collections::{HashMap, HashSet},
+    ffi::OsStr,
     fs::File,
+    io::Error,
     path::{Path, PathBuf},
     sync::{LazyLock, Mutex},
+    time::Duration,
 };
 use tokio::io::AsyncWriteExt;
 use tracing::warn;
@@ -25,7 +32,7 @@ use uuid::Uuid;
 static LIVE_STAGING: LazyLock<Mutex<HashSet<PathBuf>>> =
     LazyLock::new(|| Mutex::new(HashSet::new()));
 
-const DIRECT_UPLOAD_GRACE_PERIOD: std::time::Duration = std::time::Duration::from_secs(60 * 60);
+const DIRECT_UPLOAD_GRACE_PERIOD: Duration = Duration::from_secs(60 * 60);
 
 fn with_live<T>(f: impl FnOnce(&mut HashSet<PathBuf>) -> T) -> T {
     let mut guard = LIVE_STAGING
@@ -169,9 +176,7 @@ fn open_staging_lock(dir: &Path) -> std::io::Result<File> {
             .open(&path)
         {
             Ok(file) => Ok(file),
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-                open_existing_lock(&path)
-            }
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => open_existing_lock(&path),
             Err(error) => Err(error),
         }
     }
@@ -194,7 +199,7 @@ fn open_existing_lock(path: &Path) -> std::io::Result<File> {
         .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT)
         .open(path)?;
     if std::fs::symlink_metadata(path).is_ok_and(|meta| meta.file_type().is_symlink()) {
-        return Err(std::io::Error::new(
+        return Err(Error::new(
             std::io::ErrorKind::AlreadyExists,
             "staging lock is a symlink",
         ));
@@ -211,7 +216,7 @@ fn lock_exclusive(file: &File) -> std::io::Result<()> {
     if rc == 0 {
         Ok(())
     } else {
-        Err(std::io::Error::last_os_error())
+        Err(Error::last_os_error())
     }
 }
 
@@ -274,7 +279,7 @@ fn lock_file(file: &File, flags: u32) -> std::io::Result<()> {
     if rc != 0 {
         Ok(())
     } else {
-        Err(std::io::Error::last_os_error())
+        Err(Error::last_os_error())
     }
 }
 
@@ -359,10 +364,7 @@ pub(crate) async fn parse_multipart_guarded(
             }
 
             if !csrf_checked {
-                crate::middleware::security::csrf::log_refusal(
-                    &name,
-                    runique_i18n::keys::csrf::log::REASON_UPLOAD,
-                );
+                log_refusal(&name, runique_i18n::keys::csrf::log::REASON_UPLOAD);
                 return Err(BodyRefusal::Status(
                     StatusCode::FORBIDDEN,
                     t(runique_i18n::keys::csrf::error::INVALID_OR_MISSING).into_owned(),
@@ -486,7 +488,7 @@ pub(crate) async fn parse_multipart_guarded(
                 Ok(text) => {
                     if let Some(session) = csrf_session
                         && name == CSRF_TOKEN_KEY
-                        && crate::forms::prisme::extractor::token_matches(&text, session)
+                        && token_matches(&text, session)
                     {
                         csrf_checked = true;
                     }
@@ -610,7 +612,7 @@ async fn has_recent_staged_file(dir: &Path) -> bool {
 fn sanitize_filename(filename: &str) -> String {
     let ext: String = Path::new(filename)
         .extension()
-        .and_then(|e: &std::ffi::OsStr| e.to_str())
+        .and_then(|e: &OsStr| e.to_str())
         .unwrap_or("")
         .chars()
         .filter(char::is_ascii_alphanumeric)
@@ -627,7 +629,7 @@ fn sanitize_filename(filename: &str) -> String {
 
 /// A multipart error as a refusal: the body over its limit (413, from axum),
 /// or anything else (a cut connection, a malformed body).
-fn multipart_error(e: axum::extract::multipart::MultipartError) -> BodyRefusal {
+fn multipart_error(e: MultipartError) -> BodyRefusal {
     let status = e.status();
     if status == StatusCode::PAYLOAD_TOO_LARGE {
         return BodyRefusal::TooLarge(

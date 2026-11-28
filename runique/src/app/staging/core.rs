@@ -3,7 +3,11 @@ use crate::{
     errors::build::{BuildError, CheckError, CheckReport},
     utils::aliases::{ARlockmap, new_registry},
 };
-use std::{any::TypeId, collections::HashMap, sync::Arc};
+use std::{
+    any::{Any, TypeId},
+    collections::HashMap,
+    sync::Arc,
+};
 
 #[cfg(feature = "orm")]
 use crate::db::DatabaseConfig;
@@ -41,7 +45,7 @@ pub struct CoreStaging {
 
     /// Extension map — custom external connections (MongoDB, Redis, etc.).
     /// Supports multiple types simultaneously — each type is stored under its `TypeId`.
-    pub(crate) extensions: HashMap<TypeId, Arc<dyn std::any::Any + Send + Sync>>,
+    pub(crate) extensions: HashMap<TypeId, Arc<dyn Any + Send + Sync>>,
 }
 
 impl CoreStaging {
@@ -83,7 +87,7 @@ impl CoreStaging {
     /// let redis = redis::Client::open(url)?;
     /// .core(|c| c.with_extra_db(mongo).with_extra_db(redis))
     /// ```
-    pub fn with_extra_db<T: std::any::Any + Send + Sync + 'static>(mut self, db: T) -> Self {
+    pub fn with_extra_db<T: Any + Send + Sync + 'static>(mut self, db: T) -> Self {
         self.extensions.insert(TypeId::of::<T>(), Arc::new(db));
         self
     }
@@ -116,9 +120,7 @@ impl CoreStaging {
                     "Database",
                     crate::translation::t(runique_i18n::keys::build::error::DB_REQUIRED),
                 )
-                .with_suggestion(crate::translation::t(
-                    runique_i18n::keys::build::hint::DB_REQUIRED,
-                )),
+                    .with_suggestion(crate::translation::t(runique_i18n::keys::build::hint::DB_REQUIRED)),
             );
         }
 

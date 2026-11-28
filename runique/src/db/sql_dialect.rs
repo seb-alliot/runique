@@ -1,6 +1,6 @@
 //! Per-backend SQL fragments that sea-query does not translate on its own.
 use crate::utils::aliases::ADb;
-use sea_orm::{DbBackend, EntityTrait};
+use sea_orm::{ColumnTrait, DbBackend, EntityTrait};
 use sea_query::{Alias, Condition, Expr, ExprTrait, Func, LikeExpr};
 
 /// Cast target type for comparing/reading a column as text, valid on the real
@@ -90,17 +90,12 @@ pub fn like_pattern(before: &str, term: &str, after: &str) -> LikeExpr {
 
 /// `search!`'s `contains` / `startswith` / `endswith`: `col LIKE` the escaped
 /// `term` between the operator's own wildcards.
-pub fn like_term<C: sea_orm::ColumnTrait>(col: C, before: &str, term: &str, after: &str) -> Expr {
+pub fn like_term<C: ColumnTrait>(col: C, before: &str, term: &str, after: &str) -> Expr {
     Expr::col(col.as_column_ref()).like(like_pattern(before, term, after))
 }
 
 /// `search!`'s `icontains`: [`like_term`], case-insensitive on every engine.
-pub fn ci_like_term<C: sea_orm::ColumnTrait>(
-    col: C,
-    before: &str,
-    term: &str,
-    after: &str,
-) -> Expr {
+pub fn ci_like_term<C: ColumnTrait>(col: C, before: &str, term: &str, after: &str) -> Expr {
     Expr::expr(Func::lower(Expr::col(col.as_column_ref()))).like(like_pattern(
         before,
         &term.to_lowercase(),
@@ -110,7 +105,7 @@ pub fn ci_like_term<C: sea_orm::ColumnTrait>(
 
 /// `search!`'s `iexact`: `LOWER(col) = LOWER(val)`, an equality, so `%` and `_`
 /// in the value are plain characters.
-pub fn eq_ci<C: sea_orm::ColumnTrait>(col: C, val: &str) -> Expr {
+pub fn eq_ci<C: ColumnTrait>(col: C, val: &str) -> Expr {
     Expr::expr(Func::lower(Expr::col(col.as_column_ref()))).eq(Func::lower(Expr::val(val)))
 }
 
@@ -118,7 +113,7 @@ pub fn eq_ci<C: sea_orm::ColumnTrait>(col: C, val: &str) -> Expr {
 /// (`not_ilike` when `negate`), the pattern written by the developer, on every engine: sea-query renders `ILIKE` on
 /// Postgres only and panics on MySQL and SQLite. `LOWER(col) LIKE`
 /// with the pattern lowered here, like `search_cond!`.
-pub fn ci_like<C: sea_orm::ColumnTrait>(col: C, pattern: &str, negate: bool) -> Expr {
+pub fn ci_like<C: ColumnTrait>(col: C, pattern: &str, negate: bool) -> Expr {
     let lowered = Expr::expr(Func::lower(Expr::col(col.as_column_ref())));
     let pattern = pattern.to_lowercase();
     if negate {

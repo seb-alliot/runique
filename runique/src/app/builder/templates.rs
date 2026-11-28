@@ -8,6 +8,8 @@ use crate::{
     templates::loader::{Integrity, TemplateLoader},
     utils::aliases::ARlockmap,
 };
+#[cfg(feature = "admin")]
+use std::collections::HashSet;
 use tera::Tera;
 
 /// Tera with every template of the project and of Runique, and the
@@ -58,7 +60,7 @@ pub(super) fn check_admin_pages(
     if !admin.enabled {
         return Ok(());
     }
-    let loaded: std::collections::HashSet<&str> = tera.get_template_names().collect();
+    let loaded: HashSet<&str> = tera.get_template_names().collect();
     assemble::missing_pages(
         &admin.config.templates,
         &admin.site.model_templates(),

@@ -2,7 +2,8 @@
 use crate::{
     define_enum_field, delegate_to_field,
     forms::{
-        fields::*,
+        config::field_config::{FieldBounds, FieldConfig},
+        fields::{FileSize, *},
         traits::form_field::{FieldAccess, FormField},
     },
     utils::aliases::ATera,
@@ -45,11 +46,11 @@ pub struct GenericField {
 }
 
 impl FieldAccess for GenericField {
-    fn get_field_config(&self) -> &crate::forms::config::field_config::FieldConfig {
+    fn get_field_config(&self) -> &FieldConfig {
         delegate_to_field!(self, get_field_config)
     }
 
-    fn get_field_config_mut(&mut self) -> &mut crate::forms::config::field_config::FieldConfig {
+    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
         delegate_to_field!(mut self, get_field_config_mut)
     }
 }
@@ -112,7 +113,7 @@ impl FormField for GenericField {
         delegate_to_field!(mut self, set_type_bounds, min, max)
     }
 
-    fn bounds(&self) -> crate::forms::config::field_config::FieldBounds {
+    fn bounds(&self) -> FieldBounds {
         delegate_to_field!(self, bounds)
     }
 
@@ -124,7 +125,7 @@ impl FormField for GenericField {
         delegate_to_field!(self, model_max_size)
     }
 
-    fn set_max_size_bounded(&mut self, size: crate::forms::fields::FileSize) -> Result<(), String> {
+    fn set_max_size_bounded(&mut self, size: FileSize) -> Result<(), String> {
         delegate_to_field!(mut self, set_max_size_bounded, size)
     }
 

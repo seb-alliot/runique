@@ -15,8 +15,11 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use chrono::Utc;
+use sea_orm::DbErr;
 use serde::Serialize;
 use std::sync::{Arc, OnceLock};
+use tera::Tera;
 
 static INTERNAL_TEMPLATES: OnceLock<Vec<&'static str>> = OnceLock::new();
 fn get_internal_templates() -> &'static [&'static str] {
@@ -126,7 +129,7 @@ impl ErrorContext {
         Self {
             status_code: status_code.as_u16(),
             error_type,
-            timestamp: chrono::Utc::now().to_rfc3339(),
+            timestamp: Utc::now().to_rfc3339(),
             title: title.to_string(),
             message: message.to_string(),
             debug_repr: None,
@@ -155,7 +158,7 @@ impl ErrorContext {
     }
     /// Builds an `ErrorContext` from a Tera rendering error, resolving the failing
     /// template's source and the line number read from the error's span.
-    pub fn from_tera_error(error: &tera::Error, template_name: &str, tera: &tera::Tera) -> Self {
+    pub fn from_tera_error(error: &tera::Error, template_name: &str, tera: &Tera) -> Self {
         let mut ctx = Self::new(
             ErrorType::Template,
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -277,7 +280,7 @@ impl ErrorContext {
         path: Option<&str>,
         request_snapshot: Option<&RequestSnapshot>,
         template_name: Option<&str>,
-        tera: Option<&tera::Tera>,
+        tera: Option<&Tera>,
     ) -> Self {
         let mut ctx = match err {
             RuniqueError::Build(e) => Self::generic(
@@ -297,7 +300,7 @@ impl ErrorContext {
                 Self::not_found(path)
             }
             RuniqueError::Validation(msg) => Self::generic(StatusCode::BAD_REQUEST, msg),
-            RuniqueError::Database(msg) => Self::database(sea_orm::DbErr::Custom(msg.clone())),
+            RuniqueError::Database(msg) => Self::database(DbErr::Custom(msg.clone())),
             RuniqueError::Io(msg) => Self::generic(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 &tf(runique_i18n::keys::app::error::IO, &[msg.as_str()]),

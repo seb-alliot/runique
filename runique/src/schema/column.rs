@@ -3,6 +3,7 @@
 //! [`ColumnDef`] is the entry point. It follows the builder pattern:
 //! `ColumnDef::new("slug").varchar(200).unique().nullable()`.
 //! The [`ColumnDef::to_form_field`] method automatically generates the appropriate form field.
+use crate::forms::fields::BinaryField;
 use sea_query::{ColumnType, IntoIden};
 
 /// What a file column takes — drives the form widget and the allowed
@@ -775,7 +776,7 @@ impl ColumnDef {
                 }
             }
             Widget::Binary => {
-                let mut bf = crate::forms::fields::BinaryField::new(name);
+                let mut bf = BinaryField::new(name);
                 if let Some(limit) = self.field_type.and_then(|k| k.byte_limit(self.max_length)) {
                     bf = bf.max_size(limit.into());
                 }

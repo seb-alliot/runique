@@ -4,7 +4,7 @@ use crate::{
     auth::{meta::ModelMeta, permissions::rights::ColumnRights},
     forms::{
         data::column_value::{column_value, null_value},
-        form::Forms,
+        form::{Forms, ReplacedFiles},
     },
     translation::t,
 };
@@ -112,7 +112,7 @@ pub(crate) fn changes<E: ModelMeta>(
 pub(crate) fn replaced_files<E: EntityTrait>(
     old: &E::Model,
     model: &E::ActiveModel,
-) -> crate::forms::form::ReplacedFiles {
+) -> ReplacedFiles {
     use sea_orm::{ActiveValue, ModelTrait, Value};
 
     E::Column::iter()

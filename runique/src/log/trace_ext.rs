@@ -10,6 +10,8 @@
 //! renderer.render_field(&hp)
 //!     .trace_or_default(get_log().forms.as_ref().and_then(|f| f.render), "honeypot render")
 //! ```
+use crate::translation::t;
+use std::panic::Location;
 use tracing::Level;
 
 /// Extension trait on `Result` for logging a swallowed error before discarding it,
@@ -47,8 +49,8 @@ impl<T, E: std::fmt::Debug> TraceResult<T> for Result<T, E> {
             Ok(v) => Some(v),
             Err(e) => {
                 if let Some(level) = level {
-                    let loc = std::panic::Location::caller();
-                    crate::runique_log!(level, error = ?e, at = %loc, "{}", crate::translation::t(ctx));
+                    let loc = Location::caller();
+                    crate::runique_log!(level, error = ?e, at = %loc, "{}", t(ctx));
                 }
                 None
             }
@@ -60,8 +62,8 @@ impl<T, E: std::fmt::Debug> TraceResult<T> for Result<T, E> {
         match self {
             Ok(v) => Some(v),
             Err(e) => {
-                let loc = std::panic::Location::caller();
-                crate::runique_log!(level.unwrap_or(default), error = ?e, at = %loc, "{}", crate::translation::t(ctx));
+                let loc = Location::caller();
+                crate::runique_log!(level.unwrap_or(default), error = ?e, at = %loc, "{}", t(ctx));
                 None
             }
         }
@@ -76,8 +78,8 @@ impl<T, E: std::fmt::Debug> TraceResult<T> for Result<T, E> {
             Ok(v) => v,
             Err(e) => {
                 if let Some(level) = level {
-                    let loc = std::panic::Location::caller();
-                    crate::runique_log!(level, error = ?e, at = %loc, "{}", crate::translation::t(ctx));
+                    let loc = Location::caller();
+                    crate::runique_log!(level, error = ?e, at = %loc, "{}", t(ctx));
                 }
                 T::default()
             }

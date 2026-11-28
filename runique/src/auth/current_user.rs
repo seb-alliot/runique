@@ -2,7 +2,7 @@
 //! do (`rights_on`). Built by the auth middleware, read by the admin's gate,
 //! Prisme and the developer's views.
 use crate::{
-    auth::permissions::{Groupe, Permission, rank::Rang},
+    auth::permissions::{Groupe, Permission, rank::Rang, rights::Crud},
     schema::pk::Pk,
 };
 use serde::{Deserialize, Serialize};
@@ -44,9 +44,7 @@ impl CurrentUser {
     /// Whether the user may read `resource_key`, whatever his rank.
     #[must_use]
     pub fn can_access_resource(&self, resource_key: &str) -> bool {
-        self.rights_on(resource_key)
-            .crud
-            .has(crate::auth::permissions::rights::Crud::Read)
+        self.rights_on(resource_key).crud.has(Crud::Read)
     }
 
     /// Member of at least one group that opens the admin panel.

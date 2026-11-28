@@ -13,6 +13,7 @@ use super::{
 };
 use crate::{
     auth::{
+        constants::resource_key::GROUPES,
         current_user::CurrentUser,
         history::{ActionLog, log_action, redact_sensitive},
         meta::ModelMeta,
@@ -29,9 +30,11 @@ use crate::{
 };
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IdenStatic,
-    Iterable, ModelTrait, PrimaryKeyToColumn, QueryFilter, TransactionTrait, Value,
-    sea_query::sea_value_to_json_value,
+    IntoActiveModel, Iterable, ModelTrait, PrimaryKeyToColumn, QueryFilter, TransactionTrait,
+    Value, sea_query::sea_value_to_json_value,
 };
+use serde_json::Map;
+use std::collections::HashMap;
 
 fn refused(refusal: Refusal) -> DbErr {
     DbErr::Custom(refusal.message())
@@ -62,7 +65,7 @@ where
     if actor.rang < Rang::Dirigeant {
         return Err(still_responsable());
     }
-    let names: std::collections::HashMap<Pk, String> = user::Entity::find()
+    let names: HashMap<Pk, String> = user::Entity::find()
         .select_only()
         .columns([user::Column::Id, user::Column::Username])
         .filter(user::Column::Id.is_in(groups.iter().map(|g| g.responsable_id)))
@@ -91,7 +94,7 @@ where
             ActionLog {
                 user_id: actor.id,
                 username: &actor.username,
-                resource_key: crate::auth::constants::resource_key::GROUPES,
+                resource_key: GROUPES,
                 object_pk: &group.id.to_string(),
                 object_repr: &group.nom,
                 action: "transfer",
@@ -144,7 +147,7 @@ fn list_changes<E: ModelMeta>(
     form: &Forms,
     rights: &ColumnRights,
     kind: RowWrite,
-) -> std::collections::HashMap<String, String> {
+) -> HashMap<String, String> {
     E::LISTS
         .iter()
         .filter_map(|name| {
@@ -184,7 +187,7 @@ fn joined(raw: &str) -> String {
 /// by name, so the trace doesn't depend on the map's order.
 fn changed_lists(
     before: &[(&'static str, String)],
-    written: &std::collections::HashMap<String, String>,
+    written: &HashMap<String, String>,
 ) -> Vec<ListChange> {
     let mut changed: Vec<ListChange> = written
         .iter()
@@ -216,7 +219,7 @@ pub(crate) async fn save_as<E: ModelMeta>(
 ) -> Result<(), DbErr>
 where
     E::ActiveModel: Send,
-    E::Model: sea_orm::IntoActiveModel<E::ActiveModel>,
+    E::Model: IntoActiveModel<E::ActiveModel>,
 {
     let SaveMode::Gated { user } = &form.save_mode else {
         return Err(refused(Refusal::new(RefusalReason::NoRight)));
@@ -291,7 +294,7 @@ where
                 } else {
                     changed_lists(&E::list_values(id, &txn).await?, &lists)
                 };
-                let lists: std::collections::HashMap<String, String> = changed
+                let lists: HashMap<String, String> = changed
                     .iter()
                     .map(|change| (change.name.clone(), change.new.clone()))
                     .collect();
@@ -355,7 +358,7 @@ pub(crate) async fn bulk_as<E: ModelMeta>(
 ) -> Result<u64, DbErr>
 where
     E::ActiveModel: Send,
-    E::Model: sea_orm::IntoActiveModel<E::ActiveModel>,
+    E::Model: IntoActiveModel<E::ActiveModel>,
 {
     let gate = GateCtx { db, user };
     let rights = user.rights_on(E::KEY);
@@ -493,7 +496,7 @@ fn summary<E: ModelMeta>(
     changes: &E::ActiveModel,
     lists: &[ListChange],
 ) -> Option<String> {
-    let mut diff = serde_json::Map::new();
+    let mut diff = Map::new();
     for column in E::Column::iter() {
         let ActiveValue::Set(new) = changes.get(column) else {
             continue;

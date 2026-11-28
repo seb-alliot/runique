@@ -1,4 +1,5 @@
 //! CSRF token generation and validation — HMAC-SHA256, base64 masking, anonymous/authenticated contexts.
+use crate::schema::pk::Pk;
 use base64::{Engine as _, engine::general_purpose};
 use hmac::{Hmac, KeyInit, Mac};
 use rand::{Rng, RngExt};
@@ -10,7 +11,7 @@ type HmacSha256 = Hmac<Sha256>;
 /// Context for token generation
 pub enum CsrfContext<'a> {
     Anonymous { session_id: &'a str },
-    Authenticated { user_id: crate::schema::pk::Pk },
+    Authenticated { user_id: Pk },
 }
 
 /// Typed CSRF token

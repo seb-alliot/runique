@@ -6,19 +6,23 @@ use crate::{
         constants::DEBUG_MESSAGE_KEYS,
     },
     security::{csrf::CsrfToken, escape::html_escape},
-    translation::t,
+    translation::{current_lang, t},
     utils::aliases::AEngine,
 };
 use axum::{
+    body::Body,
     extract::Extension,
-    http::{HeaderValue, Request, StatusCode, header::HeaderName},
+    http::{
+        HeaderMap, HeaderValue, Request, StatusCode,
+        header::{HeaderName, RETRY_AFTER},
+    },
     middleware::Next,
     response::{Html, IntoResponse, Response},
 };
 use chrono::Utc;
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 use tera::{Context, Tera};
-use tracing::{Level, error, instrument};
+use tracing::{Level, Span, error, instrument};
 use tracing_futures::Instrument;
 
 /// Level for non-critical HTTP error diagnostics (status/path of handled errors).
@@ -75,7 +79,7 @@ fn redact_sensitive_path(path: &str) -> String {
 )]
 pub async fn error_handler_middleware(
     Extension(engine): Extension<AEngine>,
-    request: Request<axum::body::Body>,
+    request: Request<Body>,
     next: Next,
 ) -> Response {
     let (tera, config) = (engine.tera.clone(), engine.config.clone());
@@ -99,7 +103,7 @@ pub async fn error_handler_middleware(
     };
 
     // --- Execute request within tracing span ---
-    let span = tracing::Span::current();
+    let span = Span::current();
     let response = next.run(request).instrument(span.clone()).await;
 
     let status = response.status();
@@ -129,14 +133,10 @@ pub async fn error_handler_middleware(
         // 429: direct rendering, no debug page. The wait the limiter advertised
         // stays on the page: this replacement would otherwise drop it.
         if status == StatusCode::TOO_MANY_REQUESTS {
-            let retry_after = response
-                .headers()
-                .get(axum::http::header::RETRY_AFTER)
-                .cloned();
+            let retry_after = response.headers().get(RETRY_AFTER).cloned();
             let mut page = render_status_page(&tera, &config, csrf_token, status, None);
             if let Some(value) = retry_after {
-                page.headers_mut()
-                    .insert(axum::http::header::RETRY_AFTER, value);
+                page.headers_mut().insert(RETRY_AFTER, value);
             }
             return page;
         }
@@ -145,7 +145,7 @@ pub async fn error_handler_middleware(
         if status == StatusCode::SERVICE_UNAVAILABLE {
             let mut page = render_status_page(&tera, &config, csrf_token, status, None);
             page.headers_mut().insert(
-                axum::http::header::RETRY_AFTER,
+                RETRY_AFTER,
                 HeaderValue::from(SERVICE_UNAVAILABLE_RETRY_AFTER_SECS),
             );
             return page;
@@ -262,7 +262,7 @@ fn log_runique_error(err: &RuniqueError, request_snapshot: &RequestSnapshot) {
     }
 }
 
-fn inject_security_headers(headers: &mut axum::http::HeaderMap, config: &RuniqueConfig) {
+fn inject_security_headers(headers: &mut HeaderMap, config: &RuniqueConfig) {
     let headers_to_add = [
         (
             "content-security-policy",
@@ -330,10 +330,8 @@ fn render_status_page(
     text: Option<&str>,
 ) -> Response {
     let code = status.as_u16();
-    let (title, default_text): (
-        std::borrow::Cow<'static, str>,
-        std::borrow::Cow<'static, str>,
-    ) = match status_messages(code) {
+    let (title, default_text): (Cow<'static, str>, Cow<'static, str>) = match status_messages(code)
+    {
         Some((title, text)) => (t(title), t(text)),
         None => (
             code.to_string().into(),
@@ -412,7 +410,7 @@ fn inject_global_vars(context: &mut Context, config: &RuniqueConfig, csrf_token:
     }
     context.insert("debug", &config.debug);
     context.insert("dev", &config.dev);
-    context.insert("lang", &crate::translation::current_lang().code());
+    context.insert("lang", &current_lang().code());
 }
 
 // --- FALLBACKS ---
@@ -423,7 +421,7 @@ fn fallback_status_html(status: StatusCode, text: &str) -> Response {
     let code = status.as_u16();
     let html = format!(
         "<!DOCTYPE html><html lang=\"{lang}\"><head><meta charset=\"UTF-8\"><title>{code}</title></head><body><h1>{code}</h1><p>{text}</p><a href=\"/\">{back}</a></body></html>",
-        lang = crate::translation::current_lang().code(),
+        lang = current_lang().code(),
         text = html_escape(text),
         back = html_escape(&t(runique_i18n::keys::http::label::BACK_HOME)),
     );
@@ -431,7 +429,7 @@ fn fallback_status_html(status: StatusCode, text: &str) -> Response {
 }
 
 fn critical_error_html(error: &str) -> Response {
-    let lang = crate::translation::current_lang().code();
+    let lang = current_lang().code();
     let html = format!(
         r#"<!DOCTYPE html>
 <html lang="{lang}">

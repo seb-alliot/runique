@@ -1,6 +1,6 @@
 //! What each `runique_test` run gives back: its result, the SQL it ran, and
 //! how that gets printed.
-use crate::translation::Lang;
+use crate::{translation::Lang, versions::TEST_COLOR_ENV};
 use std::{
     borrow::Cow,
     fmt,
@@ -188,8 +188,7 @@ impl<E: fmt::Display> fmt::Display for FormatResult<E> {
 /// out, so it tells us through an env var that a terminal is on the other end.
 fn use_color() -> bool {
     std::env::var_os("NO_COLOR").is_none()
-        && (std::env::var_os(crate::versions::TEST_COLOR_ENV).is_some()
-            || std::io::stdout().is_terminal())
+        && (std::env::var_os(TEST_COLOR_ENV).is_some() || std::io::stdout().is_terminal())
 }
 
 /// Drops what makes a query long without telling you anything: a `SELECT`'s

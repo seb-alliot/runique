@@ -2,6 +2,7 @@
 //!
 //! Enabled with the `acme` feature. Requires `ACME_ENABLED=true`, `ACME_DOMAIN`, `ACME_EMAIL`.
 #![cfg(feature = "acme")]
+use std::error::Error;
 
 mod renewal;
 mod serve;
@@ -27,7 +28,7 @@ pub async fn obtain_certificate(
     email: &str,
     challenge_store: ChallengeStore,
     staging: bool,
-) -> Result<(Vec<u8>, Vec<u8>), Box<dyn std::error::Error>> {
+) -> Result<(Vec<u8>, Vec<u8>), Box<dyn Error>> {
     let url = if staging {
         LetsEncrypt::Staging.url().to_owned()
     } else {

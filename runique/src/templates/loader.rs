@@ -2,11 +2,11 @@
 use super::constants::*;
 use crate::{
     config::RuniqueConfig,
-    templates::static_tera,
+    templates::{integrity::build_integrity_map, static_tera},
     utils::aliases::{ARlockmap, StrMap},
 };
 use regex::Captures;
-use std::path::Path;
+use std::{error::Error, path::Path};
 use tera::Tera;
 
 /// Loads and configures the Tera instance with internal framework templates and project templates.
@@ -42,10 +42,7 @@ impl TemplateLoader {
     /// Initializes Tera and processes all templates (internal + users). Called
     /// on every render in development, where nothing is hashed: a stylesheet
     /// being edited must load, and hashing every file on each page has a cost.
-    pub fn init(
-        config: &RuniqueConfig,
-        url_registry: ARlockmap,
-    ) -> Result<Tera, Box<dyn std::error::Error>> {
+    pub fn init(config: &RuniqueConfig, url_registry: ARlockmap) -> Result<Tera, Box<dyn Error>> {
         if config.dev {
             return Self::load(config, url_registry, &Integrity::default());
         }
@@ -58,7 +55,7 @@ impl TemplateLoader {
     pub(crate) fn load_without_replacements(
         config: &RuniqueConfig,
         url_registry: ARlockmap,
-    ) -> Result<Tera, Box<dyn std::error::Error>> {
+    ) -> Result<Tera, Box<dyn Error>> {
         let mut config = config.clone();
         config.block_dispatch.clear();
         Self::load(&config, url_registry, &Integrity::default())
@@ -70,14 +67,10 @@ impl TemplateLoader {
     pub(crate) fn init_with_integrity(
         config: &RuniqueConfig,
         url_registry: ARlockmap,
-    ) -> Result<(Tera, Integrity), Box<dyn std::error::Error>> {
+    ) -> Result<(Tera, Integrity), Box<dyn Error>> {
         let hashes = Integrity {
-            site: crate::templates::integrity::build_integrity_map(Path::new(
-                &config.static_files.staticfiles_dirs,
-            )),
-            runique: crate::templates::integrity::build_integrity_map(Path::new(
-                &config.static_files.static_runique_path,
-            )),
+            site: build_integrity_map(Path::new(&config.static_files.staticfiles_dirs)),
+            runique: build_integrity_map(Path::new(&config.static_files.static_runique_path)),
         };
         let tera = if config.dev {
             Self::load(config, url_registry, &Integrity::default())?
@@ -91,7 +84,7 @@ impl TemplateLoader {
         config: &RuniqueConfig,
         url_registry: ARlockmap,
         integrity_map: &Integrity,
-    ) -> Result<Tera, Box<dyn std::error::Error>> {
+    ) -> Result<Tera, Box<dyn Error>> {
         let mut tera = Tera::default();
         tera.autoescape_on(vec!["html", "xml"]);
 

@@ -8,6 +8,7 @@ use axum::{
 };
 use sea_orm::DbErr;
 use std::sync::Arc;
+use tera::Tera;
 use tracing::error;
 
 /// Application error returned by handlers: encapsulates an [`ErrorContext`] and implements [`IntoResponse`].
@@ -23,7 +24,7 @@ impl AppError {
     }
 
     /// Converts a Tera rendering error into an `AppError`, logging detail in debug mode.
-    pub fn map_tera(e: tera::Error, route: &str, tera: &tera::Tera) -> Box<Self> {
+    pub fn map_tera(e: tera::Error, route: &str, tera: &Tera) -> Box<Self> {
         // Log the detailed error in the console
         error!(
             template = route,

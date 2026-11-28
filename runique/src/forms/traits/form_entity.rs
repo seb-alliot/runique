@@ -1,4 +1,5 @@
 //! `FormEntity`: the entity of the model a form was generated from.
+use crate::auth::meta::ModelMeta;
 
 /// Associates a form with its model's entity: the gate decides on it.
 ///
@@ -146,7 +147,7 @@
 /// impl RuniqueForm for Every {}
 /// ```
 pub trait FormEntity {
-    type Entity: crate::auth::meta::ModelMeta;
+    type Entity: ModelMeta;
 }
 
 /// Whether two names are the same, in a constant: `==` on `&str` isn't usable

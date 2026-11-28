@@ -8,16 +8,21 @@
 //! `#[fundamental]`, so the orphan rule rules it out. And that's the whole
 //! point: every native SeaORM call (`.insert(db)`, `.one(db)`, `db.begin()`, …)
 //! takes `&ADb` as is, no `.as_ref()` needed.
+#[cfg(feature = "test-utils")]
+use crate::db::RuniqueDb;
 use sea_orm::{
-    AccessMode, ConnectionTrait, DatabaseTransaction, DbBackend, DbErr, ExecResult, IsolationLevel,
-    QueryResult, Statement, TransactionError, TransactionOptions, TransactionTrait,
+    AccessMode, ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbBackend, DbErr,
+    ExecResult, IsolationLevel, QueryResult, Statement, TransactionError, TransactionOptions,
+    TransactionTrait,
 };
-use std::{future::Future, pin::Pin, sync::Arc};
+#[cfg(feature = "test-utils")]
+use std::time::Instant;
+use std::{future::Future, ops::Deref, pin::Pin, sync::Arc};
 
 #[cfg(not(feature = "test-utils"))]
-type Inner = sea_orm::DatabaseConnection;
+type Inner = DatabaseConnection;
 #[cfg(feature = "test-utils")]
-type Inner = crate::db::RuniqueDb;
+type Inner = RuniqueDb;
 
 /// Thread-safe database handle that's cheap to clone. See the module docs.
 #[derive(Clone, Debug)]
@@ -33,14 +38,14 @@ impl ADb {
     /// `test-utils` on, it also does the `RuniqueDb::Conn` wrapping for you, so
     /// callers never have to care that `Inner` changes with the feature.
     #[cfg(not(feature = "test-utils"))]
-    pub fn from_connection(conn: sea_orm::DatabaseConnection) -> Self {
+    pub fn from_connection(conn: DatabaseConnection) -> Self {
         Self::new(conn)
     }
 
     /// Same as the `not(test-utils)` version above.
     #[cfg(feature = "test-utils")]
-    pub fn from_connection(conn: sea_orm::DatabaseConnection) -> Self {
-        Self::new(crate::db::RuniqueDb::Conn(conn))
+    pub fn from_connection(conn: DatabaseConnection) -> Self {
+        Self::new(RuniqueDb::Conn(conn))
     }
 
     /// Hands back the inner handle, or `None` if another clone is still around.
@@ -67,7 +72,7 @@ impl ADb {
     }
 }
 
-impl std::ops::Deref for ADb {
+impl Deref for ADb {
     type Target = Inner;
     fn deref(&self) -> &Inner {
         &self.0
@@ -92,7 +97,7 @@ impl ConnectionTrait for ADb {
 
     async fn execute_unprepared(&self, sql: &str) -> Result<ExecResult, DbErr> {
         #[cfg(feature = "test-utils")]
-        let started = std::time::Instant::now();
+        let started = Instant::now();
         let result = self.0.execute_unprepared(sql).await;
         // SeaORM's metric callback skips this call, so a `COMMIT` or a DDL
         // statement run this way would never show in a test's trace.

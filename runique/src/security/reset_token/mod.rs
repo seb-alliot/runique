@@ -7,6 +7,7 @@
 //! typed email on the reset form is checked against that account in the
 //! database; it is never carried in the link.
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
+use chrono::Utc;
 use sea_orm::{
     ActiveValue::Set, ColumnTrait, DatabaseTransaction, DbErr, EntityTrait, QueryFilter,
     TransactionTrait, sea_query::OnConflict,
@@ -31,7 +32,7 @@ fn hash_token(token: &str) -> String {
 /// invalidates older ones) and any globally expired row.
 pub async fn generate(db: &ADb, user_id: Pk, ttl: Duration) -> Result<String, DbErr> {
     let token = Uuid::new_v4().to_string();
-    let now = chrono::Utc::now().naive_utc();
+    let now = Utc::now().naive_utc();
     let expires_at = chrono::Duration::from_std(ttl)
         .ok()
         .and_then(|d| now.checked_add_signed(d))
@@ -69,7 +70,7 @@ pub async fn generate(db: &ADb, user_id: Pk, ttl: Duration) -> Result<String, Db
 
 /// Returns the bound `user_id` if the token is still valid, without consuming it.
 pub async fn resolve(db: &ADb, token: &str) -> Option<Pk> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = Utc::now().naive_utc();
     entity::Entity::find()
         .filter(entity::Column::TokenHash.eq(hash_token(token)))
         .filter(entity::Column::ExpiresAt.gt(now))
@@ -123,7 +124,7 @@ pub(crate) async fn consume_in_transaction(
     txn: &DatabaseTransaction,
     token: &str,
 ) -> Result<Option<Pk>, DbErr> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = Utc::now().naive_utc();
     let row = entity::Entity::find()
         .filter(entity::Column::TokenHash.eq(hash_token(token)))
         .filter(entity::Column::ExpiresAt.gt(now))

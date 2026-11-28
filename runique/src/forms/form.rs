@@ -1,11 +1,17 @@
 //! `Forms` — main form container: fields, validation, rendering, CSRF management.
-use crate::forms::{
-    fields::{ChoiceField, FormNameField, HiddenField, HoneypotField},
-    generic::GenericField,
-    renderer::FormRenderer,
-    traits::form_field::FormField,
-    validator::{FormValidator, ValidationError},
+use crate::{
+    auth::current_user::CurrentUser,
+    forms::{
+        fields::{ChoiceField, FileSize, FormNameField, HiddenField, HoneypotField},
+        generic::GenericField,
+        renderer::FormRenderer,
+        traits::form_field::FormField,
+        validator::{FormValidator, ValidationError},
+    },
+    http::Request,
 };
+use sea_orm::{DatabaseTransaction, DbErr};
+use serde_json::Map;
 
 use crate::{
     forms::constants::FORM_NAME_KEY,
@@ -29,7 +35,7 @@ pub(crate) enum SaveMode {
     #[default]
     Open,
     Gated {
-        user: crate::auth::current_user::CurrentUser,
+        user: CurrentUser,
     },
 }
 
@@ -69,8 +75,8 @@ pub struct Forms {
 /// reader meets it before its file is in place.
 pub(crate) async fn write_with_uploads(
     forms: &mut Forms,
-    write: impl Future<Output = Result<sea_orm::DatabaseTransaction, sea_orm::DbErr>>,
-) -> Result<(), sea_orm::DbErr> {
+    write: impl Future<Output = Result<DatabaseTransaction, DbErr>>,
+) -> Result<(), DbErr> {
     write_replacing_uploads(forms, async { Ok((write.await?, ReplacedFiles::new())) }).await
 }
 
@@ -84,8 +90,8 @@ pub(crate) type ReplacedFiles = Vec<(String, String)>;
 /// its form empty and fills it with the upload: the row alone knows.
 pub(crate) async fn write_replacing_uploads(
     forms: &mut Forms,
-    write: impl Future<Output = Result<(sea_orm::DatabaseTransaction, ReplacedFiles), sea_orm::DbErr>>,
-) -> Result<(), sea_orm::DbErr> {
+    write: impl Future<Output = Result<(DatabaseTransaction, ReplacedFiles), DbErr>>,
+) -> Result<(), DbErr> {
     let result = async {
         let (txn, replaced) = write.await?;
         for (name, stored) in &replaced {
@@ -93,10 +99,7 @@ pub(crate) async fn write_replacing_uploads(
                 field.replaced_file(stored);
             }
         }
-        forms
-            .publish_uploads()
-            .await
-            .map_err(sea_orm::DbErr::Custom)?;
+        forms.publish_uploads().await.map_err(DbErr::Custom)?;
         txn.commit().await
     }
     .await;
@@ -188,7 +191,7 @@ impl Serialize for Forms {
             .iter()
             .enumerate()
             .map(|(index, (name, field))| {
-                let mut field_map = serde_json::Map::new();
+                let mut field_map = Map::new();
                 field_map.insert("name".to_string(), json!(name));
                 field_map.insert("label".to_string(), json!(field.label()));
                 field_map.insert("field_type".to_string(), json!(field.field_type()));
@@ -540,11 +543,7 @@ impl Forms {
     }
 
     /// Overrides max_size for a file field. Returns Err if it exceeds the model ceiling.
-    pub fn field_max_size(
-        &mut self,
-        name: &str,
-        size: crate::forms::fields::FileSize,
-    ) -> Result<&mut Self, String> {
+    pub fn field_max_size(&mut self, name: &str, size: FileSize) -> Result<&mut Self, String> {
         if let Some(f) = self.fields.get_mut(name) {
             f.set_max_size_bounded(size)?;
             if let Some(cap) = self.server_upload_cap {
@@ -717,7 +716,7 @@ impl Forms {
 
     /// Whether `request` is this form's own submission: its name, given by
     /// `request.form(name)`, came back in the hidden `FORM_NAME_KEY` field.
-    pub(crate) fn sent_by(&self, request: &crate::http::Request) -> bool {
+    pub(crate) fn sent_by(&self, request: &Request) -> bool {
         self.name.is_some_and(|name| {
             request.prisme.data.get(FORM_NAME_KEY).map(String::as_str) == Some(name)
         })

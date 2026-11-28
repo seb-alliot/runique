@@ -1,7 +1,10 @@
 //! Tera `link` function — named URL resolution from the global registry, with optional parameters.
-use crate::utils::aliases::{ARlockmap, JsonMap};
+use crate::{
+    router::register_url::resolve,
+    utils::aliases::{ARlockmap, JsonMap},
+};
 use serde_json::Value;
-use tera::{Function, Kwargs, State, TeraResult};
+use tera::{Error, Function, Kwargs, State, TeraResult};
 
 /// Tera `{% link %}` function: resolves a named route to its URL, substituting
 /// `{param}` placeholders from the given kwargs and appending a `?query` string
@@ -39,8 +42,8 @@ fn link_function(kwargs: &Kwargs, url_registry: &ARlockmap) -> TeraResult<String
         })
         .collect();
     let params: Vec<(&str, &str)> = params.iter().map(|(k, v)| (*k, v.as_str())).collect();
-    let mut result = crate::router::register_url::resolve(url_registry, link_name, &params)
-        .map_err(|e| tera::Error::message(e.to_string()))?;
+    let mut result =
+        resolve(url_registry, link_name, &params).map_err(|e| Error::message(e.to_string()))?;
 
     // Handle query string parameters
     if let Some(query_val) = args.get("query") {

@@ -3,6 +3,8 @@
 //! Stores **hashed** password-reset tokens (never the raw token). The raw token
 //! lives only in the email link; the server hashes the incoming token and looks
 //! up the row, so a DB read leak cannot be replayed.
+use crate::schema::pk::Pk;
+use chrono::NaiveDateTime;
 use sea_orm::entity::prelude::*;
 
 /// SeaORM model for a row of `eihwaz_reset_tokens` — one outstanding
@@ -20,10 +22,10 @@ pub struct Model {
     /// FK → user table: the authoritative target of the reset. Unique: one
     /// live link per user, enforced by the database.
     #[sea_orm(unique)]
-    pub user_id: crate::schema::pk::Pk,
+    pub user_id: Pk,
 
     /// Expiration timestamp (UTC naive).
-    pub expires_at: chrono::NaiveDateTime,
+    pub expires_at: NaiveDateTime,
 }
 
 /// Relations from `eihwaz_reset_tokens`.

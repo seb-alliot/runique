@@ -1,7 +1,7 @@
 //! Built and ready-to-launch Runique application.
 use axum::Router;
-use std::net::SocketAddr;
-use tokio::signal;
+use std::{error::Error, net::SocketAddr};
+use tokio::{net::TcpListener, signal};
 
 use crate::{
     config::RuniqueConfig,
@@ -88,7 +88,7 @@ impl RuniqueApp {
     /// Launches the server.
     /// - If `ACME_ENABLED=true`: provisions TLS via Let's Encrypt and serves HTTPS on port 443.
     /// - Otherwise: serves HTTP on the configured port.
-    pub async fn run(self) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn run(self) -> Result<(), Box<dyn Error>> {
         #[cfg(not(feature = "acme"))]
         if crate::config::env::env_flag("ACME_ENABLED", false) {
             eprintln!(
@@ -110,7 +110,7 @@ impl RuniqueApp {
     }
 
     /// Standard HTTP server (no TLS).
-    async fn run_http(self) -> Result<(), Box<dyn std::error::Error>> {
+    async fn run_http(self) -> Result<(), Box<dyn Error>> {
         let addr = format!(
             "{}:{}",
             self.engine.config.server.ip_server, self.engine.config.server.port
@@ -142,7 +142,7 @@ impl RuniqueApp {
             );
         }
 
-        let listener = tokio::net::TcpListener::bind(&addr).await?;
+        let listener = TcpListener::bind(&addr).await?;
 
         axum::serve(
             listener,

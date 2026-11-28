@@ -1,7 +1,10 @@
 //! The checks before anything is built: each staging, then what they need
 //! of one another.
 use super::RuniqueAppBuilder;
-use crate::errors::build::BuildError;
+use crate::{
+    config::server::secret_key_is_weak, errors::build::BuildError, mailer::MailerConfig,
+    translation::t,
+};
 
 impl<P> RuniqueAppBuilder<P> {
     pub(super) fn validate(&self) -> Result<(), BuildError> {
@@ -25,15 +28,13 @@ impl<P> RuniqueAppBuilder<P> {
         let sec = &self.config.security;
         let srv = &self.config.server;
 
-        if crate::config::server::secret_key_is_weak(&srv.secret_key) {
+        if secret_key_is_weak(&srv.secret_key) {
             report.add(
                 CheckError::new(
                     "Security",
-                    crate::translation::t(runique_i18n::keys::build::error::SECRET_KEY_WEAK),
+                    t(runique_i18n::keys::build::error::SECRET_KEY_WEAK),
                 )
-                .with_suggestion(crate::translation::t(
-                    runique_i18n::keys::build::hint::SECRET_KEY_WEAK,
-                )),
+                .with_suggestion(t(runique_i18n::keys::build::hint::SECRET_KEY_WEAK)),
             );
         }
 
@@ -49,27 +50,23 @@ impl<P> RuniqueAppBuilder<P> {
             report.add(
                 CheckError::new(
                     "PublicUrl",
-                    crate::translation::t(runique_i18n::keys::build::error::PUBLIC_URL_MISSING),
+                    t(runique_i18n::keys::build::error::PUBLIC_URL_MISSING),
                 )
-                .with_suggestion(crate::translation::t(
-                    runique_i18n::keys::build::hint::PUBLIC_URL_MISSING,
-                )),
+                .with_suggestion(t(runique_i18n::keys::build::hint::PUBLIC_URL_MISSING)),
             );
         }
 
         // No mailer, no reset email: the page could never send its link.
         // The mailer lives in the `.env` alone. Asked of the environment
         // itself, not of the process-wide mailer another app may have set.
-        let mailer_ready = crate::mailer::MailerConfig::from_env().is_some();
+        let mailer_ready = MailerConfig::from_env().is_some();
         if self.password_reset.is_some() && !mailer_ready {
             report.add(
                 CheckError::new(
                     "Mailer",
-                    crate::translation::t(runique_i18n::keys::build::error::MAILER_MISSING),
+                    t(runique_i18n::keys::build::error::MAILER_MISSING),
                 )
-                .with_suggestion(crate::translation::t(
-                    runique_i18n::keys::build::hint::MAILER_MISSING,
-                )),
+                .with_suggestion(t(runique_i18n::keys::build::hint::MAILER_MISSING)),
             );
         }
 
@@ -79,24 +76,18 @@ impl<P> RuniqueAppBuilder<P> {
                 report.add(
                     CheckError::new(
                         "ACME",
-                        crate::translation::t(
-                            runique_i18n::keys::build::error::ACME_DOMAIN_MISSING,
-                        ),
+                        t(runique_i18n::keys::build::error::ACME_DOMAIN_MISSING),
                     )
-                    .with_suggestion(crate::translation::t(
-                        runique_i18n::keys::build::hint::ACME_DOMAIN_MISSING,
-                    )),
+                    .with_suggestion(t(runique_i18n::keys::build::hint::ACME_DOMAIN_MISSING)),
                 );
             }
             if sec.acme_email.is_none() {
                 report.add(
                     CheckError::new(
                         "ACME",
-                        crate::translation::t(runique_i18n::keys::build::error::ACME_EMAIL_MISSING),
+                        t(runique_i18n::keys::build::error::ACME_EMAIL_MISSING),
                     )
-                    .with_suggestion(crate::translation::t(
-                        runique_i18n::keys::build::hint::ACME_EMAIL_MISSING,
-                    )),
+                    .with_suggestion(t(runique_i18n::keys::build::hint::ACME_EMAIL_MISSING)),
                 );
             }
         }

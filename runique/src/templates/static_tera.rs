@@ -1,12 +1,14 @@
 //! Global registration of Tera filters/functions — `register_asset_filters` and `| markdown` filter.
 use crate::{
+    config::env::css_token,
     middleware::CsrfTokenFunction,
-    templates::{form::FormFilter, url::LinkFunction},
+    security::sanitizer::{sanitize_markdown, sanitize_rich, sanitize_strict},
+    templates::{contrib::register_contrib, form::FormFilter, url::LinkFunction},
     utils::aliases::{ARlockmap, StrMap},
 };
 use chrono::{DateTime, NaiveDateTime, NaiveTime};
 use pulldown_cmark::{Options, Parser, html};
-use tera::{Filter, Kwargs, State, Tera, TeraResult, Value, escape_html};
+use tera::{Error, Filter, Kwargs, State, Tera, TeraResult, Value, escape_html};
 
 // Filter to mask a sensitive value with bullets (real number of characters)
 fn mask_filter(value: &str, _: Kwargs, _: &State) -> String {
@@ -35,7 +37,7 @@ impl Filter<&str, TeraResult<Value>> for CsrfFieldFilter {
         // in another module.
         let mut escaped = Vec::new();
         escape_html(token, &mut escaped)
-            .map_err(|e| tera::Error::chain("csrf_field: failed to escape the token", e))?;
+            .map_err(|e| Error::chain("csrf_field: failed to escape the token", e))?;
         let token = String::from_utf8(escaped)?;
 
         Ok(Value::safe_string(&format!(
@@ -114,7 +116,7 @@ impl Filter<&str, Value> for MarkdownFilter {
         // Emitted unescaped, so XSS in user-authored Markdown (raw <script>,
         // javascript: links…) is neutralized here. `safe_string` is applied to the
         // sanitized result only — never to `output` before this line.
-        Value::safe_string(&crate::security::sanitizer::sanitize_markdown(&output))
+        Value::safe_string(&sanitize_markdown(&output))
     }
 }
 
@@ -130,7 +132,7 @@ impl Filter<&str, Value> for SanitizeFilter {
     }
 
     fn call(&self, raw: &str, _: Kwargs, _: &State) -> Value {
-        Value::safe_string(&crate::security::sanitizer::sanitize_rich(raw))
+        Value::safe_string(&sanitize_rich(raw))
     }
 }
 
@@ -143,7 +145,7 @@ impl Filter<&str, Value> for SanitizeFilter {
 // value. Both properties are load-bearing — this filter must stay auto-escaped,
 // otherwise it would emit as HTML the very markup it was asked to strip.
 fn plaintext_filter(raw: &str, _: Kwargs, _: &State) -> String {
-    crate::security::sanitizer::sanitize_strict(raw)
+    sanitize_strict(raw)
 }
 
 // Humanizes a machine identifier for display: splits on `_`/`-` and capitalizes
@@ -219,12 +221,12 @@ pub fn register_asset_filters(
     runique_media_url: String,
     url_registry: ARlockmap,
 ) {
-    let version = crate::config::env::css_token();
+    let version = css_token();
 
     // Filters inherited from Tera 1's `builtins` feature (urlencode, slug, date…),
     // moved to `tera-contrib` in 2.0. Registered first: the internal templates
     // rely on them.
-    crate::templates::contrib::register_contrib(tera);
+    register_contrib(tera);
 
     tera.register_filter("mask", mask_filter);
     tera.register_filter("static", register_filter(static_url, version.clone()));

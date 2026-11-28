@@ -1,4 +1,5 @@
 //! `Objects<E>` — Django-style manager for SeaORM entities, exposed via `impl_objects!`.
+use sea_orm::{PrimaryKeyTrait, Value};
 
 /// Django-style ORM manager for entities
 ///
@@ -122,7 +123,7 @@ impl<E: EntityTrait> Objects<E> {
     pub fn filter_many<C, V, I>(&self, filters: I) -> RuniqueQueryBuilder<E>
     where
         C: ColumnTrait,
-        V: Into<sea_orm::Value>,
+        V: Into<Value>,
         I: IntoIterator<Item = (C, V)>,
     {
         RuniqueQueryBuilder::new(E::find()).filter_many(filters)
@@ -133,7 +134,7 @@ impl<E: EntityTrait> Objects<E> {
     pub fn exclude_many<C, V, I>(&self, filters: I) -> RuniqueQueryBuilder<E>
     where
         C: ColumnTrait,
-        V: Into<sea_orm::Value>,
+        V: Into<Value>,
         I: IntoIterator<Item = (C, V)>,
     {
         RuniqueQueryBuilder::new(E::find()).exclude_many(filters)
@@ -143,7 +144,7 @@ impl<E: EntityTrait> Objects<E> {
     pub async fn get(
         &self,
         db: &ADb,
-        id: impl Into<<E::PrimaryKey as sea_orm::PrimaryKeyTrait>::ValueType>,
+        id: impl Into<<E::PrimaryKey as PrimaryKeyTrait>::ValueType>,
     ) -> Result<E::Model, DbErr> {
         E::find_by_id(id)
             .one(db)
@@ -156,7 +157,7 @@ impl<E: EntityTrait> Objects<E> {
     pub async fn get_optional(
         &self,
         db: &ADb,
-        id: impl Into<<E::PrimaryKey as sea_orm::PrimaryKeyTrait>::ValueType>,
+        id: impl Into<<E::PrimaryKey as PrimaryKeyTrait>::ValueType>,
     ) -> Result<Option<E::Model>, DbErr> {
         E::find_by_id(id).one(db).await
     }
@@ -175,7 +176,7 @@ impl<E: EntityTrait> Objects<E> {
     pub async fn get_or_404(
         &self,
         db: &ADb,
-        id: impl Into<<E::PrimaryKey as sea_orm::PrimaryKeyTrait>::ValueType>,
+        id: impl Into<<E::PrimaryKey as PrimaryKeyTrait>::ValueType>,
         _ctx: &Request,
         error_msg: &str,
     ) -> AppResult<E::Model> {

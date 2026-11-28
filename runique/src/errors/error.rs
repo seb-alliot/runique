@@ -10,6 +10,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use std::sync::Arc;
+use tera::ErrorKind;
 use thiserror::Error;
 use tracing::{error, info};
 
@@ -82,7 +83,7 @@ impl From<std::io::Error> for RuniqueError {
 #[must_use]
 pub fn tera_error_line(error: &tera::Error) -> Option<usize> {
     match error.kind() {
-        tera::ErrorKind::RenderingError(report) | tera::ErrorKind::SyntaxError(report) => {
+        ErrorKind::RenderingError(report) | ErrorKind::SyntaxError(report) => {
             Some(report.span().start_line)
         }
         _ => None,

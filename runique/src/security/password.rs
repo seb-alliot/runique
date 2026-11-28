@@ -1,4 +1,6 @@
 //! Password hashing and verification — Argon2, bcrypt, scrypt via `PasswordHasher` trait.
+use crate::forms::FormField;
+use std::sync::LazyLock;
 
 // === password/hasher.rs ===
 // argon2 and scrypt are now both on password-hash 0.6 — a single
@@ -344,7 +346,7 @@ pub trait PasswordHandler: Send + Sync + DynClone {
     /// Short identifier for this handler, for diagnostics.
     fn name(&self) -> &str;
     /// Builds the form field widget used to render/collect this password.
-    fn create_field(&self, name: &str) -> Box<dyn crate::forms::FormField>;
+    fn create_field(&self, name: &str) -> Box<dyn FormField>;
     /// Validates a submitted plaintext value before it is transformed/stored.
     fn validate_input(&self, input: &str) -> Result<(), String>;
     /// Transforms (e.g. hashes) a plaintext value into what gets stored.
@@ -554,7 +556,7 @@ pub static PASSWORD_CONFIG: OnceLock<PasswordConfig> = OnceLock::new();
 
 // Pre-computed dummy hash — used to run a full verify even when the user is not found,
 // preventing user enumeration via timing differences (constant-time authentication flow).
-static DUMMY_HASH: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+static DUMMY_HASH: LazyLock<String> = LazyLock::new(|| {
     BaseHash::new()
         .hash("__runique_dummy__", &Manual::Argon2)
         .unwrap_or_else(|_| {
@@ -574,12 +576,12 @@ pub fn dummy_hash() -> &'static str {
 // same computation time when a stored hash fails to parse for that algorithm.
 // Unlike `dummy_hash()` (public, algorithm-agnostic, used for user-enumeration
 // defense), these are private: each `verify_*` needs a dummy in its own format.
-static DUMMY_HASH_BCRYPT: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+static DUMMY_HASH_BCRYPT: LazyLock<String> = LazyLock::new(|| {
     bcrypt_hash("__runique_dummy__", DEFAULT_COST)
         .expect("bcrypt hashing a fixed short string should never fail")
 });
 
-static DUMMY_HASH_SCRYPT: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+static DUMMY_HASH_SCRYPT: LazyLock<String> = LazyLock::new(|| {
     Scrypt::default()
         .hash_password(b"__runique_dummy__")
         .map(|h| h.to_string())

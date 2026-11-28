@@ -13,7 +13,7 @@ use crate::{
     },
     db::DbWrite,
     forms::{
-        FormEntity,
+        FormEntity, Forms,
         data::save::{SaveAction, not_found, on_fields, url_key},
         form::{SaveMode, write_replacing_uploads, write_with_uploads},
         traits::runique_form::RuniqueForm,
@@ -154,7 +154,7 @@ where
     }
 }
 
-fn gated(forms: &crate::forms::Forms) -> bool {
+fn gated(forms: &Forms) -> bool {
     matches!(forms.save_mode, SaveMode::Gated { .. })
 }
 

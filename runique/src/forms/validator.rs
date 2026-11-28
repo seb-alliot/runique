@@ -3,7 +3,7 @@ use crate::{
     translation::t,
     utils::aliases::{FieldsMap, StrMap},
 };
-use std::fmt;
+use std::{error::Error, fmt};
 
 /// Error returned when form validation fails to complete or produces errors.
 #[derive(Debug, Clone)]
@@ -37,7 +37,7 @@ impl fmt::Display for ValidationError {
     }
 }
 
-impl std::error::Error for ValidationError {}
+impl Error for ValidationError {}
 
 /// Stateless helper that validates a form's fields and reports resulting errors.
 pub struct FormValidator;

@@ -4,6 +4,7 @@ use crate::{
     translation::tf,
     utils::aliases::{ATera, FieldsMap},
 };
+use tera::Context;
 use tracing::warn;
 
 /// Renders a form's fields to HTML via Tera: global errors first, then each
@@ -126,7 +127,7 @@ impl FormRenderer {
             .to_owned());
         }
 
-        let mut context = tera::Context::new();
+        let mut context = Context::new();
         context.insert("errors", errors);
         self.tera
             .render(template_name, &context)
@@ -151,7 +152,7 @@ impl FormRenderer {
             .to_owned());
         }
 
-        let mut context = tera::Context::new();
+        let mut context = Context::new();
         context.insert("js_files", &self.js_files);
         if let Some(ref nonce) = self.csp_nonce {
             context.insert("csp_nonce", nonce);

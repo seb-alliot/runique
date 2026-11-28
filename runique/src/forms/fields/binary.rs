@@ -6,8 +6,8 @@
 //! hands its content on as base64, which [`decode_binary`] turns back into bytes.
 use crate::{
     forms::{
-        config::field_config::FieldConfig, fields::file::is_staged_upload,
-        traits::form_field::FormField,
+        config::field_config::FieldConfig, data::column_value::read_field,
+        fields::file::is_staged_upload, traits::form_field::FormField,
     },
     log::TraceResult,
     translation::{t, tf},
@@ -15,6 +15,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use base64::{Engine, engine::general_purpose::STANDARD};
+use sea_orm::{Value, sea_query::ColumnType};
 use serde::Serialize;
 
 /// File input stored as bytes. Accepts one upload, up to `max_size` bytes.
@@ -52,12 +53,8 @@ field_base!(BinaryField, label, required);
 
 #[async_trait]
 impl FormField for BinaryField {
-    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::data::column_value::read_field(
-            &self.base,
-            &self.base.value,
-            sea_orm::sea_query::ColumnType::Blob,
-        )
+    fn to_value(&self) -> Result<Option<Value>, String> {
+        read_field(&self.base, &self.base.value, ColumnType::Blob)
     }
 
     fn cap_max_size(&mut self, bytes: u64) {

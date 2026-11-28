@@ -2,6 +2,7 @@
 //! tokens), needed with or without the admin. Usable by developers in their
 //! own `up` migrations. The admin's history table is created here too; only
 //! its use (entity, pages) belongs to the admin.
+use sea_orm::DbErr;
 
 use crate::auth::constants::resource_key::FRAMEWORK_KEYS;
 use sea_query::{
@@ -140,11 +141,11 @@ impl sea_orm_migration::MigrationName for EihwazUsersMigration {
 
 #[async_trait::async_trait]
 impl sea_orm_migration::MigrationTrait for EihwazUsersMigration {
-    async fn up(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+    async fn up(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), DbErr> {
         manager.create_table(create_eihwaz_users_table()).await
     }
 
-    async fn down(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+    async fn down(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), DbErr> {
         manager
             .drop_table(Table::drop().table(Alias::new("eihwaz_users")).to_owned())
             .await
@@ -419,11 +420,11 @@ impl sea_orm_migration::MigrationName for EihwazSessionsMigration {
 
 #[async_trait::async_trait]
 impl sea_orm_migration::MigrationTrait for EihwazSessionsMigration {
-    async fn up(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+    async fn up(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), DbErr> {
         manager.create_table(create_eihwaz_sessions_table()).await
     }
 
-    async fn down(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+    async fn down(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), DbErr> {
         manager
             .drop_table(
                 Table::drop()
@@ -512,13 +513,13 @@ impl sea_orm_migration::MigrationName for EihwazHistoryMigration {
 
 #[async_trait::async_trait]
 impl sea_orm_migration::MigrationTrait for EihwazHistoryMigration {
-    async fn up(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+    async fn up(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), DbErr> {
         manager.create_table(create_eihwaz_history_table()).await?;
         manager.create_index(create_history_index_object()).await?;
         manager.create_index(create_history_index_user()).await
     }
 
-    async fn down(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+    async fn down(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), DbErr> {
         manager
             .drop_table(Table::drop().table(Alias::new("eihwaz_history")).to_owned())
             .await
@@ -580,13 +581,13 @@ impl sea_orm_migration::MigrationName for EihwazResetTokensMigration {
 
 #[async_trait::async_trait]
 impl sea_orm_migration::MigrationTrait for EihwazResetTokensMigration {
-    async fn up(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+    async fn up(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), DbErr> {
         manager
             .create_table(create_eihwaz_reset_tokens_table())
             .await
     }
 
-    async fn down(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+    async fn down(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), DbErr> {
         manager
             .drop_table(
                 Table::drop()
@@ -614,7 +615,7 @@ impl sea_orm_migration::MigrationName for AdminTableMigration {
 
 #[async_trait::async_trait]
 impl sea_orm_migration::MigrationTrait for AdminTableMigration {
-    async fn up(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+    async fn up(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), DbErr> {
         manager.create_table(create_eihwaz_groupes_table()).await?;
         manager
             .create_table(create_eihwaz_groupes_droits_table())
@@ -632,7 +633,7 @@ impl sea_orm_migration::MigrationTrait for AdminTableMigration {
         Ok(())
     }
 
-    async fn down(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+    async fn down(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), DbErr> {
         manager
             .drop_table(
                 Table::drop()

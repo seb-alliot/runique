@@ -1,10 +1,14 @@
 //! Special fields: `ColorField`, `UUIDField`, `IPAddressField`, `JSONField`, `SlugField`.
 use crate::{
-    forms::{config::field_config::FieldConfig, traits::form_field::FormField},
+    forms::{
+        config::field_config::FieldConfig, data::column_value::read_field,
+        traits::form_field::FormField,
+    },
     translation::{t, tf},
     utils::aliases::ATera,
 };
 use async_trait::async_trait;
+use sea_orm::sea_query::{ColumnType, StringLen};
 use serde::Serialize;
 use serde_json::json;
 use std::net::IpAddr;
@@ -40,10 +44,10 @@ field_base!(ColorField, label, required);
 #[async_trait]
 impl FormField for ColorField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::data::column_value::read_field(
+        read_field(
             &self.base,
             self.base.value.trim(),
-            sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
+            ColumnType::String(StringLen::None),
         )
     }
 
@@ -114,10 +118,10 @@ impl SlugField {
 #[async_trait]
 impl FormField for SlugField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::data::column_value::read_field(
+        read_field(
             &self.base,
             self.base.value.trim(),
-            sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
+            ColumnType::String(StringLen::None),
         )
     }
 
@@ -193,11 +197,7 @@ field_base!(UUIDField, label, required, placeholder);
 #[async_trait]
 impl FormField for UUIDField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::data::column_value::read_field(
-            &self.base,
-            self.base.value.trim(),
-            sea_orm::sea_query::ColumnType::Uuid,
-        )
+        read_field(&self.base, self.base.value.trim(), ColumnType::Uuid)
     }
 
     async fn validate(&mut self) -> bool {
@@ -257,11 +257,7 @@ field_base!(JSONField, label, required, placeholder);
 #[async_trait]
 impl FormField for JSONField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::data::column_value::read_field(
-            &self.base,
-            self.base.value.trim(),
-            sea_orm::sea_query::ColumnType::Json,
-        )
+        read_field(&self.base, self.base.value.trim(), ColumnType::Json)
     }
 
     async fn validate(&mut self) -> bool {
@@ -343,10 +339,10 @@ field_base!(IPAddressField, label, required, placeholder);
 #[async_trait]
 impl FormField for IPAddressField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::data::column_value::read_field(
+        read_field(
             &self.base,
             self.base.value.trim(),
-            sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
+            ColumnType::String(StringLen::None),
         )
     }
 

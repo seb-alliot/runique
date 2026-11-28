@@ -4,11 +4,19 @@ use crate::{
     auth::permissions::{pull_groupes_db, rank::Rang},
     impl_objects,
     log::TraceResult,
-    schema::pk::Pk,
+    schema::{ColumnDef, ModelSchema, PrimaryKeyDef, pk::Pk},
     search,
+    security::password::{dummy_hash, is_algorithm_current, verify},
     utils::aliases::ADb,
 };
-use sea_orm::{ActiveModelTrait, ActiveValue::Set, EntityTrait, entity::prelude::*};
+use chrono::{NaiveDateTime, Utc};
+use sea_orm::{
+    ActiveModelTrait,
+    ActiveValue::Set,
+    DatabaseTransaction, EntityTrait,
+    entity::prelude::*,
+    sea_query::{Expr, ExprTrait},
+};
 
 // ─── SeaORM Model ───────────────────────────────────────────────────────────
 
@@ -30,12 +38,12 @@ pub struct Model {
     pub is_dirigeant: bool,
     pub is_admin: bool,
     pub is_superuser: bool,
-    pub created_at: Option<chrono::NaiveDateTime>,
-    pub updated_at: Option<chrono::NaiveDateTime>,
+    pub created_at: Option<NaiveDateTime>,
+    pub updated_at: Option<NaiveDateTime>,
     /// When the account's owner first took it over through the emailed link.
     /// `None` while the account waits for that; never cleared afterwards. The
     /// database refuses `is_active` without it.
-    pub activated_at: Option<chrono::NaiveDateTime>,
+    pub activated_at: Option<NaiveDateTime>,
     /// Increased to close every session of the account, whatever store holds
     /// them: a session opened under an older value ends at its next request.
     #[sea_orm(default_value = 0)]
@@ -81,7 +89,7 @@ impl ActiveModelBehavior for ActiveModel {
         if insert && self.id.is_not_set() {
             self.id = Set(uuid::Uuid::now_v7());
         }
-        let now = chrono::Utc::now().naive_utc();
+        let now = Utc::now().naive_utc();
         if insert && !self.created_at.is_set() {
             self.created_at = Set(Some(now));
         }
@@ -195,7 +203,7 @@ impl BuiltinUserEntity {
         }
         let mut active: ActiveModel = user.into();
         active.is_active = Set(true);
-        active.activated_at = Set(Some(chrono::Utc::now().naive_utc()));
+        active.activated_at = Set(Some(Utc::now().naive_utc()));
         active.update(db).await.map(Some)
     }
 
@@ -222,10 +230,7 @@ impl BuiltinUserEntity {
         Entity::update_many()
             .col_expr(
                 Column::SessionVersion,
-                sea_orm::sea_query::ExprTrait::add(
-                    sea_orm::sea_query::Expr::col(Column::SessionVersion),
-                    1,
-                ),
+                ExprTrait::add(Expr::col(Column::SessionVersion), 1),
             )
             .filter(Column::Id.eq(id))
             .exec(db)
@@ -236,7 +241,7 @@ impl BuiltinUserEntity {
     /// Performs the password update and first-time activation inside the
     /// caller's transaction.
     pub(crate) async fn set_password_and_activate_in_transaction(
-        db: &sea_orm::DatabaseTransaction,
+        db: &DatabaseTransaction,
         id: Pk,
         new_hash: &str,
     ) -> Result<(), sea_orm::DbErr> {
@@ -252,7 +257,7 @@ impl BuiltinUserEntity {
         if user.activated_at.is_none() {
             let mut activation: ActiveModel = user.into();
             activation.is_active = Set(true);
-            activation.activated_at = Set(Some(chrono::Utc::now().naive_utc()));
+            activation.activated_at = Set(Some(Utc::now().naive_utc()));
             activation.update(db).await?;
         }
         Self::increase_session_version(db, id).await
@@ -270,8 +275,8 @@ pub async fn authenticate_user(db: &ADb, username: &str, password: &str) -> Opti
     let hash = user_opt
         .as_ref()
         .map(|u| u.password.as_str())
-        .unwrap_or(crate::security::password::dummy_hash());
-    let password_ok = crate::security::password::verify(password, hash);
+        .unwrap_or(dummy_hash());
+    let password_ok = verify(password, hash);
     if password_ok && let Some(user) = user_opt.filter(RuniqueUser::can_sign_in) {
         Some(rehash_if_outdated(db, user, password).await)
     } else {
@@ -284,7 +289,7 @@ pub async fn authenticate_user(db: &ADb, username: &str, password: &str) -> Opti
 /// one moment the plain password is at hand. A failed rewrite doesn't fail the
 /// sign-in — the next one tries again.
 async fn rehash_if_outdated(db: &ADb, mut user: Model, password: &str) -> Model {
-    if crate::security::password::is_algorithm_current(&user.password) {
+    if is_algorithm_current(&user.password) {
         return user;
     }
     let rehashed = match crate::security::password::hash(password) {
@@ -325,84 +330,56 @@ pub const PRIMARY_KEY: &str = "id";
 
 /// Returns the `ModelSchema` of the `eihwaz_users` table.
 /// Used by `#[form(schema = runique_users)]` — no need to declare the entity locally.
-pub fn schema() -> crate::schema::ModelSchema {
+pub fn schema() -> ModelSchema {
     #[cfg(feature = "pk-uuid")]
-    let pk = crate::schema::PrimaryKeyDef::new("id")
-        .uuid()
-        .no_auto_increment();
+    let pk = PrimaryKeyDef::new("id").uuid().no_auto_increment();
     #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
-    let pk = crate::schema::PrimaryKeyDef::new("id")
-        .i64()
-        .auto_increment();
+    let pk = PrimaryKeyDef::new("id").i64().auto_increment();
     #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
-    let pk = crate::schema::PrimaryKeyDef::new("id")
-        .i32()
-        .auto_increment();
+    let pk = PrimaryKeyDef::new("id").i32().auto_increment();
 
-    crate::schema::ModelSchema::new("EihwazUsers")
+    ModelSchema::new("EihwazUsers")
         .table_name("eihwaz_users")
         .primary_key(pk)
+        .column(ColumnDef::new("username").varchar(150).required().unique())
+        .column(ColumnDef::new("email").varchar(254).required().unique())
+        .column(ColumnDef::new("password").string().required())
         .column(
-            crate::schema::ColumnDef::new("username")
-                .varchar(150)
-                .required()
-                .unique(),
-        )
-        .column(
-            crate::schema::ColumnDef::new("email")
-                .varchar(254)
-                .required()
-                .unique(),
-        )
-        .column(
-            crate::schema::ColumnDef::new("password")
-                .string()
-                .required(),
-        )
-        .column(
-            crate::schema::ColumnDef::new("is_active")
+            ColumnDef::new("is_active")
                 .boolean()
                 .required()
                 .default(false.into()),
         )
         .column(
-            crate::schema::ColumnDef::new("is_dirigeant")
+            ColumnDef::new("is_dirigeant")
                 .boolean()
                 .required()
                 .default(false.into()),
         )
         .column(
-            crate::schema::ColumnDef::new("is_admin")
+            ColumnDef::new("is_admin")
                 .boolean()
                 .required()
                 .default(false.into()),
         )
         .column(
-            crate::schema::ColumnDef::new("is_superuser")
+            ColumnDef::new("is_superuser")
                 .boolean()
                 .required()
                 .default(false.into()),
         )
-        .column(
-            crate::schema::ColumnDef::new("created_at")
-                .datetime()
-                .nullable(),
-        )
-        .column(
-            crate::schema::ColumnDef::new("updated_at")
-                .datetime()
-                .nullable(),
-        )
+        .column(ColumnDef::new("created_at").datetime().nullable())
+        .column(ColumnDef::new("updated_at").datetime().nullable())
         // Written only by the owner's activation link: never a form field.
         .column(
-            crate::schema::ColumnDef::new("activated_at")
+            ColumnDef::new("activated_at")
                 .datetime()
                 .nullable()
                 .ignore(),
         )
         // Written only by the password reset and `close_user_sessions`.
         .column(
-            crate::schema::ColumnDef::new("session_version")
+            ColumnDef::new("session_version")
                 .integer()
                 .required()
                 .default(0.into())

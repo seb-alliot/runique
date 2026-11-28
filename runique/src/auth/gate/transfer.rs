@@ -24,6 +24,7 @@ use sea_orm::{
     QueryOrder, QuerySelect, TransactionTrait,
     sea_query::{Expr, Query},
 };
+use std::collections::HashMap;
 
 fn refused(reason: RefusalReason) -> DbErr {
     DbErr::Custom(Refusal::new(reason).message())
@@ -68,7 +69,7 @@ pub(crate) async fn receivers<C: ConnectionTrait>(
 pub(crate) async fn taken_by<C: ConnectionTrait>(
     ids: &[i32],
     db: &C,
-) -> Result<std::collections::HashMap<i32, String>, DbErr> {
+) -> Result<HashMap<i32, String>, DbErr> {
     let taken: Vec<(i32, Option<Pk>)> = group::Entity::find()
         .select_only()
         .columns([group::Column::Id, group::Column::ReprisPar])
@@ -80,7 +81,7 @@ pub(crate) async fn taken_by<C: ConnectionTrait>(
     if taken.is_empty() {
         return Ok(Default::default());
     }
-    let names: std::collections::HashMap<Pk, String> = user::Entity::find()
+    let names: HashMap<Pk, String> = user::Entity::find()
         .select_only()
         .columns([user::Column::Id, user::Column::Username])
         .filter(user::Column::Id.is_in(taken.iter().filter_map(|(_, by)| *by)))

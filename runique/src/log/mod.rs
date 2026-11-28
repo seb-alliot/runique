@@ -5,7 +5,9 @@
 //! (`forms`, `middleware`, `session`, `auth`, `admin`, `db`, `mailer`, `migration`,
 //! `templates`, `errors`, `builder`). Each leaf is an `Option<Level>` — `None` means
 //! the event is disabled (zero cost).
+use crate::config::env::{is_debug, is_dev};
 use std::{
+    ffi::OsStr,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
@@ -276,7 +278,7 @@ impl RuniqueLog {
 
         // `DEBUG=true` has to let its channels through in production too.
         let default = self.subscriber_level.as_deref().unwrap_or_else(|| {
-            if crate::config::env::is_dev() || crate::config::env::is_debug() {
+            if is_dev() || is_debug() {
                 "debug"
             } else {
                 "warn"
@@ -346,7 +348,7 @@ impl RuniqueLog {
                         .parent()
                         .filter(|p| !p.as_os_str().is_empty())
                         .map_or_else(|| PathBuf::from("."), Path::to_path_buf);
-                    let Some(prefix) = path.file_name().map(std::ffi::OsStr::to_owned) else {
+                    let Some(prefix) = path.file_name().map(OsStr::to_owned) else {
                         continue;
                     };
                     let appender = match rotation {
@@ -464,7 +466,7 @@ impl RuniqueLog {
     /// ```
     #[must_use]
     pub fn dev(self) -> Self {
-        if !crate::config::env::is_dev() {
+        if !is_dev() {
             return self;
         }
         self.forms(|f| f.dev())

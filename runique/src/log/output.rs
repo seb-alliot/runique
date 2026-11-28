@@ -21,7 +21,10 @@
 //! DB overloads it and is awkward to query). Instead, [`LogSink`] is the escape
 //! hatch: a dev who wants a DB/HTTP/queue sink implements it without ever touching
 //! `tracing` types. Async destinations buffer into their own channel inside `log`.
-use std::{path::PathBuf, sync::Arc};
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 use tracing::{
     Event, Level, Subscriber,
     field::{Field, Visit},
@@ -111,7 +114,7 @@ impl LogOutput {
     }
 
     /// True when the file path requests JSON output (`.json` extension).
-    pub(super) fn is_json(path: &std::path::Path) -> bool {
+    pub(super) fn is_json(path: &Path) -> bool {
         path.extension()
             .and_then(|e| e.to_str())
             .is_some_and(|e| e.eq_ignore_ascii_case("json"))

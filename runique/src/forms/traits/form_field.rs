@@ -1,13 +1,18 @@
 //! `FormField`: what every form field implements (validation, rendering, the
 //! value its column stores), on top of its `FieldConfig`.
 use crate::{
-    forms::config::{BoolChoice, FieldBounds, FieldConfig},
+    forms::{
+        config::{BoolChoice, FieldBounds, FieldConfig},
+        fields::{FileSize, file::is_staged_upload},
+    },
     translation::{t, tf},
     utils::aliases::ATera,
 };
 use async_trait::async_trait;
 use dyn_clone::DynClone;
-use serde_json::{Value, json};
+use sea_orm::sea_query::ColumnType;
+use serde_json::{Map, Value, json};
+use tera::Context;
 
 /// Common trait to access a field's configuration
 pub trait FieldAccess {
@@ -37,10 +42,7 @@ impl FieldAccess for FieldConfig {
 /// A file part sent under a text field's name: its value is the path the upload
 /// was staged at, which a re-rendered form would show back.
 pub(crate) fn is_staged_path(value: &str) -> bool {
-    value.contains(".staging-")
-        && value
-            .split(',')
-            .any(|part| crate::forms::fields::file::is_staged_upload(part.trim()))
+    value.contains(".staging-") && value.split(',').any(|part| is_staged_upload(part.trim()))
 }
 
 /// Behavior every form field widget implements: validation, HTML rendering,
@@ -171,29 +173,26 @@ pub trait FormField: FieldAccess + DynClone + std::fmt::Debug + Send + Sync {
     }
 
     /// Overrides the effective max_size. Returns Err if it exceeds the model ceiling.
-    fn set_max_size_bounded(
-        &mut self,
-        _size: crate::forms::fields::FileSize,
-    ) -> Result<(), String> {
+    fn set_max_size_bounded(&mut self, _size: FileSize) -> Result<(), String> {
         Err("ce champ ne supporte pas max_size".to_string())
     }
 
     /// The column this field is stored in, once given one.
-    fn column_type(&self) -> Option<&sea_orm::sea_query::ColumnType> {
+    fn column_type(&self) -> Option<&ColumnType> {
         self.get_field_config().column_type.as_ref()
     }
 
     /// Whether this field can store `column` at all ([`crate::forms::generic::accepts`]).
     /// `false` by default: only a field registered through `GenericField` is
     /// known, any other is refused rather than trusted.
-    fn accepts_column(&self, _column: &sea_orm::sea_query::ColumnType) -> bool {
+    fn accepts_column(&self, _column: &ColumnType) -> bool {
         false
     }
 
     /// Gives the field its column: what it stores, and what it then holds the
     /// input to. Never loosens a bound already set. The caller has checked the
     /// field can store that column at all (`accepts`).
-    fn apply_column_type(&mut self, column: &sea_orm::sea_query::ColumnType) {
+    fn apply_column_type(&mut self, column: &ColumnType) {
         self.get_field_config_mut().column_type = Some(column.clone());
     }
 
@@ -227,8 +226,8 @@ pub trait FormField: FieldAccess + DynClone + std::fmt::Debug + Send + Sync {
     /// under Tera 1, which evaluated a missing variable as false — the attribute
     /// was then simply never emitted, with no error at all. Nine renders out of
     /// eighteen were in that state.
-    fn base_context(&self) -> tera::Context {
-        let mut context = tera::Context::new();
+    fn base_context(&self) -> Context {
+        let mut context = Context::new();
         context.insert("field", self.get_field_config());
         // Left out when unnamed: templates read `form.name` unconditionally,
         // so Tera fails the render of a form `try_form` never named.
@@ -245,7 +244,7 @@ pub trait FormField: FieldAccess + DynClone + std::fmt::Debug + Send + Sync {
 
     /// Renders the field's template with `context`; a failure names the template.
     #[doc(hidden)]
-    fn render_template(&self, tera: &ATera, context: &tera::Context) -> Result<String, String> {
+    fn render_template(&self, tera: &ATera, context: &Context) -> Result<String, String> {
         let template = &self.get_field_config().template_name;
         tera.render(template, context).map_err(|e| {
             tf(
@@ -321,7 +320,7 @@ pub trait FormField: FieldAccess + DynClone + std::fmt::Debug + Send + Sync {
     fn to_json_attributes(&self) -> Value {
         let attrs: Vec<(&String, &String)> =
             self.get_field_config().html_attributes.iter().collect();
-        let map: serde_json::Map<String, Value> = attrs
+        let map: Map<String, Value> = attrs
             .into_iter()
             .map(|(k, v)| (k.clone(), Value::String(v.clone())))
             .collect();

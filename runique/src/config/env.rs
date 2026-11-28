@@ -1,4 +1,5 @@
 //! Execution environment — `RUNIQUE_ENV`, `DEBUG`, CSS token.
+use crate::config::StaticConfig;
 use std::sync::LazyLock;
 
 /// A variable from the environment or `.env`, for the two flags below: a
@@ -110,7 +111,7 @@ use std::{
 
 static CSS_TOKEN: LazyLock<String> = LazyLock::new(|| {
     let static_dir = std::env::var("STATICFILES_DIRS").unwrap_or_else(|_| "static".to_string());
-    let runique_dir = crate::config::StaticConfig::from_env().static_runique_path;
+    let runique_dir = StaticConfig::from_env().static_runique_path;
     asset_token(&[&static_dir, &runique_dir])
 });
 

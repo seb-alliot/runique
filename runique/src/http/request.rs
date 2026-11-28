@@ -1,27 +1,31 @@
 //! `Request`: what a handler receives, and what it renders its template with.
 use crate::{
-    auth::current_user::CurrentUser,
+    auth::{
+        current_user::CurrentUser, password::public_link_base, permissions::load_rights,
+        session::get_user_id,
+    },
     errors::{AppError, ErrorContext},
     flash::Message,
     forms::{
         prisme::extractor::{Prisme, csrf_required, prisme_pipeline},
         traits::runique_form::RuniqueForm,
     },
-    http::url_params::UrlParams,
-    middleware::security::anti_bot::HoneypotFieldName,
-    security::{csp_nonce::CspNonce, csrf::CsrfToken},
+    http::{og_image::resolve_og_image, url_params::UrlParams},
+    middleware::security::{anti_bot::HoneypotFieldName, csrf::log_refusal},
+    schema::pk::Pk,
+    security::{constants::CSRF_TOKEN_KEY, csp_nonce::CspNonce, csrf::CsrfToken},
     templates::loader::TemplateLoader,
-    translation::{t, tf},
+    translation::{current_lang, t, tf},
     utils::aliases::{ADb, AEngine, AppResult, StrMap},
 };
 use axum::{
     body::Body,
     extract::{FromRequest, FromRequestParts, Path},
-    http::{Request as HttpRequest, StatusCode, method::Method},
+    http::{HeaderMap, Request as HttpRequest, StatusCode, method::Method},
     response::{Html, IntoResponse, Response},
 };
-use sea_orm::DbErr;
-use serde::de::DeserializeOwned;
+use sea_orm::{DatabaseTransaction, DbErr, TransactionTrait};
+use serde::{Serialize, de::DeserializeOwned};
 use std::{str::FromStr, sync::LazyLock};
 
 // Read once, on the first request: it never changes while the server runs,
@@ -53,7 +57,7 @@ pub struct Request {
     /// HTTP method of the request.
     pub method: Method,
     /// HTTP headers of the request.
-    pub headers: axum::http::HeaderMap,
+    pub headers: HeaderMap,
     /// Path parameters (`/{id}`).
     pub path_params: StrMap,
     /// Raw query string (`?a=1&b=2`), preserved for typed deserialization.
@@ -120,7 +124,7 @@ where
         let mut context = Context::new();
         context.insert("debug", &engine.config.debug);
         context.insert("dev", &engine.config.dev);
-        context.insert("lang", crate::translation::current_lang().code());
+        context.insert("lang", current_lang().code());
         context.insert(
             "csrf_token",
             &csrf_token
@@ -142,13 +146,10 @@ where
             .unwrap_or_default();
 
         let public_url = engine.config.server.public_url.as_deref();
-        let ico_image = crate::http::og_image::resolve_og_image(public_url, &ICON_IMAGE);
+        let ico_image = resolve_og_image(public_url, &ICON_IMAGE);
         context.insert("icon_image", &ico_image);
 
-        let og_image = crate::http::og_image::resolve_og_image(
-            public_url,
-            &engine.config.static_files.og_image,
-        );
+        let og_image = resolve_og_image(public_url, &engine.config.static_files.og_image);
         context.insert("og_image", &og_image);
 
         context.insert("current_path", parts.uri.path());
@@ -220,7 +221,7 @@ impl Request {
         // The backend cannot be reloaded here because it is shared between requests
         context.insert("debug", &engine.config.debug);
         context.insert("dev", &engine.config.dev);
-        context.insert("lang", crate::translation::current_lang().code());
+        context.insert("lang", current_lang().code());
         context.insert("timezone", &engine.config.timezone);
         context.insert("static_runique", &engine.config.static_files);
         context.insert(
@@ -238,7 +239,7 @@ impl Request {
             csrf_token,
             context,
             method,
-            headers: axum::http::HeaderMap::new(),
+            headers: HeaderMap::new(),
             path_params: StrMap::new(),
             raw_query: String::new(),
             query: StrMap::new(),
@@ -313,7 +314,7 @@ impl Request {
     }
 
     /// Fluent insertion with builder pattern
-    pub fn insert(mut self, key: &str, value: impl serde::Serialize) -> Self {
+    pub fn insert(mut self, key: &str, value: impl Serialize) -> Self {
         // Tera 2 stores keys as `Cow<'static, str>`; the borrowed `&str` of this
         // public signature is owned here so callers keep passing plain `&str`.
         self.context.insert(key.to_string(), &value);
@@ -326,7 +327,7 @@ impl Request {
     /// most pages never look at them.
     pub async fn load_user_rights(&mut self) {
         if let Some(user) = self.user.as_mut() {
-            crate::auth::permissions::load_rights(&self.engine.db, user).await;
+            load_rights(&self.engine.db, user).await;
             self.context.insert("current_user", &*user);
         }
     }
@@ -340,8 +341,8 @@ impl Request {
     /// importing `TransactionTrait`. Every write given it (`form.save(&txn)`)
     /// becomes real at `txn.commit()`; dropping `txn` — any early `return` —
     /// rolls them all back.
-    pub async fn db_atomic(&self) -> Result<sea_orm::DatabaseTransaction, DbErr> {
-        sea_orm::TransactionTrait::begin(&self.engine.db).await
+    pub async fn db_atomic(&self) -> Result<DatabaseTransaction, DbErr> {
+        TransactionTrait::begin(&self.engine.db).await
     }
 
     /// Base of the absolute links an app sends out (activation, reset, emails):
@@ -351,12 +352,12 @@ impl Request {
     /// someone else's site.
     #[must_use]
     pub fn public_url(&self) -> Option<String> {
-        crate::auth::password::public_link_base(self.engine.config.server.public_url.as_deref())
+        public_link_base(self.engine.config.server.public_url.as_deref())
     }
 
     /// The id `login` stored in the session; `None` for an anonymous visitor.
-    pub async fn user_id(&self) -> Option<crate::schema::pk::Pk> {
-        crate::auth::session::get_user_id(&self.session).await
+    pub async fn user_id(&self) -> Option<Pk> {
+        get_user_id(&self.session).await
     }
 
     /// Returns a path segment as a string slice (`/users/{id}` → `get_path("id")`).
@@ -475,12 +476,9 @@ impl Request {
         // failed submission isn't silently indistinguishable from an untouched form —
         // reuses the same key already shown by the admin CSRF check (`admin/router/routes.rs`).
         if csrf_required(&self.method) && !self.prisme.csrf_valid {
-            let sent = self
-                .prisme
-                .data
-                .contains_key(crate::security::constants::CSRF_TOKEN_KEY)
+            let sent = self.prisme.data.contains_key(CSRF_TOKEN_KEY)
                 || self.headers.contains_key("x-csrf-token");
-            crate::middleware::security::csrf::log_refusal(
+            log_refusal(
                 name,
                 if sent {
                     runique_i18n::keys::csrf::log::REASON_FORM_MISMATCH

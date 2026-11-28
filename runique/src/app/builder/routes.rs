@@ -13,17 +13,23 @@ use crate::errors::build::BuildError;
 #[cfg(feature = "admin")]
 use crate::templates::loader::Integrity;
 use crate::{
-    auth::{PasswordResetConfig, PasswordResetStaging},
+    auth::{
+        PasswordResetConfig, PasswordResetStaging,
+        password::{build_reset_router, build_router},
+    },
+    http::request::Request,
     router::register_name_url,
-    utils::aliases::AEngine,
+    utils::aliases::{AEngine, AppResult},
 };
-use axum::Router;
+#[cfg(feature = "admin")]
+use crate::{auth::permissions::prune_orphan_droits, config::env::css_token, translation::t};
+use axum::{Router, response::Response};
 use std::sync::Arc;
+#[cfg(feature = "admin")]
+use tracing::Level;
 
 /// Runique's welcome page, served at `/` in debug when the app declares no `/`.
-async fn default_index(
-    mut request: crate::http::request::Request,
-) -> crate::utils::aliases::AppResult<axum::response::Response> {
+async fn default_index(mut request: Request) -> AppResult<Response> {
     request.render("base_index.html")
 }
 
@@ -78,13 +84,13 @@ pub(super) fn router_reset_password(
     if let Some(pr) = password_reset {
         let forgot_path = pr.config.forgot_route.clone();
         let reset_path = format!("{}/{{token}}", pr.config.reset_route.trim_end_matches('/'));
-        let pr_router = crate::auth::password::build_router(Arc::new(pr.config));
+        let pr_router = build_router(Arc::new(pr.config));
         register_name_url(engine, "forgot_password", &forgot_path);
         register_name_url(engine, "reset_password", &reset_path);
         router.merge(pr_router)
     } else if let Some(config) = admin_reset {
         let reset_path = format!("{}/{{token}}", config.reset_route.trim_end_matches('/'));
-        let reset_router = crate::auth::password::build_reset_router(Arc::new(config));
+        let reset_router = build_reset_router(Arc::new(config));
         register_name_url(engine, "reset_password", &reset_path);
         router.merge(reset_router)
     } else {
@@ -154,7 +160,7 @@ async fn drop_unregistered_rights(engine: &AEngine, admin: &AdminStaging) {
         return;
     }
     let level = crate::log::log_level!(builder.registry);
-    match crate::auth::permissions::prune_orphan_droits(&engine.db, &valid_keys).await {
+    match prune_orphan_droits(&engine.db, &valid_keys).await {
         Ok(n) if n > 0 => {
             if let Some(level) = level {
                 crate::runique_log!(level, pruned = n, "orphan group rights pruned at boot");
@@ -164,9 +170,9 @@ async fn drop_unregistered_rights(engine: &AEngine, admin: &AdminStaging) {
         Err(e) => {
             // Never silent: stale grants would stay without a word.
             crate::runique_log!(
-                level.unwrap_or(tracing::Level::WARN),
+                level.unwrap_or(Level::WARN),
                 error = %e,
-                "{}", crate::translation::t(runique_i18n::keys::build::log::PRUNE_FAILED)
+                "{}", t(runique_i18n::keys::build::log::PRUNE_FAILED)
             );
         }
     }
@@ -181,7 +187,7 @@ fn admin_sheets(
     integrity: &Integrity,
 ) -> Result<crate::admin::template::PageSheets, BuildError> {
     let statics = &config.static_files;
-    let version = crate::config::env::css_token();
+    let version = css_token();
     let sheets = crate::admin::template::PageSheets::build(
         &admin.config.templates,
         &admin.site.model_templates(),

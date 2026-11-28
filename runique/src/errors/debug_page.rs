@@ -1,5 +1,6 @@
 //! What the debug error page reads from the project itself: the source of a
 //! template, and the name and version of the application.
+use std::path::{Component, Path};
 
 /// Reads a template's raw source from the `templates/` directory, returning `None`
 /// if the file doesn't exist or can't be read.
@@ -7,14 +8,14 @@ pub fn read_template_source(template_name: &str) -> Option<String> {
     // The name can come from a request (a template picked by a slug): only a
     // plain relative path under `templates/` is read, never `../` nor an absolute
     // one, which the debug page would otherwise show (`../../.env`).
-    let relative = std::path::Path::new(template_name);
+    let relative = Path::new(template_name);
     if !relative
         .components()
-        .all(|part| matches!(part, std::path::Component::Normal(_)))
+        .all(|part| matches!(part, Component::Normal(_)))
     {
         return None;
     }
-    std::fs::read_to_string(std::path::Path::new("templates").join(relative)).ok()
+    std::fs::read_to_string(Path::new("templates").join(relative)).ok()
 }
 
 /// The developer's package name and version, read from the `Cargo.toml` in
@@ -23,7 +24,7 @@ pub fn read_template_source(template_name: &str) -> Option<String> {
 /// debug page calls it: production never reads the manifest.
 #[must_use]
 pub fn app_package(base_dir: &str) -> (Option<String>, Option<String>) {
-    let dir = std::path::Path::new(base_dir);
+    let dir = Path::new(base_dir);
     let Some(manifest) = read_manifest(&dir.join("Cargo.toml")) else {
         return (None, None);
     };
@@ -45,7 +46,7 @@ pub fn app_package(base_dir: &str) -> (Option<String>, Option<String>) {
     (name, version)
 }
 
-fn workspace_version(dir: &std::path::Path) -> Option<String> {
+fn workspace_version(dir: &Path) -> Option<String> {
     let dir = dir.canonicalize().ok()?;
     dir.ancestors().find_map(|d| {
         read_manifest(&d.join("Cargo.toml"))?
@@ -57,6 +58,6 @@ fn workspace_version(dir: &std::path::Path) -> Option<String> {
     })
 }
 
-fn read_manifest(path: &std::path::Path) -> Option<toml::Table> {
+fn read_manifest(path: &Path) -> Option<toml::Table> {
     std::fs::read_to_string(path).ok()?.parse().ok()
 }

@@ -1,4 +1,5 @@
 //! Middleware staging: configuration API for the middleware stack.
+use tower_sessions::cookie::SameSite;
 
 use crate::{
     config::RuniqueConfig,
@@ -309,7 +310,7 @@ impl MiddlewareStaging {
                 let layer = SessionManagerLayer::new(store)
                     .with_secure(!dev)
                     .with_http_only(true)
-                    .with_same_site(tower_sessions::cookie::SameSite::Strict)
+                    .with_same_site(SameSite::Strict)
                     .with_expiry(Expiry::OnInactivity(duration));
                 router.layer(layer)
             },

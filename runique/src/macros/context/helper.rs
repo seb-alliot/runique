@@ -1,6 +1,7 @@
 //! `ContextBuilder` — ergonomic wrapper around `tera::Context` with a chainable API.
 use serde::Serialize;
 use serde_json::Value;
+use std::ops::{Deref, DerefMut};
 use tera::Context;
 
 /// Chainable wrapper around `tera::Context`, backing the `context!{}` macro.
@@ -51,7 +52,7 @@ impl From<ContextBuilder> for Context {
     }
 }
 
-impl std::ops::Deref for ContextBuilder {
+impl Deref for ContextBuilder {
     type Target = Context;
 
     fn deref(&self) -> &Self::Target {
@@ -59,7 +60,7 @@ impl std::ops::Deref for ContextBuilder {
     }
 }
 
-impl std::ops::DerefMut for ContextBuilder {
+impl DerefMut for ContextBuilder {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }

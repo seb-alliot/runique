@@ -1,10 +1,11 @@
 //! Numeric fields: `NumericField` (integer, decimal) with min/max validation and precision.
 use crate::{
-    forms::{config::field_config::*, traits::form_field::*},
+    forms::{config::field_config::*, data::column_value::read_field, traits::form_field::*},
     translation::{t, tf},
     utils::aliases::ATera,
 };
 use async_trait::async_trait;
+use sea_orm::Value;
 use serde::Serialize;
 
 /// Numeric input (integer, decimal, float, percent, or range slider).
@@ -253,7 +254,7 @@ impl FormField for NumericField {
         self.base.column_type = Some(column.clone());
     }
 
-    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+    fn to_value(&self) -> Result<Option<Value>, String> {
         use sea_orm::sea_query::ColumnType as C;
         let default = match self.config {
             NumericConfig::Integer { .. } => C::BigInteger,
@@ -262,7 +263,7 @@ impl FormField for NumericField {
             | NumericConfig::Percent { .. }
             | NumericConfig::Range { .. } => C::Double,
         };
-        crate::forms::data::column_value::read_field(&self.base, self.base.value.trim(), default)
+        read_field(&self.base, self.base.value.trim(), default)
     }
 
     fn bounds(&self) -> crate::forms::config::field_config::FieldBounds {

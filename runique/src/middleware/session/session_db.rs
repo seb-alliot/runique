@@ -1,8 +1,13 @@
 //! Persistent session store in the database (table `eihwaz_sessions`).
-use crate::{security::session_cipher::SessionKey, utils::aliases::ADb};
-use sea_orm::{ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter, entity::prelude::*};
+use crate::{schema::pk::Pk, security::session_cipher::SessionKey, utils::aliases::ADb};
+use chrono::{NaiveDateTime, Utc};
+use sea_orm::{
+    ActiveValue::Set, ColumnTrait, Condition, DatabaseTransaction, EntityTrait, QueryFilter,
+    entity::prelude::*, sea_query::Expr,
+};
 use sea_query::OnConflict;
 use sha2::{Digest, Sha256};
+use tokio::time::Duration;
 
 fn hash_cookie_id(cookie_id: &str) -> String {
     hex::encode(Sha256::digest(cookie_id.as_bytes()))
@@ -25,7 +30,7 @@ pub struct Model {
     pub cookie_id: String,
 
     /// FK → eihwaz_users.id
-    pub user_id: crate::schema::pk::Pk,
+    pub user_id: Pk,
 
     /// Stable identifier per login/device
     pub session_id: String,
@@ -35,7 +40,7 @@ pub struct Model {
     pub session_data: Option<String>,
 
     /// Expiration date
-    pub expires_at: chrono::NaiveDateTime,
+    pub expires_at: NaiveDateTime,
 }
 
 /// SeaORM relations for `eihwaz_sessions`.
@@ -116,9 +121,9 @@ impl RuniqueSessionStore {
     pub async fn create(
         &self,
         cookie_id: &str,
-        user_id: crate::schema::pk::Pk,
+        user_id: Pk,
         session_id: &str,
-        expires_at: chrono::NaiveDateTime,
+        expires_at: NaiveDateTime,
     ) -> Result<(), DbErr> {
         // Zero-trust: an empty cookie_id would break the unique constraint on the second row.
         // Reject early rather than let an opaque SQL error bubble up.
@@ -168,7 +173,7 @@ impl RuniqueSessionStore {
     /// Invalidates all sessions of a user except the current one (exclusive login).
     pub async fn invalidate_other_sessions(
         &self,
-        user_id: crate::schema::pk::Pk,
+        user_id: Pk,
         current_cookie_id: &str,
     ) -> Result<(), DbErr> {
         Entity::delete_many()
@@ -180,7 +185,7 @@ impl RuniqueSessionStore {
     }
 
     /// Invalidates all sessions of a user (password change, etc.).
-    pub async fn invalidate_all(&self, user_id: crate::schema::pk::Pk) -> Result<(), DbErr> {
+    pub async fn invalidate_all(&self, user_id: Pk) -> Result<(), DbErr> {
         Entity::delete_many()
             .filter(Column::UserId.eq(user_id))
             .exec(&*self.db)
@@ -190,7 +195,7 @@ impl RuniqueSessionStore {
 
     /// Returns the active session matching `cookie_id`, or `None` if absent/expired.
     pub async fn find_by_cookie_id(&self, cookie_id: &str) -> Result<Option<Model>, DbErr> {
-        let now = chrono::Utc::now().naive_utc();
+        let now = Utc::now().naive_utc();
         let mut model = Entity::find()
             .filter(Column::CookieId.eq(hash_cookie_id(cookie_id)))
             .filter(Column::ExpiresAt.gt(now))
@@ -206,11 +211,11 @@ impl RuniqueSessionStore {
     /// and the one behind `cookie_id`, whoever it belongs to: a password reset
     /// signs the account out everywhere, and the browser it ran in.
     pub(crate) async fn revoke_in_transaction(
-        txn: &sea_orm::DatabaseTransaction,
-        user_id: crate::schema::pk::Pk,
+        txn: &DatabaseTransaction,
+        user_id: Pk,
         cookie_id: Option<&str>,
     ) -> Result<(), DbErr> {
-        let mut sessions = sea_orm::Condition::any().add(Column::UserId.eq(user_id));
+        let mut sessions = Condition::any().add(Column::UserId.eq(user_id));
         if let Some(cookie_id) = cookie_id {
             sessions = sessions.add(Column::CookieId.eq(hash_cookie_id(cookie_id)));
         }
@@ -227,8 +232,8 @@ impl RuniqueSessionStore {
     pub async fn upsert_session(
         &self,
         cookie_id: &str,
-        user_id: crate::schema::pk::Pk,
-        expires_at: chrono::NaiveDateTime,
+        user_id: Pk,
+        expires_at: NaiveDateTime,
         data: Option<String>,
     ) -> Result<(), DbErr> {
         if cookie_id.is_empty() {
@@ -268,18 +273,15 @@ impl RuniqueSessionStore {
     pub async fn update_session(
         &self,
         cookie_id: &str,
-        user_id: crate::schema::pk::Pk,
-        expires_at: chrono::NaiveDateTime,
+        user_id: Pk,
+        expires_at: NaiveDateTime,
         data: Option<String>,
     ) -> Result<bool, DbErr> {
         let cookie_hash = hash_cookie_id(cookie_id);
         let data = self.seal_data(&cookie_hash, data)?;
         let result = Entity::update_many()
-            .col_expr(Column::SessionData, sea_orm::sea_query::Expr::value(data))
-            .col_expr(
-                Column::ExpiresAt,
-                sea_orm::sea_query::Expr::value(expires_at),
-            )
+            .col_expr(Column::SessionData, Expr::value(data))
+            .col_expr(Column::ExpiresAt, Expr::value(expires_at))
             .filter(Column::CookieId.eq(cookie_hash))
             .filter(Column::UserId.eq(user_id))
             .exec(&*self.db)
@@ -288,13 +290,13 @@ impl RuniqueSessionStore {
     }
 
     /// Deletes expired sessions (should be called periodically).
-    pub fn spawn_cleanup(&self, period: tokio::time::Duration) {
+    pub fn spawn_cleanup(&self, period: Duration) {
         let db = self.db.clone();
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(period);
             loop {
                 interval.tick().await;
-                let now = chrono::Utc::now().naive_utc();
+                let now = Utc::now().naive_utc();
                 if let Err(e) = Entity::delete_many()
                     .filter(Column::ExpiresAt.lt(now))
                     .exec(&*db)

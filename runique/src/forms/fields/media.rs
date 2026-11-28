@@ -8,13 +8,22 @@ use super::file::{
     parse_file_list, read_image_dimensions,
 };
 use crate::{
-    atomic::{AtomicBuilder, SourceItems},
+    atomic::{AtomicBuilder, SourceItems, remove},
     config::static_files::resolve_media_root,
-    forms::{config::field_config::FieldConfig, traits::form_field::FormField},
+    forms::{
+        config::field_config::FieldConfig, data::column_value::read_field,
+        traits::form_field::FormField,
+    },
     log::TraceResult,
     translation::{t, tf},
     utils::aliases::ATera,
 };
+use sea_orm::{
+    Value,
+    sea_query::{ColumnType, StringLen},
+};
+use std::{io::ErrorKind, sync::Arc};
+use tokio::fs::File;
 
 /// What the visitor reads when an upload can't be written: the detail (a
 /// server path, an OS error) goes to the log only.
@@ -361,7 +370,7 @@ impl Upload {
     pub(crate) async fn rollback(&mut self, base: &mut FieldConfig) {
         for path in self.published_uploads.drain(..) {
             if let Err(error) = tokio::fs::remove_file(&path).await
-                && error.kind() != std::io::ErrorKind::NotFound
+                && error.kind() != ErrorKind::NotFound
             {
                 tracing::error!(path = %path.display(), error = %error, "published upload rollback failed");
             }
@@ -430,7 +439,7 @@ async fn remove_replaced(previous: &str) {
         .await
         .is_ok_and(|metadata| metadata.file_type().is_file());
     if regular {
-        crate::atomic::remove(&path).trace(
+        remove(&path).trace(
             crate::log::log_level!(forms.finalize),
             runique_i18n::keys::forms::log::REMOVE_REPLACED,
         );
@@ -504,7 +513,7 @@ impl MediaField {
 
     /// A subdirectory named after the field, under `MEDIA_ROOT`.
     pub fn upload_to_env(mut self) -> Self {
-        let f = std::sync::Arc::new(|field_name: &str| field_name.to_string());
+        let f = Arc::new(|field_name: &str| field_name.to_string());
         self.upload.upload_config.upload_to = Some(f);
         self
     }
@@ -612,7 +621,7 @@ impl MediaField {
 /// ISO BMFF, WebM/Matroska (EBML) and Ogg for video.
 pub(crate) async fn has_av_signature(path: &str, kind: MediaType) -> bool {
     use tokio::io::AsyncReadExt;
-    let Ok(mut f) = tokio::fs::File::open(path).await else {
+    let Ok(mut f) = File::open(path).await else {
         return false;
     };
     let mut buf = [0u8; 12];
@@ -638,11 +647,11 @@ pub(crate) async fn has_av_signature(path: &str, kind: MediaType) -> bool {
 
 #[async_trait::async_trait]
 impl FormField for MediaField {
-    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::data::column_value::read_field(
+    fn to_value(&self) -> Result<Option<Value>, String> {
+        read_field(
             &self.base,
             &self.base.value,
-            sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
+            ColumnType::String(StringLen::None),
         )
     }
 

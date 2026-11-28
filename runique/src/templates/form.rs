@@ -1,4 +1,5 @@
 //! Tera `form` filter — HTML rendering of a form field by name from context.
+use tera::Error;
 // Dans src/tera_function/form_filter.rs
 use crate::forms::constants::FORM_NAME_KEY;
 use tera::{Filter, Kwargs, State, TeraResult, Value};
@@ -172,7 +173,7 @@ fn render_field(value: &Value, field_name: &str) -> TeraResult<String> {
         return Ok(html.to_string());
     }
 
-    Err(tera::Error::message(format!(
+    Err(Error::message(format!(
         "Field '{}' not found in form",
         field_name
     )))
@@ -185,9 +186,7 @@ fn find_rendered_fields(value: &Value) -> Option<&Value> {
 /// Renders the complete form HTML
 fn render_form_html(value: &Value) -> TeraResult<Value> {
     let Some(html) = find_html(value) else {
-        return Err(tera::Error::message(
-            "Cannot render form: no 'html' field found",
-        ));
+        return Err(Error::message("Cannot render form: no 'html' field found"));
     };
 
     match get_honeypot_html(value) {

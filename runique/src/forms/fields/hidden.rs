@@ -1,14 +1,21 @@
 //! Hidden field `HiddenField` for non-displayed data (tokens, internal IDs).
 use crate::{
     forms::{
-        config::field_config::FieldConfig, constants::FORM_NAME_KEY, traits::form_field::FormField,
+        config::field_config::FieldConfig, constants::FORM_NAME_KEY,
+        data::column_value::read_field, traits::form_field::FormField,
     },
     translation::t,
     utils::aliases::ATera,
 };
 use async_trait::async_trait;
+use sea_orm::{
+    Value,
+    sea_query::{ColumnType, StringLen},
+};
 use serde::Serialize;
+use serde_json::Map;
 use subtle::ConstantTimeEq;
+use tera::Context;
 
 /// Hidden input field. Used internally for CSRF tokens; also available for opaque data
 /// that should be submitted with the form but not displayed to the user.
@@ -69,7 +76,7 @@ field_base!(FormNameField);
 
 #[async_trait]
 impl FormField for FormNameField {
-    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+    fn to_value(&self) -> Result<Option<Value>, String> {
         Ok(None)
     }
 
@@ -81,12 +88,12 @@ impl FormField for FormNameField {
     /// reads it unconditionally, so Tera fails the render instead of shipping
     /// a nameless form whose submissions would never validate.
     fn render(&self, tera: &ATera) -> Result<String, String> {
-        let mut field = serde_json::Map::new();
+        let mut field = Map::new();
         field.insert("name".to_string(), serde_json::json!(self.base.name));
         if !self.base.value.is_empty() {
             field.insert("value".to_string(), serde_json::json!(self.base.value));
         }
-        let mut context = tera::Context::new();
+        let mut context = Context::new();
         context.insert("field", &field);
         self.render_template(tera, &context)
     }
@@ -114,7 +121,7 @@ field_base!(HoneypotField);
 #[async_trait]
 impl FormField for HoneypotField {
     /// A trap for bots: never stored.
-    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+    fn to_value(&self) -> Result<Option<Value>, String> {
         Ok(None)
     }
 
@@ -131,14 +138,14 @@ impl FormField for HoneypotField {
 #[async_trait]
 impl FormField for HiddenField {
     /// Stored only when given a column: the CSRF token, say, never is.
-    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+    fn to_value(&self) -> Result<Option<Value>, String> {
         if self.base.column_type.is_none() {
             return Ok(None);
         }
-        crate::forms::data::column_value::read_field(
+        read_field(
             &self.base,
             &self.base.value,
-            sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
+            ColumnType::String(StringLen::None),
         )
     }
 

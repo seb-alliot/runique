@@ -5,8 +5,10 @@ use crate::{
     forms::constants::FORM_NAME_KEY, schema::Pk, security::constants::CSRF_TOKEN_KEY,
     utils::aliases::StrMap,
 };
+use chrono::{NaiveDateTime, Utc};
 use sea_orm::{ActiveValue::Set, entity::prelude::*};
-use serde_json::Value;
+use serde_json::{Map, Value};
+use std::collections::BTreeMap;
 
 // ─── SeaORM Entity — eihwaz_history ─────────────────────────────────────────
 
@@ -26,7 +28,7 @@ pub struct Model {
     pub action: String,
     pub user_id: Pk,
     pub username: String,
-    pub created_at: chrono::NaiveDateTime,
+    pub created_at: NaiveDateTime,
     pub summary: Option<String>,
     pub batch_id: Option<String>,
 }
@@ -68,7 +70,7 @@ pub async fn log_action<C: ConnectionTrait>(db: &C, log: ActionLog<'_>) -> Resul
         action: Set(log.action.to_string()),
         user_id: Set(log.user_id),
         username: Set(log.username.to_string()),
-        created_at: Set(chrono::Utc::now().naive_utc()),
+        created_at: Set(Utc::now().naive_utc()),
         summary: Set(log.summary),
         batch_id: Set(log.batch_id),
         ..Default::default()
@@ -111,7 +113,7 @@ pub fn is_sensitive_key(key: &str) -> bool {
 /// **Single** pass-through point: every history write path (plain edit, bulk
 /// with or without `get_fn`) goes through here, so a future write path can't
 /// bypass the rule by forgetting a local filter.
-pub fn redact_sensitive(changes: &mut serde_json::Map<String, Value>) {
+pub fn redact_sensitive(changes: &mut Map<String, Value>) {
     for (key, entry) in changes.iter_mut() {
         if !is_sensitive_key(key) {
             continue;
@@ -134,7 +136,7 @@ pub fn diff_fields(old: &Value, body: &StrMap) -> Option<String> {
     let Value::Object(map) = old else {
         return None;
     };
-    let mut changes = std::collections::BTreeMap::new();
+    let mut changes = BTreeMap::new();
     for (k, new_val) in body {
         if k == CSRF_TOKEN_KEY || k == FORM_NAME_KEY || k == "__original_updated_at" {
             continue;
@@ -154,7 +156,7 @@ pub fn diff_fields(old: &Value, body: &StrMap) -> Option<String> {
     if changes.is_empty() {
         return None;
     }
-    let mut changes: serde_json::Map<String, Value> = changes.into_iter().collect();
+    let mut changes: Map<String, Value> = changes.into_iter().collect();
     redact_sensitive(&mut changes);
     serde_json::to_string(&changes).ok()
 }

@@ -2,6 +2,8 @@
 //! of an entity is written from it (`save`, `delete`); any other action stays
 //! in the caller's business logic.
 use crate::{forms::traits::runique_form::RuniqueForm, http::Request};
+use sea_orm::DbErr;
+use std::ops::Deref;
 
 mod write;
 
@@ -55,12 +57,12 @@ impl<F: RuniqueForm> ValidationForm<F> {
     /// constraint violation caught by the caller's own save logic, after
     /// `is_valid()` already passed. Lets the caller re-render the form with
     /// that error without unwrapping it via `into_form()` first.
-    pub fn database_error(&mut self, err: &sea_orm::DbErr) {
+    pub fn database_error(&mut self, err: &DbErr) {
         self.form.database_error(err);
     }
 }
 
-impl<F: RuniqueForm> std::ops::Deref for ValidationForm<F> {
+impl<F: RuniqueForm> Deref for ValidationForm<F> {
     type Target = F;
     fn deref(&self) -> &F {
         &self.form

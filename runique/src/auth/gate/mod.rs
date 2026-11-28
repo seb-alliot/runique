@@ -14,6 +14,8 @@
 //! Only this module builds an [`Authorized`]: its constructor is
 //! `pub(in crate::auth::gate)`, so a shortcut elsewhere in Runique shows up
 //! as a visibility change in review instead of a quiet call.
+use crate::auth::current_user::CurrentUser;
+use sea_orm::{EntityTrait, PrimaryKeyTrait};
 pub mod change;
 pub mod check;
 pub mod decide;
@@ -46,7 +48,7 @@ pub use rights::{Crud, CrudAction, Scope};
 /// just read back, so the gate decides on it and never on `req.user`, which
 /// the handler can change. Only Runique can build one.
 #[derive(Clone, Debug)]
-pub(crate) struct AdminConstraint(pub(crate) crate::auth::current_user::CurrentUser);
+pub(crate) struct AdminConstraint(pub(crate) CurrentUser);
 
 /// Value type of an entity's primary key.
-pub type PkOf<E> = <<E as sea_orm::EntityTrait>::PrimaryKey as sea_orm::PrimaryKeyTrait>::ValueType;
+pub type PkOf<E> = <<E as EntityTrait>::PrimaryKey as PrimaryKeyTrait>::ValueType;

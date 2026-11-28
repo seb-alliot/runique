@@ -2,14 +2,22 @@
 pub use crate::forms::generic::GenericField;
 use crate::{
     forms::{
-        config::{FieldConfig, Limit, TextConfig},
-        traits::form_field::FormField,
+        config::{FieldConfig, Limit, TextConfig, field_config::FieldBounds},
+        data::column_value::read_field,
+        traits::form_field::{FormField, is_staged_path},
     },
-    security::password::{PasswordConfig, PasswordService},
+    security::{
+        password::{PasswordConfig, PasswordService, password_get},
+        sanitizer::{sanitize_rich, sanitize_strict},
+    },
     translation::{t, tf},
     utils::aliases::ATera,
 };
 use async_trait::async_trait;
+use sea_orm::{
+    Value,
+    sea_query::{ColumnType, StringLen},
+};
 use serde::Serialize;
 use validator::ValidateEmail;
 
@@ -137,8 +145,8 @@ impl TextField {
 impl FormField for TextField {
     /// A `VARCHAR(n)` column bounds the field to `n`, never above what it
     /// already allowed.
-    fn apply_column_type(&mut self, column: &sea_orm::sea_query::ColumnType) {
-        if let sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::N(n)) = column
+    fn apply_column_type(&mut self, column: &ColumnType) {
+        if let ColumnType::String(StringLen::N(n)) = column
             && self.config.max_length.as_ref().is_none_or(|m| m.value > *n)
         {
             self.config.max_length = Some(Limit::new(*n, ""));
@@ -149,25 +157,24 @@ impl FormField for TextField {
     /// A password leaves only as the hash `finalize` made of it: read before
     /// validation, or from a `no_hash` field (a login check), it's `None`,
     /// never the text typed in.
-    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+    fn to_value(&self) -> Result<Option<Value>, String> {
         if self.base.is_password() {
             let hashed = self.hash_password
                 && !self.submitted
-                && PasswordService::new(crate::security::password::password_get())
-                    .is_already_hashed(&self.base.value);
+                && PasswordService::new(password_get()).is_already_hashed(&self.base.value);
             if !hashed {
                 return Ok(None);
             }
         }
-        crate::forms::data::column_value::read_field(
+        read_field(
             &self.base,
             &self.base.value,
-            sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
+            ColumnType::String(StringLen::None),
         )
     }
 
-    fn bounds(&self) -> crate::forms::config::field_config::FieldBounds {
-        crate::forms::config::field_config::FieldBounds {
+    fn bounds(&self) -> FieldBounds {
+        FieldBounds {
             min_length: self.config.min_length.as_ref().map(|l| l.value),
             max_length: self.config.max_length.as_ref().map(|l| l.value),
             ..Default::default()
@@ -177,18 +184,18 @@ impl FormField for TextField {
     fn set_value(&mut self, value: &str) {
         let cleaned = match self.format {
             TextFormat::Password | TextFormat::Csrf => value.to_string(),
-            TextFormat::RichText => crate::security::sanitizer::sanitize_rich(value),
+            TextFormat::RichText => sanitize_rich(value),
             // `sanitize_strict` already strips every tag (scripts included) via ammonia
             // and decodes entities, so legitimate `>`, `&`, `<` survive. The XSS guard
             // stays the output-side auto-escaping; no lossy input mutation needed.
-            _ => crate::security::sanitizer::sanitize_strict(value),
+            _ => sanitize_strict(value),
         };
         self.base.value = cleaned;
         self.submitted = false;
     }
 
     fn set_submitted_value(&mut self, value: &str) {
-        if crate::forms::traits::form_field::is_staged_path(value) {
+        if is_staged_path(value) {
             tracing::warn!(field = %self.base.name, "a file was sent for a field that takes none, ignored");
             return;
         }
@@ -274,7 +281,7 @@ impl FormField for TextField {
             && self.hash_password
             && !self.base.value.is_empty()
         {
-            let config = crate::security::password::password_get();
+            let config = password_get();
             if let PasswordConfig::Auto(_) = config {
                 let service = PasswordService::new(config);
                 // A typed value is hashed even when it looks like a hash: stored

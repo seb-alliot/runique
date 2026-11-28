@@ -2,9 +2,15 @@
 use super::media::{Upload, UploadCheck};
 use crate::{
     config::{StaticConfig, static_files::resolve_media_root},
-    forms::{config::FieldConfig, traits::form_field::FormField},
-    utils::aliases::ATera,
+    forms::{config::FieldConfig, data::column_value::read_field, traits::form_field::FormField},
+    utils::aliases::{ATera, FieldsMap},
 };
+use sea_orm::{
+    Value,
+    sea_query::{ColumnType, StringLen},
+};
+use std::io::ErrorKind;
+use tokio::fs::File;
 
 /// Accepts an upload path in several forms:
 /// - `"media/avatars"` (&str)
@@ -71,7 +77,7 @@ pub(crate) fn is_staged_upload(path: &str) -> bool {
 pub(crate) async fn cleanup_files(files: &[String]) {
     for path in files.iter().filter(|p| is_staged_upload(p)) {
         if let Err(e) = tokio::fs::remove_file(path).await
-            && e.kind() != std::io::ErrorKind::NotFound
+            && e.kind() != ErrorKind::NotFound
         {
             tracing::warn!(path = %path, error = %e, "cleanup_files: remove failed");
         }
@@ -127,7 +133,7 @@ pub(crate) async fn ensure_safe_upload_dir(root: &Path, parent: &Path) -> Result
                     current.display()
                 ));
             }
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            Err(error) if error.kind() == ErrorKind::NotFound => {
                 tokio::fs::create_dir(&current)
                     .await
                     .map_err(|e| format!("upload dir '{}': {e}", current.display()))?;
@@ -165,7 +171,7 @@ pub(crate) async fn ensure_safe_upload_dir(root: &Path, parent: &Path) -> Result
 /// field is left as it is, even when its text contains a comma. A path that
 /// is not a staged upload — a file already stored — is left on disk and in
 /// the field.
-pub(crate) async fn discard_staged_uploads(fields: &mut crate::utils::aliases::FieldsMap) {
+pub(crate) async fn discard_staged_uploads(fields: &mut FieldsMap) {
     for field in fields.values_mut() {
         let kind = field.field_type().to_string();
         match kind.as_str() {
@@ -211,7 +217,7 @@ pub(crate) async fn is_valid_image_content(path: &str) -> bool {
     if path.to_lowercase().ends_with(".svg") {
         return false;
     }
-    let Ok(mut f) = tokio::fs::File::open(path).await else {
+    let Ok(mut f) = File::open(path).await else {
         return false;
     };
     let mut buf = [0u8; 12];
@@ -529,11 +535,11 @@ impl FileField {
 
 #[async_trait]
 impl FormField for FileField {
-    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        crate::forms::data::column_value::read_field(
+    fn to_value(&self) -> Result<Option<Value>, String> {
+        read_field(
             &self.base,
             &self.base.value,
-            sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
+            ColumnType::String(StringLen::None),
         )
     }
 

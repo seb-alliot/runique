@@ -2,6 +2,7 @@
 use crate::utils::aliases::ARlockmap;
 use std::{
     collections::HashMap,
+    path::Path,
     sync::{Arc, RwLock},
 };
 use tower_http::services::ServeDir;
@@ -27,6 +28,6 @@ pub fn new_registry() -> ARlockmap {
 /// use tower_http::services::ServeDir;
 /// let serve = ServeDir::new("./static");
 /// ```
-pub fn new_serve<P: AsRef<std::path::Path>>(path: P) -> ServeDir {
+pub fn new_serve<P: AsRef<Path>>(path: P) -> ServeDir {
     ServeDir::new(path)
 }

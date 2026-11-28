@@ -1,5 +1,5 @@
 //! SeaORM entity `eihwaz_groupes` — admin permission groups.
-use crate::schema::pk::Pk;
+use crate::schema::{ModelSchema, PrimaryKeyDef, pk::Pk};
 use sea_orm::entity::prelude::*;
 
 /// SeaORM model for `eihwaz_groupes`: a named permission group, linked to
@@ -56,7 +56,7 @@ impl ActiveModelBehavior for ActiveModel {}
 
 /// The `eihwaz_groupes` table as the migration creates it, for the admin's
 /// form and its boot checks.
-pub fn schema() -> crate::schema::ModelSchema {
+pub fn schema() -> ModelSchema {
     use crate::schema::ColumnDef;
     // The responsable is an account: its column is typed like the accounts' key.
     #[cfg(feature = "pk-uuid")]
@@ -65,13 +65,9 @@ pub fn schema() -> crate::schema::ModelSchema {
     let account = |name: &str| ColumnDef::new(name).big_integer();
     #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
     let account = |name: &str| ColumnDef::new(name).integer();
-    crate::schema::ModelSchema::new("EihwazGroupes")
+    ModelSchema::new("EihwazGroupes")
         .table_name("eihwaz_groupes")
-        .primary_key(
-            crate::schema::PrimaryKeyDef::new("id")
-                .i32()
-                .auto_increment(),
-        )
+        .primary_key(PrimaryKeyDef::new("id").i32().auto_increment())
         .column(ColumnDef::new("nom").string().required().unique())
         .column(
             // NOT NULL by default; `required` would make the box "must be checked".

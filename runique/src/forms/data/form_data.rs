@@ -4,7 +4,13 @@
 //!
 //! A value that can't be read is an error the caller shows on the form — never
 //! a default (`0`, `false`) saved in its place.
-use crate::{translation::tf, utils::aliases::StrMap};
+use crate::{
+    security::password::{PasswordService, hash, password_get},
+    translation::tf,
+    utils::aliases::StrMap,
+};
+use sea_orm::DbErr;
+use std::error::Error;
 
 /// Why a value from the form data can't be saved.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -28,13 +34,13 @@ impl std::fmt::Display for FormDataError {
     }
 }
 
-impl std::error::Error for FormDataError {}
+impl Error for FormDataError {}
 
 /// So the generated code can use `?` inside create/update functions, which
 /// return a `DbErr`: the admin shows a `Custom` error on the form.
-impl From<FormDataError> for sea_orm::DbErr {
+impl From<FormDataError> for DbErr {
     fn from(e: FormDataError) -> Self {
-        sea_orm::DbErr::Custom(e.to_string())
+        DbErr::Custom(e.to_string())
     }
 }
 
@@ -61,17 +67,15 @@ pub fn required<T>(value: Option<T>, name: &str) -> Result<T, FormDataError> {
 /// The password of an account created for someone else: a random one,
 /// hashed, that nobody knows — its owner sets theirs from the email link.
 pub fn unknown_password(name: &str) -> Result<String, FormDataError> {
-    crate::security::password::hash(&uuid::Uuid::new_v4().to_string())
-        .map_err(|_| FormDataError::Password(name.to_string()))
+    hash(&uuid::Uuid::new_v4().to_string()).map_err(|_| FormDataError::Password(name.to_string()))
 }
 
 /// What to store for a password: kept as is when it's already a hash (the
 /// form's `finalize` hashed it), hashed otherwise. A failed hash is an error.
 pub fn password(value: &str, name: &str) -> Result<String, FormDataError> {
-    let service =
-        crate::security::password::PasswordService::new(crate::security::password::password_get());
+    let service = PasswordService::new(password_get());
     if service.is_already_hashed(value) {
         return Ok(value.to_string());
     }
-    crate::security::password::hash(value).map_err(|_| FormDataError::Password(name.to_string()))
+    hash(value).map_err(|_| FormDataError::Password(name.to_string()))
 }

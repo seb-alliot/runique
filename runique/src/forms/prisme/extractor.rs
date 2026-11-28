@@ -1,10 +1,14 @@
 //! Prisme: non-generic CSRF + body extractor integrated into the Request pipeline.
 use crate::{
     forms::prisme::{BodyRefusal, aegis, multipart::StagingDir},
-    security::{constants::CSRF_TOKEN_KEY, csrf::unmask_csrf_token},
+    security::{
+        constants::CSRF_TOKEN_KEY,
+        csrf::{CsrfToken, unmask_csrf_token},
+    },
     translation::t,
     utils::aliases::{AEngine, StrMap, StrVecMap},
 };
+use std::sync::Arc;
 
 use axum::{
     body::Body,
@@ -25,7 +29,7 @@ pub struct Prisme {
     /// `.staging-*` directory this request created. `None` when the body wrote
     /// no file. [`Request`](crate::http::Request) drops it when the request
     /// ends; the last clone removes the directory.
-    pub(crate) staging: Option<std::sync::Arc<StagingDir>>,
+    pub(crate) staging: Option<Arc<StagingDir>>,
 }
 
 impl Prisme {
@@ -73,7 +77,7 @@ where
 
     let csrf_session = req
         .extensions()
-        .get::<crate::security::csrf::CsrfToken>()
+        .get::<CsrfToken>()
         .cloned()
         .ok_or_else(|| {
             BodyRefusal::Status(
@@ -124,7 +128,7 @@ where
     Ok(Prisme {
         data,
         csrf_valid,
-        staging: staging.map(|lease| std::sync::Arc::new(StagingDir::from_lease(lease))),
+        staging: staging.map(|lease| Arc::new(StagingDir::from_lease(lease))),
     })
 }
 

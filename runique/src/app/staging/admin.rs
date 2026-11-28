@@ -1,4 +1,7 @@
 //! Admin panel staging: configuration, routes, and the registered models.
+use crate::translation::t;
+use axum::routing::MethodRouter;
+use tracing::Level;
 
 use crate::{
     admin::{AdminConfig, builder::site::AdminSite, router::AdminView, template::AdminTemplate},
@@ -12,7 +15,7 @@ pub(crate) struct DeclaredAdminRoute {
     pub(crate) path: String,
     pub(crate) name: String,
     pub(crate) model_key: String,
-    pub(crate) handler: axum::routing::MethodRouter,
+    pub(crate) handler: MethodRouter,
     pub(crate) overrides: AdminView,
 }
 
@@ -265,11 +268,9 @@ impl AdminStaging {
             report.add(
                 CheckError::new(
                     "AdminPanel",
-                    crate::translation::t(runique_i18n::keys::build::error::ADMIN_PREFIX_EMPTY),
+                    t(runique_i18n::keys::build::error::ADMIN_PREFIX_EMPTY),
                 )
-                .with_suggestion(crate::translation::t(
-                    runique_i18n::keys::build::hint::ADMIN_PREFIX_EMPTY,
-                )),
+                .with_suggestion(t(runique_i18n::keys::build::hint::ADMIN_PREFIX_EMPTY)),
             );
         }
 
@@ -402,7 +403,7 @@ impl AdminStaging {
                 robots_txt = self.robots_txt,
                 sitemap = ?self.sitemap_url,
                 "{}",
-                crate::translation::t(runique_i18n::keys::admin::log::BOOT_ADMIN)
+                t(runique_i18n::keys::admin::log::BOOT_ADMIN)
             );
             for model in self.site.models() {
                 let summary = model.boot_summary();
@@ -414,7 +415,7 @@ impl AdminStaging {
                     filters = summary.filters,
                     actions = summary.actions,
                     form_fields = summary.form_fields,
-                    "{}", crate::translation::t(runique_i18n::keys::admin::log::BOOT_MODEL)
+                    "{}", t(runique_i18n::keys::admin::log::BOOT_MODEL)
                 );
             }
             for route in &self.declared_routes {
@@ -424,18 +425,14 @@ impl AdminStaging {
                     name = %route.name,
                     model = %route.model_key,
                     overrides = ?route.overrides,
-                    "{}", crate::translation::t(runique_i18n::keys::admin::log::BOOT_ROUTE)
+                    "{}", t(runique_i18n::keys::admin::log::BOOT_ROUTE)
                 );
             }
         }
 
-        let warn = level.unwrap_or(tracing::Level::WARN);
+        let warn = level.unwrap_or(Level::WARN);
         if !dev && self.config.login_guard.is_none() && self.config.rate_limiter.is_none() {
-            crate::runique_log!(
-                warn,
-                "{}",
-                crate::translation::t(runique_i18n::keys::admin::log::BOOT_NO_GUARD)
-            );
+            crate::runique_log!(warn, "{}", t(runique_i18n::keys::admin::log::BOOT_NO_GUARD));
         }
         for model in self.site.project_models() {
             let without_effect = model.boot_summary().without_effect;
@@ -444,7 +441,7 @@ impl AdminStaging {
                     warn,
                     key = model.key(),
                     options = %without_effect.join(", "),
-                    "{}", crate::translation::t(runique_i18n::keys::admin::log::BOOT_OPTIONS_WITHOUT_EFFECT)
+                    "{}", t(runique_i18n::keys::admin::log::BOOT_OPTIONS_WITHOUT_EFFECT)
                 );
             }
         }

@@ -1,9 +1,10 @@
 //! `RuniqueUser` trait: minimal contract for any Runique user model.
+use crate::schema::pk::Pk;
 
 /// Contract to implement on any user model for framework integration.
 pub trait RuniqueUser: Send + Sync {
     /// Primary key of the user record.
-    fn user_id(&self) -> crate::schema::pk::Pk;
+    fn user_id(&self) -> Pk;
     /// Login name (unique).
     fn username(&self) -> &str;
     /// Email address (unique).

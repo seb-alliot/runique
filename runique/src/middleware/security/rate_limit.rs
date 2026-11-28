@@ -1,14 +1,15 @@
 //! Rate limiter by key (IP or other) with a fixed window and 429 response.
-use crate::translation::t;
+use crate::{middleware::security::trusted_proxies::ClientIp, translation::t};
 use axum::{
     body::Body,
-    extract::State,
+    extract::{ConnectInfo, State},
     http::{Method, Request, StatusCode, header},
     middleware::Next,
     response::{IntoResponse, Response},
 };
 use std::{
     collections::HashMap,
+    net::{IpAddr, SocketAddr},
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
@@ -166,12 +167,12 @@ impl std::fmt::Debug for RateLimiter {
 /// The limiter's key for a client. An IPv6 subscriber holds a whole /64:
 /// keyed on the full address, each of its addresses would get an allowance of
 /// its own, and a row in the store. One key per /64 instead.
-fn limiter_key(ip: std::net::IpAddr) -> String {
+fn limiter_key(ip: IpAddr) -> String {
     // An IPv4 client seen through an IPv6 socket (`::ffff:1.2.3.4`) is an
     // IPv4 client: left as IPv6, all of them would share one /64.
     match ip.to_canonical() {
-        std::net::IpAddr::V4(v4) => v4.to_string(),
-        std::net::IpAddr::V6(v6) => {
+        IpAddr::V4(v4) => v4.to_string(),
+        IpAddr::V6(v6) => {
             let s = v6.segments();
             format!("{:x}:{:x}:{:x}:{:x}::/64", s[0], s[1], s[2], s[3])
         }
@@ -179,15 +180,12 @@ fn limiter_key(ip: std::net::IpAddr) -> String {
 }
 
 /// The client's address: the one `trusted_proxies` resolved, else the peer's.
-fn client_ip(req: &Request<Body>) -> Option<std::net::IpAddr> {
-    req.extensions()
-        .get::<crate::middleware::security::trusted_proxies::ClientIp>()
-        .map(|c| c.0)
-        .or_else(|| {
-            req.extensions()
-                .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
-                .map(|ci| ci.0.ip())
-        })
+fn client_ip(req: &Request<Body>) -> Option<IpAddr> {
+    req.extensions().get::<ClientIp>().map(|c| c.0).or_else(|| {
+        req.extensions()
+            .get::<ConnectInfo<SocketAddr>>()
+            .map(|ci| ci.0.ip())
+    })
 }
 
 /// Rate limiting middleware — to be applied on sensitive routes (login, etc.)

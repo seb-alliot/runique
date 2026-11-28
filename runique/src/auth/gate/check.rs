@@ -15,7 +15,8 @@ use crate::{
     utils::aliases::ADb,
 };
 use sea_orm::{
-    ColumnTrait, Condition, IdenStatic, Iterable, PrimaryKeyToColumn, QueryFilter, QuerySelect,
+    ColumnTrait, Condition, DbErr, IdenStatic, Iterable, PrimaryKeyToColumn, QueryFilter,
+    QuerySelect,
 };
 
 /// Who asks, and where to look the rows up.
@@ -25,7 +26,7 @@ pub struct GateCtx<'a> {
 }
 
 /// A lookup the gate needs failed: refused, never let through.
-fn lookup_failed(e: sea_orm::DbErr) -> Refusal {
+fn lookup_failed(e: DbErr) -> Refusal {
     tracing::warn!(error = %e, "admin gate: lookup failed, action refused");
     Refusal::new(RefusalReason::LookupFailed)
 }

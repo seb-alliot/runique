@@ -3,6 +3,8 @@
 //! This module provides flexible configuration for connecting to different
 //! databases (PostgreSQL, MySQL, SQLite) via SeaORM.
 #![doc = include_str!("../../doc-tests/db/db_config_module.md")]
+use crate::config::env::flag_from;
+use tracing::log::LevelFilter;
 
 use dotenvy::dotenv;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr, RuntimeErr};
@@ -392,7 +394,7 @@ impl DatabaseConfig {
             builder.config.max_lifetime = Duration::from_secs(n);
         }
         if let Some(v) = get("DB_LOGGING") {
-            builder.config.sqlx_logging = crate::config::env::flag_from(&v).unwrap_or(false);
+            builder.config.sqlx_logging = flag_from(&v).unwrap_or(false);
         }
 
         // The fallback connects with the same pool and timeouts.
@@ -534,7 +536,7 @@ impl DatabaseConfig {
             .idle_timeout(self.idle_timeout)
             .max_lifetime(self.max_lifetime)
             .sqlx_logging(self.sqlx_logging)
-            .sqlx_logging_level(tracing::log::LevelFilter::Off);
+            .sqlx_logging_level(LevelFilter::Off);
 
         match Database::connect(opt).await {
             Ok(conn) => {

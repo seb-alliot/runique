@@ -1,4 +1,6 @@
 //! `ModelSchema`: single source of truth for a model — columns, primary keys, FKs, indexes, hooks.
+use crate::forms::Forms;
+use std::collections::HashSet;
 pub mod column;
 pub mod foreign_key;
 pub mod hooks;
@@ -164,12 +166,7 @@ impl ModelSchema {
     ///
     /// If `fields` is provided, `exclude` is ignored.
     /// The PK is always excluded.
-    pub fn fill_form(
-        &self,
-        form: &mut crate::forms::Forms,
-        fields: Option<&[&str]>,
-        exclude: Option<&[&str]>,
-    ) {
+    pub fn fill_form(&self, form: &mut Forms, fields: Option<&[&str]>, exclude: Option<&[&str]>) {
         // Columns always auto-excluded: PK
         let pk_name = self.primary_key.as_ref().map(|pk| pk.name.as_str());
 
@@ -217,7 +214,7 @@ impl ModelSchema {
     /// `fill_form`: a `password` column must stay a password field (hashed,
     /// never sent back), an integer column an integer field. Every field of a
     /// column also gets that column's type.
-    pub fn enforce_limits(&self, form: &mut crate::forms::Forms) {
+    pub fn enforce_limits(&self, form: &mut Forms) {
         use runique_dsl::types::Widget;
 
         for col in self.columns.iter().filter(|c| !c.ignored) {
@@ -350,10 +347,8 @@ impl ModelSchema {
         let mut diff = SchemaDiff::new(&self.table_name);
 
         // Added columns
-        let self_cols: std::collections::HashSet<&str> =
-            self.columns.iter().map(|c| c.name.as_str()).collect();
-        let other_cols: std::collections::HashSet<&str> =
-            other.columns.iter().map(|c| c.name.as_str()).collect();
+        let self_cols: HashSet<&str> = self.columns.iter().map(|c| c.name.as_str()).collect();
+        let other_cols: HashSet<&str> = other.columns.iter().map(|c| c.name.as_str()).collect();
 
         for name in other_cols.difference(&self_cols) {
             let col = other.columns.iter().find(|c| c.name == *name).unwrap();

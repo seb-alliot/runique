@@ -1,9 +1,15 @@
 //! `RuniqueEngine` implementation — construction, middleware attachment, store access.
 use crate::{
+    auth::BuiltinUserEntity,
     engine::{SecurityPolicies, SessionStores},
+    schema::pk::Pk,
     utils::aliases::{ADb, ARlockmap, ARuniqueConfig, ATera, new, new_registry},
 };
-use std::{any::TypeId, collections::HashMap, sync::Arc};
+use std::{
+    any::{Any, TypeId},
+    collections::HashMap,
+    sync::Arc,
+};
 use tera::Tera;
 
 use crate::{config::RuniqueConfig, middleware::MiddlewareConfig};
@@ -33,7 +39,7 @@ pub struct RuniqueEngine {
     pub sessions: SessionStores,
     /// Extension map — custom external connections registered via `with_custom_db()`.
     /// Keyed by `TypeId`, supports multiple types simultaneously.
-    pub extensions: HashMap<TypeId, Arc<dyn std::any::Any + Send + Sync>>,
+    pub extensions: HashMap<TypeId, Arc<dyn Any + Send + Sync>>,
 }
 
 impl RuniqueEngine {
@@ -80,11 +86,8 @@ impl RuniqueEngine {
     /// in a store plugged in with `with_session_store()` too; then its rows in
     /// `eihwaz_sessions` and its copies in memory go. On a database error the
     /// error is returned and the sessions may survive: try again.
-    pub async fn close_user_sessions(
-        &self,
-        user_id: crate::schema::pk::Pk,
-    ) -> Result<(), sea_orm::DbErr> {
-        crate::auth::BuiltinUserEntity::increase_session_version(&self.db, user_id).await?;
+    pub async fn close_user_sessions(&self, user_id: Pk) -> Result<(), sea_orm::DbErr> {
+        BuiltinUserEntity::increase_session_version(&self.db, user_id).await?;
         if let Some(store) = &self.sessions.database {
             store.invalidate_all(user_id).await?;
         }
@@ -95,7 +98,7 @@ impl RuniqueEngine {
     /// Drops the memory copies of `user_id`'s sessions. Cleanup only: the
     /// database decides whether a session lives, so this runs once the rows
     /// are gone, as after a password reset's transaction.
-    pub(crate) async fn forget_user_sessions(&self, user_id: crate::schema::pk::Pk) {
+    pub(crate) async fn forget_user_sessions(&self, user_id: Pk) {
         if let Some(store) = &self.sessions.memory {
             store.invalidate_user_sessions(user_id).await;
         }
@@ -116,14 +119,14 @@ impl RuniqueEngine {
     /// let redis = req.engine.extension::<redis::Client>();
     /// let mongo = req.engine.extension::<mongodb::Client>();
     /// ```
-    pub fn extension<T: std::any::Any + Send + Sync + 'static>(&self) -> Option<Arc<T>> {
+    pub fn extension<T: Any + Send + Sync + 'static>(&self) -> Option<Arc<T>> {
         self.extensions
             .get(&TypeId::of::<T>())
             .and_then(|arc| arc.clone().downcast::<T>().ok())
     }
 
     /// Alias for [`extension`](Self::extension) — kept for backward compatibility.
-    pub fn custom_db<T: std::any::Any + Send + Sync + 'static>(&self) -> Option<Arc<T>> {
+    pub fn custom_db<T: Any + Send + Sync + 'static>(&self) -> Option<Arc<T>> {
         self.extension::<T>()
     }
 }

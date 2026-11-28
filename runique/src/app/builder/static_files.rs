@@ -4,8 +4,12 @@ use super::RuniqueAppBuilder;
 use crate::config::RuniqueConfig;
 use axum::{
     Router,
-    http::{HeaderName, HeaderValue},
+    extract::Request,
+    http::{HeaderName, HeaderValue, StatusCode},
+    middleware::Next,
+    response::Response,
 };
+use std::borrow::Cow;
 use tower_http::{services::ServeDir, set_header::SetResponseHeaderLayer};
 
 /// Policy of every media response: no script, no plugin, whatever the file
@@ -15,16 +19,13 @@ const MEDIA_CSP: &str = "script-src 'none'; object-src 'none'; base-uri 'none'; 
 /// 404 for any path segment starting with a dot, decoded first (`%2E` is a
 /// dot to `ServeDir`): uploads wait in `.staging-*` folders under the media
 /// root until their form is checked, and must not be reachable meanwhile.
-async fn hide_dot_segments(
-    req: axum::extract::Request,
-    next: axum::middleware::Next,
-) -> axum::response::Response {
+async fn hide_dot_segments(req: Request, next: Next) -> Response {
     use axum::response::IntoResponse;
     let hidden = req.uri().path().split('/').any(|segment| {
         urlencoding::decode(segment).map_or(true, |decoded| decoded.starts_with('.'))
     });
     if hidden {
-        return axum::http::StatusCode::NOT_FOUND.into_response();
+        return StatusCode::NOT_FOUND.into_response();
     }
     next.run(req).await
 }
@@ -33,8 +34,8 @@ impl<P> RuniqueAppBuilder<P> {
     pub(super) fn attach_static_files(
         mut router: Router,
         config: &RuniqueConfig,
-        static_cache: std::borrow::Cow<'static, str>,
-        media_cache: std::borrow::Cow<'static, str>,
+        static_cache: Cow<'static, str>,
+        media_cache: Cow<'static, str>,
     ) -> Router {
         // HSTS is host-scoped: once any page emits it (via the CSP middleware,
         // gated + configured by `SecurityConfig::hsts_header_value`), the browser

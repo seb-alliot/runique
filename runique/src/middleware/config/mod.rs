@@ -3,6 +3,7 @@
 //! The settings a developer writes in `.middleware(|m| ...)` are here too, one
 //! file per middleware: the application's builder (`app::staging`) takes them
 //! from this folder.
+use crate::config::env::dev_from;
 pub mod compression_config;
 pub mod cors_config;
 pub mod csp_config;
@@ -64,9 +65,7 @@ impl MiddlewareConfig {
             // Host validation configured only via the builder
             enable_host_validation: false,
             enable_debug_errors: true, // always mounted — config.debug handles content
-            enable_cache: !crate::config::env::dev_from(
-                std::env::var("RUNIQUE_ENV").ok().as_deref(),
-            ),
+            enable_cache: !dev_from(std::env::var("RUNIQUE_ENV").ok().as_deref()),
             exclusive_login: false,
         }
     }

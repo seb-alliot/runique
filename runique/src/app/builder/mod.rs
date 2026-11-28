@@ -1,4 +1,5 @@
 //! RuniqueAppBuilder — collection phase: stores configuration without executing it.
+use std::any::Any;
 mod build;
 mod checks;
 mod routes;
@@ -388,7 +389,7 @@ impl<S> RuniqueAppBuilder<S> {
     /// let mongo = mongodb::Client::with_options(opts)?.into();
     /// RuniqueApp::builder(config).with_custom_db(mongo)
     /// ```
-    pub fn with_custom_db<T: std::any::Any + Send + Sync + 'static>(mut self, db: T) -> Self {
+    pub fn with_custom_db<T: Any + Send + Sync + 'static>(mut self, db: T) -> Self {
         self.core = self.core.with_extra_db(db);
         self
     }
