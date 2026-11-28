@@ -1,4 +1,5 @@
 //! The page each admin view renders: Runique's, or the developer's override.
+use std::collections::HashMap;
 
 /// Admin template path — with fallback to Runique default.
 ///
@@ -122,7 +123,7 @@ pub struct AdminTemplate {
     pub global_blocks: super::block::Overrides<super::block::GlobalBlock>,
     /// The sheet of a page the developer replaced: loaded alone, after the
     /// variables. Without one, his page gets Runique's sheets.
-    pub page_stylesheets: std::collections::HashMap<super::stylesheet::Page, String>,
+    pub page_stylesheets: HashMap<super::stylesheet::Page, String>,
 }
 
 impl AdminTemplate {
@@ -276,8 +277,8 @@ impl Default for AdminTemplate {
 #[derive(Clone, Debug, Default)]
 pub struct ModelTemplates {
     pub(crate) blocks: super::block::ModelBlocks,
-    pub(crate) pages: std::collections::HashMap<super::stylesheet::Page, String>,
-    pub(crate) page_stylesheets: std::collections::HashMap<super::stylesheet::Page, String>,
+    pub(crate) pages: HashMap<super::stylesheet::Page, String>,
+    pub(crate) page_stylesheets: HashMap<super::stylesheet::Page, String>,
 }
 
 impl ModelTemplates {

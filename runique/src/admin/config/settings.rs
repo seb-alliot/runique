@@ -1,4 +1,5 @@
 //! Admin panel configuration: prefix, title, hot reload, and templates.
+use crate::{admin::builder::list::FILTER_PAGE_SIZE, auth::password::ResetLinkConfig};
 use std::sync::Arc;
 
 use crate::{
@@ -41,7 +42,7 @@ pub struct AdminConfig {
     /// Where the admin's emailed links lead and how long they work: set by
     /// the builder from `with_password_reset()`. `None` without it: the site
     /// serves no reset page, the admin sends no link.
-    pub reset_link: Option<crate::auth::password::ResetLinkConfig>,
+    pub reset_link: Option<ResetLinkConfig>,
 
     /// Tera template for the password reset email from the admin.
     /// Default: "admin/reset_password_email.html"
@@ -102,7 +103,7 @@ impl AdminConfig {
             enabled: true,
             templates: AdminTemplate::new(),
             page_size: 10,
-            filter_size: crate::admin::builder::list::FILTER_PAGE_SIZE,
+            filter_size: FILTER_PAGE_SIZE,
             search_max_len: 150,
             reset_link: None,
             reset_password_email_template: None,

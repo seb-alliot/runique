@@ -9,6 +9,7 @@ use crate::{
             routes::AdminState,
             unknown_resource,
         },
+        template::Page,
         translation::insert_admin_messages,
     },
     auth::current_user::CurrentUser,
@@ -47,14 +48,7 @@ pub(crate) async fn edit_view(
     let key = model.key();
     let cancel_url = admin.paths.detail_of(&site, key, &id);
 
-    chrome(
-        &mut req,
-        &admin,
-        &site,
-        &user,
-        key,
-        crate::admin::template::Page::Edit,
-    );
+    chrome(&mut req, &admin, &site, &user, key, Page::Edit);
     insert_admin_messages(&mut req.context, "edit");
     put(
         &mut req,
@@ -78,6 +72,6 @@ pub(crate) async fn edit_view(
         admin
             .config
             .templates
-            .page_for(crate::admin::template::Page::Edit, Some(model.templates())),
+            .page_for(Page::Edit, Some(model.templates())),
     )
 }

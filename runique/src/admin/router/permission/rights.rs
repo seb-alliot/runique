@@ -2,7 +2,11 @@
 //! ticked by a dirigeant or the superuser, table by table, column by column.
 use crate::{
     admin::{
-        builder::{confirm_form::ConfirmForm, registered::AdminError, site::AdminSite},
+        builder::{
+            confirm_form::ConfirmForm,
+            registered::{AdminError, RegisteredModel},
+            site::AdminSite,
+        },
         constants::admin_form,
         router::{
             chrome,
@@ -11,29 +15,34 @@ use crate::{
             routes::AdminState,
             unknown_resource,
         },
+        template::Page,
+        translation::insert_admin_messages,
     },
     auth::{
+        constants::resource_key::{FRAMEWORK_KEYS, GROUPES},
         current_user::CurrentUser,
         gate::{
             Refusal,
             refusal::RefusalReason,
-            rights_grid::{ColumnGrant, TableGrant, TableRights, may_set, set_admin_rights},
+            rights_grid::{
+                ADMIN_GROUP_RIGHTS, ColumnGrant, TableGrant, TableRights, may_set, set_admin_rights,
+            },
         },
-        permissions::group_rights,
+        permissions::{Permission, group::Model, group_rights, rank::Rang},
         user::{self, BuiltinUserEntity},
     },
     forms::{traits::runique_form::FormAccess, validation_form::ValidationForm},
     http::request::Request,
     schema::pk::Pk,
     translation::t,
-    utils::aliases::AppResult,
+    utils::aliases::{ADb, AppResult, StrMap},
 };
 use axum::{
     Extension,
-    extract::Path,
+    extract::{Path, Query},
     response::{IntoResponse, Redirect, Response},
 };
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter};
 use std::{collections::HashSet, sync::Arc};
 
 /// The table rights, as the grid shows and sends them.
@@ -106,11 +115,8 @@ fn table_flag(row: &group_rights::Model, right: &str) -> bool {
 
 /// Whether `model` belongs in the grid: every model for an admin, the
 /// developer's alone for a group (no group holds a right on the framework's).
-fn offered(
-    model: &dyn crate::admin::builder::registered::RegisteredModel,
-    for_group: bool,
-) -> bool {
-    !for_group || !crate::auth::constants::resource_key::FRAMEWORK_KEYS.contains(&model.key())
+fn offered(model: &dyn RegisteredModel, for_group: bool) -> bool {
+    !for_group || !FRAMEWORK_KEYS.contains(&model.key())
 }
 
 /// The grid of every model offered, ticked from `rows` (the holder's rows now).
@@ -125,11 +131,8 @@ fn grid(site: &AdminSite, rows: &[group_rights::Model], for_group: bool) -> Vec<
             };
             let table_row = row("");
             // On an admin's grid, the groups offer their floor alone.
-            let allowed = |right: &str| {
-                for_group
-                    || key != crate::auth::constants::resource_key::GROUPES
-                    || crate::auth::gate::rights_grid::ADMIN_GROUP_RIGHTS.contains(&right)
-            };
+            let allowed =
+                |right: &str| for_group || key != GROUPES || ADMIN_GROUP_RIGHTS.contains(&right);
             GridTable {
                 key,
                 title: model.title(),
@@ -185,13 +188,10 @@ fn sent_grid(site: &AdminSite, req: &Request, for_group: bool) -> Option<Vec<Tab
         let key = model.key();
         // A box the grid doesn't offer stays unknown: sent anyway, it refuses
         // the whole save (the groups' floor on an admin's grid).
-        let floor = !for_group && key == crate::auth::constants::resource_key::GROUPES;
+        let floor = !for_group && key == GROUPES;
         let mut ticked = |name: String| {
             let right = name.rsplit("__").next().unwrap_or_default();
-            if floor
-                && name.starts_with("t__")
-                && !crate::auth::gate::rights_grid::ADMIN_GROUP_RIGHTS.contains(&right)
-            {
+            if floor && name.starts_with("t__") && !ADMIN_GROUP_RIGHTS.contains(&right) {
                 return false;
             }
             let on = sent.contains(name.as_str());
@@ -239,7 +239,7 @@ pub(crate) async fn rights_view(
         return unknown_resource(&resource);
     };
     let not_found = || AdminError::Refused(Refusal::new(RefusalReason::NotFound));
-    if model.key() == crate::auth::constants::resource_key::GROUPES {
+    if model.key() == GROUPES {
         return group_rights(id, site, admin, user, req).await;
     }
     if !model.is_account_table() {
@@ -266,7 +266,7 @@ pub(crate) async fn rights_view(
                 Some(grants) => set_admin_rights(&user, target, &grants, &req.engine.db)
                     .await
                     .map_err(|e| match e {
-                        sea_orm::DbErr::Custom(message) => message,
+                        DbErr::Custom(message) => message,
                         other => {
                             tracing::error!(error = %other, "admin rights grid write failed");
                             Refusal::new(RefusalReason::WriteFailed).message()
@@ -294,15 +294,8 @@ pub(crate) async fn rights_view(
         Err(e) => return failure(AdminError::Db(e), &req, &admin).await,
     };
     let form_fields = serde_json::to_value(form.forms()).unwrap_or_default();
-    chrome(
-        &mut req,
-        &admin,
-        &site,
-        &user,
-        key,
-        crate::admin::template::Page::Rights,
-    );
-    crate::admin::translation::insert_admin_messages(&mut req.context, "rights");
+    chrome(&mut req, &admin, &site, &user, key, Page::Rights);
+    insert_admin_messages(&mut req.context, "rights");
     put(
         &mut req,
         &RightsContext {
@@ -327,10 +320,7 @@ pub(crate) async fn rights_view(
 /// `tables` cut down to what `holder`, an admin's own grid, lets him give:
 /// a table he holds no right on is left out, name included, and so is each
 /// right he lacks (his full right covering an `_own` one).
-fn within_holder(
-    tables: Vec<GridTable>,
-    holder: &[crate::auth::permissions::Permission],
-) -> Vec<GridTable> {
+fn within_holder(tables: Vec<GridTable>, holder: &[Permission]) -> Vec<GridTable> {
     tables
         .into_iter()
         .filter_map(|mut table| {
@@ -395,7 +385,7 @@ async fn group_rights(
     if may_set_group(&user, &group).is_err() {
         return failure(not_found(), &req, &admin).await;
     }
-    let key = crate::auth::constants::resource_key::GROUPES;
+    let key = GROUPES;
     let back = admin.paths.detail_of(&site, key, &id);
 
     let form = req.form::<ConfirmForm<group::Entity>>(admin_form::RIGHTS);
@@ -407,7 +397,7 @@ async fn group_rights(
                 Some(grants) => set_group_rights(&user, group_id, &grants, &req.engine.db)
                     .await
                     .map_err(|e| match e {
-                        sea_orm::DbErr::Custom(message) => message,
+                        DbErr::Custom(message) => message,
                         other => {
                             tracing::error!(error = %other, "group rights grid write failed");
                             Refusal::new(RefusalReason::WriteFailed).message()
@@ -438,7 +428,7 @@ async fn group_rights(
     // An admin is offered only what he may give: neither a table nor a
     // column he holds no right on shows, not even by its name.
     let mut tables = grid(&site, &rows, true);
-    if user.rang == crate::auth::permissions::rank::Rang::Admin {
+    if user.rang == Rang::Admin {
         tables = within_holder(tables, &user.droits);
     }
     let group_choices = match managed_groups(&user, &req.engine.db).await {
@@ -449,15 +439,8 @@ async fn group_rights(
         Err(e) => return failure(AdminError::Db(e), &req, &admin).await,
     };
     let form_fields = serde_json::to_value(form.forms()).unwrap_or_default();
-    chrome(
-        &mut req,
-        &admin,
-        &site,
-        &user,
-        key,
-        crate::admin::template::Page::Rights,
-    );
-    crate::admin::translation::insert_admin_messages(&mut req.context, "rights");
+    chrome(&mut req, &admin, &site, &user, key, Page::Rights);
+    insert_admin_messages(&mut req.context, "rights");
     put(
         &mut req,
         &RightsContext {
@@ -480,10 +463,7 @@ async fn group_rights(
 }
 
 /// The groups `user` may set, by name (see the gate's `managed_groups`).
-pub(crate) async fn managed_groups(
-    user: &CurrentUser,
-    db: &crate::utils::aliases::ADb,
-) -> Result<Vec<crate::auth::permissions::group::Model>, sea_orm::DbErr> {
+pub(crate) async fn managed_groups(user: &CurrentUser, db: &ADb) -> Result<Vec<Model>, DbErr> {
     crate::auth::gate::membership::managed_groups(user, db).await
 }
 
@@ -494,7 +474,7 @@ pub(crate) async fn managed_groups(
 pub(crate) async fn group_select_view(
     Extension(admin): Extension<Arc<AdminState>>,
     Extension(user): Extension<CurrentUser>,
-    axum::extract::Query(params): axum::extract::Query<crate::utils::aliases::StrMap>,
+    Query(params): Query<StrMap>,
     req: Request,
 ) -> AppResult<Response> {
     use crate::auth::{gate::rights_grid::may_set_group, permissions::group};
@@ -525,10 +505,7 @@ pub(crate) async fn group_select_view(
     if may_set_group(&user, &group).is_err() {
         return failure(not_found(), &req, &admin).await;
     }
-    let url = admin.paths.rights_of(
-        crate::auth::constants::resource_key::GROUPES,
-        &group_id.to_string(),
-    );
+    let url = admin.paths.rights_of(GROUPES, &group_id.to_string());
     Ok(Redirect::to(&url).into_response())
 }
 

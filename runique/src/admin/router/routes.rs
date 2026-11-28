@@ -1,5 +1,18 @@
 //! Admin router: builds CRUD routes, login/logout, and attaches authentication middleware.
-use crate::log::TraceResult;
+use crate::{
+    admin::{
+        router::{AdminPaths, AdminView, refonte_router},
+        template::{Page, PageSheets},
+    },
+    auth::{authenticate_admin, current_user::CurrentUser},
+    log::TraceResult,
+    middleware::security::{csrf::log_refusal, trusted_proxies::ClientIp},
+    security::constants::CSRF_TOKEN_KEY,
+};
+use axum::{
+    extract::Query,
+    http::{StatusCode, header::CACHE_CONTROL},
+};
 use std::sync::Arc;
 
 use axum::{
@@ -41,9 +54,9 @@ pub struct AdminState {
     pub config: Arc<AdminConfig>,
     pub login_guard: Option<Arc<LoginGuard>>,
     /// Every admin route's path, under the public prefix.
-    pub paths: crate::admin::router::AdminPaths,
+    pub paths: AdminPaths,
     /// Every page's stylesheets, resolved and hashed at boot.
-    pub sheets: Arc<crate::admin::template::PageSheets>,
+    pub sheets: Arc<PageSheets>,
 }
 
 #[derive(Clone)]
@@ -98,10 +111,9 @@ pub(crate) async fn admin_no_store(
     let protect = policy.protects(request.uri().path());
     let mut response = next.run(request).await;
     if protect {
-        response.headers_mut().insert(
-            axum::http::header::CACHE_CONTROL,
-            HeaderValue::from_static("no-store"),
-        );
+        response
+            .headers_mut()
+            .insert(CACHE_CONTROL, HeaderValue::from_static("no-store"));
     }
     response
 }
@@ -155,10 +167,7 @@ struct AdminLogin {
 /// all mounted under the resolved public prefix (`mount_prefix` + admin's own
 /// `path`) and wrapped with the auth-required, session-loading and
 /// `X-Robots-Tag: noindex` layers.
-pub fn build_admin_router(
-    admin_staging: AdminStaging,
-    sheets: crate::admin::template::PageSheets,
-) -> Router {
+pub fn build_admin_router(admin_staging: AdminStaging, sheets: PageSheets) -> Router {
     // Two independent values, never in competition:
     //   `admin_path`   — the admin's own path (`/site-admin`), from `.routes()`
     //   `mount_prefix` — the segment `.prefix()` puts in front (`/secret`)
@@ -188,7 +197,7 @@ pub fn build_admin_router(
         guard.spawn_cleanup(guard.cleanup_interval());
     }
 
-    let paths = crate::admin::router::AdminPaths::new(&prefix);
+    let paths = AdminPaths::new(&prefix);
     let admin_state = Arc::new(AdminState {
         config: Arc::new(config.clone()),
         login_guard,
@@ -228,12 +237,12 @@ pub fn build_admin_router(
     let declared_routes = admin_staging.declared_routes;
     let mut site = admin_staging.site;
     for route in &declared_routes {
-        if route.overrides == crate::admin::router::AdminView::Detail {
+        if route.overrides == AdminView::Detail {
             site.override_view(route.model_key.clone(), route.overrides, route.path.clone());
         }
     }
     let site = Arc::new(site);
-    let generated_router = crate::admin::router::refonte_router(&paths, site.clone());
+    let generated_router = refonte_router(&paths, site.clone());
     // Outside `load_admin_user` and `admin_access`: at the site's own paths,
     // a refusal must neither reveal the admin's prefix nor close the session.
     // `route_layer`: an unmatched path stays a 404 instead of a redirect. It
@@ -301,7 +310,7 @@ async fn admin_dashboard_redirect(Extension(admin): Extension<Arc<AdminState>>) 
 async fn admin_dashboard(
     Extension(admin): Extension<Arc<AdminState>>,
     Extension(site): Extension<Arc<AdminSite>>,
-    Extension(current_user): Extension<crate::auth::current_user::CurrentUser>,
+    Extension(current_user): Extension<CurrentUser>,
     mut req: Request,
 ) -> AppResult<Response> {
     // One query for every count; a failure leaves the counts out, traced.
@@ -325,14 +334,7 @@ async fn admin_dashboard(
 
     // The menu, rights applied, as on every page; its resources list the
     // models the dashboard counts.
-    super::chrome(
-        &mut req,
-        &admin,
-        &site,
-        &current_user,
-        "",
-        crate::admin::template::Page::Dashboard,
-    );
+    super::chrome(&mut req, &admin, &site, &current_user, "", Page::Dashboard);
     insert_admin_messages(&mut req.context, "dashboard");
     req = req
         .insert("resource_counts", &resource_counts)
@@ -351,10 +353,7 @@ async fn admin_dashboard(
 /// whether it is a staff group, and what it lets the account do, table by
 /// table. Read from the account already loaded (its effective rights, the
 /// responsable's ceiling applied), never from the framework's tables.
-fn my_groups(
-    user: &crate::auth::current_user::CurrentUser,
-    site: &AdminSite,
-) -> Vec<crate::admin::router::context::MyGroup> {
+fn my_groups(user: &CurrentUser, site: &AdminSite) -> Vec<crate::admin::router::context::MyGroup> {
     use crate::admin::router::{
         context::{MyGroup, MyGroupRight},
         permission::rights::{right_text, table_right_label},
@@ -403,16 +402,14 @@ fn my_groups(
 
 /// `load_admin_user` (outer layer) puts the account here only while the
 /// database still lets it into the admin: the session alone vouches for nothing.
-fn signed_in_admin(
-    current_user: Option<&Extension<crate::auth::current_user::CurrentUser>>,
-) -> bool {
+fn signed_in_admin(current_user: Option<&Extension<CurrentUser>>) -> bool {
     current_user.is_some_and(|Extension(user)| user.can_access_admin())
 }
 
 async fn admin_login_get(
     Extension(admin): Extension<Arc<AdminState>>,
-    axum::extract::Query(params): axum::extract::Query<StrMap>,
-    current_user: Option<Extension<crate::auth::current_user::CurrentUser>>,
+    Query(params): Query<StrMap>,
+    current_user: Option<Extension<CurrentUser>>,
     mut req: Request,
 ) -> AppResult<Response> {
     let from_logout = params.get("from").is_some_and(|v| v == "logout");
@@ -421,10 +418,8 @@ async fn admin_login_get(
     }
 
     insert_admin_messages(&mut req.context, "login");
-    req.context.insert(
-        "stylesheets",
-        admin.sheets.of(crate::admin::template::Page::Login, ""),
-    );
+    req.context
+        .insert("stylesheets", admin.sheets.of(Page::Login, ""));
     inject_admin_prefix(&mut req.context, &admin.config.prefix);
 
     req = req
@@ -436,8 +431,8 @@ async fn admin_login_get(
 
 async fn admin_login_post(
     Extension(admin): Extension<Arc<AdminState>>,
-    current_user: Option<Extension<crate::auth::current_user::CurrentUser>>,
-    client_ip: Option<Extension<crate::middleware::security::trusted_proxies::ClientIp>>,
+    current_user: Option<Extension<CurrentUser>>,
+    client_ip: Option<Extension<ClientIp>>,
     mut req: Request,
 ) -> Response {
     use crate::security::csrf::unmask_csrf_token;
@@ -450,7 +445,7 @@ async fn admin_login_post(
     // Fail fast under memory pressure: a saturated session store would refuse the new
     // session at commit time and surface as a generic 500. Return a clean 503 instead.
     if req.engine.session_store_saturated() {
-        return axum::http::StatusCode::SERVICE_UNAVAILABLE.into_response();
+        return StatusCode::SERVICE_UNAVAILABLE.into_response();
     }
     let data = AdminLogin {
         username: req.prisme.data.get("username").cloned().unwrap_or_default(),
@@ -458,7 +453,7 @@ async fn admin_login_post(
         csrf_token: req
             .prisme
             .data
-            .get(crate::security::constants::CSRF_TOKEN_KEY)
+            .get(CSRF_TOKEN_KEY)
             .cloned()
             .unwrap_or_default(),
     };
@@ -472,7 +467,7 @@ async fn admin_login_post(
         })
         .unwrap_or(false);
     if !csrf_valid {
-        crate::middleware::security::csrf::log_refusal(
+        log_refusal(
             &admin.paths.login,
             if data.csrf_token.is_empty() {
                 runique_i18n::keys::csrf::log::REASON_ADMIN_LOGIN_MISSING
@@ -481,10 +476,8 @@ async fn admin_login_post(
             },
         );
         insert_admin_messages(&mut req.context, "login");
-        req.context.insert(
-            "stylesheets",
-            admin.sheets.of(crate::admin::template::Page::Login, ""),
-        );
+        req.context
+            .insert("stylesheets", admin.sheets.of(Page::Login, ""));
         inject_admin_prefix(&mut req.context, &admin.config.prefix);
         req = req
             .insert("lang", current_lang().code())
@@ -505,10 +498,8 @@ async fn admin_login_post(
         if guard.is_locked(&key) {
             let secs = guard.remaining_lockout_secs(&key).unwrap_or(0);
             insert_admin_messages(&mut req.context, "login");
-            req.context.insert(
-                "stylesheets",
-                admin.sheets.of(crate::admin::template::Page::Login, ""),
-            );
+            req.context
+                .insert("stylesheets", admin.sheets.of(Page::Login, ""));
             inject_admin_prefix(&mut req.context, &admin.config.prefix);
             req = req
                 .insert("lang", current_lang().code())
@@ -524,8 +515,7 @@ async fn admin_login_post(
         }
     }
 
-    let result =
-        crate::auth::authenticate_admin(&req.engine.db, &data.username, &data.password).await;
+    let result = authenticate_admin(&req.engine.db, &data.username, &data.password).await;
 
     if let Some(user) = result {
         if let Some(guard) = &admin.login_guard {
@@ -540,10 +530,8 @@ async fn admin_login_post(
             .is_err()
         {
             insert_admin_messages(&mut req.context, "login");
-            req.context.insert(
-                "stylesheets",
-                admin.sheets.of(crate::admin::template::Page::Login, ""),
-            );
+            req.context
+                .insert("stylesheets", admin.sheets.of(Page::Login, ""));
             insert_admin_messages(&mut req.context, "base");
             inject_admin_prefix(&mut req.context, &admin.config.prefix);
             req = req
@@ -567,10 +555,8 @@ async fn admin_login_post(
         }
 
         insert_admin_messages(&mut req.context, "login");
-        req.context.insert(
-            "stylesheets",
-            admin.sheets.of(crate::admin::template::Page::Login, ""),
-        );
+        req.context
+            .insert("stylesheets", admin.sheets.of(Page::Login, ""));
         insert_admin_messages(&mut req.context, "base");
         inject_admin_prefix(&mut req.context, &admin.config.prefix);
         req = req
@@ -621,7 +607,7 @@ async fn admin_logout(
     // A form sent from another site without the token (an older browser sends
     // no `Sec-Fetch-Site`) must not sign the user out.
     if !req.prisme.csrf_valid {
-        crate::middleware::security::csrf::log_refusal(
+        log_refusal(
             &admin.paths.logout,
             runique_i18n::keys::csrf::log::REASON_ADMIN_LOGOUT,
         );

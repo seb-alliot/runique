@@ -10,12 +10,19 @@
 //! or the admin's prefix. A link the account may not follow is `None`, and
 //! its button isn't shown; the gate decides again on the page it leads to.
 use crate::{
-    admin::router::account::summary::AccountSummary,
+    admin::{
+        builder::{list::PER_PAGE_OPTIONS, model_admin::OfferedAction},
+        router::account::summary::AccountSummary,
+    },
     errors::{AppError, ErrorContext},
     http::Request,
     utils::aliases::{AppResult, StrMap},
 };
+use axum::http::StatusCode;
 use serde::Serialize;
+use serde_json::Value;
+use std::collections::HashMap;
+use tera::Context;
 
 /// The model a page is about.
 #[derive(Serialize)]
@@ -85,7 +92,7 @@ pub struct ListEntry {
     /// Its key, as in the URL.
     pub id: String,
     /// Its shown columns and its key, by column name.
-    pub values: serde_json::Value,
+    pub values: Value,
     pub links: RowLinks,
     /// On a group taken back after a departure: who took it.
     pub taken_by: Option<String>,
@@ -130,7 +137,7 @@ impl Pager {
         size: u64,
     ) -> Self {
         let at = |n: u64| query_string(params, page_param, &n.to_string());
-        let mut size_options = crate::admin::builder::list::PER_PAGE_OPTIONS.to_vec();
+        let mut size_options = PER_PAGE_OPTIONS.to_vec();
         if !size_options.contains(&size) {
             size_options.push(size);
             size_options.sort_unstable();
@@ -232,18 +239,18 @@ pub struct ListContext {
     /// Columns holding HTML, shown as plain text in the list.
     pub rich_fields: Vec<String>,
     /// The declared actions the bar offers: `index` (sent as `a<index>`), `label`.
-    pub group_actions: Vec<crate::admin::builder::model_admin::OfferedAction>,
+    pub group_actions: Vec<OfferedAction>,
     /// The list's current query (search, sort, filters, page), so a grouped
     /// action comes back to the same page.
     pub return_qs: String,
     /// Each filter's values with their on/off links, by column (the columns
     /// are in `resource.display.list_filter`). The values applied come first
     /// when they aren't on the page shown, or they couldn't be turned off.
-    pub filter_values: std::collections::HashMap<&'static str, Vec<FilterOption>>,
+    pub filter_values: HashMap<&'static str, Vec<FilterOption>>,
     /// `?…` turning a whole filter off, for the columns that have one applied.
-    pub filter_clear: std::collections::HashMap<&'static str, String>,
+    pub filter_clear: HashMap<&'static str, String>,
     /// The filters applied, column → values.
-    pub active_filters: std::collections::HashMap<String, Vec<String>>,
+    pub active_filters: HashMap<String, Vec<String>>,
     /// The applied filters as a query string (`&filter_col=value…`).
     pub filter_qs: String,
     pub search: String,
@@ -259,7 +266,7 @@ pub struct ListContext {
     /// Arrows and size selector of the list.
     pub list_pager: Pager,
     /// Arrows of each filter group, by column.
-    pub filter_pagers: std::collections::HashMap<&'static str, Pager>,
+    pub filter_pagers: HashMap<&'static str, Pager>,
     /// The filter panel's size selector, one for all its groups; `None`
     /// without a filter.
     pub filter_size_pager: Option<Pager>,
@@ -288,7 +295,7 @@ pub struct DetailContext {
     /// The row's key, as in the URL.
     pub object_id: String,
     /// The row: one entry per readable column.
-    pub entry: serde_json::Value,
+    pub entry: Value,
     /// The row's readable columns, in the order the page shows them.
     pub detail_columns: Vec<&'static str>,
     /// Columns holding HTML, shown sanitized.
@@ -403,7 +410,7 @@ pub struct EditContext {
     pub object_id: String,
     /// The form: `html` (its fields, CSRF and form name included), `errors`,
     /// `form_errors`, `fields`.
-    pub form_fields: serde_json::Value,
+    pub form_fields: Value,
     #[serde(flatten)]
     pub texts: FormTexts,
 }
@@ -419,7 +426,7 @@ pub struct CreateContext {
     pub list_url: String,
     /// The form: `html` (its fields, CSRF and form name included), `errors`,
     /// `form_errors`, `fields`.
-    pub form_fields: serde_json::Value,
+    pub form_fields: Value,
     #[serde(flatten)]
     pub texts: FormTexts,
 }
@@ -439,7 +446,7 @@ pub struct DeleteContext {
     pub object_id: String,
     /// The confirmation form: `html` (its CSRF token and name), `errors`,
     /// `form_errors`. It has no field.
-    pub form_fields: serde_json::Value,
+    pub form_fields: Value,
     /// Where "cancel" leads: the row.
     pub cancel_url: String,
 }
@@ -576,16 +583,16 @@ pub struct RightsContext {
     /// Where the selector sends the group picked (GET, a redirect).
     pub group_select_url: Option<String>,
     /// The form's CSRF token and name: `html`.
-    pub form_fields: serde_json::Value,
+    pub form_fields: Value,
     /// The account's page.
     pub cancel_url: String,
 }
 
 /// Adds `page`'s fields to the request's template context.
 pub(crate) fn put<T: Serialize>(req: &mut Request, page: &T) -> AppResult<()> {
-    let context = tera::Context::from_serialize(page).map_err(|e| {
+    let context = Context::from_serialize(page).map_err(|e| {
         Box::new(AppError::new(ErrorContext::generic(
-            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            StatusCode::INTERNAL_SERVER_ERROR,
             &format!("admin page context: {e}"),
         )))
     })?;

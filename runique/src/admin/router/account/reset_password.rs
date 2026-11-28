@@ -12,8 +12,9 @@ use crate::{
         user::BuiltinUserEntity,
     },
     http::request::Request,
+    mailer::mailer_configured,
     schema::pk::Pk,
-    translation::{t, tf},
+    translation::{current_lang, t, tf},
     utils::aliases::AppResult,
 };
 use axum::{
@@ -56,10 +57,7 @@ impl AccountLink {
         let text = |key: &str| t(key).into_owned();
         let minutes = [minutes.to_string()];
         // The language the mail is written in, for its `<html lang>`.
-        let lang = (
-            "lang",
-            crate::translation::current_lang().code().to_string(),
-        );
+        let lang = ("lang", current_lang().code().to_string());
         match self {
             Self::Reset => vec![
                 lang,
@@ -125,7 +123,7 @@ pub(crate) async fn send_account_link(
     let unavailable =
         || t(runique_i18n::keys::admin::reset_password::error::UNAVAILABLE).into_owned();
     // Asked before anything else: no token is written for a link that can't leave.
-    if !crate::mailer::mailer_configured() {
+    if !mailer_configured() {
         tracing::warn!("admin link not sent: the mailer configuration is missing or incomplete");
         return Err(t(runique_i18n::keys::admin::reset_password::error::NO_MAILER).into_owned());
     }

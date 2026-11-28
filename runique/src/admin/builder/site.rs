@@ -4,10 +4,13 @@ use super::{
     registered::{HistoryScope, RegisteredModel},
 };
 use crate::{
-    admin::router::AdminView,
+    admin::{router::AdminView, template::ModelTemplates},
     auth::{current_user::CurrentUser, meta::ModelMeta, user},
+    forms::{FormEntity, RuniqueForm},
     translation::t,
+    utils::aliases::ADb,
 };
+use sea_orm::{DbErr, IntoActiveModel};
 use std::collections::HashMap;
 
 /// One model as the navigation shows it.
@@ -82,9 +85,7 @@ fn default_groups() -> ModelAdmin<crate::auth::permissions::group::Entity> {
 
 impl AdminSite {
     /// Each model's key and its replaced pages and blocks.
-    pub(crate) fn model_templates(
-        &self,
-    ) -> Vec<(&'static str, &crate::admin::template::ModelTemplates)> {
+    pub(crate) fn model_templates(&self) -> Vec<(&'static str, &ModelTemplates)> {
         self.all().map(|m| (m.key(), m.templates())).collect()
     }
 
@@ -108,9 +109,9 @@ impl AdminSite {
     pub fn register<E, F>(mut self, admin: ModelAdmin<E, F>) -> Self
     where
         E: ModelMeta,
-        F: crate::forms::RuniqueForm + crate::forms::FormEntity<Entity = E> + 'static,
+        F: RuniqueForm + FormEntity<Entity = E> + 'static,
         E::ActiveModel: Send,
-        E::Model: sea_orm::IntoActiveModel<E::ActiveModel>,
+        E::Model: IntoActiveModel<E::ActiveModel>,
     {
         self.models.push(Box::new(admin.with_default_display()));
         self
@@ -122,9 +123,9 @@ impl AdminSite {
     pub fn accounts_users<E, F>(mut self, admin: ModelAdmin<E, F>) -> Self
     where
         E: ModelMeta,
-        F: crate::forms::RuniqueForm + crate::forms::FormEntity<Entity = E> + 'static,
+        F: RuniqueForm + FormEntity<Entity = E> + 'static,
         E::ActiveModel: Send,
-        E::Model: sea_orm::IntoActiveModel<E::ActiveModel>,
+        E::Model: IntoActiveModel<E::ActiveModel>,
     {
         self.accounts = Box::new(admin.with_default_display());
         self
@@ -183,9 +184,9 @@ impl AdminSite {
     /// has none.
     pub(crate) async fn counts(
         &self,
-        db: &crate::utils::aliases::ADb,
+        db: &ADb,
         user: &CurrentUser,
-    ) -> Result<std::collections::HashMap<String, i64>, sea_orm::DbErr> {
+    ) -> Result<std::collections::HashMap<String, i64>, DbErr> {
         use super::registered::{COUNT_RESOURCE, COUNT_TOTAL};
         use sea_orm::{ConnectionTrait, sea_query::UnionType};
         let mut queries = self.all().filter_map(|m| m.count_query(db, user));
@@ -237,11 +238,7 @@ impl AdminSite {
     }
 
     /// The models whose history `user` may read, accounts included.
-    pub(crate) fn history_scopes(
-        &self,
-        db: &crate::utils::aliases::ADb,
-        user: &CurrentUser,
-    ) -> Vec<HistoryScope> {
+    pub(crate) fn history_scopes(&self, db: &ADb, user: &CurrentUser) -> Vec<HistoryScope> {
         self.all()
             .filter_map(|m| m.history_scope(db, user))
             .collect()

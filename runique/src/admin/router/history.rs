@@ -16,6 +16,8 @@ use crate::{
             site::AdminSite,
         },
         router::routes::AdminState,
+        template::Page,
+        translation::insert_admin_messages,
     },
     auth::{
         current_user::CurrentUser,
@@ -23,6 +25,7 @@ use crate::{
         history,
     },
     http::request::Request,
+    templates::static_tera::display_datetime,
     utils::aliases::{AppResult, StrMap},
 };
 use axum::{
@@ -31,6 +34,7 @@ use axum::{
     response::Response,
 };
 use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
+use serde_json::{Map, Value};
 use std::sync::Arc;
 
 /// Entries per page.
@@ -41,7 +45,7 @@ fn row(entry: &history::Model, scope: &HistoryScope, paths: &AdminPaths) -> Hist
     let has_changes = !changes(entry, scope).is_empty();
     HistoryRow {
         id: entry.id,
-        created_at: crate::templates::static_tera::display_datetime(&entry.created_at),
+        created_at: display_datetime(&entry.created_at),
         username: entry.username.clone(),
         resource_key: entry.resource_key.clone(),
         resource_title: scope.title.clone(),
@@ -63,15 +67,15 @@ fn row(entry: &history::Model, scope: &HistoryScope, paths: &AdminPaths) -> Hist
 
 /// The columns `entry` changed that `scope` lets the account read.
 fn changes(entry: &history::Model, scope: &HistoryScope) -> Vec<HistoryChange> {
-    let shown = |value: Option<&serde_json::Value>| match value {
-        Some(serde_json::Value::String(text)) => text.clone(),
+    let shown = |value: Option<&Value>| match value {
+        Some(Value::String(text)) => text.clone(),
         Some(other) => other.to_string(),
         None => String::new(),
     };
     let Some(summary) = entry
         .summary
         .as_deref()
-        .and_then(|s| serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(s).ok())
+        .and_then(|s| serde_json::from_str::<Map<String, Value>>(s).ok())
     else {
         return Vec::new();
     };
@@ -148,15 +152,8 @@ pub(crate) async fn history_view(
         (entries, total.max(1))
     };
 
-    chrome(
-        &mut req,
-        &admin,
-        &site,
-        &user,
-        "",
-        crate::admin::template::Page::History,
-    );
-    crate::admin::translation::insert_admin_messages(&mut req.context, "history");
+    chrome(&mut req, &admin, &site, &user, "", Page::History);
+    insert_admin_messages(&mut req.context, "history");
     put(
         &mut req,
         &HistoryContext {
@@ -202,15 +199,8 @@ pub(crate) async fn history_entry_view(
         return failure(not_found, &req, &admin).await;
     };
 
-    chrome(
-        &mut req,
-        &admin,
-        &site,
-        &user,
-        "",
-        crate::admin::template::Page::HistoryDiff,
-    );
-    crate::admin::translation::insert_admin_messages(&mut req.context, "history");
+    chrome(&mut req, &admin, &site, &user, "", Page::HistoryDiff);
+    insert_admin_messages(&mut req.context, "history");
     put(
         &mut req,
         &HistoryEntryContext {

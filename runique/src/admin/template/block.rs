@@ -2,6 +2,7 @@
 //! stylesheet. The developer replaces either: a `Block` globally or for one
 //! model, a `GlobalBlock` globally only (layout, and pages about no model).
 use super::page::PathAdminTemplate;
+use crate::templates::constants::admin_block;
 use std::collections::HashMap;
 
 /// A block of a model's page: replaceable globally or for one model.
@@ -133,7 +134,7 @@ impl GlobalBlock {
 /// Runique's template for block `name`, from the one table of them.
 fn runique_of(name: &str) -> &'static str {
     // Every variant's name is in the table: `every_block_names_a_template_runique_ships`.
-    crate::templates::constants::admin_block(name).unwrap_or_default()
+    admin_block(name).unwrap_or_default()
 }
 
 /// Where a block's stylesheet comes from: the tag that loads it differs,

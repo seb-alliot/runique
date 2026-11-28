@@ -1,26 +1,44 @@
 //! `GET {admin}/{resource}/{id}/detail`: one row of a model.
 use crate::{
     admin::{
-        builder::site::AdminSite,
+        builder::{registered::AdminError, site::AdminSite},
         router::{
-            AdminView, chrome,
+            AdminView,
+            account::{
+                memberships::group_box,
+                summary::{account_summaries, rank_key},
+            },
+            chrome,
             context::{DetailContext, ResourceRef, RowLinks, put},
             failure,
             routes::AdminState,
             unknown_resource,
         },
+        template::Page,
         translation::insert_admin_messages,
     },
-    auth::current_user::CurrentUser,
+    auth::{
+        constants::resource_key::GROUPES,
+        current_user::CurrentUser,
+        gate::{
+            membership::{managed_groups, may_set_memberships},
+            rights_grid::{may_set, may_set_group},
+        },
+        permissions::{group::Entity, rank::Rang},
+        user::BuiltinUserEntity,
+    },
     http::request::Request,
+    schema::pk::Pk,
     utils::aliases::AppResult,
 };
 use axum::{Extension, extract::Path, response::Response};
+use sea_orm::DbErr;
+use serde_json::Value;
 use std::sync::Arc;
 
 /// `order` cut to the columns the row holds: a column the account can't read
 /// isn't in it. A template's map loses its keys' order, hence the separate list.
-fn readable_in_order(order: Vec<&'static str>, entry: &serde_json::Value) -> Vec<&'static str> {
+fn readable_in_order(order: Vec<&'static str>, entry: &Value) -> Vec<&'static str> {
     order
         .into_iter()
         .filter(|column| entry.get(column).is_some())
@@ -55,39 +73,25 @@ pub(crate) async fn detail_view(
     let mut memberships = Vec::new();
     let mut account_summary = None;
     if model.is_account_table()
-        && let Ok(pk) = id.parse::<crate::schema::pk::Pk>()
-        && let Some(account) =
-            crate::auth::user::BuiltinUserEntity::find_by_id(&req.engine.db, pk).await
+        && let Ok(pk) = id.parse::<Pk>()
+        && let Some(account) = BuiltinUserEntity::find_by_id(&req.engine.db, pk).await
     {
-        let rang = crate::auth::permissions::rank::Rang::from(&account);
-        account_summary =
-            match crate::admin::router::account::summary::account_summaries(&req.engine.db, &[pk])
-                .await
-            {
-                Ok(mut summaries) => summaries.remove(&pk),
-                Err(e) => {
-                    return failure(
-                        crate::admin::builder::registered::AdminError::Db(e),
-                        &req,
-                        &admin,
-                    )
-                    .await;
-                }
-            };
+        let rang = Rang::from(&account);
+        account_summary = match account_summaries(&req.engine.db, &[pk]).await {
+            Ok(mut summaries) => summaries.remove(&pk),
+            Err(e) => {
+                return failure(AdminError::Db(e), &req, &admin).await;
+            }
+        };
         // The groups the viewer manages, ticked when the account belongs.
-        if crate::auth::gate::membership::may_set_memberships(&user, &account) {
+        if may_set_memberships(&user, &account) {
             use crate::auth::permissions::user_groups;
             use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
             let db = &req.engine.db;
-            let groups = match crate::auth::gate::membership::managed_groups(&user, db).await {
+            let groups = match managed_groups(&user, db).await {
                 Ok(groups) => groups,
                 Err(e) => {
-                    return failure(
-                        crate::admin::builder::registered::AdminError::Db(e),
-                        &req,
-                        &admin,
-                    )
-                    .await;
+                    return failure(AdminError::Db(e), &req, &admin).await;
                 }
             };
             let member_of: Vec<i32> = match user_groups::Entity::find()
@@ -97,31 +101,20 @@ pub(crate) async fn detail_view(
             {
                 Ok(rows) => rows.into_iter().map(|m| m.groupe_id).collect(),
                 Err(e) => {
-                    return failure(
-                        crate::admin::builder::registered::AdminError::Db(e),
-                        &req,
-                        &admin,
-                    )
-                    .await;
+                    return failure(AdminError::Db(e), &req, &admin).await;
                 }
             };
             memberships = groups
                 .into_iter()
-                .map(|g| {
-                    (
-                        crate::admin::router::account::memberships::group_box(g.id),
-                        g.nom,
-                        member_of.contains(&g.id),
-                    )
-                })
+                .map(|g| (group_box(g.id), g.nom, member_of.contains(&g.id)))
                 .collect();
         }
-        if crate::auth::gate::rights_grid::may_set(&user, &account).is_ok() {
+        if may_set(&user, &account).is_ok() {
             rights_url = Some(paths.rights_of(key, &id));
         }
         if rang < user.rang && account.id != user.id {
             rank_choices = crate::admin::router::permission::rank::rank_choices(user.rang);
-            current_rank = Some(crate::admin::router::account::summary::rank_key(rang));
+            current_rank = Some(rank_key(rang));
         }
     }
 
@@ -129,26 +122,25 @@ pub(crate) async fn detail_view(
     // dirigeant, and who took it back if it waits for a responsable.
     let mut transfer_receivers = Vec::new();
     let mut taken_by = None;
-    if key == crate::auth::constants::resource_key::GROUPES
+    if key == GROUPES
         && let Ok(group_id) = id.parse::<i32>()
-        && let Ok(Some(group)) =
-            <crate::auth::permissions::group::Entity as sea_orm::EntityTrait>::find_by_id(group_id)
-                .one(&req.engine.db)
-                .await
+        && let Ok(Some(group)) = <Entity as sea_orm::EntityTrait>::find_by_id(group_id)
+            .one(&req.engine.db)
+            .await
     {
         use crate::auth::gate::transfer;
-        if crate::auth::gate::rights_grid::may_set_group(&user, &group).is_ok() {
+        if may_set_group(&user, &group).is_ok() {
             rights_url = Some(paths.rights_of(key, &id));
         }
         let db = &req.engine.db;
         let found = async {
             let taken = transfer::taken_by(&[group_id], db).await?;
-            let receivers = if user.rang >= crate::auth::permissions::rank::Rang::Dirigeant {
+            let receivers = if user.rang >= Rang::Dirigeant {
                 transfer::receivers(&group, db).await?
             } else {
                 Vec::new()
             };
-            Ok::<_, sea_orm::DbErr>((taken, receivers))
+            Ok::<_, DbErr>((taken, receivers))
         };
         match found.await {
             Ok((taken, receivers)) => {
@@ -159,24 +151,12 @@ pub(crate) async fn detail_view(
                     .collect();
             }
             Err(e) => {
-                return failure(
-                    crate::admin::builder::registered::AdminError::Db(e),
-                    &req,
-                    &admin,
-                )
-                .await;
+                return failure(AdminError::Db(e), &req, &admin).await;
             }
         }
     }
 
-    chrome(
-        &mut req,
-        &admin,
-        &site,
-        &user,
-        key,
-        crate::admin::template::Page::Detail,
-    );
+    chrome(&mut req, &admin, &site, &user, key, Page::Detail);
     insert_admin_messages(&mut req.context, "detail");
     insert_admin_messages(&mut req.context, "list");
     put(
@@ -210,10 +190,12 @@ pub(crate) async fn detail_view(
             rich_fields: Vec::new(),
         },
     )?;
-    req.render(admin.config.templates.page_for(
-        crate::admin::template::Page::Detail,
-        Some(model.templates()),
-    ))
+    req.render(
+        admin
+            .config
+            .templates
+            .page_for(Page::Detail, Some(model.templates())),
+    )
 }
 
 #[cfg(test)]

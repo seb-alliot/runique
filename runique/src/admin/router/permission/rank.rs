@@ -8,7 +8,7 @@ use crate::{
             site::AdminSite,
         },
         constants::admin_form,
-        router::{failure, routes::AdminState, unknown_resource},
+        router::{account::summary::rank_label, failure, routes::AdminState, unknown_resource},
     },
     auth::{
         current_user::CurrentUser,
@@ -27,6 +27,7 @@ use axum::{
     extract::Path,
     response::{IntoResponse, Redirect, Response},
 };
+use sea_orm::DbErr;
 use std::sync::Arc;
 
 /// The rank a form value names; the superuser's is never given.
@@ -49,7 +50,7 @@ pub(crate) fn rank_choices(actor: Rang) -> Vec<(&'static str, String)> {
     .into_iter()
     .filter(|(_, rang)| actor >= Rang::Dirigeant && *rang < actor)
     .map(|(value, rang)| {
-        let label = crate::admin::router::account::summary::rank_label(rang);
+        let label = rank_label(rang);
         (value, t(label).into_owned())
     })
     .collect()
@@ -93,7 +94,7 @@ pub(crate) async fn rank_view(
     };
     let outcome = match (form.is_ok(), ids, to) {
         (true, Some(ids), Some(to)) => set_rank(&user, &ids, to, &req.engine.db).await,
-        _ => Err(sea_orm::DbErr::Custom(
+        _ => Err(DbErr::Custom(
             Refusal::new(RefusalReason::NoRight).message(),
         )),
     };
@@ -103,7 +104,7 @@ pub(crate) async fn rank_view(
                 .success(tf(runique_i18n::keys::admin::rank::info::SUCCESS, &[n]))
                 .await
         }
-        Err(sea_orm::DbErr::Custom(message)) => req.notices.error(message).await,
+        Err(DbErr::Custom(message)) => req.notices.error(message).await,
         Err(e) => return failure(AdminError::Db(e), &req, &admin).await,
     }
     Ok(Redirect::to(&back).into_response())

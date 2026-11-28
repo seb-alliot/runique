@@ -1,5 +1,11 @@
 //! Axum middlewares for the admin space — redirection if not authenticated, permission verification.
+use crate::{
+    auth::{BuiltinUserEntity, session::session_is_current},
+    flash::extractor::Message,
+};
+use sea_orm::DbErr;
 use std::sync::Arc;
+use tracing::Level;
 
 use axum::{
     Extension,
@@ -119,7 +125,7 @@ pub(crate) async fn load_admin_user(
             if let Some(level) = crate::log::log_level!(admin.auth) {
                 crate::runique_log!(level, user = %current_user.username, "admin refused: no admin access, sent to the site");
             }
-            let notices = crate::flash::extractor::Message { session };
+            let notices = Message { session };
             notices
                 .error(t(
                     runique_i18n::keys::admin::access::error::ACTION_NOT_ALLOWED,
@@ -137,7 +143,7 @@ pub(crate) async fn load_admin_user(
             // refused here each time, so a row that survives grants nothing.
             logout(&session, db_store.as_deref()).await.trace_or(
                 crate::log::log_level!(session.store),
-                tracing::Level::WARN,
+                Level::WARN,
                 "close the session of an account that may no longer sign in",
             );
         }
@@ -155,14 +161,14 @@ async fn fresh_user(
     engine: &AEngine,
     session: &Session,
     user_id: Pk,
-) -> Result<Option<CurrentUser>, sea_orm::DbErr> {
-    let account = crate::auth::BuiltinUserEntity::lookup_by_id(&engine.db, user_id)
+) -> Result<Option<CurrentUser>, DbErr> {
+    let account = BuiltinUserEntity::lookup_by_id(&engine.db, user_id)
         .await?
         .filter(RuniqueUser::can_sign_in);
     let Some(account) = account else {
         return Ok(None);
     };
-    if !crate::auth::session::session_is_current(session, &account).await {
+    if !session_is_current(session, &account).await {
         return Ok(None);
     }
     let mut user = CurrentUser {
@@ -178,9 +184,9 @@ async fn fresh_user(
 
 /// The answer to a request whose account could not be read: its session is
 /// left open, the page asks to come back.
-fn account_not_read(user_id: Pk, error: &sea_orm::DbErr) -> Response {
+fn account_not_read(user_id: Pk, error: &DbErr) -> Response {
     crate::runique_log!(
-        tracing::Level::WARN,
+        Level::WARN,
         user_id = %user_id,
         error = %error,
         "{}", crate::translation::t(runique_i18n::keys::auth::log::ADMIN_ACCOUNT_NOT_READ)
@@ -226,7 +232,7 @@ pub(crate) async fn declared_route_access(
             if let Some(level) = crate::log::log_level!(admin.auth) {
                 crate::runique_log!(level, user = %user.username, "declared admin route refused: no admin access");
             }
-            let notices = crate::flash::extractor::Message { session };
+            let notices = Message { session };
             notices
                 .error(t(
                     runique_i18n::keys::admin::access::error::ACTION_NOT_ALLOWED,

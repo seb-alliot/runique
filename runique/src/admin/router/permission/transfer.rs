@@ -13,6 +13,7 @@ use crate::{
             routes::AdminState,
             unknown_resource,
         },
+        template::Page,
         translation::insert_admin_messages,
     },
     auth::{
@@ -21,7 +22,7 @@ use crate::{
         gate::{
             Refusal,
             refusal::RefusalReason,
-            transfer::{Transfer, plan, transfer_group},
+            transfer::{Line, Transfer, plan, transfer_group},
         },
         permissions::group,
     },
@@ -34,9 +35,11 @@ use crate::{
 use axum::{
     Extension,
     extract::{Path, Query},
+    http::Method,
     response::{IntoResponse, Redirect, Response},
 };
-use std::sync::Arc;
+use sea_orm::DbErr;
+use std::{collections::HashSet, sync::Arc};
 
 /// The hidden field carrying the losses the confirmation page showed.
 const SHOWN: &str = "shown";
@@ -49,7 +52,7 @@ fn keep_box(i: usize) -> String {
 }
 
 /// The places ticked, or `None` when a box isn't one (forged): refused whole.
-fn ticked(req: &Request) -> Option<std::collections::HashSet<usize>> {
+fn ticked(req: &Request) -> Option<HashSet<usize>> {
     req.prisme
         .data
         .keys()
@@ -59,7 +62,7 @@ fn ticked(req: &Request) -> Option<std::collections::HashSet<usize>> {
 }
 
 /// A right as the confirmation names it: the table's, or a column's.
-fn right_label(line: &crate::auth::gate::transfer::Line, site: &AdminSite) -> (String, String) {
+fn right_label(line: &Line, site: &AdminSite) -> (String, String) {
     let table = site
         .model(&line.resource_key)
         .map_or_else(|| line.resource_key.clone(), |m| m.title());
@@ -76,9 +79,9 @@ fn right_label(line: &crate::auth::gate::transfer::Line, site: &AdminSite) -> (S
 }
 
 /// A `DbErr` from the gate as the message shown.
-fn message(e: sea_orm::DbErr) -> String {
+fn message(e: DbErr) -> String {
     match e {
-        sea_orm::DbErr::Custom(message) => message,
+        DbErr::Custom(message) => message,
         other => {
             tracing::error!(error = %other, "group transfer failed");
             Refusal::new(RefusalReason::WriteFailed).message()
@@ -107,7 +110,7 @@ pub(crate) async fn transfer_view(
     let back = paths.detail_of(&site, model.key(), &id);
     let here = paths.transfer_of(model.key(), &id);
 
-    if req.method == axum::http::Method::POST {
+    if req.method == Method::POST {
         let form = req.form::<ConfirmForm<group::Entity>>(admin_form::TRANSFER);
         let field = |name: &str| req.prisme.data.get(name).cloned().unwrap_or_default();
         let (to, shown) = (field(TO), field(SHOWN));
@@ -154,21 +157,14 @@ pub(crate) async fn transfer_view(
     };
     let plan = match plan(&user, groupe_id, to, &req.engine.db).await {
         Ok(plan) => plan,
-        Err(sea_orm::DbErr::Custom(message)) => {
+        Err(DbErr::Custom(message)) => {
             req.notices.error(message).await;
             return Ok(Redirect::to(&back).into_response());
         }
         Err(e) => return failure(AdminError::Db(e), &req, &admin).await,
     };
 
-    chrome(
-        &mut req,
-        &admin,
-        &site,
-        &user,
-        model.key(),
-        crate::admin::template::Page::Transfer,
-    );
+    chrome(&mut req, &admin, &site, &user, model.key(), Page::Transfer);
     insert_admin_messages(&mut req.context, "transfer");
     put(
         &mut req,

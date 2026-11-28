@@ -10,6 +10,7 @@ use crate::{
             routes::AdminState,
             unknown_resource,
         },
+        template::Page,
         translation::insert_admin_messages,
     },
     auth::current_user::CurrentUser,
@@ -47,14 +48,7 @@ pub(crate) async fn delete_view(
     };
     let cancel_url = admin.paths.detail_of(&site, key, &id);
 
-    chrome(
-        &mut req,
-        &admin,
-        &site,
-        &user,
-        key,
-        crate::admin::template::Page::Delete,
-    );
+    chrome(&mut req, &admin, &site, &user, key, Page::Delete);
     insert_admin_messages(&mut req.context, "delete");
     put(
         &mut req,
@@ -69,8 +63,10 @@ pub(crate) async fn delete_view(
             cancel_url,
         },
     )?;
-    req.render(admin.config.templates.page_for(
-        crate::admin::template::Page::Delete,
-        Some(model.templates()),
-    ))
+    req.render(
+        admin
+            .config
+            .templates
+            .page_for(Page::Delete, Some(model.templates())),
+    )
 }

@@ -2,7 +2,10 @@
 //! serves it and every link of a page is filled from it, so a link can't
 //! point anywhere the router doesn't answer. Pages get their links built
 //! (see `context.rs`), never a route name or a prefix to assemble.
-use crate::admin::{builder::site::AdminSite, router::AdminView};
+use crate::{
+    admin::{builder::site::AdminSite, router::AdminView},
+    auth::constants::resource_key::GROUPES,
+};
 
 /// The pattern of every admin route, under the admin's public base.
 #[derive(Clone, Debug)]
@@ -49,10 +52,7 @@ impl AdminPaths {
             rights: format!("{prefix}/{{resource}}/{{id}}/rights"),
             groups: format!("{prefix}/{{resource}}/{{id}}/groups"),
             transfer: format!("{prefix}/{{resource}}/{{id}}/transfer"),
-            group_select: format!(
-                "{prefix}/{}/rights",
-                crate::auth::constants::resource_key::GROUPES
-            ),
+            group_select: format!("{prefix}/{}/rights", GROUPES),
             history: format!("{prefix}/history"),
             history_entry: format!("{prefix}/history/{{id}}"),
         }

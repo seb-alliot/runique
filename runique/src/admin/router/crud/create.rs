@@ -10,10 +10,12 @@ use crate::{
             routes::AdminState,
             unknown_resource,
         },
+        template::Page,
         translation::insert_admin_messages,
     },
     auth::{current_user::CurrentUser, user::BuiltinUserEntity},
     http::request::Request,
+    mailer::mailer_configured,
     translation::t,
     utils::aliases::AppResult,
 };
@@ -39,7 +41,7 @@ pub(crate) async fn create_view(
     // The staff never holds a password: a created account is opened by the
     // link mailed to its owner. Without a complete mailer configuration that
     // link can't leave, so no account is created at all.
-    if model.is_account_table() && !crate::mailer::mailer_configured() {
+    if model.is_account_table() && !mailer_configured() {
         tracing::warn!("account not created: the mailer configuration is missing or incomplete");
         req.notices
             .error(t(
@@ -80,14 +82,7 @@ pub(crate) async fn create_view(
         Err(error) => return failure(error, &req, &admin).await,
     };
 
-    chrome(
-        &mut req,
-        &admin,
-        &site,
-        &user,
-        key,
-        crate::admin::template::Page::Create,
-    );
+    chrome(&mut req, &admin, &site, &user, key, Page::Create);
     insert_admin_messages(&mut req.context, "create");
     put(
         &mut req,
@@ -107,8 +102,10 @@ pub(crate) async fn create_view(
             },
         },
     )?;
-    req.render(admin.config.templates.page_for(
-        crate::admin::template::Page::Create,
-        Some(model.templates()),
-    ))
+    req.render(
+        admin
+            .config
+            .templates
+            .page_for(Page::Create, Some(model.templates())),
+    )
 }

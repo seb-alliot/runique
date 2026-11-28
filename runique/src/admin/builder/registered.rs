@@ -7,7 +7,7 @@ use super::{
     model_admin::{ListPage, ModelAdmin, OfferedAction, prefill},
 };
 use crate::{
-    admin::constants::admin_form,
+    admin::{constants::admin_form, template::ModelTemplates},
     auth::{
         current_user::CurrentUser,
         gate::{
@@ -19,11 +19,19 @@ use crate::{
         },
         meta::ModelMeta,
     },
-    forms::{traits::runique_form::FormAccess, validation_form::ValidationForm},
+    forms::{
+        FormEntity, RuniqueForm, data::save::row_param, form::Forms,
+        traits::runique_form::FormAccess, validation_form::ValidationForm,
+    },
     http::request::Request,
+    schema::pk::Pk,
+    translation::t,
     utils::aliases::ADb,
 };
-use sea_orm::{DbErr, IdenStatic, Iterable, PrimaryKeyToColumn, sea_query::SelectStatement};
+use sea_orm::{
+    DbErr, IdenStatic, IntoActiveModel, Iterable, PrimaryKeyToColumn, sea_query::SelectStatement,
+};
+use serde_json::Value;
 
 /// Column aliases of `count_query`.
 pub(crate) const COUNT_RESOURCE: &str = "resource";
@@ -73,7 +81,7 @@ pub(crate) enum BulkOutcome {
 /// What a form page (create, edit) shows next.
 pub(crate) enum FormOutcome {
     /// The form to render: filled from the row, or as sent with its errors.
-    Show(serde_json::Value),
+    Show(Value),
     /// Written: the page redirects. On the accounts' table, the email the
     /// form wrote, for the welcome link a created account gets.
     Saved(Option<String>),
@@ -119,7 +127,7 @@ pub(crate) trait RegisteredModel: Send + Sync {
     fn title(&self) -> String;
 
     /// Its pages, or blocks of them, replaced for it only.
-    fn templates(&self) -> &crate::admin::template::ModelTemplates;
+    fn templates(&self) -> &ModelTemplates;
 
     /// Whether the navigation lists it for `user`: at least one right on it,
     /// as the gate resolves them. Listing opens nothing: each page still asks
@@ -149,12 +157,7 @@ pub(crate) trait RegisteredModel: Send + Sync {
     /// What `user` may see of this model's history, or `None`.
     fn history_scope(&self, db: &ADb, user: &CurrentUser) -> Option<HistoryScope>;
     /// One row's page, `id` as it came in the URL.
-    async fn detail(
-        &self,
-        db: &ADb,
-        user: &CurrentUser,
-        id: &str,
-    ) -> Result<serde_json::Value, AdminError>;
+    async fn detail(&self, db: &ADb, user: &CurrentUser, id: &str) -> Result<Value, AdminError>;
     /// The columns of a row's page, in the order it shows them.
     fn detail_order(&self) -> Vec<&'static str>;
     /// The create page: on GET the empty form, on POST the form sent,
@@ -174,7 +177,7 @@ pub(crate) trait RegisteredModel: Send + Sync {
         req: &Request,
         user: &CurrentUser,
         id: &str,
-    ) -> Result<Option<crate::schema::pk::Pk>, AdminError>;
+    ) -> Result<Option<Pk>, AdminError>;
     /// A grouped action on the checked rows, sent by the list's bar: all of
     /// them or none, through the gate as `user`. At most a page of rows.
     async fn bulk(
@@ -205,9 +208,9 @@ pub(crate) trait RegisteredModel: Send + Sync {
 impl<E, F> RegisteredModel for ModelAdmin<E, F>
 where
     E: ModelMeta,
-    F: crate::forms::RuniqueForm + crate::forms::FormEntity<Entity = E>,
+    F: RuniqueForm + FormEntity<Entity = E>,
     E::ActiveModel: Send,
-    E::Model: sea_orm::IntoActiveModel<E::ActiveModel>,
+    E::Model: IntoActiveModel<E::ActiveModel>,
 {
     fn key(&self) -> &'static str {
         E::KEY
@@ -241,7 +244,7 @@ where
         CrudAction::resolve(user, E::KEY)
     }
 
-    fn templates(&self) -> &crate::admin::template::ModelTemplates {
+    fn templates(&self) -> &ModelTemplates {
         &self.templates
     }
 
@@ -348,12 +351,7 @@ where
         })
     }
 
-    async fn detail(
-        &self,
-        db: &ADb,
-        user: &CurrentUser,
-        id: &str,
-    ) -> Result<serde_json::Value, AdminError> {
+    async fn detail(&self, db: &ADb, user: &CurrentUser, id: &str) -> Result<Value, AdminError> {
         let not_found = || AdminError::Refused(Refusal::new(RefusalReason::NotFound));
         let id = id.parse::<PkOf<E>>().map_err(|_| not_found())?;
         let proof = authorize_view::<E>(&GateCtx { db, user }, id)?;
@@ -410,7 +408,7 @@ where
         req: &Request,
         user: &CurrentUser,
         id: &str,
-    ) -> Result<Option<crate::schema::pk::Pk>, AdminError> {
+    ) -> Result<Option<Pk>, AdminError> {
         let not_found = || AdminError::Refused(Refusal::new(RefusalReason::NotFound));
         if !E::IS_ACCOUNT_TABLE {
             return Err(not_found());
@@ -440,9 +438,7 @@ where
             return Err(not_found());
         }
         // The accounts' table keys its rows by `Pk`: the same text reads as one.
-        id.parse::<crate::schema::pk::Pk>()
-            .map(Some)
-            .map_err(|_| not_found())
+        id.parse::<Pk>().map(Some).map_err(|_| not_found())
     }
 
     async fn bulk(
@@ -477,8 +473,7 @@ where
         };
         if ids.is_empty() {
             return Ok(BulkOutcome::Refused(
-                crate::translation::t(runique_i18n::keys::admin::bulk::error::NO_SELECTION)
-                    .into_owned(),
+                t(runique_i18n::keys::admin::bulk::error::NO_SELECTION).into_owned(),
             ));
         }
         if ids.len() as u64 > self.list.default_page_size(site_page_size) {
@@ -501,7 +496,7 @@ where
         match bulk_as::<E>(user, &ids, &change, &req.engine.db).await {
             Ok(count) => {
                 if let Some(level) = level {
-                    crate::runique_log!(level, resource = E::KEY, action = %action, rows = count, "{}", crate::translation::t(runique_i18n::keys::admin::log::BULK_DONE));
+                    crate::runique_log!(level, resource = E::KEY, action = %action, rows = count, "{}", t(runique_i18n::keys::admin::log::BULK_DONE));
                 }
                 Ok(match change {
                     BulkChange::Delete => BulkOutcome::Deleted(count),
@@ -510,7 +505,7 @@ where
             }
             Err(sea_orm::DbErr::Custom(message)) => {
                 if let Some(level) = level {
-                    crate::runique_log!(level, resource = E::KEY, action = %action, "{}", crate::translation::t(runique_i18n::keys::admin::log::BULK_REFUSED));
+                    crate::runique_log!(level, resource = E::KEY, action = %action, "{}", t(runique_i18n::keys::admin::log::BULK_REFUSED));
                 }
                 Ok(BulkOutcome::Refused(message))
             }
@@ -534,7 +529,7 @@ where
         let mut form = req.form::<ConfirmForm<E>>(admin_form::DELETE);
         let forms = form.forms_mut();
         forms.path_params.insert(
-            crate::forms::data::save::row_param(admin_form::DELETE, self.pk_column()),
+            row_param(admin_form::DELETE, self.pk_column()),
             id.to_string(),
         );
 
@@ -592,7 +587,7 @@ where
         // `save_as` looks for the row under the form's name and the key's; the
         // route calls it `{id}` whatever the model names it.
         forms.path_params.insert(
-            crate::forms::data::save::row_param(admin_form::UPDATE, self.pk_column()),
+            row_param(admin_form::UPDATE, self.pk_column()),
             id.to_string(),
         );
 
@@ -605,7 +600,7 @@ where
             {
                 for (name, values) in E::list_values(key, &**db).await? {
                     if lists.contains(&name) {
-                        read.insert(name.to_string(), serde_json::Value::String(values));
+                        read.insert(name.to_string(), Value::String(values));
                     }
                 }
             }
@@ -625,14 +620,14 @@ fn log_crud(resource: &'static str, outcome: &'static str) {
         crate::runique_log!(
             level,
             resource,
-            outcome = %crate::translation::t(outcome),
+            outcome = %t(outcome),
             "{}",
-            crate::translation::t(runique_i18n::keys::admin::log::WRITE)
+            t(runique_i18n::keys::admin::log::WRITE)
         );
     }
 }
 
-fn shown(form: &crate::forms::form::Forms) -> serde_json::Value {
+fn shown(form: &Forms) -> Value {
     serde_json::to_value(form).unwrap_or_default()
 }
 
@@ -641,9 +636,9 @@ fn shown(form: &crate::forms::form::Forms) -> serde_json::Value {
 async fn save_through_gate<E, F>(form: F, req: &Request) -> Result<FormOutcome, AdminError>
 where
     E: ModelMeta,
-    F: crate::forms::RuniqueForm + crate::forms::FormEntity<Entity = E>,
+    F: RuniqueForm + FormEntity<Entity = E>,
     E::ActiveModel: Send,
-    E::Model: sea_orm::IntoActiveModel<E::ActiveModel>,
+    E::Model: IntoActiveModel<E::ActiveModel>,
 {
     match ValidationForm::try_form(form, req).await {
         Ok(form) => match form.save(&req.engine.db).await {

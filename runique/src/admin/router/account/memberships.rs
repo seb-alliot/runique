@@ -22,6 +22,7 @@ use axum::{
     extract::Path,
     response::{IntoResponse, Redirect, Response},
 };
+use sea_orm::DbErr;
 use std::sync::Arc;
 
 /// The box of group `id` in the account's page.
@@ -67,7 +68,7 @@ pub(crate) async fn memberships_view(
             Some(groups) => set_memberships(&user, target, &groups, &req.engine.db)
                 .await
                 .map_err(|e| match e {
-                    sea_orm::DbErr::Custom(message) => message,
+                    DbErr::Custom(message) => message,
                     other => {
                         tracing::error!(error = %other, "account groups write failed");
                         Refusal::new(RefusalReason::WriteFailed).message()

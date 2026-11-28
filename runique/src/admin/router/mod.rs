@@ -3,6 +3,8 @@
 //! `{prefix}/{resource}/{id}/detail`. The model pages hold only their
 //! routes: authentication, the current user, `noindex` and `AdminState` come
 //! from the layers `build_admin_router` wraps around them, never copied.
+use crate::{admin::template::Page, translation::current_lang};
+use serde_json::Value;
 pub mod account;
 pub mod context;
 pub mod crud;
@@ -85,13 +87,13 @@ fn chrome(
     site: &AdminSite,
     user: &CurrentUser,
     current_resource: &str,
-    page: crate::admin::template::Page,
+    page: Page,
 ) {
     insert_admin_messages(&mut req.context, "base");
     req.context
         .insert("stylesheets", admin.sheets.of(page, current_resource));
     inject_admin_prefix(&mut req.context, &admin.config.prefix);
-    let resources: Vec<serde_json::Value> = site
+    let resources: Vec<Value> = site
         .navigation(user, &admin.config.resource_order)
         .into_iter()
         .map(|entry| {
@@ -117,8 +119,7 @@ fn chrome(
     };
     req.context.insert("nav", &nav);
     req.context.insert("site_title", &admin.config.site_title);
-    req.context
-        .insert("lang", crate::translation::current_lang().code());
+    req.context.insert("lang", current_lang().code());
 }
 
 /// What a page declared `admin` in `urlpatterns!` needs to extend
@@ -130,7 +131,7 @@ pub fn admin_page_context(
     req: &mut Request,
     admin: &AdminState,
     site: &AdminSite,
-    page: crate::admin::template::Page,
+    page: Page,
     current_resource: &str,
 ) {
     let Some(user) = req.user.clone() else {

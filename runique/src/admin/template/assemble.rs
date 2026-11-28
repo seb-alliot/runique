@@ -8,7 +8,9 @@ use super::{
     page::{AdminTemplate, ModelTemplates},
     stylesheet::Page,
 };
-use crate::templates::loader::BlockDispatch;
+use crate::{admin::constants::ADMIN_MESSAGE_KEYS, templates::loader::BlockDispatch};
+use std::collections::HashSet;
+use tera::Tera;
 
 /// `text` as a Tera string literal's content, refused when it could close
 /// the literal or open a tag: a key or a path is written into the template.
@@ -200,7 +202,7 @@ fn provided_unread(page: Page) -> Vec<String> {
     for section in message_sections(page) {
         let prefix = format!("admin.{section}.");
         keys.extend(
-            crate::admin::constants::ADMIN_MESSAGE_KEYS
+            ADMIN_MESSAGE_KEYS
                 .iter()
                 .filter(|(_, key)| key.starts_with(&prefix))
                 .map(|(variable, _)| variable.to_string()),
@@ -223,11 +225,11 @@ const TERA_CONTEXT: &str = "__tera_context";
 /// Runique's own templates for that page read (`pristine` holds them without
 /// any replacement), plus the ones its context holds unread.
 fn allowed_keys(
-    pristine: &tera::Tera,
+    pristine: &Tera,
     templates: &AdminTemplate,
     page: Page,
-) -> Result<std::collections::HashSet<String>, String> {
-    let mut keys: std::collections::HashSet<String> = pristine
+) -> Result<HashSet<String>, String> {
+    let mut keys: HashSet<String> = pristine
         .get_template_variables(runique_page(templates, page))
         .map_err(|e| e.to_string())?
         .into_iter()
@@ -239,7 +241,7 @@ fn allowed_keys(
 }
 
 /// The closest of `known` to `name`, when close enough to be a typo.
-fn closest<'a>(name: &str, known: &'a std::collections::HashSet<String>) -> Option<&'a str> {
+fn closest<'a>(name: &str, known: &'a HashSet<String>) -> Option<&'a str> {
     fn distance(a: &str, b: &str) -> usize {
         let b: Vec<char> = b.chars().collect();
         let mut row: Vec<usize> = (0..=b.len()).collect();
@@ -272,13 +274,13 @@ fn closest<'a>(name: &str, known: &'a std::collections::HashSet<String>) -> Opti
 /// any replacement. A block shown on several pages may read what any of them
 /// holds.
 pub(crate) fn unknown_variables(
-    pristine: &tera::Tera,
-    loaded: &tera::Tera,
+    pristine: &Tera,
+    loaded: &Tera,
     templates: &AdminTemplate,
     models: &[(&'static str, &ModelTemplates)],
 ) -> Result<(), String> {
     let mut problems = Vec::new();
-    let mut check = |label: String, path: &str, allowed: &std::collections::HashSet<String>| {
+    let mut check = |label: String, path: &str, allowed: &HashSet<String>| {
         let Ok(vars) = loaded.get_template_variables(path) else {
             return;
         };
@@ -323,7 +325,7 @@ pub(crate) fn unknown_variables(
     }
 
     let union_of = |shown_on: &dyn Fn(Page) -> bool| {
-        let mut keys = std::collections::HashSet::new();
+        let mut keys = HashSet::new();
         for (page, allowed) in &pages {
             if shown_on(*page) {
                 keys.extend(allowed.iter().cloned());

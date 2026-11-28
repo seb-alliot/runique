@@ -4,6 +4,7 @@ use super::{
     list::{ListConfig, ListQuery, TOTAL},
 };
 use crate::{
+    admin::template::ModelTemplates,
     auth::{
         gate::{Authorized, Guarded, List, View},
         meta::ModelMeta,
@@ -17,6 +18,8 @@ use sea_orm::{
     ColumnTrait, DbErr, FromQueryResult, IdenStatic, Iterable, PaginatorTrait, PrimaryKeyToColumn,
     QueryFilter, QueryResult, QuerySelect,
 };
+use serde_json::Value;
+use std::marker::PhantomData;
 
 /// `columns` with those holding a date or a time last, each group in its order.
 fn time_columns_last<C: ColumnTrait>(columns: impl IntoIterator<Item = C>) -> Vec<C> {
@@ -46,11 +49,11 @@ pub struct ModelAdmin<E: ModelMeta, F = <E as ModelMeta>::Form> {
     /// The model's name in the admin, when set with `title()`.
     pub(super) title: Option<String>,
     /// Its pages, or blocks of them, replaced for this model only.
-    pub(super) templates: crate::admin::template::ModelTemplates,
+    pub(super) templates: ModelTemplates,
     /// `F` was given to `with_form`: its fields are held to the model at boot.
     pub(super) custom_form: bool,
     /// The form the create and edit pages build: `F`.
-    pub(super) form_type: std::marker::PhantomData<fn() -> F>,
+    pub(super) form_type: PhantomData<fn() -> F>,
 }
 
 /// One filter of a list: its column and the page of values it offers.
@@ -81,7 +84,7 @@ pub(crate) struct ListPage {
     pub columns: Vec<&'static str>,
     /// The readable columns the list sorts on, in their declared order.
     pub sortable: Vec<&'static str>,
-    pub rows: Vec<serde_json::Value>,
+    pub rows: Vec<Value>,
     pub total: u64,
     pub page: u64,
     pub page_size: u64,
@@ -95,14 +98,14 @@ pub(crate) struct ListPage {
 /// as a typed integer (SQLite gives a computed column no type, so the JSON
 /// conversion alone would drop it).
 struct ListRow {
-    fields: serde_json::Value,
+    fields: Value,
     total: i64,
 }
 
 impl FromQueryResult for ListRow {
     fn from_query_result(res: &QueryResult, pre: &str) -> Result<Self, DbErr> {
         Ok(Self {
-            fields: serde_json::Value::from_query_result(res, pre)?,
+            fields: Value::from_query_result(res, pre)?,
             total: res.try_get(pre, TOTAL)?,
         })
     }
@@ -116,7 +119,7 @@ impl<E: ModelMeta> Default for ModelAdmin<E> {
             title: None,
             templates: Default::default(),
             custom_form: false,
-            form_type: std::marker::PhantomData,
+            form_type: PhantomData,
         }
     }
 }
@@ -149,7 +152,7 @@ where
             title: self.title,
             templates: self.templates,
             custom_form: true,
-            form_type: std::marker::PhantomData,
+            form_type: PhantomData,
         }
     }
 
@@ -182,10 +185,7 @@ where
 
     /// Replaces this model's pages, or blocks of them (their HTML, their
     /// stylesheet), over the global replacements.
-    pub fn templates(
-        mut self,
-        t: impl FnOnce(crate::admin::template::ModelTemplates) -> crate::admin::template::ModelTemplates,
-    ) -> Self {
+    pub fn templates(mut self, t: impl FnOnce(ModelTemplates) -> ModelTemplates) -> Self {
         self.templates = t(self.templates);
         self
     }
@@ -466,7 +466,7 @@ where
         &self,
         db: &ADb,
         proof: &Authorized<View, E>,
-    ) -> Result<Option<serde_json::Value>, DbErr> {
+    ) -> Result<Option<Value>, DbErr> {
         let Some(id) = proof.id() else {
             return Ok(None);
         };
@@ -586,14 +586,14 @@ where
 
 /// Puts `row`'s values in the fields of the same name, as the page shows
 /// them; a NULL leaves its field empty.
-pub(crate) fn prefill(form: &mut Forms, row: &serde_json::Value) {
+pub(crate) fn prefill(form: &mut Forms, row: &Value) {
     let Some(row) = row.as_object() else {
         return;
     };
     for (name, field) in form.fields.iter_mut() {
         let text = match row.get(name) {
-            None | Some(serde_json::Value::Null) => continue,
-            Some(serde_json::Value::String(text)) => text.clone(),
+            None | Some(Value::Null) => continue,
+            Some(Value::String(text)) => text.clone(),
             Some(other) => other.to_string(),
         };
         field.set_value(&text);

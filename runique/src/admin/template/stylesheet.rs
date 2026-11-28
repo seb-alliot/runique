@@ -8,7 +8,11 @@ use super::{
 };
 use crate::utils::aliases::StrMap;
 use serde::Serialize;
-use std::collections::HashMap;
+use std::{
+    cell::RefCell,
+    collections::{BTreeSet, HashMap},
+};
+use tracing::Level;
 
 /// The variables every other sheet reads, and nothing else (`:root` and
 /// the light theme): kept first, under any replacement.
@@ -217,7 +221,7 @@ impl PageSheets {
         use crate::templates::static_tera::asset_url;
         // Runique's own sheets that aren't on disk: the admin would be served
         // without its style (a `STATIC_RUNIQUE_PATH` that doesn't hold them).
-        let missing = std::cell::RefCell::new(std::collections::BTreeSet::new());
+        let missing = RefCell::new(BTreeSet::new());
         let serve = |sheet: Stylesheet| -> Result<ServedStylesheet, String> {
             Ok(match sheet {
                 Stylesheet::Runique(path) => {
@@ -265,7 +269,7 @@ impl PageSheets {
         if !missing.is_empty() {
             // Never silent: every admin page would load unstyled.
             crate::runique_log!(
-                crate::log::log_level!(builder.statics).unwrap_or(tracing::Level::WARN),
+                crate::log::log_level!(builder.statics).unwrap_or(Level::WARN),
                 sheets = ?missing,
                 "{}", crate::translation::t(runique_i18n::keys::admin::log::BOOT_STYLESHEETS_MISSING)
             );
