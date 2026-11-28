@@ -334,7 +334,7 @@ mod tests {
         );
         assert_eq!(
             current_test_name(),
-            "logic::builder::tests::panic_messages_and_test_names"
+            "builder::tests::panic_messages_and_test_names"
         );
     }
 
